@@ -79,6 +79,8 @@ Editable via the wrench icon in the device toolbar (requires read-write role):
 - **In case of failure, also try all known credentials** — falls back to every credential set associated with the device's domain (or with no domain) if the selected set(s) fail.
 - **Comments** — free text.
 
+Depending on the device's driver, extra **driver-defined options** may also be editable here — admin-configurable settings the driver reads back at runtime (for example, a "take full backup archive" toggle). Which options exist, and their type, is defined by the driver — see [Device drivers](device-drivers.md).
+
 A device can have several **network accesses** (management addresses), each independently configurable — see [Connection security](#connection-security) below for the per-access settings. Disabling a device (toolbar button) stops all snapshot tasks against it until re-enabled.
 
 ## Connection security

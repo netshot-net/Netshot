@@ -1,8 +1,8 @@
 # Loading an alternative driver into Netshot
 
-A driver is a piece of (JavaScript) script which allows Netshot to talk with a specific family of devices. Netshot comes by default with a number of included "official" drivers, generally in their last known version at the moment of the package release. You can find the list of official Netshot driver files in the [`src/main/resources/drivers`](https://github.com/netshot-net/Netshot/tree/master/src/main/resources/drivers) folder of the repository.
+A driver is a piece of (JavaScript) script which allows Netshot to talk with a specific family of devices — see [Device drivers](../user-guide/device-drivers.md) for the concept. Netshot comes by default with a number of included "official" drivers, generally in their last known version at the moment of the package release. You can find the list of official Netshot driver files in the [`src/main/resources/drivers`](https://github.com/netshot-net/Netshot/tree/master/src/main/resources/drivers) folder of the repository.
 
-If you want to write your own driver, or want to install a patched version of an existing driver, you can load that additional driver into Netshot by following these steps:
+If you want to write your own driver — see [Writing a new driver](writing-a-driver.md) — or want to install a patched version of an existing driver, you can load that additional driver into Netshot by following these steps:
 
 1. Copy the driver (`file.js`) to the server where Netshot runs, into the driver folder, `/usr/local/netshot/drivers` by default.
 2. In the Netshot web interface, as an admin user, go to the Admin tab and click **Reload the drivers** at the top of the page.
