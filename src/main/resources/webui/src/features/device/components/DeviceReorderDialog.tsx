@@ -84,6 +84,7 @@ export default function DeviceReorderDialog(props: DeviceReorderDialogProps) {
       size="sm"
       open={dialogConfig.props.isOpen}
       closeOnEscape={false}
+      closeOnInteractOutside={false}
       onOpenChange={(e) => {
         if (!e.open) {
           dialogConfig.close()

@@ -75,6 +75,7 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
       size="lg"
       open={dialogConfig.props.isOpen}
       closeOnEscape={false}
+      closeOnInteractOutside={false}
       onOpenChange={(e) => {
         if (!e.open) {
           dialogConfig.close()

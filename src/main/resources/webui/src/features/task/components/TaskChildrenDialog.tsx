@@ -42,6 +42,7 @@ export default function TaskChildrenDialog(props: TaskChildrenDialogProps) {
       motionPreset="slide-in-bottom"
       size="xl"
       closeOnEscape={false}
+      closeOnInteractOutside={false}
       onOpenChange={(e) => {
         if (!e.open) {
           dialogConfig.close()
