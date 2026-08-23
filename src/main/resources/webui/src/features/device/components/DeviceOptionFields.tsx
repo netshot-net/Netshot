@@ -1,7 +1,6 @@
 import { DeviceOptionDefinition, DriverOptionType } from "@/types"
 import { Stack } from "@chakra-ui/react"
 import { useEffect } from "react"
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { Control, UseFormSetValue, useWatch } from "react-hook-form"
 import DriverValueField from "./DriverValueField"
 
