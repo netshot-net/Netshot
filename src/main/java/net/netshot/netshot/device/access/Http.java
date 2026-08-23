@@ -19,8 +19,12 @@
 package net.netshot.netshot.device.access;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -172,6 +176,25 @@ public class Http implements Client {
 			this.status = status;
 			this.headers = headers;
 			this.body = body;
+		}
+	}
+
+	/**
+	 * The result of an HTTP download (response body streamed straight to a
+	 * file instead of decoded as a {@link String}), handed back to JS.
+	 */
+	public static final class HttpDownloadResult {
+		@Getter
+		private final int status;
+		@Getter
+		private final Map<String, String> headers;
+		@Getter
+		private final long size;
+
+		public HttpDownloadResult(int status, Map<String, String> headers, long size) {
+			this.status = status;
+			this.headers = headers;
+			this.size = size;
 		}
 	}
 
@@ -385,7 +408,7 @@ public class Http implements Client {
 			this.taskContext.trace("{} {}", method, uri);
 			this.taskContext.trace("{}", auth.getData() == null ? Map.of() : auth.getData());
 		}
-		Invocation.Builder invocationBuilder = this.buildInvocation(uri, Map.of(), Map.of(), Map.of());
+		Invocation.Builder invocationBuilder = this.buildInvocation(uri, Map.of(), Map.of(), Map.of(), true);
 		Response response;
 		try {
 			response = invocationBuilder.method(method, entity);
@@ -502,21 +525,27 @@ public class Http implements Client {
 	/**
 	 * Builds a Jersey invocation for a given URI, with query params/headers/cookies applied.
 	 * @param uri the absolute request URI
-	 * @param headers the request headers to apply (a "Content-Type" entry, if any, is skipped - it is
-	 *        applied separately via {@link Entity#entity(Object, String)} when sending the request)
+	 * @param headers the request headers to apply. A "Content-Type" entry is skipped only when
+	 *        {@code entityWillSetContentType} is true - i.e. when the caller is about to attach a
+	 *        body via {@link Entity#entity(Object, String)}, which sets the Content-Type header
+	 *        itself (a duplicate/conflicting header set here would fight with it). Otherwise (no
+	 *        body - the common case for a GET), a driver-provided "Content-Type" is sent as a plain
+	 *        header like any other: some servers unusually insist on seeing one even without a body,
+	 *        and otherwise there would be no way for a driver to work around that.
 	 * @param query the request query parameters to apply
 	 * @param cookies the request cookies to apply
+	 * @param entityWillSetContentType whether the caller is about to attach a body entity (which sets its own Content-Type)
 	 * @return the configured invocation builder
 	 */
 	private Invocation.Builder buildInvocation(URI uri, Map<String, String> headers,
-			Map<String, String> query, Map<String, String> cookies) {
+			Map<String, String> query, Map<String, String> cookies, boolean entityWillSetContentType) {
 		WebTarget target = this.jerseyClient.target(uri);
 		for (Map.Entry<String, String> entry : query.entrySet()) {
 			target = target.queryParam(entry.getKey(), entry.getValue());
 		}
 		Invocation.Builder invocationBuilder = target.request();
 		for (Map.Entry<String, String> entry : headers.entrySet()) {
-			if ("Content-Type".equalsIgnoreCase(entry.getKey())) {
+			if (entityWillSetContentType && "Content-Type".equalsIgnoreCase(entry.getKey())) {
 				continue;
 			}
 			invocationBuilder = invocationBuilder.header(entry.getKey(), entry.getValue());
@@ -528,7 +557,11 @@ public class Http implements Client {
 	}
 
 	/**
-	 * Perform an HTTP request.
+	 * Builds and sends the JAX-RS invocation shared by {@link #request} and
+	 * {@link #download} (URI/auth/header/query/cookie preparation, method
+	 * selection). The returned {@link Response} is not yet closed nor read -
+	 * callers decide how to consume the body (as a {@link String} for
+	 * {@link #request}, streamed to a file for {@link #download}).
 	 * @param method the HTTP method (GET, POST, ...)
 	 * @param path the request path (appended to the access's base path)
 	 * @param headers extra request headers (driver-provided, may be null)
@@ -537,10 +570,10 @@ public class Http implements Client {
 	 * @param body the request body (null for none)
 	 * @param httpConfig the access's declared HTTP configuration (base path, auth scheme)
 	 * @param account the resolved credential set (may be null if the access has no auth)
-	 * @return the HTTP result (status, headers, body)
-	 * @throws IOException if the request could not be sent/received
+	 * @return the not-yet-consumed response
+	 * @throws IOException if the request could not be sent
 	 */
-	public HttpResult request(String method, String path, Map<String, String> headers,
+	private Response sendRequest(String method, String path, Map<String, String> headers,
 			Map<String, String> query, Map<String, String> cookies, String body,
 			HttpConfig httpConfig, DeviceHttpAccount account) throws IOException {
 		this.connect();
@@ -564,34 +597,97 @@ public class Http implements Client {
 			this.applyAuth(httpConfig, account, effectiveHeaders, effectiveQuery, effectiveCookies);
 		}
 
-		Invocation.Builder invocationBuilder = this.buildInvocation(uri, effectiveHeaders, effectiveQuery, effectiveCookies);
-
-		String contentType = effectiveHeaders.entrySet().stream()
-			.filter(e -> "Content-Type".equalsIgnoreCase(e.getKey()))
-			.map(Map.Entry::getValue)
-			.findFirst()
-			.orElse(MediaType.APPLICATION_JSON);
-
 		String upperMethod = method == null ? "GET" : method.toUpperCase();
+		boolean hasEntityBody = body != null && !"GET".equals(upperMethod) && !"HEAD".equals(upperMethod);
+
+		Invocation.Builder invocationBuilder =
+			this.buildInvocation(uri, effectiveHeaders, effectiveQuery, effectiveCookies, hasEntityBody);
+
 		try {
-			Response response;
-			if (body != null && !"GET".equals(upperMethod) && !"HEAD".equals(upperMethod)) {
-				response = invocationBuilder.method(upperMethod, Entity.entity(body, contentType));
+			if (hasEntityBody) {
+				String contentType = effectiveHeaders.entrySet().stream()
+					.filter(e -> "Content-Type".equalsIgnoreCase(e.getKey()))
+					.map(Map.Entry::getValue)
+					.findFirst()
+					.orElse(MediaType.APPLICATION_JSON);
+				return invocationBuilder.method(upperMethod, Entity.entity(body, contentType));
 			}
-			else {
-				response = invocationBuilder.method(upperMethod);
-			}
-			int status = response.getStatus();
-			Map<String, String> responseHeaders = new HashMap<>();
-			response.getStringHeaders().forEach(
-				(name, values) -> responseHeaders.put(name, String.join(", ", values)));
-			String responseBody = response.hasEntity() ? response.readEntity(String.class) : "";
-			response.close();
-			return new HttpResult(status, responseHeaders, responseBody);
+			return invocationBuilder.method(upperMethod);
 		}
 		catch (ProcessingException e) {
 			log.warn("HTTP request to {} failed.", uri, e);
 			throw new IOException("HTTP request failed: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Perform an HTTP request, decoding the response body as a (charset-decoded)
+	 * {@link String} - fine for JSON/XML/text APIs, but lossy for arbitrary
+	 * binary content (see {@link #download}).
+	 * @param method the HTTP method (GET, POST, ...)
+	 * @param path the request path (appended to the access's base path)
+	 * @param headers extra request headers (driver-provided, may be null)
+	 * @param query extra query parameters (driver-provided, may be null)
+	 * @param cookies extra cookies (driver-provided, may be null)
+	 * @param body the request body (null for none)
+	 * @param httpConfig the access's declared HTTP configuration (base path, auth scheme)
+	 * @param account the resolved credential set (may be null if the access has no auth)
+	 * @return the HTTP result (status, headers, body)
+	 * @throws IOException if the request could not be sent/received
+	 */
+	public HttpResult request(String method, String path, Map<String, String> headers,
+			Map<String, String> query, Map<String, String> cookies, String body,
+			HttpConfig httpConfig, DeviceHttpAccount account) throws IOException {
+		Response response = this.sendRequest(method, path, headers, query, cookies, body, httpConfig, account);
+		int status = response.getStatus();
+		Map<String, String> responseHeaders = new HashMap<>();
+		response.getStringHeaders().forEach(
+			(name, values) -> responseHeaders.put(name, String.join(", ", values)));
+		String responseBody = response.hasEntity() ? response.readEntity(String.class) : "";
+		response.close();
+		return new HttpResult(status, responseHeaders, responseBody);
+	}
+
+	/**
+	 * Perform an HTTP request and stream the response body straight to a file
+	 * on disk, byte for byte - the binary-safe counterpart to {@link #request},
+	 * for endpoints that return arbitrary (non-text) content such as a backup
+	 * archive. Mirrors {@link Ssh#scpDownload}/{@link Ssh#sftpDownload}: pure
+	 * transport, no checksum/attribute bookkeeping (that's the caller's job).
+	 * @param method the HTTP method (GET, POST, ...)
+	 * @param path the request path (appended to the access's base path)
+	 * @param headers extra request headers (driver-provided, may be null)
+	 * @param query extra query parameters (driver-provided, may be null)
+	 * @param cookies extra cookies (driver-provided, may be null)
+	 * @param body the request body (null for none)
+	 * @param httpConfig the access's declared HTTP configuration (base path, auth scheme)
+	 * @param account the resolved credential set (may be null if the access has no auth)
+	 * @param targetFile where to write the response body (overwritten if it already exists)
+	 * @return the HTTP download result (status, headers, downloaded size)
+	 * @throws IOException if the request could not be sent/received, or the file could not be written
+	 */
+	public HttpDownloadResult download(String method, String path, Map<String, String> headers,
+			Map<String, String> query, Map<String, String> cookies, String body,
+			HttpConfig httpConfig, DeviceHttpAccount account, Path targetFile) throws IOException {
+		Response response = this.sendRequest(method, path, headers, query, cookies, body, httpConfig, account);
+		try {
+			int status = response.getStatus();
+			Map<String, String> responseHeaders = new HashMap<>();
+			response.getStringHeaders().forEach(
+				(name, values) -> responseHeaders.put(name, String.join(", ", values)));
+			long size = 0;
+			if (response.hasEntity()) {
+				try (InputStream is = response.readEntity(InputStream.class)) {
+					size = Files.copy(is, targetFile, StandardCopyOption.REPLACE_EXISTING);
+				}
+			}
+			else {
+				Files.write(targetFile, new byte[0]);
+			}
+			return new HttpDownloadResult(status, responseHeaders, size);
+		}
+		finally {
+			response.close();
 		}
 	}
 

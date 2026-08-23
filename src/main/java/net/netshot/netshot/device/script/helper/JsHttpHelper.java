@@ -19,9 +19,12 @@
 package net.netshot.netshot.device.script.helper;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 
 import org.graalvm.polyglot.HostAccess.Export;
 import org.graalvm.polyglot.proxy.ProxyObject;
@@ -33,8 +36,10 @@ import net.netshot.netshot.device.access.AccessManager;
 import net.netshot.netshot.device.access.AccessManager.Resolution;
 import net.netshot.netshot.device.access.Client;
 import net.netshot.netshot.device.access.Http;
+import net.netshot.netshot.device.access.Http.HttpDownloadResult;
 import net.netshot.netshot.device.access.Http.HttpResult;
 import net.netshot.netshot.device.access.InvalidCredentialsException;
+import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.device.credentials.DeviceCredentialSet;
 import net.netshot.netshot.device.credentials.DeviceHttpAccount;
 import net.netshot.netshot.work.TaskContext;
@@ -57,6 +62,8 @@ public class JsHttpHelper {
 	private final boolean autoTryCredentials;
 	private final TaskContext taskContext;
 	private final String basePath;
+	/** May be null (e.g. in a "run"/diagnostic script context, which has no config to write to). */
+	private final JsConfigHelper configHelper;
 
 	private Http http;
 	private DeviceHttpAccount account;
@@ -71,13 +78,17 @@ public class JsHttpHelper {
 	 *        credential sets (true) or stop at the first failure (false)
 	 * @param basePath an extra base path to prepend to every request (from {@code client.create("http", {basePath})})
 	 * @param taskContext The task context
+	 * @param configHelper the current script's config helper (may be null), needed by
+	 *        {@link #download(String, String, String, Map, Map, Map, String, String, String)}
+	 *        to land a downloaded file into a {@code BinaryFile} config attribute
 	 */
 	public JsHttpHelper(AccessManager accessManager, List<AccessDefinition> accessDefs,
-			boolean autoTryCredentials, String basePath, TaskContext taskContext) {
+			boolean autoTryCredentials, String basePath, TaskContext taskContext, JsConfigHelper configHelper) {
 		this.accessManager = accessManager;
 		this.autoTryCredentials = autoTryCredentials;
 		this.basePath = basePath;
 		this.taskContext = taskContext;
+		this.configHelper = configHelper;
 		this.resolution = accessManager.newResolution(accessDefs, this::buildClient);
 	}
 
@@ -108,12 +119,7 @@ public class JsHttpHelper {
 
 	private HttpResult doRequest(String method, String path, Map<String, String> headers,
 			Map<String, String> query, Map<String, String> cookies, String body) throws IOException {
-		String fullPath = path;
-		if (this.basePath != null && !this.basePath.isEmpty()) {
-			String base = this.basePath.startsWith("/") ? this.basePath : "/" + this.basePath;
-			String p = (path == null) ? "" : (path.startsWith("/") ? path : "/" + path);
-			fullPath = base + p;
-		}
+		String fullPath = this.buildFullPath(path);
 		String upperMethod = method == null ? "GET" : method.toUpperCase();
 		if (this.taskContext.isTracing()) {
 			// Trace the request as built by the driver, i.e. before authentication
@@ -147,6 +153,71 @@ public class JsHttpHelper {
 			}
 			throw e;
 		}
+	}
+
+	/**
+	 * Builds the full request path, prepending this client's basePath (from
+	 * {@code client.create("http", {basePath})}), shared by {@link #doRequest}
+	 * and {@link #doDownload}.
+	 */
+	private String buildFullPath(String path) {
+		if (this.basePath == null || this.basePath.isEmpty()) {
+			return path;
+		}
+		String base = this.basePath.startsWith("/") ? this.basePath : "/" + this.basePath;
+		String p = (path == null) ? "" : (path.startsWith("/") ? path : "/" + path);
+		return base + p;
+	}
+
+	/**
+	 * Runs one attempt (a request or a download) and, on the very first
+	 * attempt made through this client, applies the same "first use" 401/403
+	 * credential-fallback logic for both: retries with the next candidate
+	 * credential set (when {@code autoTryCredentials} is enabled) or fails
+	 * outright, then pins the working credential set once confirmed. Shared
+	 * by {@link #request} and {@link #download} so this logic - and its
+	 * "first request only" semantics - lives in exactly one place.
+	 * @param <T> the attempt's result type (HttpResult or HttpDownloadResult)
+	 * @param attempt performs one request/download against the currently resolved client
+	 * @param statusOf extracts the HTTP status from an attempt's result
+	 * @return the result of the (possibly retried) attempt
+	 * @throws IOException on connection failure, or if no credential worked
+	 */
+	private <T> T withCredentialRetry(IOSupplier<T> attempt, ToIntFunction<T> statusOf) throws IOException {
+		this.ensureResolved();
+		T result = attempt.get();
+		if (!this.firstRequestDone) {
+			this.firstRequestDone = true;
+			if (this.isAuthStatus(statusOf.applyAsInt(result))) {
+				if (this.autoTryCredentials) {
+					while (this.isAuthStatus(statusOf.applyAsInt(result))) {
+						if (!this.tryNextCredentials()) {
+							break;
+						}
+						result = attempt.get();
+					}
+					if (this.isAuthStatus(statusOf.applyAsInt(result))) {
+						throw new InvalidCredentialsException(
+							"Couldn't find valid HTTP credentials (last status " + statusOf.applyAsInt(result) + ").");
+					}
+				}
+				else {
+					throw new AccessAuthenticationException(
+						"Authentication failed for this access (HTTP status " + statusOf.applyAsInt(result) + ").");
+				}
+			}
+			// The first attempt came back without an auth-status rejection (either
+			// from the start, or after tryNextCredentials() found one that works),
+			// so the credentials are confirmed valid.
+			this.resolution.confirmCredentialWorks();
+		}
+		return result;
+	}
+
+	/** A {@link java.util.function.Supplier} allowed to throw {@link IOException}. */
+	@FunctionalInterface
+	private interface IOSupplier<T> {
+		T get() throws IOException;
 	}
 
 	/**
@@ -198,37 +269,99 @@ public class JsHttpHelper {
 	@Export
 	public ProxyObject request(String method, String path, Map<String, String> headers,
 			Map<String, String> query, Map<String, String> cookies, String body) throws IOException {
-		this.ensureResolved();
-		HttpResult result = this.doRequest(method, path, headers, query, cookies, body);
-		if (!this.firstRequestDone) {
-			this.firstRequestDone = true;
-			if (this.isAuthStatus(result.getStatus())) {
-				if (this.autoTryCredentials) {
-					while (this.isAuthStatus(result.getStatus())) {
-						if (!this.tryNextCredentials()) {
-							break;
-						}
-						result = this.doRequest(method, path, headers, query, cookies, body);
-					}
-					if (this.isAuthStatus(result.getStatus())) {
-						throw new InvalidCredentialsException(
-							"Couldn't find valid HTTP credentials (last status " + result.getStatus() + ").");
-					}
-				}
-				else {
-					throw new AccessAuthenticationException(
-						"Authentication failed for this access (HTTP status " + result.getStatus() + ").");
-				}
-			}
-			// The first request came back without an auth-status rejection (either
-			// from the start, or after tryNextCredentials() found one that works),
-			// so the credentials are confirmed valid.
-			this.resolution.confirmCredentialWorks();
-		}
+		HttpResult result = this.withCredentialRetry(
+			() -> this.doRequest(method, path, headers, query, cookies, body),
+			HttpResult::getStatus);
 		Map<String, Object> jsResult = new HashMap<>();
 		jsResult.put("status", result.getStatus());
 		jsResult.put("headers", result.getHeaders());
 		jsResult.put("body", result.getBody());
+		return ProxyObject.fromMap(jsResult);
+	}
+
+	private HttpDownloadResult doDownload(String method, String path, Map<String, String> headers,
+			Map<String, String> query, Map<String, String> cookies, String body, Path targetFile) throws IOException {
+		String fullPath = this.buildFullPath(path);
+		if (this.taskContext.isTracing()) {
+			// Same rationale as doRequest(): traced before authentication is
+			// applied, so no secret ever reaches the trace log.
+			this.taskContext.trace("About to send the following HTTP download request (before authentication is applied):");
+			this.taskContext.trace("{} {}", method == null ? "GET" : method.toUpperCase(), fullPath);
+			this.taskContext.trace("Headers: {}", headers);
+			this.taskContext.trace("Query parameters: {}", query);
+			this.taskContext.trace("Cookies: {}", cookies);
+		}
+		try {
+			HttpDownloadResult result = this.http.download(method, fullPath, headers, query, cookies, body,
+				this.accessDef.getHttpConfig(), this.account, targetFile);
+			if (this.taskContext.isTracing()) {
+				this.taskContext.trace("Received the following HTTP download response:");
+				this.taskContext.trace("Status: {}", result.getStatus());
+				this.taskContext.trace("Headers: {}", result.getHeaders());
+				this.taskContext.trace("Downloaded {} byte(s) to a temporary file.", result.getSize());
+			}
+			return result;
+		}
+		catch (IOException e) {
+			if (this.taskContext.isTracing()) {
+				this.taskContext.trace("I/O exception: {}", e.getMessage());
+			}
+			throw e;
+		}
+	}
+
+	/**
+	 * Perform an HTTP request and land its response body straight into a
+	 * {@code BinaryFile} config attribute, byte for byte - the binary-safe
+	 * counterpart to {@link #request}, whose response "body" is always a
+	 * (charset-decoded) String and therefore lossy for arbitrary binary
+	 * content such as a backup archive. Mirrors how the SSH/CLI side does
+	 * this in one call ({@code config.download(key, "scp"|"sftp", ...)}
+	 * driving {@code Ssh.scpDownload}/{@code sftpDownload}) - there is no
+	 * separate "commit" step, since the only reason a downloaded file would
+	 * ever need one is if some other party (not this call) produced it, which
+	 * isn't the case here. The same "first use" credential fallback as
+	 * {@link #request} applies.
+	 * @param key the name of the (BinaryFile) config attribute to store the download into
+	 * @param method the HTTP method (GET, POST, ...)
+	 * @param path the request path (may be null)
+	 * @param headers extra headers (may be null)
+	 * @param query extra query parameters (may be null)
+	 * @param cookies extra cookies (may be null)
+	 * @param body the request body (may be null)
+	 * @param storeFileName the file name to store (null to derive one from the request path)
+	 * @param expectedHash if not null, the expected checksum (MD5 or SHA256) of the downloaded file
+	 * @return a map with "status", "headers" and "size" entries
+	 * @throws Exception on connection failure, if no credential worked, if there's no config
+	 *         in the current script context, if the attribute is unknown/not a BinaryFile,
+	 *         or if the checksum doesn't match
+	 */
+	@Export
+	public ProxyObject download(String key, String method, String path, Map<String, String> headers,
+			Map<String, String> query, Map<String, String> cookies, String body,
+			String storeFileName, String expectedHash) throws Exception {
+		if (this.configHelper == null) {
+			throw new IllegalStateException(
+				"No config is available in the current script context; can't store a downloaded file.");
+		}
+		ConfigBinaryFileAttribute fileAttribute = this.configHelper.prepareBinaryFileDownload(key, storeFileName, path);
+		Path tempPath = fileAttribute.getTempFilePath();
+		tempPath.toFile().deleteOnExit();
+		HttpDownloadResult result;
+		try {
+			result = this.withCredentialRetry(
+				() -> this.doDownload(method, path, headers, query, cookies, body, tempPath),
+				HttpDownloadResult::getStatus);
+		}
+		catch (IOException e) {
+			Files.deleteIfExists(tempPath);
+			throw e;
+		}
+		this.configHelper.finalizeBinaryFile(fileAttribute, tempPath, expectedHash);
+		Map<String, Object> jsResult = new HashMap<>();
+		jsResult.put("status", result.getStatus());
+		jsResult.put("headers", result.getHeaders());
+		jsResult.put("size", result.getSize());
 		return ProxyObject.fromMap(jsResult);
 	}
 

@@ -19,6 +19,7 @@
 package net.netshot.netshot;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
@@ -26,19 +27,26 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.graalvm.polyglot.proxy.ProxyObject;
 import org.hibernate.Session;
+
+import com.sun.net.httpserver.HttpServer;
 
 import net.netshot.netshot.device.Config;
 import net.netshot.netshot.device.Device;
@@ -54,9 +62,11 @@ import net.netshot.netshot.device.Network4Address;
 import net.netshot.netshot.device.NetworkAddress;
 import net.netshot.netshot.device.access.AccessManager;
 import net.netshot.netshot.device.access.Cli;
+import net.netshot.netshot.device.access.Http;
 import net.netshot.netshot.device.access.Http.AuthScheme;
 import net.netshot.netshot.device.access.Snmp;
 import net.netshot.netshot.device.access.Ssh;
+import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.device.attribute.ConfigTextAttribute;
 import net.netshot.netshot.device.attribute.DeviceBinaryAttribute;
@@ -71,8 +81,10 @@ import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
 import net.netshot.netshot.device.script.SnapshotDeviceScript;
 import net.netshot.netshot.work.TaskContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -1872,6 +1884,199 @@ public class DeviceDriverTest {
 				new Location(LocationType.EMBEDDED, "BadCaseAuthTypeDriver.js")));
 		}
 
+	}
+
+	/**
+	 * Tests for {@code Http.download()}/{@code http.download(...)}: the
+	 * binary-safe counterpart to {@code Http.request()}/{@code http.request(...)},
+	 * added because the latter always decodes the response body as a
+	 * (charset-decoded) {@link String} - lossy for arbitrary binary content
+	 * such as a backup archive (see {@link net.netshot.netshot.device.access.Http}
+	 * and {@link net.netshot.netshot.device.script.helper.JsHttpHelper}).
+	 */
+	@Nested
+	@DisplayName("HTTP client binary download test")
+	class HttpDownloadTest {
+
+		private HttpServer fakeServer;
+		private int port;
+
+		/** All 256 possible byte values, including sequences that are not valid UTF-8 - proves byte-exact transfer. */
+		private byte[] binaryPayload() {
+			byte[] data = new byte[256];
+			for (int i = 0; i < 256; i++) {
+				data[i] = (byte) i;
+			}
+			return data;
+		}
+
+		private void serveBinary(String path, byte[] payload) {
+			this.fakeServer.createContext(path, exchange -> {
+				exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+				exchange.sendResponseHeaders(200, payload.length);
+				try (OutputStream os = exchange.getResponseBody()) {
+					os.write(payload);
+				}
+			});
+		}
+
+		@BeforeEach
+		void setUp() throws IOException {
+			// Binary file attributes (ConfigBinaryFileAttribute) need a storage
+			// folder configured - point it at a fresh temporary directory for
+			// each test rather than relying on the default (/var/local/netshot),
+			// which won't exist on a test machine.
+			Path storagePath = Files.createTempDirectory("netshot-test-binary-");
+			Properties props = new Properties();
+			props.putAll(Netshot.getConfig());
+			props.setProperty("netshot.snapshots.binary.path", storagePath.toString());
+			Netshot.initConfig(props);
+			ConfigBinaryFileAttribute.loadConfig();
+
+			this.fakeServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+			this.port = this.fakeServer.getAddress().getPort();
+			this.fakeServer.start();
+		}
+
+		@AfterEach
+		void tearDown() {
+			this.fakeServer.stop(0);
+		}
+
+		@Test
+		@DisplayName("Http.download() streams the exact response bytes to disk")
+		void downloadIsByteExact() throws Exception {
+			byte[] payload = this.binaryPayload();
+			this.serveBinary("/binary.bin", payload);
+
+			TaskContext taskContext = new FakeTaskContext();
+			Http http = new Http("127.0.0.1", this.port, false, taskContext);
+			Path target = Files.createTempFile("netshot-test-download-", ".bin");
+			try {
+				Http.HttpDownloadResult result =
+					http.download("GET", "/binary.bin", null, null, null, null, null, null, target);
+
+				Assertions.assertEquals(200, result.getStatus());
+				Assertions.assertEquals(payload.length, result.getSize());
+				Assertions.assertArrayEquals(payload, Files.readAllBytes(target),
+					"Downloaded bytes must exactly match the server response, including non-UTF-8 byte sequences");
+			}
+			finally {
+				Files.deleteIfExists(target);
+			}
+		}
+
+		@Test
+		@DisplayName("Unlike download(), request()'s String-decoded body does not preserve arbitrary bytes")
+		void requestBodyIsNotBinarySafe() throws Exception {
+			// Documents *why* download() exists: bytes 0x80-0xFF are not valid
+			// UTF-8 on their own, so decoding the response as a String (what
+			// request() does) and re-encoding it loses information.
+			byte[] payload = this.binaryPayload();
+			this.serveBinary("/binary2.bin", payload);
+
+			TaskContext taskContext = new FakeTaskContext();
+			Http http = new Http("127.0.0.1", this.port, false, taskContext);
+			Http.HttpResult result = http.request("GET", "/binary2.bin", null, null, null, null, null, null);
+
+			Assertions.assertEquals(200, result.getStatus());
+			byte[] roundTripped = result.getBody().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+			Assertions.assertFalse(Arrays.equals(payload, roundTripped),
+				"request()'s String round-trip is expected to corrupt arbitrary binary content");
+		}
+
+		@Test
+		@DisplayName("Http.download() can carry an explicit Content-Type header on a bodyless GET")
+		void downloadCanSendContentTypeHeaderWithoutABody() throws Exception {
+			// Some servers (observed against a real Infoblox NIOS Grid, whose
+			// database.bak download endpoint 415s a GET with no Content-Type
+			// header) unusually insist on seeing one even without a request
+			// body - this reproduces that behavior in miniature.
+			byte[] payload = this.binaryPayload();
+			final String[] receivedContentType = new String[1];
+			this.fakeServer.createContext("/needs-content-type.bin", exchange -> {
+				receivedContentType[0] = exchange.getRequestHeaders().getFirst("Content-Type");
+				if (receivedContentType[0] == null) {
+					exchange.sendResponseHeaders(415, -1);
+					exchange.close();
+					return;
+				}
+				exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+				exchange.sendResponseHeaders(200, payload.length);
+				try (OutputStream os = exchange.getResponseBody()) {
+					os.write(payload);
+				}
+			});
+
+			TaskContext taskContext = new FakeTaskContext();
+			Http http = new Http("127.0.0.1", this.port, false, taskContext);
+			Path target = Files.createTempFile("netshot-test-download-", ".bin");
+			try {
+				Map<String, String> headers = new HashMap<>();
+				headers.put("Content-Type", "application/octet-stream");
+				Http.HttpDownloadResult result =
+					http.download("GET", "/needs-content-type.bin", headers, null, null, null, null, null, target);
+
+				Assertions.assertEquals("application/octet-stream", receivedContentType[0],
+					"The Content-Type header set on a bodyless GET must reach the server, not be silently dropped");
+				Assertions.assertEquals(200, result.getStatus());
+				Assertions.assertArrayEquals(payload, Files.readAllBytes(target));
+			}
+			finally {
+				Files.deleteIfExists(target);
+			}
+		}
+
+		@Test
+		@DisplayName("End-to-end: driver downloads over HTTP and commits the result as a BinaryFile config attribute")
+		void driverDownloadsAndCommitsBinaryFile() throws Exception {
+			byte[] payload = this.binaryPayload();
+			this.serveBinary("/backup.tar.gz", payload);
+
+			String driverJs = """
+				var Info = {
+					name: "HttpDownloadTestDriver",
+					author: "test",
+					description: "Test driver for HTTP binary download",
+					version: "1.0"
+				};
+				var Config = {
+					"backupArchive": { type: "BinaryFile", title: "Backup" },
+				};
+				var Device = {};
+				var HTTP = { http: {} };
+
+				function snapshot(client, device, config) {
+					var http = client.create("http");
+					http.download("backupArchive", "/backup.tar.gz", { storeFileName: "backup.tar.gz" });
+				}
+				""";
+			DeviceDriver driver = new DeviceDriver(new StringReader(driverJs), "HttpDownloadTestDriver.js",
+				new Location(LocationType.EMBEDDED, "HttpDownloadTestDriver.js"));
+			DeviceDriver.getDrivers().put("HttpDownloadTestDriver", driver);
+
+			TaskContext taskContext = new FakeTaskContext();
+			Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext);
+			DeviceHttpAccount credentials = new DeviceHttpAccount("user", "pass", "test-http-account");
+			Session nullSession = null;
+			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
+			Device device = new Device("HttpDownloadTestDriver", null, domain, "test");
+			SnapshotDeviceScript script = new SnapshotDeviceScript(taskContext);
+			AccessManager accessManager = new AccessManager(nullSession, device, null, taskContext, null);
+			accessManager.forceClientForTest(fakeHttp, credentials);
+			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
+				Device.class, AccessManager.class);
+			runMethod.setAccessible(true);
+			runMethod.invoke(script, nullSession, device, accessManager);
+
+			Config config = device.getLastConfig();
+			Assertions.assertNotNull(config, "The config doesn't exist");
+			ConfigBinaryFileAttribute fileAttribute = (ConfigBinaryFileAttribute) config.getAttribute("backupArchive");
+			Assertions.assertNotNull(fileAttribute, "The backupArchive attribute wasn't set");
+			Assertions.assertEquals(payload.length, fileAttribute.getFileSize(), "The stored file size is incorrect");
+			Assertions.assertArrayEquals(payload, Files.readAllBytes(fileAttribute.getFilePath()),
+				"The stored file content doesn't match the server response");
+		}
 	}
 
 	/**

@@ -485,7 +485,6 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			if (cli instanceof Ssh sshCli) {
 				try {
 					ConfigBinaryFileAttribute fileAttribute = new ConfigBinaryFileAttribute(config, attribute.getName(), storeName);
-					Path targetPath = fileAttribute.getFilePath().toAbsolutePath();
 					Path tempPath = fileAttribute.getTempFilePath();
 					tempPath.toFile().deleteOnExit();
 					log.trace("Temporary file path for download is {}", tempPath);
@@ -496,22 +495,14 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 						else if (TransferProtocol.SFTP.equals(protocol)) {
 							sshCli.sftpDownload(remoteFileName, tempPath, newSession);
 						}
-						this.checkFileSum(tempPath, expectedHash);
-						fileAttribute.setFileSize(tempPath.toFile().length());
-						try (InputStream is = new FileInputStream(tempPath.toFile())) {
-							String cs = "sha256:" + DigestUtils.sha256Hex(is).toLowerCase();
-							log.trace("Computed SHA256 for the received file is {}", cs);
-							fileAttribute.setChecksum(cs);
-						}
-						Files.move(tempPath, targetPath);
-						config.addAttribute(fileAttribute);
-						return;
 					}
 					catch (IOException e) {
 						log.debug("Removing temporary file path {}", tempPath);
 						Files.deleteIfExists(tempPath);
 						throw e;
 					}
+					this.finalizeBinaryFile(fileAttribute, tempPath, expectedHash);
+					return;
 				}
 				catch (Exception e) {
 					log.warn(
@@ -532,6 +523,82 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		log.warn("Error during snapshot: unsupported download protocol '{}' (for attribute '{}').", protocol, attribute.getName());
 		taskContext.error("Unsupported download protocol '{}' (for attribute '{}').", protocol, attribute.getName());
 		throw new IllegalArgumentException("Unsupported download protocol.");
+	}
+
+	/**
+	 * Verifies the checksum (if any), fills in the size/checksum of a
+	 * {@link ConfigBinaryFileAttribute} and moves the already-downloaded file
+	 * at {@code tempPath} into its final storage location, then attaches it
+	 * to the current config. Shared tail of every "land a downloaded file
+	 * into a BinaryFile config attribute" path - SCP/SFTP download above, and
+	 * {@link net.netshot.netshot.device.script.helper.JsHttpHelper#download}
+	 * for HTTP downloads (same package, calls this directly - there is no
+	 * JS-facing "commit" step, since unlike an upload ticket's {@code commitUpload}
+	 * (which accepts a file the *device* pushed on its own schedule), a
+	 * download's temp file is produced synchronously by the same call that
+	 * consumes it).
+	 * @param fileAttribute the (not yet attached) binary file attribute to fill in
+	 * @param tempPath the already-downloaded file to verify/move into place
+	 * @param expectedHash if not null, the expected checksum (MD5 or SHA256) of the downloaded file
+	 * @throws Exception if the checksum doesn't match, or the file can't be moved
+	 */
+	void finalizeBinaryFile(ConfigBinaryFileAttribute fileAttribute, Path tempPath, String expectedHash) throws Exception {
+		Path targetPath = fileAttribute.getFilePath().toAbsolutePath();
+		try {
+			this.checkFileSum(tempPath, expectedHash);
+			fileAttribute.setFileSize(tempPath.toFile().length());
+			try (InputStream is = new FileInputStream(tempPath.toFile())) {
+				String cs = "sha256:" + DigestUtils.sha256Hex(is).toLowerCase();
+				log.trace("Computed SHA256 for the received file is {}", cs);
+				fileAttribute.setChecksum(cs);
+			}
+			Files.move(tempPath, targetPath);
+			config.addAttribute(fileAttribute);
+		}
+		catch (Exception e) {
+			log.debug("Removing temporary file path {}", tempPath);
+			Files.deleteIfExists(tempPath);
+			throw e;
+		}
+	}
+
+	/**
+	 * Resolves and validates the (BinaryFile) config attribute a download is
+	 * about to be stored into, and allocates the temporary file path it
+	 * should be downloaded to - the HTTP counterpart to how the SCP/SFTP
+	 * {@link #download} path above prepares its own {@code fileAttribute}/
+	 * {@code tempPath} pair before handing them to {@code sshCli.scpDownload}/
+	 * {@code sftpDownload}. Package-private: called directly (no JS
+	 * involved) by {@link net.netshot.netshot.device.script.helper.JsHttpHelper#download}.
+	 * @param key the name of the config attribute
+	 * @param storeFileName the file name to store (null to derive one from {@code fallbackRemoteName})
+	 * @param fallbackRemoteName used to derive a store file name when {@code storeFileName} is null
+	 *        (typically the request path/URL that's about to be downloaded)
+	 * @return the (not yet attached) binary file attribute, whose {@link ConfigBinaryFileAttribute#getTempFilePath()}
+	 *         is where the caller should download the file to before calling {@link #finalizeBinaryFile}
+	 * @throws Exception if the device driver can't be resolved, the attribute is unknown/not a BinaryFile,
+	 *         or no store file name could be derived
+	 */
+	ConfigBinaryFileAttribute prepareBinaryFileDownload(String key, String storeFileName, String fallbackRemoteName) throws Exception {
+		DeviceDriver driver = this.device.getDeviceDriver();
+		AttributeDefinition attribute = driver.getAttributeDefinition(AttributeLevel.CONFIG, key);
+		if (attribute == null) {
+			log.warn("Error during snapshot, requested attribute key '{}' doesn't exist.", key);
+			taskContext.error("Requested attribute key '{}' doesn't exist.", key);
+			throw new IllegalArgumentException("Unknown attribute key");
+		}
+		if (!AttributeType.BINARYFILE.equals(attribute.getType())) {
+			log.warn("Error during snapshot: can't download into attribute '{}' (not a binary file attribute).", attribute.getName());
+			taskContext.error("Can't download into attribute '{}' (not a binary file attribute).", attribute.getName());
+			throw new IllegalArgumentException("Can't use download method on non-binary-file attribute");
+		}
+		String storeName = this.normalizeStoreName(storeFileName, fallbackRemoteName);
+		if (storeName == null) {
+			log.warn("Error during snapshot, unable to generate a store file name for attribute '{}'.", attribute.getName());
+			taskContext.error("Unable to generate a store file name for attribute '{}'.", attribute.getName());
+			throw new IllegalArgumentException("Unable to generate a proper store file name");
+		}
+		return new ConfigBinaryFileAttribute(config, attribute.getName(), storeName);
 	}
 
 	/**

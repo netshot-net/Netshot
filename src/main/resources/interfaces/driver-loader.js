@@ -297,7 +297,7 @@ const PUBLIC_CLI_MEMBERS =
 	["command", "macro", "findSections", "sleep", "debug", "tryNextCredentials", "create", "userInputs"];
 const PUBLIC_SNMP_MEMBERS = ["get", "walk", "sleep", "tryNextCredentials"];
 const PUBLIC_HTTP_MEMBERS =
-	["request", "get", "delete", "head", "options", "post", "put", "patch", "tryNextCredentials", "sleep", "debug"];
+	["request", "download", "get", "delete", "head", "options", "post", "put", "patch", "tryNextCredentials", "sleep", "debug"];
 const PUBLIC_DEVICE_MEMBERS = ["options", "set", "add", "get", "textDownload"];
 const PUBLIC_CONFIG_MEMBERS = [
 	"set", "download", "computeHash", "getHash", "getLastHash",
@@ -841,21 +841,27 @@ const _connect = (_function, _options) => {
 			};
 		};
 
+		// Shared by request()/download(): JSON-encodes a non-string body and
+		// stamps a Content-Type if the driver didn't set one of its own.
+		const prepareRequestBody = (config, normalized) => {
+			let body = config.data;
+			if (typeof body !== "undefined" && body !== null && typeof body !== "string") {
+				body = JSON.stringify(body);
+				if (!Object.keys(normalized.headers).some((h) => h.toLowerCase() === "content-type")) {
+					normalized.headers["Content-Type"] = "application/json";
+				}
+			}
+			return (typeof body === "string") ? body : null;
+		};
+
 		const httpClient = {
 			request: function(config) {
 				config = config || {};
 				const method = (config.method || "GET").toUpperCase();
 				const path = config.url || config.path || "";
 				const normalized = normalizeConfig(config);
-				let body = config.data;
-				if (typeof body !== "undefined" && body !== null && typeof body !== "string") {
-					body = JSON.stringify(body);
-					if (!Object.keys(normalized.headers).some((h) => h.toLowerCase() === "content-type")) {
-						normalized.headers["Content-Type"] = "application/json";
-					}
-				}
-				const raw = _http.request(method, path, normalized.headers, normalized.query, normalized.cookies,
-					(typeof body === "string") ? body : null);
+				const body = prepareRequestBody(config, normalized);
+				const raw = _http.request(method, path, normalized.headers, normalized.query, normalized.cookies, body);
 				const response = {
 					status: raw.status,
 					statusText: String(raw.status),
@@ -871,6 +877,53 @@ const _connect = (_function, _options) => {
 				}
 				if (!normalized.validateStatus(response.status)) {
 					const error = new Error(`Request failed with status code ${response.status}`);
+					error.response = response;
+					error.config = config;
+					throw error;
+				}
+				return response;
+			},
+
+			// Binary-safe counterpart to request()/get(): downloads straight
+			// into the named BinaryFile config attribute (byte for byte,
+			// unlike request()'s `.data`, which is always a charset-decoded
+			// String and would corrupt arbitrary content such as a backup
+			// archive) - one call, no separate "commit" step, mirroring how
+			// config.download(key, "scp"|"sftp", ...) is a single call on the
+			// CLI/SSH side too.
+			download: function(key, url, config) {
+				if (typeof key !== "string") {
+					throw "The key should be a string in http.download.";
+				}
+				config = config || {};
+				const method = (config.method || "GET").toUpperCase();
+				const normalized = normalizeConfig(config);
+				const body = prepareRequestBody(config, normalized);
+				let storeFileName = null;
+				if (typeof config.storeFileName === "string") {
+					storeFileName = String(config.storeFileName);
+				}
+				else if (typeof config.storeFileName !== "undefined") {
+					throw "Invalid 'storeFileName' option in http.download.";
+				}
+				let checksum = null;
+				if (typeof config.checksum === "string") {
+					checksum = String(config.checksum);
+				}
+				else if (typeof config.checksum !== "undefined") {
+					throw "Invalid 'checksum' option in http.download.";
+				}
+				const raw = _http.download(key, method, url, normalized.headers, normalized.query, normalized.cookies,
+					body, storeFileName, checksum);
+				const response = {
+					status: raw.status,
+					statusText: String(raw.status),
+					headers: raw.headers,
+					config: config,
+					size: raw.size,
+				};
+				if (!normalized.validateStatus(response.status)) {
+					const error = new Error(`Download failed with status code ${response.status}`);
 					error.response = response;
 					error.config = config;
 					throw error;

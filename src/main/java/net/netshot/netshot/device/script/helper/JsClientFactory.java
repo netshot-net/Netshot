@@ -39,9 +39,26 @@ public class JsClientFactory {
 	private final AccessManager accessManager;
 	private final DeviceDriver driver;
 
+	/**
+	 * The current script's options, set once available (see {@link #setOptions}) -
+	 * needed so {@link #createHttp} can hand the current {@link JsConfigHelper}
+	 * (if any) to the {@link JsHttpHelper} it builds, letting {@code http.download(...)}
+	 * land a downloaded file straight into a config attribute. Not passed at
+	 * construction time: this factory is built before the {@code JsDeviceScriptOptions}
+	 * that references it back.
+	 */
+	private JsDeviceScriptOptions options;
+
 	public JsClientFactory(AccessManager accessManager, DeviceDriver driver) {
 		this.accessManager = accessManager;
 		this.driver = driver;
+	}
+
+	/**
+	 * @param options the current script's options, once built
+	 */
+	public void setOptions(JsDeviceScriptOptions options) {
+		this.options = options;
 	}
 
 	@Export
@@ -59,7 +76,9 @@ public class JsClientFactory {
 	@Export
 	public JsHttpHelper createHttp(List<String> accessNames, boolean autoTryCredentials, String basePath) {
 		List<AccessDefinition> defs = this.driver.getAccessDefinitions(accessNames);
-		return new JsHttpHelper(this.accessManager, defs, autoTryCredentials, basePath, this.accessManager.getTaskContext());
+		JsConfigHelper configHelper = this.options == null ? null : this.options.getConfigHelper();
+		return new JsHttpHelper(this.accessManager, defs, autoTryCredentials, basePath,
+			this.accessManager.getTaskContext(), configHelper);
 	}
 
 }

@@ -156,6 +156,7 @@ public class UserDeviceScript extends DeviceScript {
 			context.eval("js", code);
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
+			clientFactory.setOptions(options);
 			options.setDeviceHelper(new JsDeviceHelper(device, jsCliHelper, null, this.taskContext, false));
 			options.setUserInputs(this.userInputValues);
 			context

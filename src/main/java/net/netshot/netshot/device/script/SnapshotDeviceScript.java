@@ -135,6 +135,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 		JsClientFactory clientFactory = new JsClientFactory(accessManager, driver);
 		JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 		options.setClientFactory(clientFactory);
+		clientFactory.setOptions(options);
 
 		try (Context context = driver.getContext()) {
 			this.taskContext.info("Starting snapshot of device {} using driver {} version {}",
