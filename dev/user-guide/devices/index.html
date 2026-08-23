@@ -1691,6 +1691,7 @@
 <li><strong>In case of failure, also try all known credentials</strong> — falls back to every credential set associated with the device's domain (or with no domain) if the selected set(s) fail.</li>
 <li><strong>Comments</strong> — free text.</li>
 </ul>
+<p>Depending on the device's driver, extra <strong>driver-defined options</strong> may also be editable here — admin-configurable settings the driver reads back at runtime (for example, a "take full backup archive" toggle). Which options exist, and their type, is defined by the driver — see <a href="../device-drivers/">Device drivers</a>.</p>
 <p>A device can have several <strong>network accesses</strong> (management addresses), each independently configurable — see <a href="#connection-security">Connection security</a> below for the per-access settings. Disabling a device (toolbar button) stops all snapshot tasks against it until re-enabled.</p>
 <h2 id="connection-security">Connection security<a class="headerlink" href="#connection-security" title="Permanent link">&para;</a></h2>
 <p>Each network access on a device — not just the primary one — carries its own connection-security settings, independent of the credential set used.</p>

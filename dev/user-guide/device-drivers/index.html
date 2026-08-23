@@ -776,10 +776,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#driver-structure" class="md-nav__link">
+  <a href="#writing-or-extending-a-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Driver structure
+        Writing or extending a driver
       </span>
     </span>
   </a>
@@ -1341,10 +1341,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#driver-structure" class="md-nav__link">
+  <a href="#writing-or-extending-a-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Driver structure
+        Writing or extending a driver
       </span>
     </span>
   </a>
@@ -1439,25 +1439,14 @@
 
 
 <h1 id="device-drivers">Device drivers<a class="headerlink" href="#device-drivers" title="Permanent link">&para;</a></h1>
-<p>Each supported type of device in Netshot relies on a single JavaScript file, often called a <em>driver</em>. This file describes the special attributes of the device type (e.g. running configuration and configuration register for a Cisco IOS device), and contains runnable code that will be executed when interacting with the device (e.g. taking a snapshot of the device).</p>
+<p>Each supported type of device in Netshot relies on a single JavaScript file, often called a <em>driver</em>. This file describes the special attributes of the device type (e.g. running configuration and configuration register for a Cisco IOS device), and contains runnable code that will be executed when interacting with the device (e.g. taking a snapshot of the device, or reading it over a REST API instead of a CLI).</p>
 <h2 id="driver-location">Driver location<a class="headerlink" href="#driver-location" title="Permanent link">&para;</a></h2>
 <p>The Netshot package (especially the <code>.jar</code> file) contains several built-in drivers for some well-known network device operating systems. These drivers are automatically loaded from the package without further action, which makes Netshot able to manage most router and switch devices out of the box.</p>
 <p>Netshot also automatically loads drivers from the file system, which allows you to add your own driver files, by placing them in the directory defined in the Netshot configuration file by <code>netshot.drivers.path</code>.</p>
 <p>If you want to make changes to an existing built-in driver, you can extract it from the <code>.jar</code> file, and copy it to the driver directory. A driver loaded from the file system takes priority over the built-in driver of the same name.</p>
-<p>Drivers can be dynamically reloaded while Netshot runs, from the Admin page.</p>
-<h2 id="driver-structure">Driver structure<a class="headerlink" href="#driver-structure" title="Permanent link">&para;</a></h2>
-<p>A driver is a JavaScript file.</p>
-<p>A driver must contain the following global objects:</p>
-<ul>
-<li><code>Info</code>: object describing the driver.</li>
-<li><code>Device</code>: object describing the specific attributes of this type of device.</li>
-<li><code>Config</code>: object describing the attributes of a configuration of a device of this type (a history of these attributes is kept, as opposed to the device attributes).</li>
-<li><code>CLI</code>: object containing the logic to interact with the device's CLI, as a state machine.</li>
-<li><code>snapshot(cli, device, config, debug)</code>: a function called each time a snapshot on a device of this type is started.</li>
-<li><code>analyzeSyslog(message)</code>: function automatically called whenever a Syslog message is received. The function must return true if it recognizes a configuration change notification for the type of device it supports.</li>
-<li><code>analyzeTrap(trap)</code>: function automatically called whenever a trap message is received (with the right community). The function must return true if it recognizes a configuration change notification for the specific type of device it supports.</li>
-<li><code>snmpAutoDiscover(sysObjectID, sysDesc)</code>: function called when a device is added to Netshot in autodiscovery mode. The driver looks at the <code>sysObjectID</code> and <code>sysDesc</code> and returns true if it thinks it can support this device. If it returns true, Netshot will effectively add the device to the database, and assign this driver to the device for future actions.</li>
-</ul>
+<p>Drivers can be dynamically reloaded while Netshot runs, from the Admin page — see <a href="../administration/#device-types">Device types</a>.</p>
+<h2 id="writing-or-extending-a-driver">Writing or extending a driver<a class="headerlink" href="#writing-or-extending-a-driver" title="Permanent link">&para;</a></h2>
+<p>Writing a new driver, or modifying an existing one, is a matter of writing JavaScript against Netshot's driver API. See <a href="../../extending/writing-a-driver/">Writing a new driver</a> for the methodology and the full API reference, and <a href="../../extending/loading-a-driver/">Loading an alternative driver</a> for installing the result.</p>
 
 
 
