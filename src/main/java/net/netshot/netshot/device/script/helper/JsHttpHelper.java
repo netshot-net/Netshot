@@ -159,6 +159,8 @@ public class JsHttpHelper {
 	 * Builds the full request path, prepending this client's basePath (from
 	 * {@code client.create("http", {basePath})}), shared by {@link #doRequest}
 	 * and {@link #doDownload}.
+	 * @param path the request path to prepend the basePath to
+	 * @return the full path, with basePath prepended if set
 	 */
 	private String buildFullPath(String path) {
 		if (this.basePath == null || this.basePath.isEmpty()) {
@@ -214,7 +216,10 @@ public class JsHttpHelper {
 		return result;
 	}
 
-	/** A {@link java.util.function.Supplier} allowed to throw {@link IOException}. */
+	/**
+	 * A {@link java.util.function.Supplier} allowed to throw {@link IOException}.
+	 * @param <T> the type of result supplied
+	 */
 	@FunctionalInterface
 	private interface IOSupplier<T> {
 		T get() throws IOException;
