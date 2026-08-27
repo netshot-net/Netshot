@@ -22,14 +22,14 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - run: uv sync --locked
+      - run: uv sync --project docs --locked
 
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Deploy bleeding-edge docs
-        run: uv run mike deploy --push dev
+        run: uv run --project docs mike deploy --push dev
 
       - name: Bootstrap a default version if none exists yet
         # Until the first GitHub Release is published, deploy-release below never runs,
@@ -39,7 +39,7 @@ jobs:
         run: |
           git fetch origin gh-pages
           if ! git cat-file -e origin/gh-pages:index.html 2>/dev/null; then
-            uv run mike set-default --push dev
+            uv run --project docs mike set-default --push dev
           fi
 
   deploy-release:
@@ -52,7 +52,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - run: uv sync --locked
+      - run: uv sync --project docs --locked
 
       - run: |
           git config user.name "github-actions[bot]"
@@ -60,5 +60,5 @@ jobs:
 
       - name: Deploy release docs and update latest alias
         run: |
-          uv run mike deploy --push --update-aliases "${{ github.event.release.tag_name }}" latest
-          uv run mike set-default --push latest
+          uv run --project docs mike deploy --push --update-aliases "${{ github.event.release.tag_name }}" latest
+          uv run --project docs mike set-default --push latest
