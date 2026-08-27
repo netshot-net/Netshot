@@ -10,6 +10,7 @@
       "bulkFieldUnchangedTooltip": "Leave this field unchanged on all selected devices",
       "bulkFieldClickToEdit": "Click to set a new value for all selected devices",
       "selectSameDeviceTypeToEditConnectionSettings": "Select devices of the same type to edit their connection settings and credentials",
+      "selectDesc": "View device configuration, interfaces, modules, diagnostics, compliance and tasks",
       "youVeSelected_one": "You've selected {{count}} device, the following actions apply to all of the selected devices",
       "youVeSelected_other": "You've selected {{count}} devices, the following actions apply to all of the selected devices",
       "class": {
@@ -248,6 +249,7 @@
       "aboutToEnable": "You are about to enable the diagnostic {{diagnosticName}}",
       "aboutToRemove": "You are about to remove the diagnostic {{diagnosticName}}",
       "canCreate": "You can create diagnostics then execute them on this device",
+      "selectDesc": "View diagnostic details and the devices it targets",
       "selectResultType": "Select a result type",
       "select": "Select diagnostic",
       "noCliAccessForDriver": "This device type has no CLI access. Use a JavaScript or Python diagnostic instead (with client.create(\"http\") if the driver is HTTP-based)."
@@ -445,6 +447,8 @@
       "attribute": "Attribute",
       "attributes": "Attributes",
       "selectAttribute": "Select attribute...",
+      "selectDeviceToBegin": "Select a device to begin",
+      "selectDiagnosticToBegin": "Select a diagnostic to begin",
       "selectGroupToBegin": "Select group to begin",
       "selectGroup": "Select group",
       "selectGroups": "Select groups",
@@ -1093,7 +1097,7 @@
     },
     "vault": {
       "list": "Vault instances",
-      "manage": "Manage Vault instances used to resolve Vault-backed device credentials",
+      "manage": "Manage Vault instances",
       "create": "Create Vault instance",
       "edit": "Edit Vault instance",
       "remove": "Remove Vault instance",

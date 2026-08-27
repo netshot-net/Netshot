@@ -2,6 +2,7 @@ export { default as DeviceComplianceScreen } from "./DeviceComplianceScreen";
 export { default as DeviceConfigurationScreen } from "./DeviceConfigurationScreen";
 export { default as DeviceDetailScreen } from "./DeviceDetailScreen";
 export { default as DeviceDiagnosticScreen } from "./DeviceDiagnosticScreen";
+export { default as DeviceEmptyScreen } from "./DeviceEmptyScreen";
 export { default as DeviceGeneralScreen } from "./DeviceGeneralScreen";
 export { default as DeviceInterfaceScreen } from "./DeviceInterfaceScreen";
 export { default as DeviceModuleScreen } from "./DeviceModuleScreen";

@@ -24,13 +24,18 @@ import {
   DeviceConfigurationScreen,
   DeviceDetailScreen,
   DeviceDiagnosticScreen,
+  DeviceEmptyScreen,
   DeviceGeneralScreen,
   DeviceInterfaceScreen,
   DeviceModuleScreen,
   DeviceScreen,
   DeviceTaskScreen,
 } from "@/features/device"
-import { DiagnosticDetailScreen, DiagnosticScreen } from "@/features/diagnostic"
+import {
+  DiagnosticDetailScreen,
+  DiagnosticEmptyScreen,
+  DiagnosticScreen,
+} from "@/features/diagnostic"
 import {
   ReportConfigurationChangeScreen,
   ReportConfigurationComplianceDetailScreen,
@@ -129,6 +134,7 @@ function App() {
                         />
                       </Route>
                       <Route path="devices" element={<DeviceScreen />}>
+                        <Route index element={<DeviceEmptyScreen />} />
                         <Route path=":id" element={<DeviceDetailScreen />}>
                           <Route index element={<Navigate to="general" replace />} />
                           <Route path="general" element={<DeviceGeneralScreen />} />
@@ -141,6 +147,7 @@ function App() {
                         </Route>
                       </Route>
                       <Route path="diagnostics" element={<DiagnosticScreen />}>
+                        <Route index element={<DiagnosticEmptyScreen />} />
                         <Route path=":id" element={<DiagnosticDetailScreen />} />
                       </Route>
                       <Route path="compliance" element={<ComplianceScreen />}>

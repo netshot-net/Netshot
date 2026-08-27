@@ -10,6 +10,7 @@
       "bulkFieldUnchangedTooltip": "Laisser ce champ inchangé sur tous les équipements sélectionnés",
       "bulkFieldClickToEdit": "Cliquez pour définir une nouvelle valeur pour tous les équipements sélectionnés",
       "selectSameDeviceTypeToEditConnectionSettings": "Sélectionnez des équipements du même type pour modifier leurs paramètres de connexion et leurs identifiants",
+      "selectDesc": "Consultez la configuration, les interfaces, les modules, les diagnostics, la conformité et les tâches de l'équipement",
       "youVeSelected_one": "Vous avez sélectionné {{count}} équipement, les actions suivantes s'appliquent à tous les équipements sélectionnés",
       "youVeSelected_other": "Vous avez sélectionné {{count}} équipements, les actions suivantes s'appliquent à tous les équipements sélectionnés",
       "class": {
@@ -248,6 +249,7 @@
       "aboutToEnable": "Vous êtes sur le point d'activer le diagnostic {{diagnosticName}}",
       "aboutToRemove": "Vous êtes sur le point de supprimer le diagnostic {{diagnosticName}}",
       "canCreate": "Vous pouvez créer des diagnostics puis les exécuter sur cet équipement",
+      "selectDesc": "Consultez les détails du diagnostic et les équipements qu'il cible",
       "selectResultType": "Sélectionner un type de résultat",
       "select": "Sélectionner un diagnostic",
       "noCliAccessForDriver": "Ce type d'équipement n'a pas d'accès CLI. Utilisez un diagnostic JavaScript ou Python à la place (avec client.create(\"http\") si le pilote est basé sur HTTP)."
@@ -444,6 +446,8 @@
       "selectAll": "Tout sélectionner",
       "attribute": "Attribut",
       "selectAttribute": "Sélectionner un attribut...",
+      "selectDeviceToBegin": "Sélectionnez un équipement pour commencer",
+      "selectDiagnosticToBegin": "Sélectionnez un diagnostic pour commencer",
       "selectGroupToBegin": "Sélectionner un groupe pour commencer",
       "selectGroup": "Sélectionner un groupe",
       "selectGroups": "Sélectionner des groupes",
@@ -1092,7 +1096,7 @@
     },
     "vault": {
       "list": "Instances Vault",
-      "manage": "Gérer les instances Vault utilisées pour résoudre les identifiants d'équipement stockés dans Vault",
+      "manage": "Gérer les instances Vault",
       "create": "Créer une instance Vault",
       "edit": "Modifier l'instance Vault",
       "remove": "Supprimer l'instance Vault",
