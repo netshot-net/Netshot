@@ -23,13 +23,14 @@ import java.util.Properties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hibernate.Session;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.images.builder.Transferable;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
@@ -42,6 +43,7 @@ import net.netshot.netshot.vault.VaultKeyPath;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultableSecret;
 
+@Testcontainers
 public class VaultTest extends WithDatabaseTest {
 
 	@Nested
@@ -109,7 +111,6 @@ public class VaultTest extends WithDatabaseTest {
 	 */
 	@Nested
 	@DisplayName("Vault-backed secret resolution (real Vault container)")
-	@SuppressWarnings("resource")
 	class SecretResolutionTest {
 
 		private static final String ROOT_TOKEN = "netshot-test-root-token";
@@ -126,13 +127,13 @@ public class VaultTest extends WithDatabaseTest {
 			}
 			""";
 
-		private static VaultContainer<?> vaultContainer;
-		private static long vaultInstanceId;
-		private static long accountId;
+		@Container
+		private static final VaultContainer<?> vaultContainer = buildVaultContainer();
 
-		@BeforeAll
-		static void startVaultAndDatabase() throws Exception {
-			vaultContainer = new VaultContainer<>(DockerImageName.parse("hashicorp/vault:2.0.4"))
+		/** Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class. */
+		@SuppressWarnings("resource")
+		private static VaultContainer<?> buildVaultContainer() {
+			return new VaultContainer<>(DockerImageName.parse("hashicorp/vault:2.0.4"))
 				.withVaultToken(ROOT_TOKEN)
 				.withCopyToContainer(Transferable.of(POLICY_HCL), "/tmp/netshot-test-policy.hcl")
 				.withInitCommand(
@@ -144,8 +145,13 @@ public class VaultTest extends WithDatabaseTest {
 					"write auth/approle/role/%s/role-id role_id=%s".formatted(APPROLE_NAME, ROLE_ID),
 					"write auth/approle/role/%s/custom-secret-id secret_id=%s".formatted(APPROLE_NAME, SECRET_ID)
 				);
-			vaultContainer.start();
+		}
 
+		private static long vaultInstanceId;
+		private static long accountId;
+
+		@BeforeAll
+		static void initDatabaseAndVaultInstance() throws Exception {
 			Properties config = getFreshDatabaseConfig("vaultresolutiontest");
 			config.setProperty("netshot.log.file", "CONSOLE");
 			config.setProperty("netshot.log.level", "INFO");
@@ -186,11 +192,6 @@ public class VaultTest extends WithDatabaseTest {
 				session.getTransaction().commit();
 			}
 			accountId = account.getId();
-		}
-
-		@AfterAll
-		static void stopVault() {
-			vaultContainer.stop();
 		}
 
 		/** Reloads the test account in a fresh session, so its Vault references come from the DB, not from the object still held by {@code @BeforeAll}. */
