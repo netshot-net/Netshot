@@ -1,8 +1,15 @@
+name: netshot-dev
+
 services:
   netshot:
+    extends:
+      file: dist/compose.yaml
+      service: netshot
     pull_policy: never
     build: .
-  
+    networks:
+      - devices
+
   webui:
     build:
       context: .
@@ -23,9 +30,44 @@ services:
       traefik.http.routers.webui-https.entrypoints: "web-secure"
       traefik.http.routers.webui-https.priority: 10000
       traefik.http.services.webui.loadbalancer.server.port: "3000"
-    expose:
-      - 8080
     volumes:
       - "./src/main/resources/webui:/app"
     networks:
       - front
+
+  rproxy:
+    extends:
+      file: dist/compose.yaml
+      service: rproxy
+    ports: !override
+      - "8443:443"
+
+  database:
+    extends:
+      file: dist/compose.yaml
+      service: database
+    
+  router1:
+    build: ./dev/device-simulator
+    environment:
+      NETSHOT_SIMULATOR_DRIVER: Cisco_IOS
+      NETSHOT_SIMULATOR_NAME: router1
+    networks:
+      - devices
+
+  router2:
+    build: ./dev/device-simulator
+    environment:
+      NETSHOT_SIMULATOR_DRIVER: Juniper_Junos
+      NETSHOT_SIMULATOR_NAME: router2
+    networks:
+      - front
+
+volumes:
+  dbdata:
+  binarydata:
+
+networks:
+  front:
+  database:
+  devices:

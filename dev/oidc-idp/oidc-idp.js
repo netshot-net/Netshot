@@ -14,6 +14,16 @@
  *   PORT           Listening port          (default: 4000)
  *   CLIENT_ID      OIDC client ID          (default: netshot)
  *   CLIENT_SECRET  OIDC client secret      (default: secret)
+ *   ISSUER         Backchannel base URL    (default: http://localhost:PORT)
+ *                  Used for `iss`, the discovery doc's `issuer`, `token_endpoint`
+ *                  and `jwks_uri` — i.e. the address Netshot itself uses to reach
+ *                  this IdP directly (e.g. http://idp:4000 on a Compose network).
+ *   PUBLIC_URL     Browser-facing base URL (default: same as ISSUER)
+ *                  Used for `authorization_endpoint` and `end_session_endpoint` —
+ *                  the address Netshot redirects the *user's browser* to, which
+ *                  may differ from ISSUER (e.g. http://localhost:4000 or an
+ *                  external IP) when Netshot reaches the IdP over a Docker
+ *                  network but the browser reaches it via published ports.
  *
  * Netshot configuration (netshot.conf):
  *   netshot.aaa.oidc.idp.url=http://localhost:4000
@@ -31,6 +41,7 @@ const PORT          = Number(process.env.PORT)   || 4000;
 const CLIENT_ID     = process.env.CLIENT_ID      || 'netshot';
 const CLIENT_SECRET = process.env.CLIENT_SECRET  || 'secret';
 const ISSUER        = process.env.ISSUER         || `http://localhost:${PORT}`;
+const PUBLIC_URL    = process.env.PUBLIC_URL     || ISSUER;
 const KEY_ID        = 'dev-key-1';
 
 // ── Pre-defined accounts (one per Netshot role) ───────────────────────────────
@@ -273,10 +284,10 @@ async function handler(req, res) {
   if (req.method === 'GET' && pathname === '/.well-known/openid-configuration') {
     return sendJson(res, 200, {
       issuer:                                ISSUER,
-      authorization_endpoint:                `${ISSUER}/authorize`,
+      authorization_endpoint:                `${PUBLIC_URL}/authorize`,
       token_endpoint:                        `${ISSUER}/token`,
       jwks_uri:                              `${ISSUER}/jwks.json`,
-      end_session_endpoint:                  `${ISSUER}/end-session`,
+      end_session_endpoint:                  `${PUBLIC_URL}/end-session`,
       response_types_supported:              ['code'],
       subject_types_supported:               ['public'],
       id_token_signing_alg_values_supported: ['RS256'],

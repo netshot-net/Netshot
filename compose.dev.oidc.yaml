@@ -1,7 +1,5 @@
 services:
   netshot:
-    pull_policy: never
-    build: .
     environment:
       NETSHOT_AAA_OIDC_IDP_URL: "http://idp:4000"
       NETSHOT_AAA_OIDC_CLIENTID: "netshot"
@@ -9,17 +7,16 @@ services:
     depends_on:
       idp:
         condition: service_started
-    networks:
-      - front
 
   idp:
     build: ./dev/oidc-idp
     environment:
+      # ISSUER is how Netshot itself reaches the IdP (Compose service name).
       ISSUER: "http://idp:4000"
+      # PUBLIC_URL is how your browser reaches the IdP for the login page.
+      PUBLIC_URL: "http://localhost:4000"
     ports:
       - "4000:4000"
     networks:
       - front
 
-networks:
-  front:

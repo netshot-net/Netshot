@@ -1,0 +1,22 @@
+services:
+  netshot:
+    environment:
+      NETSHOT_CLUSTER_ENABLED: true
+      NETSHOT_CLUSTER_ID: n3azsqd6qbradtxtvjau
+      NETSHOT_CLUSTER_MASTER_PRIORITY: 200
+
+  netshot2:
+    extends:
+      file: dist/compose.yaml
+      service: netshot
+    pull_policy: never
+    build: .
+    networks:
+      - devices
+    environment:
+      NETSHOT_CLUSTER_ENABLED: true
+      NETSHOT_CLUSTER_ID: xtjub9ja2hz6enu52ue9
+      NETSHOT_CLUSTER_MASTER_PRIORITY: 100
+    ports: !reset
+
+
