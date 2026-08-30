@@ -21,7 +21,7 @@ const Info = {
 	name: "CitrixNetscaler",
 	description: "Citrix NetScaler",
 	author: "Netshot Team",
-	version: "4.0"
+	version: "4.1"
 };
 
 const Config = {
@@ -335,7 +335,7 @@ function snapshot(cli, device, config) {
 		}
 	}
 
-	if (device.options.fullBackup && config.isChangedHash()) {
+	if ((!device.options || device.options.fullBackup) && config.isChangedHash()) {
 		// Create a backup archive
 		const backupOutput = cli.command("create system backup -level full netshot");
 		if (!backupOutput.match(/Done/)) {

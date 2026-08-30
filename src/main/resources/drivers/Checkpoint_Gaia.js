@@ -28,7 +28,7 @@ const Info = {
 	name: "CheckpointGaia",
 	description: "Checkpoint Gaia",
 	author: "Netshot Team",
-	version: "4.0"
+	version: "4.1"
 };
 
 const Config = {
@@ -316,7 +316,7 @@ function snapshot(cli, device, config) {
 		}
 	}
 
-	if (device.options.fullBackup) {
+	if (!device.options || device.options.fullBackup) {
 		const addBackup = cli.command("add backup local");
 		if (!addBackup.match(/Creating backup package/)) {
 			throw `Can't start backup: ${addBackup}`;

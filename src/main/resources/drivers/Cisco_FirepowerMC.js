@@ -28,7 +28,7 @@ const Info = {
 	name: "CiscoFirepowerMC",
 	description: "Cisco Firepower Management Center",
 	author: "Netshot Team",
-	version: "2.0"
+	version: "2.1"
 };
 
 const Config = {
@@ -212,7 +212,7 @@ function snapshot(cli, device, config) {
 		device.add("networkInterface", networkInterface);
 	}
 
-	if (device.options.fullBackup) {
+	if (!device.options || device.options.fullBackup) {
 		// Full backup
 		cli.macro("sudo");
 		cli.command("mkdir -p /var/sf/backup");

@@ -30,7 +30,7 @@ var Info = {
 	name: "CheckpointSPLAT",
 	description: "Checkpoint SPLAT",
 	author: "Netshot Team",
-	version: "2.0"
+	version: "2.1"
 };
 
 var Config = {
@@ -261,7 +261,7 @@ function snapshot(cli, device, config) {
 		device.add("module", module);
 	}
 
-	if (device.options.fullBackup) {
+	if (!device.options || device.options.fullBackup) {
 		cli.macro("backup", {
 			timeout: 30 * 60 * 1000, // 30 minutes
 		});

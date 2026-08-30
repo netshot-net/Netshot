@@ -21,7 +21,7 @@ var Info = {
 	name: "CiscoViptela",
 	description: "Viptela Operating System",
 	author: "Netshot Team",
-	version: "3.0"
+	version: "3.1"
 };
 
 var Config = {
@@ -316,7 +316,7 @@ function snapshot(cli, device, config) {
 		device.add("networkInterface", networkInterfaces[i]);
 	}
 
-	if (doBackup && device.options.fullBackup) {
+	if (doBackup && (!device.options || device.options.fullBackup)) {
 		try {
 			cli.macro("bash");
 			// Remove any previous backup

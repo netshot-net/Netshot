@@ -30,7 +30,7 @@ var Info = {
 	name: "SkyhighSWG",
 	description: "Skyhigh Secure Web Gateway",
 	author: "Netshot Team",
-	version: "2.0"
+	version: "2.1"
 };
 
 var Config = {
@@ -154,7 +154,7 @@ function snapshot(cli, device, config) {
 	}
 
 	
-	if (device.options.fullBackup) {
+	if (!device.options || device.options.fullBackup) {
 		const backupBaseFile = "/var/tmp/netshot";
 
 		try {

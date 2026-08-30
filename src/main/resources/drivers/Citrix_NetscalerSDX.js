@@ -21,7 +21,7 @@ const Info = {
 	name: "CitrixNetscalerSDX",
 	description: "Citrix NetScaler SDX",
 	author: "Netshot Team",
-	version: "2.0"
+	version: "2.1"
 };
 
 const Config = {
@@ -209,7 +209,7 @@ function snapshot(cli, device, config) {
 		device.add("networkInterface", networkInterface);
 	}
 
-	if (device.options.fullBackup) {
+	if (!device.options || device.options.fullBackup) {
 		const getBackupFiles = function() {
 			const listing = cli.command("ls -w1 /var/mps/backup/Backup_*.tgz");
 			const filePattern = /^(\/var\/.*\.tgz)/mg;

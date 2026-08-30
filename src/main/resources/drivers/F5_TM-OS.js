@@ -21,7 +21,7 @@ const Info = {
 	name: "F5TMOS",
 	description: "F5 TM-OS, 11.x and newer",
 	author: "Netshot Team",
-	version: "4.0"
+	version: "4.1"
 };
 
 const Config = {
@@ -368,7 +368,7 @@ function snapshot(cli, device, config) {
 		throw `Unable to compute hash of file ${path}:\n${output}`;
 	};
 
-	if (device.options.fullBackup) {
+	if (!device.options || device.options.fullBackup) {
 		// Save and download UCS
 		const ucsPath = "/var/local/ucs/netshot.ucs";
 		cli.command(`rm -f ${ucsPath}`);
