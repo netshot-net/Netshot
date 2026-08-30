@@ -110,9 +110,14 @@ export default function AdministrationDeviceCredentialSetScreen() {
   return (
     <>
       <Stack gap="6" p="9" flex="1" overflow="auto">
-        <Heading as="h1" fontSize="4xl">
-          {t("credential.deviceList")}
-        </Heading>
+        <Stack gap="1">
+          <Heading as="h1" fontSize="4xl">
+            {t("credential.deviceList")}
+          </Heading>
+          <Text fontSize="sm" color="grey.400">
+            {t("credential.deviceListDescription")}
+          </Text>
+        </Stack>
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}

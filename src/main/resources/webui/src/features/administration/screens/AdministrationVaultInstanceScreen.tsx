@@ -138,9 +138,14 @@ export default function AdministrationVaultInstanceScreen() {
   return (
     <>
       <Stack gap="6" p="9" flex="1" overflow="auto">
-        <Heading as="h1" fontSize="4xl">
-          {t("vault.list")}
-        </Heading>
+        <Stack gap="1">
+          <Heading as="h1" fontSize="4xl">
+            {t("vault.list")}
+          </Heading>
+          <Text fontSize="sm" color="grey.400">
+            {t("vault.listDescription")}
+          </Text>
+        </Stack>
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}

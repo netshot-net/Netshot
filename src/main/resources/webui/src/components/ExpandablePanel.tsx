@@ -20,7 +20,13 @@ function Header(props: PropsWithChildren) {
 
   return (
     <Stack direction="row" gap="3" alignItems="center" p="3" onClick={ctx.toggle} cursor="pointer">
-      <IconButton variant="ghost" colorPalette="green" aria-label={t("common.open")} transform={transform}>
+      <IconButton
+        size="sm"
+        variant="ghost"
+        colorPalette="green"
+        aria-label={t("common.open")}
+        transform={transform}
+      >
         <LuChevronDown />
       </IconButton>
       {children}

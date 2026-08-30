@@ -103,6 +103,24 @@ export function useLocalization() {
     return dateTimeFormatter.format(date instanceof Date ? date : new Date(date))
   }, [dateTimeFormatter])
 
+  const relativeTimeFormatter = useMemo(() => {
+    return new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" })
+  }, [i18n.language])
+
+  const formatRelativeTime = useCallback((date: number | Date) => {
+    const time = date instanceof Date ? date.getTime() : date
+    const diffSeconds = Math.round((time - Date.now()) / 1000)
+    const absSeconds = Math.abs(diffSeconds)
+
+    if (absSeconds < 60) return relativeTimeFormatter.format(diffSeconds, "second")
+    const diffMinutes = Math.round(diffSeconds / 60)
+    if (Math.abs(diffMinutes) < 60) return relativeTimeFormatter.format(diffMinutes, "minute")
+    const diffHours = Math.round(diffMinutes / 60)
+    if (Math.abs(diffHours) < 24) return relativeTimeFormatter.format(diffHours, "hour")
+    const diffDays = Math.round(diffHours / 24)
+    return relativeTimeFormatter.format(diffDays, "day")
+  }, [relativeTimeFormatter])
+
   const datePlaceholder = useMemo(() => {
     const letters: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {
       year: t("common.date.yearLetter"),
@@ -174,6 +192,7 @@ export function useLocalization() {
     formatDayMonth,
     formatMonthYear,
     formatDateTime,
+    formatRelativeTime,
     formatHourMinute,
     formatDayMonthHourMinute,
     datePlaceholder,

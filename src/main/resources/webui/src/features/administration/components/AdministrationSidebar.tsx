@@ -24,6 +24,11 @@ export default function AdministrationSidebar() {
           description={t("credential.manage")}
         />
         <SidebarLink
+          to="./vault"
+          label={t("vault.list")}
+          description={t("vault.manage")}
+        />
+        <SidebarLink
           to="./driver"
           label={t("admin.drivers")}
           description={t("device.manageType")}
@@ -37,11 +42,6 @@ export default function AdministrationSidebar() {
           to="./webhook"
           label={t("webhook.list")}
           description={t("policy.rule.executeExternalFunction")}
-        />
-        <SidebarLink
-          to="./vault"
-          label={t("vault.list")}
-          description={t("vault.manage")}
         />
         <SidebarLink
           to="./clustering"

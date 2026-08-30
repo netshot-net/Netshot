@@ -4,6 +4,13 @@ export type ClusterMasterStatus = {
   currentMasterId: string;
 };
 
+export enum ClusterMemberStatus {
+  Member = "MEMBER",
+  Master = "MASTER",
+  Expired = "EXPIRED",
+  Negotiating = "NEGOTIATING",
+}
+
 export type ClusterMember = {
   local: boolean;
   instanceId: string;
@@ -15,7 +22,7 @@ export type ClusterMember = {
   appVersion: string;
   jvmVersion: string;
   driverHash: string;
-  status: "MEMBER";
+  status: ClusterMemberStatus;
   lastStatusChangeTime: number;
   lastSeenTime: number;
 };
