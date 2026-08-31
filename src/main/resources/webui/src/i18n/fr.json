@@ -863,9 +863,9 @@
     "admin": {
       "title": "Administration",
       "clustering": {
-        "label": "Clustering",
-        "manage": "Gérer le clustering des serveurs",
-        "description": "Surveiller les membres du cluster, le statut de maîtrise et la cohérence des pilotes entre les instances",
+        "label": "Multi-nœuds",
+        "manage": "Gérer le fonctionnement multi-nœuds",
+        "description": "Surveiller les nœuds, le statut de maîtrise et la cohérence des pilotes entre les instances",
         "memberList": "Liste des membres",
         "members": "Membres",
         "master": "Maître",
@@ -876,13 +876,14 @@
         "lastSeenAgo": "Vu {{time}}",
         "masterPriority": "Priorité maître",
         "instanceId": "ID d'instance",
-        "clusteringVersion": "Version de clustering",
+        "clusteringVersion": "Version multi-nœuds",
         "jvmVersion": "Version JVM",
         "driverHash": "Hash des drivers",
         "driverConsistency": "Hash des drivers",
         "hashConsistent": "Cohérent",
         "hashMismatch": "{{count}} versions",
-        "activateHint": "Vous pouvez activer le clustering dans le fichier de configuration principal, veuillez consulter la documentation"
+        "disabled": "Le mode multi-nœuds est désactivé",
+        "activateHint": "Vous pouvez activer le mode multi-nœuds dans le fichier de configuration principal, veuillez consulter la documentation"
       },
       "logs": {
         "info": "Logs d'information",

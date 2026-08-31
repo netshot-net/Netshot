@@ -206,7 +206,7 @@ export default function AdministrationClusteringScreen() {
             </Stack>
           ) : (
             <EmptyResult
-              title={t("compliance.hardware.noMember")}
+              title={t("admin.clustering.disabled")}
               description={t("admin.clustering.activateHint")}
             />
           )}
