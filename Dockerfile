@@ -34,9 +34,10 @@ RUN GRAALPY_VERSION=$(JAVA_HOME=/ ./mvnw help:evaluate -Dexpression=polyglot.ver
 
 FROM debian-graalvm-graalpy AS builder
 ARG NETSHOT_VERSION
+WORKDIR /build
+RUN ./mvnw dependency:resolve dependency:resolve-plugins -B
 COPY . /build
 COPY --from=webui-builder /build/webui/dist /build/src/main/resources/webui/dist
-WORKDIR /build
 RUN sed -i -r "s/VERSION = \".*\";/VERSION = \"$NETSHOT_VERSION\";/g" \
        src/main/java/net/netshot/netshot/Netshot.java
 RUN ./mvnw package -Dmaven.test.skip
