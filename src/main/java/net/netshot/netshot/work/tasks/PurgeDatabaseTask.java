@@ -18,12 +18,19 @@
  */
 package net.netshot.netshot.work.tasks;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.hibernate.CacheMode;
 import org.hibernate.Hibernate;
@@ -185,6 +192,22 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 
 	public void setModuleDays(int moduleDays) {
 		this.setAttribute("moduleDays", moduleDays);
+	}
+
+	/**
+	 * Whether to remove orphan binary attribute files (files on disk with no
+	 * corresponding database record) from the binary attribute storage folder.
+	 * @return true if orphan files should be removed
+	 */
+	@XmlElement
+	@JsonView(DefaultView.class)
+	@Transient
+	public boolean isRemoveOrphanFiles() {
+		return this.getBooleanAttribute("removeOrphanFiles", false);
+	}
+
+	public void setRemoveOrphanFiles(boolean removeOrphanFiles) {
+		this.setAttribute("removeOrphanFiles", removeOrphanFiles);
 	}
 
 	/*(non-Javadoc)
@@ -488,6 +511,78 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 				log.error("Task {}. Error while purging the old modules from the database.",
 					this.getId(), e);
 				this.logger.error("Error during the module purge.");
+				this.status = Status.FAILURE;
+				return;
+			}
+			finally {
+				session.close();
+			}
+		}
+
+		if (this.isRemoveOrphanFiles()) {
+			Session session = Database.getSession();
+			try {
+				session.beginTransaction();
+				log.trace("Task {}. Cleaning up orphan binary attribute files...", this.getId());
+				this.logger.info("Cleaning up orphan binary attribute files...");
+				Set<String> knownUids = new HashSet<>(session
+					.createQuery("select cfa.uid from ConfigBinaryFileAttribute cfa", String.class)
+					.list());
+				session.getTransaction().commit();
+
+				int count = 0;
+				Path storageFolder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
+				if (storageFolder != null) {
+					Instant pendingSafeBefore = Instant.now().minus(24, ChronoUnit.HOURS);
+					try (Stream<Path> entries = Files.list(storageFolder)) {
+						for (Path entry : entries.toList()) {
+							try {
+								String fileName = entry.getFileName().toString();
+								if (!fileName.endsWith(".data")) {
+									continue;
+								}
+								boolean pending = fileName.startsWith(".tmp.");
+								String withoutSuffix = fileName.substring(0, fileName.length() - ".data".length());
+								String[] parts = withoutSuffix.split("_");
+								String uid = parts[parts.length - 1];
+								try {
+									UUID.fromString(uid);
+								}
+								catch (IllegalArgumentException e) {
+									continue; // Not a recognized binary attribute file name
+								}
+								if (knownUids.contains(uid)) {
+									// Referenced by a real attribute row - never delete,
+									// even if it's still sitting at its pending name.
+									continue;
+								}
+								if (pending && !Files.getLastModifiedTime(entry).toInstant().isBefore(pendingSafeBefore)) {
+									// Too recent - could be a snapshot genuinely in progress.
+									continue;
+								}
+								Files.delete(entry);
+								count++;
+							}
+							catch (IOException e) {
+								log.error("Error while removing orphan binary file {}", entry, e);
+							}
+						}
+					}
+				}
+				log.trace("Task {}. Cleaning up done on orphan binary files, {} entries affected.", this.getId(), count);
+				this.logger.info("Cleaning up done on orphan binary files, {} entries affected.", count);
+			}
+			catch (HibernateException e) {
+				Database.rollbackSilently(session);
+				log.error("Task {}. Database error while purging orphan binary files.", this.getId(), e);
+				this.logger.error("Database error during the orphan binary file purge.");
+				this.status = Status.FAILURE;
+				return;
+			}
+			catch (Exception e) {
+				Database.rollbackSilently(session);
+				log.error("Task {}. Error while purging orphan binary files.", this.getId(), e);
+				this.logger.error("Error during the orphan binary file purge.");
 				this.status = Status.FAILURE;
 				return;
 			}

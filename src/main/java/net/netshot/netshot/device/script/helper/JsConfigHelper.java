@@ -485,7 +485,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			if (cli instanceof Ssh sshCli) {
 				try {
 					ConfigBinaryFileAttribute fileAttribute = new ConfigBinaryFileAttribute(config, attribute.getName(), storeName);
-					Path tempPath = fileAttribute.getTempFilePath();
+					Path tempPath = fileAttribute.getPendingFilePath();
 					tempPath.toFile().deleteOnExit();
 					log.trace("Temporary file path for download is {}", tempPath);
 					try {
@@ -543,7 +543,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @throws Exception if the checksum doesn't match, or the file can't be moved
 	 */
 	void finalizeBinaryFile(ConfigBinaryFileAttribute fileAttribute, Path tempPath, String expectedHash) throws Exception {
-		Path targetPath = fileAttribute.getFilePath().toAbsolutePath();
+		Path targetPath = fileAttribute.getPendingFilePath().toAbsolutePath();
 		try {
 			this.checkFileSum(tempPath, expectedHash);
 			fileAttribute.setFileSize(tempPath.toFile().length());
@@ -552,7 +552,9 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 				log.trace("Computed SHA256 for the received file is {}", cs);
 				fileAttribute.setChecksum(cs);
 			}
-			Files.move(tempPath, targetPath);
+			if (!tempPath.toAbsolutePath().equals(targetPath)) {
+				Files.move(tempPath, targetPath);
+			}
 			config.addAttribute(fileAttribute);
 		}
 		catch (Exception e) {
@@ -574,7 +576,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @param storeFileName the file name to store (null to derive one from {@code fallbackRemoteName})
 	 * @param fallbackRemoteName used to derive a store file name when {@code storeFileName} is null
 	 *        (typically the request path/URL that's about to be downloaded)
-	 * @return the (not yet attached) binary file attribute, whose {@link ConfigBinaryFileAttribute#getTempFilePath()}
+	 * @return the (not yet attached) binary file attribute, whose {@link ConfigBinaryFileAttribute#getPendingFilePath()}
 	 *         is where the caller should download the file to before calling {@link #finalizeBinaryFile}
 	 * @throws Exception if the device driver can't be resolved, the attribute is unknown/not a BinaryFile,
 	 *         or no store file name could be derived
@@ -847,7 +849,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 
 		try {
 			ConfigBinaryFileAttribute fileAttribute = new ConfigBinaryFileAttribute(config, attribute.getName(), finalStoreName);
-			Path targetPath = fileAttribute.getFilePath().toAbsolutePath();
+			Path targetPath = fileAttribute.getPendingFilePath().toAbsolutePath();
 
 			// Verify checksum if provided
 			this.checkFileSum(tempPath, expectedHash);

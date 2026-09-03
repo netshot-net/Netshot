@@ -140,9 +140,19 @@ public final class ConfigBinaryFileAttribute extends ConfigAttribute {
 	}
 
 	/**
+	 * Format the visible/final on-disk name for this attribute, given a config ID.
+	 * @param configId the ID of the owning config (0 while still pending/transient)
+	 * @return the formatted file name (no folder, no dot prefix)
+	 */
+	private String finalName(long configId) {
+		return "%d_cfg%d_%s_%s.data".formatted(
+			this.getConfig().getDevice().getId(), configId, this.getName(), this.getUid());
+	}
+
+	/**
 	 * Get the full filename where to store data of the configuration attribute.
 	 * @return a File object, where to store data of the attribute
-	 * @throws IllegalAccessException 
+	 * @throws IllegalAccessException
 	 */
 	@Transient
 	public Path getFilePath() {
@@ -151,21 +161,66 @@ public final class ConfigBinaryFileAttribute extends ConfigAttribute {
 				"Cannot get a file path to save binary file attribute. "
 				+ "Is netshot.snapshots.binary.path defined?");
 		}
+		if (this.getId() == 0) {
+			// Not yet persisted (mid-snapshot): the owning config has no DB id yet.
+			return this.getPendingFilePath();
+		}
+		Path finalPath = ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
+			.resolve(this.finalName(this.getConfig().getId()))
+			.normalize();
+		if (Files.exists(finalPath)) {
+			return finalPath;
+		}
+		Path pendingPath = this.getPendingFilePath();
+		if (Files.exists(pendingPath)) {
+			// Persisted, but not renamed yet (e.g. crash between commit and finalizeStorage()).
+			return pendingPath;
+		}
+		// Pre-feature (legacy) row, or the file is genuinely missing.
 		return ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
 			.resolve("%s.data".formatted(this.getUid()))
 			.normalize();
 	}
 
+	/**
+	 * Get the path where this attribute's data lives while its owning config is
+	 * still transient (not yet persisted), dot-prefixed so it stays hidden from
+	 * a plain directory listing. This is also where SCP/SFTP/HTTP downloads and
+	 * device-pushed ticket uploads write the file directly.
+	 * @return the pending file path
+	 */
 	@Transient
-	public Path getTempFilePath() {
+	public Path getPendingFilePath() {
 		if (ConfigBinaryFileAttribute.SETTINGS.storageFolderPath == null) {
 			throw new IllegalStateException(
 				"Cannot get a file path to save binary file attribute. "
 				+ "Is netshot.snapshots.binary.path defined?");
 		}
 		return ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
-			.resolve(".download.%s.data".formatted(this.getUid()))
+			.resolve(".tmp.%s".formatted(this.finalName(0)))
 			.normalize();
+	}
+
+	/**
+	 * Rename this attribute's data file from its pending name to its final name,
+	 * now that the owning config has been persisted and has a real ID. Safe to
+	 * call more than once (a no-op once already finalized).
+	 */
+	public void finalizeStorage() {
+		Path pendingPath = this.getPendingFilePath();
+		if (!Files.exists(pendingPath)) {
+			// Already finalized in an earlier run, or nothing was ever written.
+			return;
+		}
+		Path finalPath = ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
+			.resolve(this.finalName(this.getConfig().getId()))
+			.normalize();
+		try {
+			Files.move(pendingPath, finalPath);
+		}
+		catch (IOException e) {
+			log.warn("Unable to rename binary file attribute {} to its final storage name.", this.getUid(), e);
+		}
 	}
 
 	@Override

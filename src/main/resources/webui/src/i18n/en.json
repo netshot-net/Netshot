@@ -68,7 +68,8 @@
         "attributeNotInEither": "This attribute is not present in either configuration",
         "attributeNotInOlder": "This attribute is not present in the older configuration",
         "attributeNotInNewer": "This attribute is not present in the newer configuration",
-        "select": "Select a configuration"
+        "select": "Select a configuration",
+        "removeOrphanFiles": "Remove orphan binary attribute files (no matching database record)"
       },
       "configListWillAppear": "Config list will appear here when device changes",
       "connectIp": "Connect IP or hostname",

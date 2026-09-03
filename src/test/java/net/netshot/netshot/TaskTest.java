@@ -18,24 +18,35 @@
  */
 package net.netshot.netshot;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.hibernate.Session;
 import org.quartz.JobKey;
 
 import net.netshot.netshot.database.Database;
+import net.netshot.netshot.device.Config;
 import net.netshot.netshot.device.Device;
+import net.netshot.netshot.device.DeviceGroup;
 import net.netshot.netshot.device.Domain;
+import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.work.Task;
 import net.netshot.netshot.work.Task.ScheduleType;
 import net.netshot.netshot.work.Task.SequentialScheduling;
 import net.netshot.netshot.work.Task.SequentialScheduling.NextAction;
 import net.netshot.netshot.work.Task.Status;
 import net.netshot.netshot.work.TaskDeviceListMember;
+import net.netshot.netshot.work.tasks.PurgeDatabaseTask;
 import net.netshot.netshot.work.tasks.TakeGroupSnapshotTask;
 import net.netshot.netshot.work.tasks.TakeSnapshotTask;
 import org.junit.jupiter.api.AfterEach;
@@ -640,6 +651,118 @@ public class TaskTest extends WithDatabaseTest {
 				session.persist(task);
 				session.getTransaction().commit();
 			}
+		}
+	}
+
+	/**
+	 * Tests for {@link PurgeDatabaseTask}'s "remove orphan binary files"
+	 * option: a filesystem sweep of the binary attribute storage folder that
+	 * deletes files no longer (or never) matching a database record, while
+	 * never touching a file that does - even one still sitting at its
+	 * pending (not-yet-finalized) name.
+	 */
+	@Nested
+	@DisplayName("Remove orphan binary files (PurgeDatabaseTask, DB-backed)")
+	@TestInstance(Lifecycle.PER_CLASS)
+	class OrphanBinaryFilePurgeTest {
+
+		Path storagePath;
+
+		@BeforeAll
+		void initDb() throws Exception {
+			storagePath = Files.createTempDirectory("netshot-test-orphan-purge-");
+			Properties config = getDatabaseConfig("tasktest_orphanpurge");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "WARN");
+			config.setProperty("netshot.snapshots.binary.path", storagePath.toString());
+			Netshot.initConfig(config);
+			Database.update();
+			Database.init();
+			ConfigBinaryFileAttribute.loadConfig();
+		}
+
+		@AfterEach
+		void cleanUpData() {
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.createMutationQuery("delete from Config").executeUpdate();
+				session.createMutationQuery("delete from LongTextConfiguration").executeUpdate();
+				session.createMutationQuery("delete from Device").executeUpdate();
+				session.createMutationQuery("delete from Domain").executeUpdate();
+				session.getTransaction().commit();
+			}
+		}
+
+		private void setOldMtime(Path path) throws IOException {
+			Files.setLastModifiedTime(path, FileTime.from(Instant.now().minus(48, ChronoUnit.HOURS)));
+		}
+
+		@Test
+		@DisplayName("Orphan binary file sweep deletes only files with no matching database record, sparing recent or referenced ones")
+		@ResourceLock("DB")
+		void removeOrphanFilesDeletesOnlyTrueOrphans() throws Exception {
+			Device device;
+			ConfigBinaryFileAttribute attrA;
+			ConfigBinaryFileAttribute attrB;
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
+				session.persist(domain);
+				device = new Device("CiscoIOS12", null, domain, "test");
+				Config config = new Config(device);
+				attrA = new ConfigBinaryFileAttribute(config, "attrA", "fileA.bin");
+				attrB = new ConfigBinaryFileAttribute(config, "attrB", "fileB.bin");
+				config.addAttribute(attrA);
+				config.addAttribute(attrB);
+				device.getConfigs().add(config);
+				device.setLastConfig(config);
+				session.persist(device);
+				session.getTransaction().commit();
+			}
+
+			// attrA: fully finalized, real referenced file - must survive.
+			Files.write(attrA.getPendingFilePath(), "real-data-a".getBytes());
+			attrA.finalizeStorage();
+			Path attrAFinalPath = attrA.getFilePath();
+
+			// attrB: real, referenced, but stuck at its pending name and old -
+			// simulates a crash between commit() and finalizeStorage(). Must
+			// survive: its uid is known, so it's not an orphan.
+			Path attrBPendingPath = attrB.getPendingFilePath();
+			Files.write(attrBPendingPath, "real-data-b".getBytes());
+			this.setOldMtime(attrBPendingPath);
+
+			// True orphans: no database row references these uids at all.
+			Path finalFormatOrphan = storagePath.resolve(
+				"999_cfg1_orphanattr_%s.data".formatted(UUID.randomUUID()));
+			Files.write(finalFormatOrphan, "orphan-final".getBytes());
+
+			Path legacyFormatOrphan = storagePath.resolve("%s.data".formatted(UUID.randomUUID()));
+			Files.write(legacyFormatOrphan, "orphan-legacy".getBytes());
+
+			Path recentPendingOrphan = storagePath.resolve(
+				".tmp.999_cfg0_orphanattr_%s.data".formatted(UUID.randomUUID()));
+			Files.write(recentPendingOrphan, "orphan-recent-pending".getBytes());
+
+			Path oldPendingOrphan = storagePath.resolve(
+				".tmp.999_cfg0_orphanattr_%s.data".formatted(UUID.randomUUID()));
+			Files.write(oldPendingOrphan, "orphan-old-pending".getBytes());
+			this.setOldMtime(oldPendingOrphan);
+
+			PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, 0, (DeviceGroup) null);
+			task.setRemoveOrphanFiles(true);
+			task.run();
+
+			Assertions.assertEquals(Status.SUCCESS, task.getStatus());
+			Assertions.assertTrue(Files.exists(attrAFinalPath), "The real, finalized attribute file must survive");
+			Assertions.assertTrue(Files.exists(attrBPendingPath),
+				"A real, referenced attribute file must survive even if still pending and old");
+			Assertions.assertFalse(Files.exists(finalFormatOrphan), "A final-format orphan file must be deleted");
+			Assertions.assertFalse(Files.exists(legacyFormatOrphan), "A legacy-format orphan file must be deleted");
+			Assertions.assertTrue(Files.exists(recentPendingOrphan),
+				"A recent pending file with no DB row could still be an in-progress snapshot and must survive");
+			Assertions.assertFalse(Files.exists(oldPendingOrphan),
+				"An old pending file with no DB row at all is a genuine orphan and must be deleted");
 		}
 	}
 

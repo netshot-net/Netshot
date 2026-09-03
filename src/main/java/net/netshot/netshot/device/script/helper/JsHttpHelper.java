@@ -350,7 +350,7 @@ public class JsHttpHelper {
 				"No config is available in the current script context; can't store a downloaded file.");
 		}
 		ConfigBinaryFileAttribute fileAttribute = this.configHelper.prepareBinaryFileDownload(key, storeFileName, path);
-		Path tempPath = fileAttribute.getTempFilePath();
+		Path tempPath = fileAttribute.getPendingFilePath();
 		tempPath.toFile().deleteOnExit();
 		HttpDownloadResult result;
 		try {

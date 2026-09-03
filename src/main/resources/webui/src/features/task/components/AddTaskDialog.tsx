@@ -51,6 +51,7 @@ type FormData = {
   hasModuleDaysToPurge?: boolean
   moduleDaysToPurge?: number
   daysToPurge?: number
+  removeOrphanFiles?: boolean
 } & ScheduleFormType
 
 export type AddTaskDialogProps = {
@@ -83,6 +84,7 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
       hasConfigSizeToPurge: false,
       hasModuleDaysToPurge: false,
       moduleDaysToPurge: 600,
+      removeOrphanFiles: false,
     },
   })
 
@@ -186,6 +188,8 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
       if (values.hasModuleDaysToPurge) {
         payload.moduleDaysToPurge = values.moduleDaysToPurge
       }
+
+      payload.removeOrphanFiles = values.removeOrphanFiles
     }
 
     createMutation.mutate(payload)
@@ -565,6 +569,9 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
                             }
                           />
                         </Stack>
+                        <Checkbox control={form.control} name="removeOrphanFiles">
+                          {t("device.config.removeOrphanFiles")}
+                        </Checkbox>
                         <Separator />
                         <TreeGroupSelector
                           label={t("common.limitTo")}

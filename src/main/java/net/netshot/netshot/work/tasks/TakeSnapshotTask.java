@@ -37,9 +37,12 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TaskManager;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.database.Database;
+import net.netshot.netshot.device.Config;
 import net.netshot.netshot.device.Device;
 import net.netshot.netshot.device.DynamicDeviceGroup;
 import net.netshot.netshot.device.Network4Address;
+import net.netshot.netshot.device.attribute.ConfigAttribute;
+import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.device.script.DeviceScript;
 import net.netshot.netshot.device.script.SnapshotDeviceScript;
 import net.netshot.netshot.rest.RestViews.DefaultView;
@@ -218,6 +221,14 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 			deviceScript.connectRun(session, device);
 			session.persist(device);
 			session.getTransaction().commit();
+			Config lastConfig = device.getLastConfig();
+			if (lastConfig != null) {
+				for (ConfigAttribute ca : lastConfig.getAttributes()) {
+					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
+						cbfa.finalizeStorage();
+					}
+				}
+			}
 			this.status = Status.SUCCESS;
 		}
 		catch (Exception e) {

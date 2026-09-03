@@ -68,7 +68,8 @@
         "attributeNotInEither": "Cet attribut n'est présent dans aucune des deux configurations",
         "attributeNotInOlder": "Cet attribut n'est pas présent dans la configuration la plus ancienne",
         "attributeNotInNewer": "Cet attribut n'est pas présent dans la configuration la plus récente",
-        "select": "Sélectionner une configuration"
+        "select": "Sélectionner une configuration",
+        "removeOrphanFiles": "Supprimer les fichiers de pièces jointes binaires orphelins (sans correspondance en base de données)"
       },
       "configListWillAppear": "La liste des configurations apparaîtra ici lorsque l'équipement change",
       "connectIp": "IP ou nom d'hôte de connexion",
