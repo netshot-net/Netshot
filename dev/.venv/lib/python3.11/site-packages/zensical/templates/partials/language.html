@@ -1,0 +1,7 @@
+{#-
+  This file was automatically generated - do not edit
+-#}
+{% set language = config.theme.language | d("en", true) %}
+{% import "partials/languages/" ~ language ~ ".html" as lang %}
+{% import "partials/languages/en.html" as fallback %}
+{% macro t(key) %}{{ lang.t(key) or fallback.t(key) or key }}{% endmacro %}
