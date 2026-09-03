@@ -1,7 +1,7 @@
 import api, { DeviceSearchResult } from "@/api"
 import DeviceBadge from "@/components/entity/DeviceBadge"
 import DeviceListItem from "@/components/entity/DeviceListItem"
-import { SimpleDevice } from "@/types"
+import { LightDevice } from "@/types"
 import {
   Box,
   BoxProps,
@@ -20,7 +20,7 @@ import { useAutocomplete, WithFilterBy } from "@/components/autocomplete"
 
 function DeviceComboboxInput({ placeholder }: { placeholder?: string }) {
   const combobox = useComboboxContext()
-  const items = combobox.selectedItems as SimpleDevice[]
+  const items = combobox.selectedItems as LightDevice[]
   const device = items[0]
 
   if (!device) {
@@ -49,11 +49,11 @@ function DeviceComboboxInput({ placeholder }: { placeholder?: string }) {
 
 export type DeviceAutocompleteProps = Omit<ComboboxRootProps, "collection"> & {
   placeholder?: string
-  onSelectItem?(item: SimpleDevice | null): void
+  onSelectItem?(item: LightDevice | null): void
   // Rendered attached to the end of the combobox (e.g. a "run" button). Group attaches
   // it internally so the radius reset can target the actual bordered input part.
   endAddon?: ReactElement<{ h?: BoxProps["h"]; w?: BoxProps["w"] }>
-} & WithFilterBy<SimpleDevice>
+} & WithFilterBy<LightDevice>
 
 export default function DeviceAutocomplete(props: DeviceAutocompleteProps) {
   const {
@@ -75,7 +75,7 @@ export default function DeviceAutocomplete(props: DeviceAutocompleteProps) {
     collection,
     onInputValueChange,
     inputValue,
-  } = useAutocomplete<SimpleDevice, DeviceSearchResult>({
+  } = useAutocomplete<LightDevice, DeviceSearchResult>({
     initialItems: [],
     itemToString: (item) => item.name,
     itemToValue: (item) => item.id.toString(),

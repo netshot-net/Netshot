@@ -7,7 +7,7 @@ import {
   HashingAlgorithm,
   HttpsCaTrustMode,
   RuleType,
-  SimpleDevice,
+  LightDevice,
   TaskScheduleMode,
   TaskScheduleType,
   TaskStatus,
@@ -118,7 +118,7 @@ export type UpdateDevicePayload = {
 
 export type DeviceSearchResult = {
   query: string
-  devices: SimpleDevice[]
+  devices: LightDevice[]
 }
 
 export type DiagnosticResult = {
@@ -321,6 +321,7 @@ export type CreateOrUpdateTaskPayload = {
   configSizeToPurge?: number
   configKeepDays?: number
   moduleDaysToPurge?: number
+  removeOrphanFiles?: boolean
   script?: string
   driver?: string
   userInputs?: {

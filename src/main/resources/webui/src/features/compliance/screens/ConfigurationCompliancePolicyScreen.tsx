@@ -22,7 +22,7 @@ import { Level, RuleType } from "@/types"
 import AddRuleTrigger from "../components/AddRuleTrigger"
 import EditPolicyTrigger from "../components/EditPolicyTrigger"
 import RemovePolicyTrigger from "../components/RemovePolicyTrigger"
-import { usePolicy, usePolicyRules } from "../api"
+import { usePolicy } from "../api"
 import { EmptyResult, Protected } from "@/components"
 import { DeviceGroupBadge } from "@/components/entity"
 
@@ -38,9 +38,8 @@ export default function ConfigurationCompliancePolicyScreen() {
   const navigate = useNavigate()
 
   const numericPolicyId = +(policyId ?? 0)
-  const { data: policy, isPending: isPolicyPending } = usePolicy(numericPolicyId)
-  const { data: rules, isPending: isRulesPending } = usePolicyRules(numericPolicyId)
-  const isPending = isPolicyPending || isRulesPending
+  const { data: policy, isPending } = usePolicy(numericPolicyId)
+  const rules = policy?.rules
 
   if (!isPending && !policy) {
     return (

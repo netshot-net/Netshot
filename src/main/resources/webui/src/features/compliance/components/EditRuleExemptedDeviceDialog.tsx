@@ -4,7 +4,7 @@ import { NetshotError } from "@/api/httpClient"
 import { useDebounce, useToast } from "@/hooks"
 import { LuArrowLeft, LuArrowRight, LuCalendar, LuSearch } from "react-icons/lu"
 import { useDialogConfig } from "@/dialog"
-import { ExemptedDevice, Rule, SimpleDevice } from "@/types"
+import { ExemptedDevice, Rule, LightDevice } from "@/types"
 import { useLocalization } from "@/i18n"
 import { DeviceListItem, DeviceNetworkClassIcon } from "@/components/entity"
 import {
@@ -90,7 +90,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   const [newExpirationDate, setNewExpirationDate] = useState<number>(() => addMonths(new Date(), 3).getTime())
   const initializedRef = useRef(false)
 
-  const leftCollection = useListCollection<SimpleDevice>({
+  const leftCollection = useListCollection<LightDevice>({
     initialItems: [],
     itemToValue: (d) => d.id.toString(),
     itemToString: (d) => d.name,

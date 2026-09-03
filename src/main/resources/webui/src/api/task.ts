@@ -1,4 +1,4 @@
-import { SimpleTask, Task } from "@/types";
+import { LightTask, Task } from "@/types";
 import httpClient, { HttpMethod } from "./httpClient";
 import {
   CreateOrUpdateTaskPayload,
@@ -9,7 +9,7 @@ import {
 } from "./types";
 
 async function getAll(queryParams: TaskQueryParams) {
-  return httpClient.get<SimpleTask[]>("/tasks", {
+  return httpClient.get<LightTask[]>("/tasks", {
     queryParams,
     // The backend's `status`/`type` params are repeated (?status=A&status=B), not
     // indexed (?status[0]=A&status[1]=B), which is `qs`'s (and so with-query's) default.

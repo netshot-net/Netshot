@@ -1,6 +1,6 @@
 import api from "@/api"
 import { useDebounce } from "@/hooks"
-import { SimpleDevice } from "@/types"
+import { LightDevice } from "@/types"
 import { DeviceListItem } from "@/components/entity"
 import {
   Box,
@@ -74,13 +74,13 @@ export default function StaticGroupForm() {
 
   const formDevices = useWatch({ control: form.control, name: "staticDevices" })
 
-  const leftCollection = useListCollection<SimpleDevice>({
+  const leftCollection = useListCollection<LightDevice>({
     initialItems: [],
     itemToValue: (d) => d.id.toString(),
     itemToString: (d) => d.name,
   })
 
-  const rightCollection = useListCollection<SimpleDevice>({
+  const rightCollection = useListCollection<LightDevice>({
     initialItems: [],
     itemToValue: (d) => d.id.toString(),
     itemToString: (d) => d.name,

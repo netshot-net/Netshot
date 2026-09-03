@@ -6,7 +6,7 @@ import { TaskDialog } from "@/features/task/components"
 import { MUTATIONS } from "@/constants"
 import { useCustomDialog, useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, SimpleDevice, TaskType } from "@/types"
+import { Device, LightDevice, TaskType } from "@/types"
 import { Box, Flex, Stack, Text } from "@chakra-ui/react"
 import { useMutation } from "@tanstack/react-query"
 import { useRef } from "react"
@@ -16,7 +16,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type DeviceDiagnosticTriggerProps = { devices: SimpleDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type DeviceDiagnosticTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 type Form = {
   checkCompliance: boolean
@@ -41,7 +41,7 @@ export default function DeviceDiagnosticTrigger({ devices, children, ...rest }: 
     onError(err: NetshotError) { toast.error(err) },
   })
 
-  const orderedDevicesRef = useRef<(SimpleDevice | Device)[]>(devices)
+  const orderedDevicesRef = useRef<(LightDevice | Device)[]>(devices)
 
   const open = () => {
     orderedDevicesRef.current = devices

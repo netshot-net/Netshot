@@ -1,4 +1,4 @@
-import { SimpleDevice } from "@/types"
+import { LightDevice } from "@/types"
 
 export enum FormStep {
   Type,
@@ -9,6 +9,6 @@ export type GroupForm = {
   name: string
   folder: string
   visibleInReports: boolean
-  staticDevices: SimpleDevice[]
+  staticDevices: LightDevice[]
   query: string
 }

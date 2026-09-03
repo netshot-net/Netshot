@@ -1,4 +1,4 @@
-import { ExemptedDevice, Rule, TestRuleResult } from "@/types";
+import { ExemptedDevice, Rule, LightRule, TestRuleResult } from "@/types";
 import httpClient from "./httpClient";
 import {
   CreateOrUpdateRule,
@@ -14,6 +14,10 @@ async function getById(policyId: number, id: number) {
 
 async function getAll(policyId: number) {
   return (await httpClient.get<Rule[]>(`/policies/${policyId}/rules`)) ?? [];
+}
+
+async function getAllLight() {
+  return (await httpClient.get<LightRule[]>("/rules")) ?? [];
 }
 
 async function create(payload: CreateOrUpdateRule) {
@@ -83,6 +87,7 @@ async function getAllExemptedDevices(
 
 export default {
   getAll,
+  getAllLight,
   getById,
   create,
   update,

@@ -34,6 +34,10 @@ export function ApplicationProvider(props: PropsWithChildren) {
         queryFn: async () => {
           return api.policy.getAllWithRules()
         },
+        // Matches the compliance feature's own policy-list hooks (same
+        // queryKey/queryFn), so this prefetch and theirs share one cache
+        // entry instead of each refetching on mount.
+        staleTime: Infinity,
         enabled: !!auth.user,
       },
       {

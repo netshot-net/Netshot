@@ -1,7 +1,7 @@
 import api, { DeviceQueryParams } from "@/api"
 import { DeviceSearchResult } from "@/api/types"
 import { QUERIES } from "@/constants"
-import { DeviceFamily, DeviceType, SimpleDevice } from "@/types"
+import { DeviceFamily, DeviceType, LightDevice } from "@/types"
 import { sortAlphabetical } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
@@ -69,7 +69,7 @@ export function useDevices(groupId: number) {
       return (await api.device.getAll(params)) ?? []
     },
     select: useCallback(
-      (data: SimpleDevice[]) => (groupId ? data : sortAlphabetical(data, "name")),
+      (data: LightDevice[]) => (groupId ? data : sortAlphabetical(data, "name")),
       [groupId]
     ),
   })

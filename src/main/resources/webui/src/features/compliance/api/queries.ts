@@ -6,15 +6,49 @@ import api, {
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useToast } from "@/hooks"
-import { Rule } from "@/types"
-import { getUniqueBy, sortAlphabetical } from "@/utils"
+import { Policy, Rule } from "@/types"
+import { getUniqueBy, search, sortAlphabetical } from "@/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { QUERIES as FEATURE_QUERIES } from "../constants"
 
+// Mirrors the policy/rule name matching that `getAllWithRules` used to do
+// server-request-side: a policy whose own name matches keeps all its rules;
+// otherwise it's kept (with only the matching rules) if any rule matches.
+function filterPoliciesByQuery(policies: Policy[], query: string): Policy[] {
+  if (!query) return policies
+
+  const matchingPolicyIds = new Set(search(policies, "name").with(query).map((p) => p.id))
+  const result: Policy[] = []
+
+  for (const policy of policies) {
+    if (matchingPolicyIds.has(policy.id)) {
+      result.push(policy)
+      continue
+    }
+    const matchingRules = search(policy.rules ?? [], "name").with(query)
+    if (matchingRules.length) {
+      result.push({ ...policy, rules: matchingRules })
+    }
+  }
+
+  return result
+}
+
+// Shared by every hook below that reads the policy list (with light rule
+// summaries): same queryKey + queryFn so they all hit one cache entry, and
+// staleTime: Infinity so mounting a new one (e.g. navigating from the sidebar
+// into a policy screen) reuses that entry instead of refetching on mount -
+// policy/rule CRUD mutations already invalidate [QUERIES.POLICY_LIST] to keep
+// it fresh.
+const POLICIES_QUERY = {
+  queryKey: [QUERIES.POLICY_LIST],
+  queryFn: () => api.policy.getAllWithRules(),
+  staleTime: Infinity,
+}
+
 export function usePolicies() {
   return useQuery({
-    queryKey: [QUERIES.POLICY_LIST],
-    queryFn: () => api.policy.getAllWithRules(),
+    ...POLICIES_QUERY,
     select(policies) {
       return policies.map((policy) => ({
         ...policy,
@@ -24,32 +58,16 @@ export function usePolicies() {
   })
 }
 
-// Fetches only the policies' own metadata (no rules), so opening a single
-// policy doesn't trigger a rules fetch for every policy (that's what
-// `getAllWithRules` does under the hood). The query key deliberately excludes
-// policyId so switching between policies reuses the same cached list instead
-// of issuing a new `GET /policies` per policy; staleTime is left open-ended
-// since policy CRUD mutations already invalidate [QUERIES.POLICY_LIST].
 export function usePolicy(policyId: number) {
   return useQuery({
-    queryKey: [QUERIES.POLICY_LIST, "metadata"],
-    queryFn: () => api.policy.getAll(),
+    ...POLICIES_QUERY,
     select(policies) {
-      return policies.find((policy) => policy.id === policyId)
-    },
-    enabled: !!policyId,
-    staleTime: Infinity,
-  })
-}
-
-// Fetches the rules of a single policy, scoped by policyId so opening one
-// policy doesn't refetch the rules of every other policy.
-export function usePolicyRules(policyId: number) {
-  return useQuery({
-    queryKey: [FEATURE_QUERIES.POLICY_RULE_LIST, policyId],
-    queryFn: () => api.rule.getAll(policyId),
-    select(rules) {
-      return sortAlphabetical([...rules], "name")
+      const policy = policies.find((p) => p.id === policyId)
+      if (!policy) return policy
+      return {
+        ...policy,
+        rules: policy.rules ? sortAlphabetical([...policy.rules], "name") : policy.rules,
+      }
     },
     enabled: !!policyId,
   })
@@ -57,8 +75,7 @@ export function usePolicyRules(policyId: number) {
 
 export function usePoliciesWithOptions() {
   return useQuery({
-    queryKey: [QUERIES.POLICY_OPTION_LIST],
-    queryFn: () => api.policy.getAllWithRules(),
+    ...POLICIES_QUERY,
     select(policies) {
       return sortAlphabetical(policies, "name").map((policy) => ({
         label: policy?.name,
@@ -70,10 +87,10 @@ export function usePoliciesWithOptions() {
 
 export function usePoliciesWithSearch(query: string) {
   return useQuery({
-    queryKey: [QUERIES.POLICY_SEARCH_LIST, query],
-    queryFn: () => api.policy.getAllWithRules(query),
-    select(res) {
-      const formatted = getUniqueBy(res, "name")
+    ...POLICIES_QUERY,
+    select(policies) {
+      const searched = filterPoliciesByQuery(policies, query)
+      const formatted = getUniqueBy(searched, "name")
       const sorted = sortAlphabetical(formatted, "name")
       return sorted.map((policy) => ({
         ...policy,

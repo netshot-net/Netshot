@@ -1,9 +1,9 @@
-import { SimpleDevice } from "@/types"
+import { LightDevice } from "@/types"
 import { Stack, StackProps, Tag, Text } from "@chakra-ui/react"
 import { PropsWithChildren, Ref } from "react"
 
 export type GroupDeviceBoxProps = PropsWithChildren<{
-  device: SimpleDevice
+  device: LightDevice
   ref?: Ref<HTMLDivElement>
 }> &
   StackProps

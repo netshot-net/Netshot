@@ -53,7 +53,7 @@ export type DeviceOwnerGroup = {
   type: string
 }
 
-export type SimpleDevice = {
+export type LightDevice = {
   id: number
   name: string
   family: string

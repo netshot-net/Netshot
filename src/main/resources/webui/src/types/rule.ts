@@ -24,6 +24,14 @@ export enum RuleType {
   Python = "PythonRule",
 }
 
+export type LightRule = {
+  id: number;
+  name: string;
+  type: RuleType;
+  enabled: boolean;
+  policyId: number;
+};
+
 export type TestRuleResult = {
   result: DeviceComplianceResultType;
   scriptError: string;

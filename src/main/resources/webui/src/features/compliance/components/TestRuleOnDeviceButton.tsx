@@ -2,7 +2,7 @@ import { LogPanel } from "@/components"
 import { DeviceAutocomplete } from "@/features/device/components"
 import { DeviceComplianceTag } from "@/components/entity"
 import { useLocalization } from "@/i18n"
-import { Rule, RuleType, SimpleDevice } from "@/types"
+import { Rule, RuleType, LightDevice } from "@/types"
 import { stringToBoolean } from "@/utils"
 import { Box, Button, IconButton, Stack, Text } from "@chakra-ui/react"
 import { useFormContext } from "react-hook-form"
@@ -21,7 +21,7 @@ export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProp
   const { t } = useTranslation()
   const { formatHourMinute } = useLocalization()
   const form = useFormContext<RuleForm>()
-  const [device, setDevice] = useState<SimpleDevice | null>(null)
+  const [device, setDevice] = useState<LightDevice | null>(null)
   const [testedAt, setTestedAt] = useState<Date | null>(null)
 
   const isScript = type === RuleType.Javascript || type === RuleType.Python

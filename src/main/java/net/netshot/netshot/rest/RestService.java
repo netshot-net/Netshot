@@ -4496,6 +4496,13 @@ public class RestService extends Thread {
 		@Setter
 		private int moduleDaysToPurge = -1;
 
+		@Schema(description = "Remove orphan binary attribute files (no matching database record)")
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private boolean removeOrphanFiles = false;
+
 		@Schema(description = "The script to execute")
 		@Getter(onMethod = @__({
 			@XmlElement, @JsonView(DefaultView.class)
@@ -5390,6 +5397,7 @@ public class RestService extends Thread {
 				task = new PurgeDatabaseTask(rsTask.getComments(), userName, rsTask.getDaysToPurge(),
 					configDays, configSize, configKeepDays, moduleDays, (DeviceGroup) null);
 			}
+			((PurgeDatabaseTask) task).setRemoveOrphanFiles(rsTask.isRemoveOrphanFiles());
 		}
 		else if ("RunDiagnosticsTask".equals(rsTask.getType())) {
 			log.trace("Adding a RunDiagnosticsTask");
@@ -5614,15 +5622,103 @@ public class RestService extends Thread {
 		log.debug("REST request, get policies.");
 		Session session = Database.getSession(true);
 		try {
-			// Join p.rules to get rule count... not optimal
 			Query<Policy> query = session
-				.createQuery("select distinct p from Policy p left join fetch p.targetGroups left join fetch p.rules", Policy.class);
+				.createQuery("select distinct p from Policy p left join fetch p.targetGroups", Policy.class);
 			paginationParams.apply(query);
 			return query.list();
 		}
 		catch (HibernateException e) {
 			log.error("Unable to fetch the policies.", e);
 			throw new NetshotBadRequestException("Unable to fetch the policies",
+				NetshotBadRequestException.Reason.NETSHOT_DATABASE_ACCESS_ERROR);
+		}
+		finally {
+			session.close();
+		}
+	}
+
+	/**
+	 * The Class RsLightRule.
+	 */
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.NONE)
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class RsLightRule {
+
+		/** The id. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private long id;
+
+		/** The name. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private String name;
+
+		/** The rule type (simple class name, e.g. TextRule, JavaScriptRule, PythonRule). */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private String type;
+
+		/** Whether the rule is enabled. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private boolean enabled;
+
+		/** The ID of the owning policy. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private long policyId;
+
+		public RsLightRule(long id, String name, Class<? extends Rule> type, boolean enabled, long policyId) {
+			this.id = id;
+			this.name = name;
+			this.type = type.getSimpleName();
+			this.enabled = enabled;
+			this.policyId = policyId;
+		}
+	}
+
+	/**
+	 * Gets all the compliance rules, across all policies, with minimal details.
+	 *
+	 * @param paginationParams = the pagination parameters
+	 * @return the rules
+	 * @throws WebApplicationException the web application exception
+	 */
+	@GET
+	@Path("/rules")
+	@RolesAllowed(User.ROLE_READONLY)
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+	@JsonView(RestApiView.class)
+	@Operation(
+		summary = "Get the compliance rules",
+		description = "Retrieves the list of compliance rules, across all policies, with minimal details."
+	)
+	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
+	public List<RsLightRule> getRules(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
+		log.debug("REST request, get rules.");
+		Session session = Database.getSession(true);
+		try {
+			String hqlQuery = "select new RsLightRule(r.id, r.name, type(r), r.enabled, r.policy.id) from Rule r";
+			Query<RsLightRule> query = session.createQuery(hqlQuery, RsLightRule.class);
+			paginationParams.apply(query);
+			return query.list();
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the rules.", e);
+			throw new NetshotBadRequestException("Unable to fetch the rules",
 				NetshotBadRequestException.Reason.NETSHOT_DATABASE_ACCESS_ERROR);
 		}
 		finally {
@@ -6073,7 +6169,7 @@ public class RestService extends Thread {
 	}
 
 	/**
-	 * Adds the js rule.
+	 * Adds a compliance rule.
 	 *
 	 * @param rsRule the rs rule
 	 * @return the rule

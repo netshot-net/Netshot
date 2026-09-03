@@ -3,7 +3,7 @@ import { NetshotError } from "@/api/httpClient"
 import { QUERIES as GLOBAL_QUERIES, MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, SimpleDevice } from "@/types"
+import { Device, LightDevice } from "@/types"
 import { Stack, Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
@@ -13,7 +13,7 @@ import Slot from "@/components/Slot"
 import { QUERIES as DEVICE_QUERIES } from "../constants"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type DisableDeviceTriggerProps = { devices: SimpleDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type DisableDeviceTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function DisableDeviceTrigger({ devices, children, ...rest }: DisableDeviceTriggerProps) {
   const { t } = useTranslation()
@@ -28,7 +28,7 @@ export default function DisableDeviceTrigger({ devices, children, ...rest }: Dis
   })
 
   const isMultiple = devices.length > 1
-  const orderedDevicesRef = useRef<(SimpleDevice | Device)[]>(devices)
+  const orderedDevicesRef = useRef<(LightDevice | Device)[]>(devices)
 
   const open = () => {
     orderedDevicesRef.current = devices

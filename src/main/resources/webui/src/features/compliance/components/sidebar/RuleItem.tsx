@@ -2,14 +2,14 @@ import { Icon, Stack, Text } from "@chakra-ui/react"
 import { useEffect, useMemo, useRef } from "react"
 import { useNavigate, useParams } from "react-router"
 
-import { Policy, Rule, RuleType } from "@/types"
+import { Policy, LightRule, RuleType } from "@/types"
 
 import { LuAlignLeft } from "react-icons/lu"
 import { SiJavascript, SiPython } from "react-icons/si"
 
 export type RuleItemProps = {
   policy: Policy
-  rule: Rule
+  rule: LightRule
 }
 
 export default function RuleItem(props: RuleItemProps) {

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useLocation, useMatch, useNavigate, useParams } from "react-router"
 
 import { LuTriangleAlert, LuCircleCheck } from "react-icons/lu"
-import { DeviceStatus, SimpleDevice } from "@/types"
+import { DeviceStatus, LightDevice } from "@/types"
 import { DeviceNetworkClassIcon } from "@/components/entity"
 import DeviceSoftwareLevelBadge from "@/components/entity/DeviceSoftwareLevelBadge"
 import DeviceConfigComplianceBadge from "@/components/entity/DeviceConfigComplianceBadge"
@@ -15,7 +15,7 @@ import { useShallow } from "zustand/react/shallow"
 import { useDeviceSidebarStore } from "../../stores"
 
 type DeviceBoxProps = {
-  device: SimpleDevice
+  device: LightDevice
   ref?: Ref<HTMLDivElement>
 } & StackProps
 
@@ -88,7 +88,7 @@ function DeviceBox(props: DeviceBoxProps) {
       }
 
       const dataClone = [...deviceSidebarStore.devices]
-      const range: SimpleDevice[] =
+      const range: LightDevice[] =
         firstIndex < lastIndex
           ? dataClone.slice(firstIndex, lastIndex + 1)
           : dataClone.slice(lastIndex, firstIndex + 1)

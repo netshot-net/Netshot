@@ -49,7 +49,7 @@ export enum TaskScheduleMode {
  * `/devices/{id}/tasks`) -- notably excludes `script`, `userInputValues` and `log`.
  * Fetch the full `Task` (`api.task.getById`) to display a task's details.
  */
-export type SimpleTask = {
+export type LightTask = {
   id: number
   type: string
   status: TaskStatus
@@ -105,6 +105,7 @@ export type Task = {
   configSize?: number
   configKeepDays?: number
   moduleDays?: number
+  removeOrphanFiles?: boolean
   limitToOutofdateDeviceHours?: number
   parentTaskId?: number
   childOrder?: number

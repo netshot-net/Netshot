@@ -4,7 +4,7 @@ import TaskDialog from "./TaskDialog"
 import { useCustomDialog, useDialogStore } from "@/dialog"
 import { DeviceBadge, DeviceGroupBadge } from "@/components/entity"
 import { useLocalization } from "@/i18n"
-import { SimpleTask, TaskType } from "@/types"
+import { LightTask, TaskType } from "@/types"
 import { Icon, Skeleton, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
@@ -15,12 +15,12 @@ import { TASK_TYPE_ICONS } from "../constants"
 import { useTaskTreeModeStore } from "../stores/useTaskTreeModeStore"
 import { buildTaskTree, TaskTreeRow } from "../utils"
 
-const columnHelper = createColumnHelper<TaskTreeRow<SimpleTask>>()
+const columnHelper = createColumnHelper<TaskTreeRow<LightTask>>()
 
 const TREE_INDENT_PX = 10
 
 export type TaskTableProps = {
-  rows: SimpleTask[]
+  rows: LightTask[]
   isPending: boolean
   onBottomReached?(): void
   showTarget?: boolean

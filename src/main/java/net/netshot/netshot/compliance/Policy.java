@@ -35,7 +35,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
@@ -113,12 +112,6 @@ public class Policy {
 	public void addRule(Rule rule) {
 		rules.add(rule);
 		rule.setPolicy(this);
-	}
-
-	@XmlElement
-	@Transient
-	public int getRuleCount() {
-		return this.rules.size();
 	}
 
 	/**

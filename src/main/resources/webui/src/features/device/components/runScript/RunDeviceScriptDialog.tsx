@@ -12,7 +12,7 @@ import { MUTATIONS } from "@/constants"
 import { useCustomDialog, useDialogConfig } from "@/dialog"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { useToast } from "@/hooks"
-import { Device, DeviceTypeProtocol, DriverOptionType, Script, ScriptUserInputDefinition, SimpleDevice, TaskType } from "@/types"
+import { Device, DeviceTypeProtocol, DriverOptionType, Script, ScriptUserInputDefinition, LightDevice, TaskType } from "@/types"
 import DriverValueField from "@/features/device/components/DriverValueField"
 import {
   Badge,
@@ -181,8 +181,8 @@ function ConfigureStep(props: ConfigureStepProps) {
 }
 
 type RunStepProps = {
-  devices: SimpleDevice[] | Device[]
-  onReorderDevices(devices: SimpleDevice[] | Device[]): void
+  devices: LightDevice[] | Device[]
+  onReorderDevices(devices: LightDevice[] | Device[]): void
   inputs: ScriptUserInputDefinition[]
 }
 
@@ -262,7 +262,7 @@ function RunStep(props: RunStepProps) {
 }
 
 export type RunDeviceScriptDialogProps = {
-  devices: SimpleDevice[] | Device[]
+  devices: LightDevice[] | Device[]
 }
 
 export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps) {

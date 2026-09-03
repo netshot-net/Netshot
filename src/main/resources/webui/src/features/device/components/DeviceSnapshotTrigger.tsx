@@ -11,12 +11,12 @@ import { TaskDialog } from "@/features/task/components"
 import { MUTATIONS } from "@/constants"
 import { useCustomDialog, useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, SimpleDevice, TaskType } from "@/types"
+import { Device, LightDevice, TaskType } from "@/types"
 import React from "react"
 import Slot from "@/components/Slot"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type DeviceSnapshotTriggerProps = { devices: SimpleDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type DeviceSnapshotTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 type SnapshotForm = {
   runDiagnostic: boolean
@@ -45,7 +45,7 @@ export default function DeviceSnapshotTrigger({ devices, children, ...rest }: De
     onError(err: NetshotError) { toast.error(err) },
   })
 
-  const orderedDevicesRef = useRef<(SimpleDevice | Device)[]>(devices)
+  const orderedDevicesRef = useRef<(LightDevice | Device)[]>(devices)
 
   const open = () => {
     form.reset()

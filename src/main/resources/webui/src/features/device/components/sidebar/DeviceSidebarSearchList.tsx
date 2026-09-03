@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { useMatch, useNavigate, useParams } from "react-router"
 import { useShallow } from "zustand/react/shallow"
 import { useArrowKeyNavigation } from "@/hooks"
-import { SimpleDevice } from "@/types"
+import { LightDevice } from "@/types"
 import { useSearchDevices } from "../../api"
 import { useDeviceSidebarStore } from "../../stores"
 import DeviceBox from "./DeviceBox"
@@ -49,7 +49,7 @@ export default function DeviceSidebarSearchList() {
   const activeIndex = devices.findIndex((device) => device.id === +(params?.id ?? 0))
 
   const onNavigate = useCallback(
-    (device: SimpleDevice, index: number) => {
+    (device: LightDevice, index: number) => {
       navigate(`./${device.id}/${currentSection}`)
       select([device])
       virtualizer.scrollToIndex(index, { align: "auto" })

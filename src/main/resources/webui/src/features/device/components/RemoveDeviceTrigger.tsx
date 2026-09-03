@@ -3,7 +3,7 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, SimpleDevice } from "@/types"
+import { Device, LightDevice } from "@/types"
 import { Stack, Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -13,7 +13,7 @@ import Slot from "@/components/Slot"
 import { QUERIES as DEVICE_QUERIES } from "../constants"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type RemoveDeviceTriggerProps = { devices: SimpleDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveDeviceTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveDeviceTrigger({ devices, children, ...rest }: RemoveDeviceTriggerProps) {
   const { t } = useTranslation()

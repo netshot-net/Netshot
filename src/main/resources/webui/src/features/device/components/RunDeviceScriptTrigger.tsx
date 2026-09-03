@@ -1,11 +1,11 @@
 import Slot from "@/components/Slot"
 import { useCustomDialog } from "@/dialog"
-import { Device, SimpleDevice } from "@/types"
+import { Device, LightDevice } from "@/types"
 import React, { MouseEvent } from "react"
 import RunDeviceScriptDialog from "./runScript/RunDeviceScriptDialog"
 
 export type RunDeviceScriptTriggerProps = {
-  devices: SimpleDevice[] | Device[]
+  devices: LightDevice[] | Device[]
   children: React.ReactElement<Record<string, unknown>>
 } & Record<string, unknown>
 

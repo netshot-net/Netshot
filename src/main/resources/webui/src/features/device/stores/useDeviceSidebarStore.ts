@@ -1,6 +1,6 @@
 import { queryClient } from "@/App"
 import { QUERIES } from "@/constants"
-import { DeviceType, Group, SimpleDevice } from "@/types"
+import { DeviceType, Group, LightDevice } from "@/types"
 import { create } from "zustand"
 import { QUERIES as DEVICE_QUERIES } from "../constants"
 
@@ -8,18 +8,18 @@ export type DeviceSidebarStoreState = {
   query: string
   driver: DeviceType["name"] | null
   total: number
-  selected: SimpleDevice[]
-  devices: SimpleDevice[]
+  selected: LightDevice[]
+  devices: LightDevice[]
   group: Group | null
 
-  select(devices: SimpleDevice[]): void
+  select(devices: LightDevice[]): void
   selectAll(): void
   deselectAll(): void
   isSelected(deviceId: number): boolean
   isSelectedAll(): boolean
   updateQueryAndDriver(query: string, driver: DeviceType["name"] | null): void
   setTotal(total: number): void
-  setDevices(devices: SimpleDevice[]): void
+  setDevices(devices: LightDevice[]): void
   setGroup(group: Group | null): void
   setQuery(query: string): void
   refresh(): Promise<void>
@@ -33,7 +33,7 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
   devices: [],
   group: null,
 
-  select(devices: SimpleDevice[]) {
+  select(devices: LightDevice[]) {
     set({ selected: devices })
   },
 
@@ -65,7 +65,7 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
     set({ total })
   },
 
-  setDevices(devices: SimpleDevice[]) {
+  setDevices(devices: LightDevice[]) {
     set({ devices })
   },
 

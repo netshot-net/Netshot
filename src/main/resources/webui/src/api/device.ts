@@ -7,9 +7,9 @@ import {
   DeviceInterface,
   DeviceModule,
   DeviceType,
-  SimpleDevice,
+  LightDevice,
 } from "@/types"
-import { SimpleTask, Task } from "@/types/task"
+import { LightTask, Task } from "@/types/task"
 import withQuery from "with-query"
 import httpClient from "./httpClient"
 import {
@@ -35,7 +35,7 @@ async function search(payload: DeviceSearchPayload) {
 }
 
 async function getAll(queryParams: DeviceQueryParams = {}) {
-  return httpClient.get<SimpleDevice[]>("/devices", {
+  return httpClient.get<LightDevice[]>("/devices", {
     queryParams,
   })
 }
@@ -98,7 +98,7 @@ async function getAllModulesById(id: number, queryParams: DeviceModuleQueryParam
 }
 
 async function getAllTasksById(id: number, queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<SimpleTask[]>(`/devices/${id}/tasks`, {
+  return httpClient.get<LightTask[]>(`/devices/${id}/tasks`, {
     queryParams,
   })
 }

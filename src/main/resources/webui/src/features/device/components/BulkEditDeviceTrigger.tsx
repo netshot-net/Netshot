@@ -9,7 +9,7 @@ import DeviceNamesPreview from "./DeviceNamesPreview"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { DeviceAccessDefinition, SimpleDevice } from "@/types"
+import { DeviceAccessDefinition, LightDevice } from "@/types"
 import { Alert, Box, Flex, Separator, Stack, Text } from "@chakra-ui/react"
 import { useMutation } from "@tanstack/react-query"
 import { useEffect, useMemo, useRef } from "react"
@@ -20,7 +20,7 @@ import Slot from "@/components/Slot"
 import { useCredentialSets } from "../api"
 import { useDeviceTypeOptions } from "../hooks"
 
-export type BulkEditDeviceTriggerProps = { devices: SimpleDevice[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type BulkEditDeviceTriggerProps = { devices: LightDevice[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 type Form = {
   mgmtDomain: string | null
@@ -146,7 +146,7 @@ export default function BulkEditDeviceTrigger({ devices, children, ...rest }: Bu
     defaultValues: { mgmtDomain: null, mgmtDomainLocked: true, comments: PASSWORD_UNCHANGED, accesses: [], hasChanges: false },
   })
 
-  const orderedDevicesRef = useRef<SimpleDevice[]>(devices)
+  const orderedDevicesRef = useRef<LightDevice[]>(devices)
 
   const edit = useMutation({
     mutationKey: MUTATIONS.DEVICE_UPDATE,
@@ -169,7 +169,7 @@ export default function BulkEditDeviceTrigger({ devices, children, ...rest }: Bu
               <Box w="140px"><Text color="grey.400">{t("device.devices")}</Text></Box>
               <DeviceNamesPreview
                 devices={devices}
-                onReorder={(next) => { orderedDevicesRef.current = next as SimpleDevice[] }}
+                onReorder={(next) => { orderedDevicesRef.current = next as LightDevice[] }}
               />
             </Flex>
           </Stack>
