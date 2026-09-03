@@ -21,7 +21,7 @@ var Info = {
 	name: "CiscoViptela",
 	description: "Viptela Operating System",
 	author: "Netshot Team",
-	version: "3.1"
+	version: "3.2"
 };
 
 var Config = {
@@ -138,7 +138,7 @@ var CLI = {
 		}
 	},
 	bash: {
-		prompt: /^([A-Za-z\-_0-9\.]+:[\/A–Za–z0–9._-~]+\$ )$/,
+		prompt: /^([A-Za-z\-_0-9\.]+:[\/A–Za–z0–9._-~]+\$|bash-[0-9.]+\$) $/,
 		clearPrompt: true,
 		macros: {
 			execBack: {
