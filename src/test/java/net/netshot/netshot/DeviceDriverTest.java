@@ -188,7 +188,7 @@ public class DeviceDriverTest {
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("CiscoIOS12", null, domain, "test");
 			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-			sshAccess.setAddress("127.0.0.1");
+			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
 			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
@@ -252,7 +252,7 @@ public class DeviceDriverTest {
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("ZPENodeGrid", null, domain, "test");
 			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-			sshAccess.setAddress("127.0.0.1");
+			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
 			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
@@ -321,7 +321,7 @@ public class DeviceDriverTest {
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("AristaMOS", null, domain, "test");
 			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-			sshAccess.setAddress("127.0.0.1");
+			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
 			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
@@ -377,7 +377,7 @@ public class DeviceDriverTest {
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("CiscoAsyncOS", null, domain, "test");
 			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-			sshAccess.setAddress("127.0.0.1");
+			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
 			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
@@ -416,7 +416,7 @@ public class DeviceDriverTest {
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("GenericSNMP", null, domain, "test");
 			DeviceAccess snmpAccess = new DeviceAccess(device, "snmpv2c");
-			snmpAccess.setAddress("127.0.0.1");
+			snmpAccess.setAddress(container.getHost());
 			snmpAccess.setPort(port);
 			device.getAccesses().add(snmpAccess);
 			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
@@ -455,7 +455,7 @@ public class DeviceDriverTest {
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("JuniperJunos", null, domain, "test");
 			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-			sshAccess.setAddress("127.0.0.1");
+			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
 			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);

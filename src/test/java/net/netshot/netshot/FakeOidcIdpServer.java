@@ -22,8 +22,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -42,8 +42,12 @@ import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.MediaType;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FakeOidcIdpServer {
+
+	private static final Logger logger = LoggerFactory.getLogger(FakeOidcIdpServer.class);
 
 	public static class User {
 		private String username;
@@ -122,7 +126,7 @@ public class FakeOidcIdpServer {
 	private PrivateKey privKey;
 	private Certificate certificate;
 
-	private Map<String, User> authorizationCodes = new HashMap<>();
+	private Map<String, User> authorizationCodes = new ConcurrentHashMap<>();
 
 	private Undertow server;
 
@@ -292,6 +296,7 @@ public class FakeOidcIdpServer {
 					exchange.setReasonPhrase("Unauthorized");
 				}
 				catch (Exception e) {
+					logger.warn("Rejecting OIDC token request with a 400", e);
 					exchange.setStatusCode(StatusCodes.BAD_REQUEST);
 					exchange.setReasonPhrase("Bad request");
 				}
