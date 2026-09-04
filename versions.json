@@ -3,5 +3,12 @@
     "version": "dev",
     "title": "dev",
     "aliases": []
+  },
+  {
+    "version": "v0.25.0-rc.1",
+    "title": "v0.25.0-rc.1",
+    "aliases": [
+      "latest"
+    ]
   }
 ]
