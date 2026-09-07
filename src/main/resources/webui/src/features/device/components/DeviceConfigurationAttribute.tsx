@@ -20,13 +20,23 @@ import {
 import { useDevice } from "../contexts/device"
 import DeviceConfigurationViewTrigger from "./DeviceConfigurationViewTrigger"
 
-function buildConfigFilename(deviceName: string | undefined, changeDate: number, attributeName: string): string | undefined {
+function buildConfigFilename(
+  deviceName: string | undefined,
+  changeDate: number,
+  attributeName: string,
+  extension = "cfg"
+): string | undefined {
   if (!deviceName) return undefined
   const d = new Date(changeDate)
   const pad = (n: number) => String(n).padStart(2, "0")
-  const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`
+  const dateStr = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
   const safeName = deviceName.replace(/[^a-zA-Z0-9-]/g, "_")
-  return `${safeName}_${dateStr}_${attributeName}.cfg`
+  return `${safeName}_${dateStr}_${attributeName}.${extension}`
+}
+
+function getFileExtension(originalName: string | undefined): string | undefined {
+  const match = originalName?.match(/^.+\.([a-zA-Z0-9]{1,10})$/)
+  return match?.[1]
 }
 
 type ConfigNumericAttributeValueType = {
@@ -115,8 +125,14 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
   const { device } = useDevice()
   const { formatFileSize } = useLocalization()
   const filename = useMemo(
-    () => buildConfigFilename(device?.name, changeDate, attribute?.name),
-    [device?.name, changeDate, attribute?.name]
+    () =>
+      buildConfigFilename(
+        device?.name,
+        changeDate,
+        attribute?.name,
+        getFileExtension(attribute?.originalName)
+      ),
+    [device?.name, changeDate, attribute?.name, attribute?.originalName]
   )
   const download = useDownloadConfigMutation(configId, attribute?.name, filename)
 
