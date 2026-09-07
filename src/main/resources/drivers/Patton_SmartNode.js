@@ -21,7 +21,7 @@ var Info = {
 	name: "PattonSmartNode",
 	description: "Patton SmartNode (SmartWare, Trinity)",
 	author: "Netshot Team",
-	version: "1.1"
+	version: "1.2"
 };
 
 var Config = {
@@ -185,19 +185,15 @@ var CLI = {
 };
 
 function snapshot(cli, device, config) {
-	const addMatchSet = function(e) {
-		e.matchSet = function(data, re, field, defaultValue) {
-			const r = data.match(re);
-			if (r) {
-				e.set(field, r[1]);
-			}
-			else if (defaultValue) {
-				e.set(field, defaultValue);
-			}
-		} 
-	}
-	addMatchSet(config);
-	addMatchSet(device);
+	const matchSet = function(e, data, re, field, defaultValue) {
+		const r = data.match(re);
+		if (r) {
+			e.set(field, r[1]);
+		}
+		else if (defaultValue) {
+			e.set(field, defaultValue);
+		}
+	};
 
 	cli.macro("enable");
 	const runningConfig = cli.command("show running-config")
@@ -206,7 +202,7 @@ function snapshot(cli, device, config) {
 	
 	config.set("runningConfig", runningConfig);
 
-	config.matchSet(runningConfig, /^cli version ([0-9.]+)/m, "cliVersion");
+	matchSet(config, runningConfig, /^cli version ([0-9.]+)/m, "cliVersion");
 	
 	// On SmartWare flavor, the current date appears in the config header
 	// Remove it to compute the config hash
@@ -227,12 +223,12 @@ function snapshot(cli, device, config) {
 
 	if (swPlatform === "Trinity") {
 		const showSystem = cli.command("show system").replace(/\r/g, "");
-		device.matchSet(showSystem, /^ +Hardware Version: +([A-Za-z0-9.-]+)/m, "hwVersion");
-		config.matchSet(showSystem, /^ +Software Version: +([A-Za-z0-9.-]+)/m, "swVersion");
-		device.matchSet(showSystem, /^ +Software Version: +([A-Za-z0-9.-]+)/m, "softwareVersion");
-		device.matchSet(showSystem, /^ +System Location: +(.+)/m, "location", "");
-		device.matchSet(showSystem, /^ +System Contact: +(.+)/m, "contact", "");
-		device.matchSet(showSystem, /^ +Host Name: +(.+)/m, "name");
+		matchSet(device, showSystem, /^ +Hardware Version: +([A-Za-z0-9.-]+)/m, "hwVersion");
+		matchSet(config, showSystem, /^ +Software Version: +([A-Za-z0-9.-]+)/m, "swVersion");
+		matchSet(device, showSystem, /^ +Software Version: +([A-Za-z0-9.-]+)/m, "softwareVersion");
+		matchSet(device, showSystem, /^ +System Location: +(.+)/m, "location", "");
+		matchSet(device, showSystem, /^ +System Contact: +(.+)/m, "contact", "");
+		matchSet(device, showSystem, /^ +Host Name: +(.+)/m, "name");
 
 		const imagePattern = /^Software Image #([0-9]+)\n=+\n *\n +Image State:( +(.+))?\n +Build Version:( +(.+))?/mg;
 		while (true) {
@@ -359,9 +355,9 @@ function snapshot(cli, device, config) {
 			});
 		}
 
-		device.matchSet(runningConfig, /^system location (.+)/m, "location", "");
-		device.matchSet(runningConfig, /^system contact (.+)/m, "contact", "");
-		device.matchSet(runningConfig, /^system hostname (.+)/m, "name");
+		matchSet(device, runningConfig, /^system location (.+)/m, "location", "");
+		matchSet(device, runningConfig, /^system contact (.+)/m, "contact", "");
+		matchSet(device, runningConfig, /^system hostname (.+)/m, "name");
 		device.set("swImage1", "");
 		device.set("swImage2", "");
 

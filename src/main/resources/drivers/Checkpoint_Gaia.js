@@ -28,7 +28,7 @@ const Info = {
 	name: "CheckpointGaia",
 	description: "Checkpoint Gaia",
 	author: "Netshot Team",
-	version: "4.1"
+	version: "4.2"
 };
 
 const Config = {
@@ -207,21 +207,16 @@ const CLI = {
 };
 
 function snapshot(cli, device, config) {
-	const addMatchSet = function(e) {
-		e.matchSet = function(data, re, field, defaultValue) {
-			const r = data.match(re);
-			if (r) {
-				e.set(field, r[1]);
-			}
-			else if (defaultValue) {
-				e.set(field, defaultValue);
-			}
-		} 
-	}
-	addMatchSet(config);
-	addMatchSet(device);
-	
-	
+	const matchSet = function(e, data, re, field, defaultValue) {
+		const r = data.match(re);
+		if (r) {
+			e.set(field, r[1]);
+		}
+		else if (defaultValue) {
+			e.set(field, defaultValue);
+		}
+	};
+
 	cli.macro("clish");
 	let showConfig = cli.command("show configuration");
 	showConfig = showConfig.replace(/^(# Exported by .*) on .*/mg, "$1");
@@ -230,14 +225,14 @@ function snapshot(cli, device, config) {
 	const configState = cli.command("show config-state");
 	device.set("configurationSaved", !!configState.match(/^saved/));
 	
-	device.matchSet(showConfig, /^set hostname (.+)/m, "name");
-	device.matchSet(showConfig, /^set snmp contact "(.+)"/m, "contact");
-	device.matchSet(showConfig, /^set snmp location "(.+)"/m, "location");
+	matchSet(device, showConfig, /^set hostname (.+)/m, "name");
+	matchSet(device, showConfig, /^set snmp contact "(.+)"/m, "contact");
+	matchSet(device, showConfig, /^set snmp location "(.+)"/m, "location");
 	
 	const showVersion = cli.command("show version all");
-	config.matchSet(showVersion, /^Product version (.+)/m, "productVersion");
-	config.matchSet(showVersion, /^OS kernel version (.+)/m, "kernelVersion");
-	device.matchSet(showVersion, /^OS edition (.+)/m, "osEdition");
+	matchSet(config, showVersion, /^Product version (.+)/m, "productVersion");
+	matchSet(config, showVersion, /^OS kernel version (.+)/m, "kernelVersion");
+	matchSet(device, showVersion, /^OS edition (.+)/m, "osEdition");
 	
 	const version = showVersion.match(/^Product version Check Point Gaia (.+)/m);
 	if (version) {
@@ -299,7 +294,7 @@ function snapshot(cli, device, config) {
 	}
 	
 	const showAsset = cli.command("show asset all");
-	device.matchSet(showAsset, /^Model (.+)/m, "family", "Check Point");
+	matchSet(device, showAsset, /^Model (.+)/m, "family", "Check Point");
 
 	for (const part of ["Motherboard", "Chassis"]) {
 		const partNumber = showAsset.match(new RegExp(`^${part} Assembly Part Number: (.+)`, "m"));

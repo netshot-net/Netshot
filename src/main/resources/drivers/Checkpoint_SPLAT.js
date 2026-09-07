@@ -30,7 +30,7 @@ var Info = {
 	name: "CheckpointSPLAT",
 	description: "Checkpoint SPLAT",
 	author: "Netshot Team",
-	version: "2.1"
+	version: "2.2"
 };
 
 var Config = {
@@ -157,21 +157,17 @@ var CLI = {
 };
 
 function snapshot(cli, device, config) {
-	var addMatchSet = function(e) {
-		e.matchSet = function(data, re, field, defaultValue) {
-			var r = data.match(re);
-			if (r) {
-				e.set(field, r[1]);
-			}
-			else if (defaultValue) {
-				e.set(field, defaultValue);
-			}
-		} 
-	}
-	addMatchSet(config);
-	addMatchSet(device);
-	
-	
+	var matchSet = function(e, data, re, field, defaultValue) {
+		var r = data.match(re);
+		if (r) {
+			e.set(field, r[1]);
+		}
+		else if (defaultValue) {
+			e.set(field, defaultValue);
+		}
+	};
+
+
 	cli.macro("cpshell");
 	var scroll = cli.command("scroll");
 	var hasPaging = scroll.match(/scrolling is on/);
@@ -180,7 +176,7 @@ function snapshot(cli, device, config) {
 	}
 
 	var hostname = cli.command("hostname");
-	device.matchSet(hostname, /^([A-Za-z\-_0-9\.]+)/m, "name");
+	matchSet(device, hostname, /^([A-Za-z\-_0-9\.]+)/m, "name");
 
 	var ver = cli.command("ver");
 	var version = ver.match(/SecurePlatform (.+)/);
@@ -235,13 +231,13 @@ function snapshot(cli, device, config) {
 	cli.macro("expert");
 
 	var uname = cli.command("uname -r");
-	config.matchSet(uname, /^(.+)/m, "kernelVersion");
+	matchSet(config, uname, /^(.+)/m, "kernelVersion");
 
 	var dmiProduct = cli.command("dmiparse System Product");
 	match = dmiProduct.match(/^(.+)/m);
 	device.set("family", "Check Point" + (match ? " " + match[1] : ""));
 	var dmiSystemSerial = cli.command("dmiparse System Serial");
-	device.matchSet(dmiSystemSerial, /^(.+)/m, "serialNumber");
+	matchSet(device, dmiSystemSerial, /^(.+)/m, "serialNumber");
 	
 	var parts = ["Base Board", "Chassis"];
 	for (var p in parts) {

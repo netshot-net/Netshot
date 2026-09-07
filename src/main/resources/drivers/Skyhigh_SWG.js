@@ -30,7 +30,7 @@ var Info = {
 	name: "SkyhighSWG",
 	description: "Skyhigh Secure Web Gateway",
 	author: "Netshot Team",
-	version: "2.1"
+	version: "2.2"
 };
 
 var Config = {
@@ -73,28 +73,24 @@ var CLI = {
 };
 
 function snapshot(cli, device, config) {
-	const addMatchSet = function(e) {
-		e.matchSet = function(data, re, field, defaultValue) {
-			const r = data.match(re);
-			if (r) {
-				e.set(field, r[1]);
-			}
-			else if (defaultValue) {
-				e.set(field, defaultValue);
-			}
-		} 
-	}
-	addMatchSet(config);
-	addMatchSet(device);
-	
+	const matchSet = function(e, data, re, field, defaultValue) {
+		const r = data.match(re);
+		if (r) {
+			e.set(field, r[1]);
+		}
+		else if (defaultValue) {
+			e.set(field, defaultValue);
+		}
+	};
+
 	cli.macro("bash");
 
 	const hostname = cli.command("hostname");
-	device.matchSet(hostname, /^([A-Za-z\-_0-9\.]+)/m, "name");
+	matchSet(device, hostname, /^([A-Za-z\-_0-9\.]+)/m, "name");
 
 	const snmpdConf = cli.command("cat /etc/snmp/snmpd.conf");
-	device.matchSet(snmpdConf, /^syslocation (.+)/mi, "location", "");
-	device.matchSet(snmpdConf, /^syscontact (.+)/mi, "contact", "");
+	matchSet(device, snmpdConf, /^syslocation (.+)/mi, "location", "");
+	matchSet(device, snmpdConf, /^syscontact (.+)/mi, "contact", "");
 	const descrMatch = snmpdConf.match(/^sysdescr (.+) Secure Web Gateway ([0-9]+)/m);
 	if (descrMatch) {
 		device.set("family", `${descrMatch[1]} Secure Web Gateway ${descrMatch[2]}`);
@@ -104,13 +100,13 @@ function snapshot(cli, device, config) {
 	}
 
 	const mwgVersion = cli.command("/opt/mwg/bin/mwg-core -v");
-	device.matchSet(mwgVersion, /Core version: ([0-9\.]+)/m, "softwareVersion");
-	config.matchSet(mwgVersion, /Core version: ([0-9\.]+)/m, "mwgVersion");
+	matchSet(device, mwgVersion, /Core version: ([0-9\.]+)/m, "softwareVersion");
+	matchSet(config, mwgVersion, /Core version: ([0-9\.]+)/m, "mwgVersion");
 	
 	device.set("networkClass", "SERVER");
 
 	const dmiSystemSerial = cli.command("dmidecode -s system-serial-number");
-	device.matchSet(dmiSystemSerial, /^(.+)/m, "serialNumber");
+	matchSet(device, dmiSystemSerial, /^(.+)/m, "serialNumber");
 
 	// Parse iproute ip addr output
 	const ipAddressShow = cli.command("ip address show");
