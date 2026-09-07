@@ -13,6 +13,8 @@ import { useTimezone } from "./LocalizationContext"
 
 const PLACEHOLDER_REF_DATE = new Date(2025, 10, 23, 15, 7, 8)
 
+const FILE_SIZE_UNITS = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte", "petabyte"] as const
+
 export function useLocalization() {
   const { i18n, t } = useTranslation()
   const { timezone } = useTimezone()
@@ -22,6 +24,25 @@ export function useLocalization() {
       return new Intl.NumberFormat(i18n.language).format(+value)
     },
     [i18n]
+  )
+
+  const formatFileSize = useCallback(
+    (bytes: number) => {
+      if (!Number.isFinite(bytes)) return ""
+      let value = bytes
+      let unitIndex = 0
+      while (value >= 1024 && unitIndex < FILE_SIZE_UNITS.length - 1) {
+        value /= 1024
+        unitIndex += 1
+      }
+      return new Intl.NumberFormat(i18n.language, {
+        style: "unit",
+        unit: FILE_SIZE_UNITS[unitIndex],
+        unitDisplay: "short",
+        maximumFractionDigits: unitIndex === 0 ? 0 : 1,
+      }).format(value)
+    },
+    [i18n.language]
   )
 
   const dateFormatter = useMemo(() => {
@@ -188,6 +209,7 @@ export function useLocalization() {
   return {
     timezone,
     formatNumber,
+    formatFileSize,
     formatDate,
     formatDayMonth,
     formatMonthYear,

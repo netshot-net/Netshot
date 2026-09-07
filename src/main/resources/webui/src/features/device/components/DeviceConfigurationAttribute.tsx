@@ -3,11 +3,13 @@ import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { LuDownload, LuEye } from "react-icons/lu"
+import { useLocalization } from "@/i18n/useLocalization"
 import { useDownloadConfigMutation } from "../hooks"
 import {
   Config,
   ConfigAttribute,
   ConfigBinaryAttribute,
+  ConfigBinaryFileAttribute,
   ConfigLongTextAttribute,
   ConfigNumericAttribute,
   ConfigTextAttribute,
@@ -104,13 +106,14 @@ function ConfigBinaryAttributeValue(props: ConfigBinaryAttributeValueType) {
 type ConfigBinaryFileAttributeValueType = {
   configId: number
   changeDate: number
-  attribute: ConfigLongTextAttribute
+  attribute: ConfigBinaryFileAttribute
 }
 
 function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueType) {
   const { configId, changeDate, attribute } = props
   const { t } = useTranslation()
   const { device } = useDevice()
+  const { formatFileSize } = useLocalization()
   const filename = useMemo(
     () => buildConfigFilename(device?.name, changeDate, attribute?.name),
     [device?.name, changeDate, attribute?.name]
@@ -118,7 +121,7 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
   const download = useDownloadConfigMutation(configId, attribute?.name, filename)
 
   return (
-    <Stack direction="row" gap="2">
+    <Stack direction="row" gap="2" alignItems="center">
       <Button
         variant="ghost"
         size="sm"
@@ -128,6 +131,11 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
         <LuDownload />
         {t("common.download")}
       </Button>
+      {Number.isFinite(attribute?.fileSize) && (
+        <Text color="grey.400" fontSize="sm">
+          {formatFileSize(attribute.fileSize)}
+        </Text>
+      )}
     </Stack>
   )
 }
@@ -163,7 +171,7 @@ function ConfigAttributeValue(props: ConfigAttributeValueType) {
         <ConfigBinaryFileAttributeValue
           configId={config.id}
           changeDate={config.changeDate}
-          attribute={attribute as ConfigBinaryAttribute}
+          attribute={attribute as ConfigBinaryFileAttribute}
         />
       )
     default:
@@ -184,7 +192,7 @@ export default function DeviceConfigurationAttribute(props: DeviceConfigurationA
   }, [config, definition])
 
   return (
-    <Flex alignItems="center">
+    <Flex alignItems="center" minH="32px">
       <Box flex="0 0 auto" w="240px">
         <Text color="grey.400">{t(definition.title)}</Text>
       </Box>

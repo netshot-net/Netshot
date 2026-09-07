@@ -118,7 +118,7 @@ function DeviceConfigurationPanel(props: DeviceConfigurationPanelProps) {
       {isExpanded && (
         <>
           <Separator />
-          <Stack direction="column" gap="3" p="6">
+          <Stack direction="column" gap="1" p="6">
             {isLoading ? (
               <>
                 <Skeleton w="80px" h="40px" />

@@ -23,10 +23,20 @@ export type ConfigBinaryAttribute = {
   assumption: boolean
 }
 
+export type ConfigBinaryFileAttribute = {
+  type: string
+  name: string
+  originalName: string
+  fileSize: number
+  checksum: string
+}
+
 export type ConfigAttribute =
   | ConfigNumericAttribute
   | ConfigTextAttribute
+  | ConfigLongTextAttribute
   | ConfigBinaryAttribute
+  | ConfigBinaryFileAttribute
 
 export type Config = {
   id: number
