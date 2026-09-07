@@ -85,7 +85,7 @@ export default function DeviceComplianceTrigger({ devices, children, ...rest }: 
               }
         )
 
-        dialogRef.close()
+        await dialogRef.close()
 
         if (task) {
           taskDialog.open(<TaskDialog id={task.id} />)

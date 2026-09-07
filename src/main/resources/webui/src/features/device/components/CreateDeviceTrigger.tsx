@@ -149,7 +149,7 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
 
         const task = await mutation.mutateAsync(newDevice)
 
-        dialogRef.close()
+        await dialogRef.close()
 
         taskDialog.open(<TaskDialog id={task!.id} />)
       },

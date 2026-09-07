@@ -323,8 +323,8 @@ export default function TaskDialog(props: TaskDialogProps) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => {
-                      dialogConfig.close()
+                    onClick={async () => {
+                      await dialogConfig.close()
                       taskDialog.open(<TaskDialog id={task.parentTaskId!} />)
                     }}
                   >
@@ -651,8 +651,13 @@ export default function TaskDialog(props: TaskDialogProps) {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => {
-                                dialogConfig.close()
+                              onClick={async () => {
+                                // Wait for this dialog to fully close before opening the
+                                // replacement: otherwise both would briefly be registered
+                                // together in Ark/Zag's dismissable-layer stack, and removing
+                                // this one cascades into dismissing the new one as if it were
+                                // nested under it.
+                                await dialogConfig.close()
                                 taskDialog.open(<TaskDialog id={chainChild.id} />)
                               }}
                             >

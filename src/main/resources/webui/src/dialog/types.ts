@@ -21,7 +21,11 @@ export type DialogConfig<P extends BaseDialogProps = BaseDialogProps> = {
   props: P
   update(config: ComponentProps<FunctionComponent<P>>): void
   open(): void
-  close(): void
+  // Resolves once the dialog has actually been torn down (its close animation has
+  // finished and `remove()` has run) -- not merely once it starts closing -- so callers
+  // can safely open a replacement dialog right after without both being briefly
+  // registered together in Ark/Zag's dismissable-layer stack.
+  close(): Promise<void>
   remove(): void
   onClose(cb: () => void): void
 }

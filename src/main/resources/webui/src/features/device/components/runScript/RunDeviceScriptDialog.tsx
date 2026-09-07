@@ -472,7 +472,7 @@ export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps)
           }
     )
 
-    close()
+    await dialogConfig.close()
 
     if (task) {
       customDialog.open(<TaskDialog id={task.id} />)

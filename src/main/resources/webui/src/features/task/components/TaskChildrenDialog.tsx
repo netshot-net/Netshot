@@ -15,8 +15,9 @@ export type TaskChildrenDialogProps = {
   parentTaskId: number
   statusFilter?: TaskStatus
   // Called right before a child task's dialog is opened, so the caller can close
-  // dialogs upstream of this one (e.g. the parent task's own dialog).
-  onBeforeOpenChild?: () => void
+  // dialogs upstream of this one (e.g. the parent task's own dialog). May return a
+  // promise that the caller awaits before opening the child's dialog.
+  onBeforeOpenChild?: () => void | Promise<void>
 }
 
 export default function TaskChildrenDialog(props: TaskChildrenDialogProps) {
@@ -98,9 +99,13 @@ export default function TaskChildrenDialog(props: TaskChildrenDialogProps) {
                 showTarget
                 showCreator={false}
                 showComments={false}
-                onBeforeOpenTask={() => {
-                  dialogConfig.close()
-                  onBeforeOpenChild?.()
+                onBeforeOpenTask={async () => {
+                  // Wait for this dialog to fully close before the child's dialog opens:
+                  // otherwise both would briefly be registered together in Ark/Zag's
+                  // dismissable-layer stack, and removing this one cascades into dismissing
+                  // the new one as if it were nested under it.
+                  await dialogConfig.close()
+                  await onBeforeOpenChild?.()
                 }}
               />
             </Dialog.Body>

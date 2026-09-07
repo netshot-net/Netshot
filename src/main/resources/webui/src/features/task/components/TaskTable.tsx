@@ -29,7 +29,8 @@ export type TaskTableProps = {
   emptyDescription?: string
   // Called right before a task row is opened, e.g. to close dialogs that should
   // no longer be visible once the clicked task's dialog takes over (see TaskChildrenDialog).
-  onBeforeOpenTask?(): void
+  // May return a promise, which is awaited before the task's dialog opens.
+  onBeforeOpenTask?(): void | Promise<void>
 }
 
 export default function TaskTable(props: TaskTableProps) {
@@ -54,8 +55,8 @@ export default function TaskTable(props: TaskTableProps) {
     [rows, treeMode]
   )
 
-  function openTask(id: number) {
-    onBeforeOpenTask?.()
+  async function openTask(id: number) {
+    await onBeforeOpenTask?.()
     dialog.open(<TaskDialog id={id} />)
   }
 

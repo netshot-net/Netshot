@@ -98,7 +98,7 @@ export default function DeviceScanSubnetTrigger({ children, ...rest }: DeviceSca
           domain: +(values.domainId ?? 0),
           ...schedule,
         })
-        dialogRef.close()
+        await dialogRef.close()
         taskDialog.open(<TaskDialog id={task!.id} />)
       },
       size: "lg",

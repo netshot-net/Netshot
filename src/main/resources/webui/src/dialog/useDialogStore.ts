@@ -16,11 +16,16 @@ export type DialogStoreState = {
     props: ComponentProps<C>
   ): void
   listeners: Map<string, () => void>
+  // Resolvers for dialogs whose close animation is still in flight -- invoked by
+  // `remove()`, whether that's triggered by the dialog's own `onExitComplete` or by
+  // `removeAll()`, so that `close()`'s returned promise settles either way.
+  removeListeners: Map<string, () => void>
 }
 
 export const useDialogStore = create<DialogStoreState>((set, get) => ({
   configs: [],
   listeners: new Map(),
+  removeListeners: new Map(),
 
   update: <P extends BaseDialogProps, C extends FunctionComponent<P>>(
     id: string,
@@ -47,9 +52,22 @@ export const useDialogStore = create<DialogStoreState>((set, get) => ({
     set((state) => ({
       configs: state.configs.filter((config) => config.id !== id),
     }))
+
+    const removeListeners = get().removeListeners
+    const resolve = removeListeners.get(id)
+    if (resolve) {
+      removeListeners.delete(id)
+      resolve()
+    }
   },
 
   removeAll: () => {
+    const removeListeners = get().removeListeners
+    for (const resolve of removeListeners.values()) {
+      resolve()
+    }
+    removeListeners.clear()
+
     set({ configs: [] })
   },
 
@@ -69,17 +87,22 @@ export const useDialogStore = create<DialogStoreState>((set, get) => ({
     }
 
     function close() {
-      get().update(id, {
-        isOpen: false,
-      })
+      return new Promise<void>((resolve) => {
+        const removeListeners = get().removeListeners
+        removeListeners.set(id, resolve)
 
-      const listeners = get().listeners
+        get().update(id, {
+          isOpen: false,
+        })
 
-      for (const [dialogId, listener] of listeners) {
-        if (dialogId === id) {
-          listener()
+        const listeners = get().listeners
+
+        for (const [dialogId, listener] of listeners) {
+          if (dialogId === id) {
+            listener()
+          }
         }
-      }
+      })
     }
 
     function remove() {

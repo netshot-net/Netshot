@@ -111,7 +111,7 @@ export default function DeviceSnapshotTrigger({ devices, children, ...rest }: De
               }
         )
 
-        dialogRef.close()
+        await dialogRef.close()
 
         if (task) {
           taskDialog.open(<TaskDialog id={task.id} />)

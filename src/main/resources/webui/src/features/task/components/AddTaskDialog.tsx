@@ -116,8 +116,8 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
 
   const createMutation = useMutation({
     mutationFn: api.task.create,
-    onSuccess(newTask) {
-      close()
+    async onSuccess(newTask) {
+      await dialogConfig.close()
 
       if (newTask) {
         taskDialog.open(<TaskDialog id={newTask.id} />)
