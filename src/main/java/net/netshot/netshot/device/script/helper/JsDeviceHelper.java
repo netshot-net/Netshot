@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -507,6 +508,9 @@ public final class JsDeviceHelper {
 		}
 		if (driver != null) {
 			Map<String, Object> storedOptions = this.device.getOptions();
+			if (storedOptions == null) {
+				storedOptions = Collections.emptyMap();
+			}
 			for (OptionDefinition definition : driver.getOptions().values()) {
 				Object value = storedOptions.get(definition.getName());
 				if (value == null) {
