@@ -28,7 +28,7 @@ const Info = {
 	name: "CheckpointGaia",
 	description: "Checkpoint Gaia",
 	author: "Netshot Team",
-	version: "4.3"
+	version: "4.4"
 };
 
 const Config = {
@@ -324,7 +324,7 @@ function snapshot(cli, device, config) {
 			if (backupStatus.match(/backup succeeded/)) {
 				break;
 			}
-			else if (backupStatus.match(/Performing local backup/)) {
+			else if (backupStatus.match(/Performing local backup|Performing backup to Local/)) {
 				maxLoops -= 1;
 				if (maxLoops <= 0) {
 					throw "The local backup took too long";
