@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository.
 
 Netshot is a network configuration and compliance management application: a
 Java core server, a React web UI, and JavaScript device drivers. See
-[docs/architecture.md](docs/architecture.md) for the component map before
+[docs/content/architecture.md](docs/content/architecture.md) for the component map before
 making non-trivial changes — it explains what each Java package
 (`work`, `device`, `compliance`, `aaa`, `cluster`, `vault`, `rest`, ...) is
 responsible for.
@@ -17,7 +17,7 @@ responsible for.
 - `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5)
 - `src/main/resources/drivers/` — device drivers (JavaScript, one file per platform)
 - `src/main/resources/webui/` — React + TypeScript web UI (own `package.json`)
-- `docs/` — user/admin/developer documentation, built with [Zensical](docs/index.md) (Python/uv)
+- `docs/content/` — user/admin/developer documentation source (Markdown), built with [Zensical](docs/content/index.md); `docs/` itself also holds the Zensical/uv tooling (`docs/pyproject.toml`, `docs/uv.lock`) — keep it that way, content must stay under `docs/content/` and out of `docs/` directly, or the build breaks (Zensical copies everything under `docs_dir` verbatim, and a stray `docs/.venv` silently kills the theme asset build)
 - `dev/device-simulator/`, `dev/oidc-idp/` — containers used by the Docker Compose dev stack and by driver tests
 - `compose.dev*.yaml` — dev stacks (basic, OIDC, clustering)
 
@@ -52,9 +52,9 @@ These mirror what CI (`.github/workflows/build.yml`) enforces. **Always run the 
 - **Java style**: tabs for indentation, max line length 200 (see `checkstyle.xml`).
 - **Web UI style**: Prettier config in `src/main/resources/webui/.prettierrc.json` (2-space indent, no semicolons, double quotes, 100 print width). Follow existing component/hook patterns under `src/main/resources/webui/src/features/`.
 - **i18n**: `src/main/resources/webui/src/i18n/en.json` and `fr.json` are kept in sync — when adding/changing a UI string, update both.
-- **Device drivers**: are plain JavaScript files under `src/main/resources/drivers/`, one per platform, loaded (and reloadable) by the core server. See [docs/extending/writing-a-driver.md](docs/extending/writing-a-driver.md) before writing or modifying one, and [docs/user-guide/device-drivers.md](docs/user-guide/device-drivers.md) for the runtime concept. Driver behavior is exercised via `DeviceDriverTest` against the simulators in `dev/device-simulator/`.
-- **REST API**: the web UI talks to the core exclusively through `net.netshot.netshot.rest.RestService`; keep it the single source of truth for the API surface (see [docs/api/rest-api.md](docs/api/rest-api.md)).
-- **Documentation**: update the relevant page(s) under `docs/` in the same change whenever behavior users/admins/integrators rely on changes — new or changed config options (`docs/configuration-reference.md`), REST endpoints (`docs/api/rest-api.md`), webhooks (`docs/api/webhooks.md`), driver-writing conventions (`docs/extending/writing-a-driver.md`), install/upgrade steps (`docs/installation/`, `docs/upgrading.md`), or user-facing features (`docs/user-guide/`). Don't leave docs stale for the sake of a smaller diff.
+- **Device drivers**: are plain JavaScript files under `src/main/resources/drivers/`, one per platform, loaded (and reloadable) by the core server. See [docs/content/extending/writing-a-driver.md](docs/content/extending/writing-a-driver.md) before writing or modifying one, and [docs/content/user-guide/device-drivers.md](docs/content/user-guide/device-drivers.md) for the runtime concept. Driver behavior is exercised via `DeviceDriverTest` against the simulators in `dev/device-simulator/`.
+- **REST API**: the web UI talks to the core exclusively through `net.netshot.netshot.rest.RestService`; keep it the single source of truth for the API surface (see [docs/content/api/rest-api.md](docs/content/api/rest-api.md)).
+- **Documentation**: update the relevant page(s) under `docs/content/` in the same change whenever behavior users/admins/integrators rely on changes — new or changed config options (`docs/content/configuration-reference.md`), REST endpoints (`docs/content/api/rest-api.md`), webhooks (`docs/content/api/webhooks.md`), driver-writing conventions (`docs/content/extending/writing-a-driver.md`), install/upgrade steps (`docs/content/installation/`, `docs/content/upgrading.md`), or user-facing features (`docs/content/user-guide/`). Don't leave docs stale for the sake of a smaller diff.
 
 ## Commit style
 

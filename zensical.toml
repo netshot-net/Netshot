@@ -2,10 +2,11 @@
 site_name = "Netshot"
 site_description = "Configuration and Compliance Management Software for network devices"
 site_url = "https://docs.netshot.net/"
+docs_dir = "docs/content"
 
 repo_url = "https://github.com/netshot-net/Netshot"
 repo_name = "netshot-net/Netshot"
-edit_uri = "edit/master/docs/"
+edit_uri = "edit/master/docs/content/"
 
 nav = [
   { "Overview" = "index.md" },
