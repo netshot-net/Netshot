@@ -1,5 +1,5 @@
 import { Avatar, Button, Menu, Portal, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -9,6 +9,7 @@ import { LanguageMenuItems } from "@/components/LanguageMenu"
 import { QUERIES } from "@/constants"
 import { useAuth } from "@/contexts"
 import useToast from "@/hooks/useToast"
+import { getUserGuideUrl } from "@/utils"
 
 import { useUserLevelOptions } from "@/hooks"
 import { Icon } from "@chakra-ui/react"
@@ -23,6 +24,13 @@ export default function NavbarUser() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const userLevelOptions = useUserLevelOptions()
+
+  const { data: serverInfo } = useQuery({
+    queryKey: [QUERIES.SERVER_INFO],
+    queryFn: api.auth.serverInfo,
+  })
+
+  const userGuideUrl = useMemo(() => getUserGuideUrl(serverInfo?.serverVersion), [serverInfo])
 
   const levelLabel = useMemo(
     () => (user ? userLevelOptions.getLabelByValue(user.level) : undefined),
@@ -120,11 +128,7 @@ export default function NavbarUser() {
             </Menu.ItemGroup>
             <Menu.Separator />
             <Menu.Item value="user-guide" asChild>
-              <a
-                href="https://github.com/netshot-net/Netshot/wiki/Netshot-User-Guide"
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href={userGuideUrl} target="_blank" rel="noreferrer">
                 <LuCircleHelp />
                 {t("admin.userGuide")}
               </a>
