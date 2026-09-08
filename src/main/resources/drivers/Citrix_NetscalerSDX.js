@@ -21,7 +21,7 @@ const Info = {
 	name: "CitrixNetscalerSDX",
 	description: "Citrix NetScaler SDX",
 	author: "Netshot Team",
-	version: "2.1"
+	version: "2.2"
 };
 
 const Config = {
@@ -74,10 +74,15 @@ var Options = {
 var CLI = {
 	ssh: {
 		config: {
-			// Netscaler 14.1 with RADIUS/TACACS+ doesn't like rekeying so disable it
+			// Netscaler 14.1 with RADIUS/TACACS+ doesn't like rekeying so disable it.
+			// Note: unlike timeLimit/dataLimit, blocksLimit can't be disabled with 0 (the SSH
+			// library then falls back to its own ~1GB automatic default), so it must be set to
+			// a very large value instead to prevent the SFTP backup download from triggering it.
 			rekey: {
 				timeLimit: 0,
 				dataLimit: 0,
+				blocksLimit: Number.MAX_SAFE_INTEGER,
+				packetsLimit: 0,
 			},
 		},
 		macros: {

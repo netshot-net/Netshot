@@ -172,6 +172,17 @@ public class Ssh extends Cli {
 		@Getter
 		private long rekeyDataLimit;
 
+		/** SSH rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed before a rekey
+		 * is triggered. Note: unlike the time/data limits, a non-positive value does NOT disable this trigger -
+		 * it makes the SSH library fall back to its own RFC 4344-based automatic computation. To actually disable
+		 * it, this must be set to a very large positive value. */
+		@Getter
+		private long rekeyBlocksLimit;
+
+		/** SSH rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered. */
+		@Getter
+		private long rekeyPacketsLimit;
+
 		/** Key exchange algorithms. */
 		@Getter
 		private String[] kexAlgorithms;
@@ -233,6 +244,12 @@ public class Ssh extends Cli {
 
 			this.rekeyDataLimit = this.readLong("rekeydatalimit", 1024L * 1024L * 1024L);
 			log.debug("The default rekey data limit for SSH sessions is {} bytes", this.rekeyDataLimit);
+
+			this.rekeyBlocksLimit = this.readLong("rekeyblockslimit", 0L);
+			log.debug("The default rekey blocks limit for SSH sessions is {} blocks", this.rekeyBlocksLimit);
+
+			this.rekeyPacketsLimit = this.readLong("rekeypacketslimit", 1L << 31);
+			log.debug("The default rekey packets limit for SSH sessions is {} packets", this.rekeyPacketsLimit);
 
 			this.kexAlgorithms = this.readAlgorithms("kexalgorithms", DEFAULT_SSH_KEX_ALGORITHMS);
 			this.hostKeyAlgorithms = this.readAlgorithms("hostkeyalgorithms", DEFAULT_SSH_HOST_KEY_ALGORITHMS);
@@ -317,6 +334,15 @@ public class Ssh extends Cli {
 		@Setter
 		private Long rekeyDataLimit = null;
 
+		/** Rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed before a rekey
+		 * is triggered. */
+		@Setter
+		private Long rekeyBlocksLimit = null;
+
+		/** Rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered. */
+		@Setter
+		private Long rekeyPacketsLimit = null;
+
 		/** User interaction instructions. */
 		@Setter
 		@Getter
@@ -363,6 +389,8 @@ public class Ssh extends Cli {
 				this.compressionAlgorithms = Arrays.asList(Ssh.SETTINGS.getCompressionAlgorithms());
 				this.rekeyTimeLimit = Ssh.SETTINGS.getRekeyTimeLimit();
 				this.rekeyDataLimit = Ssh.SETTINGS.getRekeyDataLimit();
+				this.rekeyBlocksLimit = Ssh.SETTINGS.getRekeyBlocksLimit();
+				this.rekeyPacketsLimit = Ssh.SETTINGS.getRekeyPacketsLimit();
 				this.usePty = true;
 				this.terminalType = "vt100";
 				this.terminalCols = 80;
@@ -404,6 +432,8 @@ public class Ssh extends Cli {
 		CoreModuleProperties.NIO2_READ_TIMEOUT.set(Ssh.client, Duration.ofMillis(Ssh.SETTINGS.receiveTimeout));
 		CoreModuleProperties.REKEY_TIME_LIMIT.set(Ssh.client, Duration.ofMillis(Ssh.SETTINGS.rekeyTimeLimit));
 		CoreModuleProperties.REKEY_BYTES_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyDataLimit);
+		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyBlocksLimit);
+		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyPacketsLimit);
 	}
 
 	/**
@@ -749,6 +779,8 @@ public class Ssh extends Cli {
 			this.session.setCompressionFactoriesNames(this.sshConfig.compressionAlgorithms);
 			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.rekeyTimeLimit));
 			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.rekeyDataLimit);
+			CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.session, this.sshConfig.rekeyBlocksLimit);
+			CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.session, this.sshConfig.rekeyPacketsLimit);
 			if (privateKey == null) {
 				this.session.addPasswordIdentity(this.password);
 				if (Ssh.this.sshConfig.interactionInstructions != null) {
@@ -1129,6 +1161,12 @@ public class Ssh extends Cli {
 		}
 		if (other.rekeyDataLimit != null) {
 			this.sshConfig.rekeyDataLimit = other.rekeyDataLimit;
+		}
+		if (other.rekeyBlocksLimit != null) {
+			this.sshConfig.rekeyBlocksLimit = other.rekeyBlocksLimit;
+		}
+		if (other.rekeyPacketsLimit != null) {
+			this.sshConfig.rekeyPacketsLimit = other.rekeyPacketsLimit;
 		}
 		if (other.usePty != null) {
 			this.sshConfig.usePty = other.usePty;

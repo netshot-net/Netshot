@@ -1244,6 +1244,14 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 					if (dataLimit != null) {
 						sshConfig.setRekeyDataLimit(dataLimit.asLong());
 					}
+					Value blocksLimit = rekey.getMember("blocksLimit");
+					if (blocksLimit != null) {
+						sshConfig.setRekeyBlocksLimit(blocksLimit.asLong());
+					}
+					Value packetsLimit = rekey.getMember("packetsLimit");
+					if (packetsLimit != null) {
+						sshConfig.setRekeyPacketsLimit(packetsLimit.asLong());
+					}
 				}
 			}
 			Value auth = cliSshConfig.getMember("auth");
