@@ -14,7 +14,7 @@ export function LanguageMenuItems() {
         <Menu.CheckboxItem
           key={option.value}
           value={option.value}
-          checked={i18n.language === option.value}
+          checked={i18n.resolvedLanguage === option.value}
           onCheckedChange={() => i18n.changeLanguage(option.value)}
         >
           <Menu.ItemIndicator />
@@ -30,7 +30,7 @@ export default function LanguageMenu() {
   const { i18n } = useTranslation()
   const { options } = useLanguageOptions()
 
-  const currentOption = options.find((option) => option.value === i18n.language) ?? options[0]
+  const currentOption = options.find((option) => option.value === i18n.resolvedLanguage) ?? options[0]
 
   return (
     <Menu.Root positioning={{ placement: "bottom-end" }}>
