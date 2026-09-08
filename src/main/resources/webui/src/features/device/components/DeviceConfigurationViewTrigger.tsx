@@ -5,7 +5,6 @@ import { Button } from "@chakra-ui/react"
 import { LuDownload } from "react-icons/lu"
 import React from "react"
 import Slot from "@/components/Slot"
-import { useDownloadConfigMutation } from "../hooks"
 import DeviceConfigurationView from "./DeviceConfigurationView"
 
 export type DeviceConfigurationViewTriggerProps = {
@@ -19,7 +18,6 @@ export type DeviceConfigurationViewTriggerProps = {
 export default function DeviceConfigurationViewTrigger({ id, filename, attribute, definition, children, ...rest }: DeviceConfigurationViewTriggerProps) {
   const { t } = useTranslation()
   const dialog = useAlertDialog()
-  const download = useDownloadConfigMutation(id, attribute?.name, filename)
 
   const open = () => {
     dialog.open({
@@ -27,9 +25,11 @@ export default function DeviceConfigurationViewTrigger({ id, filename, attribute
       description: <DeviceConfigurationView id={id} attribute={attribute} />,
       size: "xl",
       footerExtra: (
-        <Button variant="ghost" onClick={() => download.mutate()} loading={download.isPending}>
-          <LuDownload />
-          {t("common.download")}
+        <Button asChild variant="ghost">
+          <a href={`/api/configs/${id}/${attribute?.name}`} download={filename} target="_blank" rel="noreferrer">
+            <LuDownload />
+            {t("common.download")}
+          </a>
         </Button>
       ),
     })

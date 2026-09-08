@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next"
 
 import { LuDownload, LuEye } from "react-icons/lu"
 import { useLocalization } from "@/i18n/useLocalization"
-import { useDownloadConfigMutation } from "../hooks"
 import {
   Config,
   ConfigAttribute,
@@ -76,7 +75,6 @@ function ConfigLongTextAttributeValue(props: ConfigLongTextAttributeValueType) {
     () => buildConfigFilename(device?.name, changeDate, attribute?.name),
     [device?.name, changeDate, attribute?.name]
   )
-  const download = useDownloadConfigMutation(configId, attribute?.name, filename)
 
   return (
     <ButtonGroup attached size="sm" variant="ghost">
@@ -86,12 +84,11 @@ function ConfigLongTextAttributeValue(props: ConfigLongTextAttributeValueType) {
           {t("common.view")}
         </Button>
       </DeviceConfigurationViewTrigger>
-      <Button
-        onClick={() => download.mutate()}
-        loading={download.isPending}
-      >
-        <LuDownload />
-        {t("common.download")}
+      <Button asChild>
+        <a href={`/api/configs/${configId}/${attribute?.name}`} download={filename} target="_blank" rel="noreferrer">
+          <LuDownload />
+          {t("common.download")}
+        </a>
       </Button>
     </ButtonGroup>
   )
@@ -134,18 +131,14 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
       ),
     [device?.name, changeDate, attribute?.name, attribute?.originalName]
   )
-  const download = useDownloadConfigMutation(configId, attribute?.name, filename)
 
   return (
     <Stack direction="row" gap="2" alignItems="center">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => download.mutate()}
-        loading={download.isPending}
-      >
-        <LuDownload />
-        {t("common.download")}
+      <Button asChild variant="ghost" size="sm">
+        <a href={`/api/configs/${configId}/${attribute?.name}`} download={filename} target="_blank" rel="noreferrer">
+          <LuDownload />
+          {t("common.download")}
+        </a>
       </Button>
       {Number.isFinite(attribute?.fileSize) && (
         <Text color="grey.400" fontSize="sm">
