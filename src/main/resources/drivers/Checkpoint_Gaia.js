@@ -28,7 +28,7 @@ const Info = {
 	name: "CheckpointGaia",
 	description: "Checkpoint Gaia",
 	author: "Netshot Team",
-	version: "4.2"
+	version: "4.3"
 };
 
 const Config = {
@@ -339,22 +339,25 @@ function snapshot(cli, device, config) {
 		if (backupNameMatch) {
 			const backupName = backupNameMatch[1];
 			let checksum = undefined;
-			if (cli._modeHistory.includes("expert")) {
+			try {
+				// Try to compute backup file's checkum in expert mode
+				cli.macro("expertBack");
+				const sha256sum = cli.command(`sha256sum ${backupName}`);
+				const hashMatch = sha256sum.match(/^([0-9a-f]{64})\s+.*\.tgz/m);
+				if (!hashMatch) {
+					throw "No match";
+				}
+				checksum = hashMatch[1];
+			}
+			catch (err) {
+				cli.debug(`Unable to compute hash of backup file on the device: ${err}`);
+			}
+			finally {
 				try {
-					// Try to compute backup file's checkum in expert mode
-					cli.macro("expertBack");
-					const sha256sum = cli.command(`sha256sum ${backupName}`);
-					const hashMatch = sha256sum.match(/^([0-9a-f]{64})\s+.*\.tgz/m);
-					if (!hashMatch) {
-						throw "No match";
-					}
-					checksum = hashMatch[1];
+					cli.macro("clish");
 				}
 				catch (err) {
-					cli.debug(`Unable to compute hash of backup file on the device: ${err}`);
-				}
-				finally {
-					cli.macro("clish");
+					cli.debug(`Unable to switch back to clish mode: ${err}`);
 				}
 			}
 			try {
