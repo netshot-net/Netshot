@@ -22,18 +22,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@v7
+
       - name: Log in to the Container registry
-        uses: docker/login-action@v3.0.0
+        uses: docker/login-action@v4.6.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5.0.0
+        uses: docker/metadata-action@v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
@@ -47,7 +47,7 @@ jobs:
             type=sha
 
       - name: Prepare the WebUI builder
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: webui-builder
@@ -70,7 +70,7 @@ jobs:
           git diff --exit-code -- src/main/resources/webui
 
       - name: Prepare the builder
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: builder
@@ -85,7 +85,7 @@ jobs:
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock builder ./mvnw test
 
       - name: Build and push the image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -95,7 +95,7 @@ jobs:
             NETSHOT_VERSION=${{ steps.meta.outputs.version }}
 
       - name: Extract Netshot JAR
-        uses: shrink/actions-docker-extract@v3
+        uses: shrink/actions-docker-extract@v4
         id: extract
         with:
           image: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
@@ -111,7 +111,7 @@ jobs:
           zip netshot_${{ steps.meta.outputs.version }}.zip *
 
       - name: Upload the ZIP archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: netshot-dist
           path: zip/netshot_${{ steps.meta.outputs.version }}.zip
@@ -126,7 +126,7 @@ jobs:
     needs: build_and_upload
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: netshot-dist
       - name: Upload to release
