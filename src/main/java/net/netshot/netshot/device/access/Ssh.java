@@ -34,12 +34,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.sshd.client.ClientBuilder;
+import org.apache.sshd.client.ClientFactoryManager;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.auth.keyboard.UserInteraction;
 import org.apache.sshd.client.auth.password.PasswordAuthenticationReporter;
@@ -51,6 +53,8 @@ import org.apache.sshd.client.config.keys.ClientIdentityLoader;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.client.session.ClientSessionImpl;
+import org.apache.sshd.client.session.SessionFactory;
 import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.NamedFactory;
 import org.apache.sshd.common.NamedResource;
@@ -64,6 +68,7 @@ import org.apache.sshd.common.compression.BuiltinCompressions;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
 import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
+import org.apache.sshd.common.io.IoSession;
 import org.apache.sshd.common.kex.BuiltinDHFactories;
 import org.apache.sshd.common.kex.KexProposalOption;
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
@@ -437,29 +442,63 @@ public class Ssh extends Cli {
 	}
 
 	/**
-	 * Per-connection attribute key used to smuggle a per-access {@link DeviceHostKeyVerifier}
-	 * across the async connect boundary (see the static {@code sessionEstablished} listener
-	 * below) - {@link Ssh#client} is a single, process-wide, shared {@code SshClient}, so a
-	 * per-access verifier cannot simply be set on it directly. Setting it any later (e.g. on
-	 * the {@link ClientSession} returned by {@code connect().verify()}) would race the actual
-	 * initial key exchange, which can already be under way by the time that call returns (see
-	 * the similar caveat on the session listener registered in {@link #connect(boolean)});
-	 * {@link SessionListener#sessionEstablished} is the documented, race-free extension point
-	 * for customizing session properties from a supplied connection context.
-	 * <p>
-	 * Note: the context must be read from the raw {@code IoSession} attribute
-	 * ({@code session.getIoSession().getAttribute(AttributeRepository.class)}), <em>not</em>
-	 * from {@link ClientSession#getConnectionContext()} - the latter is only populated by a
-	 * field initializer in {@code AbstractClientSession}, which (per normal Java construction
-	 * order) only runs once its superclass's constructor returns; but {@code sessionEstablished}
-	 * is itself fired from inside that superclass ({@code AbstractSession}) constructor, i.e.
-	 * strictly before that field initializer has run - {@code getConnectionContext()} would
-	 * always observe null at this point. The underlying {@code IoSession} attribute, by
-	 * contrast, is populated by the connector before the SSH-level session object (and thus
-	 * before this listener) is even created.
+	 * Attribute key carrying a per-access {@link DeviceHostKeyVerifier} into a session created by
+	 * the shared {@link Ssh#client} (see the {@code sessionEstablished} listener below). It can't
+	 * be set on the client directly (shared across all connections), nor after {@code
+	 * connect().verify()} returns (the key exchange may already be under way by then). Read from
+	 * the raw {@code IoSession} attribute, not {@link ClientSession#getConnectionContext()}: the
+	 * latter is only populated after the session's constructor returns, but {@code
+	 * sessionEstablished} fires from inside it.
 	 */
 	private static final AttributeRepository.AttributeKey<ServerKeyVerifier> HOST_KEY_VERIFIER_ATTRIBUTE =
 		new AttributeRepository.AttributeKey<>();
+
+	/**
+	 * Same mechanism as {@link #HOST_KEY_VERIFIER_ATTRIBUTE} above, carrying the per-access
+	 * {@link SshConfig} instead - but the rekey time/data/packets limits it carries are captured
+	 * even earlier than {@code sessionEstablished}: by {@code refreshConfiguration()}, called from
+	 * the session constructor before that listener ever fires. Only overriding {@code
+	 * refreshConfiguration()} itself - see {@link NetshotClientSession} below - applies them in
+	 * time. The rekey-blocks limit doesn't have this problem (recomputed at each actual key
+	 * exchange from a live session property), so the plain post-{@code verify()} property set in
+	 * {@link #connect(boolean)} already works for it.
+	 */
+	private static final AttributeRepository.AttributeKey<SshConfig> SSH_CONFIG_ATTRIBUTE =
+		new AttributeRepository.AttributeKey<>();
+
+	/**
+	 * Applies {@link #SSH_CONFIG_ATTRIBUTE}'s rekey time/data/packets limits during {@code
+	 * refreshConfiguration()}, before the base implementation's one-shot capture of those limits
+	 * (see that attribute's javadoc for why).
+	 */
+	private static final class NetshotClientSession extends ClientSessionImpl {
+
+		NetshotClientSession(ClientFactoryManager client, IoSession ioSession) throws Exception {
+			super(client, ioSession);
+		}
+
+		@Override
+		protected void refreshConfiguration() {
+			super.refreshConfiguration();
+			Object rawContext = getIoSession().getAttribute(AttributeRepository.class);
+			if (!(rawContext instanceof AttributeRepository context)) {
+				return;
+			}
+			SshConfig config = context.getAttribute(Ssh.SSH_CONFIG_ATTRIBUTE);
+			if (config == null) {
+				return;
+			}
+			if (config.rekeyTimeLimit != null) {
+				this.maxRekeyInterval = Duration.ofMillis(config.rekeyTimeLimit);
+			}
+			if (config.rekeyDataLimit != null) {
+				this.maxRekeyBytes = config.rekeyDataLimit;
+			}
+			if (config.rekeyPacketsLimit != null) {
+				this.maxRekyPackets = config.rekeyPacketsLimit;
+			}
+		}
+	}
 
 	static {
 		// Build global SSH client
@@ -468,6 +507,12 @@ public class Ssh extends Cli {
 		Ssh.client.setFilePasswordProvider(FilePasswordProvider.EMPTY);
 		Ssh.client.setClientIdentityLoader(ClientIdentityLoader.DEFAULT);
 		Ssh.client.setKeyIdentityProvider(KeyIdentityProvider.EMPTY_KEYS_PROVIDER);
+		Ssh.client.setSessionFactory(new SessionFactory(Ssh.client) {
+			@Override
+			protected ClientSessionImpl doCreateSession(IoSession ioSession) throws Exception {
+				return new NetshotClientSession(getClient(), ioSession);
+			}
+		});
 
 		CoreModuleProperties.CLIENT_IDENTIFICATION.set(Ssh.client, "NETSHOT-%s".formatted(Netshot.VERSION));
 		// Cisco IOS at least doesn't like receiving the identification message from client before sending its own
@@ -640,8 +685,10 @@ public class Ssh extends Cli {
 		try {
 			ServerKeyVerifier verifier = this.hostKeyVerifier == null
 				? AcceptAllServerKeyVerifier.INSTANCE : this.hostKeyVerifier;
-			AttributeRepository connectContext =
-				AttributeRepository.ofKeyValuePair(Ssh.HOST_KEY_VERIFIER_ATTRIBUTE, verifier);
+			Map<AttributeRepository.AttributeKey<?>, Object> contextAttributes = new HashMap<>();
+			contextAttributes.put(Ssh.HOST_KEY_VERIFIER_ATTRIBUTE, verifier);
+			contextAttributes.put(Ssh.SSH_CONFIG_ATTRIBUTE, this.sshConfig);
+			AttributeRepository connectContext = AttributeRepository.ofAttributesMap(contextAttributes);
 			try {
 				this.session = Ssh.client
 					.connect(this.username, this.host, this.port, connectContext, null)
