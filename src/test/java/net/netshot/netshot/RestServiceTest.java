@@ -27,6 +27,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -602,7 +603,15 @@ public class RestServiceTest extends WithDatabaseTest {
 			config.setProperty("netshot.aaa.oidc.clientsecret", clientSecret);
 			Netshot.initConfig(config);
 			Oidc.loadConfig();
-			Thread.sleep(3000);
+			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
+			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
+			// after a failed attempt, so a short fixed sleep is flaky on loaded CI runners.
+			final Duration idpDiscoveryTimeout = Duration.ofSeconds(35);
+			final Instant deadline = Instant.now().plus(idpDiscoveryTimeout);
+			while (!Oidc.isAvailable() && Instant.now().isBefore(deadline)) {
+				Thread.sleep(200);
+			}
+			Assertions.assertTrue(Oidc.isAvailable(), "OIDC IdP metadata was not discovered in time");
 		}
 
 		@AfterAll
