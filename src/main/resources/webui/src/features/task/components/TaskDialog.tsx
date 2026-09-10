@@ -535,7 +535,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                       )}
                       {task?.removeOrphanFiles && (
                         <Flex alignItems="center">
-                          <Text color="grey.400">{t("device.config.removeOrphanFiles")}</Text>
+                          <Text color="grey.400">{t("device.config.removeOrphanFilesDesc")}</Text>
                         </Flex>
                       )}
                     </Stack>

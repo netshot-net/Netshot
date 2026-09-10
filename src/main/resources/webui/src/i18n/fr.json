@@ -69,7 +69,8 @@
         "attributeNotInOlder": "Cet attribut n'est pas présent dans la configuration la plus ancienne",
         "attributeNotInNewer": "Cet attribut n'est pas présent dans la configuration la plus récente",
         "select": "Sélectionner une configuration",
-        "removeOrphanFiles": "Supprimer les fichiers de pièces jointes binaires orphelins (sans correspondance en base de données)"
+        "removeOrphanFiles": "Supprimer les fichiers orphelins",
+        "removeOrphanFilesDesc": "Supprimer les fichiers de pièces jointes binaires orphelins (sans correspondance en base de données)"
       },
       "configListWillAppear": "La liste des configurations apparaîtra ici lorsque l'équipement change",
       "connectIp": "IP ou nom d'hôte de connexion",
@@ -766,7 +767,7 @@
       "queueNextInLine": "La suivante passera sur un thread libre",
       "recentlyCompleted": "Terminées récemment",
       "recentlyCompletedCaption": "Au cours de la dernière heure",
-      "runNewGroupTask": "Exécuter une tâche sur un groupe",
+      "runNewGroupTask": "Exécuter une tâche globalement ou sur un groupe",
       "runOnce": "Exécuter une fois, dès que possible",
       "runOnceAt": "Exécuter une fois, à...",
       "runOnceIn": "Exécuter une fois, dans...",

@@ -69,7 +69,8 @@
         "attributeNotInOlder": "This attribute is not present in the older configuration",
         "attributeNotInNewer": "This attribute is not present in the newer configuration",
         "select": "Select a configuration",
-        "removeOrphanFiles": "Remove orphan binary attribute files (no matching database record)"
+        "removeOrphanFiles": "Remove orphan files",
+        "removeOrphanFilesDesc": "Remove orphan binary attribute files (no matching database record)"
       },
       "configListWillAppear": "Config list will appear here when device changes",
       "connectIp": "Connect IP or hostname",
@@ -767,7 +768,7 @@
       "queueNextInLine": "Next in line moves to a free thread",
       "recentlyCompleted": "Recently completed",
       "recentlyCompletedCaption": "In the last hour",
-      "runNewGroupTask": "Run a task on a group",
+      "runNewGroupTask": "Run a task globally or on a group",
       "runOnce": "Run once, as soon as possible",
       "runOnceAt": "Run once, at...",
       "runOnceIn": "Run once, in...",

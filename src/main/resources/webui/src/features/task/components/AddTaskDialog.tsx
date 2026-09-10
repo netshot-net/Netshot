@@ -569,9 +569,13 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
                             }
                           />
                         </Stack>
-                        <Checkbox control={form.control} name="removeOrphanFiles">
-                          {t("device.config.removeOrphanFiles")}
-                        </Checkbox>
+                        <Switch
+                          w="initial"
+                          control={form.control}
+                          name="removeOrphanFiles"
+                          label={t("device.config.removeOrphanFiles")}
+                          description={t("device.config.removeOrphanFilesDesc")}
+                        />
                         <Separator />
                         <TreeGroupSelector
                           label={t("common.limitTo")}
