@@ -204,7 +204,7 @@ public class AccessManager {
 	}
 
 	/**
-	 * Resolves the effective TCP port to use for a given access: its own
+	 * Resolves the effective TCP/UDP port to use for a given access: its own
 	 * per-access override port if configured, otherwise the access's own
 	 * driver-declared default port.
 	 * @param accessDef the access to resolve the port for

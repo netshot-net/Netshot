@@ -297,7 +297,7 @@ const PUBLIC_CLI_MEMBERS =
 	["command", "macro", "findSections", "sleep", "debug", "tryNextCredentials", "create", "userInputs"];
 const PUBLIC_SNMP_MEMBERS = ["get", "walk", "sleep", "tryNextCredentials"];
 const PUBLIC_HTTP_MEMBERS =
-	["request", "download", "get", "delete", "head", "options", "post", "put", "patch", "tryNextCredentials", "sleep", "debug"];
+	["request", "download", "get", "delete", "head", "options", "post", "put", "patch", "tryNextCredentials", "sleep", "debug", "trace"];
 const PUBLIC_DEVICE_MEMBERS = ["options", "set", "add", "get", "textDownload"];
 const PUBLIC_CONFIG_MEMBERS = [
 	"set", "download", "computeHash", "getHash", "getLastHash",
@@ -313,6 +313,15 @@ const _connect = (_function, _options) => {
 		if (typeof message  === "string") {
 			message = String(message);
 			_taskContext.debug(message);
+		}
+	};
+
+	// Like debug(), but at TRACE level: only shown in the task's full debug
+	// log, never in the normal task log.
+	const trace = (message) => {
+		if (typeof message === "string") {
+			message = String(message);
+			_taskContext.trace(message);
 		}
 	};
 
@@ -973,6 +982,10 @@ const _connect = (_function, _options) => {
 			debug: function(message) {
 				debug(message);
 			},
+
+			trace: function(message) {
+				trace(message);
+			},
 		};
 		return httpClient;
 	};
@@ -1259,21 +1272,44 @@ const _connect = (_function, _options) => {
 
 	client.create = function(nameOrArray, createOptions) {
 		createOptions = createOptions || {};
+		if (typeof createOptions !== "object") {
+			throw "The 'options' argument of client.create(...) should be an object.";
+		}
 		const autoTryCredentials = (createOptions.autoTryCredentials !== false);
 		const resolved = resolveAccessNames(nameOrArray);
 		const factory = _options.getClientFactory();
 		if (resolved.family === "cli") {
+			if (typeof createOptions.ssh !== "undefined" && typeof createOptions.ssh !== "object") {
+				throw "The 'ssh' option of client.create(...) should be an object.";
+			}
+			if (typeof createOptions.telnet !== "undefined" && typeof createOptions.telnet !== "object") {
+				throw "The 'telnet' option of client.create(...) should be an object.";
+			}
 			return freezeFacade(
-				makeCliClient(factory.createCli(resolved.accessNames, autoTryCredentials), autoTryCredentials),
+				makeCliClient(factory.createCli(resolved.accessNames, autoTryCredentials,
+					createOptions.ssh || null, createOptions.telnet || null), autoTryCredentials),
 				PUBLIC_CLI_MEMBERS
 			);
 		}
 		if (resolved.family === "snmp") {
-			return freezeFacade(makeSnmpClient(factory.createSnmp(resolved.accessNames, autoTryCredentials)), PUBLIC_SNMP_MEMBERS);
+			return freezeFacade(
+				makeSnmpClient(factory.createSnmp(resolved.accessNames, autoTryCredentials)),
+				PUBLIC_SNMP_MEMBERS
+			);
 		}
 		// http
+		if (typeof createOptions.http !== "undefined" && typeof createOptions.http !== "object") {
+			throw "The 'http' option of client.create(...) should be an object.";
+		}
+		const http = createOptions.http || null;
+		if (http !== null && typeof http.basePath !== "undefined" && typeof http.basePath !== "string") {
+			throw "The 'basePath' member of client.create(...)'s 'http' option should be a string.";
+		}
+		if (http !== null && typeof http.auth !== "undefined" && typeof http.auth !== "object") {
+			throw "The 'auth' member of client.create(...)'s 'http' option should be an object.";
+		}
 		return freezeFacade(
-			makeHttpClient(factory.createHttp(resolved.accessNames, autoTryCredentials, createOptions.basePath || null)),
+			makeHttpClient(factory.createHttp(resolved.accessNames, autoTryCredentials, http)),
 			PUBLIC_HTTP_MEMBERS
 		);
 	};

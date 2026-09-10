@@ -375,13 +375,35 @@ const Options = {
 The `cli` argument passed in is really the driver's *default* CLI client, bound to its primary SSH/Telnet access. Every client — CLI, SNMP, or HTTP — additionally exposes `create(nameOrArray, options)` to build a client bound to a specific declared access, or to a named *group* of accesses to try in priority order:
 
 ```js
-const http = cli.create("https");                       // a specific declared access
-const anyHttp = cli.create("http");                      // every HTTP/HTTPS access, by priority
-const scoped = cli.create("https", { basePath: "/api" }); // prefix every request path
-const manual = cli.create("ssh", { autoTryCredentials: false }); // don't auto-fallback credentials
+const http = cli.create("https");                                    // a specific declared access
+const anyHttp = cli.create("http");                                  // every HTTP/HTTPS access, by priority
+const scoped = cli.create("https", { http: { basePath: "/api" } });  // prefix every request path
+const manual = cli.create("ssh", { autoTryCredentials: false });     // don't auto-fallback credentials
 ```
 
 `options.autoTryCredentials` defaults to `true` (silently try every candidate credential set on a 401/403 or auth failure); set it to `false` to handle credential fallback manually via `tryNextCredentials()`.
+
+The other options let a driver override, just for this one client, settings that are otherwise fixed by the driver's own `CLI`/`HTTP` declarations - grouped one per protocol (`ssh`, `telnet`, `http`), matching whichever access(es) `client.create(...)` can resolve to. The port a client connects on is never one of them - it always comes from the driver's declared default, or a per-device override configured in the Web UI.
+
+| Option | Fields | Behavior |
+|---|---|---|
+| `ssh` | Same shape as `CLI.ssh.config` | Merged on top of the declared config - only the fields you set are overridden. |
+| `telnet` | Same shape as `CLI.telnet.config` | Same as `ssh`, for a Telnet access. |
+| `http` | `basePath`, `auth` (shaped like `HTTP.https.auth`) | `basePath` is prepended to every request path; `auth`, when given, replaces the declared auth scheme entirely for this client (e.g. to call a sibling API on the same host that authenticates differently). |
+
+A mixed group (e.g. `cli.create("cli", {...})`, which can resolve to either SSH or Telnet) can carry both `ssh` and `telnet` at once - only the one matching whichever access actually gets used applies.
+
+```js
+// A secondary CLI session with a bigger terminal, no PTY, and rekeying disabled for it:
+const bulk = cli.create("ssh", {
+    ssh: { usePty: false, terminal: { cols: 200 }, rekey: { dataLimit: 0 } },
+});
+
+// A REST call authenticated with a static API key instead of the driver's own declared auth:
+const diag = cli.create("https", {
+    http: { auth: { type: "apiKey", in: "header", name: "X-Api-Key" } },
+});
+```
 
 ### The `http` client
 

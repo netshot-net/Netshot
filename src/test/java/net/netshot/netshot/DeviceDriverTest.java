@@ -74,6 +74,7 @@ import net.netshot.netshot.device.access.DeviceAccess;
 import net.netshot.netshot.device.access.Http;
 import net.netshot.netshot.device.access.Http.AuthScheme;
 import net.netshot.netshot.device.access.Ssh;
+import net.netshot.netshot.device.access.Telnet;
 import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.device.attribute.ConfigTextAttribute;
@@ -427,6 +428,57 @@ public class DeviceDriverTest {
 				"Expected no rekey (1 KeyEstablished event, the initial exchange) now that the driver "
 					+ "explicitly disabled it via rekey.dataLimit=0, got " + keyEstablishedCount
 					+ " - the per-connection override did not take effect (see this class's javadoc)");
+		}
+	}
+
+	@Nested
+	@DisplayName("Telnet config merge test")
+	class TelnetConfigMergeTest {
+
+		/**
+		 * Reads a private {@link Telnet.TelnetConfig} field via reflection - mirrors how
+		 * {@link RekeyTest} already reaches into {@code Ssh}'s own private state, since
+		 * {@code TelnetConfig} deliberately exposes no public getters (same minimalism as
+		 * {@link Ssh.SshConfig}).
+		 */
+		private Object getTelnetConfigField(Telnet.TelnetConfig config, String fieldName) throws Exception {
+			Field field = Telnet.TelnetConfig.class.getDeclaredField(fieldName);
+			field.setAccessible(true);
+			return field.get(config);
+		}
+
+		@Test
+		@DisplayName("applyTelnetConfig(...) merges non-null fields only, leaving the rest at their prior value")
+		void applyTelnetConfigMergesNonNullFieldsOnly() throws Exception {
+			Telnet telnet = new Telnet("127.0.0.1", 23, new FakeTaskContext());
+
+			// Fresh session: seeded with the historical defaults (vt100/80/24).
+			Telnet.TelnetConfig initial = telnet.getTelnetConfig();
+			Assertions.assertEquals("vt100", this.getTelnetConfigField(initial, "terminalType"));
+			Assertions.assertEquals(80, this.getTelnetConfigField(initial, "terminalCols"));
+			Assertions.assertEquals(24, this.getTelnetConfigField(initial, "terminalRows"));
+
+			// Driver-declared delta (as DeviceDriver.parseTelnetConfig would produce from
+			// `CLI.telnet.config`): only terminalCols set.
+			Telnet.TelnetConfig declared = new Telnet.TelnetConfig(false);
+			declared.setTerminalCols(132);
+			telnet.applyTelnetConfig(declared);
+			Telnet.TelnetConfig afterDeclared = telnet.getTelnetConfig();
+			Assertions.assertEquals("vt100", this.getTelnetConfigField(afterDeclared, "terminalType"),
+				"Unset fields in the declared delta must leave the default untouched");
+			Assertions.assertEquals(132, this.getTelnetConfigField(afterDeclared, "terminalCols"));
+			Assertions.assertEquals(24, this.getTelnetConfigField(afterDeclared, "terminalRows"));
+
+			// client.create(...) "telnetConfig" advanced-option override: only terminalRows set -
+			// must merge on top without disturbing the already-applied terminalCols=132.
+			Telnet.TelnetConfig override = new Telnet.TelnetConfig(false);
+			override.setTerminalRows(50);
+			telnet.applyTelnetConfig(override);
+			Telnet.TelnetConfig afterOverride = telnet.getTelnetConfig();
+			Assertions.assertEquals("vt100", this.getTelnetConfigField(afterOverride, "terminalType"));
+			Assertions.assertEquals(132, this.getTelnetConfigField(afterOverride, "terminalCols"),
+				"The client.create(...) override must not clobber a field it didn't set itself");
+			Assertions.assertEquals(50, this.getTelnetConfigField(afterOverride, "terminalRows"));
 		}
 	}
 
@@ -1122,6 +1174,80 @@ public class DeviceDriverTest {
 				".tmp.%d_cfg0_backupArchive_%s.data".formatted(device.getId(), fileAttribute.getUid()),
 				fileAttribute.getFilePath().getFileName().toString(),
 				"The pending file name should embed the device id, cfg0 placeholder, attribute name and uid");
+		}
+
+		@Test
+		@DisplayName("client.create(...) 'http.auth' advanced option overrides the driver's declared auth scheme")
+		void clientCreateAuthOverride() throws Exception {
+			byte[] payload = this.binaryPayload();
+			this.fakeServer.createContext("/protected.bin", exchange -> {
+				String apiKey = exchange.getRequestHeaders().getFirst("X-Api-Key");
+				if (!"pass".equals(apiKey)) {
+					exchange.sendResponseHeaders(401, -1);
+					exchange.close();
+					return;
+				}
+				exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+				exchange.sendResponseHeaders(200, payload.length);
+				try (OutputStream os = exchange.getResponseBody()) {
+					os.write(payload);
+				}
+			});
+
+			// The driver declares no auth at all for its HTTP access: without the client.create(...)
+			// override below, every request would come back 401 and the download would fail.
+			String driverJs = """
+				var Info = {
+					name: "HttpAuthOverrideTestDriver",
+					author: "test",
+					description: "Test driver for the client.create(...) 'http.auth' advanced option",
+					version: "1.0"
+				};
+				var Config = {
+					"backupArchive": { type: "BinaryFile", title: "Backup" },
+				};
+				var Device = {};
+				var HTTP = { http: {} };
+
+				function snapshot(client, device, config) {
+					var http = client.create("http", {
+						http: { auth: { type: "apiKey", in: "header", name: "X-Api-Key" } },
+					});
+					http.download("backupArchive", "/protected.bin", { storeFileName: "backup.tar.gz" });
+				}
+				""";
+			DeviceDriver driver = new DeviceDriver(new StringReader(driverJs), "HttpAuthOverrideTestDriver.js",
+				new Location(LocationType.EMBEDDED, "HttpAuthOverrideTestDriver.js"));
+			DeviceDriver.getDrivers().put("HttpAuthOverrideTestDriver", driver);
+
+			TaskContext taskContext = new FakeTaskContext();
+			// The apiKey value sent is the credential set's password ("pass") - see Http.applyAuth().
+			DeviceHttpAccount credentials = new DeviceHttpAccount("user", "pass", "test-http-account");
+			Session nullSession = null;
+			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
+			Device device = new Device("HttpAuthOverrideTestDriver", null, domain, "test");
+			DeviceAccess httpAccess = new DeviceAccess(device, "http");
+			httpAccess.setAddress("127.0.0.1");
+			httpAccess.setPort(this.port);
+			device.getAccesses().add(httpAccess);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(taskContext);
+			AccessManager accessManager = new AccessManager(nullSession, device, null, taskContext, Set.of(credentials));
+			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
+				Device.class, AccessManager.class);
+			runMethod.setAccessible(true);
+			try {
+				runMethod.invoke(script, nullSession, device, accessManager);
+			}
+			finally {
+				accessManager.disconnectAll();
+			}
+
+			Config config = device.getLastConfig();
+			Assertions.assertNotNull(config,
+				"The config doesn't exist - the client.create(...) 'http.auth' override probably didn't take effect");
+			ConfigBinaryFileAttribute fileAttribute = (ConfigBinaryFileAttribute) config.getAttribute("backupArchive");
+			Assertions.assertNotNull(fileAttribute, "The backupArchive attribute wasn't set");
+			Assertions.assertEquals(payload.length, fileAttribute.getFileSize(), "The stored file size is incorrect");
 		}
 	}
 

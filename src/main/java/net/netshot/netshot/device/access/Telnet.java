@@ -25,17 +25,13 @@ import org.apache.commons.net.telnet.InvalidTelnetOptionException;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.apache.commons.net.telnet.WindowSizeOptionHandler;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.rest.RestViews.DefaultView;
 import net.netshot.netshot.work.TaskContext;
 
 /**
@@ -96,32 +92,29 @@ public class Telnet extends Cli {
 	@XmlAccessorType(XmlAccessType.NONE)
 	public static class TelnetConfig {
 
-		/** Type of terminal. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		/** Type of terminal. Null means "not set" (see {@link #withDefaults}). */
 		@Setter
-		private String terminalType = "vt100";
+		private String terminalType = null;
 
-		/** Number of columns in the terminal (negotiated via the Telnet Window Size option). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		/** Number of columns in the terminal (negotiated via the Telnet Window Size option). Null means "not set". */
 		@Setter
-		private int terminalCols = 80;
+		private Integer terminalCols = null;
 
-		/** Number of rows in the terminal (negotiated via the Telnet Window Size option). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		/** Number of rows in the terminal (negotiated via the Telnet Window Size option). Null means "not set". */
 		@Setter
-		private int terminalRows = 24;
+		private Integer terminalRows = null;
 
-		/*
-		 * Default constructor.
+		/**
+		 * @param withDefaults true to populate every field with its historical default value,
+		 *        false to leave every field {@code null} (a "delta", only ever merged onto
+		 *        another config via {@link Telnet#applyTelnetConfig})
 		 */
-		public TelnetConfig() {
-
+		public TelnetConfig(boolean withDefaults) {
+			if (withDefaults) {
+				this.terminalType = "vt100";
+				this.terminalCols = 80;
+				this.terminalRows = 24;
+			}
 		}
 	}
 
@@ -131,8 +124,8 @@ public class Telnet extends Cli {
 	/** The telnet. */
 	private TelnetClient telnet;
 
-	/** The Telnet connection config. */
-	private TelnetConfig telnetConfig = new TelnetConfig();
+	/** The Telnet connection config, seeded with its historical defaults. */
+	private TelnetConfig telnetConfig = new TelnetConfig(true);
 
 	/**
 	 * Instantiates a new telnet.
@@ -196,8 +189,24 @@ public class Telnet extends Cli {
 		return telnetConfig;
 	}
 
-	public void setTelnetConfig(TelnetConfig telnetConfig) {
-		this.telnetConfig = telnetConfig;
+	/**
+	 * Merges a (possibly partial) {@link TelnetConfig} onto this session's config -
+	 * only the fields set (non-null) in {@code other} are applied, the rest are left
+	 * untouched. Mirrors {@link Ssh#applySshConfig}, and is called twice in the same
+	 * way: once with the driver-declared config, then again with any {@code client.create(...)}
+	 * {@code telnetConfig} advanced-option override.
+	 * @param other the config delta to merge in
+	 */
+	public void applyTelnetConfig(TelnetConfig other) {
+		if (other.terminalType != null) {
+			this.telnetConfig.terminalType = other.terminalType;
+		}
+		if (other.terminalCols != null) {
+			this.telnetConfig.terminalCols = other.terminalCols;
+		}
+		if (other.terminalRows != null) {
+			this.telnetConfig.terminalRows = other.terminalRows;
+		}
 	}
 
 }

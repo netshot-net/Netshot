@@ -21,10 +21,14 @@ package net.netshot.netshot.device.script.helper;
 import java.util.List;
 
 import org.graalvm.polyglot.HostAccess.Export;
+import org.graalvm.polyglot.Value;
 
 import net.netshot.netshot.device.DeviceDriver;
 import net.netshot.netshot.device.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.device.access.AccessManager;
+import net.netshot.netshot.device.access.Http.AuthScheme;
+import net.netshot.netshot.device.access.Ssh.SshConfig;
+import net.netshot.netshot.device.access.Telnet.TelnetConfig;
 
 /**
  * The Java-side backing of the JS {@code client.create(...)} factory.
@@ -61,23 +65,61 @@ public class JsClientFactory {
 		this.options = options;
 	}
 
+	/**
+	 * @param accessNames the resolved, literal access names to try
+	 * @param autoTryCredentials the {@code autoTryCredentials} advanced option
+	 * @param ssh the {@code ssh} advanced option: a JS object shaped like a CLI SSH access's own
+	 *        {@code config} block (may be null/undefined)
+	 * @param telnet the {@code telnet} advanced option: shaped like a CLI Telnet access's own
+	 *        {@code config} block (may be null/undefined)
+	 * @return the new CLI client helper
+	 */
 	@Export
-	public JsCliHelper createCli(List<String> accessNames, boolean autoTryCredentials) {
+	public JsCliHelper createCli(List<String> accessNames, boolean autoTryCredentials, Value ssh, Value telnet) {
 		List<AccessDefinition> defs = this.driver.getAccessDefinitions(accessNames);
-		return new JsCliHelper(this.accessManager, defs, autoTryCredentials, this.accessManager.getTaskContext());
+		SshConfig sshConfigOverride = (ssh != null && ssh.hasMembers()) ? DeviceDriver.parseSshConfig(ssh) : null;
+		TelnetConfig telnetConfigOverride = (telnet != null && telnet.hasMembers())
+			? DeviceDriver.parseTelnetConfig(telnet) : null;
+		return new JsCliHelper(this.accessManager, defs, autoTryCredentials, this.accessManager.getTaskContext(),
+			sshConfigOverride, telnetConfigOverride);
 	}
 
+	/**
+	 * @param accessNames the resolved, literal access names to try
+	 * @param autoTryCredentials the {@code autoTryCredentials} advanced option
+	 * @return the new SNMP client helper
+	 */
 	@Export
 	public JsSnmpHelper createSnmp(List<String> accessNames, boolean autoTryCredentials) {
 		List<AccessDefinition> defs = this.driver.getAccessDefinitions(accessNames);
 		return new JsSnmpHelper(this.accessManager, defs, autoTryCredentials, this.accessManager.getTaskContext());
 	}
 
+	/**
+	 * @param accessNames the resolved, literal access names to try
+	 * @param autoTryCredentials the {@code autoTryCredentials} advanced option
+	 * @param http the {@code http} advanced option: an optional {@code basePath} and/or {@code auth}
+	 *        (shaped like an HTTP access's own {@code auth} block, replacing the declared one
+	 *        entirely) - may be null/undefined
+	 * @return the new HTTP client helper
+	 */
 	@Export
-	public JsHttpHelper createHttp(List<String> accessNames, boolean autoTryCredentials, String basePath) {
+	public JsHttpHelper createHttp(List<String> accessNames, boolean autoTryCredentials, Value http) {
 		List<AccessDefinition> defs = this.driver.getAccessDefinitions(accessNames);
 		JsConfigHelper configHelper = this.options == null ? null : this.options.getConfigHelper();
-		return new JsHttpHelper(this.accessManager, defs, autoTryCredentials, basePath,
+		String basePath = null;
+		AuthScheme authOverride = null;
+		if (http != null && http.hasMembers()) {
+			Value basePathValue = http.getMember("basePath");
+			if (basePathValue != null && basePathValue.isString()) {
+				basePath = basePathValue.asString();
+			}
+			Value authValue = http.getMember("auth");
+			if (authValue != null && authValue.hasMembers()) {
+				authOverride = DeviceDriver.parseHttpAuthScheme(authValue, "client.create() override");
+			}
+		}
+		return new JsHttpHelper(this.accessManager, defs, autoTryCredentials, basePath, authOverride,
 			this.accessManager.getTaskContext(), configHelper);
 	}
 

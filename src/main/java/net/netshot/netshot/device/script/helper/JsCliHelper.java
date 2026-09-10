@@ -37,7 +37,9 @@ import net.netshot.netshot.device.access.Cli;
 import net.netshot.netshot.device.access.Cli.WithBufferIOException;
 import net.netshot.netshot.device.access.Client;
 import net.netshot.netshot.device.access.Ssh;
+import net.netshot.netshot.device.access.Ssh.SshConfig;
 import net.netshot.netshot.device.access.Telnet;
+import net.netshot.netshot.device.access.Telnet.TelnetConfig;
 import net.netshot.netshot.device.credentials.DeviceCliAccount;
 import net.netshot.netshot.device.credentials.DeviceCredentialSet;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
@@ -61,6 +63,10 @@ public class JsCliHelper {
 	private final Resolution resolution;
 	private final boolean autoTryCredentials;
 	private final TaskContext taskContext;
+	/** {@code client.create(...)} "ssh" advanced option (a delta, see {@link DeviceDriver#parseSshConfig}), or null. */
+	private final SshConfig sshConfigOverride;
+	/** {@code client.create(...)} "telnet" advanced option (a delta, see {@link DeviceDriver#parseTelnetConfig}), or null. */
+	private final TelnetConfig telnetConfigOverride;
 
 	/** The resolved CLI object, once connected. */
 	private Cli cli;
@@ -82,9 +88,28 @@ public class JsCliHelper {
 	 */
 	public JsCliHelper(AccessManager accessManager, List<AccessDefinition> accessDefs,
 			boolean autoTryCredentials, TaskContext taskContext) {
+		this(accessManager, accessDefs, autoTryCredentials, taskContext, null, null);
+	}
+
+	/**
+	 * Instantiate a new JsCliHelper object, with {@code client.create(...)} advanced-option overrides.
+	 * @param accessManager the access manager (shared across all clients of this task attempt)
+	 * @param accessDefs the ordered list of CLI accesses to try (e.g. [ssh, telnet])
+	 * @param autoTryCredentials whether to transparently loop through all candidate
+	 *        credential sets (true, historical behavior) or stop at the first
+	 *        failure and let the driver call {@code tryNextCredentials()} (false)
+	 * @param taskContext The task context
+	 * @param sshConfigOverride the {@code ssh} advanced option (already parsed), or null
+	 * @param telnetConfigOverride the {@code telnet} advanced option (already parsed), or null
+	 */
+	public JsCliHelper(AccessManager accessManager, List<AccessDefinition> accessDefs,
+			boolean autoTryCredentials, TaskContext taskContext,
+			SshConfig sshConfigOverride, TelnetConfig telnetConfigOverride) {
 		this.accessManager = accessManager;
 		this.autoTryCredentials = autoTryCredentials;
 		this.taskContext = taskContext;
+		this.sshConfigOverride = sshConfigOverride;
+		this.telnetConfigOverride = telnetConfigOverride;
 		this.resolution = accessManager.newResolution(accessDefs, this::buildClient);
 	}
 
@@ -106,11 +131,17 @@ public class JsCliHelper {
 					resolveSecret(sshAccount.getPasswordSecret()), this.taskContext);
 			}
 			ssh.applySshConfig(accessDef.getSshConfig());
+			if (this.sshConfigOverride != null) {
+				ssh.applySshConfig(this.sshConfigOverride);
+			}
 			ssh.setHostKeyVerifier(this.accessManager.resolveSshHostKeyVerifier(accessDef));
 			return ssh;
 		}
 		Telnet telnet = new Telnet(host, port, this.taskContext);
-		telnet.setTelnetConfig(accessDef.getTelnetConfig());
+		telnet.applyTelnetConfig(accessDef.getTelnetConfig());
+		if (this.telnetConfigOverride != null) {
+			telnet.applyTelnetConfig(this.telnetConfigOverride);
+		}
 		return telnet;
 	}
 

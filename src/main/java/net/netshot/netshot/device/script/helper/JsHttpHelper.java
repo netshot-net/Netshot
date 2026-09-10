@@ -36,6 +36,8 @@ import net.netshot.netshot.device.access.AccessManager;
 import net.netshot.netshot.device.access.AccessManager.Resolution;
 import net.netshot.netshot.device.access.Client;
 import net.netshot.netshot.device.access.Http;
+import net.netshot.netshot.device.access.Http.AuthScheme;
+import net.netshot.netshot.device.access.Http.HttpConfig;
 import net.netshot.netshot.device.access.Http.HttpDownloadResult;
 import net.netshot.netshot.device.access.Http.HttpResult;
 import net.netshot.netshot.device.access.InvalidCredentialsException;
@@ -62,6 +64,8 @@ public class JsHttpHelper {
 	private final boolean autoTryCredentials;
 	private final TaskContext taskContext;
 	private final String basePath;
+	/** {@code client.create(...)} "http" advanced option's "auth" member (replaces the declared auth scheme entirely), or null. */
+	private final AuthScheme authOverride;
 	/** May be null (e.g. in a "run"/diagnostic script context, which has no config to write to). */
 	private final JsConfigHelper configHelper;
 
@@ -76,7 +80,7 @@ public class JsHttpHelper {
 	 * @param accessDefs the ordered list of HTTP accesses to try
 	 * @param autoTryCredentials whether to transparently loop through all candidate
 	 *        credential sets (true) or stop at the first failure (false)
-	 * @param basePath an extra base path to prepend to every request (from {@code client.create("http", {basePath})})
+	 * @param basePath an extra base path to prepend to every request (from {@code client.create("http", {http: {basePath}})})
 	 * @param taskContext The task context
 	 * @param configHelper the current script's config helper (may be null), needed by
 	 *        {@link #download(String, String, String, Map, Map, Map, String, String, String)}
@@ -84,9 +88,30 @@ public class JsHttpHelper {
 	 */
 	public JsHttpHelper(AccessManager accessManager, List<AccessDefinition> accessDefs,
 			boolean autoTryCredentials, String basePath, TaskContext taskContext, JsConfigHelper configHelper) {
+		this(accessManager, accessDefs, autoTryCredentials, basePath, null, taskContext, configHelper);
+	}
+
+	/**
+	 * Instantiate a new JsHttpHelper object, with {@code client.create(...)} advanced-option overrides.
+	 * @param accessManager the access manager (shared across all clients of this task attempt)
+	 * @param accessDefs the ordered list of HTTP accesses to try
+	 * @param autoTryCredentials whether to transparently loop through all candidate
+	 *        credential sets (true) or stop at the first failure (false)
+	 * @param basePath an extra base path to prepend to every request (from {@code client.create("http", {http: {basePath}})})
+	 * @param authOverride the {@code http.auth} advanced option (already parsed), replacing the declared auth
+	 *        scheme entirely, or null
+	 * @param taskContext The task context
+	 * @param configHelper the current script's config helper (may be null), needed by
+	 *        {@link #download(String, String, String, Map, Map, Map, String, String, String)}
+	 *        to land a downloaded file into a {@code BinaryFile} config attribute
+	 */
+	public JsHttpHelper(AccessManager accessManager, List<AccessDefinition> accessDefs,
+			boolean autoTryCredentials, String basePath, AuthScheme authOverride,
+			TaskContext taskContext, JsConfigHelper configHelper) {
 		this.accessManager = accessManager;
 		this.autoTryCredentials = autoTryCredentials;
 		this.basePath = basePath;
+		this.authOverride = authOverride;
 		this.taskContext = taskContext;
 		this.configHelper = configHelper;
 		this.resolution = accessManager.newResolution(accessDefs, this::buildClient);
@@ -101,6 +126,26 @@ public class JsHttpHelper {
 		Http httpClient = new Http(host, port, httpConfig.isTls(), this.taskContext);
 		this.accessManager.applyHttpsTrustPolicy(candidateAccessDef, httpClient);
 		return httpClient;
+	}
+
+	/**
+	 * The {@link HttpConfig} to use for the currently-resolved access: the driver-declared one,
+	 * or a copy with its auth scheme replaced by the {@code client.create(...)} {@code auth}
+	 * advanced-option override, when one was given - never mutates the driver-declared, shared
+	 * {@link AccessDefinition#getHttpConfig()} instance itself.
+	 * @return the effective HttpConfig to authenticate/build requests with
+	 */
+	private HttpConfig effectiveHttpConfig() {
+		HttpConfig httpConfig = this.accessDef.getHttpConfig();
+		if (this.authOverride == null) {
+			return httpConfig;
+		}
+		HttpConfig effective = new HttpConfig();
+		effective.setDefaultPort(httpConfig.getDefaultPort());
+		effective.setTls(httpConfig.isTls());
+		effective.setBasePath(httpConfig.getBasePath());
+		effective.setAuth(this.authOverride);
+		return effective;
 	}
 
 	private void ensureResolved() throws IOException {
@@ -137,7 +182,7 @@ public class JsHttpHelper {
 		}
 		try {
 			HttpResult result = this.http.request(method, fullPath, headers, query, cookies, body,
-				this.accessDef.getHttpConfig(), this.account);
+				this.effectiveHttpConfig(), this.account);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Received the following HTTP response:");
 				this.taskContext.trace("Status: {}", result.getStatus());
@@ -298,7 +343,7 @@ public class JsHttpHelper {
 		}
 		try {
 			HttpDownloadResult result = this.http.download(method, fullPath, headers, query, cookies, body,
-				this.accessDef.getHttpConfig(), this.account, targetFile);
+				this.effectiveHttpConfig(), this.account, targetFile);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Received the following HTTP download response:");
 				this.taskContext.trace("Status: {}", result.getStatus());

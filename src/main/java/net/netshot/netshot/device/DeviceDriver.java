@@ -939,11 +939,11 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 						Value configValue = accessValue.getMember("config");
 						int defaultPort;
 						if (accessProtocol == DriverProtocol.SSH) {
-							accessSshConfig = this.parseSshConfig(configValue);
+							accessSshConfig = parseSshConfig(configValue);
 							defaultPort = net.netshot.netshot.device.access.Ssh.DEFAULT_PORT;
 						}
 						else {
-							accessTelnetConfig = this.parseTelnetConfig(configValue);
+							accessTelnetConfig = parseTelnetConfig(configValue);
 							defaultPort = net.netshot.netshot.device.access.Telnet.DEFAULT_PORT;
 						}
 						if (configValue != null && configValue.hasMembers()) {
@@ -1077,7 +1077,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 						}
 						Value authValue = accessValue.getMember("auth");
 						if (authValue != null && authValue.hasMembers()) {
-							httpConfig.setAuth(this.parseHttpAuthScheme(authValue, key));
+							httpConfig.setAuth(parseHttpAuthScheme(authValue, key));
 						}
 						this.protocols.add(accessProtocol);
 						this.accessDefinitions.put(key, new AccessDefinition(key, accessProtocol,
@@ -1139,10 +1139,14 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 
 	/**
 	 * Parses the "config" object of a CLI SSH access into an {@link SshConfig}.
+	 * Also used to parse the {@code sshConfig} advanced option of
+	 * {@code client.create(...)} (see {@code JsClientFactory}), in which case
+	 * the result is a delta merged onto the driver-declared config via
+	 * {@link net.netshot.netshot.device.access.Ssh#applySshConfig}.
 	 * @param cliSshConfig the JS "config" object (may be null)
 	 * @return the populated SshConfig
 	 */
-	private SshConfig parseSshConfig(Value cliSshConfig) {
+	public static SshConfig parseSshConfig(Value cliSshConfig) {
 		SshConfig sshConfig = new SshConfig(false);
 		if (cliSshConfig != null && cliSshConfig.hasMembers()) {
 			Value terminal = cliSshConfig.getMember("terminal");
@@ -1291,12 +1295,17 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	}
 
 	/**
-	 * Parses the "config" object of a CLI Telnet access into a {@link TelnetConfig}.
+	 * Parses the "config" object of a CLI Telnet access into a {@link TelnetConfig}
+	 * delta (only the fields actually present in {@code cliTelnetConfig} are set,
+	 * the rest are left {@code null}). Also used to parse the {@code telnetConfig}
+	 * advanced option of {@code client.create(...)} (see {@code JsClientFactory}),
+	 * in which case the result is merged onto the driver-declared config via
+	 * {@link net.netshot.netshot.device.access.Telnet#applyTelnetConfig}.
 	 * @param cliTelnetConfig the JS "config" object (may be null)
-	 * @return the populated TelnetConfig
+	 * @return the populated TelnetConfig delta
 	 */
-	private TelnetConfig parseTelnetConfig(Value cliTelnetConfig) {
-		TelnetConfig telnetConfig = new TelnetConfig();
+	public static TelnetConfig parseTelnetConfig(Value cliTelnetConfig) {
+		TelnetConfig telnetConfig = new TelnetConfig(false);
 		if (cliTelnetConfig != null && cliTelnetConfig.hasMembers()) {
 			Value terminal = cliTelnetConfig.getMember("terminal");
 			if (terminal != null && terminal.hasMembers()) {
@@ -1331,7 +1340,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * @param accessName the name of the HTTP access (for error messages)
 	 * @return the populated AuthScheme
 	 */
-	private AuthScheme parseHttpAuthScheme(Value authValue, String accessName) {
+	public static AuthScheme parseHttpAuthScheme(Value authValue, String accessName) {
 		AuthScheme auth = new AuthScheme();
 		Value typeValue = authValue.getMember("type");
 		if (typeValue == null || !typeValue.isString()) {

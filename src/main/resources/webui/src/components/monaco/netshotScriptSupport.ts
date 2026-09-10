@@ -53,12 +53,30 @@ interface TextSection {
   config: string;
 }
 
+/** SSH advanced-option override: same shape as \`CLI.ssh.config\`, merged on top of it. Never overrides the port. */
+type SshCreateOptions = Record<string, unknown>;
+
+/** Telnet advanced-option override: same shape as \`CLI.telnet.config\`, merged on top of it. Never overrides the port. */
+type TelnetCreateOptions = Record<string, unknown>;
+
+/** HTTP advanced-option override. Never overrides the port. */
+interface HttpCreateOptions {
+  /** Base path prepended to every request path. */
+  basePath?: string;
+  /** Same shape as HTTP.<access>.auth; replaces the declared auth scheme entirely for this client. */
+  auth?: Record<string, unknown>;
+}
+
 /** Options accepted by client.create(...). */
 interface ClientCreateOptions {
   /** Default true: retry automatically with the next candidate credentials on auth failure. */
   autoTryCredentials?: boolean;
-  /** Base path prepended to every request path (http access only). */
-  basePath?: string;
+  /** SSH-only advanced overrides (ignored unless the resolved access is SSH). */
+  ssh?: SshCreateOptions;
+  /** Telnet-only advanced overrides (ignored unless the resolved access is Telnet). */
+  telnet?: TelnetCreateOptions;
+  /** HTTP-only advanced overrides (ignored unless the resolved access is HTTP/HTTPS). */
+  http?: HttpCreateOptions;
 }
 
 /**
@@ -103,7 +121,7 @@ interface Cli {
    * resolved access — annotate the result if you need completion on it,
    * e.g. \`/** @type {SnmpClient} * / (client.create("snmp"))\`.
    * @param access an access name, group word ("cli"/"snmp"/"http"), or array of names to try in order
-   * @param options whether to auto-retry with the next credential set, and/or a base path (http only)
+   * @param options auto-retry, and/or per-protocol advanced overrides (ssh/telnet/http) - see ClientCreateOptions
    */
   create(access: string | string[], options?: ClientCreateOptions): any;
   /** User-supplied inputs (run scripts only), validated against the top-level Input declaration. */
@@ -208,6 +226,11 @@ interface HttpClient {
    * @param message the message to log
    */
   debug(message: string): void;
+  /**
+   * Log a trace message: only shown when the task's full debug log is enabled.
+   * @param message the message to log
+   */
+  trace(message: string): void;
 }
 
 /** Options accepted by ScriptDevice#textDownload(). */
