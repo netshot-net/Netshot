@@ -69,6 +69,13 @@ public class TaskJob implements Job {
 			task = session.get(Task.class, id);
 			if (task == null) {
 				log.error("The retrieved task {} is null.", id);
+				session.getTransaction().commit();
+				return;
+			}
+			if (task.getStatus() == Status.CANCELLED) {
+				log.debug("Task {} was cancelled before starting, skipping execution.", id);
+				session.getTransaction().commit();
+				return;
 			}
 			task.setRunning();
 			log.trace("The task runner ID for {} is {}", task.getId(), task.getRunnerId());

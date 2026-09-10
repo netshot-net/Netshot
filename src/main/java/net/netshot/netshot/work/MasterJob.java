@@ -62,8 +62,13 @@ public class MasterJob implements Job {
 			if (task == null) {
 				log.error("The retrieved task {} is null.", id);
 			}
-			TaskManager.assignTaskRunner(task);
-			session.merge(task);
+			if (task != null && task.getStatus() == Task.Status.CANCELLED) {
+				log.debug("Task {} was cancelled before being assigned to a runner, skipping.", id);
+			}
+			else {
+				TaskManager.assignTaskRunner(task);
+				session.merge(task);
+			}
 			session.getTransaction().commit();
 		}
 		catch (Exception e) {

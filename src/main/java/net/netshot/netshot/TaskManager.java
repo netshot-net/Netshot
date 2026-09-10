@@ -296,7 +296,8 @@ public final class TaskManager {
 	public static void cancelTask(Task task, String reason) throws SchedulerException, HibernateException {
 		log.debug("Cancelling task {}.", task);
 		TaskManager.runnerScheduler.deleteJob(task.getIdentity());
-		log.trace("The task has been deleted from the scheduler.");
+		TaskManager.masterScheduler.deleteJob(task.getIdentity());
+		log.trace("The task has been deleted from the scheduler(s).");
 		Session session = Database.getSession();
 		try {
 			session.beginTransaction();
