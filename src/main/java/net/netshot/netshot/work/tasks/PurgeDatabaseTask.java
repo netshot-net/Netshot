@@ -252,8 +252,8 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	@Override
 	public void run() {
 		DeviceGroup group = this.getDeviceGroup();
-		List<Device> deviceList = this.getDeviceList();
-		List<Long> deviceIds = (group == null && deviceList != null && !deviceList.isEmpty())
+		List<Device> deviceList = group == null ? this.getDeviceList() : null;
+		List<Long> deviceIds = (deviceList != null && !deviceList.isEmpty())
 			? deviceList.stream().map(Device::getId).toList() : null;
 		log.debug("Task {}. Starting cleanup process (group {}).", this.getId(),
 			group == null ? (deviceIds == null ? "all" : deviceIds.size() + " listed device(s)") : group.getId());
