@@ -124,6 +124,23 @@ export function useLocalization() {
     return dateTimeFormatter.format(date instanceof Date ? date : new Date(date))
   }, [dateTimeFormatter])
 
+  const shortDateTimeFormatter = useMemo(() => {
+    return new DateFormatter(i18n.language, {
+      year: "2-digit",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: timezone,
+    })
+  }, [i18n.language, timezone])
+
+  /** Same as `formatDateTime`, but with a 2-digit year -- for tight columns (e.g. task tables). */
+  const formatShortDateTime = useCallback((date: number | Date) => {
+    return shortDateTimeFormatter.format(date instanceof Date ? date : new Date(date))
+  }, [shortDateTimeFormatter])
+
   const relativeTimeFormatter = useMemo(() => {
     return new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" })
   }, [i18n.language])
@@ -214,6 +231,7 @@ export function useLocalization() {
     formatDayMonth,
     formatMonthYear,
     formatDateTime,
+    formatShortDateTime,
     formatRelativeTime,
     formatHourMinute,
     formatDayMonthHourMinute,

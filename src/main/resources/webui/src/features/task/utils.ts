@@ -1,3 +1,4 @@
+import { TaskScheduleType } from "@/types"
 import { fromAbsolute } from "@internationalized/date"
 
 type ParentedTask = {
@@ -50,6 +51,56 @@ export function buildTaskTree<T extends ParentedTask>(rows: T[]): TaskTreeRow<T>
   }
 
   return result
+}
+
+/**
+ * True for schedule types that trigger more than once (as opposed to a single
+ * one-off run, immediate or "at" a given time).
+ */
+export function isRepeatingSchedule(scheduleType: TaskScheduleType): boolean {
+  return scheduleType !== TaskScheduleType.Asap && scheduleType !== TaskScheduleType.At
+}
+
+/**
+ * Mirrors the backend's Task#getNextExecutionDate(): the next occurrence at or after
+ * "now + 1 minute", found by stepping scheduleReference forward by scheduleFactor
+ * units (hour/day/week/month) until it clears that cutoff. Returns null for ASAP
+ * (no fixed date) and scheduleReference itself for a one-off AT schedule.
+ */
+export function computeNextExecutionDate(
+  scheduleReference: number,
+  scheduleType: TaskScheduleType,
+  scheduleFactor: number
+): number | null {
+  if (scheduleType === TaskScheduleType.Asap) return null
+  if (scheduleType === TaskScheduleType.At) return scheduleReference
+
+  const factor = scheduleFactor > 0 ? scheduleFactor : 1
+  const cutoff = Date.now() + 60_000
+  const next = new Date(scheduleReference)
+  const cutoffYear = new Date(cutoff).getFullYear()
+  if (next.getFullYear() < cutoffYear) {
+    next.setFullYear(cutoffYear - 1)
+  }
+
+  for (let i = 0; i < 100_000; i++) {
+    if (next.getTime() > cutoff) return next.getTime()
+    switch (scheduleType) {
+      case TaskScheduleType.Hourly:
+        next.setHours(next.getHours() + factor)
+        break
+      case TaskScheduleType.Daily:
+        next.setDate(next.getDate() + factor)
+        break
+      case TaskScheduleType.Weekly:
+        next.setDate(next.getDate() + factor * 7)
+        break
+      case TaskScheduleType.Monthly:
+        next.setMonth(next.getMonth() + factor)
+        break
+    }
+  }
+  return next.getTime()
 }
 
 const MINUTE = 60_000

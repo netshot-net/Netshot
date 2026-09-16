@@ -1,4 +1,4 @@
-import { TaskStatus, TaskType } from "@/types";
+import { TaskScheduleType, TaskStatus, TaskType } from "@/types";
 import { ReactElement } from "react";
 import {
   LuCamera,
@@ -55,6 +55,14 @@ export const TASK_TYPE_ICONS: Record<TaskType, ReactElement> = {
   [TaskType.RunDeviceGroupScript]: <LuTerminal />,
   [TaskType.PurgeDatabase]: <LuDatabaseBackup />,
   [TaskType.DiscoverDeviceType]: <LuShieldQuestion />,
+};
+
+/** i18n key for the repeat unit of a schedule type (e.g. "every N days"). */
+export const SCHEDULE_UNIT_KEY: Partial<Record<TaskScheduleType, string>> = {
+  [TaskScheduleType.Hourly]: "time.hour",
+  [TaskScheduleType.Daily]: "time.day",
+  [TaskScheduleType.Weekly]: "time.week",
+  [TaskScheduleType.Monthly]: "time.month",
 };
 
 export type TimeRangePreset = {

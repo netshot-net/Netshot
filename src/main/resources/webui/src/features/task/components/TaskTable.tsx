@@ -4,16 +4,16 @@ import TaskDialog from "./TaskDialog"
 import { useCustomDialog, useDialogStore } from "@/dialog"
 import { DeviceBadge, DeviceGroupBadge } from "@/components/entity"
 import { useLocalization } from "@/i18n"
-import { LightTask, TaskType } from "@/types"
+import { LightTask, TaskStatus, TaskType } from "@/types"
 import { Icon, Skeleton, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { LuCornerDownRight } from "react-icons/lu"
+import { LuRepeat } from "react-icons/lu"
 import { Link } from "react-router"
-import { TASK_TYPE_ICONS } from "../constants"
+import { SCHEDULE_UNIT_KEY, TASK_TYPE_ICONS } from "../constants"
 import { useTaskTreeModeStore } from "../stores/useTaskTreeModeStore"
-import { buildTaskTree, TaskTreeRow } from "../utils"
+import { buildTaskTree, computeNextExecutionDate, isRepeatingSchedule, TaskTreeRow } from "../utils"
 
 const columnHelper = createColumnHelper<TaskTreeRow<LightTask>>()
 
@@ -45,7 +45,7 @@ export default function TaskTable(props: TaskTableProps) {
     onBeforeOpenTask,
   } = props
   const { t } = useTranslation()
-  const { formatDateTime } = useLocalization()
+  const { formatShortDateTime: formatDateTime } = useLocalization()
   const dialog = useCustomDialog()
   const removeAllDialogs = useDialogStore((state) => state.removeAll)
   const treeMode = useTaskTreeModeStore((state) => state.treeMode)
@@ -64,19 +64,10 @@ export default function TaskTable(props: TaskTableProps) {
     () => [
       columnHelper.accessor("type", {
         cell: (info) => {
-          const { parentTaskId, depth } = info.row.original
-          const previousRow = info.table.getRowModel().rows[info.row.index - 1]
-          const showParentArrow = Boolean(parentTaskId) && previousRow?.original.id === parentTaskId
+          const { depth } = info.row.original
 
           return (
             <Stack direction="row" gap="2" alignItems="center" pl={`${depth * TREE_INDENT_PX}px`}>
-              {showParentArrow && (
-                <Tooltip content={t("task.childOfTask", { id: parentTaskId })}>
-                  <Icon size="xs" color="grey.400" flexShrink={0}>
-                    <LuCornerDownRight />
-                  </Icon>
-                </Tooltip>
-              )}
               <Icon size="sm" flexShrink={0}>
                 {TASK_TYPE_ICONS[info.getValue() as TaskType]}
               </Icon>
@@ -145,12 +136,54 @@ export default function TaskTable(props: TaskTableProps) {
         size: 8000,
       }),
       columnHelper.accessor("executionDate", {
-        cell: (info) => (
-          <Text>{info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")}</Text>
-        ),
+        cell: (info) => {
+          const task = info.row.original
+          const repeating = isRepeatingSchedule(task.scheduleType)
+
+          const date = (() => {
+            switch (task.status) {
+              case TaskStatus.New:
+              case TaskStatus.Waiting:
+              case TaskStatus.Scheduled: {
+                const next = computeNextExecutionDate(
+                  task.scheduleReference,
+                  task.scheduleType,
+                  task.scheduleFactor
+                )
+                return next ? formatDateTime(next) : t("task.asSoonAsPossible")
+              }
+              case TaskStatus.Running:
+              case TaskStatus.Success:
+              case TaskStatus.Failure:
+                return info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")
+              default:
+                return t("common.nA")
+            }
+          })()
+
+          return (
+            <Stack direction="row" gap="2" alignItems="center" minW="0">
+              <Text truncate flex="1" minW="0">
+                {date}
+              </Text>
+              {repeating && (
+                <Tooltip
+                  content={`${t("time.every")} ${task.scheduleFactor} ${t(
+                    SCHEDULE_UNIT_KEY[task.scheduleType] ?? "time.day",
+                    { count: task.scheduleFactor }
+                  )}`}
+                >
+                  <Icon size="xs" color="grey.400" flexShrink={0}>
+                    <LuRepeat />
+                  </Icon>
+                </Tooltip>
+              )}
+            </Stack>
+          )
+        },
         header: t("time.executionDate"),
         enableSorting: !treeMode,
-        size: 15000,
+        size: 16000,
       }),
       ...(showComments
         ? [

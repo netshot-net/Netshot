@@ -788,7 +788,6 @@
       "scheduleRepeating": "Planifier en tant qu'événement répétitif",
       "scheduledFuture": "Planifiées (à venir)",
       "scheduledWillTrigger": "Se déclenchera à l'heure prévue",
-      "childOfTask": "Fait partie de la tâche #{{id}}",
       "childTasks": "Tâches enfants",
       "childTaskProgress": "Progression",
       "parentTask": "Tâche parente",

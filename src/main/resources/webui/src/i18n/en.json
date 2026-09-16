@@ -789,7 +789,6 @@
       "scheduleRepeating": "Schedule as repeating event",
       "scheduledFuture": "Scheduled (future)",
       "scheduledWillTrigger": "Will trigger at their set time",
-      "childOfTask": "Part of task #{{id}}",
       "childTasks": "Child tasks",
       "childTaskProgress": "Progress",
       "parentTask": "Parent task",

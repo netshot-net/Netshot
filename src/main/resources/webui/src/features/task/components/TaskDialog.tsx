@@ -6,10 +6,10 @@ import TaskStatusBadge, { TASK_STATUS_CONFIG } from "./TaskStatusBadge"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation, useCustomDialog, useDialogConfig, useDialogStore } from "@/dialog"
 import { DeviceBadge, DeviceGroupBadge } from "@/components/entity"
-import { QUERIES as TASK_QUERIES, TASK_TYPE_ICONS } from "../constants"
+import { QUERIES as TASK_QUERIES, SCHEDULE_UNIT_KEY, TASK_TYPE_ICONS } from "../constants"
 import { useToast } from "@/hooks"
 import { useLocalization } from "@/i18n"
-import { Level, TaskScheduleMode, TaskScheduleType, TaskStatus, TaskType } from "@/types"
+import { Level, TaskScheduleMode, TaskStatus, TaskType } from "@/types"
 import { getSchedulePriorityLabel } from "@/utils"
 import { BarSegment, BarSegmentData, useChart } from "@chakra-ui/charts"
 import {
@@ -49,13 +49,6 @@ const CHAIN_TASK_TYPES = [
   TaskType.RunDiagnostic,
   TaskType.DiscoverDeviceType,
 ]
-
-const SCHEDULE_UNIT_KEY: Partial<Record<TaskScheduleType, string>> = {
-  [TaskScheduleType.Hourly]: "time.hour",
-  [TaskScheduleType.Daily]: "time.day",
-  [TaskScheduleType.Weekly]: "time.week",
-  [TaskScheduleType.Monthly]: "time.month",
-}
 
 export type TaskDialogProps = {
   id: number
