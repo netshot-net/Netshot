@@ -1263,6 +1263,14 @@ public abstract class Task implements Cloneable {
 	@Override
 	public Object clone() throws CloneNotSupportedException {
 		Task task = (Task) super.clone();
+		// super.clone() is a shallow copy, so at this point task.deviceListMembers is the
+		// exact same (possibly Hibernate-managed) collection instance as this.deviceListMembers.
+		// A DeviceListBasedTask subclass's clone() typically calls setDeviceList(this.getDeviceList())
+		// right after, which would then clear/repopulate that shared collection in place --
+		// corrupting this task's own device list and confusing Hibernate (which tracks a
+		// managed collection by its owning entity) once the clone gets persisted. Give the
+		// clone its own empty list so subclasses safely rebuild it on a fresh, independent list.
+		task.deviceListMembers = new ArrayList<>();
 		task.setScheduleReference(this.scheduleReference);
 		task.setScheduleType(this.scheduleType);
 		task.setScheduleFactor(this.scheduleFactor);

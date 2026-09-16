@@ -602,7 +602,13 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	public Object clone() throws CloneNotSupportedException {
 		PurgeDatabaseTask task = (PurgeDatabaseTask) super.clone();
 		task.setDeviceGroup(this.getDeviceGroup());
-		task.setDeviceList(this.getDeviceList());
+		if (this.getDeviceGroup() == null) {
+			// Mirrors prepare(), which only initializes the lazy deviceListMembers
+			// collection in this same case -- device group and device list are
+			// mutually exclusive, so there is nothing to copy (and nothing safe to
+			// touch) otherwise.
+			task.setDeviceList(this.getDeviceList());
+		}
 		return task;
 	}
 

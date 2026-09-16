@@ -177,7 +177,13 @@ public final class RunDeviceGroupScriptTask extends Task
 	public Object clone() throws CloneNotSupportedException {
 		RunDeviceGroupScriptTask task = (RunDeviceGroupScriptTask) super.clone();
 		task.setDeviceGroup(this.getDeviceGroup());
-		task.setDeviceList(this.getDeviceList());
+		if (this.getDeviceGroup() == null) {
+			// Mirrors prepare(), which only initializes the lazy deviceListMembers
+			// collection in this same case -- device group and device list are
+			// mutually exclusive, so there is nothing to copy (and nothing safe to
+			// touch) otherwise.
+			task.setDeviceList(this.getDeviceList());
+		}
 		return task;
 	}
 

@@ -152,6 +152,9 @@ public class TaskJob implements Job {
 		session = Database.getSession();
 		try {
 			task = (Task) session.get(Task.class, id);
+			// Re-initialize the lazy associations (e.g. device group/list) the task's clone()
+			// will need for repeatTask() below, since that runs after this session is closed.
+			task.prepare(session);
 			List<Hook> hooks = session
 				.createQuery("select h from Hook h join h.triggers t where t.type = :postTask and t.item = :taskName and h.enabled", Hook.class)
 				.setParameter("postTask", HookTrigger.TriggerType.POST_TASK)
@@ -181,7 +184,7 @@ public class TaskJob implements Job {
 			TaskManager.repeatTask(task);
 		}
 		catch (Exception e) {
-			log.error("Unable to repeat the task {} again.", id);
+			log.error("Unable to repeat the task {} again.", id, e);
 		}
 
 		log.warn("End of task {} of type {}: {}.", id, task.getClass().getSimpleName(), task.getStatus());
