@@ -1,8 +1,9 @@
-import { Box, Button, ButtonGroup, Flex, Stack, Text } from "@chakra-ui/react"
+import { Box, Button, ButtonGroup, Clipboard, Flex, Stack, Text } from "@chakra-ui/react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
-import { LuDownload, LuEye } from "react-icons/lu"
+import { LuCopy, LuCopyCheck, LuDownload, LuEye } from "react-icons/lu"
+import { Tooltip } from "@/components/ui/tooltip"
 import { useLocalization } from "@/i18n/useLocalization"
 import {
   Config,
@@ -36,6 +37,17 @@ function buildConfigFilename(
 function getFileExtension(originalName: string | undefined): string | undefined {
   const match = originalName?.match(/^.+\.([a-zA-Z0-9]{1,10})$/)
   return match?.[1]
+}
+
+const CHECKSUM_ALGORITHMS: Record<string, string> = {
+  md5: "MD5",
+  sha256: "SHA-256",
+}
+
+function parseChecksum(checksum: string | undefined): { algorithm: string; hash: string } | undefined {
+  if (!checksum) return undefined
+  const [prefix, hash] = checksum.includes(":") ? checksum.split(/:(.*)/s) : ["sha256", checksum]
+  return { algorithm: CHECKSUM_ALGORITHMS[prefix.toLowerCase()] ?? prefix.toUpperCase(), hash }
 }
 
 type ConfigNumericAttributeValueType = {
@@ -132,6 +144,8 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
     [device?.name, changeDate, attribute?.name, attribute?.originalName]
   )
 
+  const checksum = useMemo(() => parseChecksum(attribute?.checksum), [attribute?.checksum])
+
   return (
     <Stack direction="row" gap="2" alignItems="center">
       <Button asChild variant="ghost" size="sm">
@@ -144,6 +158,25 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
         <Text color="grey.400" fontSize="sm">
           {formatFileSize(attribute.fileSize)}
         </Text>
+      )}
+      {checksum && (
+        <Clipboard.Root value={attribute.checksum}>
+          <Tooltip content={`${t("common.checksum")}: ${attribute.checksum} (${t("common.copy")})`}>
+            <Clipboard.Trigger asChild>
+              <Button variant="subtle" size="xs" fontFamily="mono" fontWeight="normal">
+                <Text as="span" color="grey.400">
+                  {checksum.algorithm}
+                </Text>
+                {checksum.hash.length > 12
+                  ? `${checksum.hash.substring(0, 6)}…${checksum.hash.substring(checksum.hash.length - 4)}`
+                  : checksum.hash}
+                <Clipboard.Indicator copied={<LuCopyCheck />}>
+                  <LuCopy />
+                </Clipboard.Indicator>
+              </Button>
+            </Clipboard.Trigger>
+          </Tooltip>
+        </Clipboard.Root>
       )}
     </Stack>
   )
