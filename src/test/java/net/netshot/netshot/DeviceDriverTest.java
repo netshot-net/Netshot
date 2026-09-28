@@ -682,6 +682,8 @@ public class DeviceDriverTest {
 			Assertions.assertEquals("1.3.6.1.4.1.8072.3.2.10",
 				((DeviceTextAttribute) device.getAttribute("sysObjectId")).getText(), "The sysObjectId is incorrect");
 			Assertions.assertNotNull(device.getNetworkInterface("eth0"), "The eth0 interface should have been created");
+			Assertions.assertNotEquals(0, device.getNetworkInterface("eth0").getPhysicalAddress().getAddress(),
+				"The eth0 MAC address should have been set");
 		}
 	}
 

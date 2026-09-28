@@ -773,29 +773,48 @@ const _connect = (_function, _options) => {
 	 * Java JsSnmpHelper.
 	 */
 	const makeSnmpClient = (_snmp) => {
+		/*
+		 * Reads the options of poller.get/poller.walk; returns true if OctetStrings
+		 * should always be rendered as hex (format: "hex") rather than as text when
+		 * all their bytes happen to be printable (format: "auto", default).
+		 */
+		const parseSnmpFormat = (options, fn) => {
+			if (typeof(options) === "undefined" || options === null) {
+				return false;
+			}
+			if (typeof(options) !== "object") {
+				throw `Invalid options in ${fn}.`;
+			}
+			const format = typeof(options.format) === "undefined" ? "auto" : options.format;
+			if (format !== "auto" && format !== "hex") {
+				throw `Invalid format '${format}' in ${fn} (should be "auto" or "hex").`;
+			}
+			return format === "hex";
+		};
+
 		const poller = {
-			get: function(oid) {
+			get: function(oid, options) {
 				if (typeof(oid) == "string") {
 					oid = String(oid);
 				}
 				else {
 					throw "The OID should be a string in poller.get.";
 				}
-				const result = _snmp.getAsString(oid);
+				const result = _snmp.getAsString(oid, parseSnmpFormat(options, "poller.get"));
 				if (_snmp.isErrored()) {
 					throw `Error while SNMP polling OID ${oid}`;
 				}
 				return result;
 			},
 
-			walk: function(oid, reindex) {
+			walk: function(oid, reindex, options) {
 				if (typeof(oid) === "string") {
 					oid = String(oid);
 				}
 				else {
 					throw "The OID should be a string in poller.walk.";
 				}
-				const results = _snmp.walkAsString(oid);
+				const results = _snmp.walkAsString(oid, parseSnmpFormat(options, "poller.walk"));
 				if (_snmp.isErrored()) {
 					throw `Error while SNMP polling OID ${oid}`;
 				}

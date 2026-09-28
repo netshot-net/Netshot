@@ -305,6 +305,19 @@ Calling `cli.macro("enable")` from `telnet`'s freshly-connected state chases: `u
 
 A utility available on every CLI client for splitting a chunk of text (typically a configuration) into indented blocks headed by lines matching `regex` — e.g. one block per `interface ...` stanza — without hand-rolling indentation-aware parsing in every driver.
 
+### SNMP poller
+
+An SNMP client (`client.create("snmp")`) exposes:
+
+* `poller.get(oid, options)`: returns the value of a single OID, as a string.
+* `poller.walk(oid, reindex, options)`: walks the subtree under `oid` and returns an object mapping each OID to its value; with `reindex` set to `true`, the keys are the OID suffixes relative to `oid` (e.g. the `ifIndex` when walking an `ifTable` column).
+
+By default (`format: "auto"`), an OCTET STRING value is returned as text when all its bytes are printable, and as colon-separated hex (`00:1a:2b:3c:4d:5e`) otherwise. For binary values such as MAC addresses, this means the result depends on the actual bytes; pass `{ format: "hex" }` to always get colon-separated hex:
+
+```js
+const ifPhysAddress = poller.walk("1.3.6.1.2.1.2.2.1.6", true, { format: "hex" });
+```
+
 ## Declaring accesses
 
 `SNMP` is best learned from an existing driver. `HTTP` is documented in full below, for drivers that manage a device entirely through a REST API instead of a CLI — see the bundled `Cisco_APIC.js`, `Cisco_NDO.js`, and `Infoblox_NIOS.js` drivers for complete examples.

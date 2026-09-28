@@ -141,17 +141,18 @@ public class JsSnmpHelper {
 	/**
 	 * SNMP get.
 	 * @param oid The OID to look for
+	 * @param hex Whether to always render OctetStrings as hex
 	 * @return SNMP result
 	 * @throws IOException It can happen
 	 */
 	@Export
-	public String getAsString(String oid) throws IOException {
+	public String getAsString(String oid, boolean hex) throws IOException {
 		this.ensureResolved();
 		if (this.taskContext.isTracing()) {
 			this.taskContext.trace("About to send SNMP GET for OID '{}'.", oid);
 		}
 		try {
-			String value = this.poller.getAsString(oid);
+			String value = this.poller.getAsString(oid, hex);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Received SNMP response: '{}' = '{}'.", oid, value);
 			}
@@ -170,17 +171,18 @@ public class JsSnmpHelper {
 	/**
 	 * SNMP walk.
 	 * @param oid The base OID to explore.
+	 * @param hex Whether to always render OctetStrings as hex
 	 * @return a map (OID => value) of results
 	 * @throws IOException It can happen
 	 */
 	@Export
-	public ProxyObject walkAsString(String oid) throws IOException {
+	public ProxyObject walkAsString(String oid, boolean hex) throws IOException {
 		this.ensureResolved();
 		if (this.taskContext.isTracing()) {
 			this.taskContext.trace("About to send SNMP WALK on OID '{}'.", oid);
 		}
 		try {
-			Map<String, String> results = this.poller.walkAsString(oid);
+			Map<String, String> results = this.poller.walkAsString(oid, hex);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Received {} SNMP response(s) for the walk:", results.size());
 				for (Map.Entry<String, String> entry : results.entrySet()) {

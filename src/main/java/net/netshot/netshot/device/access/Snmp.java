@@ -60,6 +60,7 @@ import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.UdpAddress;
+import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.snmp4j.util.DefaultPDUFactory;
@@ -273,13 +274,43 @@ public class Snmp extends Poller implements Client {
 	}
 
 	/**
-	 * Gets the as string.
+	 * Converts a variable to string.
+	 * By default, snmp4j renders an OctetString as text when all its bytes are printable,
+	 * and as colon-separated hex otherwise; with hex = true, OctetStrings are always
+	 * rendered as hex (useful for binary values such as MAC addresses).
 	 *
-	 * @param oid the oid
-	 * @return the as string
-	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @param variable the variable to convert
+	 * @param hex whether to always render OctetStrings as hex
+	 * @return the string value
+	 */
+	private static String variableToString(Variable variable, boolean hex) {
+		if (hex && variable instanceof OctetString octetString) {
+			return octetString.toHexString();
+		}
+		return variable.toString();
+	}
+
+	/**
+	 * SNMP GET of a single OID, returning the value as a string
+	 * (OctetStrings are rendered as text if printable, as hex otherwise).
+	 *
+	 * @param oid the OID to get
+	 * @return the value, as a string
+	 * @throws IOException in case of SNMP error or missing response
 	 */
 	public String getAsString(OID oid) throws IOException {
+		return getAsString(oid, false);
+	}
+
+	/**
+	 * SNMP GET of a single OID, returning the value as a string.
+	 *
+	 * @param oid the OID to get
+	 * @param hex whether to always render OctetStrings as hex
+	 * @return the value, as a string
+	 * @throws IOException in case of SNMP error or missing response
+	 */
+	public String getAsString(OID oid, boolean hex) throws IOException {
 		ResponseEvent<UdpAddress> event = this.get(new OID[] { oid });
 		PDU response = event.getResponse();
 		if (response == null || response.size() == 0) {
@@ -294,18 +325,31 @@ public class Snmp extends Poller implements Client {
 		if ("1.3.6.1.6.3.15.1.1.3.0".equals(response.get(0).getOid().toString())) {
 			throw new IOException("SNMP error: invalid username");
 		}
-		return response.get(0).getVariable().toString();
+		return variableToString(response.get(0).getVariable(), hex);
 	}
 
 	/**
-	 * Gets the as string.
+	 * SNMP GET of a single OID, returning the value as a string
+	 * (OctetStrings are rendered as text if printable, as hex otherwise).
 	 *
-	 * @param oid the oid
-	 * @return the as string
-	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @param oid the OID to get, in dotted notation
+	 * @return the value, as a string
+	 * @throws IOException in case of SNMP error or missing response
 	 */
 	public String getAsString(String oid) throws IOException {
-		return getAsString(new OID(oid));
+		return getAsString(new OID(oid), false);
+	}
+
+	/**
+	 * SNMP GET of a single OID, returning the value as a string.
+	 *
+	 * @param oid the OID to get, in dotted notation
+	 * @param hex whether to always render OctetStrings as hex
+	 * @return the value, as a string
+	 * @throws IOException in case of SNMP error or missing response
+	 */
+	public String getAsString(String oid, boolean hex) throws IOException {
+		return getAsString(new OID(oid), hex);
 	}
 
 
@@ -363,11 +407,22 @@ public class Snmp extends Poller implements Client {
 
 
 	/**
-	 * Walk over a subtree.
+	 * Walk over a subtree
+	 * (OctetStrings are rendered as text if printable, as hex otherwise).
 	 * @param oid The base OID
 	 * @return a map of OIDs -> values
 	 */
 	public Map<String, String> walkAsString(String oid) throws IOException {
+		return walkAsString(oid, false);
+	}
+
+	/**
+	 * Walk over a subtree.
+	 * @param oid The base OID
+	 * @param hex whether to always render OctetStrings as hex
+	 * @return a map of OIDs -> values
+	 */
+	public Map<String, String> walkAsString(String oid, boolean hex) throws IOException {
 		Map<String, String> results = new TreeMap<String, String>();
 		TreeUtils treeUtils = new TreeUtils(snmp, new DefaultPDUFactory(PDU.GETBULK));
 		List<TreeEvent> events = treeUtils.getSubtree(target, new OID(oid));
@@ -380,7 +435,7 @@ public class Snmp extends Poller implements Client {
 				if (varBindings != null) {
 					for (VariableBinding varBinding : varBindings) {
 						if (varBinding != null) {
-							results.put(varBinding.getOid().toString(), varBinding.getVariable().toString());
+							results.put(varBinding.getOid().toString(), variableToString(varBinding.getVariable(), hex));
 						}
 					}
 				}
