@@ -10,6 +10,7 @@ export function ApiBrowserScreen() {
           url: "/api/openapi.json",
           hideClientButton: true,
           telemetry: false,
+          agent: { disabled: true },
         }}
       />
     </Stack>
