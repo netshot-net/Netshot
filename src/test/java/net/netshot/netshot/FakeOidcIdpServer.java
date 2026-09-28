@@ -252,6 +252,12 @@ public class FakeOidcIdpServer {
 		routingHandler.post(TOKEN_PATH, new HttpHandler() {
 			@Override
 			public void handleRequest(HttpServerExchange exchange) throws Exception {
+				if (exchange.isInIoThread()) {
+					// Blocking form parsing below must not run on an IO thread
+					// (UT000094 if the request body isn't fully received yet)
+					exchange.dispatch(this);
+					return;
+				}
 				try {
 					checkBasicAuth(exchange.getRequestHeaders());
 					if (!MediaType.APPLICATION_FORM_URLENCODED_TYPE.withCharset(StandardCharsets.UTF_8.name())
