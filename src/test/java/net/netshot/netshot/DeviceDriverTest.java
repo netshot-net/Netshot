@@ -28,6 +28,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +70,7 @@ import net.netshot.netshot.device.DeviceDriver.LocationType;
 import net.netshot.netshot.device.Domain;
 import net.netshot.netshot.device.DriverValueType;
 import net.netshot.netshot.device.Network4Address;
+import net.netshot.netshot.device.PhysicalAddress;
 import net.netshot.netshot.device.access.AccessManager;
 import net.netshot.netshot.device.access.DeviceAccess;
 import net.netshot.netshot.device.access.Http;
@@ -732,6 +734,81 @@ public class DeviceDriverTest {
 				Assertions.assertEquals(Network4Address.getNetworkAddress("10.0.0.1", 30),
 					device.getNetworkInterface("ge-0/0/0.0").getIp4Addresses().iterator().next(),
 					"The ge-0/0/0.0 interface IP address is incorrect");
+			}
+			finally {
+				accessManager.disconnectAll();
+			}
+		}
+	}
+
+	@Nested
+	@DisplayName("Palo Alto PAN-OS driver test")
+	class PaloAltoPANOSTest {
+
+		TaskContext taskContext = new FakeTaskContext();
+
+		@Container
+		private static final GenericContainer<?> container = buildSshDeviceSimulator("Palo-Alto_PAN-OS");
+
+		@Test
+		@DisplayName("Palo Alto PAN-OS Snapshot")
+		void snapshot() throws NoSuchMethodException, SecurityException, IOException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException {
+			DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
+			Session nullSession = null;
+			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
+			Device device = new Device("PaloAltoPANOS", null, domain, "test");
+			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
+			sshAccess.setAddress(container.getHost());
+			sshAccess.setPort(container.getMappedPort(22));
+			device.getAccesses().add(sshAccess);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
+			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
+				Device.class, AccessManager.class);
+			runMethod.setAccessible(true);
+			try {
+				runMethod.invoke(script, nullSession, device, accessManager);
+				Assertions.assertEquals("fw1", device.getName(), "The device name is incorrect");
+				Assertions.assertEquals("11.1.6-h3", device.getSoftwareVersion(), "The software version is incorrect");
+				Assertions.assertEquals("400", device.getFamily(), "The device family is incorrect");
+				Assertions.assertEquals(NetworkClass.FIREWALL, device.getNetworkClass(), "The network class is incorrect");
+				Assertions.assertEquals("012345678901", device.getSerialNumber(), "The serial number is incorrect");
+				Config config = device.getLastConfig();
+				Assertions.assertNotNull(config, "The config doesn't exist");
+				Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("configuration"))
+					.getLongText().getText().startsWith("config {"), "The configuration is not correct");
+				Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("mergedConfiguration"))
+					.getLongText().getText().contains("PANORAMA-NTP"), "The merged configuration is not correct");
+				Assertions.assertEquals("11.1.6-h3", ((ConfigTextAttribute) config.getAttribute("panOsVersion")).getText(),
+					"The PAN-OS version config attribute is incorrect");
+				Assertions.assertEquals(1, device.getModules().size(), "The number of modules is incorrect");
+				Assertions.assertEquals("012345678901", device.getModules().get(0).getSerialNumber(),
+					"The chassis module serial number is incorrect");
+				Assertions.assertEquals(8, device.getNetworkInterfaces().size(), "The number of interfaces is incorrect");
+				// First row of the table, used to be skipped
+				Assertions.assertEquals(Network4Address.getNetworkAddress("198.51.100.2", 29),
+					device.getNetworkInterface("ethernet1/1").getIp4Addresses().iterator().next(),
+					"The ethernet1/1 interface IP address is incorrect");
+				Assertions.assertEquals(new PhysicalAddress("00:00:5e:00:53:11"),
+					device.getNetworkInterface("ethernet1/1").getPhysicalAddress(),
+					"The ethernet1/1 interface MAC address is incorrect");
+				Assertions.assertEquals("1", device.getNetworkInterface("ethernet1/1").getVirtualDevice(),
+					"The ethernet1/1 interface vsys is incorrect");
+				Assertions.assertTrue(device.getNetworkInterface("ethernet1/2").getIp4Addresses().isEmpty(),
+					"The ethernet1/2 interface shouldn't have any IP address");
+				Assertions.assertEquals(Network4Address.getNetworkAddress("172.16.10.1", 26),
+					device.getNetworkInterface("ethernet1/2.810").getIp4Addresses().iterator().next(),
+					"The ethernet1/2.810 interface IP address is incorrect");
+				// Interface without zone (empty column), used to lose its IP address
+				Assertions.assertEquals(Network4Address.getNetworkAddress("10.0.0.11", 24),
+					device.getNetworkInterface("ethernet1/7").getIp4Addresses().iterator().next(),
+					"The ethernet1/7 interface IP address is incorrect");
+				Assertions.assertEquals(new PhysicalAddress("00:00:5e:00:53:17"),
+					device.getNetworkInterface("ethernet1/7").getPhysicalAddress(),
+					"The ethernet1/7 interface MAC address is incorrect");
+				Assertions.assertTrue(device.getNetworkInterface("tunnel").getIp4Addresses().isEmpty(),
+					"The tunnel interface shouldn't have any IP address");
 			}
 			finally {
 				accessManager.disconnectAll();

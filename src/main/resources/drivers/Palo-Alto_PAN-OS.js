@@ -17,14 +17,14 @@
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var Info = {
+const Info = {
 	name: "PaloAltoPANOS",
 	description: "Palo Alto PAN-OS",
-	author: "A. Gandarias",
-	version: "0.3"
+	author: "Netshot Team",
+	version: "2.0"
 };
 
-var Config = {
+const Config = {
 	"panOsVersion": {
 		type: "Text",
 		title: "PAN-OS version",
@@ -33,7 +33,7 @@ var Config = {
 	},
 	"configuration": {
 		type: "LongText",
-		title: "Configuration",
+		title: "Local configuration",
 		comparable: true,
 		searchable: true,
 		checkable: true,
@@ -41,12 +41,19 @@ var Config = {
 			pre: "!! Configuration (taken on %when%):",
 			post: "!! End of configuration"
 		}
-	}
+	},
+	"mergedConfiguration": {
+		type: "LongText",
+		title: "Merged configuration",
+		comparable: true,
+		searchable: true,
+		checkable: true,
+	},
 };
 
-var Device = {};
+const Device = {};
 
-var CLI = {
+const CLI = {
 	telnet: {
 		macros: {
 			operational: {
@@ -142,112 +149,108 @@ var CLI = {
 
 function snapshot(cli, device, config) {
 
-	var configCleanup = function (config) {
-		var p = config.search(/^[a-z]/m);
+	const configCleanup = (configuration) => {
+		const p = configuration.search(/^config/m);
 		if (p > 0) {
-			config = config.slice(p);
+			return configuration.slice(p);
 		}
-		return config;
+		return configuration;
 	};
 
 	cli.macro("operational");
 
-	var configuration = cli.command("show config running");
+	const configuration = cli.command("show config running");
 	config.set("configuration", configCleanup(configuration));
 
-	var status = cli.command("show system info");
-	var hostname = status.match(/hostname: (.*)$/m);
-	if (hostname) {
-		hostname = hostname[1];
-		device.set("name", hostname);
+	try {
+		const mergedConfiguration = cli.command("show config merged");
+		config.set("mergedConfiguration", configCleanup(mergedConfiguration));
+	}
+	catch (err) {
+		cli.debug("show config merged not supported on this device");
 	}
 
-	var version = status.match(/sw-version: ([0-9]+.*)/);
-	var tmpfamily = status.match(/family: (.*)/);
-	var family = (tmpfamily ? tmpfamily[1] : "PanOS device");
+	const status = cli.command("show system info");
+	const hostname = status.match(/^hostname: (.*)$/m);
+	if (hostname) {
+		device.set("name", hostname[1].trim());
+	}
+
+	const versionMatch = status.match(/^sw-version: ([0-9]+.*)$/m);
+	const familyMatch = status.match(/^family: (.*)$/m);
+	const family = familyMatch ? familyMatch[1].trim() : "PanOS device";
+	const version = versionMatch ? versionMatch[1].trim() : "Unknown";
 	device.set("family", family);
-	version = (version ? version[1] : "Unknown");
 	device.set("softwareVersion", version);
-	config.set("osVersion", version);
+	config.set("panOsVersion", version);
 
 	device.set("networkClass", "FIREWALL");
 
-
-	var serial = status.match(/serial: (.*)/);
+	const serial = status.match(/^serial: (.*)$/m);
 	if (serial) {
-		var module = {
-			slot: (family === "vm"? "VM" : "Chassis"),
+		device.add("module", {
+			slot: (family === "vm" ? "VM" : "Chassis"),
 			partNumber: family,
-			serialNumber: serial[1]
-		};
-		device.add("module", module);
-		device.set("serialNumber", serial[1]);
-
+			serialNumber: serial[1].trim(),
+		});
+		device.set("serialNumber", serial[1].trim());
 	}
 	else {
 		device.set("serialNumber", "");
 	}
 
-	var interfaces = cli.command("show interface logical");
-	var interfaceInfo = [];
-	interfaces = interfaces.replace(/\r\n/g, "\n");
-
-	var splitInterface = interfaces.split("\n");
-
-	var regex = /^[ ]*name[ ]*id[ ]*vsys[ ]*zone[ ]*forwarding[ ]*tag[ ]*address[ ]*$/;
-	for (var i = 0; i < splitInterface.length; i++) {
-		var elt = splitInterface[i];
-		elt = elt.replace(/\s\s+/g, " ");
-
-		if (elt.match(regex)) {
-
-			if (i + 2 < splitInterface.length) {
-				i += 1;
-				for (var j = i + 2; j < splitInterface.length; j++) {
-					var tmp = splitInterface[j].replace(/\s\s+/g, ' ');
-					if (tmp && tmp !== " ")
-						interfaceInfo.push(tmp);
-				}
-				break;
-			} else
-				break;
-		}
+	// Example output:
+	// name                      id    vsys zone             forwarding               tag    address
+	// ------------------- ----- ---- ---------------- ------------------------ ------ ------------------
+	// ethernet1/1               16    1    UNTRUST          vr:default               0      192.0.2.1/29
+	// ethernet1/7               22    1                     ha                       0      10.0.0.1/24
+	const interfaceLines = cli.command("show interface logical").replace(/\r\n/g, "\n").split("\n");
+	const headerIndex = interfaceLines.findIndex(
+		(line) => line.match(/^\s*name\s+id\s+vsys\s+zone\s+forwarding\s+tag\s+address\s*$/));
+	if (headerIndex < 0) {
+		return;
 	}
-	for (var x = 0; x < interfaceInfo.length; x++) {
-		var s = interfaceInfo[x].split(" ");
-		if (s[0] && s[0] !== '') {
-			var networkInterface = {
-				name: (s[0] ? s[0] : " "),
-				ip: [],
-				virtualDevice: (s[2] ? s[2] : " "),
-				mac: "0000.0000.0000"
-			};
-			if (s[6] && s[6] !== "N/A") {
-				var ipMask = s[6].split('/');
-				networkInterface.ip.push({
-					ip: ipMask[0],
-					mask: ipMask[1],
-					usage: "PRIMARY"
-				});
-			}
-
-			if (s[0] && s[0] !== " ") {
-				var mac = cli.command("show interface " + s[0] + " | match \"Port MAC\"");
-				var macSplit = mac.split(" ");
-				var macRegex = /^(([A-Fa-f0-9]{2}[:]){5}[A-Fa-f0-9]{2}[,]?)+$/;
-				macSplit.forEach(function (elt) {
-					elt = elt.replace(/\r\n/g, "");
-					elt = elt.replace(/\s\s+/g, '');
-					if (elt.match(macRegex)) {
-						networkInterface.mac = elt;
-					}
-				});
-			}
-			device.add("networkInterface", networkInterface);
+	for (const line of interfaceLines.slice(headerIndex + 1)) {
+		if (line.match(/^[\s-]*$/)) {
+			// Separator or empty line
+			continue;
 		}
+		// The zone column is empty for interfaces without a zone (e.g. HA links),
+		// so read name/id/vsys from the start and forwarding/tag/address from the end.
+		const fields = line.trim().split(/\s+/);
+		if (fields.length < 6) {
+			continue;
+		}
+		const networkInterface = {
+			name: fields[0],
+			ip: [],
+			virtualDevice: fields[2],
+		};
+		const address = fields[fields.length - 1];
+		const ipv4Match = address.match(/^(\d+\.\d+\.\d+\.\d+)\/(\d+)$/);
+		const ipv6Match = address.match(/^([0-9A-Fa-f]*:[0-9A-Fa-f:]*)\/(\d+)$/);
+		if (ipv4Match) {
+			networkInterface.ip.push({
+				ip: ipv4Match[1],
+				mask: parseInt(ipv4Match[2]),
+				usage: "PRIMARY",
+			});
+		}
+		else if (ipv6Match) {
+			networkInterface.ip.push({
+				ipv6: ipv6Match[1],
+				mask: parseInt(ipv6Match[2]),
+				usage: "PRIMARY",
+			});
+		}
+
+		const macOutput = cli.command(`show interface ${networkInterface.name} | match "Port MAC"`);
+		const macMatch = macOutput.match(/Port MAC address ((?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})/);
+		if (macMatch) {
+			networkInterface.mac = macMatch[1];
+		}
+		device.add("networkInterface", networkInterface);
 	}
-
-
 }
 
 function analyzeSyslog(message) {
@@ -256,14 +259,12 @@ function analyzeSyslog(message) {
 }
 
 function analyzeTrap(trap, debug) {
-	var logOid = "1.3.6.1.4.1.25461.2.1.3.1.304";
+	const logOid = "1.3.6.1.4.1.25461.2.1.3.1.304";
 	return typeof trap[logOid] === "string" && trap[logOid].match(/Commit job succeeded for user (.*)/);
-
 }
 
 
 function snmpAutoDiscover(sysObjectID, sysDesc) {
 	return sysObjectID.substring(0, 22) === "1.3.6.1.4.1.25461.2.3."
 		&& sysDesc.match(/^Palo Alto.*/);
-
 }
