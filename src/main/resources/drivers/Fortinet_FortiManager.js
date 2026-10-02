@@ -24,7 +24,7 @@ const Info = {
 	name: "FortinetFortiManager", /* Unique identifier of the driver within Netshot. */
 	description: "Fortinet FortiManager and FortiAnalyzer", /* Description to be used in the UI. */
 	author: "Najihel",
-	version: "3.1" /* Version will appear in the Admin tab. */
+	version: "3.2" /* Version will appear in the Admin tab. */
 };
 
 /**
@@ -265,7 +265,7 @@ function snapshot(cli, device, config) {
 	if (!device.options || device.options.fullBackup) {
 		try {
 			const ticket = config.requestUpload();
-			const backupName = "backup.tar";
+			const backupName = "backup.dat";
 			const encryptPass = "netshot";
 			cli.command(`execute backup all-settings sftp ${ticket.host}:${ticket.port} ${backupName} ${ticket.username} ${ticket.password} ${encryptPass}`);
 			let md5 = null;
