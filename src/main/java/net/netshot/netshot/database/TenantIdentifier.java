@@ -20,7 +20,9 @@ package net.netshot.netshot.database;
 
 public enum TenantIdentifier {
 	READ_ONLY("ReadOnly"),
-	READ_WRITE("ReadWrite");
+	READ_WRITE("ReadWrite"),
+	/** Small dedicated pool for task dispatch and cluster bookkeeping (see Database.getSystemSession). */
+	SYSTEM("System");
 
 	private final String sourceName;
 

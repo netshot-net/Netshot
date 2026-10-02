@@ -740,6 +740,7 @@
     },
     "task": {
       "aboutToCancelTask": "Ceci annulera la tâche planifiée. Cette action est irréversible.",
+      "aboutToCancelWaitingTask": "Si la tâche attend encore qu'une autre tâche libère l'équipement, elle sera annulée. Une tâche déjà en cours sur l'équipement ne peut pas être arrêtée.",
       "active": "Tâches actives",
       "asSoonAsPossible": "Dès que possible",
       "activeDescription": "Tâches en cours, en attente, planifiées et récemment terminées",

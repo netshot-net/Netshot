@@ -10,6 +10,15 @@ Schedule a global task via **Schedule...** in the main toolbar. To see the task 
 
 A task run over a group of devices (a snapshot, a script run, a diagnostic, a compliance check...) is a **parent task** that spawns one **child task per device**, run in parallel. The task list shows this hierarchy, so you can drill from the group-level result down to what happened on each individual device. A parent task's own status reflects whether it managed to schedule its children, not the per-device outcomes — a failure on one device doesn't by itself fail the parent.
 
+## Tasks on the same device
+
+Only one task works on a given device at a time (snapshot, diagnostics and script tasks; compliance checks only use the stored configuration and are not concerned). When such a task starts while another one is already working on the same device:
+
+- a **snapshot** or **diagnostics** task is **cancelled** if a task of the same type is already running or waiting on the device (the other one will capture the current state anyway); a recurring task is still rescheduled for its next occurrence;
+- otherwise, the task **waits** for the device to be released (it shows as running, and its log says which task it is waiting for). **Script** tasks are never cancelled because of another task: they always wait for their turn.
+
+A task waiting for a device can be cancelled from its task dialog (**Cancel task**). This only works while it is still waiting: a task already working on the device can't be stopped. A recurring task cancelled this way is not rescheduled.
+
 ## Script chaining
 
 When running a script against a device (or a group), you can ask Netshot to automatically:

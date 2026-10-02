@@ -47,7 +47,7 @@ Advanced connection pool tuning (see the [c3p0 documentation](https://www.mchang
 | Parameter | Default |
 |---|---|
 | `netshot.db.pooler.minpoolsize` | `5` |
-| `netshot.db.pooler.maxpoolsize` | `30` |
+| `netshot.db.pooler.maxpoolsize` | `50` |
 | `netshot.db.pooler.maxstatements` | `50` |
 | `netshot.db.pooler.maxidletimeout` | `1800` |
 | `netshot.db.pooler.maxconnectionage` | `0` |
@@ -56,6 +56,11 @@ Advanced connection pool tuning (see the [c3p0 documentation](https://www.mchang
 | `netshot.db.pooler.idleconnectiontestperiod` | `0` |
 | `netshot.db.pooler.connectionisvalidtimeout` | `0` |
 | `netshot.db.pooler.unreturnedconnectiontimeout` | `1800` |
+| `netshot.db.pooler.checkouttimeout` | `0` (ms to wait for a free connection when the pool is exhausted, `0` = wait indefinitely) |
+| `netshot.db.pooler.system.minpoolsize` | `1` |
+| `netshot.db.pooler.system.maxpoolsize` | `5` |
+
+A running device task (snapshot, diagnostics, script) holds a connection of the main pool for most of its execution, so `netshot.db.pooler.maxpoolsize` must comfortably exceed `netshot.tasks.threadcount` (at least 10 more; Netshot logs a warning at startup otherwise). The `system` pool is a small, separate pool used for task dispatch and cluster bookkeeping, so that these can't be starved by running tasks. Make sure the total number of connections (each Netshot instance: main pool + system pool + 2, plus the read-only pool if configured) stays below PostgreSQL's `max_connections`.
 
 ## Embedded HTTP server
 
@@ -231,7 +236,8 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 
 | Parameter | Description |
 |---|---|
-| `netshot.tasks.threadcount` | Number of tasks that can run concurrently. Default: `10`. |
+| `netshot.tasks.threadcount` | Number of tasks that can run concurrently. Default: `10`. Keep it well below `netshot.db.pooler.maxpoolsize` (see [Database](#database)). |
+| `netshot.tasks.devicelock.pollintervalms` | Interval (ms) at which a task waiting for its turn on a device checks whether the device is free. Default: `3000`. |
 
 ## CLI (SSH / Telnet) connections to devices
 

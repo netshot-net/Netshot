@@ -50,6 +50,14 @@ const CHAIN_TASK_TYPES = [
   TaskType.DiscoverDeviceType,
 ]
 
+// Task types requiring exclusive access to their device: while RUNNING, they may actually be
+// waiting for another task to release the device, and can be cancelled while waiting.
+const DEVICE_EXCLUSIVE_TYPES = [
+  TaskType.TakeSnapshot,
+  TaskType.RunDiagnostic,
+  TaskType.RunDeviceScript,
+]
+
 export type TaskDialogProps = {
   id: number
 }
@@ -98,6 +106,9 @@ export default function TaskDialog(props: TaskDialogProps) {
   const isGroupTask = Boolean(task?.type && GROUP_SCHEDULING_TYPES.includes(task.type as TaskType))
   const isChainTask = Boolean(task?.type && CHAIN_TASK_TYPES.includes(task.type as TaskType))
   const canHaveChildren = isGroupTask || isChainTask
+  const isDeviceExclusiveTask = Boolean(
+    task?.type && DEVICE_EXCLUSIVE_TYPES.includes(task.type as TaskType)
+  )
 
   const { data: childSummary } = useQuery({
     queryKey: [TASK_QUERIES.TASK_SUMMARY, "children", id],
@@ -262,7 +273,10 @@ export default function TaskDialog(props: TaskDialogProps) {
   function openCancelConfirm() {
     const dialogRef = confirmDialog.open(MUTATIONS.TASK_CANCEL, {
       title: t("task.cancelTask"),
-      description: t("task.aboutToCancelTask"),
+      description:
+        task?.status === TaskStatus.Running && isDeviceExclusiveTask
+          ? t("task.aboutToCancelWaitingTask")
+          : t("task.aboutToCancelTask"),
       async onConfirm() {
         await cancelMutation.mutateAsync()
         dialogRef.close()
@@ -700,7 +714,8 @@ export default function TaskDialog(props: TaskDialogProps) {
               </Stack>
               <Stack direction="row" gap="3">
                 {(task?.status === TaskStatus.Scheduled ||
-                  (task?.status === TaskStatus.Running && isGroupTask)) && (
+                  (task?.status === TaskStatus.Running &&
+                    (isGroupTask || isDeviceExclusiveTask))) && (
                   <Protected minLevel={Level.ReadWrite}>
                     <Button
                       colorPalette="red"

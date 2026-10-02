@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot;
 
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -52,6 +53,7 @@ import net.netshot.netshot.work.MasterJob;
 import net.netshot.netshot.work.Task;
 import net.netshot.netshot.work.Task.Status;
 import net.netshot.netshot.work.TaskJob;
+import net.netshot.netshot.work.TaskLockManager;
 
 /**
  * The TaskManager schedules and runs the tasks.
@@ -108,23 +110,35 @@ public final class TaskManager {
 	/** Settings for this class. */
 	public static final Settings SETTINGS = new Settings();
 
+	/** Minimum number of DB pool connections to keep available beyond the task threads. */
+	private static final int MIN_SPARE_DB_CONNECTIONS = 10;
+
 	/** The master scheduler (used in master mode to dispatch jobs). */
 	private static Scheduler masterScheduler;
 
 	/** The runner scheduler (used to run jobs). */
 	private static Scheduler runnerScheduler;
 
-	/** TaskManager mode. */
-	private static Mode mode = Mode.SINGLE;
+	/** TaskManager mode (set by the cluster thread, read from any thread). */
+	private static volatile Mode mode = Mode.SINGLE;
 
-	/** Available runners. */
-	private static RunnerSet runnerSet;
+	/** Available runners (replaced as a whole by the cluster thread, never mutated after publication). */
+	private static volatile RunnerSet runnerSet;
 
 	/**
 	 * Initializes the task manager.
 	 */
 	public static void init() {
 		TaskManager.SETTINGS.load();
+		// Running device tasks hold a DB connection from the main pool, so the pool must be
+		// comfortably larger than the number of task threads
+		int maxPoolSize = Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE);
+		if (TaskManager.SETTINGS.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
+			log.warn("The task thread count ({}) is too close to the DB pool max size ({}): "
+				+ "tasks may starve the connection pool. Set netshot.db.pooler.maxpoolsize to at least {}.",
+				TaskManager.SETTINGS.threadCount, maxPoolSize,
+				TaskManager.SETTINGS.threadCount + MIN_SPARE_DB_CONNECTIONS);
+		}
 		try {
 			Properties params = new Properties();
 			params.put(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, "org.quartz.simpl.SimpleThreadPool");
@@ -184,7 +198,7 @@ public final class TaskManager {
 	 */
 	public static void scheduleNewTasks() {
 		log.debug("Looking for new tasks to assign to available runners");
-		Session session = Database.getSession();
+		Session session = Database.getSystemSession();
 		try {
 			session.beginTransaction();
 			List<Task> tasks = session.createQuery("select t from Task t where t.status = :new", Task.class)
@@ -226,6 +240,8 @@ public final class TaskManager {
 
 	/**
 	 * Sets the possible task runners (to be called from ClusterManager).
+	 * In-memory only: the caller is responsible for triggering {@link #reassignOrphanTasks()}
+	 * afterwards (outside of the cluster network thread, as it hits the database).
 	 * @param members the list of cluster members.
 	 */
 	public static void setRunners(Collection<ClusterMember> members) {
@@ -252,7 +268,6 @@ public final class TaskManager {
 		synchronized (TaskManager.masterScheduler) {
 			TaskManager.runnerSet = newRunnerSet;
 		}
-		TaskManager.reassignOrphanTasks();
 	}
 
 	/**
@@ -507,7 +522,7 @@ public final class TaskManager {
 	 */
 	public static void scheduleLocalTasks() {
 		log.debug("Will retrieve the waiting tasks assigned to the local cluster member.");
-		Session session = Database.getSession();
+		Session session = Database.getSystemSession();
 		try {
 			List<Task> tasks = session.createQuery(
 				"select t from Task t where t.status = :waiting and t.runnerId = :myId", Task.class)
@@ -539,8 +554,13 @@ public final class TaskManager {
 			log.debug("Skipping reassignment of orphan tasks (not in MASTER mode)");
 			return;
 		}
-		log.info("Looking for orphan tasks after change on the list of runners.");
-		Session session = Database.getSession();
+		RunnerSet currentRunnerSet = TaskManager.runnerSet;
+		if (currentRunnerSet == null || currentRunnerSet.map.isEmpty()) {
+			log.debug("Skipping reassignment of orphan tasks (no available runner)");
+			return;
+		}
+		log.debug("Looking for orphan tasks.");
+		Session session = Database.getSystemSession();
 		int reassignedCount = 0;
 		try {
 			session.beginTransaction();
@@ -553,7 +573,7 @@ public final class TaskManager {
 			Iterator<String> runnerIdIt = runnerIds.iterator();
 			while (runnerIdIt.hasNext()) {
 				String runnerId = runnerIdIt.next();
-				if (TaskManager.runnerSet.map.values().contains(runnerId)) {
+				if (currentRunnerSet.map.values().contains(runnerId)) {
 					runnerIdIt.remove();
 				}
 				else {
@@ -569,25 +589,43 @@ public final class TaskManager {
 					.setParameter("running", Task.Status.RUNNING)
 					.setParameterList("runnerIds", runnerIds)
 					.list();
+				TaskLockManager lockManager = TaskLockManager.get();
 				for (Task task : tasks) {
+					// A member considered as gone may actually still be running the task (e.g. it was
+					// just unable to send hello messages for a while): only reassign the task if its
+					// lock isn't held anymore (released by the database when the member really died)
+					try {
+						if (lockManager.isHeld(TaskLockManager.NS_TASK, task.getId())) {
+							log.info("Task {} (runner {}) is still being executed, not reassigning it.",
+								task.getId(), task.getRunnerId());
+							continue;
+						}
+					}
+					catch (SQLException e) {
+						log.error("Unable to check whether task {} is still running, not reassigning it.", task.getId(), e);
+						continue;
+					}
 					log.debug("Task {} will be reassigned as its previously assigned runner {} has disappeared.",
 						task.getId(), task.getRunnerId());
 					assignTaskRunner(task);
 					session.merge(task);
 					reassignedCount += 1;
 				}
-				session.getTransaction().commit();
-				ClusterManager.requestTasksLoad();
 			}
+			session.getTransaction().commit();
 		}
-		catch (HibernateException e) {
+		catch (Exception e) {
 			Database.rollbackSilently(session);
 			log.error("Database error while re-assigning orphan tasks", e);
+			reassignedCount = 0;
 		}
 		finally {
 			session.close();
 		}
-		log.info("{} orphan task(s) reassigned", reassignedCount);
+		if (reassignedCount > 0) {
+			log.info("{} orphan task(s) reassigned", reassignedCount);
+			ClusterManager.requestTasksLoad();
+		}
 	}
 
 	/**
@@ -596,7 +634,7 @@ public final class TaskManager {
 	public static void rescheduleAll() {
 		log.debug("Will re-schedule the existing tasks from the database.");
 
-		Session session = Database.getSession();
+		Session session = Database.getSystemSession();
 		List<Task> tasks;
 		try {
 			switch (TaskManager.mode) {

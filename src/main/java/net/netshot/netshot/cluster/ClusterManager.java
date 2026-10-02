@@ -31,6 +31,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +58,7 @@ import net.netshot.netshot.device.DeviceDriver;
 import net.netshot.netshot.rest.RestService;
 import net.netshot.netshot.rest.RestViews.ClusteringView;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.work.TaskLockManager;
 import net.netshot.netshot.work.tasks.TakeSnapshotTask;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -77,6 +82,17 @@ public class ClusterManager extends Thread {
 	private static final int HELLO_DRIFTTIME = 30000;
 	private static final int NEGOTIATION_DURATION = 25000;
 	private static final int RECEIVE_TIMEOUT = 2000;
+	private static final int ORPHAN_SWEEP_INTERVAL = 60000;
+	private static final int TASK_LOCK_CHECK_INTERVAL = 10000;
+	private static final int SLOW_WORKER_ACTION_WARNING = 10000;
+
+	/** Actions run by the worker thread that can be coalesced (only one pending at a time). */
+	private enum WorkerAction {
+		LOAD_TASKS,
+		ASSIGN_TASKS,
+		RELOAD_DRIVERS,
+		REASSIGN_ORPHANS,
+	}
 
 	/** Cluster Manager static instance. */
 	private static ClusterManager nsClusterManager;
@@ -108,6 +124,7 @@ public class ClusterManager extends Thread {
 		TaskManager.setMode(Mode.CLUSTER_MEMBER);
 		nsClusterManager = new ClusterManager();
 		nsClusterManager.start();
+		nsClusterManager.startPeriodicActions();
 	}
 
 	/**
@@ -212,6 +229,16 @@ public class ClusterManager extends Thread {
 	private long lastSentHelloTime;
 
 	/**
+	 * Worker thread, executing the (potentially slow, database-bound) actions triggered by
+	 * cluster messages, so that the main cluster thread (hello messages, member expiry, master
+	 * election) never waits on the database connection pool.
+	 */
+	private final ScheduledExecutorService worker;
+
+	/** Coalescable actions currently queued (not yet started) in the worker. */
+	private final Set<WorkerAction> pendingActions = ConcurrentHashMap.newKeySet();
+
+	/**
 	 * Default constructor.
 	 */
 	public ClusterManager() {
@@ -224,6 +251,11 @@ public class ClusterManager extends Thread {
 		this.members = new ConcurrentHashMap<>();
 		this.master = null;
 		this.lastSentHelloTime = 0L;
+		this.worker = Executors.newSingleThreadScheduledExecutor(runnable -> {
+			Thread thread = new Thread(runnable, "NetshotClusterWorker");
+			thread.setDaemon(true);
+			return thread;
+		});
 
 
 		String jvmVersion = System.getProperty("java.vm.version");
@@ -273,6 +305,89 @@ public class ClusterManager extends Thread {
 		this.localMember = new ClusterMember(localId, Netshot.getHostname(), ClusterManager.CLUSTERING_VERSION,
 			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, DeviceDriver.getAllDriverHash());
 		this.members.put(localId, this.localMember);
+	}
+
+	/**
+	 * Schedule the periodic actions of the worker thread.
+	 */
+	private void startPeriodicActions() {
+		// Periodic orphan task sweep (on master only): a dead member is only fully released
+		// by the database some time after it went silent
+		this.schedulePeriodic("ORPHAN_SWEEP", ORPHAN_SWEEP_INTERVAL, () -> {
+			if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
+				this.submitCoalesced(WorkerAction.REASSIGN_ORPHANS, TaskManager::reassignOrphanTasks);
+			}
+		});
+		// Periodic check of the task lock DB connection, so that a lost connection (and thus
+		// lost locks) is noticed and recovered even when no task starts or ends
+		this.schedulePeriodic("TASK_LOCK_CHECK", TASK_LOCK_CHECK_INTERVAL, () -> TaskLockManager.get().check());
+	}
+
+	/**
+	 * Schedule a periodic action in the worker thread (an exception doesn't cancel next runs).
+	 * @param name the name of the action (for logging)
+	 * @param interval the interval between runs (ms)
+	 * @param action the action
+	 */
+	private void schedulePeriodic(String name, long interval, Runnable action) {
+		this.worker.scheduleWithFixedDelay(() -> {
+			try {
+				action.run();
+			}
+			catch (Exception e) {
+				log.error("Error while executing periodic cluster action {}", name, e);
+			}
+		}, interval, interval, TimeUnit.MILLISECONDS);
+	}
+
+	/**
+	 * Run an action in the worker thread.
+	 * @param name the name of the action (for logging)
+	 * @param action the action to run
+	 * @return true if the action was queued
+	 */
+	private boolean submit(String name, Runnable action) {
+		try {
+			this.worker.execute(() -> {
+				long startTime = System.currentTimeMillis();
+				try {
+					action.run();
+				}
+				catch (Exception e) {
+					log.error("Error while executing cluster action {}", name, e);
+				}
+				long duration = System.currentTimeMillis() - startTime;
+				if (duration > SLOW_WORKER_ACTION_WARNING) {
+					log.warn("Cluster action {} took {} ms", name, duration);
+				}
+			});
+			return true;
+		}
+		catch (RejectedExecutionException e) {
+			log.error("Unable to queue cluster action {}", name, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Run an action in the worker thread, unless the same action is already queued
+	 * (and not started yet).
+	 * @param action the action type
+	 * @param runnable the action to run
+	 */
+	private void submitCoalesced(WorkerAction action, Runnable runnable) {
+		if (!this.pendingActions.add(action)) {
+			log.trace("Cluster action {} already queued", action);
+			return;
+		}
+		boolean queued = this.submit(action.name(), () -> {
+			// Clear the flag before running, so that a request received while running queues another run
+			this.pendingActions.remove(action);
+			runnable.run();
+		});
+		if (!queued) {
+			this.pendingActions.remove(action);
+		}
 	}
 
 	/**
@@ -427,7 +542,6 @@ public class ClusterManager extends Thread {
 					List<ClusterMessage> messages = this.receiveMessages(pgConnection);
 					synchronized (this) {
 						final long currentTime = System.currentTimeMillis();
-						final Set<Class<? extends ClusterMessage>> ignoreNextClasses = new HashSet<>();
 						for (ClusterMessage message : messages) {
 							log.trace("Clustering message received: {}", message);
 							// Check time difference
@@ -435,10 +549,6 @@ public class ClusterManager extends Thread {
 								log.warn(
 									"Seeing excessive time difference ({} vs {}) with instance {}, please check time synchronization",
 									message.getCurrentTime(), currentTime, message.getInstanceId());
-							}
-							if (ignoreNextClasses.contains(message.getClass())) {
-								log.trace("Ignored - similar message already processed");
-								continue;
 							}
 							if (message instanceof HelloClusterMessage helloMessage) {
 								ClusterMember member = helloMessage.getMemberInfo();
@@ -471,46 +581,49 @@ public class ClusterManager extends Thread {
 								}
 								memberUpdated = true;
 							}
+							// The other messages trigger potentially slow actions: run them in the worker
 							else if (message instanceof ReloadDriversMessage) {
-								try {
-									DeviceDriver.refreshDrivers();
-									ignoreNextClasses.add(ReloadDriversMessage.class);
-								}
-								catch (Exception e) {
-									log.error("Error while refreshing drivers", e);
-								}
+								this.submitCoalesced(WorkerAction.RELOAD_DRIVERS, () -> {
+									try {
+										DeviceDriver.refreshDrivers();
+									}
+									catch (Exception e) {
+										log.error("Error while refreshing drivers", e);
+									}
+								});
 							}
 							else if (message instanceof LoadTasksMessage) {
-								try {
-									TaskManager.scheduleLocalTasks();
-									ignoreNextClasses.add(LoadTasksMessage.class);
-								}
-								catch (Exception e) {
-									log.error("Error while scheduling local tasks", e);
-								}
+								this.submitCoalesced(WorkerAction.LOAD_TASKS, TaskManager::scheduleLocalTasks);
 							}
 							else if (message instanceof AssignTasksMessage) {
 								if (MastershipStatus.MASTER.equals(this.localMember.getStatus())) {
-									try {
-										TaskManager.scheduleNewTasks();
-										ignoreNextClasses.add(AssignTasksMessage.class);
-									}
-									catch (Exception e) {
-										log.error("Error while assigning new tasks", e);
-									}
+									this.submitCoalesced(WorkerAction.ASSIGN_TASKS, () -> {
+										// Mastership may have been lost in the meantime
+										if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
+											TaskManager.scheduleNewTasks();
+										}
+									});
 								}
 							}
 							else if (message instanceof AutoSnapshotMessage snapshotMessage) {
 								if (MastershipStatus.MASTER.equals(this.localMember.getStatus())) {
-									for (long deviceId : snapshotMessage.getDeviceIds()) {
-										TakeSnapshotTask.scheduleSnapshotIfNeeded(deviceId);
-									}
+									final Set<Long> deviceIds = new HashSet<>(snapshotMessage.getDeviceIds());
+									this.submit("AUTO_SNAPSHOT", () -> {
+										if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
+											for (long deviceId : deviceIds) {
+												TakeSnapshotTask.scheduleSnapshotIfNeeded(deviceId);
+											}
+										}
+									});
 								}
 							}
 							else if (message instanceof VaultInstanceChangedMessage vaultMessage) {
-								for (long vaultInstanceId : vaultMessage.getVaultInstanceIds()) {
-									VaultManager.invalidate(vaultInstanceId);
-								}
+								final Set<Long> vaultInstanceIds = new HashSet<>(vaultMessage.getVaultInstanceIds());
+								this.submit("VAULT_INVALIDATE", () -> {
+									for (long vaultInstanceId : vaultInstanceIds) {
+										VaultManager.invalidate(vaultInstanceId);
+									}
+								});
 							}
 							else {
 								log.warn("Unknown clustering message type received");
@@ -550,6 +663,7 @@ public class ClusterManager extends Thread {
 						}
 						if (runnerChanged) {
 							TaskManager.setRunners(this.members.values());
+							this.submitCoalesced(WorkerAction.REASSIGN_ORPHANS, TaskManager::reassignOrphanTasks);
 							runnerChanged = false;
 						}
 						if (this.master == null) {
@@ -573,8 +687,10 @@ public class ClusterManager extends Thread {
 										this.localMember.setStatus(MastershipStatus.MASTER);
 										this.master = this.localMember;
 										TaskManager.setMode(Mode.CLUSTER_MASTER);
-										TaskManager.rescheduleAll();
-										TaskManager.reassignOrphanTasks();
+										this.submit("BECOME_MASTER", () -> {
+											TaskManager.rescheduleAll();
+											TaskManager.reassignOrphanTasks();
+										});
 									}
 								}
 								else {

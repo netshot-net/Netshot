@@ -33,6 +33,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 import org.hibernate.Session;
+import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 
 import net.netshot.netshot.database.Database;
@@ -48,6 +49,8 @@ import net.netshot.netshot.work.Task.SequentialScheduling;
 import net.netshot.netshot.work.Task.SequentialScheduling.NextAction;
 import net.netshot.netshot.work.Task.Status;
 import net.netshot.netshot.work.TaskDeviceListMember;
+import net.netshot.netshot.work.TaskJob;
+import net.netshot.netshot.work.TaskLockManager;
 import net.netshot.netshot.work.tasks.PurgeDatabaseTask;
 import net.netshot.netshot.work.tasks.TakeGroupSnapshotTask;
 import net.netshot.netshot.work.tasks.TakeSnapshotTask;
@@ -912,6 +915,200 @@ public class TaskTest extends WithDatabaseTest {
 				Assertions.assertEquals(1L, count,
 					"A new occurrence of the recurring task should have been persisted");
 			}
+		}
+	}
+
+	/**
+	 * Tests for the task execution flow of {@link TaskJob}: task claim, device exclusivity
+	 * (same-type cancellation, waiting for the device, cancellation while waiting) and the
+	 * repetition of recurring tasks in each case. The target device is disabled, so that the
+	 * snapshot task itself ends immediately (cancelled) without connecting to anything.
+	 */
+	@Nested
+	@DisplayName("Task execution with task/device locks (TaskJob, DB-backed)")
+	@TestInstance(Lifecycle.PER_CLASS)
+	class TaskJobLockingTest {
+
+		private static final long OTHER_TASK_ID = 999999L;
+
+		Domain domain;
+		Device device;
+
+		@BeforeAll
+		void initDb() throws Exception {
+			Properties config = getDatabaseConfig("tasktest_joblock");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "WARN");
+			config.setProperty("netshot.tasks.devicelock.pollintervalms", "500");
+			Netshot.initConfig(config);
+			Database.update();
+			Database.init();
+			TaskManager.init();
+			TaskLockManager.init(false);
+		}
+
+		@BeforeEach
+		void createData() {
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				domain = new Domain("Test domain", "Fake domain for tests", null, null);
+				session.persist(domain);
+				device = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
+				device.setStatus(Device.Status.DISABLED);
+				session.persist(device);
+				session.getTransaction().commit();
+			}
+		}
+
+		@AfterEach
+		void cleanUpData() {
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.createMutationQuery("delete from Task").executeUpdate();
+				session.createMutationQuery("delete from Device").executeUpdate();
+				session.createMutationQuery("delete from Domain").executeUpdate();
+				session.getTransaction().commit();
+			}
+		}
+
+		private long persistSnapshotTask(Status status, boolean recurring) {
+			TakeSnapshotTask task = new TakeSnapshotTask(device, "test", "tester", false, true, true);
+			if (recurring) {
+				task.schedule(new Date(), ScheduleType.DAILY, 1);
+			}
+			task.setStatus(status);
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.persist(task);
+				session.getTransaction().commit();
+			}
+			return task.getId();
+		}
+
+		private Task loadTask(long id) {
+			try (Session session = Database.getSession()) {
+				return session.get(Task.class, id);
+			}
+		}
+
+		private long countSnapshotTasks() {
+			try (Session session = Database.getSession()) {
+				return session.createQuery("select count(t) from TakeSnapshotTask t", Long.class).uniqueResult();
+			}
+		}
+
+		private Thread runInBackground(long id) {
+			Thread thread = new Thread(() -> {
+				try {
+					TaskJob.runTask(id);
+				}
+				catch (JobExecutionException e) {
+					throw new RuntimeException(e);
+				}
+			});
+			thread.start();
+			return thread;
+		}
+
+		@Test
+		@DisplayName("A task which is not waiting to be run anymore is skipped, and not repeated")
+		@ResourceLock("DB")
+		void alreadyRunTaskIsSkipped() throws Exception {
+			long id = this.persistSnapshotTask(Status.SUCCESS, true);
+			TaskJob.runTask(id);
+			Assertions.assertEquals(Status.SUCCESS, this.loadTask(id).getStatus());
+			Assertions.assertEquals(1, this.countSnapshotTasks(), "A skipped task must not be repeated");
+		}
+
+		@Test
+		@DisplayName("A task already running (task lock held) is skipped")
+		@ResourceLock("DB")
+		void lockedTaskIsSkipped() throws Exception {
+			long id = this.persistSnapshotTask(Status.SCHEDULED, false);
+			TaskLockManager lockManager = TaskLockManager.get();
+			Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_TASK, id, OTHER_TASK_ID));
+			try {
+				TaskJob.runTask(id);
+			}
+			finally {
+				lockManager.unlock(TaskLockManager.NS_TASK, id, OTHER_TASK_ID);
+			}
+			Assertions.assertEquals(Status.SCHEDULED, this.loadTask(id).getStatus(),
+				"The task must be left untouched");
+		}
+
+		@Test
+		@DisplayName("Snapshot cancelled when another snapshot runs on the device, next occurrence still scheduled")
+		@ResourceLock("DB")
+		void sameTypeIsCancelledAndRepeated() throws Exception {
+			long id = this.persistSnapshotTask(Status.SCHEDULED, true);
+			TaskLockManager lockManager = TaskLockManager.get();
+			Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_SNAPSHOT, device.getId(), OTHER_TASK_ID));
+			try {
+				TaskJob.runTask(id);
+			}
+			finally {
+				lockManager.unlock(TaskLockManager.NS_SNAPSHOT, device.getId(), OTHER_TASK_ID);
+			}
+			Task task = this.loadTask(id);
+			Assertions.assertEquals(Status.CANCELLED, task.getStatus());
+			Assertions.assertTrue(task.getLog().contains("same type"), "Log should explain the cancellation");
+			Assertions.assertEquals(2, this.countSnapshotTasks(), "The next occurrence must be scheduled");
+			Assertions.assertFalse(lockManager.isHeld(TaskLockManager.NS_DEVICE, device.getId()),
+				"No lock must remain after the task");
+		}
+
+		@Test
+		@DisplayName("A task waits for the device held by a task of another type, then runs")
+		@ResourceLock("DB")
+		void waitsForDeviceThenRuns() throws Exception {
+			long id = this.persistSnapshotTask(Status.SCHEDULED, false);
+			TaskLockManager lockManager = TaskLockManager.get();
+			Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, device.getId(), OTHER_TASK_ID));
+			Thread thread;
+			try {
+				thread = this.runInBackground(id);
+				Thread.sleep(3000);
+				Assertions.assertTrue(thread.isAlive(), "The task should be waiting for the device");
+				Assertions.assertEquals(Status.RUNNING, this.loadTask(id).getStatus());
+			}
+			finally {
+				lockManager.unlock(TaskLockManager.NS_DEVICE, device.getId(), OTHER_TASK_ID);
+			}
+			thread.join(10000);
+			Assertions.assertFalse(thread.isAlive(), "The task should have completed");
+			Task task = this.loadTask(id);
+			String log = task.getLog();
+			Assertions.assertTrue(log.contains("Waiting for the device to be released by task " + OTHER_TASK_ID), log);
+			Assertions.assertTrue(log.contains("Device acquired after"), log);
+			Assertions.assertTrue(log.contains("not enabled"), "The task should have actually run: " + log);
+			Assertions.assertEquals(1, log.split("Waiting for the device").length - 1,
+				"The wait should be logged only once");
+		}
+
+		@Test
+		@DisplayName("A task cancelled while waiting for the device is not repeated")
+		@ResourceLock("DB")
+		void cancelWhileWaiting() throws Exception {
+			long id = this.persistSnapshotTask(Status.SCHEDULED, true);
+			TaskLockManager lockManager = TaskLockManager.get();
+			Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, device.getId(), OTHER_TASK_ID));
+			try {
+				Thread thread = this.runInBackground(id);
+				Thread.sleep(2000);
+				TaskManager.requestCancel(id);
+				thread.join(10000);
+				Assertions.assertFalse(thread.isAlive(), "The task should have stopped waiting");
+			}
+			finally {
+				lockManager.unlock(TaskLockManager.NS_DEVICE, device.getId(), OTHER_TASK_ID);
+			}
+			Task task = this.loadTask(id);
+			Assertions.assertEquals(Status.CANCELLED, task.getStatus());
+			Assertions.assertTrue(task.getLog().contains("Cancelled while waiting for the device"), task.getLog());
+			Assertions.assertEquals(1, this.countSnapshotTasks(), "A user-cancelled task must not be repeated");
+			Assertions.assertFalse(lockManager.isHeld(TaskLockManager.NS_SNAPSHOT, device.getId()),
+				"The type lock must be released");
 		}
 	}
 

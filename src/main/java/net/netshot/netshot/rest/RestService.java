@@ -4641,7 +4641,11 @@ public class RestService extends Thread {
 			// orchestration loop, rather than by pulling it out of the Quartz scheduler.
 			boolean runningOrchestrator = task.getStatus() == Task.Status.RUNNING
 				&& task instanceof ChildOrchestratingTask;
-			if (task.getStatus() != Task.Status.SCHEDULED && !runningOrchestrator) {
+			// Same for a running device task, which may be waiting for its turn on the device
+			// (the request is only honored while waiting, not once the device session started)
+			boolean runningDeviceTask = task.getStatus() == Task.Status.RUNNING
+				&& task.deviceLockPolicy() != Task.DeviceLockPolicy.NONE;
+			if (task.getStatus() != Task.Status.SCHEDULED && !runningOrchestrator && !runningDeviceTask) {
 				log.error("User is trying to cancel task {} not in SCHEDULED state (or RUNNING group task).",
 					id);
 				throw new NetshotBadRequestException(
@@ -4653,6 +4657,10 @@ public class RestService extends Thread {
 				if (runningOrchestrator) {
 					TaskManager.requestCancel(id);
 					AAA_LOG.info("{} has been requested to cancel (running group task).", task);
+				}
+				else if (runningDeviceTask) {
+					TaskManager.requestCancel(id);
+					AAA_LOG.info("{} has been requested to cancel (running device task, if still waiting for the device).", task);
 				}
 				else {
 					String message = "Task manually cancelled by user %s.".formatted(this.getUsername());

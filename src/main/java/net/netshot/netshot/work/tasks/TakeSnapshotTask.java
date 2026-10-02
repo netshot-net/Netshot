@@ -49,6 +49,7 @@ import net.netshot.netshot.rest.RestViews.DefaultView;
 import net.netshot.netshot.rest.RestViews.HookView;
 import net.netshot.netshot.work.DebugLog;
 import net.netshot.netshot.work.Task;
+import net.netshot.netshot.work.TaskLockManager;
 
 /**
  * This task takes a snapshot of a device.
@@ -86,9 +87,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	/** The scheduled automatic snapshots. */
 	private static Set<Long> scheduledAutoSnapshots = ConcurrentHashMap.newKeySet();
 
-	/** Device IDs on which a snapshot is currently running. */
-	private static Set<Long> runningSnapshots = ConcurrentHashMap.newKeySet();
-
 	/**
 	 * Clear scheduled auto snapshot.
 	 *
@@ -99,15 +97,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	}
 
 	/**
-	 * Clear running snapshot status.
-	 *
-	 * @param deviceId the device
-	 */
-	public static void clearRunningSnapshot(Long deviceId) {
-		runningSnapshots.remove(deviceId);
-	}
-
-	/**
 	 * Check whether an automatic snapshot is queued for the given device.
 	 *
 	 * @param deviceId the device
@@ -115,16 +104,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	 */
 	public static boolean checkAutoSnapshot(Long deviceId) {
 		return scheduledAutoSnapshots.add(deviceId);
-	}
-
-	/**
-	 * Check whether a snapshot is currently running for the given device.
-	 *
-	 * @param deviceId the device
-	 * @return true, if successful
-	 */
-	public static boolean checkRunningSnapshot(Long deviceId) {
-		return runningSnapshots.add(deviceId);
 	}
 
 	/**
@@ -194,8 +173,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 			this.status = Status.CANCELLED;
 			return;
 		}
-		boolean locked = false;
-
 		Session session = Database.getSession();
 		DeviceScript deviceScript = new SnapshotDeviceScript(this.logger);
 		try {
@@ -210,14 +187,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 				this.status = Status.CANCELLED;
 				return;
 			}
-			locked = checkRunningSnapshot(device.getId());
-			if (!locked) {
-				log.trace("Task {}. Snapshot task already ongoing for this device, cancelling.", this.getId());
-				this.logger.warn("A snapshot task is already running for this device, cancelling this task.");
-				this.status = Status.CANCELLED;
-				return;
-			}
-
 			deviceScript.connectRun(session, device);
 			session.persist(device);
 			session.getTransaction().commit();
@@ -248,9 +217,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 				log.error("Task {}. Error while saving the debug logs.", this.getId(), e1);
 			}
 			session.close();
-			if (locked) {
-				clearRunningSnapshot(device.getId());
-			}
 			if (this.isAutomatic()) {
 				clearScheduledAutoSnapshot(this.getDevice().getId());
 			}
@@ -282,6 +248,22 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 				log.error("Task {}. Error while registering the check compliance task.", this.getId(), e);
 			}
 		}
+	}
+
+	/*(non-Javadoc)
+	 * @see net.netshot.netshot.work.Task#deviceLockPolicy()
+	 */
+	@Override
+	public DeviceLockPolicy deviceLockPolicy() {
+		return DeviceLockPolicy.CANCEL_IF_SAME_TYPE;
+	}
+
+	/*(non-Javadoc)
+	 * @see net.netshot.netshot.work.Task#deviceLockTypeNamespace()
+	 */
+	@Override
+	public int deviceLockTypeNamespace() {
+		return TaskLockManager.NS_SNAPSHOT;
 	}
 
 	/*(non-Javadoc)

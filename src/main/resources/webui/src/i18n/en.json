@@ -741,6 +741,7 @@
     },
     "task": {
       "aboutToCancelTask": "This will cancel the scheduled task. This action cannot be undone.",
+      "aboutToCancelWaitingTask": "If the task is still waiting for another task to release the device, it will be cancelled. A task already working on the device can't be stopped.",
       "active": "Active tasks",
       "asSoonAsPossible": "As soon as possible",
       "activeDescription": "Running, waiting, scheduled and recently completed tasks",

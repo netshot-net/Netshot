@@ -164,6 +164,15 @@ public final class RunDeviceScriptTask extends Task implements DeviceBasedTask {
 	}
 
 	/*(non-Javadoc)
+	 * @see net.netshot.netshot.work.Task#deviceLockPolicy()
+	 */
+	@Override
+	public DeviceLockPolicy deviceLockPolicy() {
+		// Each script run is unique: never cancelled because of another script, waits for its turn
+		return DeviceLockPolicy.WAIT;
+	}
+
+	/*(non-Javadoc)
 	 * @see net.netshot.netshot.work.Task#getTaskDescription()
 	 */
 	@Override

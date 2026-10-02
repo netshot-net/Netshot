@@ -54,7 +54,7 @@ public class MasterJob implements Job {
 			.get(NETSHOT_TASK);
 		log.trace("The task id is {}.", id);
 		Task task = null;
-		Session session = Database.getSession();
+		Session session = Database.getSystemSession();
 		try {
 			Thread.sleep(500);
 			session.beginTransaction();

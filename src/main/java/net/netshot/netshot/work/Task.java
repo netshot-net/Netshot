@@ -152,6 +152,26 @@ public abstract class Task implements Cloneable {
 	}
 
 	/**
+	 * How a task accesses its target device, with respect to the other tasks targeting the same
+	 * device (enforced by {@link TaskJob} using {@link TaskLockManager}, cluster-wide).
+	 *
+	 * <p>Invariant: a task holding exclusive access to a device must never wait for another task
+	 * (this would allow deadlocks).
+	 */
+	public enum DeviceLockPolicy {
+		/** No exclusive access to the device is needed. */
+		NONE,
+		/**
+		 * Exclusive access to the device; the task is cancelled if a task of the same type is
+		 * already running or waiting on the device (tasks of this type are interchangeable),
+		 * otherwise waits for the device to be free.
+		 */
+		CANCEL_IF_SAME_TYPE,
+		/** Exclusive access to the device; always waits for the device to be free. */
+		WAIT,
+	}
+
+	/**
 	 * The Enum Status.
 	 *
 	 * <p>Persisted via {@link StatusConverter} using the explicit {@link #getValue()} below,
@@ -1458,6 +1478,27 @@ public abstract class Task implements Cloneable {
 	 */
 	@Transient
 	public long getRunnerHash() {
+		return 0;
+	}
+
+	/**
+	 * How this task accesses its target device (for tasks implementing
+	 * {@link net.netshot.netshot.work.tasks.DeviceBasedTask}). Not a bean property on purpose
+	 * (neither persisted nor serialized).
+	 *
+	 * @return the device lock policy
+	 */
+	public DeviceLockPolicy deviceLockPolicy() {
+		return DeviceLockPolicy.NONE;
+	}
+
+	/**
+	 * The {@link TaskLockManager} namespace identifying the type of this task on a device,
+	 * used with {@link DeviceLockPolicy#CANCEL_IF_SAME_TYPE}.
+	 *
+	 * @return the lock namespace
+	 */
+	public int deviceLockTypeNamespace() {
 		return 0;
 	}
 

@@ -19,8 +19,6 @@
 package net.netshot.netshot.work.tasks;
 
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.hibernate.Session;
 import org.quartz.JobKey;
@@ -41,6 +39,7 @@ import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.rest.RestViews.DefaultView;
 import net.netshot.netshot.work.DebugLog;
 import net.netshot.netshot.work.Task;
+import net.netshot.netshot.work.TaskLockManager;
 
 /**
  * This task runs the diagnostics (if any is defined) on the specified device.
@@ -49,28 +48,6 @@ import net.netshot.netshot.work.Task;
 @DiscriminatorValue("RunDiagnosticsTask")
 @Slf4j
 public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
-
-	/** Device IDs on which diagnostics are currently being executed. */
-	private static Set<Long> runningDiagnostics = ConcurrentHashMap.newKeySet();
-
-	/**
-	 * Check whether diagnostics are currently being executed on the the given device.
-	 *
-	 * @param deviceId the device
-	 * @return true, if successful
-	 */
-	public static boolean checkRunningDiagnostic(Long deviceId) {
-		return runningDiagnostics.add(deviceId);
-	}
-
-	/**
-	 * Clear running diagnostic status.
-	 *
-	 * @param deviceId the device
-	 */
-	public static void clearRunningDiagnostic(Long deviceId) {
-		runningDiagnostics.remove(deviceId);
-	}
 
 	/**
 	 * Instantiate a new RunDiagnosticTask (for Hibernate).
@@ -90,6 +67,22 @@ public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
 			author);
 		this.setDevice(device);
 		this.setDontCheckCompliance(dontCheckCompliance);
+	}
+
+	/*(non-Javadoc)
+	 * @see net.netshot.netshot.work.Task#deviceLockPolicy()
+	 */
+	@Override
+	public DeviceLockPolicy deviceLockPolicy() {
+		return DeviceLockPolicy.CANCEL_IF_SAME_TYPE;
+	}
+
+	/*(non-Javadoc)
+	 * @see net.netshot.netshot.work.Task#deviceLockTypeNamespace()
+	 */
+	@Override
+	public int deviceLockTypeNamespace() {
+		return TaskLockManager.NS_DIAGNOSTICS;
 	}
 
 	@Override
@@ -134,8 +127,6 @@ public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
 			this.status = Status.CANCELLED;
 			return;
 		}
-		boolean locked = false;
-
 		Session session = Database.getSession();
 		RunDiagnosticDeviceScript deviceScript = null;
 		try {
@@ -150,14 +141,6 @@ public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
 				this.status = Status.CANCELLED;
 				return;
 			}
-			locked = checkRunningDiagnostic(device.getId());
-			if (!locked) {
-				log.trace("Task {}. A Diagnostic task already ongoing for this device, cancelling.", this.getId());
-				this.logger.warn("A diagnostic task is already running for this device, cancelling this task.");
-				this.status = Status.CANCELLED;
-				return;
-			}
-
 			List<Diagnostic> diagnostics = session.createQuery(
 				"select dg from Diagnostic dg join fetch dg.targetGroup tg where dg.enabled = :enabled and "
 					+ "tg in (select gm.key.group from DeviceGroupMembership gm where gm.key.device = :device)",
@@ -199,9 +182,6 @@ public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
 				log.error("Task {}. Error while saving the debug logs.", this.getId(), e1);
 			}
 			session.close();
-			if (locked) {
-				clearRunningDiagnostic(device.getId());
-			}
 		}
 
 		log.debug("Task {}. Request to refresh all the groups for the device after the diagnostics.", this.getId());

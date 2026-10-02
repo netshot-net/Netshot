@@ -45,6 +45,19 @@ Each instance joining the cluster requires a unique identifier. This should be s
 
 Cluster members exchange HA messages using the PostgreSQL notification system as message bus. Thus, there is no need to open an additional protocol/port on firewalls, or to install anything else. Only access to the PostgreSQL server/cluster from each Netshot cluster member is required.
 
+Each member sends a hello message every 6 seconds; a member not heard from for 30 seconds is considered gone. Hello messages are handled by a dedicated thread with its own database connection, while the actions triggered by cluster messages (loading or assigning tasks, refreshing drivers...) run on a separate worker thread using a small dedicated connection pool (see `netshot.db.pooler.system.*` in the [configuration reference](configuration-reference.md)): a busy instance (e.g. with all its task threads running long device sessions) keeps announcing itself to the cluster.
+
+### Task and device locking
+
+Running tasks hold PostgreSQL advisory locks (on one dedicated database connection per member), which guarantee across the cluster that:
+
+* a task never runs twice at the same time;
+* only one task works on a given device at a time (see [Tasks on the same device](user-guide/tasks.md#tasks-on-the-same-device)).
+
+When a member is considered gone, the master reassigns its tasks to the other runners, except the tasks still holding their lock: a member which only stopped sending hello messages for a while (but is still connected to the database and running its tasks) is left to complete them. If the member really died, PostgreSQL releases its locks once its connection is detected as dead (TCP keepalives, about one minute), and the master then reassigns these tasks within the next minute.
+
+Advisory locks (as well as the notification system) require session-level database connections: when using a connection pooler such as PgBouncer in front of PostgreSQL, it must be in *session* pooling mode.
+
 ### User interface
 
 The northbound interface (Web GUI, REST API) remains available on all cluster members, whatever their actual role.

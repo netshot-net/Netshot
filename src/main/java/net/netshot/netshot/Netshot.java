@@ -75,6 +75,7 @@ import net.netshot.netshot.rest.LoggerFilter;
 import net.netshot.netshot.rest.RestService;
 import net.netshot.netshot.utils.BouncyCastleLoader;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.work.TaskLockManager;
 import net.netshot.netshot.work.tasks.TakeSnapshotTask;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
@@ -628,6 +629,9 @@ public class Netshot extends Thread {
 			SshServer.init();
 			//log.info("Starting the TFTP server.");
 			//TftpServer.init();
+
+			// Before the clustering manager, which can start running tasks
+			TaskLockManager.init(Netshot.getConfig("netshot.cluster.enabled", false));
 
 			log.info("Starting the clustering manager.");
 			ClusterManager.init();
