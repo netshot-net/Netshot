@@ -22,7 +22,7 @@ Every parameter can also be passed as an environment variable: replace `.` with 
 | `netshot.log.maxsize` | Maximum size (MB) of the log file before rotation. Default: `2`. |
 | `netshot.log.count` | Number of rotated log files to keep. Default: `5`. |
 | `netshot.log.level` | Global log level: `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `ALL`. Default: `WARN`. |
-| `netshot.log.class.<ClassName>` | Overrides the log level for a specific internal class. |
+| `netshot.log.class.<ClassName>` | Overrides the log level for a specific class or package logger, e.g. `netshot.log.class.org.apache.sshd = DEBUG`. Only read from the configuration file, not from environment variables. |
 | `netshot.log.audit.file` | Enables audit logging (authentication, authorization) to the given file. Also requires `netshot.log.audit.level`. |
 | `netshot.log.audit.level` | Log level for audit messages. |
 | `netshot.log.audit.count` | Number of rotated audit log files to keep. Default: `5`. |
@@ -38,7 +38,7 @@ Every parameter can also be passed as an environment variable: replace `.` with 
 | `netshot.db.url` | JDBC URI of the database, e.g. `jdbc:postgresql://localhost:5432/netshot01?sslmode=disable`. |
 | `netshot.db.username` | Database username. |
 | `netshot.db.password` | Database password. |
-| `netshot.db.encryptionPassword` | Password used to encrypt sensitive data (such as device credentials) stored in the database. Default: `NETSHOT` — **change this in production**. |
+| `netshot.db.encryptionpassword` | Password used to encrypt sensitive data (such as device credentials) stored in the database. Default: `NETSHOT` — **change this in production**. |
 | `netshot.db.readurl` | JDBC URI of a secondary, read-only database. See [Clustering and High Availability](clustering-ha.md). |
 | `netshot.db.driverclass` | JDBC driver class. Default: `org.postgresql.Driver`. |
 
@@ -167,7 +167,7 @@ RADIUS authentication:
 
 | Parameter | Description |
 |---|---|
-| `netshot.aaa.radiusN.ip`, `.authport`, `.secret` | Defines RADIUS server `N` (up to 3: `radius1`, `radius2`, `radius3`). |
+| `netshot.aaa.radiusN.ip`, `.authport`, `.acctport`, `.secret` | Defines RADIUS server `N` (up to 3: `radius1`, `radius2`, `radius3`). Ports default to `1812` (authentication) and `1813` (accounting). |
 | `netshot.aaa.radiusN.timeout` | Timeout (seconds) for that server. Default: `5`. |
 | `netshot.aaa.radius.method` | Auth method: `mschapv2` (default), `pap`, `chap`, `eap-md5`, or `eap-mschapv2`. |
 | `netshot.aaa.radius.nasidentifier` | NAS-Identifier attribute added to requests. Unset by default. |
@@ -176,14 +176,15 @@ TACACS+ authentication:
 
 | Parameter | Description |
 |---|---|
-| `netshot.aaa.tacacsN.ip`, `.port`, `.secret` | Defines TACACS+ server `N` (up to 3). |
+| `netshot.aaa.tacacsN.ip`, `.port`, `.secret` | Defines TACACS+ server `N` (up to 3). Port defaults to `49`. Authentication always uses the ASCII method. |
 | `netshot.aaa.tacacs.timeout` | Timeout (seconds) for TACACS+ requests. Default: `5`. |
-| `netshot.aaa.tacacs.method` | Inner method: `ascii` (default), `chap`, or `pap`. |
 | `netshot.aaa.tacacs.accounting` | Logs all write requests as TACACS+ accounting messages. |
 | `netshot.aaa.tacacs.role.attributename` | Name of the server-returned attribute holding the user's role. |
-| `netshot.aaa.tacacs.role.adminlevelrole` | Role value that maps to the Admin permission level. |
-| `netshot.aaa.tacacs.role.executereadwritelevelrole` | Role value that maps to Execute-scripts. |
-| `netshot.aaa.tacacs.role.readwritelevelrole` | Role value that maps to Read-write. |
+| `netshot.aaa.tacacs.role.readonlyrole` | Role value that maps to the Read-only permission level. Default: `read-only`. |
+| `netshot.aaa.tacacs.role.operatorrole` | Role value that maps to the Operator permission level. Default: `operator`. |
+| `netshot.aaa.tacacs.role.readwriterole` | Role value that maps to the Read-write permission level. Default: `read-write`. |
+| `netshot.aaa.tacacs.role.executereadwriterole` | Role value that maps to the Execute-scripts permission level. Default: `execute-read-write`. |
+| `netshot.aaa.tacacs.role.adminrole` | Role value that maps to the Admin permission level. Default: `admin`. |
 
 Single Sign-On / OIDC authentication — see [Single Sign-On (OIDC)](user-guide/administration.md#single-sign-on-oidc) for the full setup walkthrough:
 
@@ -195,8 +196,11 @@ Single Sign-On / OIDC authentication — see [Single Sign-On (OIDC)](user-guide/
 | `netshot.aaa.oidc.usernameclaimname` | ID token claim used as the Netshot username. |
 | `netshot.aaa.oidc.role.defaultlevel` | Default permission level for an OIDC user when no role claim is present. |
 | `netshot.aaa.oidc.role.claimname` | Name of the ID token claim carrying the user's role. |
-| `netshot.aaa.oidc.role.adminlevelrole` | Role claim value that maps to Admin. |
-| `netshot.aaa.oidc.role.executereadwritelevelrole` | Role claim value that maps to Execute-scripts. |
+| `netshot.aaa.oidc.role.readonlyrole` | Role claim value that maps to the Read-only permission level. Default: `read-only`. |
+| `netshot.aaa.oidc.role.operatorrole` | Role claim value that maps to the Operator permission level. Default: `operator`. |
+| `netshot.aaa.oidc.role.readwriterole` | Role claim value that maps to the Read-write permission level. Default: `read-write`. |
+| `netshot.aaa.oidc.role.executereadwriterole` | Role claim value that maps to the Execute-scripts permission level. Default: `execute-read-write`. |
+| `netshot.aaa.oidc.role.adminrole` | Role claim value that maps to the Admin permission level. Default: `admin`. |
 | `netshot.aaa.oidc.idp.refreshinterval` | How often (ms) Netshot refreshes the IdP's published metadata/keys. Default: `43200000` (12h). |
 | `netshot.aaa.oidc.idp.retryinterval` | Retry interval (ms) after a failed metadata fetch. Default: `30000`. |
 
@@ -216,6 +220,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.vault.secret.cachettlms` | How long (ms) a secret fetched from Vault is cached before being re-fetched. Default: `60000`. |
 | `netshot.vault.http.connecttimeoutms` | HTTP connect timeout (ms) for calls to Vault. Default: `5000`. |
 | `netshot.vault.http.readtimeoutms` | HTTP read timeout (ms) for calls to Vault. Default: `10000`. |
+| `netshot.vault.token.refreshpollintervalseconds` | How often (seconds) the background daemon checks whether Vault auth tokens need renewing. Default: `60` (minimum `5`). |
 
 ## Device drivers
 
@@ -238,6 +243,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 |---|---|
 | `netshot.tasks.threadcount` | Number of tasks that can run concurrently. Default: `10`. Keep it well below `netshot.db.pooler.maxpoolsize` (see [Database](#database)). |
 | `netshot.tasks.devicelock.pollintervalms` | Interval (ms) at which a task waiting for its turn on a device checks whether the device is free. Default: `3000`. |
+| `netshot.tasks.sequentialpollintervalms` | Interval (ms) at which a group task running its devices sequentially checks whether the current device task has finished. Default: `3000` (range `500`–`60000`). |
 
 ## CLI (SSH / Telnet) connections to devices
 
@@ -253,6 +259,11 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.cli.ssh.hostkeyalgorithms` | Comma-separated host key algorithms for device SSH connections. |
 | `netshot.cli.ssh.ciphers` | Comma-separated ciphers for device SSH connections. |
 | `netshot.cli.ssh.macs` | Comma-separated MAC algorithms for device SSH connections. |
+| `netshot.cli.ssh.compressionalgorithms` | Comma-separated compression algorithms for device SSH connections. |
+| `netshot.cli.ssh.rekeytimelimit` | Re-key device SSH sessions after this time (ms). Default: `3600000` (1h). `0` disables this limit. |
+| `netshot.cli.ssh.rekeydatalimit` | Re-key device SSH sessions after this amount of data (bytes). Default: `1073741824` (1 GiB). `0` disables this limit. |
+| `netshot.cli.ssh.rekeyblockslimit` | Re-key device SSH sessions after this number of cipher blocks. Default: `0` (no limit). |
+| `netshot.cli.ssh.rekeypacketslimit` | Re-key device SSH sessions after this number of packets. Default: `2147483648` (2³¹). `0` disables this limit. |
 
 ## JavaScript VM
 
