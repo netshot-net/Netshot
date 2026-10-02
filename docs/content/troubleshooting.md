@@ -13,7 +13,7 @@ If snapshots keep failing on a specific device, you may want to collect a full t
 1. Add the following line to `/etc/netshot.conf`:
 
    ```ini
-   netshot.log.class.onl.netfishers.netshot.device.access.Ssh$JschLogger = ALL
+   netshot.log.class.org.apache.sshd = DEBUG
    ```
 
 2. Reload Netshot to apply:
