@@ -138,9 +138,12 @@ The function `check(device, [debug])` must exist in the code — this is the ent
         * `"networkClass"`, the class of the device (e.g. `ROUTER`, `SWITCH`, `FIREWALL`, etc.).
         * `"virtualDevices"`, an array of names of the virtual devices embedded in this device (e.g. the list of VDC names for a Cisco Nexus device).
         * `"vrfs"`, an array of names of the VRFs configured on the device.
+        * `"comments"`, the comments of the device.
+        * `"tags"`, an array of the [tags](devices.md#device-tags) of the device.
         * `"interfaces"`, the list of interfaces of the device.
         * Any other attribute name defined by the driver of the device.
     * `device.get(attribute, otherDevice)`, where `otherDevice` is either the ID or the name of another device, will retrieve for you the given attribute value from the specified device instead of the current device. By using this feature, you can compare configurations between devices.
+    * `device.add("tag", tag)` and `device.remove("tag", tag)` add or remove a [tag](devices.md#device-tags) on the device, and `device.set("comments", text)` replaces the device comments. These are the only changes a rule can make to a device; they are saved when the compliance check task completes (not when testing the rule from the editor). For example, a rule can tag non-compliant devices, so that they can be gathered in a dynamic group (`[Tag] is "non-compliant"`).
     * `device.nslookup(host)` will return a DNS resolution (either direct or reverse) of the passed name.
     * `device.findSections(configuration, section)`, where `configuration` is a string and `section` is a JavaScript `RegExp` object, will find in `configuration` all lines matching `section`, and will return them along with their content, i.e. the following lines which are more indented.
 * `debug(message)` is a function that you can call to log debug messages. These messages will appear in the logs of the _Check compliance_ task.

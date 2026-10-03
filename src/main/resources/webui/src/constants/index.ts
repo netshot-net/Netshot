@@ -14,6 +14,7 @@ export const QUERIES = {
   DEVICE_FAMILY_LIST: "device-family-list",
   DEVICE_PART_NUMBER_LIST: "device-part-number-list",
   DEVICE_SOFTWARE_VERSION_LIST: "device-software-version-list",
+  DEVICE_TAG_LIST: "device-tag-list",
   DEVICE_REPORT_GROUP_LIST: "device-report-group-list",
   DEVICE_GROUPS: "device-groups",
   GROUP_DETAIL: "group-detail",

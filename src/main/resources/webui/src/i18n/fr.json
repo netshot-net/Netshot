@@ -26,6 +26,14 @@
         "wirelessController": "Contrôleur Wi-Fi"
       },
       "addDescription": "Ajouter une description de l'équipement",
+      "tags": {
+        "label": "Tags",
+        "addTag": "Ajouter un tag...",
+        "pressEnterToCreate": "Appuyez sur Entrée pour ajouter ce nouveau tag",
+        "noOtherTag": "Aucun autre tag existant",
+        "existingTag": "Tag existant",
+        "selectExistingTag": "Sélectionner un tag existant..."
+      },
       "add": "Ajouter un équipement",
       "snapshot": {
         "after": "Après snapshot",

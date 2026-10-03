@@ -32,6 +32,7 @@ import net.netshot.netshot.TaskManager;
 import net.netshot.netshot.database.Database;
 import net.netshot.netshot.device.Device;
 import net.netshot.netshot.device.DeviceDriver;
+import net.netshot.netshot.device.DynamicDeviceGroup;
 import net.netshot.netshot.device.script.UserDeviceScript;
 import net.netshot.netshot.rest.RestViews.DefaultView;
 import net.netshot.netshot.work.DebugLog;
@@ -126,6 +127,9 @@ public final class RunDeviceScriptTask extends Task implements DeviceBasedTask {
 			}
 			session.close();
 		}
+
+		// The script may have changed the device tags/comments
+		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
 
 		if (this.runSnapshot) {
 			try {

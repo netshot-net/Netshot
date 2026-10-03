@@ -1813,6 +1813,7 @@ public class RestServiceTest extends WithDatabaseTest {
 				expectedNode1.putArray("ownerGroups");
 				expectedNode1.putArray("attributes");
 				expectedNode1.putArray("accesses");
+				expectedNode1.putArray("tags");
 				expectedNode1.putObject("options");
 				expectedNode1.set("mgmtDomain",
 					JsonNodeFactory.instance.objectNode()
@@ -2234,6 +2235,104 @@ public class RestServiceTest extends WithDatabaseTest {
 						"The edited device comments are not correct");
 					this.assertDevicesEqual(device1, editedDevice, DeviceField.COMMENTS);
 				}
+			}
+		}
+
+		@Test
+		@DisplayName("Device tags: create, edit, list and search")
+		@ResourceLock("DB")
+		void deviceTags() throws IOException, InterruptedException {
+			this.createTestDomain();
+			ObjectNode data = JsonNodeFactory.instance.objectNode()
+				.put("autoDiscover", false)
+				.put("ipAddress", "10.1.1.1")
+				.put("domainId", this.testDomain.getId())
+				.put("deviceType", this.getTestDriver().getName())
+				.put("comments", "Created with tags");
+			data.putArray("tags").add("core").add(" Paris ").add("core");
+			{
+				ObjectNode invalidData = data.deepCopy();
+				invalidData.putArray("tags").add("x".repeat(Device.MAX_TAG_LENGTH + 1));
+				HttpResponse<JsonNode> response = apiClient.post("/devices", invalidData);
+				Assertions.assertEquals(
+					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
+					"Not getting 400 response for a too long tag");
+			}
+			{
+				HttpResponse<JsonNode> response = apiClient.post("/devices", data);
+				Assertions.assertEquals(
+					Response.Status.CREATED.getStatusCode(), response.statusCode(),
+					"Not getting 201 response for created device");
+			}
+			long deviceId;
+			try (Session session = Database.getSession()) {
+				Device newDevice = session
+					.createQuery("from Device d left join fetch d.tags", Device.class)
+					.uniqueResult();
+				deviceId = newDevice.getId();
+				Assertions.assertEquals(Set.of("core", "Paris"), newDevice.getTags(),
+					"The tags of the created device are not correct");
+				Assertions.assertEquals("Created with tags", newDevice.getComments(),
+					"The comments of the created device are not correct");
+			}
+			{
+				HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(deviceId));
+				Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
+				Set<String> tags = new HashSet<>();
+				response.body().get("tags").forEach(t -> tags.add(t.asText()));
+				Assertions.assertEquals(Set.of("core", "Paris"), tags, "The returned device tags are not correct");
+			}
+			{
+				ObjectNode editData = JsonNodeFactory.instance.objectNode();
+				editData.putArray("tags").add("core").add("lab");
+				HttpResponse<JsonNode> response = apiClient.put("/devices/%d".formatted(deviceId), editData);
+				Assertions.assertEquals(
+					Response.Status.OK.getStatusCode(), response.statusCode(),
+					"Not getting 200 response for edited device");
+				try (Session session = Database.getSession()) {
+					Device editedDevice = session
+						.createQuery("from Device d left join fetch d.tags where d.id = :id", Device.class)
+						.setParameter("id", deviceId)
+						.uniqueResult();
+					Assertions.assertEquals(Set.of("core", "lab"), editedDevice.getTags(),
+						"The tags of the edited device are not correct");
+					Assertions.assertEquals("Created with tags", editedDevice.getComments(),
+						"The comments should be untouched when not passed");
+				}
+			}
+			{
+				ObjectNode editData = JsonNodeFactory.instance.objectNode()
+					.put("comments", "Only comments");
+				HttpResponse<JsonNode> response = apiClient.put("/devices/%d".formatted(deviceId), editData);
+				Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
+				Set<String> tags = new HashSet<>();
+				response.body().get("tags").forEach(t -> tags.add(t.asText()));
+				Assertions.assertEquals(Set.of("core", "lab"), tags, "The tags should be untouched when not passed");
+			}
+			{
+				HttpResponse<JsonNode> response = apiClient.get("/devicetags");
+				Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
+				JsonNode tagList = response.body();
+				Assertions.assertEquals(2, tagList.size(), "Unexpected number of device tags");
+				Assertions.assertEquals("core", tagList.get(0).get("name").asText());
+				Assertions.assertEquals(1, tagList.get(0).get("deviceCount").asLong());
+				Assertions.assertEquals("lab", tagList.get(1).get("name").asText());
+				Assertions.assertEquals(1, tagList.get(1).get("deviceCount").asLong());
+			}
+			{
+				ObjectNode searchData = JsonNodeFactory.instance.objectNode()
+					.put("query", "[Tag] is \"lab\"");
+				HttpResponse<JsonNode> response = apiClient.post("/devices/search", searchData);
+				Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
+				Assertions.assertEquals(1, response.body().get("devices").size(), "The device should be found by tag");
+				Assertions.assertEquals(deviceId, response.body().get("devices").get(0).get("id").asLong());
+			}
+			{
+				ObjectNode searchData = JsonNodeFactory.instance.objectNode()
+					.put("query", "[Tag] is \"Paris\"");
+				HttpResponse<JsonNode> response = apiClient.post("/devices/search", searchData);
+				Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
+				Assertions.assertEquals(0, response.body().get("devices").size(), "No device should be found by removed tag");
 			}
 		}
 

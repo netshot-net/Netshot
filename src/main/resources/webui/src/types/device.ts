@@ -115,6 +115,7 @@ export type Device = {
   attributes: DeviceAttribute[]
   changeDate: number
   comments: string
+  tags: string[]
   contact: string
   createdDate: number
   creator: string
@@ -191,6 +192,11 @@ export type DeviceInterface = {
 export type DeviceFamily = {
   driver: string
   deviceFamily: string
+}
+
+export type DeviceTag = {
+  name: string
+  deviceCount: number
 }
 
 export enum DeviceAttributeType {

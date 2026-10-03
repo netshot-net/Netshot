@@ -54,6 +54,17 @@ POST /api/devices/search?offset=0&limit=100
 
 Omitting them returns the full result set.
 
+## Device comments and tags
+
+Devices carry free-form `comments` and `tags` (an array of strings, see [Device tags](../user-guide/devices.md#device-tags)):
+
+- `POST /api/devices` (add a device) accepts optional `comments` and `tags` fields; in autodiscovery mode, they are applied to the device once discovered.
+- `PUT /api/devices/{id}` accepts `comments` and `tags`; a `tags` array replaces all the tags of the device, while omitting the field (or passing `null`) leaves them unchanged.
+- `GET /api/devicetags` lists the distinct tags currently in use, with the number of devices having each one (`[{"name": "core", "deviceCount": 12}, ...]`).
+- Devices can be searched by tag with `POST /api/devices/search` and a `[Tag] is "core"` query.
+
+A tag can't be blank and is limited to 255 characters (surrounding whitespace is trimmed); an invalid tag is rejected with a 400 error.
+
 ## Diagnostic results
 
 Per-device diagnostic results include a `diagnosticId` field alongside the diagnostic's name and value, so a client can reliably associate a result with its diagnostic definition without matching on name.

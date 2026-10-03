@@ -48,7 +48,9 @@ A _JavaScript-based diagnostic_ is a piece of JavaScript code which must define 
     * `cli.macro(macro)`: use a macro to change mode as defined in the device driver.
     * `cli.command(command)`: sends a command to the device and returns the result.
 * `device`: an object to retrieve known information about the device.
-    * `device.get(attributeName)`: get the current value of a known attribute.
+    * `device.get(attributeName)`: get the current value of a known attribute (including `"comments"` and `"tags"`, the array of [device tags](devices.md#device-tags)).
+    * `device.add("tag", tag)` / `device.remove("tag", tag)`: add or remove a tag on the device.
+    * `device.set("comments", text)`: replace the device comments.
 * `diagnostic`: an object to set the diagnostic result value.
     * `diagnostic.set(value)`: set the diagnostic result for the current device.
     * `diagnostic.set(diagnosticName, value)`: set the result of the diagnostic identified by its name.

@@ -1,7 +1,7 @@
 import api, { DeviceQueryParams } from "@/api"
 import { DeviceSearchResult } from "@/api/types"
 import { QUERIES } from "@/constants"
-import { DeviceFamily, DeviceType, LightDevice } from "@/types"
+import { DeviceFamily, DeviceTag, DeviceType, LightDevice } from "@/types"
 import { sortAlphabetical } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
@@ -108,6 +108,14 @@ export function useDeviceSoftwareVersions() {
         Array.from(new Set(data.map((v) => v.version).filter(Boolean))).sort(),
       []
     ),
+  })
+}
+
+export function useDeviceTags() {
+  return useQuery({
+    queryKey: [QUERIES.DEVICE_TAG_LIST],
+    queryFn: async () => (await api.device.getAllTags()) ?? [],
+    select: useCallback((data: DeviceTag[]) => data.map((tag) => tag.name), []),
   })
 }
 

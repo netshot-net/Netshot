@@ -216,6 +216,14 @@ public class DeviceTest extends WithDatabaseTest {
 					if (i == 21) {
 						device.removeAttribute("configurationSaved");
 					}
+					if (i == 40) {
+						device.addTag("core");
+						device.addTag("Paris-DC1");
+					}
+					if (i == 41) {
+						device.addTag(" core ");
+						device.addTag("lab");
+					}
 
 					// Add diagnostic results to specific devices
 					if (i == 22) {
@@ -612,6 +620,57 @@ public class DeviceTest extends WithDatabaseTest {
 				" from Device d where d.id in (select d.id from Device d left join d.modules m where m.removed is not true and (lower(m.serialNumber) like :var or lower(m.partNumber) like :var))",
 				Map.of("var", "%csn11%"),
 				List.of("router00011"));
+		}
+
+		@Test
+		@DisplayName("Query device by tag")
+		void queryByTag() throws Exception {
+			assertFinder("[Tag] is \"core\"",
+				null,
+				" from Device d where d.id in (select d.id from Device d join d.tags t where t like :var)",
+				Map.of("var", "core"),
+				List.of("router00040", "router00041"));
+		}
+
+		@Test
+		@DisplayName("Query device by tag, case insensitive, lower case token")
+		void queryByTagContainsNoCase() throws Exception {
+			assertFinder("[tag] containsnocase \"paris\"",
+				"[Tag] containsnocase \"paris\"",
+				" from Device d where d.id in (select d.id from Device d join d.tags t where lower(t) like :var)",
+				Map.of("var", "%paris%"),
+				List.of("router00040"));
+		}
+
+		@Test
+		@DisplayName("Query device by tag with regular expression")
+		void queryByTagMatches() throws Exception {
+			assertFinder("[Tag] matches \"^(lab|test)$\"",
+				null,
+				" from Device d where d.id in (select d.id from Device d join d.tags t where regexp_like(t, :var))",
+				Map.of("var", "^(lab|test)$"),
+				List.of("router00041"));
+		}
+
+		@Test
+		@DisplayName("Query device without a given tag")
+		void queryByNotTag() throws Exception {
+			FakeQuery<Device> fakeQuery = new FakeQuery<>();
+			Finder finder = new Finder("not ([Tag] is \"core\")");
+			finder.setVariables(fakeQuery);
+			try (Session session = Database.getSession()) {
+				Query<String> query = session.createQuery("select d.name " + finder.getHql(), String.class);
+				finder.setVariables(query);
+				List<String> deviceNames = query.list();
+				Assertions.assertEquals(98, deviceNames.size(), "Unexpected number of devices");
+				Assertions.assertFalse(deviceNames.contains("router00040"));
+			}
+		}
+
+		@Test
+		@DisplayName("Invalid operator for tag")
+		void queryByTagInvalidOperator() {
+			Assertions.assertThrows(FinderParseException.class, () -> new Finder("[Tag] lessthan \"core\""));
 		}
 
 		@Test

@@ -5,7 +5,7 @@ import { DeviceAttributeDefinition, DeviceAttributeLevel } from "@/types"
 import { useLocalization } from "@/i18n"
 import { useMemo } from "react"
 import { DeviceAccessLinks, DeviceAttributeValue } from "../components"
-import { DeviceGroupBadge, DeviceStatusBadge } from "@/components/entity"
+import { DeviceGroupBadge, DeviceStatusBadge, DeviceTagBadge } from "@/components/entity"
 import { useDevice } from "../contexts/device"
 
 export default function DeviceGeneralScreen() {
@@ -154,7 +154,25 @@ export default function DeviceGeneralScreen() {
               <Text color="grey.400">{t("common.comments")}</Text>
             </Box>
             <Skeleton loading={!!isLoading}>
-              <Text>{device?.comments ?? t("common.nA")}</Text>
+              <Text whiteSpace="pre-wrap">{device?.comments || t("common.nA")}</Text>
+            </Skeleton>
+          </Flex>
+          <Flex alignItems="center">
+            <Box flex="0 0 auto" w="200px">
+              <Text color="grey.400">{t("device.tags.label")}</Text>
+            </Box>
+            <Skeleton loading={!!isLoading}>
+              {device?.tags?.length ? (
+                <Flex gap="2" wrap="wrap">
+                  {[...device.tags]
+                    .sort((a, b) => a.localeCompare(b))
+                    .map((tag) => (
+                      <DeviceTagBadge key={tag} tag={tag} />
+                    ))}
+                </Flex>
+              ) : (
+                <Text>{t("common.nA")}</Text>
+              )}
             </Skeleton>
           </Flex>
           <Flex alignItems="center">

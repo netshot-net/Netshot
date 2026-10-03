@@ -6,6 +6,7 @@ import {
   DeviceFamily,
   DeviceInterface,
   DeviceModule,
+  DeviceTag,
   DeviceType,
   LightDevice,
 } from "@/types"
@@ -125,6 +126,12 @@ async function getAllSoftwareVersions(queryParams: PaginationQueryParams = {}) {
   })
 }
 
+async function getAllTags(queryParams: PaginationQueryParams = {}) {
+  return httpClient.get<DeviceTag[]>("/devicetags", {
+    queryParams,
+  })
+}
+
 async function getAllTypes() {
   return httpClient.get<DeviceType[]>(`/devicetypes`)
 }
@@ -146,5 +153,6 @@ export default {
   getAllFamilies,
   getAllPartNumbers,
   getAllSoftwareVersions,
+  getAllTags,
   getAllTypes,
 }

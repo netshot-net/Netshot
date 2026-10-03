@@ -50,6 +50,7 @@ Here is an example in JSON format:
         "autoTryCredentials": true,
         "changeDate": 1611411940000,
         "comments": "",
+        "tags": [],
         "contact": "",
         "createdDate": 1609456546507,
         "creator": "admin",

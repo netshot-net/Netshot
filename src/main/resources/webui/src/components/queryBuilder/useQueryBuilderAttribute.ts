@@ -1,4 +1,5 @@
 import { useDomains } from "@/features/administration/api/queries"
+import { useDeviceTags } from "@/features/device/api"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import {
   DeviceNetworkClass,
@@ -15,6 +16,7 @@ export function useQueryBuilderAttribute() {
   const { t } = useTranslation()
   const deviceTypeOptions = useDeviceTypeOptions()
   const domainQuery = useDomains()
+  const tagQuery = useDeviceTags()
 
   function getAllGenericOption(): AttributeOption[] {
     const domainChoices = Array.isArray(domainQuery.data)
@@ -170,6 +172,14 @@ export function useQueryBuilderAttribute() {
             { label: t("common.disabled"), value: DeviceStatus.Disabled },
             { label: t("device.status.preproduction"), value: DeviceStatus.PreProduction },
           ],
+        },
+      },
+      {
+        label: t("device.tags.label"),
+        value: {
+          name: Attribute.Tag,
+          type: AttributeType.Tag,
+          choices: (tagQuery.data ?? []).map((tag) => ({ label: tag, value: tag })),
         },
       },
       {

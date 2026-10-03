@@ -23,6 +23,8 @@ export enum AttributeType {
   MacAddress = "MACADDRESS",
   Id = "id",
   Binary = "BINARY",
+  /** Free text, with the existing values (choices) suggested */
+  Tag = "TAG",
 }
 
 export enum OperatorType {

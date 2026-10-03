@@ -104,12 +104,15 @@ export type CreateDevicePayload = {
   deviceType: string
   accesses?: DeviceAccess[]
   options?: Record<string, string | boolean>
+  comments?: string
+  tags?: string[]
 }
 
 export type UpdateDevicePayload = {
   id: number
   enabled: boolean
   comments: string
+  tags: string[]
   ipAddress: string
   mgmtDomain: number
   accesses: DeviceAccess[]

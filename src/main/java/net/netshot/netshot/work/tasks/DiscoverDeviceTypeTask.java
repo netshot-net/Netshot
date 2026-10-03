@@ -21,7 +21,9 @@ package net.netshot.netshot.work.tasks;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.hibernate.Hibernate;
@@ -156,6 +158,58 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 */
 	public void setDiscoveredDeviceType(String discoveredDeviceType) {
 		this.setAttribute("discoveredDeviceType", discoveredDeviceType);
+	}
+
+	/**
+	 * Gets the comments to set on the device once discovered.
+	 * @return the device comments, or null if none
+	 */
+	@Transient
+	public String getDeviceComments() {
+		return this.getStringAttribute("deviceComments", null);
+	}
+
+	/**
+	 * Sets the comments to set on the device once discovered.
+	 * @param deviceComments the device comments
+	 */
+	public void setDeviceComments(String deviceComments) {
+		if (deviceComments == null) {
+			this.attributes.remove("deviceComments");
+		}
+		else {
+			this.setAttribute("deviceComments", deviceComments);
+		}
+	}
+
+	/**
+	 * Gets the tags to set on the device once discovered.
+	 * @return the device tags (never null)
+	 */
+	@Transient
+	public List<String> getDeviceTags() {
+		List<String> tags = new ArrayList<>();
+		if (this.attributes.get("deviceTags") instanceof List<?> list) {
+			for (Object item : list) {
+				if (item instanceof String tag) {
+					tags.add(tag);
+				}
+			}
+		}
+		return tags;
+	}
+
+	/**
+	 * Sets the tags to set on the device once discovered.
+	 * @param deviceTags the device tags
+	 */
+	public void setDeviceTags(List<String> deviceTags) {
+		if (deviceTags == null || deviceTags.isEmpty()) {
+			this.attributes.remove("deviceTags");
+		}
+		else {
+			this.setAttribute("deviceTags", new ArrayList<>(deviceTags));
+		}
 	}
 
 	/**
@@ -381,6 +435,10 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 						newDevice.getAccesses().add(new DeviceAccess(newDevice, accessName));
 					}
 				}
+				if (this.getDeviceComments() != null) {
+					newDevice.setComments(this.getDeviceComments());
+				}
+				newDevice.replaceTags(this.getDeviceTags());
 				this.setDiscoverResultDevice(newDevice);
 				session.persist(newDevice);
 				snapshotTask = new TakeSnapshotTask(newDevice,

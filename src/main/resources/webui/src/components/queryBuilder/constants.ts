@@ -19,6 +19,7 @@ export const Attribute = {
   SoftwareLevel: "Software Level",
   SoftwareVersion: "Software Version",
   Status: "Status",
+  Tag: "Tag",
   Type: "Type",
   VirtualName: "Virtual Name",
   Vrf: "VRF",

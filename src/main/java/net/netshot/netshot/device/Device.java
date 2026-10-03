@@ -43,6 +43,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -52,6 +53,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
@@ -197,6 +199,23 @@ public class Device {
 	}))
 	@Setter
 	private String comments = "";
+
+	/** Maximum length of a single tag. */
+	public static final int MAX_TAG_LENGTH = 255;
+
+	/**
+	 * Free-form, user-defined tags attached to the device (e.g. "core", "datacenter-1").
+	 * Set by users (UI/API) or by scripts (compliance rules, diagnostics, run scripts),
+	 * never reset by a snapshot.
+	 */
+	@Getter(onMethod = @__({
+		@ElementCollection,
+		@CollectionTable(name = "device_tags", joinColumns = @JoinColumn(name = "device")),
+		@Column(name = "tag", length = MAX_TAG_LENGTH),
+		@XmlElement, @JsonView(DefaultView.class)
+	}))
+	@Setter
+	private Set<String> tags = new HashSet<>();
 
 	/** The compliance check results. */
 	@Getter(onMethod = @__({
@@ -634,6 +653,76 @@ public class Device {
 	 */
 	public void addVrfInstance(String vrfInstance) {
 		this.vrfInstances.add(vrfInstance);
+	}
+
+	/**
+	 * Normalizes a tag value: trims surrounding whitespace.
+	 * @param tag the raw tag
+	 * @return the normalized tag, or null if the tag is null, blank or too long
+	 */
+	public static String normalizeTag(String tag) {
+		if (tag == null) {
+			return null;
+		}
+		String normalized = tag.trim();
+		if (normalized.isEmpty() || normalized.length() > MAX_TAG_LENGTH) {
+			return null;
+		}
+		return normalized;
+	}
+
+	/**
+	 * Adds a tag to the device.
+	 * @param tag the tag to add (normalized first, see {@link #normalizeTag})
+	 * @return true if the tag was actually added (valid and not already present)
+	 */
+	public boolean addTag(String tag) {
+		String normalized = Device.normalizeTag(tag);
+		if (normalized == null) {
+			return false;
+		}
+		return this.tags.add(normalized);
+	}
+
+	/**
+	 * Removes a tag from the device.
+	 * @param tag the tag to remove
+	 * @return true if the tag was actually removed
+	 */
+	public boolean removeTag(String tag) {
+		String normalized = Device.normalizeTag(tag);
+		if (normalized == null) {
+			return false;
+		}
+		return this.tags.remove(normalized);
+	}
+
+	/**
+	 * Checks whether the device has the given tag.
+	 * @param tag the tag to look for
+	 * @return true if the device has this tag
+	 */
+	public boolean hasTag(String tag) {
+		String normalized = Device.normalizeTag(tag);
+		return normalized != null && this.tags.contains(normalized);
+	}
+
+	/**
+	 * Replaces all the tags of the device (invalid ones are ignored).
+	 * @param newTags the new tags (null means no tag)
+	 */
+	public void replaceTags(java.util.Collection<String> newTags) {
+		Set<String> normalizedTags = new HashSet<>();
+		if (newTags != null) {
+			for (String tag : newTags) {
+				String normalized = Device.normalizeTag(tag);
+				if (normalized != null) {
+					normalizedTags.add(normalized);
+				}
+			}
+		}
+		this.tags.retainAll(normalizedTags);
+		this.tags.addAll(normalizedTags);
 	}
 
 	public void clearAttributes() {

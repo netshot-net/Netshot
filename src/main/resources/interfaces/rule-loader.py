@@ -38,6 +38,27 @@ class Device:
         else:
             return self._device_helper.get(key, id)
 
+    def set(self, key, value):
+        if key != "comments":
+            raise ValueError("Only 'comments' can be set on the device from a compliance rule")
+        if not isinstance(value, str):
+            raise TypeError("Invalid comments type in set")
+        self._device_helper.set(key, value)
+
+    def add(self, collection, value):
+        if collection != "tag":
+            raise ValueError("Only a 'tag' can be added to the device from a compliance rule")
+        if not isinstance(value, str):
+            raise TypeError("Invalid tag type in add")
+        self._device_helper.add(collection, value)
+
+    def remove(self, collection, value):
+        if collection != "tag":
+            raise ValueError("Only a 'tag' can be removed from the device in a compliance rule")
+        if not isinstance(value, str):
+            raise TypeError("Invalid tag type in remove")
+        self._device_helper.remove(collection, value)
+
     def nslookup(self, host):
         if not isinstance(host, str):
             raise TypeError("Invalid host type in nslookup")

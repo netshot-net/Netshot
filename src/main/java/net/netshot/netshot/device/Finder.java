@@ -137,6 +137,9 @@ public class Finder {
 		/** The virtual name. */
 		VIRTUALNAME("(?i)^\\s*(\\[virtual name\\])", "Virtual Name"),
 
+		/** A device tag. */
+		TAG("(?i)^\\s*(\\[tag\\])", "Tag"),
+
 		/** The device ID (old syntax is Device, new one is ID). */
 		ID("(?i)^\\s*(\\[(id|device)\\])", "ID"),
 
@@ -486,6 +489,11 @@ public class Finder {
 			}
 
 			expr = VirtualNameExpression.parse(tokens);
+			if (expr != null) {
+				return expr;
+			}
+
+			expr = TagExpression.parse(tokens);
 			if (expr != null) {
 				return expr;
 			}
@@ -3375,6 +3383,107 @@ public class Finder {
 		@Override
 		public String toString() {
 			return "[%s] %s \"%s\"".formatted(TokenType.VIRTUALNAME, sign,
+				TokenType.escapeValue(value));
+		}
+
+	}
+
+	/**
+	 * The Class TagExpression, to find devices by (user-defined) tag.
+	 */
+	public static class TagExpression extends Expression {
+
+		/** The sign. */
+		public TokenType sign;
+
+		/** The value. */
+		private String value;
+
+		/**
+		 * Parses the tokens to create an expression.
+		 *
+		 * @param tokens the tokens
+		 * @return the expression
+		 * @throws FinderParseException the finder parse exception
+		 */
+		public static Expression parse(List<Token> tokens) throws FinderParseException {
+			if (tokens.size() == 3 && tokens.get(0).type == TokenType.TAG) {
+				Token comparator = tokens.get(1);
+				Token value = tokens.get(2);
+				switch (comparator.type) {
+					case IS:
+					case CONTAINS:
+					case CONTAINSNOCASE:
+					case STARTSWITH:
+					case ENDSWITH:
+					case MATCHES:
+						if (value.type == TokenType.QUOTEDTEXT) {
+							if (comparator.type == TokenType.MATCHES) {
+								checkRegExp(value);
+							}
+							TagExpression tagExpr = new TagExpression();
+							tagExpr.sign = comparator.type;
+							tagExpr.value = value.value;
+							return tagExpr;
+						}
+						else {
+							throw new FinderParseException("Expecting a quoted string for Tag at character %d.".formatted(value.position));
+						}
+					default:
+						throw new FinderParseException("Invalid operator after Tag at character %d.".formatted(comparator.position));
+				}
+			}
+			return null;
+		}
+
+		private String buildWhere(String itemPrefix) {
+			if (TokenType.MATCHES.equals(sign)) {
+				return "regexp_like(t, :%s)".formatted(itemPrefix);
+			}
+			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
+				return "lower(t) like :%s".formatted(itemPrefix);
+			}
+			return "t like :%s".formatted(itemPrefix);
+		}
+
+		/*(non-Javadoc)
+		 * @see net.netshot.netshot.device.Finder.Expression#buildHqlString(java.lang.String)
+		 */
+		public String buildHqlString(String itemPrefix) {
+			return "d.id in (select d.id from Device d join d.tags t where "
+				+ this.buildWhere(itemPrefix) + ")";
+		}
+
+		/*(non-Javadoc)
+		 * @see net.netshot.netshot.device.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
+		 */
+		public void setVariables(MutationQuery query, String itemPrefix) {
+			String target;
+			switch (sign) {
+				case CONTAINS:
+					target = "%" + value + "%";
+					break;
+				case CONTAINSNOCASE:
+					target = "%" + value.toLowerCase() + "%";
+					break;
+				case STARTSWITH:
+					target = value + "%";
+					break;
+				case ENDSWITH:
+					target = "%" + value;
+					break;
+				default:
+					target = value;
+			}
+			query.setParameter(itemPrefix, target);
+		}
+
+		/*(non-Javadoc)
+		 * @see net.netshot.netshot.device.Finder.Expression#toString()
+		 */
+		@Override
+		public String toString() {
+			return "[%s] %s \"%s\"".formatted(TokenType.TAG, sign,
 				TokenType.escapeValue(value));
 		}
 
