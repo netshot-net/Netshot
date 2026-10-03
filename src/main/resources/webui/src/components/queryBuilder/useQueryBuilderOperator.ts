@@ -124,7 +124,11 @@ export function useQueryBuilderOperator() {
       return []
     }
 
-    if (attribute.type === AttributeType.Text || attribute.type === AttributeType.LongText) {
+    if (
+      attribute.type === AttributeType.Text ||
+      attribute.type === AttributeType.LongText ||
+      attribute.type === AttributeType.Tag
+    ) {
       return getAllOptionForText(attribute.name)
     } else if (attribute.type === AttributeType.Numeric) {
       return getAllOptionForNumeric(attribute.name)

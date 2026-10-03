@@ -2128,4 +2128,23 @@
 			<column name="options" type="${JSON}"/>
 		</addColumn>
 	</changeSet>
+	<changeSet author="netshot" id="0.25.1_1">
+		<!-- Free-form, user-defined device tags (Device.tags), searchable
+			with the [Tag] Finder expression. -->
+		<createTable tableName="device_tags">
+			<column name="device" type="BIGINT">
+				<constraints nullable="false"/>
+			</column>
+			<column name="tag" type="VARCHAR(255)">
+				<constraints nullable="false"/>
+			</column>
+		</createTable>
+		<addPrimaryKey tableName="device_tags" columnNames="device, tag" constraintName="PK_device_tags"/>
+		<addForeignKeyConstraint baseColumnNames="device" baseTableName="device_tags"
+			constraintName="FK_device_tags_device" onDelete="CASCADE" onUpdate="NO ACTION"
+			referencedColumnNames="id" referencedTableName="device" validate="true"/>
+		<createIndex indexName="IDX_device_tags_tag" tableName="device_tags">
+			<column name="tag"/>
+		</createIndex>
+	</changeSet>
 </databaseChangeLog>

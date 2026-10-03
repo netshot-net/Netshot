@@ -5,15 +5,16 @@ import { DomainSelect } from "@/features/administration/components"
 import DeviceTypeSelect from "./DeviceTypeSelect"
 import DeviceAccessFields, { buildAccessesPayload, DeviceAccessFormValue } from "./DeviceAccessFields"
 import DeviceOptionFields, { buildOptionsPayload, DeviceOptionFormValue } from "./DeviceOptionFields"
-import FormControl from "@/components/FormControl"
+import DeviceTagsInput from "./DeviceTagsInput"
+import FormControl, { FormControlType } from "@/components/FormControl"
 import { TaskDialog } from "@/features/task/components"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES } from "@/constants"
 import { useCustomDialog, useDialogConfig, useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
 import { DeviceType } from "@/types"
 import validators from "@/utils/validators"
 import { Separator, Stack } from "@chakra-ui/react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, useFormContext, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import React, { useEffect } from "react"
@@ -28,6 +29,8 @@ type Form = {
   deviceType?: DeviceType["name"] | null
   accesses?: DeviceAccessFormValue[]
   options?: Record<string, DeviceOptionFormValue>
+  comments: string
+  tags: string[]
 }
 
 export type CreateDeviceTriggerProps = { children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
@@ -72,6 +75,17 @@ function DeviceCreateForm() {
         {!autoDiscover && (
           <DeviceTypeSelect required label={t("device.type")} control={form.control} name="deviceType" />
         )}
+        <Separator />
+        <FormControl
+          type={FormControlType.LongText}
+          autosize
+          rows={2}
+          label={t("common.comments")}
+          placeholder={t("device.addDescription")}
+          control={form.control}
+          name="comments"
+        />
+        <DeviceTagsInput label={t("device.tags.label")} control={form.control} name="tags" />
       </Stack>
       {showRightColumn && (
         <>
@@ -96,6 +110,7 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
   const toast = useToast()
   const dialog = useFormDialogWithMutation()
   const taskDialog = useCustomDialog()
+  const queryClient = useQueryClient()
   const { data: credentialSets } = useCredentialSets()
   const { getOptionByDriver } = useDeviceTypeOptions()
 
@@ -109,6 +124,8 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
       accesses: [],
       options: {},
       deviceType: null,
+      comments: "",
+      tags: [],
     },
   })
 
@@ -136,6 +153,13 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
           domainId: +(values?.domain ?? 0),
         } as CreateDevicePayload
 
+        if (values.comments) {
+          newDevice.comments = values.comments
+        }
+        if (values.tags?.length > 0) {
+          newDevice.tags = values.tags
+        }
+
         const accesses = buildAccessesPayload(values.accesses, credentialSets)
         if (accesses.length > 0) {
           newDevice.accesses = accesses
@@ -148,6 +172,7 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
         }
 
         const task = await mutation.mutateAsync(newDevice)
+        queryClient.invalidateQueries({ queryKey: [QUERIES.DEVICE_TAG_LIST] })
 
         await dialogRef.close()
 

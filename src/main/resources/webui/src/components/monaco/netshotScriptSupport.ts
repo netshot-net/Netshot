@@ -356,7 +356,7 @@ interface ScriptDevice {
    */
   set(key: CoreDeviceSetKey | (string & {}), value: string): void;
   /**
-   * device.add() only recognizes exactly these 4 collections
+   * device.add() only recognizes exactly these 5 collections
    * (JsDeviceHelper#add in Java) - unlike get/set, there's no
    * driver-declared-custom-attribute fallback: any other key silently does
    * nothing. These overloads catch a wrong value shape or an unknown
@@ -373,8 +373,20 @@ interface ScriptDevice {
   add(collection: "vrf", value: string): void;
   add(collection: "virtualDevice", value: string): void;
   /**
+   * Add a user-defined tag to the device (ignored if already present or blank).
+   * @param collection "tag"
+   * @param value the tag to add
+   */
+  add(collection: "tag", value: string): void;
+  /**
+   * Remove an entry from a device collection - only "tag" is supported.
+   * @param collection "tag"
+   * @param value the tag to remove
+   */
+  remove(collection: "tag", value: string): void;
+  /**
    * Read a built-in device attribute (a plain string one - see the other
-   * overloads below for networkClass/virtualDevices/vrfs/modules/interfaces,
+   * overloads below for networkClass/virtualDevices/vrfs/tags/modules/interfaces,
    * which each return a more specific shape).
    * @param key one of the built-in string attribute names
    * @param id look up this attribute on another device instead of the current one - a device id (number) or name (string)
@@ -386,10 +398,10 @@ interface ScriptDevice {
    */
   get(key: "networkClass", id?: number | string): DeviceNetworkClass;
   /**
-   * @param key "virtualDevices" or "vrfs"
+   * @param key "virtualDevices", "vrfs" or "tags" (the user-defined device tags, sorted)
    * @param id look up this attribute on another device instead of the current one - a device id (number) or name (string)
    */
-  get(key: "virtualDevices" | "vrfs", id?: number | string): string[];
+  get(key: "virtualDevices" | "vrfs" | "tags", id?: number | string): string[];
   /**
    * @param key "modules"
    * @param id look up this attribute on another device instead of the current one - a device id (number) or name (string)
@@ -497,12 +509,31 @@ interface DiagnosticHelper {
 
 /**
  * The \`device\` object passed to compliance rule scripts (check(device)).
- * Narrower than ScriptDevice: read-only, no set/add/textDownload.
+ * Narrower than ScriptDevice: read-only except for the device comments and
+ * tags (rule-loader.js), no textDownload.
  */
 interface ComplianceDevice {
   /**
+   * Replace the device comments - the only field a compliance rule can set.
+   * @param key "comments"
+   * @param value the new comments
+   */
+  set(key: "comments", value: string): void;
+  /**
+   * Add a user-defined tag to the device (ignored if already present or blank).
+   * @param collection "tag"
+   * @param value the tag to add
+   */
+  add(collection: "tag", value: string): void;
+  /**
+   * Remove a user-defined tag from the device.
+   * @param collection "tag"
+   * @param value the tag to remove
+   */
+  remove(collection: "tag", value: string): void;
+  /**
    * Read a built-in device attribute (a plain string one - see the other
-   * overloads below for networkClass/virtualDevices/vrfs/modules/interfaces,
+   * overloads below for networkClass/virtualDevices/vrfs/tags/modules/interfaces,
    * which each return a more specific shape). Same behavior as
    * ScriptDevice#get() (compliance checks reuse JsDeviceHelper, read-only).
    * @param key one of the built-in string attribute names
@@ -515,10 +546,10 @@ interface ComplianceDevice {
    */
   get(key: "networkClass", id?: number | string): DeviceNetworkClass;
   /**
-   * @param key "virtualDevices" or "vrfs"
+   * @param key "virtualDevices", "vrfs" or "tags" (the user-defined device tags, sorted)
    * @param id look up this attribute on another device instead of the current one - a device id (number) or name (string)
    */
-  get(key: "virtualDevices" | "vrfs", id?: number | string): string[];
+  get(key: "virtualDevices" | "vrfs" | "tags", id?: number | string): string[];
   /**
    * @param key "modules"
    * @param id look up this attribute on another device instead of the current one - a device id (number) or name (string)
@@ -654,7 +685,8 @@ const CLI_MEMBERS: PyMember[] = [
 const SCRIPT_DEVICE_MEMBERS: PyMember[] = [
   method("get", 'get("$1")', "get(key, id=None)", "Read a device attribute (optionally by id/name, for collections)."),
   method("set", 'set("$1", "$2")', "set(key, value) -> None", "Store a device attribute value."),
-  method("add", 'add("$1", $2)', "add(collection, value) -> None", "Append a value to a device attribute collection."),
+  method("add", 'add("$1", $2)', "add(collection, value) -> None", "Append a value to a device attribute collection (e.g. add(\"tag\", \"core\"))."),
+  method("remove", 'remove("tag", "$1")', "remove(collection, value) -> None", "Remove a value from a device collection (only \"tag\")."),
   method("textDownload", 'textDownload("$1")', "textDownload(fileName, options=None) -> str"),
   field("options", "dict of driver Options for this device"),
 ]
@@ -666,6 +698,9 @@ const DIAGNOSTIC_HELPER_MEMBERS: PyMember[] = [
 
 const COMPLIANCE_DEVICE_MEMBERS: PyMember[] = [
   method("get", 'get("$1")', "get(key, id=None)"),
+  method("set", 'set("comments", "$1")', "set(key, value) -> None", "Replace the device comments (only \"comments\" can be set)."),
+  method("add", 'add("tag", "$1")', "add(collection, value) -> None", "Add a tag to the device (only \"tag\")."),
+  method("remove", 'remove("tag", "$1")', "remove(collection, value) -> None", "Remove a tag from the device (only \"tag\")."),
   method("nslookup", 'nslookup("$1")', "nslookup(host)"),
 ]
 

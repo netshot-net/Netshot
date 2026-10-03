@@ -1,5 +1,6 @@
 import { Box, Button, DatePicker, Field, IconButton, Portal, Stack } from "@chakra-ui/react"
 import { parseDate } from "@internationalized/date"
+import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { LuCalendar, LuCornerRightUp } from "react-icons/lu"
@@ -21,6 +22,7 @@ function getDefaultValueForType(type: string): string {
   switch (type) {
     case AttributeType.Text:
     case AttributeType.LongText:
+    case AttributeType.Tag:
       return "text"
     case AttributeType.Numeric:
     case AttributeType.Id:
@@ -42,12 +44,13 @@ export function AttributeForm({ attribute, onInsert }: Props) {
   const isBinary = attribute.type === AttributeType.Binary
   const isEnum = attribute.type === AttributeType.Enum
   const isDate = attribute.type === AttributeType.Date
+  const isTag = attribute.type === AttributeType.Tag
 
   const operatorOptions = getOperatorOptions()
 
   const defaultValue = isBinary
     ? "true"
-    : isEnum
+    : isEnum || isTag
       ? String(attribute.choices?.[0]?.value ?? "")
       : getDefaultValueForType(attribute.type)
 
@@ -64,6 +67,7 @@ export function AttributeForm({ attribute, onInsert }: Props) {
     switch (attribute.type) {
       case AttributeType.Text:
       case AttributeType.LongText:
+      case AttributeType.Tag:
         return [
           { label: t("common.is"), value: "is" },
           { label: t("common.contains"), value: "contains" },
@@ -131,9 +135,11 @@ export function AttributeForm({ attribute, onInsert }: Props) {
     const quoted =
       attribute.type === AttributeType.Text ||
       attribute.type === AttributeType.LongText ||
+      attribute.type === AttributeType.Tag ||
       attribute.type === AttributeType.Date
 
-    return t('nameOpVal', '[{{name}}] {{op}} {{val}}', { name: attribute.name, op, val: quoted ? `"${val}"` : val })
+    const escaped = isTag ? val.replace(/\\/g, "\\\\").replace(/"/g, '\\"') : val
+    return t('nameOpVal', '[{{name}}] {{op}} {{val}}', { name: attribute.name, op, val: quoted ? `"${escaped}"` : val })
   }
 
   function handleInsert() {
@@ -151,6 +157,11 @@ export function AttributeForm({ attribute, onInsert }: Props) {
     label: c.label,
     value: String(c.value),
   }))
+
+  const tagSuggestions = useMemo(
+    () => (attribute.choices ?? []).map((c) => String(c.value)),
+    [attribute.choices]
+  )
 
   const isNumericInput =
     attribute.type === AttributeType.Numeric || attribute.type === AttributeType.Id
@@ -225,6 +236,14 @@ export function AttributeForm({ attribute, onInsert }: Props) {
               </Portal>
             </DatePicker.Root>
           </Field.Root>
+        ) : isTag ? (
+          <FormControl
+            control={form.control}
+            name="value"
+            label={t("common.operatorValue")}
+            placeholder={t("device.tags.selectExistingTag")}
+            suggestions={tagSuggestions}
+          />
         ) : (
           <FormControl
             control={form.control}

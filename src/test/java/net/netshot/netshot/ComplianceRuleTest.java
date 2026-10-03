@@ -19,6 +19,7 @@
 package net.netshot.netshot;
 
 import java.util.Properties;
+import java.util.Set;
 
 import org.hibernate.Session;
 
@@ -450,6 +451,47 @@ public class ComplianceRuleTest {
 		}
 
 		@Test
+		@DisplayName("Tag-based JS rule, with tag and comment changes")
+		void tagRule() {
+			device.addTag("core");
+			device.addTag("legacy");
+			rule.setScript(
+				"function check(device) {"
+					+ "  const tags = device.get('tags');"
+					+ "  if (!tags.includes('core')) {"
+					+ "    return NONCONFORMING;"
+					+ "  }"
+					+ "  device.remove('tag', 'legacy');"
+					+ "  device.add('tag', 'checked');"
+					+ "  device.add('tag', '   ');"
+					+ "  device.set('comments', 'Checked by rule');"
+					+ "  return CONFORMING;"
+					+ "}"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The result is not CONFORMING");
+			Assertions.assertEquals(Set.of("core", "checked"), device.getTags(), "Unexpected device tags");
+			Assertions.assertEquals("Checked by rule", device.getComments(), "Unexpected device comments");
+		}
+
+		@Test
+		@DisplayName("JS rule can't set other device fields")
+		void readOnlyDeviceRule() {
+			String originalName = device.getName();
+			rule.setScript(
+				"function check(device) {"
+					+ "  device.set('name', 'hacked');"
+					+ "  return CONFORMING;"
+					+ "}"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.getResult(),
+				"The result is not INVALIDRULE");
+			Assertions.assertEquals(originalName, device.getName(), "The device name was changed");
+		}
+
+		@Test
 		@DisplayName("Module-based JS rule")
 		void moduleRule() {
 			rule.setScript(
@@ -826,6 +868,29 @@ public class ComplianceRuleTest {
 			CheckResult result = rule.check(device, nullSession, taskContext);
 			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
 				"The result is not CONFORMING");
+		}
+
+		@Test
+		@DisplayName("Tag-based Python rule, with tag and comment changes")
+		void tagRule() {
+			device.addTag("core");
+			device.addTag("legacy");
+			rule.setScript(
+				"def check(device):" + "\n"
+					+ "  tags = device.get('tags')" + "\n"
+					+ "  if 'core' not in tags:" + "\n"
+					+ "    return result_option.NONCONFORMING" + "\n"
+					+ "  device.remove('tag', 'legacy')" + "\n"
+					+ "  device.add('tag', 'checked')" + "\n"
+					+ "  device.set('comments', 'Checked by rule')" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+					+ "" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The result is not CONFORMING");
+			Assertions.assertEquals(Set.of("core", "checked"), device.getTags(), "Unexpected device tags");
+			Assertions.assertEquals("Checked by rule", device.getComments(), "Unexpected device comments");
 		}
 
 		@Test

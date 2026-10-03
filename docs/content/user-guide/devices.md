@@ -14,6 +14,7 @@ To add a single device:
 - Select the [domain](administration.md#device-domains) for the device.
 - Enter the device's management IP address, or a hostname the Netshot server can resolve.
 - Check **Autodiscover device type** to have Netshot identify the device via SNMP (requires a valid SNMP credential set); otherwise select the device type manually.
+- Optionally enter **Comments** and [**Tags**](#device-tags) for the device — they are applied as soon as the device is created (after a successful discovery, in autodiscovery mode).
 - Once the device type is known, the matching driver is assigned and Netshot starts a snapshot task to capture the device's data, including its current configuration.
 
 To add many devices at once:
@@ -28,6 +29,8 @@ To add many devices at once:
 Type a device's name (or virtual name, e.g. a VDC) or IP address in the **Search...** box and press Enter. Click the clear (✕) button to remove the filter.
 
 For more complex queries, open **Advanced search** and build a logical search expression with the provided buttons. Selecting a device type lets you filter on fields specific to that type.
+
+To find devices by tag, use the **Tags** attribute in the advanced search (it suggests the existing tags), or type an expression such as `[Tag] is "core"` directly. All the text operators are supported (`is`, `contains`, `containsnocase`, `startswith`, `endswith`, `matches`); a device matches as soon as one of its tags matches. Clicking a tag badge on a device runs this search for you.
 
 ## Device groups
 
@@ -55,7 +58,8 @@ Selecting a device in the list opens its detail view. The **General** tab shows:
 | Device type | The driver used to talk to the device — cannot be changed without deleting the device |
 | Family / Software version / Serial number | Captured by the driver |
 | Creation date / Last change | Set by Netshot |
-| Comments | Free text, set manually or by a device script |
+| Comments | Free text, set manually or by a script (run script, diagnostic, compliance rule) |
+| Tags | Free-form labels, set manually or by a script — see [Device tags](#device-tags) |
 | Member of | Groups the device belongs to |
 
 Additional fields may appear depending on the driver. The **Interfaces** and **Modules** tabs are populated by the driver during snapshots, with accuracy depending on what the driver's CLI parsing can extract.
@@ -78,10 +82,20 @@ Editable via the wrench icon in the device toolbar (requires read-write role):
 - **Credential sets** — which set(s) to try, in order, when connecting.
 - **In case of failure, also try all known credentials** — falls back to every credential set associated with the device's domain (or with no domain) if the selected set(s) fail.
 - **Comments** — free text.
+- **Tags** — free-form labels; type a new tag and press Enter (or a comma), or pick one of the tags already used on other devices from the suggestions.
 
 Depending on the device's driver, extra **driver-defined options** may also be editable here — admin-configurable settings the driver reads back at runtime (for example, a "take full backup archive" toggle). Which options exist, and their type, is defined by the driver — see [Device drivers](device-drivers.md).
 
 A device can have several **network accesses** (management addresses), each independently configurable — see [Connection security](#connection-security) below for the per-access settings. Disabling a device (toolbar button) stops all snapshot tasks against it until re-enabled.
+
+## Device tags
+
+Tags are free-form, user-defined labels (e.g. `core`, `paris-dc1`, `to-be-replaced`) attached to a device, to classify devices along dimensions the drivers can't know about. A device can carry any number of tags; each tag is up to 255 characters long, surrounding whitespace is trimmed, and tags are case-sensitive.
+
+- Tags are shown on the device's **General** tab; clicking one lists all devices having that tag.
+- Tags are set when adding a device or in the device properties, or through the REST API.
+- They are never overwritten by snapshots, but scripts can read and change them: [run scripts](#running-scripts-on-devices), [JavaScript/Python diagnostics](diagnostics.md#javascript-based-diagnostics) and [script-based compliance rules](compliance.md#script-based-rules) can call `device.get("tags")`, `device.add("tag", "name")` and `device.remove("tag", "name")`.
+- Tags can be used in device searches (`[Tag] is "core"`), and therefore as the definition of dynamic groups — e.g. a compliance rule can tag non-compliant devices, and a dynamic group gathers them.
 
 ## Connection security
 
@@ -121,7 +135,7 @@ Custom JavaScript scripts can be written and run against a device (or a group of
 A script must define a `run` function, its entry point, receiving two arguments:
 
 - `cli` — runs commands on the device and collects output. `cli.macro("name")` runs a macro defined by the device driver (typically used to switch CLI mode); `cli.command("command")` runs a single command.
-- `device` — represents the device, and can be used to read data collected by the last snapshot.
+- `device` — represents the device, and can be used to read data collected by the last snapshot (`device.get(...)`). It can also update the device [tags](#device-tags) and comments: `device.add("tag", "name")`, `device.remove("tag", "name")`, `device.set("comments", "text")`.
 
 Scripts can declare custom input parameters, requested from the user at run time:
 

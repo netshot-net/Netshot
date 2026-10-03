@@ -4,6 +4,7 @@ import { DomainSelect } from "@/features/administration/components"
 import DeviceTypeSelect from "./DeviceTypeSelect"
 import DeviceAccessFields, { buildAccessesPayload, DeviceAccessFormValue, TRY_ALL_CREDENTIALS_VALUE } from "./DeviceAccessFields"
 import DeviceOptionFields, { buildOptionsPayload, DeviceOptionFormValue } from "./DeviceOptionFields"
+import DeviceTagsInput from "./DeviceTagsInput"
 import FormControl, { FormControlType, PASSWORD_UNCHANGED } from "@/components/FormControl"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
@@ -30,6 +31,7 @@ type Form = {
   accesses: DeviceAccessFormValue[]
   options: Record<string, DeviceOptionFormValue>
   comments: string
+  tags: string[]
 }
 
 function DeviceEditForm() {
@@ -61,6 +63,7 @@ function DeviceEditForm() {
           <DeviceTypeSelect disabled label={t("device.type")} control={form.control} name="deviceType" />
         )}
         <FormControl type={FormControlType.LongText} autosize rows={2} label={t("common.comments")} placeholder={t("device.addDescription")} control={form.control} name="comments" />
+        <DeviceTagsInput label={t("device.tags.label")} control={form.control} name="tags" />
       </Stack>
       <Separator orientation="vertical" />
       <Stack flex="1" overflow="auto" gap="6" p="1">
@@ -158,6 +161,7 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
       accesses,
       options,
       comments: device?.comments ?? "",
+      tags: [...(device?.tags ?? [])].sort(),
     } as Form
   }, [device, getOptionByDriver])
 
@@ -180,6 +184,7 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
       async onSubmit(values: Form) {
         const updatedDevice: Partial<UpdateDevicePayload> = {
           comments: values?.comments,
+          tags: values?.tags ?? [],
           ipAddress: values?.ipAddress,
           mgmtDomain: +values?.mgmtDomain,
         }
@@ -195,6 +200,7 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
 
         toast.success({ title: t("common.success"), description: t("device.successfullyModified", { device: device?.name }) })
         queryClient.invalidateQueries({ queryKey: [QUERIES.DEVICE_DETAIL, +device?.id] })
+        queryClient.invalidateQueries({ queryKey: [QUERIES.DEVICE_TAG_LIST] })
       },
       onCancel() { form.reset() },
       submitButton: { label: t("common.applyChanges") },
