@@ -4,7 +4,7 @@ After=postgresql.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/java -jar /usr/local/netshot/netshot.jar
+ExecStart=/usr/bin/java -Dpolyglot.engine.userResourceCache=/var/local/netshot/polyglot-cache -jar /usr/local/netshot/netshot.jar
 ExecReload=/bin/kill -HUP $MAINPID
 User=netshot
 AmbientCapabilities=CAP_NET_BIND_SERVICE
