@@ -20,7 +20,7 @@ NAME=netshot
 USER=netshot
 DAEMON=/usr/bin/java
 APP=/usr/local/netshot/$NAME.jar
-DAEMON_ARGS="-jar $APP"
+DAEMON_ARGS="-Dpolyglot.engine.userResourceCache=/var/local/netshot/polyglot-cache -jar $APP"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
