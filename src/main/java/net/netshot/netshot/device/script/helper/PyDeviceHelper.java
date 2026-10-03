@@ -21,6 +21,7 @@ package net.netshot.netshot.device.script.helper;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,8 +111,53 @@ public final class PyDeviceHelper {
 		this.session = session;
 	}
 
+	/**
+	 * Adds a tag to the device. Allowed even in read-only mode (e.g. from
+	 * compliance rules), since tags are user metadata, not snapshot data.
+	 * @param tag the tag to add
+	 */
+	private void addTag(String tag) {
+		if (Device.normalizeTag(tag) == null) {
+			taskContext.warn("Ignoring invalid device tag '{}'.", tag);
+			return;
+		}
+		if (device.addTag(tag)) {
+			taskContext.info("Adding tag '{}' to the device.", tag.trim());
+		}
+	}
+
+	/**
+	 * Removes a tag from the device. Allowed even in read-only mode.
+	 * @param tag the tag to remove
+	 */
+	private void removeTag(String tag) {
+		if (device.removeTag(tag)) {
+			taskContext.info("Removing tag '{}' from the device.", tag.trim());
+		}
+	}
+
+	/**
+	 * Sets the device comments. Allowed even in read-only mode.
+	 * @param comments the new comments
+	 */
+	private void setComments(String comments) {
+		if (comments == null) {
+			return;
+		}
+		device.setComments(comments);
+		taskContext.trace("Setting device comments to '{}'.", comments);
+	}
+
 	@Export
 	public void add(String key, Value data) {
+		if ("tag".equals(key)) {
+			if (data == null || !data.isString()) {
+				taskContext.error("The tag to add should be a string.");
+				return;
+			}
+			this.addTag(data.asString());
+			return;
+		}
 		if (readOnly) {
 			log.warn("Adding key '{}' is forbidden.", key);
 			taskContext.error("Adding key {} is forbidden", key);
@@ -177,6 +223,24 @@ public final class PyDeviceHelper {
 		catch (Exception e) {
 			log.warn("Error during snapshot while adding device attribute key '{}'.", key, e);
 			taskContext.error("Can't add device attribute {}: {}", key, e.getMessage());
+		}
+	}
+
+	@Export
+	public void remove(String key, Value data) {
+		if (data == null) {
+			return;
+		}
+		if ("tag".equals(key)) {
+			if (!data.isString()) {
+				taskContext.error("The tag to remove should be a string.");
+				return;
+			}
+			this.removeTag(data.asString());
+		}
+		else {
+			log.warn("Removing key '{}' is not supported.", key);
+			taskContext.error("Removing key {} is not supported", key);
 		}
 	}
 
@@ -266,6 +330,10 @@ public final class PyDeviceHelper {
 
 	@Export
 	public void set(String key, String value) {
+		if ("comments".equals(key)) {
+			this.setComments(value);
+			return;
+		}
 		if (readOnly) {
 			log.warn("Setting key '{}' is forbidden.", key);
 			taskContext.error("Setting key {} is forbidden", key);
@@ -292,9 +360,6 @@ public final class PyDeviceHelper {
 			}
 			else if ("serial_number".equals(key)) {
 				device.setSerialNumber(value);
-			}
-			else if ("comments".equals(key)) {
-				device.setComments(value);
 			}
 			else if ("network_class".equals(key)) {
 				NetworkClass nc = NetworkClass.valueOf(value);
@@ -379,6 +444,11 @@ public final class PyDeviceHelper {
 		}
 		else if ("vrfs".equals(item)) {
 			return ProxyArray.fromList(List.copyOf(targetDevice.getVrfInstances()));
+		}
+		else if ("tags".equals(item)) {
+			List<String> tags = new ArrayList<>(targetDevice.getTags());
+			Collections.sort(tags);
+			return ProxyArray.fromList(new ArrayList<Object>(tags));
 		}
 		else if ("modules".equals(item)) {
 			List<Object> modules = new ArrayList<>();

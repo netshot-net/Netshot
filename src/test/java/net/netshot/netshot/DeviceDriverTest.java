@@ -89,6 +89,7 @@ import net.netshot.netshot.device.credentials.DeviceHttpAccount;
 import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
 import net.netshot.netshot.device.script.SnapshotDeviceScript;
+import net.netshot.netshot.device.script.UserDeviceScript;
 import net.netshot.netshot.work.TaskContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -241,6 +242,46 @@ public class DeviceDriverTest {
 				Assertions.assertEquals(Network4Address.getNetworkAddress("192.168.200.101", 24),
 					device.getNetworkInterface("GigabitEthernet1").getIp4Addresses().iterator().next(),
 					"The first interface IP address is incorrect");
+			}
+			finally {
+				accessManager.disconnectAll();
+			}
+		}
+
+		@Test
+		@DisplayName("CiscoIOS12 run script managing device tags and comments")
+		void runScriptWithTags() throws NoSuchMethodException, SecurityException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+			DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
+			Session nullSession = null;
+			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
+			Device device = new Device("CiscoIOS12", null, domain, "test");
+			device.addTag("old");
+			device.addTag("kept");
+			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
+			sshAccess.setAddress(container.getHost());
+			sshAccess.setPort(container.getMappedPort(22));
+			device.getAccesses().add(sshAccess);
+			String code = """
+				function run(cli, device, config) {
+					const tags = device.get("tags");
+					if (tags.includes("old")) {
+						device.remove("tag", "old");
+					}
+					device.add("tag", "scripted");
+					device.set("comments", "Tags: " + device.get("tags").join(","));
+				}
+				""";
+			UserDeviceScript script = new UserDeviceScript("CiscoIOS12", code, this.taskContext);
+			script.setUserInputValues(new HashMap<>());
+			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			Method runMethod = UserDeviceScript.class.getDeclaredMethod("run", Session.class,
+				Device.class, AccessManager.class);
+			runMethod.setAccessible(true);
+			try {
+				runMethod.invoke(script, nullSession, device, accessManager);
+				Assertions.assertEquals(Set.of("kept", "scripted"), device.getTags(), "The device tags are incorrect");
+				Assertions.assertEquals("Tags: kept,scripted", device.getComments(), "The device comments are incorrect");
 			}
 			finally {
 				accessManager.disconnectAll();

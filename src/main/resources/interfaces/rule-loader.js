@@ -21,7 +21,7 @@ const NONCONFORMING = "NONCONFORMING";
 const NOTAPPLICABLE = "NOTAPPLICABLE";
 const CONFORMING = "CONFORMING";
 
-const PUBLIC_COMPLIANCE_DEVICE_MEMBERS = ["get", "nslookup", "findSections"];
+const PUBLIC_COMPLIANCE_DEVICE_MEMBERS = ["get", "set", "add", "remove", "nslookup", "findSections"];
 
 /**
  * Wraps `target` in a new, frozen object exposing only bound copies of the
@@ -73,6 +73,36 @@ function _check(_deviceHelper) {
 				}
 			}
 			throw "Invalid key to retrieve.";
+		},
+
+		set(key, value) {
+			if (key !== "comments") {
+				throw "Only 'comments' can be set on the device from a compliance rule.";
+			}
+			if (typeof value !== "string") {
+				throw "The comments should be a string in device.set.";
+			}
+			_deviceHelper.set(String(key), String(value));
+		},
+
+		add(collection, value) {
+			if (collection !== "tag") {
+				throw "Only a 'tag' can be added to the device from a compliance rule.";
+			}
+			if (typeof value !== "string") {
+				throw "The tag should be a string in device.add.";
+			}
+			_deviceHelper.add(String(collection), String(value));
+		},
+
+		remove(collection, value) {
+			if (collection !== "tag") {
+				throw "Only a 'tag' can be removed from the device in a compliance rule.";
+			}
+			if (typeof value !== "string") {
+				throw "The tag should be a string in device.remove.";
+			}
+			_deviceHelper.remove(String(collection), String(value));
 		},
 
 		nslookup(host) {

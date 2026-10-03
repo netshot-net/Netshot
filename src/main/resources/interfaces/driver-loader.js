@@ -298,7 +298,7 @@ const PUBLIC_CLI_MEMBERS =
 const PUBLIC_SNMP_MEMBERS = ["get", "walk", "sleep", "tryNextCredentials"];
 const PUBLIC_HTTP_MEMBERS =
 	["request", "download", "get", "delete", "head", "options", "post", "put", "patch", "tryNextCredentials", "sleep", "debug", "trace"];
-const PUBLIC_DEVICE_MEMBERS = ["options", "set", "add", "get", "textDownload"];
+const PUBLIC_DEVICE_MEMBERS = ["options", "set", "add", "remove", "get", "textDownload"];
 const PUBLIC_CONFIG_MEMBERS = [
 	"set", "download", "computeHash", "getHash", "getLastHash",
 	"isChangedHash", "requestUpload", "awaitUpload", "commitUpload",
@@ -1046,6 +1046,21 @@ const _connect = (_function, _options) => {
 				value = String(value);
 			}
 			_options.getDeviceHelper().add(collection, value);
+		},
+		remove: function(collection, value) {
+			if (typeof(collection) === "string") {
+				collection = String(collection);
+			}
+			else {
+				throw "The collection should be a string in device.remove.";
+			}
+			if (typeof(value) === "string") {
+				value = String(value);
+			}
+			else {
+				throw `Invalid value used in device.remove, for collection ${collection} (should be a string).`;
+			}
+			_options.getDeviceHelper().remove(collection, value);
 		},
 		get: function(key, id) {
 			if (typeof(key) === "string") {

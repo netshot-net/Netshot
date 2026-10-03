@@ -26,6 +26,14 @@
         "wirelessController": "Wireless controller"
       },
       "addDescription": "Add a description about the device",
+      "tags": {
+        "label": "Tags",
+        "addTag": "Add a tag...",
+        "pressEnterToCreate": "Press Enter to add this new tag",
+        "noOtherTag": "No other existing tag",
+        "existingTag": "Existing tag",
+        "selectExistingTag": "Select an existing tag..."
+      },
       "add": "Add device",
       "snapshot": {
         "after": "After snapshot",

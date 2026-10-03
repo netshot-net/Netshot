@@ -1541,6 +1541,7 @@ public class RestService extends Thread {
 			device.getOwnerGroups().size();
 			device.getComplianceCheckResults().size();
 			device.getAccesses().size();
+			device.getTags().size();
 		}
 		catch (HibernateException e) {
 			log.error("Unable to fetch the device", e);
@@ -1861,6 +1862,56 @@ public class RestService extends Thread {
 		private String version;
 	}
 
+	@XmlRootElement(name = "deviceTag")
+	@XmlAccessorType(XmlAccessType.NONE)
+	@AllArgsConstructor
+	public static class RsDeviceTag {
+		/** The tag. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private String name;
+
+		/** The number of devices having this tag. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private long deviceCount;
+	}
+
+	@GET
+	@Path("/devicetags")
+	@RolesAllowed(User.ROLE_READONLY)
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+	@JsonView(RestApiView.class)
+	@Operation(
+		summary = "Get the existing device tags",
+		description = "Returns the list of distinct tags currently attached to at least one device, with the number of devices for each."
+	)
+	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
+	public List<RsDeviceTag> getDeviceTags(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
+		log.debug("REST request, device tags.");
+		Session session = Database.getSession(true);
+		try {
+			Query<RsDeviceTag> query = session
+				.createQuery(
+					"select new RsDeviceTag(t as name, count(d.id) as deviceCount) from Device d join d.tags t group by t order by t",
+					RsDeviceTag.class);
+			paginationParams.apply(query);
+			return query.list();
+		}
+		catch (HibernateException e) {
+			log.error("Error while loading device tags.", e);
+			throw new NetshotBadRequestException("Database error",
+				NetshotBadRequestException.Reason.NETSHOT_DATABASE_ACCESS_ERROR);
+		}
+		finally {
+			session.close();
+		}
+	}
+
 	@GET
 	@Path("/softwareversions")
 	@RolesAllowed(User.ROLE_READONLY)
@@ -1954,6 +2005,39 @@ public class RestService extends Thread {
 		}))
 		@Setter
 		private Map<String, Object> options;
+
+		/** The device comments. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private String comments;
+
+		/** The device tags. */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private List<String> tags;
+	}
+
+	/**
+	 * Validates posted device tags: each tag must be a non-blank string
+	 * of at most {@link Device#MAX_TAG_LENGTH} characters (once trimmed).
+	 * @param tags the tags to validate (may be null)
+	 * @throws NetshotBadRequestException if any tag is invalid
+	 */
+	private static void validateDeviceTags(List<String> tags) throws NetshotBadRequestException {
+		if (tags == null) {
+			return;
+		}
+		for (String tag : tags) {
+			if (Device.normalizeTag(tag) == null) {
+				throw new NetshotBadRequestException(
+					"Invalid device tag (tags must be non-empty and at most %d characters long).".formatted(Device.MAX_TAG_LENGTH),
+					NetshotBadRequestException.Reason.NETSHOT_INVALID_REQUEST_PARAMETER);
+			}
+		}
 	}
 
 	/** Strict IPv4 dotted-quad pattern (each octet 0-255), to detect an IPv4 literal without ever risking a DNS lookup. */
@@ -2452,6 +2536,7 @@ public class RestService extends Thread {
 		log.debug("REST request, new device.");
 		String deviceAddress = device.getIpAddress();
 		RestService.validateMgmtAddress(deviceAddress, false);
+		RestService.validateDeviceTags(device.getTags());
 		Domain domain;
 		List<DeviceCredentialSet> knownCommunities;
 		Session session = Database.getSession();
@@ -2503,6 +2588,8 @@ public class RestService extends Thread {
 					String.format("Device added by %s", user.getUsername()), user.getUsername());
 				task.setComments(String.format("Autodiscover device %s",
 					deviceAddress));
+				task.setDeviceComments(device.getComments());
+				task.setDeviceTags(device.getTags());
 				for (DeviceCredentialSet credentialSet : knownCommunities) {
 					task.addCredentialSet(credentialSet);
 				}
@@ -2544,6 +2631,10 @@ public class RestService extends Thread {
 				if (device.getOptions() != null) {
 					newDevice.setOptions(device.getOptions());
 				}
+				if (device.getComments() != null) {
+					newDevice.setComments(device.getComments());
+				}
+				newDevice.replaceTags(device.getTags());
 				session.persist(newDevice);
 				task = new TakeSnapshotTask(newDevice, "Initial snapshot after device creation", user.getUsername(), true, false, false);
 				session.persist(task);
@@ -2724,6 +2815,13 @@ public class RestService extends Thread {
 		@Setter
 		private Map<String, Object> options;
 
+		/** The device tags (replacing all the existing ones, if not null). */
+		@Getter(onMethod = @__({
+			@XmlElement, @JsonView(DefaultView.class)
+		}))
+		@Setter
+		private List<String> tags;
+
 		/**
 		 * Instantiates a new rs device.
 		 */
@@ -2797,6 +2895,10 @@ public class RestService extends Thread {
 			}
 			if (rsDevice.getComments() != null) {
 				device.setComments(rsDevice.getComments());
+			}
+			if (rsDevice.getTags() != null) {
+				RestService.validateDeviceTags(rsDevice.getTags());
+				device.replaceTags(rsDevice.getTags());
 			}
 			if (rsDevice.getMgmtDomain() != null) {
 				Domain domain = session.get(Domain.class, rsDevice.getMgmtDomain());

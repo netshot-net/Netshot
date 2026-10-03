@@ -1,7 +1,7 @@
 import { QueryBuilderTrigger } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { IconButton, Input, InputGroup, Popover, Portal, Stack } from "@chakra-ui/react"
-import { ChangeEvent, KeyboardEvent, useRef, useState } from "react"
+import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { LuCompass, LuSearch, LuX } from "react-icons/lu"
 import { useLocation, useNavigate, useSearchParams } from "react-router"
@@ -69,15 +69,20 @@ export default function DeviceSidebarSearch() {
   const [prevQ, setPrevQ] = useState<string | null | undefined>(undefined)
   const [prevGroup, setPrevGroup] = useState(group)
 
-  // Hydrate the search state from "?q=" (initial load, or browser back/forward),
-  // without the extra render an effect-based sync would cost.
+  // Hydrate the search box text from "?q=" (initial load, browser back/forward,
+  // or a link such as a device tag badge), without the extra render an
+  // effect-based sync would cost.
   if (q !== prevQ) {
     setPrevQ(q)
-    if (q) {
-      setText(q)
-      setQuery(buildQuery(q))
-    }
+    if (q) setText(q)
   }
+
+  // The query itself lives in the (external) sidebar store, shared with other
+  // components: it must not be written during render (React would warn about
+  // updating a component while rendering a different one), so sync it here.
+  useEffect(() => {
+    if (q) setQuery(buildQuery(q))
+  }, [q, setQuery])
 
   // Selecting a group clears any text/advanced search shown in the box
   if (group !== prevGroup) {
