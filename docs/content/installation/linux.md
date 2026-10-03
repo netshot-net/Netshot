@@ -151,6 +151,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable netshot.service
 ```
 
+!!! note
+    On first start, the GraalVM polyglot engine (used to run drivers and scripts) extracts native libraries into a resource cache folder. The provided systemd unit sets this folder to `/var/local/netshot/polyglot-cache` (`-Dpolyglot.engine.userResourceCache` option). Without this option, it defaults to `~/.cache/org.graalvm.polyglot` in the home folder of the `netshot` user (`/usr/local/netshot`). Either way, the `netshot` user must be able to write there.
+
 ## 7. Start the Netshot service
 
 ```bash
@@ -209,3 +212,20 @@ wget --quiet https://github.com/oracle/graalpython/releases/download/graal-${GRA
 ```
 
 Once GraalPy is installed, you can create a virtualenv to install external packages: see the [Python virtualenv](../extending/python-virtualenv.md) page.
+
+## Troubleshooting
+
+### Netshot fails to start with `AccessDeniedException: /usr/local/netshot/.cache`
+
+The GraalVM polyglot engine cannot create its resource cache folder, because the home folder of the `netshot` user is not writable by that user. Either give the folder back to the `netshot` user:
+
+```bash
+sudo chown -R netshot /usr/local/netshot
+```
+
+or point the cache to a writable folder, by adding `-Dpolyglot.engine.userResourceCache=/var/local/netshot/polyglot-cache` to the `java` command line in `/etc/systemd/system/netshot.service` (as done in the systemd unit file distributed with recent versions), then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart netshot
+```
