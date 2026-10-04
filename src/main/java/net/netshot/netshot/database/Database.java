@@ -216,6 +216,8 @@ public final class Database {
 	 * @throws Exception 
 	 */
 	public static void update() throws Exception {
+		// Check the encryption password is available before touching the DB
+		Database.getEncryptionPassword();
 		try {
 			System.setProperty("liquibase.analytics.enabled", "false");
 			Class.forName("org.postgresql.Driver");
@@ -394,7 +396,7 @@ public final class Database {
 	 * @return the configured DB URL.
 	 */
 	private static String getUrl() {
-		return Netshot.getConfig("netshot.db.url", "jdbc:postgresql://localhost:5432/netshot01?sslmode=disable");
+		return Netshot.getSecretConfig("netshot.db.url", "jdbc:postgresql://localhost:5432/netshot01?sslmode=disable");
 	}
 
 	/**
@@ -403,7 +405,7 @@ public final class Database {
 	 * @return the configured DB URL.
 	 */
 	private static String getReadUrl() {
-		return Netshot.getConfig("netshot.db.readurl");
+		return Netshot.getSecretConfig("netshot.db.readurl");
 	}
 
 	/**
@@ -412,7 +414,7 @@ public final class Database {
 	 * @return the configured DB username
 	 */
 	private static String getUsername() {
-		return Netshot.getConfig("netshot.db.username", "netshot");
+		return Netshot.getSecretConfig("netshot.db.username", "netshot");
 	}
 
 	/**
@@ -421,7 +423,31 @@ public final class Database {
 	 * @return the configured DB password
 	 */
 	private static String getPassword() {
-		return Netshot.getConfig("netshot.db.password", "netshot");
+		return Netshot.getSecretConfig("netshot.db.password", "netshot");
+	}
+
+	/**
+	 * Retrieve the password used to encrypt the sensitive data (e.g. device credentials) in the DB.
+	 * Unless {@code netshot.db.encryptionpassword.required} is enabled, defaults to {@code NETSHOT}.
+	 *
+	 * @return the configured encryption password
+	 * @throws IllegalStateException if the password is required but not configured
+	 */
+	public static String getEncryptionPassword() {
+		String password = Netshot.getSecretConfig("netshot.db.encryptionpassword");
+		if (password == null) {
+			// With capital P, for historical reasons
+			password = Netshot.getSecretConfig("netshot.db.encryptionPassword");
+		}
+		if (password == null) {
+			if (Netshot.getConfig("netshot.db.encryptionpassword.required", false)) {
+				throw new IllegalStateException("The DB encryption password (netshot.db.encryptionpassword) must be configured, "
+					+ "e.g. via the NETSHOT_DB_ENCRYPTIONPASSWORD_FILE environment variable. Note that the Netshot container "
+					+ "image up to version 0.25.0 had 'netshot' as built-in value.");
+			}
+			password = "NETSHOT";
+		}
+		return password;
 	}
 
 	/**

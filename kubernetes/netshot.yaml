@@ -23,22 +23,48 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
+        # Secrets are mounted as files (not passed as environment variables, which would be
+        # visible to user scripts) and referenced through the *_FILE variables
         env:
-          - name: NETSHOT_DB_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: dbpass
-                key: SECRET_KEY
-          - name: NETSHOT_DB_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: dbuser
-                key: SECRET_KEY
+          - name: NETSHOT_DB_PASSWORD_FILE
+            value: /etc/netshot/secrets/db-password
+          - name: NETSHOT_DB_USERNAME_FILE
+            value: /etc/netshot/secrets/db-username
+          - name: NETSHOT_DB_ENCRYPTIONPASSWORD_FILE
+            value: /etc/netshot/secrets/db-encryption-password
           - name: NETSHOT_DB_URL
             value: 'jdbc:postgresql://postgres/netshot' #this assumes your using postgres
           # Uncomment if Netshot is accessed over HTTPS (e.g. TLS terminated by the ingress)
           # - name: NETSHOT_HTTP_SECURECOOKIE
           #   value: "true"
+        volumeMounts:
+          - name: netshot-secrets
+            mountPath: /etc/netshot/secrets
+            readOnly: true
+      volumes:
+        - name: netshot-secrets
+          projected:
+            defaultMode: 0400
+            sources:
+              - secret:
+                  name: dbpass
+                  items:
+                    - key: SECRET_KEY
+                      path: db-password
+              - secret:
+                  name: dbuser
+                  items:
+                    - key: SECRET_KEY
+                      path: db-username
+              # Key used to encrypt the device credentials in the DB. Keep a backup of it.
+              # Required: Netshot won't start without it. If Netshot was previously deployed without it,
+              # the key built into the image ('netshot') was used: set SECRET_KEY to netshot to keep
+              # the stored credentials readable.
+              - secret:
+                  name: dbencryption
+                  items:
+                    - key: SECRET_KEY
+                      path: db-encryption-password
 
 ---
 apiVersion: v1

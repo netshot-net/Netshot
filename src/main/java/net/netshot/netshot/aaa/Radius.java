@@ -92,7 +92,7 @@ public final class Radius {
 		int authPort = Netshot.getConfig(path + ".authport", 1812, 1, 65535);
 		int acctPort = Netshot.getConfig(path + ".acctport", 1813, 1, 65535);
 		int timeout = Netshot.getConfig(path + ".timeout", 5, 1, 300);
-		String key = Netshot.getConfig(path + ".secret");
+		String key = Netshot.getSecretConfig(path + ".secret");
 		if (key == null) {
 			log.error("No key configured for RADIUS server {}. Will be ignored.", id);
 			return;
