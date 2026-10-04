@@ -33,7 +33,6 @@ import liquibase.exception.ValidationErrors;
 import liquibase.resource.ResourceAccessor;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.UpdateStatement;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.crypto.Md5DesPasswordBasedEncryptor;
 import net.netshot.netshot.crypto.PasswordBasedEncryptor;
 import net.netshot.netshot.crypto.Sha2AesPasswordBasedEncryptor;
@@ -75,11 +74,7 @@ public class DeviceCredentialsReencryptChange implements CustomSqlChange {
 			"username", "auth_type", "auth_key", "priv_type", "priv_key",
 			"private_key"
 		};
-		String cryptPassword = Netshot.getConfig("netshot.db.encryptionpassword", null);
-		if (cryptPassword == null) {
-			// With capital P, for historical reasons
-			cryptPassword = Netshot.getConfig("netshot.db.encryptionPassword", "NETSHOT");
-		}
+		String cryptPassword = net.netshot.netshot.database.Database.getEncryptionPassword();
 
 		JdbcConnection connection = (JdbcConnection) database.getConnection();
 		String select = String.format("select dtype, %s, %s from %s", idColumn,

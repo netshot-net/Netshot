@@ -20,7 +20,6 @@ package net.netshot.netshot.database;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.crypto.Sha2AesPasswordBasedEncryptor;
 
 @Converter
@@ -29,11 +28,7 @@ public class StringEncryptorConverter implements AttributeConverter<String, Stri
 	private static String cryptPassword;
 
 	static {
-		cryptPassword = Netshot.getConfig("netshot.db.encryptionpassword", null);
-		if (cryptPassword == null) {
-			// With capital P, for historical reasons
-			cryptPassword = Netshot.getConfig("netshot.db.encryptionPassword", "NETSHOT");
-		}
+		cryptPassword = Database.getEncryptionPassword();
 	}
 
 	@Override

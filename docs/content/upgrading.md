@@ -43,7 +43,17 @@
 
 ### Any version to 0.25.1+
 
+**Container image**: the image no longer has built-in secrets (previous images had `netshot` as DB password and encryption password, and `Netsh01` as SNMP trap community). If you run the image without setting them yourself (the provided `compose.yaml` sets the passwords):
+
+* Set the encryption password to `netshot` (`NETSHOT_DB_ENCRYPTIONPASSWORD`, or better `NETSHOT_DB_ENCRYPTIONPASSWORD_FILE`): the image now refuses to start without it, and a different value would make the stored device credentials unreadable.
+* Set `NETSHOT_SNMPTRAP_COMMUNITY` to `Netsh01` if your devices send SNMP v1/v2c traps with this community: no community is accepted by default anymore. The provided `compose.yaml` now sets it.
+* The DB password still defaults to `netshot`.
+
+**Kubernetes**: the sample manifest now requires a `dbencryption` secret. If you deployed Netshot without it, set it to `netshot`.
+
 **Reverse proxy**: the session cookie is now marked as `Secure` (only sent over HTTPS) when `netshot.http.trustxforwardedfor` is enabled (as in the provided `compose.yaml`), in addition to when Netshot serves HTTPS itself. If users access Netshot over plain HTTP through a reverse proxy, set the new `netshot.http.securecookie` option to `false`, otherwise they won't be able to log in. If Netshot is accessed over HTTPS through a reverse proxy without `trustxforwardedfor`, set `netshot.http.securecookie` to `true`.
+
+**Secrets**: secret parameters (DB password, encryption password, AAA secrets...) can now be read from files, see [Secrets in files](configuration-reference.md#secrets-in-files). This is recommended over environment variables, which are visible to user-written Python scripts. See [Running Netshot in Docker](installation/docker.md#using-secret-files-recommended) to switch an existing Compose deployment.
 
 ### Any version to 0.20+
 
