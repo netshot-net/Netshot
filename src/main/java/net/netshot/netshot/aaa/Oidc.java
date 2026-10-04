@@ -160,7 +160,7 @@ public final class Oidc {
 		usernameClaim = Netshot.getConfig("netshot.aaa.oidc.usernameclaimname", "preferred_username");
 		String endpoint = Netshot.getConfig("netshot.aaa.oidc.idp.url");
 		String clientId = Netshot.getConfig("netshot.aaa.oidc.clientid");
-		String clientSecret = Netshot.getConfig("netshot.aaa.oidc.clientsecret");
+		String clientSecret = Netshot.getSecretConfig("netshot.aaa.oidc.clientsecret");
 		int idpRetryInterval = Netshot.getConfig("netshot.aaa.oidc.idp.retryinterval", 30000, 1000, Integer.MAX_VALUE);
 		int idpRefreshInterval = Netshot.getConfig("netshot.aaa.oidc.idp.refreshinterval", 43200000, 60000, Integer.MAX_VALUE);
 

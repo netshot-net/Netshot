@@ -27,19 +27,33 @@ spec:
         volumeMounts:
           - mountPath: /var/lib/postgresql/data
             name: postgres-data
+          - mountPath: /etc/postgres/secrets
+            name: postgres-secrets
+            readOnly: true
+        # Secrets are mounted as files, and referenced through the *_FILE variables
         env:
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: pgpassword
-                key: POSTGRES_PASSWORD
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                name: postgresuser
-                key: POSTGRES_USER
+          - name: POSTGRES_PASSWORD_FILE
+            value: /etc/postgres/secrets/password
+          - name: POSTGRES_USER_FILE
+            value: /etc/postgres/secrets/user
           - name: PGDATA
             value: /var/lib/postgresql/data/pgdata
+      volumes:
+        - name: postgres-secrets
+          projected:
+            # Read by the postgres user (not root) in the container
+            defaultMode: 0444
+            sources:
+              - secret:
+                  name: pgpassword
+                  items:
+                    - key: POSTGRES_PASSWORD
+                      path: password
+              - secret:
+                  name: postgresuser
+                  items:
+                    - key: POSTGRES_USER
+                      path: user
 
   volumeClaimTemplates:
   - metadata:

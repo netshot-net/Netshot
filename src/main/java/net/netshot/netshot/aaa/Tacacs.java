@@ -88,7 +88,7 @@ public final class Tacacs {
 			return;
 		}
 		int port = Netshot.getConfig(path + ".port", 49, 1, 65535);
-		String key = Netshot.getConfig(path + ".secret");
+		String key = Netshot.getSecretConfig(path + ".secret");
 		if (key == null) {
 			log.error("No key configured for TACACS+ server {}. Will be ignored.", id);
 			return;

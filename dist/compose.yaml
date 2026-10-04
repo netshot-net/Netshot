@@ -1,5 +1,16 @@
 name: netshot
 
+# Passwords are set as environment variables below, for an easy start. Change them before the first start.
+# More secure option (recommended): pass them as secret files instead, as environment variables are
+# visible to user-written Python scripts and to anyone who can inspect the containers:
+#   1. Create the secret files (with the same values, if Netshot was already started):
+#        mkdir -m 700 secrets
+#        printf '%s' 'change_this_pass' > secrets/db_password
+#        printf '%s' 'change_this_pass_too' > secrets/db_encryption_password
+#        chmod 644 secrets/*
+#   2. In this file, uncomment the lines marked "Secret files", and remove the password variables.
+# Keep a backup of the encryption password: it's required to decrypt the device credentials.
+
 services:
   netshot:
     image: ghcr.io/netshot-net/netshot:latest
@@ -9,6 +20,10 @@ services:
       NETSHOT_DB_USERNAME: "netshot"
       NETSHOT_DB_PASSWORD: "change_this_pass"
       NETSHOT_DB_ENCRYPTIONPASSWORD: "change_this_pass_too"
+      # Secret files:
+      # NETSHOT_DB_PASSWORD_FILE: "/run/secrets/db_password"
+      # NETSHOT_DB_ENCRYPTIONPASSWORD_FILE: "/run/secrets/db_encryption_password"
+      NETSHOT_SNMPTRAP_COMMUNITY: "Netsh01"
       NETSHOT_HTTP_TRUSTXFORWARDEDFOR: "true"
       NETSHOT_HTTP_BASEPORT: "8080"
       NETSHOT_SNAPSHOTS_BINARY_PATH: "/var/local/netshot"
@@ -23,6 +38,10 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    # Secret files:
+    # secrets:
+    #   - db_password
+    #   - db_encryption_password
     volumes:
       - "binarydata:/var/local/netshot"
     ports:
@@ -38,8 +57,13 @@ services:
     shm_size: 1gb
     environment:
       POSTGRES_PASSWORD: "change_this_pass"
+      # Secret files:
+      # POSTGRES_PASSWORD_FILE: "/run/secrets/db_password"
       POSTGRES_USER: "netshot"
       POSTGRES_DB: "netshot01"
+    # Secret files:
+    # secrets:
+    #   - db_password
     volumes:
       - "dbdata:/var/lib/postgresql/data"
     healthcheck:
@@ -70,6 +94,13 @@ services:
       - "127.0.0.1:8080:8080"
     networks:
       - front
+
+# Secret files:
+# secrets:
+#   db_password:
+#     file: ./secrets/db_password
+#   db_encryption_password:
+#     file: ./secrets/db_encryption_password
 
 volumes:
   dbdata:

@@ -14,10 +14,11 @@ netshot.db.driver_class = org.postgresql.Driver
 #netshot.db.url = jdbc:mysql://localhost/netshot01
 netshot.db.url = jdbc:postgresql://localhost/netshot01
 netshot.db.username = netshot
-netshot.db.password = netshot
-# The following password is used to encrypt the passwords and communities in the database.
-# Changing it will cause all device passwords and communities to be manually reentered within the application.
-netshot.db.encryptionpassword = netshot
+# Secrets (DB password, encryption password, SNMP trap community...) are not built into the image:
+# pass them via secret files (e.g. NETSHOT_DB_PASSWORD_FILE) or environment variables.
+# The encryption password is used to encrypt the device credentials in the database. It is required,
+# changing it makes all stored device credentials unreadable (images up to 0.25.0 had 'netshot' as built-in value).
+netshot.db.encryptionpassword.required = true
 
 # REST
 netshot.http.ssl.enabled = false
@@ -29,7 +30,7 @@ netshot.syslog.port = 1514
 
 # Embedded SNMP trap receiver (to react upon configuration change on the devices)
 netshot.snmptrap.port = 1162
-netshot.snmptrap.community = Netsh01
+# No SNMP v1/v2c community is accepted unless netshot.snmptrap.community is set
 
 # General settings
 # Minimal Interval (in minutes) between two automatic snapshots

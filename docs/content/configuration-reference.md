@@ -14,6 +14,27 @@ Some parameters are re-read and applied when Netshot receives a `HUP` signal; ot
 
 Every parameter can also be passed as an environment variable: replace `.` with `_` and upper-case it. For example, `netshot.log.file` becomes `NETSHOT_LOG_FILE`.
 
+## Secrets in files
+
+Secret parameters can be read from a file instead of being set inline: set the parameter name followed by `.file` (or `_FILE` for the environment variable) to the path of the file containing the secret. For example, `NETSHOT_DB_PASSWORD_FILE=/run/secrets/db_password` makes Netshot read the database password from `/run/secrets/db_password`. This is the recommended way to pass secrets to a container (Docker/Compose secrets, Kubernetes secrets mounted as files).
+
+!!! warning
+    Don't pass secrets as environment variables: the environment of the Netshot process is visible to user-written Python scripts (compliance rules and diagnostics).
+
+This applies to the following parameters:
+
+* `netshot.db.url`, `netshot.db.readurl`, `netshot.db.username`, `netshot.db.password`, `netshot.db.encryptionpassword`
+* `netshot.http.ssl.keystore.pass`
+* `netshot.snmptrap.community`, `netshot.snmptrap.user`
+* `netshot.aaa.radiusN.secret`, `netshot.aaa.tacacsN.secret`, `netshot.aaa.oidc.clientsecret`
+
+Rules:
+
+* The file takes precedence over the inline parameter. A warning is logged if the parameter is also set as an environment variable, which should then be removed.
+* The whole file content is used as the secret, except trailing line breaks.
+* If the file is set but can't be read, is empty, or is larger than 64 KB, Netshot fails to start (it doesn't fall back to the inline value or to the default value).
+* Secrets are read once: a restart is required to apply a changed secret.
+
 ## Logging
 
 | Parameter | Description |
@@ -39,6 +60,7 @@ Every parameter can also be passed as an environment variable: replace `.` with 
 | `netshot.db.username` | Database username. |
 | `netshot.db.password` | Database password. |
 | `netshot.db.encryptionpassword` | Password used to encrypt sensitive data (such as device credentials) stored in the database. Default: `NETSHOT` — **change this in production**. |
+| `netshot.db.encryptionpassword.required` | Set to `true` to prevent Netshot from starting if `netshot.db.encryptionpassword` isn't set (instead of using the default value). Enabled in the container image. Default: `false`. |
 | `netshot.db.readurl` | JDBC URI of a secondary, read-only database. See [Clustering and High Availability](clustering-ha.md). |
 | `netshot.db.driverclass` | JDBC driver class. Default: `org.postgresql.Driver`. |
 
@@ -103,7 +125,7 @@ The embedded SNMP trap receiver listens for traps that indicate a device configu
 |---|---|
 | `netshot.snmptrap.port` | UDP port to listen on. Default: `162` (requires root on Linux). |
 | `netshot.snmptrap.listenaddress` | IP address to bind to. Default: `0.0.0.0`. |
-| `netshot.snmptrap.community` | SNMP community (or space-separated list of communities) accepted from devices. Default: `NETSHOT`. |
+| `netshot.snmptrap.community` | SNMP community (or space-separated list of communities) accepted from devices. No SNMP v1/v2c trap is accepted unless set. |
 | `netshot.snmptrap.engineid` | SNMP engine ID. Default: auto-generated at startup. |
 | `netshot.snmptrap.user` | SNMPv3 user(s) allowed to send traps, space-separated for multiple entries. Format: `username protocols [authkey] [privkey]`, where `protocols` is a pipe-separated list of auth (`MD5`, `SHA`, `HMAC128SHA224`, `HMAC192SHA256`, `HMAC256SHA384`, `HMAC384SHA512`) and privacy (`DES`, `3DES`, `AES128`, `AES192`, `AES256`) protocols. No SNMPv3 user is defined by default. |
 | `netshot.snmptrap.threadcount` | Number of worker threads processing incoming traps. Default: `2`. |

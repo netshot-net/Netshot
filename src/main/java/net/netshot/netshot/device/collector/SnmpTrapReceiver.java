@@ -170,7 +170,7 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 			restartNeeded = true;
 		}
 
-		String communityConfig = Netshot.getConfig("netshot.snmptrap.community", "");
+		String communityConfig = Netshot.getSecretConfig("netshot.snmptrap.community", "");
 		communities.clear();
 		try {
 			for (String community : communityConfig.split("\\s+")) {
@@ -190,7 +190,7 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 		}
 
 		this.usmUsers = new ArrayList<>();
-		String userConfig = Netshot.getConfig("netshot.snmptrap.user", "");
+		String userConfig = Netshot.getSecretConfig("netshot.snmptrap.user", "");
 		// Example:   user1 AES128|SHA authpass1 privpass1 user2 AES192|AES256|HMAC128SHA224 authpass2 privpass2
 		// i.e. {user} {list of auth/priv protocols with pipe separators} {auth pass if needed} {priv pass if needed}
 		try {

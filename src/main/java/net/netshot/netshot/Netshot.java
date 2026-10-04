@@ -24,8 +24,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.instrument.Instrumentation;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.Enumeration;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -97,6 +104,12 @@ public class Netshot extends Thread {
 
 	/** The application configuration as retrieved from the configuration file. */
 	private static Properties config;
+
+	/** Max size of a secret file (see {@link #getSecretConfig(String)}). */
+	private static final long MAX_SECRET_FILE_SIZE = 64 * 1024;
+
+	/** Cache of the secret config items (empty if not set), cleared when the config is reloaded. */
+	private static final Map<String, Optional<String>> SECRET_CACHE = new ConcurrentHashMap<>();
 
 	/** Authentication, Authorization, Accounting logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
@@ -233,6 +246,76 @@ public class Netshot extends Thread {
 	}
 
 	/**
+	 * Gets a secret config item, see {@link #getSecretConfig(String)}.
+	 *
+	 * @param key the key
+	 * @param defaultValue the default value
+	 * @return the config
+	 */
+	public static String getSecretConfig(String key, String defaultValue) {
+		String value = getSecretConfig(key);
+		return value == null ? defaultValue : value;
+	}
+
+	/**
+	 * Gets a secret config item. If the {@code <key>.file} item is set (e.g. via the
+	 * {@code NETSHOT_DB_PASSWORD_FILE} environment variable), the secret is read from that file;
+	 * otherwise, it is read as a normal (inline) config item.
+	 * The value is read once, then cached until the configuration is reloaded.
+	 *
+	 * @param key the key
+	 * @return the config
+	 * @throws IllegalStateException if the secret file is set but can't be read, is empty or too big
+	 */
+	public static String getSecretConfig(String key) {
+		return Netshot.SECRET_CACHE.computeIfAbsent(key, k -> Optional.ofNullable(readSecretConfig(k))).orElse(null);
+	}
+
+	/**
+	 * Reads a secret config item, from the secret file or inline.
+	 *
+	 * @param key the key
+	 * @return the config
+	 */
+	private static String readSecretConfig(String key) {
+		String fileKey = key + ".file";
+		String fileName = getConfig(fileKey);
+		if (fileName == null) {
+			return getConfig(key);
+		}
+		String envKey = key.replace(".", "_").toUpperCase();
+		if (System.getenv(envKey) != null) {
+			// Likely a leftover, and the secret is still exposed (e.g. to user scripts) through the environment
+			log.warn("Both '{}' and environment variable {} are set: the environment variable is ignored, "
+				+ "it should be removed.", fileKey, envKey);
+		}
+		else if (config.getProperty(key) != null) {
+			log.info("Both configuration items '{}' and '{}' are set, the inline value is ignored.", fileKey, key);
+		}
+		String value;
+		try {
+			Path path = Path.of(fileName);
+			if (Files.size(path) > MAX_SECRET_FILE_SIZE) {
+				throw new IllegalStateException("The secret file '%s' for configuration item '%s' is too big (more than %d bytes)"
+					.formatted(fileName, key, MAX_SECRET_FILE_SIZE));
+			}
+			value = Files.readString(path, StandardCharsets.UTF_8);
+		}
+		catch (IOException | InvalidPathException e) {
+			throw new IllegalStateException("Unable to read the secret file '%s' for configuration item '%s'"
+				.formatted(fileName, key), e);
+		}
+		// Ignore the trailing line break(s), but keep any other whitespace
+		value = value.replaceFirst("[\\r\\n]+\\z", "");
+		if (value.isEmpty()) {
+			throw new IllegalStateException("The secret file '%s' for configuration item '%s' is empty"
+				.formatted(fileName, key));
+		}
+		log.info("Configuration item '{}' was read from secret file {}.", key, fileName);
+		return value;
+	}
+
+	/**
 	 * Read the application configuration from default files.
 	 *
 	 * @return true, if successful
@@ -249,6 +332,7 @@ public class Netshot extends Thread {
 	 */
 	protected static boolean readConfig(String[] filenames) {
 		Netshot.config = new Properties();
+		Netshot.SECRET_CACHE.clear();
 		for (String fileName : filenames) {
 			try (InputStream fileStream = new FileInputStream(fileName)) {
 				log.trace("Trying to load the configuration file {}.", fileName);
@@ -275,6 +359,7 @@ public class Netshot extends Thread {
 	 */
 	protected static boolean initConfig(Properties newConfig) {
 		Netshot.config = newConfig;
+		Netshot.SECRET_CACHE.clear();
 		return true;
 	}
 

@@ -367,7 +367,7 @@ public class RestService extends Thread {
 			uriBuilder.uri(
 				Netshot.getConfig("netshot.http.baseurl", "http://localhost:8443"));
 			httpSslKeystoreFile = Netshot.getConfig("netshot.http.ssl.keystore.file", "netshot.jks");
-			httpSslKeystorePass = Netshot.getConfig("netshot.http.ssl.keystore.pass", "netshotpass");
+			httpSslKeystorePass = Netshot.getSecretConfig("netshot.http.ssl.keystore.pass", "netshotpass");
 		}
 		else {
 			uriBuilder.uri(
