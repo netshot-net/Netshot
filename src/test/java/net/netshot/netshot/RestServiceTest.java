@@ -317,6 +317,29 @@ public class RestServiceTest extends WithDatabaseTest {
 		}
 
 		@Test
+		@DisplayName("Session ID is renewed on login (session fixation)")
+		@ResourceLock("DB")
+		void sessionRenewedOnLogin() throws IOException, InterruptedException {
+			this.createTestUser();
+			apiClient.setLogin(testUsername, testPassword);
+			HttpResponse<JsonNode> response1 = apiClient.get("/domains");
+			Assertions.assertEquals(
+				Response.Status.OK.getStatusCode(), response1.statusCode(),
+				"Unable to get data using username/password and cookie API access");
+			HttpCookie firstCookie = apiClient.getSessionCookie();
+			// Log in again, while sending the existing session cookie
+			apiClient.login();
+			HttpCookie secondCookie = apiClient.getSessionCookie();
+			Assertions.assertNotEquals(firstCookie.getValue(), secondCookie.getValue(),
+				"The session ID wasn't renewed on login");
+			apiClient.addSessionCookie(firstCookie);
+			HttpResponse<JsonNode> response2 = apiClient.get("/domains");
+			Assertions.assertEquals(
+				Response.Status.UNAUTHORIZED.getStatusCode(), response2.statusCode(),
+				"The session existing before login is still valid");
+		}
+
+		@Test
 		@DisplayName("Local user authentication and idle session timeout")
 		@ResourceLock("DB")
 		void sessionTimeout() throws IOException, InterruptedException {

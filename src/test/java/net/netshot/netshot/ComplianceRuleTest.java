@@ -581,6 +581,28 @@ public class ComplianceRuleTest {
 			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
 				"Error message is not correct");
 		}
+
+		@Test
+		@DisplayName("Endless JS rule, in top-level code")
+		void endlessTopLevelRule() {
+			rule.setScript(
+				"while (true) {}"
+					+ "function check(device) {"
+					+ " return CONFORMING;"
+					+ "}"
+			);
+			// Set max execution time
+			Properties config = new Properties();
+			config.setProperty("netshot.javascript.maxexecutiontime", "5000");
+			Netshot.initConfig(config);
+			JavaScriptRule.loadConfig();
+			// Check
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.getResult(),
+				"The result is not INVALIDRULE");
+			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
+				"Error message is not correct");
+		}
 	}
 
 	@Nested
@@ -934,13 +956,55 @@ public class ComplianceRuleTest {
 			Properties config = new Properties();
 			config.setProperty("netshot.python.maxexecutiontime", "5000");
 			Netshot.initConfig(config);
-			JavaScriptRule.loadConfig();
+			PythonRule.loadConfig();
 			// Check
 			CheckResult result = rule.check(device, nullSession, taskContext);
 			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.getResult(),
 				"The result is not INVALIDRULE");
 			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
 				"Error message is not correct");
+		}
+
+		@Test
+		@DisplayName("Endless Python rule, in top-level code")
+		void endlessTopLevelRule() {
+			rule.setScript(
+				"while True:" + "\n"
+					+ "  pass" + "\n"
+					+ "" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			// Set max execution time
+			Properties config = new Properties();
+			config.setProperty("netshot.python.maxexecutiontime", "5000");
+			Netshot.initConfig(config);
+			PythonRule.loadConfig();
+			// Check
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.getResult(),
+				"The result is not INVALIDRULE");
+			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
+				"Error message is not correct");
+		}
+
+		@Test
+		@DisplayName("Python rule can't read the process environment from /proc")
+		void procSelfAccessRule() {
+			rule.setScript(
+				"def check(device):" + "\n"
+					+ "  for path in ['/proc/self/environ', '/proc/self/cmdline', '/proc/thread-self/environ']:" + "\n"
+					+ "    try:" + "\n"
+					+ "      with open(path, 'rb') as f:" + "\n"
+					+ "        f.read()" + "\n"
+					+ "      return { 'result': result_option.NONCONFORMING, 'comment': path }" + "\n"
+					+ "    except Exception:" + "\n"
+					+ "      pass" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule could read " + result.getComment());
 		}
 	}
 

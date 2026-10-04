@@ -474,6 +474,19 @@ public class RestService extends Thread {
 				builder.addHttpListener(httpBaseUri.getPort(), httpBaseUri.getHost());
 			}
 
+			// === Session cookie ===
+			// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
+			boolean behindProxy = Netshot.getConfig("netshot.http.trustxforwardedfor", false);
+			boolean secureCookie = Netshot.getConfig("netshot.http.securecookie", httpUseSsl || behindProxy);
+			if (!secureCookie) {
+				log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
+					+ "via a reverse proxy, set netshot.http.securecookie to true.");
+			}
+			else if (!httpUseSsl) {
+				log.info("The session cookie is marked as Secure while Netshot serves plain HTTP (expecting a HTTPS reverse proxy). "
+					+ "If users access Netshot over plain HTTP, set netshot.http.securecookie to false.");
+			}
+
 			// === Servlet (Jersey REST API) Deployment ===
 			DeploymentInfo servletBuilder = Servlets.deployment()
 				.setClassLoader(Netshot.class.getClassLoader())
@@ -489,7 +502,7 @@ public class RestService extends Thread {
 				.setServletSessionConfig(new ServletSessionConfig()
 					.setName(RestService.SESSION_COOKIE_NAME)
 					.setHttpOnly(true)
-					.setSecure(httpUseSsl)
+					.setSecure(secureCookie)
 					.setAttribute("SameSite", "Strict")
 				)
 				.setDefaultSessionTimeout(UiUser.SETTINGS.getMaxIdleTime());
@@ -2906,6 +2919,11 @@ public class RestService extends Thread {
 		Task task;
 		try {
 			task = session.get(Task.class, id);
+			if (task == null) {
+				log.error("Unable to find the task {}.", id);
+				throw new NetshotBadRequestException("Task not found",
+					NetshotBadRequestException.Reason.NETSHOT_TASK_NOT_FOUND);
+			}
 			DebugLog debugLog = task.getDebugLog();
 			String text = debugLog == null ? "" : debugLog.getText();
 			String fileName = String.format("debug_%d.log", id);
@@ -8770,19 +8788,19 @@ public class RestService extends Thread {
 			user = remoteUser;
 		}
 
-		if (user == null) {
-			HttpSession httpSession = request.getSession();
-			httpSession.invalidate();
+		// Always drop the existing session (if any): a new session (with new ID) is created
+		// on successful authentication, to prevent session fixation
+		HttpSession previousSession = request.getSession(false);
+		if (previousSession != null) {
+			previousSession.invalidate();
 		}
-		else if (user.getLevel() <= 0) {
+		if (user != null && user.getLevel() <= 0) {
 			AAA_LOG.info(
 				"User {} was successfully authenticated but has unsufficient permission (level {})",
 				user.getUsername(), user.getLevel());
-			HttpSession httpSession = request.getSession();
-			httpSession.invalidate();
 		}
-		else {
-			HttpSession httpSession = request.getSession();
+		else if (user != null) {
+			HttpSession httpSession = request.getSession(true);
 			httpSession.setAttribute(SecurityFilter.USER_ATTRIBUTE, user);
 			return user;
 		}

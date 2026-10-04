@@ -169,7 +169,7 @@ For production purposes it is recommended to request and install a certificate a
 
 Another option is to run Netshot behind a reverse proxy, such as NGINX.
 
-In this case, if the reverse proxy and Netshot are located on the same machine, it *might* be (arguably) acceptable to run non-SSL HTTP between the reverse proxy and Netshot. Use `netshot.http.ssl.enabled = false` in `netshot.conf` for this purpose.
+In this case, if the reverse proxy and Netshot are located on the same machine, it *might* be (arguably) acceptable to run non-SSL HTTP between the reverse proxy and Netshot. Use `netshot.http.ssl.enabled = false` in `netshot.conf` for this purpose. Also set `netshot.http.trustxforwardedfor = true` to log the real client IP addresses: this also marks the session cookie as `Secure` (only sent over HTTPS), unless `netshot.http.securecookie = false` is set (needed if users reach the reverse proxy over plain HTTP).
 
 ### Database access password
 

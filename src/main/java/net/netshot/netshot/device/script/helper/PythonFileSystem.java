@@ -111,10 +111,26 @@ public final class PythonFileSystem implements FileSystem {
 			}
 		}
 		if (realPath == null || !(realPath.startsWith(libFolder) || (venvFolder != null && realPath.startsWith(venvFolder))
-			|| (realPath.startsWith("/proc/")))) {
+			|| isSystemWideProcEntry(realPath))) {
 			log.info("Access ({}) to {} [{}] is denied", reason, path, realPath);
 			throw new SecurityException("Access to " + path + " is denied.");
 		}
+	}
+
+	/**
+	 * Checks whether the given (real) path is a system-wide /proc entry (e.g. /proc/cpuinfo).
+	 * Per-process entries (/proc/self, /proc/thread-self, /proc/[pid]) are excluded, as they
+	 * would expose the Netshot process environment (secrets passed as env variables),
+	 * command line or memory.
+	 * @param realPath the real path to check
+	 * @return true if the path is a system-wide /proc entry
+	 */
+	private static boolean isSystemWideProcEntry(Path realPath) {
+		if (!realPath.isAbsolute() || realPath.getNameCount() < 2 || !"proc".equals(realPath.getName(0).toString())) {
+			return false;
+		}
+		String entry = realPath.getName(1).toString();
+		return !"self".equals(entry) && !"thread-self".equals(entry) && !entry.chars().allMatch(Character::isDigit);
 	}
 
 	@Override

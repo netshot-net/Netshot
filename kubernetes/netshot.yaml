@@ -36,6 +36,9 @@ spec:
                 key: SECRET_KEY
           - name: NETSHOT_DB_URL
             value: 'jdbc:postgresql://postgres/netshot' #this assumes your using postgres
+          # Uncomment if Netshot is accessed over HTTPS (e.g. TLS terminated by the ingress)
+          # - name: NETSHOT_HTTP_SECURECOOKIE
+          #   value: "true"
 
 ---
 apiVersion: v1

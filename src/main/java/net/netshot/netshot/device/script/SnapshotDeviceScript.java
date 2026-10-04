@@ -22,6 +22,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.Map;
@@ -70,9 +71,17 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	protected void dumpConfig(Device device, Config config) {
 		String path = Netshot.getConfig("netshot.snapshots.dump");
 		if (path != null) {
+			// The device name is reported by the device itself, it must not be able to escape the dump folder
+			Path dumpFolder = Paths.get(path).toAbsolutePath().normalize();
+			String fileName = Objects.toString(device.getName(), "").replaceAll("[/\\\\\\x00]", "_");
+			Path dumpFile = dumpFolder.resolve(fileName).normalize();
+			if (fileName.isEmpty() || !dumpFolder.equals(dumpFile.getParent())) {
+				log.warn("Invalid device name '{}' to dump the configuration into the dump folder.", device.getName());
+				this.taskContext.warn("Unable to write the configuration to a file: invalid device name.");
+				return;
+			}
 			try {
-				BufferedWriter output = new BufferedWriter(
-					new FileWriter(Paths.get(path, device.getName()).normalize().toFile()));
+				BufferedWriter output = new BufferedWriter(new FileWriter(dumpFile.toFile()));
 				Map<String, ConfigAttribute> newAttributes = config.getAttributeMap();
 				for (AttributeDefinition definition : device.getDeviceDriver().getAttributes()) {
 					if (!definition.isDump()) {

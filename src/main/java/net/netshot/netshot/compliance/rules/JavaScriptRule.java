@@ -22,10 +22,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.graalvm.polyglot.Context;
@@ -247,26 +245,28 @@ public class JavaScriptRule extends Rule {
 			return new CheckResult(this, device, ResultOption.DISABLED);
 		}
 
+		// Both the script top-level code and the check function run on the executor, within the
+		// same deadline, so that an endless loop can't block the calling thread
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		long deadline = System.currentTimeMillis() + JavaScriptRule.SETTINGS.getMaxExecutionTime();
 		try (Context context = this.getContext()) {
-			context.eval(this.getSource());
-			context.eval(JSLOADER_SOURCE);
-			prepare(context, taskContext);
-			if (!this.jsValid) {
-				return new CheckResult(this, device, ResultOption.INVALIDRULE);
-			}
-			if (device.isExempted(this)) {
-				return new CheckResult(this, device, ResultOption.EXEMPTED);
-			}
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(device, null, session, taskContext, true);
-			Future<Value> futureResult = Executors.newSingleThreadExecutor().submit(new Callable<Value>() {
-				@Override
-				public Value call() throws Exception {
-					return context.getBindings("js").getMember("_check").execute(deviceHelper);
-				}
-			});
 			Value result;
 			try {
-				result = futureResult.get(JavaScriptRule.SETTINGS.getMaxExecutionTime(), TimeUnit.MILLISECONDS);
+				runBeforeDeadline(executor, () -> {
+					context.eval(this.getSource());
+					context.eval(JSLOADER_SOURCE);
+					return null;
+				}, deadline);
+				prepare(context, taskContext);
+				if (!this.jsValid) {
+					return new CheckResult(this, device, ResultOption.INVALIDRULE);
+				}
+				if (device.isExempted(this)) {
+					return new CheckResult(this, device, ResultOption.EXEMPTED);
+				}
+				JsDeviceHelper deviceHelper = new JsDeviceHelper(device, null, session, taskContext, true);
+				result = runBeforeDeadline(executor,
+					() -> context.getBindings("js").getMember("_check").execute(deviceHelper), deadline);
 			}
 			catch (TimeoutException e1) {
 				try {
@@ -308,6 +308,7 @@ public class JavaScriptRule extends Rule {
 			log.error("Error while running the script on device {}.", device.getId(), e);
 		}
 		finally {
+			executor.shutdownNow();
 			taskContext.debug("End of check");
 		}
 		return new CheckResult(this, device, ResultOption.INVALIDRULE);

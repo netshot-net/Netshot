@@ -71,6 +71,7 @@ Advanced connection pool tuning (see the [c3p0 documentation](https://www.mchang
 | `netshot.http.apipath` | URL path under which the REST API is served. Default: `/api`. |
 | `netshot.http.trustxforwardedfor` | Trust the `X-Forwarded-For` header to log the real client IP (used in AAA audit) when behind a proxy. Default: `false`. |
 | `netshot.http.sessioncookiename` | Name of the session cookie. |
+| `netshot.http.securecookie` | Sets the `Secure` flag on the session cookie, so that browsers only send it over HTTPS. Default: `true` if `netshot.http.ssl.enabled` or `netshot.http.trustxforwardedfor` is enabled (Netshot serving HTTPS, or behind a reverse proxy, expected to serve HTTPS), `false` otherwise. Set to `false` if users access Netshot over plain HTTP through a reverse proxy, otherwise browsers won't keep the session. |
 
 ## SSL / TLS
 
@@ -221,7 +222,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 
 | Parameter | Description |
 |---|---|
-| `netshot.snapshots.dump` | Directory to save a copy of each device configuration after every snapshot. No dump is written unless set. |
+| `netshot.snapshots.dump` | Directory to save a copy of each device configuration after every snapshot, in a file named after the device (path separators in the name are replaced by `_`). No dump is written unless set. |
 | `netshot.snapshots.auto.interval` | Minutes to wait after a detected change before triggering an automatic snapshot. Default: `10`. |
 | `netshot.snapshots.auto.anyip` | Match a device by any of its known IP addresses (not just management IPs) when identifying the source of a trap/Syslog message. Disabled by default. |
 | `netshot.snapshots.binary.path` | Directory to save binary file extracts from devices, for drivers that support this. |
@@ -262,7 +263,7 @@ Requires a configured GraalPy virtual environment — see [Python virtualenv for
 | `netshot.python.virtualenv` | Path to the (Graal) Python virtual environment. |
 | `netshot.python.maxexecutiontime` | Max time (ms) a Python compliance/diagnostic script may run. Default: `60000`. |
 | `netshot.python.allowallaccess` | Allow all types of host access from Python scripts. **Insecure** — off by default. |
-| `netshot.python.filesystemfilter` | Set to `false` to disable filesystem access restrictions for Python scripts. **Insecure** — restrictions are on by default. |
+| `netshot.python.filesystemfilter` | Set to `false` to disable filesystem access restrictions for Python scripts. **Insecure** — restrictions are on by default (read-only access to the GraalPy libraries, the virtualenv, and system-wide `/proc` entries, but not to the Netshot process's own `/proc` entries). |
 | `netshot.python.allowcreateprocess` | Allow Python scripts to spawn OS processes. **Insecure** — off by default. |
 | `netshot.python.allowcreatethread` | Allow Python scripts to create threads. **Insecure** — off by default. |
 | `netshot.python.allowhostfileaccess` | Allow Python scripts to access the host filesystem. **Insecure** — off by default. |

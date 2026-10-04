@@ -20,6 +20,10 @@ package net.netshot.netshot.compliance;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.hibernate.Session;
 import org.hibernate.annotations.OnDelete;
@@ -214,6 +218,31 @@ public abstract class Rule {
 	 */
 	public void clearExemptions() {
 		this.exemptions.clear();
+	}
+
+	/**
+	 * Runs a step of a script-based rule on the given executor, bounded by the given deadline.
+	 *
+	 * @param <T> the result type
+	 * @param executor the executor to run the step on
+	 * @param step the step to run
+	 * @param deadline the deadline (epoch, in ms)
+	 * @return the result of the step
+	 * @throws java.util.concurrent.TimeoutException if the deadline is reached before the step completes
+	 * @throws Exception the exception thrown by the step itself
+	 */
+	protected static <T> T runBeforeDeadline(ExecutorService executor, Callable<T> step, long deadline)
+		throws Exception {
+		long remaining = Math.max(1, deadline - System.currentTimeMillis());
+		try {
+			return executor.submit(step).get(remaining, TimeUnit.MILLISECONDS);
+		}
+		catch (ExecutionException e) {
+			if (e.getCause() instanceof Exception cause) {
+				throw cause;
+			}
+			throw e;
+		}
 	}
 
 	@Override

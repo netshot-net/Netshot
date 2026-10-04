@@ -150,7 +150,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 
 		@Override
 		public boolean checkPassword(NetworkAddress source, String givenPassword) {
-			if (this.expectedSourceIp != null && Objects.equals(this.expectedSourceIp, source)) {
+			if (this.expectedSourceIp != null && !Objects.equals(this.expectedSourceIp, source)) {
 				log.warn("Error during snapshot while requesting upload ticket: "
 					+ "invalid source IP {} vs {}.", source, this.expectedSourceIp);
 				taskContext.error("Error while requesting upload ticket: "
