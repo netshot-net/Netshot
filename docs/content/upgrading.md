@@ -53,7 +53,11 @@
 
 **Reverse proxy**: the session cookie is now marked as `Secure` (only sent over HTTPS) when `netshot.http.trustxforwardedfor` is enabled (as in the provided `compose.yaml`), in addition to when Netshot serves HTTPS itself. If users access Netshot over plain HTTP through a reverse proxy, set the new `netshot.http.securecookie` option to `false`, otherwise they won't be able to log in. If Netshot is accessed over HTTPS through a reverse proxy without `trustxforwardedfor`, set `netshot.http.securecookie` to `true`.
 
-**Secrets**: secret parameters (DB password, encryption password, AAA secrets...) can now be read from files, see [Secrets in files](configuration-reference.md#secrets-in-files). This is recommended over environment variables, which are visible to user-written Python scripts. See [Running Netshot in Docker](installation/docker.md#using-secret-files-recommended) to switch an existing Compose deployment.
+**Secrets**: secret parameters (DB password, encryption password, AAA secrets...) can now be read from files, see [Secrets in files](configuration-reference.md#secrets-in-files). This is recommended over environment variables, which are visible to anyone who can inspect the process or the container (and were visible to user-written Python scripts in previous versions). See [Running Netshot in Docker](installation/docker.md#using-secret-files-recommended) to switch an existing Compose deployment.
+
+**Java/GraalVM**: Netshot now runs on GraalVM for JDK 25 (25.0 LTS line), with the 25.0 GraalVM polyglot libraries (GraalJS, GraalPy). Upgrade the Java environment as described in the [install guide](installation/linux.md#2-install-the-graalvm-jre) (the container image already ships it). Oracle GraalVM for JDK 21 updates are no longer provided under the free GraalVM license from October 2026.
+
+**Python**: the embedded Python version moves from 3.11 to 3.12. If you use a [Python virtualenv](extending/python-virtualenv.md), recreate it with the matching GraalPy version (see [GraalPy](installation/linux.md#10-optional-graalpy)) and reinstall your packages. Python scripts can no longer see the environment variables of the Netshot process.
 
 ### Any version to 0.20+
 

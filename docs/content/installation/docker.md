@@ -12,7 +12,7 @@ docker compose up -d
 
 ### Using secret files (recommended)
 
-By default, `compose.yaml` passes the passwords as environment variables. These are visible to user-written Python scripts (compliance rules and diagnostics) and to anyone who can inspect the containers. To pass them as [secret files](../configuration-reference.md#secrets-in-files) instead:
+By default, `compose.yaml` passes the passwords as environment variables. These are visible to anyone who can inspect the containers (and to user-written Python scripts if `netshot.python.allowallaccess` is enabled). To pass them as [secret files](../configuration-reference.md#secrets-in-files) instead:
 
 1. Create the secret files next to `compose.yaml`. If Netshot was already started, use the **same values** as in `compose.yaml`: a different encryption password would make the device credentials stored in the database unreadable.
 
