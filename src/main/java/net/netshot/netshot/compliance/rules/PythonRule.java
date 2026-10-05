@@ -199,7 +199,7 @@ public class PythonRule extends Rule {
 	protected Context getContext() throws IOException {
 		IOAccess.Builder accessBuilder = IOAccess.newBuilder();
 		if (Netshot.getConfig("netshot.python.filesystemfilter", true)) {
-			accessBuilder.fileSystem(new PythonFileSystem());
+			accessBuilder.fileSystem(PythonFileSystem.newRestrictedFileSystem());
 		}
 		else {
 			log.info("Python VM, file system filter is disabled (this is not secure)");

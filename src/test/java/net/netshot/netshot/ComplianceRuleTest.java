@@ -1073,6 +1073,49 @@ public class ComplianceRuleTest {
 		}
 
 		@Test
+		@DisplayName("Python rule using standard library modules")
+		void standardLibraryRule() {
+			rule.setScript(
+				"import json, ipaddress, collections, datetime" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  net = ipaddress.ip_network('10.0.0.0/24')" + "\n"
+					+ "  data = json.loads(json.dumps({ 'name': device.get('name'), 'hosts': net.num_addresses }))" + "\n"
+					+ "  if data == { 'name': 'router00100', 'hosts': 256 }:" + "\n"
+					+ "    return result_option.CONFORMING" + "\n"
+					+ "  return { 'result': result_option.NONCONFORMING, 'comment': str(data) }" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule couldn't use the standard library: " + taskContext.getLog());
+		}
+
+		@Test
+		@DisplayName("Python rule can't modify the Python standard library")
+		void standardLibraryWriteRule() {
+			rule.setScript(
+				"import os, json" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  lib = os.path.dirname(json.__file__)" + "\n"
+					+ "  attempts = {" + "\n"
+					+ "    'create': lambda: open(os.path.join(lib, 'netshot_probe.py'), 'w').write('x = 1')," + "\n"
+					+ "    'append': lambda: open(json.__file__, 'a').write('')," + "\n"
+					+ "    'mkdir': lambda: os.mkdir(os.path.join(lib, 'netshot_probe'))," + "\n"
+					+ "    'remove': lambda: os.remove(json.__file__)," + "\n"
+					+ "  }" + "\n"
+					+ "  for name, attempt in attempts.items():" + "\n"
+					+ "    try:" + "\n"
+					+ "      attempt()" + "\n"
+					+ "      return { 'result': result_option.NONCONFORMING, 'comment': name }" + "\n"
+					+ "    except Exception:" + "\n"
+					+ "      pass" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule could modify the standard library (" + result.getComment() + "): " + taskContext.getLog());
+		}
+
+		@Test
 		@DisplayName("Python rule can't read the process environment variables")
 		void environmentAccessRule() {
 			Assertions.assertNotNull(System.getenv("PATH"), "PATH should be set in the test environment");

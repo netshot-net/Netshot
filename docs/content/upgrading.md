@@ -57,7 +57,7 @@
 
 **Java/GraalVM**: Netshot now runs on GraalVM for JDK 25 (25.0 LTS line), with the 25.0 GraalVM polyglot libraries (GraalJS, GraalPy). Upgrade the Java environment as described in the [install guide](installation/linux.md#2-install-the-graalvm-jre) (the container image already ships it). Oracle GraalVM for JDK 21 updates are no longer provided under the free GraalVM license from October 2026.
 
-**Python**: the embedded Python version moves from 3.11 to 3.12. If you use a [Python virtualenv](extending/python-virtualenv.md), recreate it with the matching GraalPy version (see [GraalPy](installation/linux.md#10-optional-graalpy)) and reinstall your packages. Python scripts can no longer see the environment variables of the Netshot process.
+**Python**: the embedded Python version moves from 3.11 to 3.12. If you use a [Python virtualenv](extending/python-virtualenv.md), recreate it with the matching GraalPy version (see [GraalPy](installation/linux.md#10-optional-graalpy)) and reinstall your packages. Python scripts can no longer see the environment variables of the Netshot process, and Python compliance rules can now import the modules of the Python standard library (such as `json`) with the default file system filter.
 
 ### Any version to 0.20+
 
