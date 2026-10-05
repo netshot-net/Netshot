@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.EnvironmentAccess;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -213,6 +214,8 @@ public class PythonRule extends Rule {
 			accessBuilder.allowHostSocketAccess(true);
 		}
 		else {
+			// Don't expose the Netshot process environment (which may contain secrets) to the scripts
+			builder.allowEnvironmentAccess(EnvironmentAccess.NONE);
 			if (Netshot.getConfig("netshot.python.allowcreatethread", false)) {
 				log.info("Python VM, allowing thread creation (this is not secure)");
 				builder.allowCreateThread(true);

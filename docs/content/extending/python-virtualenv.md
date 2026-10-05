@@ -11,6 +11,8 @@ mkdir python && cd python
 graalpython -m venv venv
 # For versions 0.21.2+
 # Please check the GraalPy section of the installation guide if you are missing graalpy
+# (the GraalPy version must match the one embedded in Netshot: recreate the venv after
+# upgrading to a Netshot version with a different Python version, e.g. 0.25.1)
 /usr/lib/graalpy/bin/graalpy -m venv venv
 source venv/bin/activate
 /usr/local/netshot/python/venv/bin/graalpy -m pip install --upgrade pip

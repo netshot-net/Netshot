@@ -2,7 +2,7 @@ name: netshot
 
 # Passwords are set as environment variables below, for an easy start. Change them before the first start.
 # More secure option (recommended): pass them as secret files instead, as environment variables are
-# visible to user-written Python scripts and to anyone who can inspect the containers:
+# visible to anyone who can inspect the containers:
 #   1. Create the secret files (with the same values, if Netshot was already started):
 #        mkdir -m 700 secrets
 #        printf '%s' 'change_this_pass' > secrets/db_password

@@ -1071,6 +1071,26 @@ public class ComplianceRuleTest {
 			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
 				"The Python rule could read " + result.getComment());
 		}
+
+		@Test
+		@DisplayName("Python rule can't read the process environment variables")
+		void environmentAccessRule() {
+			Assertions.assertNotNull(System.getenv("PATH"), "PATH should be set in the test environment");
+			rule.setScript(
+				"import os, sys" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  if 'PATH' in os.environ:" + "\n"
+					+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'os.environ' }" + "\n"
+					+ "  del sys.modules['posix']" + "\n"
+					+ "  import posix" + "\n"
+					+ "  if b'PATH' in posix.environ or 'PATH' in posix.environ:" + "\n"
+					+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'posix.environ' }" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule could read the environment through " + result.getComment());
+		}
 	}
 
 	private ComplianceRuleTest() {

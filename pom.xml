@@ -7,7 +7,7 @@
 	<name>Netshot</name>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<polyglot.version>24.1.2</polyglot.version>
+		<polyglot.version>25.0.4.1.1</polyglot.version>
 		<hibernate.version>6.6.55.Final</hibernate.version>
 		<c3p0.version>0.14.1</c3p0.version>
 		<undertow.version>2.4.2.Final</undertow.version>
@@ -48,6 +48,8 @@
 				<configuration>
 					<source>21</source>
 					<target>21</target>
+					<!-- Since JDK 23, annotation processors (Lombok) are only run if explicitly enabled -->
+					<proc>full</proc>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -92,6 +94,10 @@
 									<manifestEntries>
 										<Main-Class>net.netshot.netshot.Netshot</Main-Class>
 										<Launcher-Agent-Class>net.netshot.netshot.Netshot</Launcher-Agent-Class>
+										<!-- Allow Truffle to load its native libraries (restricted methods, JEP 472) -->
+										<Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
+										<!-- Truffle relies on JDK-version-specific classes (META-INF/versions) -->
+										<Multi-Release>true</Multi-Release>
 									</manifestEntries>
 								</transformer>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
@@ -180,12 +186,6 @@
 					<groupId>org.bouncycastle</groupId>
 				</exclusion>
 			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.graalvm.polyglot</groupId>
-			<artifactId>llvm</artifactId>
-			<version>${polyglot.version}</version>
-			<type>pom</type>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>
