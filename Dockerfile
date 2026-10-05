@@ -21,7 +21,6 @@ RUN wget --quiet https://download.oracle.com/graalvm/${GRAALVM_VERSION%%.*}/arch
     tar xvzf graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     rm -f graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     JDIR=$(ls -d graalvm-jdk-${GRAALVM_VERSION}* | tail -n 1) && \
-    mkdir ${JDIR}/languages && \
     update-alternatives --install /usr/bin/java java /usr/lib/jvm/${JDIR}/bin/java 92100
 
 FROM debian-graalvm AS debian-graalvm-graalpy
