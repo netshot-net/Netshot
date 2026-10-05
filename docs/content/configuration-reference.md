@@ -19,7 +19,7 @@ Every parameter can also be passed as an environment variable: replace `.` with 
 Secret parameters can be read from a file instead of being set inline: set the parameter name followed by `.file` (or `_FILE` for the environment variable) to the path of the file containing the secret. For example, `NETSHOT_DB_PASSWORD_FILE=/run/secrets/db_password` makes Netshot read the database password from `/run/secrets/db_password`. This is the recommended way to pass secrets to a container (Docker/Compose secrets, Kubernetes secrets mounted as files).
 
 !!! warning
-    Don't pass secrets as environment variables: the environment of the Netshot process is visible to user-written Python scripts (compliance rules and diagnostics).
+    Prefer secret files over environment variables: the environment of the Netshot process is visible to anyone who can inspect the process or the container, and to user-written Python scripts if `netshot.python.allowallaccess` is enabled (or with Netshot versions older than 0.25.1).
 
 This applies to the following parameters:
 
