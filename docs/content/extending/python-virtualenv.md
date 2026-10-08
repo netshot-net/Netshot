@@ -32,6 +32,12 @@ import site
 import ...
 ```
 
+Packages which start threads (e.g. logging libraries with background queues, such as `loguru` with `enqueue=True`) need the following option, otherwise the script fails with `Creating threads is not allowed`:
+
+```ini
+netshot.python.allowcreatethread = true
+```
+
 For packages which require additional access to the system, the two additional configuration options might be useful, but are insecure:
 
 ```ini
