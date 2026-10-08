@@ -21,7 +21,7 @@ const Info = {
 	name: "HPEArubaOSCX",
 	description: "HPE ArubaOS CX",
 	author: "Netshot Team",
-	version: "1.3"
+	version: "1.4"
 };
 
 const Config = {
@@ -50,6 +50,12 @@ const Device = {
 		type: "Text",
 		title: "Base MAC address",
 		comparable: true,
+		searchable: true,
+		checkable: true,
+	},
+	"configurationSaved": {
+		type: "Binary",
+		title: "Configuration saved",
 		searchable: true,
 		checkable: true,
 	}
