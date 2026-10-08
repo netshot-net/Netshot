@@ -20,6 +20,7 @@ package net.netshot.netshot;
 
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.hibernate.Session;
 
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class ComplianceRuleTest {
 
@@ -1036,6 +1038,47 @@ public class ComplianceRuleTest {
 			rule.setScript(
 				"while True:" + "\n"
 					+ "  pass" + "\n"
+					+ "" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			// Set max execution time
+			Properties config = new Properties();
+			config.setProperty("netshot.python.maxexecutiontime", "5000");
+			Netshot.initConfig(config);
+			PythonRule.loadConfig();
+			// Check
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.getResult(),
+				"The result is not INVALIDRULE");
+			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
+				"Error message is not correct");
+		}
+
+		@Test
+		@DisplayName("Python rule importing the threading module")
+		@Timeout(value = 60, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+		void threadingImportRule() {
+			rule.setScript(
+				"import threading" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The result is not CONFORMING");
+		}
+
+		@Test
+		@DisplayName("Endless Python rule, in exit handler")
+		@Timeout(value = 60, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+		void endlessExitHandlerRule() {
+			rule.setScript(
+				"import atexit" + "\n"
+					+ "def forever():" + "\n"
+					+ "  while True:" + "\n"
+					+ "    pass" + "\n"
+					+ "atexit.register(forever)" + "\n"
 					+ "" + "\n"
 					+ "def check(device):" + "\n"
 					+ "  return result_option.CONFORMING" + "\n"
