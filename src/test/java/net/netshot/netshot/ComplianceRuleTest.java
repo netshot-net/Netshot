@@ -645,6 +645,48 @@ public class ComplianceRuleTest {
 			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
 				"Error message is not correct");
 		}
+
+		@Test
+		@DisplayName("JS rule using Toolbox.ConfigTree")
+		void toolboxConfigTreeRule() {
+			rule.setScript(
+				"function check(device) {"
+					+ "  const config = Toolbox.ConfigTree.parse(device.get('runningConfig'));"
+					+ "  const down = config.findWithoutChild(/^interface (\\S+)/, /^no shutdown$/);"
+					+ "  if (config.findValue(/^hostname (\\S+)/) !== 'router00100') {"
+					+ "    return NOTAPPLICABLE;"
+					+ "  }"
+					+ "  return {"
+					+ "    result: down.length > 0 ? NONCONFORMING : CONFORMING,"
+					+ "    comment: down.map((i) => i.match[1]).join(','),"
+					+ "  };"
+					+ "}"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.NONCONFORMING, result.getResult(),
+				"The result is not NONCONFORMING");
+			Assertions.assertEquals("GigabitEthernet0/2", result.getComment(), "The comment is not correct");
+		}
+
+		@Test
+		@DisplayName("JS rule using device.findSections, with its own Toolbox declaration")
+		void findSectionsRule() {
+			rule.setScript(
+				"const Toolbox = 'user value';"
+					+ "function check(device) {"
+					+ "  const sections = device.findSections(device.get('runningConfig'), /^interface (\\S+)/m);"
+					+ "  if (Toolbox === 'user value' && sections.length === 3"
+					+ "      && sections[2].match[1] === 'GigabitEthernet0/2'"
+					+ "      && sections[2].config === ' description Description of Gi0/2\\n ip address 10.0.2.1 255.255.255.0') {"
+					+ "    return CONFORMING;"
+					+ "  }"
+					+ "  return NONCONFORMING;"
+					+ "}"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The result is not CONFORMING");
+		}
 	}
 
 	@Nested
@@ -1070,6 +1112,47 @@ public class ComplianceRuleTest {
 			CheckResult result = rule.check(device, nullSession, taskContext);
 			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
 				"The Python rule could read " + result.getComment());
+		}
+
+		@Test
+		@DisplayName("Python rule using netshot.toolbox.ConfigTree")
+		void toolboxConfigTreeRule() {
+			rule.setScript(
+				"from netshot.toolbox import ConfigTree" + "\n"
+					+ "\n"
+					+ "def check(device):" + "\n"
+					+ "  config = ConfigTree.parse(device.get('running_config'))" + "\n"
+					+ "  down = config.find_without_child(r'^interface (\\S+)', r'^no shutdown$')" + "\n"
+					+ "  if config.find_value(r'^hostname (\\S+)') != 'router00100':" + "\n"
+					+ "    return result_option.NOTAPPLICABLE" + "\n"
+					+ "  return {" + "\n"
+					+ "    'result': result_option.NONCONFORMING if down else result_option.CONFORMING," + "\n"
+					+ "    'comment': ','.join(i.match.group(1) for i in down)," + "\n"
+					+ "  }" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.NONCONFORMING, result.getResult(),
+				"The result is not NONCONFORMING");
+			Assertions.assertEquals("GigabitEthernet0/2", result.getComment(), "The comment is not correct");
+		}
+
+		@Test
+		@DisplayName("Python rule using the ciscoconfparse-compatible parser")
+		void ciscoConfParseRule() {
+			rule.setScript(
+				"from netshot.toolbox import CiscoConfParse" + "\n"
+					+ "\n"
+					+ "def check(device):" + "\n"
+					+ "  parse = CiscoConfParse(device.get('running_config').splitlines())" + "\n"
+					+ "  vty = parse.find_objects_w_child(r'^line vty', r'transport input all')" + "\n"
+					+ "  if vty:" + "\n"
+					+ "    return {'result': result_option.NONCONFORMING, 'comment': vty[0].text}" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.NONCONFORMING, result.getResult(),
+				"The result is not NONCONFORMING");
+			Assertions.assertEquals("line vty 0 4", result.getComment(), "The comment is not correct");
 		}
 	}
 

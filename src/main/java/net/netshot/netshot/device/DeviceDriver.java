@@ -84,6 +84,7 @@ import net.netshot.netshot.device.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
 import net.netshot.netshot.device.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.device.script.helper.JsUtils;
+import net.netshot.netshot.device.script.helper.ScriptToolbox;
 import net.netshot.netshot.device.collector.SnmpTrapReceiver;
 import net.netshot.netshot.device.collector.SyslogServer;
 import net.netshot.netshot.rest.RestViews.DefaultView;
@@ -1499,6 +1500,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * @param context the context to load code into
 	 */
 	public final void loadCode(Context context) {
+		ScriptToolbox.loadJs(context);
 		context.eval(this.source);
 		context.eval(JSLOADER_SOURCE);
 	}

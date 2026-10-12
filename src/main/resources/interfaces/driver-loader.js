@@ -700,44 +700,8 @@ const _connect = (_function, _options) => {
 			},
 
 			findSections: function(text, regex) {
-				if (typeof(text) !== "string") {
-					throw "Invalid text string in findSections.";
-				}
-				if (typeof(regex) !== "object" || !(regex instanceof RegExp)) {
-					throw "Invalid regex parameter in findSections.";
-				}
-				const sections = [];
-				let section;
-				let indent = -1;
-				const lines = text.split(/[\r\n]+/g);
-				for (let l in lines) {
-					const line = lines[l];
-					const i = line.search(/[^\t\s]/);
-					if (i > indent) {
-						if (indent > -1) {
-							section.lines.push(line);
-						}
-					}
-					else {
-						indent = -1;
-					}
-					if (indent == -1) {
-						regex.lastIndex = 0;
-						const match = regex.exec(line);
-						if (match) {
-							indent = i;
-							section = {
-								match: match,
-								lines: []
-							};
-							sections.push(section);
-						}
-					}
-				}
-				sections.forEach((section) => {
-					section.config = section.lines.join("\n");
-				});
-				return sections;
+				// Toolbox implementation (see toolbox.js), through the alias which user code can't shadow
+				return __netshotToolbox.findSections(text, regex);
 			},
 
 			sleep: function(millis) {
