@@ -54,6 +54,7 @@ import net.netshot.netshot.device.Device;
 import net.netshot.netshot.device.DeviceDriver;
 import net.netshot.netshot.device.script.helper.PyDeviceHelper;
 import net.netshot.netshot.device.script.helper.PythonFileSystem;
+import net.netshot.netshot.device.script.helper.ScriptToolbox;
 import net.netshot.netshot.rest.RestViews.DefaultView;
 import net.netshot.netshot.work.TaskContext;
 
@@ -291,6 +292,7 @@ public class PythonRule extends Rule {
 			Value result;
 			try {
 				runBeforeDeadline(executor, () -> {
+					ScriptToolbox.loadPython(context);
 					context.eval(this.getSource());
 					context.eval(PYLOADER_SOURCE);
 					return null;

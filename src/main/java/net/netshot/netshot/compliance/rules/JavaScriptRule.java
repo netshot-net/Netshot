@@ -54,6 +54,7 @@ import net.netshot.netshot.device.Device;
 import net.netshot.netshot.device.DeviceDriver;
 import net.netshot.netshot.device.script.helper.JsDeviceHelper;
 import net.netshot.netshot.device.script.helper.JsUtils;
+import net.netshot.netshot.device.script.helper.ScriptToolbox;
 import net.netshot.netshot.rest.RestViews.DefaultView;
 import net.netshot.netshot.work.TaskContext;
 
@@ -253,6 +254,7 @@ public class JavaScriptRule extends Rule {
 			Value result;
 			try {
 				runBeforeDeadline(executor, () -> {
+					ScriptToolbox.loadJs(context);
 					context.eval(this.getSource());
 					context.eval(JSLOADER_SOURCE);
 					return null;
