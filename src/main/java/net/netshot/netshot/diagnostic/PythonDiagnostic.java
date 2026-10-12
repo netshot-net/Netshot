@@ -39,6 +39,7 @@ import lombok.Setter;
 import net.netshot.netshot.device.Device;
 import net.netshot.netshot.device.DeviceGroup;
 import net.netshot.netshot.device.attribute.AttributeDefinition.AttributeType;
+import net.netshot.netshot.device.script.helper.ScriptToolbox;
 import net.netshot.netshot.rest.RestViews.DefaultView;
 
 /**
@@ -88,6 +89,7 @@ public class PythonDiagnostic extends Diagnostic {
 	public Value getJsObject(Device device, Context context) throws ScriptException {
 		Source diagSource = Source.newBuilder("python", this.getScript(),
 			"_diag%d.py".formatted(this.getId())).buildLiteral();
+		ScriptToolbox.loadPython(context);
 		context.eval(diagSource);
 		Value diagnose = context.getBindings("python").getMember("diagnose");
 		if (!diagnose.canExecute()) {
