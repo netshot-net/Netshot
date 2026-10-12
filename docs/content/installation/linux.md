@@ -51,17 +51,17 @@ Compatibility matrix:
 | 0.19.x | 17.0.8-graal | - |
 | 0.20.x | 21.0.4-graal | 23.1.5 |
 | 0.21.x - 0.23.x | 21.0.6-graal | 24.1.2 |
-| 0.24.0 and newer | 21.0.9-graal | 24.1.2 |
+| 0.24.0 - 0.25.0 | 21.0.9-graal | 24.1.2 |
+| 0.25.1 and newer | 25.0.4-graal (or newer 25.0.x) | 25.0.4.1.1 |
 
 For modern GraalVM versions:
 
 ```bash
-GRAALVM_VERSION="21.0.9"
+GRAALVM_VERSION="25.0.4"
 wget --quiet https://download.oracle.com/graalvm/${GRAALVM_VERSION%%.*}/archive/graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     tar xvzf graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     rm -f graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     JDIR=$(ls -d graalvm-jdk-${GRAALVM_VERSION}* | tail -n 1) && \
-    mkdir ${JDIR}/languages && \
     sudo mkdir -p /usr/lib/jvm && \
     sudo mv ${JDIR} /usr/lib/jvm/${JDIR}
 sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/${JDIR}/bin/java 92200
@@ -79,10 +79,13 @@ java -version 2>&1 | grep Environment | grep GraalVM
 It should return something like:
 
 ```text
-Java(TM) SE Runtime Environment Oracle GraalVM 21.0.4+8.1 (build 21.0.4+8-LTS-jvmci-23.1-b41)
+Java(TM) SE Runtime Environment Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS-jvmci-b01)
 ```
 
-For GraalVM 17, install the JS and Python languages from GraalVM (ignore for GraalVM 21):
+!!! note
+    Use the GraalVM version of the 25.0 (LTS) line: the polyglot libraries bundled in Netshot only get the optimizing (JIT) runtime on a GraalVM 25.0.x JDK. GraalVM 25.1+ ("Innovation" releases) is not compatible, and a standard OpenJDK or older GraalVM falls back to a much slower interpreter-only mode (Netshot then logs a warning about the fallback runtime).
+
+For GraalVM 17, install the JS and Python languages from GraalVM (ignore for GraalVM 21+):
 
 ```bash
 sudo /usr/lib/jvm/graalvm/bin/gu install js python
@@ -205,11 +208,13 @@ Although running as a non-root user, Netshot should be able to listen to privile
 If you are willing to use Python scripts within Netshot along with extra packages, you may want to install GraalPy locally:
 
 ```bash
-GRAALPY_VERSION="24.1.2" # That's the 'Polyglot' column of the compatibility matrix above
-wget --quiet https://github.com/oracle/graalpython/releases/download/graal-${GRAALPY_VERSION}/graalpy-jvm-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
-    tar xvzf graalpy-jvm-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
-    mv graalpy-${GRAALPY_VERSION}-linux-amd64 /usr/lib/graalpy
+GRAALPY_VERSION="25.0.3" # Closest GraalPy standalone release to the 'Polyglot' column of the compatibility matrix above
+wget --quiet https://github.com/oracle/graalpython/releases/download/graal-${GRAALPY_VERSION}/graalpy-community-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
+    tar xzf graalpy-community-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
+    mv graalpy-community-${GRAALPY_VERSION}-linux-amd64 /usr/lib/graalpy
 ```
+
+For Netshot 0.24.x - 0.25.0, use `GRAALPY_VERSION="24.1.2"` and the `graalpy-jvm-${GRAALPY_VERSION}-linux-amd64.tar.gz` archive (extracted folder `graalpy-${GRAALPY_VERSION}-linux-amd64`) instead.
 
 Once GraalPy is installed, you can create a virtualenv to install external packages: see the [Python virtualenv](../extending/python-virtualenv.md) page.
 

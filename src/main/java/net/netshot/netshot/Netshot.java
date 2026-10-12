@@ -585,15 +585,15 @@ public class Netshot extends Thread {
 	 * Check the JVM name and print a warning message if it's not GraalVM.
 	 */
 	protected static void checkJvm() {
-		final String vendorVersion = System.getProperty("java.vendor.version"); // e.g. Oracle GraalVM 17.0.8+9.1
+		final String vendorVersion = System.getProperty("java.vendor.version"); // e.g. Oracle GraalVM 25.0.4+7.1
 		final String vendor = System.getProperty("java.vendor"); // e.g. Oracle Corporation
-		final String version = System.getProperty("java.vm.version"); // e.g. 11.0.10+8-jvmci-21.0-b06
+		final String version = System.getProperty("java.vm.version"); // e.g. 25.0.4+7-LTS-jvmci-b01
 		log.warn("Running on JVM: {}", vendorVersion);
 		if (!vendorVersion.matches(".*GraalVM.*")) {
 			log.error("The current JVM vendor version '{}' by '{}' doesn't look like GraalVM, Netshot might not work properly.", vendorVersion, vendor);
 		}
-		if (!version.matches("^21\\..*")) {
-			log.error("The JVM version '{}' doesn't look like version 21, Netshot might not work properly.", version);
+		if (!version.matches("^25\\..*")) {
+			log.error("The JVM version '{}' doesn't look like version 25, Netshot might not work properly.", version);
 		}
 	}
 

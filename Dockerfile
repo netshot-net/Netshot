@@ -1,5 +1,8 @@
 ARG NETSHOT_VERSION=0.0.1-dev
-ARG GRAALVM_VERSION=21.0.9
+ARG GRAALVM_VERSION=25.0.4
+# GraalPy standalone (used to create virtualenvs), matching the polyglot version of pom.xml
+# as closely as possible: GraalPy 25.0.x standalones are not published for every polyglot version
+ARG GRAALPY_VERSION=25.0.3
 ARG NODE_VERSION=22
 ARG DEBIAN_VERSION=13
 
@@ -18,19 +21,18 @@ RUN wget --quiet https://download.oracle.com/graalvm/${GRAALVM_VERSION%%.*}/arch
     tar xvzf graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     rm -f graalvm-jdk-${GRAALVM_VERSION}_linux-x64_bin.tar.gz && \
     JDIR=$(ls -d graalvm-jdk-${GRAALVM_VERSION}* | tail -n 1) && \
-    mkdir ${JDIR}/languages && \
     update-alternatives --install /usr/bin/java java /usr/lib/jvm/${JDIR}/bin/java 92100
 
 FROM debian-graalvm AS debian-graalvm-graalpy
 ARG NETSHOT_VERSION
+ARG GRAALPY_VERSION
 COPY pom.xml mvnw /build/
 COPY .mvn /build/.mvn
 WORKDIR /build
-RUN GRAALPY_VERSION=$(JAVA_HOME=/ ./mvnw help:evaluate -Dexpression=polyglot.version -q -DforceStdout) && \
-    echo GRAALPY_VERSION && \
-    wget --quiet https://github.com/oracle/graalpython/releases/download/graal-${GRAALPY_VERSION}/graalpy-jvm-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
-    tar xvzf graalpy-jvm-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
-    mv graalpy-${GRAALPY_VERSION}-linux-amd64 graalpy
+RUN wget --quiet https://github.com/oracle/graalpython/releases/download/graal-${GRAALPY_VERSION}/graalpy-community-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
+    tar xzf graalpy-community-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
+    rm -f graalpy-community-${GRAALPY_VERSION}-linux-amd64.tar.gz && \
+    mv graalpy-community-${GRAALPY_VERSION}-linux-amd64 graalpy
 
 FROM debian-graalvm-graalpy AS builder
 ARG NETSHOT_VERSION

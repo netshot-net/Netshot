@@ -20,6 +20,7 @@ package net.netshot.netshot;
 
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.hibernate.Session;
 
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class ComplianceRuleTest {
 
@@ -1096,6 +1098,47 @@ public class ComplianceRuleTest {
 		}
 
 		@Test
+		@DisplayName("Python rule importing the threading module")
+		@Timeout(value = 60, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+		void threadingImportRule() {
+			rule.setScript(
+				"import threading" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The result is not CONFORMING");
+		}
+
+		@Test
+		@DisplayName("Endless Python rule, in exit handler")
+		@Timeout(value = 60, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+		void endlessExitHandlerRule() {
+			rule.setScript(
+				"import atexit" + "\n"
+					+ "def forever():" + "\n"
+					+ "  while True:" + "\n"
+					+ "    pass" + "\n"
+					+ "atexit.register(forever)" + "\n"
+					+ "" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			// Set max execution time
+			Properties config = new Properties();
+			config.setProperty("netshot.python.maxexecutiontime", "5000");
+			Netshot.initConfig(config);
+			PythonRule.loadConfig();
+			// Check
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.getResult(),
+				"The result is not INVALIDRULE");
+			Assertions.assertTrue(taskContext.getLog().contains("rule took too long"),
+				"Error message is not correct");
+		}
+
+		@Test
 		@DisplayName("Python rule can't read the process environment from /proc")
 		void procSelfAccessRule() {
 			rule.setScript(
@@ -1153,6 +1196,69 @@ public class ComplianceRuleTest {
 			Assertions.assertEquals(CheckResult.ResultOption.NONCONFORMING, result.getResult(),
 				"The result is not NONCONFORMING");
 			Assertions.assertEquals("line vty 0 4", result.getComment(), "The comment is not correct");
+		}
+
+		@Test
+		@DisplayName("Python rule using standard library modules")
+		void standardLibraryRule() {
+			rule.setScript(
+				"import json, ipaddress, collections, datetime" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  net = ipaddress.ip_network('10.0.0.0/24')" + "\n"
+					+ "  data = json.loads(json.dumps({ 'name': device.get('name'), 'hosts': net.num_addresses }))" + "\n"
+					+ "  if data == { 'name': 'router00100', 'hosts': 256 }:" + "\n"
+					+ "    return result_option.CONFORMING" + "\n"
+					+ "  return { 'result': result_option.NONCONFORMING, 'comment': str(data) }" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule couldn't use the standard library: " + taskContext.getLog());
+		}
+
+		@Test
+		@DisplayName("Python rule can't modify the Python standard library")
+		void standardLibraryWriteRule() {
+			rule.setScript(
+				"import os, json" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  lib = os.path.dirname(json.__file__)" + "\n"
+					+ "  attempts = {" + "\n"
+					+ "    'create': lambda: open(os.path.join(lib, 'netshot_probe.py'), 'w').write('x = 1')," + "\n"
+					+ "    'append': lambda: open(json.__file__, 'a').write('')," + "\n"
+					+ "    'mkdir': lambda: os.mkdir(os.path.join(lib, 'netshot_probe'))," + "\n"
+					+ "    'remove': lambda: os.remove(json.__file__)," + "\n"
+					+ "  }" + "\n"
+					+ "  for name, attempt in attempts.items():" + "\n"
+					+ "    try:" + "\n"
+					+ "      attempt()" + "\n"
+					+ "      return { 'result': result_option.NONCONFORMING, 'comment': name }" + "\n"
+					+ "    except Exception:" + "\n"
+					+ "      pass" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule could modify the standard library (" + result.getComment() + "): " + taskContext.getLog());
+		}
+
+		@Test
+		@DisplayName("Python rule can't read the process environment variables")
+		void environmentAccessRule() {
+			Assertions.assertNotNull(System.getenv("PATH"), "PATH should be set in the test environment");
+			rule.setScript(
+				"import os, sys" + "\n"
+					+ "def check(device):" + "\n"
+					+ "  if 'PATH' in os.environ:" + "\n"
+					+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'os.environ' }" + "\n"
+					+ "  del sys.modules['posix']" + "\n"
+					+ "  import posix" + "\n"
+					+ "  if b'PATH' in posix.environ or 'PATH' in posix.environ:" + "\n"
+					+ "    return { 'result': result_option.NONCONFORMING, 'comment': 'posix.environ' }" + "\n"
+					+ "  return result_option.CONFORMING" + "\n"
+			);
+			CheckResult result = rule.check(device, nullSession, taskContext);
+			Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, result.getResult(),
+				"The Python rule could read the environment through " + result.getComment());
 		}
 	}
 

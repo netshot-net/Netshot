@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Hex;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.EnvironmentAccess;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -1486,7 +1487,9 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 			.build();
 		Context.Builder builder = Context
 			.newBuilder("js", "python")
-			.allowHostAccess(hostAccess);
+			.allowHostAccess(hostAccess)
+			// Don't expose the Netshot process environment (which may contain secrets) to the scripts
+			.allowEnvironmentAccess(EnvironmentAccess.NONE);
 		Context context;
 		synchronized (engine) {
 			context = builder.engine(engine).build();
