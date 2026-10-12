@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.EnvironmentAccess;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -199,7 +200,7 @@ public class PythonRule extends Rule {
 	protected Context getContext() throws IOException {
 		IOAccess.Builder accessBuilder = IOAccess.newBuilder();
 		if (Netshot.getConfig("netshot.python.filesystemfilter", true)) {
-			accessBuilder.fileSystem(new PythonFileSystem());
+			accessBuilder.fileSystem(PythonFileSystem.newRestrictedFileSystem());
 		}
 		else {
 			log.info("Python VM, file system filter is disabled (this is not secure)");
@@ -214,6 +215,8 @@ public class PythonRule extends Rule {
 			accessBuilder.allowHostSocketAccess(true);
 		}
 		else {
+			// Don't expose the Netshot process environment (which may contain secrets) to the scripts
+			builder.allowEnvironmentAccess(EnvironmentAccess.NONE);
 			if (Netshot.getConfig("netshot.python.allowcreatethread", false)) {
 				log.info("Python VM, allowing thread creation (this is not secure)");
 				builder.allowCreateThread(true);
@@ -284,29 +287,42 @@ public class PythonRule extends Rule {
 			return new CheckResult(this, device, ResultOption.DISABLED);
 		}
 
-		// Both the script top-level code and the check function run on the executor, within the
-		// same deadline, so that an endless loop can't block the calling thread
+		// The script top-level code, the check function and the context closing (which runs the
+		// Python exit handlers) all run on the executor, within the same deadline, so that an
+		// endless loop can't block the calling thread. Closing the context on the same thread
+		// also matters: once the 'threading' module is loaded, Python considers this thread
+		// as the main thread, and would wait forever for it to end if closing from another one
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		long deadline = System.currentTimeMillis() + PythonRule.SETTINGS.getMaxExecutionTime();
-		try (Context context = this.getContext()) {
-			Value result;
+		Context context = null;
+		try {
+			context = this.getContext();
+			final Context ctx = context;
+			CheckResult checkResult;
 			try {
 				runBeforeDeadline(executor, () -> {
-					ScriptToolbox.loadPython(context);
-					context.eval(this.getSource());
-					context.eval(PYLOADER_SOURCE);
+					ScriptToolbox.loadPython(ctx);
+					ctx.eval(this.getSource());
+					ctx.eval(PYLOADER_SOURCE);
 					return null;
 				}, deadline);
 				prepare(context, taskContext);
 				if (!this.pyValid) {
-					return new CheckResult(this, device, ResultOption.INVALIDRULE);
+					checkResult = new CheckResult(this, device, ResultOption.INVALIDRULE);
 				}
-				if (device.isExempted(this)) {
-					return new CheckResult(this, device, ResultOption.EXEMPTED);
+				else if (device.isExempted(this)) {
+					checkResult = new CheckResult(this, device, ResultOption.EXEMPTED);
 				}
-				PyDeviceHelper deviceHelper = new PyDeviceHelper(device, session, taskContext, true);
-				result = runBeforeDeadline(executor,
-					() -> context.getBindings("python").getMember("_check").execute(deviceHelper), deadline);
+				else {
+					PyDeviceHelper deviceHelper = new PyDeviceHelper(device, session, taskContext, true);
+					Value result = runBeforeDeadline(executor,
+						() -> ctx.getBindings("python").getMember("_check").execute(deviceHelper), deadline);
+					checkResult = this.toCheckResult(result, device, taskContext);
+				}
+				runBeforeDeadline(executor, () -> {
+					ctx.close();
+					return null;
+				}, deadline);
 			}
 			catch (TimeoutException e1) {
 				try {
@@ -320,28 +336,7 @@ public class PythonRule extends Rule {
 				return new CheckResult(this, device, CheckResult.ResultOption.INVALIDRULE,
 					"The rule took too long to execute");
 			}
-			String txtResult = null;
-			String comment = "";
-			if (result.isString()) {
-				txtResult = result.asString();
-			}
-			else if (result.hasHashEntries()) {
-				Value jsComment = result.getHashValue("comment");
-				if (jsComment != null && jsComment.isString()) {
-					comment = jsComment.asString();
-				}
-				Value jsResult = result.getHashValue("result");
-				if (jsResult != null && jsResult.isString()) {
-					txtResult = jsResult.asString();
-				}
-			}
-			for (CheckResult.ResultOption allowedResult : ALLOWED_RESULTS) {
-				if (allowedResult.toString().equals(txtResult)) {
-					taskContext.info("The script returned {} ({}), comment '{}'.",
-						allowedResult.toString(), allowedResult.getValue(), comment);
-					return new CheckResult(this, device, allowedResult, comment);
-				}
-			}
+			return checkResult;
 		}
 		catch (IOException e) {
 			taskContext.error("Error while evaluating the Python script.");
@@ -353,10 +348,71 @@ public class PythonRule extends Rule {
 			log.error("Error while running the script on device {}.", device.getId(), e);
 		}
 		finally {
+			if (context != null) {
+				// Error cases: the context might still be open (no-op otherwise)
+				closeContext(executor, context, deadline);
+			}
 			executor.shutdownNow();
 			taskContext.debug("End of check");
 		}
 		return new CheckResult(this, device, ResultOption.INVALIDRULE);
+	}
+
+	/**
+	 * Convert the value returned by the check function to a check result.
+	 * @param result the value returned by the Python check function
+	 * @param device the device
+	 * @param taskContext the task context
+	 * @return the check result
+	 */
+	private CheckResult toCheckResult(Value result, Device device, TaskContext taskContext) {
+		String txtResult = null;
+		String comment = "";
+		if (result.isString()) {
+			txtResult = result.asString();
+		}
+		else if (result.hasHashEntries()) {
+			Value jsComment = result.getHashValue("comment");
+			if (jsComment != null && jsComment.isString()) {
+				comment = jsComment.asString();
+			}
+			Value jsResult = result.getHashValue("result");
+			if (jsResult != null && jsResult.isString()) {
+				txtResult = jsResult.asString();
+			}
+		}
+		for (CheckResult.ResultOption allowedResult : ALLOWED_RESULTS) {
+			if (allowedResult.toString().equals(txtResult)) {
+				taskContext.info("The script returned {} ({}), comment '{}'.",
+					allowedResult.toString(), allowedResult.getValue(), comment);
+				return new CheckResult(this, device, allowedResult, comment);
+			}
+		}
+		return new CheckResult(this, device, ResultOption.INVALIDRULE);
+	}
+
+	/**
+	 * Close the Python context on the executor thread (see check), before the deadline,
+	 * or cancel it if that doesn't work.
+	 * @param executor the executor which ran the script
+	 * @param context the context to close
+	 * @param deadline the deadline
+	 */
+	private static void closeContext(ExecutorService executor, Context context, long deadline) {
+		try {
+			runBeforeDeadline(executor, () -> {
+				context.close();
+				return null;
+			}, deadline);
+		}
+		catch (Exception e) {
+			try {
+				context.close(true);
+			}
+			catch (Exception e2) {
+				log.warn("Error while closing the Python context", e2);
+			}
+		}
 	}
 
 	@Override

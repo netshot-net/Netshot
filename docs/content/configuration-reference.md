@@ -19,7 +19,7 @@ Every parameter can also be passed as an environment variable: replace `.` with 
 Secret parameters can be read from a file instead of being set inline: set the parameter name followed by `.file` (or `_FILE` for the environment variable) to the path of the file containing the secret. For example, `NETSHOT_DB_PASSWORD_FILE=/run/secrets/db_password` makes Netshot read the database password from `/run/secrets/db_password`. This is the recommended way to pass secrets to a container (Docker/Compose secrets, Kubernetes secrets mounted as files).
 
 !!! warning
-    Don't pass secrets as environment variables: the environment of the Netshot process is visible to user-written Python scripts (compliance rules and diagnostics).
+    Prefer secret files over environment variables: the environment of the Netshot process is visible to anyone who can inspect the process or the container, and to user-written Python scripts if `netshot.python.allowallaccess` is enabled (or with Netshot versions older than 0.25.1).
 
 This applies to the following parameters:
 
@@ -291,20 +291,20 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 
 | Parameter | Description |
 |---|---|
-| `netshot.javascript.maxexecutiontime` | Max time (ms) a JavaScript compliance/diagnostic script may run. Default: `60000`. |
+| `netshot.javascript.maxexecutiontime` | Max time (ms) a JavaScript compliance rule may run. Default: `60000`. |
 
 ## Python VM
 
-Requires a configured GraalPy virtual environment — see [Python virtualenv for additional packages](extending/python-virtualenv.md).
+These options apply to Python compliance rules (not to Python diagnostics). To use additional packages, see [Python virtualenv for additional packages](extending/python-virtualenv.md).
 
 | Parameter | Description |
 |---|---|
 | `netshot.python.virtualenv` | Path to the (Graal) Python virtual environment. |
-| `netshot.python.maxexecutiontime` | Max time (ms) a Python compliance/diagnostic script may run. Default: `60000`. |
+| `netshot.python.maxexecutiontime` | Max time (ms) a Python compliance rule may run. Default: `60000`. |
 | `netshot.python.allowallaccess` | Allow all types of host access from Python scripts. **Insecure** — off by default. |
 | `netshot.python.filesystemfilter` | Set to `false` to disable filesystem access restrictions for Python scripts. **Insecure** — restrictions are on by default (read-only access to the GraalPy libraries, the virtualenv, and system-wide `/proc` entries, but not to the Netshot process's own `/proc` entries). |
 | `netshot.python.allowcreateprocess` | Allow Python scripts to spawn OS processes. **Insecure** — off by default. |
-| `netshot.python.allowcreatethread` | Allow Python scripts to create threads. **Insecure** — off by default. |
+| `netshot.python.allowcreatethread` | Allow Python scripts to create threads (needed by some packages, see [Python virtualenv](extending/python-virtualenv.md#troubleshooting)). **Insecure** — off by default. |
 | `netshot.python.allowhostfileaccess` | Allow Python scripts to access the host filesystem. **Insecure** — off by default. |
 | `netshot.python.allowhostsocketaccess` | Allow Python scripts to open host sockets. **Insecure** — off by default. |
 | `netshot.python.allownativeaccess` | Allow Python scripts native access. **Insecure** — off by default. |

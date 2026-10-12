@@ -43,6 +43,8 @@ import net.netshot.netshot.Netshot;
  * Implementation of the FileSystem GraalVM interface to restrict
  * Python code I/O access to the shipping GraalPython libraries,
  * in read-only mode.
+ * Use {@link #newRestrictedFileSystem()} to get the file system to pass to the
+ * Python context, which also gives read access to the GraalPy standard library.
  */
 @Slf4j
 public final class PythonFileSystem implements FileSystem {
@@ -87,10 +89,32 @@ public final class PythonFileSystem implements FileSystem {
 	private final Path libFolder;
 	private final Path venvFolder;
 
+	/**
+	 * Create the file system to be used by Python contexts: this filter, plus access
+	 * to the internal resources of the languages (such as the GraalPy standard library,
+	 * extracted to the polyglot resource cache folder), everything in read-only mode.
+	 * The read-only wrapper matters: the internal resources are shared by all Python
+	 * contexts, so a script able to write there could inject code in the other scripts.
+	 * @return the file system
+	 * @throws IOException if the file system can't be initialized
+	 */
+	public static FileSystem newRestrictedFileSystem() throws IOException {
+		return FileSystem.newReadOnlyFileSystem(
+			FileSystem.allowInternalResourceAccess(new PythonFileSystem()));
+	}
+
 	public PythonFileSystem() throws IOException {
 		this.delegate = FileSystem.newDefaultFileSystem();
-		this.libFolder = delegate.toRealPath(
-			delegate.parsePath(System.getProperty("java.home") + "/languages"));
+		// Language folder of former GraalVM JDKs (when languages were installed within the JDK)
+		Path languagesFolder = null;
+		try {
+			languagesFolder = delegate.toRealPath(
+				delegate.parsePath(System.getProperty("java.home") + "/languages"));
+		}
+		catch (IOException e) {
+			log.debug("No languages folder in Java home, ignoring");
+		}
+		this.libFolder = languagesFolder;
 		if (PythonFileSystem.SETTINGS.getVenvFolder() == null) {
 			this.venvFolder = null;
 		}
@@ -110,7 +134,7 @@ public final class PythonFileSystem implements FileSystem {
 			catch (IOException ioe) {
 			}
 		}
-		if (realPath == null || !(realPath.startsWith(libFolder) || (venvFolder != null && realPath.startsWith(venvFolder))
+		if (realPath == null || !((libFolder != null && realPath.startsWith(libFolder)) || (venvFolder != null && realPath.startsWith(venvFolder))
 			|| isSystemWideProcEntry(realPath))) {
 			log.info("Access ({}) to {} [{}] is denied", reason, path, realPath);
 			throw new SecurityException("Access to " + path + " is denied.");
