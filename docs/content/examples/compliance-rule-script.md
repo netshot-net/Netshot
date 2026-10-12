@@ -14,64 +14,56 @@ Example:
 
 This is not a simple pattern match, so a script-based rule is required to achieve this result.
 
-Here is how you can write it:
+Here is how you can write it, using the [ConfigTree](../user-guide/script-toolbox.md) configuration parser to find the IS-IS block and its `net` line:
 
 ```javascript
+/**
+ * Check that the IS-IS NET address derives from the router name
+ * (e.g. RTR11 -> 49.000b.0000.0000.000b.00).
+ */
 function check(device) {
-    // Get the type of device and ensure it starts with IOS, otherwise the script doesn't apply
-    var type = device.get('type');
-    if (type.match(/Cisco IOS.*/)) {
-        var name = device.get('name');
-        // Get the final number in the device name
-        var id = name.match(/.*?([0-9]+)/);
-        if (!id) {
-            return {
-                result: NOTAPPLICABLE,
-                comment: "Does not apply to this hostname"
-            };
-        }
-        // Transform the number into a NET address (hex)
-        id = parseInt(id[1]);
-        id = id.toString(16).toLowerCase();
-        var net = "";
-        for (i = 0; i < 4 - id.length; i++) {
-            net += "0";
-        }
-        net += id;
-        net = "49." + net + ".0000.0000." + net + ".00";
-
-        // Get the config (configuration for XR, runningConfig otherwise)
-        var config = device.get('configuration');
-        if (!config) config = device.get('runningConfig');
-        // Find the IS-IS section
-        var isis = device.findSections(config, /^router isis .*/);
-        if (isis.length === 0) {
-            return {
-                result: NONCONFORMING,
-                comment: "No IS-IS block"
-            };
-        }
-        isis = isis[0].config;
-        // Get the configured NET address
-        var cNet = isis.match(/^ net ([0-9a-f\.]+)/);
-        if (!cNet) {
-            return {
-                result: NONCONFORMING,
-                comment: "No NET configured"
-            };
-        }
-        cNet = cNet[1];
-        // Compare the computed and the configured NET addresses
-        if (cNet === net) {
-            return CONFORMING;
-        }
-        else {
-            return {
-                result: NONCONFORMING,
-                comment: "Configured NET " + cNet + ", should be " + net
-            };
-        }
+    // The rule only applies to Cisco IOS (and IOS-XE/IOS-XR) devices
+    if (!/^Cisco IOS/.test(device.get("type"))) {
+        return NOTAPPLICABLE;
     }
-    return NOTAPPLICABLE;
+
+    // Get the final number in the device name
+    const id = device.get("name").match(/(\d+)\D*$/);
+    if (id === null) {
+        return {
+            result: NOTAPPLICABLE,
+            comment: "Does not apply to this hostname",
+        };
+    }
+    // Transform the number into a NET address (4 hex digits)
+    const hexId = parseInt(id[1], 10).toString(16).padStart(4, "0");
+    const expectedNet = `49.${hexId}.0000.0000.${hexId}.00`;
+
+    // Parse the config (configuration for IOS-XR, runningConfig otherwise)
+    const config = Toolbox.ConfigTree.parse(device.get("configuration") || device.get("runningConfig"));
+    // Find the IS-IS block
+    const isis = config.find(/^router isis/);
+    if (isis.length === 0) {
+        return {
+            result: NONCONFORMING,
+            comment: "No IS-IS block",
+        };
+    }
+    // Get the configured NET address
+    const net = isis[0].findValue(/^net (\S+)/);
+    if (net === null) {
+        return {
+            result: NONCONFORMING,
+            comment: "No NET configured",
+        };
+    }
+    // Compare the expected and the configured NET addresses
+    if (net.toLowerCase() !== expectedNet) {
+        return {
+            result: NONCONFORMING,
+            comment: `Configured NET ${net}, should be ${expectedNet}`,
+        };
+    }
+    return CONFORMING;
 }
 ```

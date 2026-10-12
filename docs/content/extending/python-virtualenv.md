@@ -3,6 +3,9 @@
 !!! warning "Experimental"
     This feature is experimental. Requires Netshot 0.16.2 or later.
 
+!!! tip "Parsing configurations"
+    To parse device configurations, you don't need any additional package: the built-in [script toolbox](../user-guide/script-toolbox.md) provides a configuration parser (`from netshot.toolbox import ConfigTree`) along with a [ciscoconfparse-compatible class](../user-guide/script-toolbox.md#migrating-from-ciscoconfparse).
+
 ```bash
 su - netshot -s /bin/bash
 cd /usr/local/netshot
