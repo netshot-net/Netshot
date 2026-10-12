@@ -301,9 +301,9 @@ var CLI = {
 
 Calling `cli.macro("enable")` from `telnet`'s freshly-connected state chases: `username` (auto-sends the username, lands on `password` or `usernameAgain`) → `password` (auto-sends the password, lands on `usernameAgain` on failure — which `fail`s the whole chain — or `disable`/`enable` on success) → if landed on `disable`, the in-progress `enable` macro runs again to send `enable` and reach the `enable` mode, which is the declared `target`.
 
-### `findSections(text, regex)`
+### Parsing configurations
 
-A utility available on every CLI client for splitting a chunk of text (typically a configuration) into indented blocks headed by lines matching `regex` — e.g. one block per `interface ...` stanza — without hand-rolling indentation-aware parsing in every driver.
+To parse a configuration or any indented command output (nested blocks, Junos/PAN-OS `{ }` or FortiOS `config`/`edit` syntaxes), drivers can use the global `Toolbox.ConfigTree` parser, see [Script toolbox](../user-guide/script-toolbox.md). The `cli.findSections(text, regex)` function is deprecated.
 
 ### SNMP poller
 
