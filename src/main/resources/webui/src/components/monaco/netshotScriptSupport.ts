@@ -46,13 +46,6 @@ interface CliCommandOptions {
   discoverWaitTime?: number;
 }
 
-/** A section of text matched by findSections(). */
-interface TextSection {
-  match: RegExpExecArray;
-  lines: string[];
-  config: string;
-}
-
 /** SSH advanced-option override: same shape as \`CLI.ssh.config\`, merged on top of it. Never overrides the port. */
 type SshCreateOptions = Record<string, unknown>;
 
@@ -95,12 +88,6 @@ interface Cli {
    * @param macroName the name of the macro to run, as declared by the driver (e.g. "configure", "end")
    */
   macro(macroName: string): void;
-  /**
-   * Split multi-line text into indented sections matching \`regex\`.
-   * @param text the multi-line text to split (typically a command's output)
-   * @param regex matched against each line to decide where a new section starts
-   */
-  findSections(text: string, regex: RegExp): TextSection[];
   /**
    * Pause for the given number of milliseconds.
    * @param millis how long to wait
@@ -572,12 +559,6 @@ interface ComplianceDevice {
    * @param host the hostname or IP address to resolve
    */
   nslookup(host: string): unknown;
-  /**
-   * Split multi-line text into indented sections matching \`regex\` (JS rules only).
-   * @param text the multi-line text to split (typically a config, e.g. from device.get("runningConfig"))
-   * @param regex matched against each line to decide where a new section starts
-   */
-  findSections(text: string, regex: RegExp): TextSection[];
 }
 
 /** Compliance rule verdicts (JS rule scripts — result_option.* in Python). */
@@ -598,6 +579,138 @@ interface ComplianceResult {
 
 /** The \`debug\` function passed as the 2nd argument to JS compliance rule scripts. */
 type DebugFn = (message: string) => void;
+
+/** Configuration syntaxes supported by Toolbox.ConfigTree.parse(). */
+type ConfigSyntax = "indent" | "braces" | "fortios";
+
+/** Options accepted by Toolbox.ConfigTree.parse(). */
+interface ConfigParseOptions {
+  /**
+   * "indent" (default - Cisco IOS, NX-OS, Arista EOS, Aruba...: children are more indented),
+   * "braces" (Juniper Junos, Palo Alto PAN-OS: { } blocks) or
+   * "fortios" (Fortinet: config/edit blocks ended by end/next).
+   */
+  syntax?: ConfigSyntax;
+  /**
+   * Keep the original indentation in the node text, so that the queries match it
+   * (e.g. /^\\s+shutdown$/), as ciscoconfparse does (default false: trimmed text).
+   */
+  indented?: boolean;
+}
+
+/** Options accepted by the ConfigNode queries. */
+interface ConfigQueryOptions {
+  /** Look into all descendants instead of the direct children only (default false). */
+  recursive?: boolean;
+}
+
+/**
+ * A node of a configuration parsed by Toolbox.ConfigTree.parse(): one configuration line
+ * (or block opening line) along with its children. The root node (returned by parse())
+ * holds the top-level lines as children. Queries match their regex against the node \`text\`.
+ */
+interface ConfigNode {
+  /** The line text, trimmed (without the { and ; delimiters with the "braces" syntax), or indented with the indented option. */
+  readonly text: string;
+  /** The original line(s), as found in the configuration. */
+  readonly raw: string;
+  /** The (1-based) line number in the configuration, 0 for the root node. */
+  readonly line: number;
+  /** The number of leading whitespace characters, -1 for the root node. */
+  readonly indent: number;
+  /** The parent node: the node itself for a top-level line, null for the root node. */
+  readonly parent: ConfigNode | null;
+  /** Whether this is a comment line (! lines, # lines, C-style comments). */
+  readonly isComment: boolean;
+  /** The child nodes. */
+  readonly children: ConfigNode[];
+  /** On nodes returned by a query, the match of the query regex against the node text. */
+  readonly match: RegExpExecArray | null;
+  /** The line closing the block, if any (e.g. "}", "next" or "end"). */
+  readonly closing: string | null;
+  /** The (original) lines of all the descendant nodes. */
+  readonly lines: string[];
+  /** The (original) text of all the descendant nodes. */
+  readonly config: string;
+  /** The text of the ancestor nodes and of this node, from the top level. */
+  readonly path: string[];
+  /**
+   * Find the child nodes whose text matches the regex.
+   * @param regex matched against the text of each node
+   * @param options e.g. { recursive: true } to look into all descendants
+   */
+  find(regex: RegExp | string, options?: ConfigQueryOptions): ConfigNode[];
+  /**
+   * Whether at least one child node matches the regex.
+   * @param regex matched against the text of each node
+   * @param options e.g. { recursive: true } to look into all descendants
+   */
+  hasChild(regex: RegExp | string, options?: ConfigQueryOptions): boolean;
+  /**
+   * Find the child nodes matching parentRegex which have a direct child matching childRegex.
+   * @param options e.g. { recursive: true } to look for the parents among all descendants
+   */
+  findWithChild(parentRegex: RegExp | string, childRegex: RegExp | string, options?: ConfigQueryOptions): ConfigNode[];
+  /**
+   * Find the child nodes matching parentRegex which have no direct child matching childRegex.
+   * @param options e.g. { recursive: true } to look for the parents among all descendants
+   */
+  findWithoutChild(parentRegex: RegExp | string, childRegex: RegExp | string, options?: ConfigQueryOptions): ConfigNode[];
+  /**
+   * The first capture group (or whole match) of the first child node matching the regex, or null.
+   * @param regex e.g. /^hostname (\\S+)/
+   * @param options e.g. { recursive: true } to look into all descendants
+   */
+  findValue(regex: RegExp | string, options?: ConfigQueryOptions): string | null;
+  /**
+   * The first capture group (or whole match) of each child node matching the regex.
+   * @param regex e.g. /^ntp server (\\S+)/
+   * @param options e.g. { recursive: true } to look into all descendants
+   */
+  findValues(regex: RegExp | string, options?: ConfigQueryOptions): string[];
+  /**
+   * Find the child nodes for which the predicate returns true.
+   * @param options e.g. { recursive: true } to look into all descendants
+   */
+  filter(predicate: (node: ConfigNode) => boolean, options?: ConfigQueryOptions): ConfigNode[];
+  /**
+   * The settings ("set <key> <values...>" direct child lines, FortiOS-style), as a key -> values map.
+   * Values are unquoted; a later line overrides an earlier one, "unset <key>" removes the key.
+   */
+  settings(): Record<string, string[]>;
+  /**
+   * The unquoted values of a setting ("set <key> <values...>" direct child line), empty if not found.
+   * @param key e.g. "allowaccess"
+   */
+  settingValues(key: string): string[];
+  /**
+   * The unquoted value of a setting ("set <key> <values...>" direct child line),
+   * multiple values joined with a space, or null if not found.
+   * @param key e.g. "role"
+   */
+  setting(key: string): string | null;
+}
+
+/** The configuration parser. */
+interface ConfigTreeParser {
+  /** The supported syntaxes. */
+  readonly SYNTAXES: readonly ConfigSyntax[];
+  /**
+   * Parse a configuration into a tree, and return the root node.
+   * @param text the configuration (e.g. from device.get("runningConfig"))
+   * @param options e.g. { syntax: "braces" } (default syntax is "indent"), { indented: true } to keep the indentation in the node text
+   */
+  parse(text: string, options?: ConfigParseOptions): ConfigNode;
+}
+
+/** The Netshot script toolbox (available to drivers, compliance rules and diagnostics). */
+interface NetshotToolbox {
+  /** Configuration parser, e.g. Toolbox.ConfigTree.parse(config).findValue(/^hostname (\\S+)/). */
+  readonly ConfigTree: ConfigTreeParser;
+}
+
+/** The Netshot script toolbox (available to drivers, compliance rules and diagnostics). */
+declare const Toolbox: NetshotToolbox;
 `
 
 const SCRIPT_GLOBALS_LIB_PATH = "ts:netshot-script-globals.d.ts"
@@ -676,7 +789,6 @@ const CLI_MEMBERS: PyMember[] = [
   method("command", 'command("$1")', "command(command, options=None) -> str", "Send a command in the current CLI mode and return its output."),
   method("macro", 'macro("$1")', "macro(macro_name) -> None", "Switch to another CLI mode, following the driver's declared macros."),
   method("create", 'create("$1")', "create(access, options=None)", 'Open another client bound to a declared access, e.g. "cli", "snmp", "http".'),
-  method("findSections", "findSections($1, $2)", "findSections(text, regex) -> list"),
   method("sleep", "sleep($1)", "sleep(millis) -> None"),
   method("debug", 'debug("$1")', "debug(message) -> None"),
   method("tryNextCredentials", "tryNextCredentials()", "tryNextCredentials() -> bool"),
@@ -710,6 +822,85 @@ const RESULT_OPTION_MEMBERS: PyMember[] = [
   constant("NOTAPPLICABLE", "result_option.NOTAPPLICABLE"),
 ]
 
+const CONFIG_TREE_MEMBERS: PyMember[] = [
+  method("parse", "parse($1)", 'parse(text, syntax="indent", indented=False) -> ConfigNode', 'Parse a configuration into a tree, returns the root node. syntax: "indent" (IOS-like), "braces" (Junos, PAN-OS) or "fortios". indented=True keeps the indentation in the node text (as ciscoconfparse).'),
+  field("SYNTAXES", "tuple of the supported syntaxes"),
+]
+
+/** ciscoconfparse-compatible parser members (netshot.toolbox CiscoConfParse, and aliases on any ConfigNode). */
+const CISCO_CONF_PARSE_MEMBERS: PyMember[] = [
+  method("find_objects", 'find_objects(r"$1")', "find_objects(linespec, exactmatch=False, ignore_ws=False) -> list"),
+  method("find_lines", 'find_lines(r"$1")', "find_lines(linespec, exactmatch=False, ignore_ws=False) -> list"),
+  method("find_objects_w_child", 'find_objects_w_child(r"$1", r"$2")', "find_objects_w_child(parentspec, childspec, ignore_ws=False, recurse=False) -> list"),
+  method("find_objects_wo_child", 'find_objects_wo_child(r"$1", r"$2")', "find_objects_wo_child(parentspec, childspec, ignore_ws=False, recurse=False) -> list"),
+  method("find_objects_w_all_children", 'find_objects_w_all_children(r"$1", [r"$2"])', "find_objects_w_all_children(parentspec, childspec, ignore_ws=False, recurse=False) -> list"),
+  method("find_objects_w_missing_children", 'find_objects_w_missing_children(r"$1", [r"$2"])', "find_objects_w_missing_children(parentspec, childspec, ignore_ws=False) -> list"),
+  method("find_objects_w_parents", 'find_objects_w_parents(r"$1", r"$2")', "find_objects_w_parents(parentspec, childspec, ignore_ws=False) -> list"),
+  method("find_children", 'find_children(r"$1")', "find_children(linespec, exactmatch=False, ignore_ws=False) -> list"),
+  method("find_all_children", 'find_all_children(r"$1")', "find_all_children(linespec, exactmatch=False, ignore_ws=False) -> list"),
+  method("find_parents_w_child", 'find_parents_w_child(r"$1", r"$2")', "find_parents_w_child(parentspec, childspec, ignore_ws=False) -> list"),
+  method("find_parents_wo_child", 'find_parents_wo_child(r"$1", r"$2")', "find_parents_wo_child(parentspec, childspec, ignore_ws=False) -> list"),
+  method("has_line_with", 'has_line_with(r"$1")', "has_line_with(linespec) -> bool"),
+  method("re_match_iter_typed", 're_match_iter_typed(r"$1")', 're_match_iter_typed(regexspec, group=1, result_type=str, default="")'),
+  field("objs", "list of IOSCfgLine"),
+  field("ioscfg", "list of the configuration lines"),
+]
+
+/** ConfigNode members (netshot.toolbox), offered on objects not otherwise known in scripts importing netshot.toolbox. */
+const CONFIG_NODE_MEMBERS: PyMember[] = [
+  method("find", 'find(r"$1")', "find(regex, recursive=False) -> list", "Child nodes whose text matches the regex (each with .match set)."),
+  method("find_with_child", 'find_with_child(r"$1", r"$2")', "find_with_child(parent_regex, child_regex, recursive=False) -> list", "Child nodes matching parent_regex with a direct child matching child_regex."),
+  method("find_without_child", 'find_without_child(r"$1", r"$2")', "find_without_child(parent_regex, child_regex, recursive=False) -> list", "Child nodes matching parent_regex without any direct child matching child_regex."),
+  method("has_child", 'has_child(r"$1")', "has_child(regex, recursive=False) -> bool"),
+  method("find_value", 'find_value(r"$1")', "find_value(regex, recursive=False) -> str | None", "First capture group (or whole match) of the first matching child node."),
+  method("find_values", 'find_values(r"$1")', "find_values(regex, recursive=False) -> list", "First capture group (or whole match) of each matching child node."),
+  method("filter", "filter(lambda node: $1)", "filter(predicate, recursive=False) -> list"),
+  method("settings", "settings()", "settings() -> dict", "The \"set <key> <values...>\" direct child lines, as a key -> list of unquoted values dict."),
+  method("setting", 'setting("$1")', "setting(key) -> str | None", "Unquoted value of a \"set <key> ...\" direct child line (multiple values joined with a space)."),
+  method("setting_values", 'setting_values("$1")', "setting_values(key) -> list", "Unquoted values of a \"set <key> ...\" direct child line (empty if not found)."),
+  field("text", "str - the line text, trimmed"),
+  field("raw", "str - the original line(s)"),
+  field("line", "int - the line number (1-based)"),
+  field("indent", "int - the number of leading whitespace characters"),
+  field("parent", "ConfigNode | None"),
+  field("children", "list of ConfigNode"),
+  field("match", "re.Match | None - set on nodes returned by queries"),
+  field("config", "str - the original text of all the descendant nodes"),
+  field("lines", "list - the original lines of all the descendant nodes"),
+  field("path", "list - the text of the ancestors and of this node"),
+  field("is_comment", "bool - whether this is a comment line"),
+  field("linenum", "int - ciscoconfparse-compatible line number (0-based)"),
+  method("re_search_children", 're_search_children(r"$1")', "re_search_children(regex, recurse=False) -> list", "ciscoconfparse-compatible: child nodes matching the regex."),
+  method("re_match_typed", 're_match_typed(r"$1")', 're_match_typed(regex, group=1, result_type=str, default="")', "ciscoconfparse-compatible: typed capture group of this line."),
+  method("has_child_with", 'has_child_with(r"$1")', "has_child_with(linespec, all_children=False) -> bool"),
+  field("all_children", "list - ciscoconfparse-compatible: all the descendant nodes"),
+  field("all_parents", "list - ciscoconfparse-compatible: all the ancestor nodes"),
+  field("geneology_text", "list - ciscoconfparse-compatible: text of the ancestors and of this node"),
+  ...CISCO_CONF_PARSE_MEMBERS,
+]
+
+/** Bare-name suggestions for scripts importing from netshot.toolbox (Python rules and diagnostics). */
+const TOOLBOX_GLOBALS: PyMember[] = [
+  {
+    label: "from netshot.toolbox import",
+    insertText: "from netshot.toolbox import ${1:ConfigTree}",
+    detail: "Netshot script toolbox",
+    documentation: "ConfigTree (configuration parser), CiscoConfParse (ciscoconfparse-compatible parser).",
+    kind: languages.CompletionItemKind.Module,
+  },
+  func("ConfigTree", "ConfigTree.parse($1)", 'ConfigTree.parse(text, syntax="indent") -> ConfigNode'),
+  func("CiscoConfParse", "CiscoConfParse($1)", 'CiscoConfParse(config, syntax="ios")'),
+]
+
+/** Object names conventionally bound to the toolbox classes (no type inference here). */
+const TOOLBOX_MEMBERS: Record<string, PyMember[]> = {
+  ConfigTree: CONFIG_TREE_MEMBERS,
+  CiscoConfParse: CISCO_CONF_PARSE_MEMBERS,
+  parse: CISCO_CONF_PARSE_MEMBERS,
+  confparse: CISCO_CONF_PARSE_MEMBERS,
+  ccp: CISCO_CONF_PARSE_MEMBERS,
+}
+
 /** Per-ScriptKind member lookup, keyed by the parameter/object name it applies to. */
 const MEMBERS_BY_KIND: Partial<Record<ScriptKind, Record<string, PyMember[]>>> = {
   diagnostic: {
@@ -724,12 +915,36 @@ const MEMBERS_BY_KIND: Partial<Record<ScriptKind, Record<string, PyMember[]>>> =
   },
 }
 
+/** Script kinds whose Python scripts get the netshot.toolbox module. */
+const TOOLBOX_KINDS: ScriptKind[] = ["diagnostic", "compliance"]
+
 /** Bare (no-dot) global suggestions, per ScriptKind. */
 const GLOBALS_BY_KIND: Partial<Record<ScriptKind, PyMember[]>> = {
   compliance: [
     field("result_option", "class result_option", "Holds CONFORMING / NONCONFORMING / NOTAPPLICABLE."),
     func("debug", 'debug("$1")', "debug(message) -> None"),
   ],
+}
+
+/**
+ * Members to suggest after "<name>." in a Python script: the ScriptKind's own
+ * objects first, then the toolbox classes, then - in scripts importing from
+ * netshot.toolbox - the ConfigNode members for any other name (most likely
+ * a parsed configuration or a query result, since there's no type inference).
+ */
+function pythonMembersFor(kind: ScriptKind, name: string, model: editor.ITextModel): PyMember[] | undefined {
+  const kindMembers = MEMBERS_BY_KIND[kind]?.[name]
+  if (kindMembers) return kindMembers
+  if (!TOOLBOX_KINDS.includes(kind)) return undefined
+  if (TOOLBOX_MEMBERS[name]) return TOOLBOX_MEMBERS[name]
+  if (/\bnetshot\.toolbox\b/.test(model.getValue())) return CONFIG_NODE_MEMBERS
+  return undefined
+}
+
+/** Bare-name suggestions in a Python script, for the given ScriptKind. */
+function pythonGlobalsFor(kind: ScriptKind): PyMember[] | undefined {
+  if (!TOOLBOX_KINDS.includes(kind)) return GLOBALS_BY_KIND[kind]
+  return [...(GLOBALS_BY_KIND[kind] ?? []), ...TOOLBOX_GLOBALS]
 }
 
 let pythonCompletionsProvider: IDisposable | undefined
@@ -772,7 +987,7 @@ export function registerNetshotPythonCompletions() {
       })
       const dotMatch = textUntilPosition.match(/([A-Za-z_][A-Za-z0-9_]*)\.\w*$/)
 
-      const members = dotMatch ? MEMBERS_BY_KIND[kind]?.[dotMatch[1]] : GLOBALS_BY_KIND[kind]
+      const members = dotMatch ? pythonMembersFor(kind, dotMatch[1], model) : pythonGlobalsFor(kind)
       if (!members) return { suggestions: [] }
 
       return {
