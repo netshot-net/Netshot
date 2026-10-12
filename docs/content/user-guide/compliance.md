@@ -111,7 +111,7 @@ Another example, in IOS-XR, if you want all GigabitEthernet interfaces running O
 
 ### Script-based rules
 
-The script-based rules are JavaScript or Python code.
+The script-based rules are JavaScript or Python code. Both can use the [script toolbox](script-toolbox.md), in particular its ConfigTree configuration parser (`Toolbox.ConfigTree` in JavaScript, `from netshot.toolbox import ConfigTree` in Python), to query the device configuration.
 
 Click on _Edit the script..._ to open up the code editor. While you are writing your script, you can test it on a specific device by selecting a device at the bottom of the editor and clicking on _Test..._. Click on the underlined result to see the logs.
 
@@ -145,7 +145,7 @@ The function `check(device, [debug])` must exist in the code — this is the ent
     * `device.get(attribute, otherDevice)`, where `otherDevice` is either the ID or the name of another device, will retrieve for you the given attribute value from the specified device instead of the current device. By using this feature, you can compare configurations between devices.
     * `device.add("tag", tag)` and `device.remove("tag", tag)` add or remove a [tag](devices.md#device-tags) on the device, and `device.set("comments", text)` replaces the device comments. These are the only changes a rule can make to a device; they are saved when the compliance check task completes (not when testing the rule from the editor). For example, a rule can tag non-compliant devices, so that they can be gathered in a dynamic group (`[Tag] is "non-compliant"`).
     * `device.nslookup(host)` will return a DNS resolution (either direct or reverse) of the passed name.
-    * `device.findSections(configuration, section)`, where `configuration` is a string and `section` is a JavaScript `RegExp` object, will find in `configuration` all lines matching `section`, and will return them along with their content, i.e. the following lines which are more indented.
+    * `device.findSections(configuration, section)` is deprecated, use the [ConfigTree](script-toolbox.md) parser instead.
 * `debug(message)` is a function that you can call to log debug messages. These messages will appear in the logs of the _Check compliance_ task.
 
 The `check` function must return one of the following special values:

@@ -21,6 +21,7 @@ nav = [
     { "Devices" = "user-guide/devices.md" },
     { "Diagnostics" = "user-guide/diagnostics.md" },
     { "Compliance" = "user-guide/compliance.md" },
+    { "Script toolbox" = "user-guide/script-toolbox.md" },
     { "Reports" = "user-guide/reports.md" },
     { "Tasks" = "user-guide/tasks.md" },
     { "Administration" = "user-guide/administration.md" },

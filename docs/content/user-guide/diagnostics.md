@@ -55,6 +55,8 @@ A _JavaScript-based diagnostic_ is a piece of JavaScript code which must define 
     * `diagnostic.set(value)`: set the diagnostic result for the current device.
     * `diagnostic.set(diagnosticName, value)`: set the result of the diagnostic identified by its name.
 
+The [script toolbox](script-toolbox.md) is also available, e.g. to parse the output of a `show running-config` command with `Toolbox.ConfigTree.parse(...)` (or `from netshot.toolbox import ConfigTree` in Python diagnostics).
+
 For example, the following code retrieves the current OSPF router-id from IOS-XR devices:
 
 ```javascript
