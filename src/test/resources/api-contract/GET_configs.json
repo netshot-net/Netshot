@@ -1,0 +1,34 @@
+[
+  {
+    "author": "tester",
+    "changeDate": 1577880000000,
+    "deviceId": 1,
+    "deviceName": "router-paris-1",
+    "deviceNetworkClass": "ROUTER",
+    "id": 1
+  },
+  {
+    "author": "tester",
+    "changeDate": 1609502400000,
+    "deviceId": 1,
+    "deviceName": "router-paris-1",
+    "deviceNetworkClass": "ROUTER",
+    "id": 2
+  },
+  {
+    "author": "snapshot",
+    "changeDate": 1641038400000,
+    "deviceId": 1,
+    "deviceName": "router-paris-1",
+    "deviceNetworkClass": "ROUTER",
+    "id": 3
+  },
+  {
+    "author": "tester",
+    "changeDate": 1609502400000,
+    "deviceId": 2,
+    "deviceName": "router-lyon-1",
+    "deviceNetworkClass": "SWITCHROUTER",
+    "id": 4
+  }
+]

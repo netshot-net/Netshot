@@ -1,0 +1,10 @@
+{
+  "author": "API Token [5: Test Token - level 1000]",
+  "deviceDriver": "CiscoIOS12",
+  "folder": "",
+  "id": 0,
+  "name": "Validated only",
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "script": "function run(cli, device) {\n  cli.command('show clock');\n}",
+  "userInputDefinitions": { }
+}

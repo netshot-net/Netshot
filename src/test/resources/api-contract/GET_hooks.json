@@ -1,0 +1,33 @@
+[
+  {
+    "action": "POST_XML",
+    "enabled": false,
+    "httpsCaTrustMode": "TRUST_ANY",
+    "httpsCustomCaCertificate": null,
+    "id": 2,
+    "name": "Disabled XML hook",
+    "triggers": [ ],
+    "type": "Web",
+    "url": "http://example.net/callback2"
+  },
+  {
+    "action": "POST_JSON",
+    "enabled": true,
+    "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+    "httpsCustomCaCertificate": null,
+    "id": 1,
+    "name": "Notify on tasks",
+    "triggers": [
+      {
+        "item": "CheckComplianceTask",
+        "type": "POST_TASK"
+      },
+      {
+        "item": "TakeSnapshotTask",
+        "type": "POST_TASK"
+      }
+    ],
+    "type": "Web",
+    "url": "https://example.net/callback1"
+  }
+]

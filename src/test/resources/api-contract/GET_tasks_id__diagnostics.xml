@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<RunDiagnosticsTask type="RunDiagnosticsTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502432000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Run diagnostics</comments>
+  <creationDate>1609502430000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver/>
+  <deviceId>1</deviceId>
+  <executionDate/>
+  <id>4</id>
+  <log>Cancelled by user</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502430000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>CANCELLED</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>router-paris-1</target>
+  <taskDescription>Device diagnostics</taskDescription>
+  <userInputValues/>
+</RunDiagnosticsTask>

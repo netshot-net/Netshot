@@ -1,0 +1,34 @@
+[
+  {
+    "deviceType": "Cisco IOS and IOS-XE",
+    "driver": "CiscoIOS12",
+    "endOfLife": 2240524800000,
+    "endOfSale": 2208988800000,
+    "family": "",
+    "familyRegExp": false,
+    "id": 1,
+    "partNumber": "CISCO2911/K9",
+    "partNumberRegExp": false,
+    "targetGroup": {
+      "changeDate": "<now>",
+      "folder": "Production",
+      "hiddenFromReports": false,
+      "id": 2,
+      "name": "All Cisco devices",
+      "query": "[Family] contains \"Cisco\"",
+      "type": "DynamicDeviceGroup"
+    }
+  },
+  {
+    "deviceType": "",
+    "driver": null,
+    "endOfLife": null,
+    "endOfSale": 1641038400000,
+    "family": "Cisco 1900.*",
+    "familyRegExp": true,
+    "id": 2,
+    "partNumber": "",
+    "partNumberRegExp": false,
+    "targetGroup": null
+  }
+]

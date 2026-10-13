@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<RunDeviceScriptTask type="RunDeviceScriptTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502442000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Run script</comments>
+  <creationDate>1609502440000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceId>1</deviceId>
+  <executionDate>1609502441000</executionDate>
+  <id>5</id>
+  <log>Script output</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502440000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script>function run(cli, device) {}</script>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>router-paris-1</target>
+  <taskDescription>Device script execution</taskDescription>
+  <userInputValues/>
+</RunDeviceScriptTask>

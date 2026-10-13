@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<TakeSnapshotTask type="TakeSnapshotTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502402000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Daily snapshot</comments>
+  <creationDate>1609502400000</creationDate>
+  <debugEnabled>true</debugEnabled>
+  <deviceDriver/>
+  <deviceId>1</deviceId>
+  <executionDate>1609502401000</executionDate>
+  <id>1</id>
+  <log>Snapshot done&#10;Config 1 saved</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502400000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>router-paris-1</target>
+  <taskDescription>Device snapshot</taskDescription>
+  <userInputValues/>
+</TakeSnapshotTask>

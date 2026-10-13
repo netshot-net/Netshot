@@ -1,0 +1,21 @@
+{
+  "cliMode": "enable",
+  "command": "show clock",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": true,
+  "id": 5,
+  "modifierPattern": "",
+  "modifierReplacement": "",
+  "name": "New simple diagnostic",
+  "resultType": "LONGTEXT",
+  "targetGroup": {
+    "changeDate": "<now>",
+    "folder": "Production/Core",
+    "hiddenFromReports": false,
+    "id": 1,
+    "name": "Core routers",
+    "type": "StaticDeviceGroup"
+  },
+  "type": "SimpleDiagnostic"
+}

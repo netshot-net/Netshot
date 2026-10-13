@@ -1,0 +1,16 @@
+{
+  "enabled": false,
+  "id": 3,
+  "name": "CPU load",
+  "resultType": "NUMERIC",
+  "script": "def diagnose(cli, device, diagnostic):\n  diagnostic.set(1)",
+  "targetGroup": {
+    "changeDate": "<now>",
+    "folder": "Production/Core",
+    "hiddenFromReports": false,
+    "id": 1,
+    "name": "Core routers",
+    "type": "StaticDeviceGroup"
+  },
+  "type": "PythonDiagnostic"
+}

@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "id": 6,
+  "name": "New JS diagnostic",
+  "resultType": "NUMERIC",
+  "script": "function diagnose(cli, device, diagnostic) { diagnostic.set(2); }",
+  "targetGroup": null,
+  "type": "JavaScriptDiagnostic"
+}

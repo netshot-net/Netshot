@@ -1,0 +1,13 @@
+{
+  "deviceType": "",
+  "driver": null,
+  "family": "",
+  "familyRegExp": false,
+  "id": 4,
+  "level": "GOLD",
+  "partNumber": "",
+  "partNumberRegExp": false,
+  "targetGroup": null,
+  "version": "18.*",
+  "versionRegExp": true
+}

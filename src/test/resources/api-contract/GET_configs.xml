@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <author>tester</author>
+    <changeDate>1577880000000</changeDate>
+    <deviceId>1</deviceId>
+    <deviceName>router-paris-1</deviceName>
+    <deviceNetworkClass>ROUTER</deviceNetworkClass>
+    <id>1</id>
+  </item>
+  <item>
+    <author>tester</author>
+    <changeDate>1609502400000</changeDate>
+    <deviceId>1</deviceId>
+    <deviceName>router-paris-1</deviceName>
+    <deviceNetworkClass>ROUTER</deviceNetworkClass>
+    <id>2</id>
+  </item>
+  <item>
+    <author>snapshot</author>
+    <changeDate>1641038400000</changeDate>
+    <deviceId>1</deviceId>
+    <deviceName>router-paris-1</deviceName>
+    <deviceNetworkClass>ROUTER</deviceNetworkClass>
+    <id>3</id>
+  </item>
+  <item>
+    <author>tester</author>
+    <changeDate>1609502400000</changeDate>
+    <deviceId>2</deviceId>
+    <deviceName>router-lyon-1</deviceName>
+    <deviceNetworkClass>SWITCHROUTER</deviceNetworkClass>
+    <id>4</id>
+  </item>
+</ArrayList>

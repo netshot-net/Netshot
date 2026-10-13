@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <configCompliant>false</configCompliant>
+    <driver>CiscoIOS12</driver>
+    <eol>false</eol>
+    <eos>false</eos>
+    <family>Cisco 2900</family>
+    <id>1</id>
+    <mgmtAddress>10.1.1.1</mgmtAddress>
+    <name>router-paris-1</name>
+    <networkClass>ROUTER</networkClass>
+    <softwareLevel>GOLD</softwareLevel>
+    <status>INPRODUCTION</status>
+  </item>
+</ArrayList>

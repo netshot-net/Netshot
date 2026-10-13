@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <deviceType>Cisco IOS and IOS-XE</deviceType>
+    <driver>CiscoIOS12</driver>
+    <family/>
+    <familyRegExp>false</familyRegExp>
+    <id>1</id>
+    <level>GOLD</level>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>2</id>
+      <name>All Cisco devices</name>
+      <query>[Family] contains &quot;Cisco&quot;</query>
+    </targetGroup>
+    <version>16.1.6</version>
+    <versionRegExp>false</versionRegExp>
+  </item>
+  <item>
+    <deviceType>Cisco IOS and IOS-XE</deviceType>
+    <driver>CiscoIOS12</driver>
+    <family>Cisco 1900</family>
+    <familyRegExp>false</familyRegExp>
+    <id>2</id>
+    <level>SILVER</level>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup/>
+    <version>15\..*</version>
+    <versionRegExp>true</versionRegExp>
+  </item>
+</ArrayList>

@@ -1,0 +1,16 @@
+[
+  {
+    "configCompliant": true,
+    "driver": "CiscoIOS12",
+    "eol": false,
+    "eos": false,
+    "expirationDate": 2208988800000,
+    "family": "Cisco 1900",
+    "id": 2,
+    "mgmtAddress": "10.2.1.1",
+    "name": "router-lyon-1",
+    "networkClass": "SWITCHROUTER",
+    "softwareLevel": "SILVER",
+    "status": "DISABLED"
+  }
+]

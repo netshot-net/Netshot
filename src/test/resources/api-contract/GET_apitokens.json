@@ -1,0 +1,27 @@
+[
+  {
+    "description": "Test Token - level 10",
+    "id": 1,
+    "level": 10
+  },
+  {
+    "description": "Test Token - level 50",
+    "id": 2,
+    "level": 50
+  },
+  {
+    "description": "Test Token - level 100",
+    "id": 3,
+    "level": 100
+  },
+  {
+    "description": "Test Token - level 500",
+    "id": 4,
+    "level": 500
+  },
+  {
+    "description": "Test Token - level 1000",
+    "id": 5,
+    "level": 1000
+  }
+]

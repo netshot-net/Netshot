@@ -1,0 +1,9 @@
+{
+  "changeDate": "<now>",
+  "folder": "",
+  "hiddenFromReports": true,
+  "id": 3,
+  "name": "Everything",
+  "query": "[Name] contains \"\"",
+  "type": "DynamicDeviceGroup"
+}

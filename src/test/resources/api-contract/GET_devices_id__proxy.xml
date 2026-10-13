@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<Device>
+  <accesses>
+    <accesses>
+      <accessName>ssh</accessName>
+      <address/>
+      <globalCredentialSet type="SSH">
+        <deviceSpecific>false</deviceSpecific>
+        <id>4</id>
+        <mgmtDomain/>
+        <name>SSH account</name>
+        <password>=</password>
+        <passwordVaultInstanceId/>
+        <passwordVaultPath/>
+        <superPassword>=</superPassword>
+        <superPasswordVaultInstanceId/>
+        <superPasswordVaultPath/>
+        <username>admin</username>
+        <usernameVaultInstanceId/>
+        <usernameVaultPath/>
+      </globalCredentialSet>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet/>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+  </accesses>
+  <attributes/>
+  <cachedIpAddress>10.1.2.2</cachedIpAddress>
+  <changeDate>&lt;now&gt;</changeDate>
+  <comments/>
+  <compliant>true</compliant>
+  <contact/>
+  <createdDate>1641038400000</createdDate>
+  <creator>seed</creator>
+  <driver>SkyhighSWG</driver>
+  <endOfLife>false</endOfLife>
+  <endOfSale>false</endOfSale>
+  <eolDate/>
+  <eolModule/>
+  <eosDate/>
+  <eosModule/>
+  <family>Web gateway</family>
+  <id>3</id>
+  <location/>
+  <mgmtAddress>10.1.2.2</mgmtAddress>
+  <mgmtDomain>
+    <changeDate>&lt;now&gt;</changeDate>
+    <description>Paris data center</description>
+    <id>1</id>
+    <name>Paris DC</name>
+    <server4Address>10.255.0.1</server4Address>
+    <server6Address>0:0:0:0:0:0:0:0</server6Address>
+  </mgmtDomain>
+  <name>proxy-paris-1</name>
+  <networkClass>SERVER</networkClass>
+  <options>
+    <fullBackup>false</fullBackup>
+  </options>
+  <ownerGroups>
+    <ownerGroups type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder/>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>3</id>
+      <name>Everything</name>
+      <query>[Name] contains &quot;&quot;</query>
+    </ownerGroups>
+  </ownerGroups>
+  <realDeviceType>Skyhigh Secure Web Gateway</realDeviceType>
+  <serialNumber/>
+  <softwareLevel>UNKNOWN</softwareLevel>
+  <softwareVersion/>
+  <status>PREPRODUCTION</status>
+  <tags>
+    <tags>production</tags>
+  </tags>
+</Device>

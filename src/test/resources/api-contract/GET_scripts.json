@@ -1,0 +1,22 @@
+[
+  {
+    "author": "API Token [5: Test Token - level 1000]",
+    "deviceDriver": "CiscoIOS12",
+    "folder": "Maintenance",
+    "id": 1,
+    "name": "Show version",
+    "realDeviceType": "Cisco IOS and IOS-XE",
+    "script": null,
+    "userInputDefinitions": null
+  },
+  {
+    "author": "API Token [5: Test Token - level 1000]",
+    "deviceDriver": "CiscoIOS12",
+    "folder": "",
+    "id": 2,
+    "name": "Other script",
+    "realDeviceType": "Cisco IOS and IOS-XE",
+    "script": null,
+    "userInputDefinitions": null
+  }
+]

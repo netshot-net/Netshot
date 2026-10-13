@@ -1,0 +1,12 @@
+{
+  "deviceType": "",
+  "driver": null,
+  "endOfLife": 2208988800000,
+  "endOfSale": null,
+  "family": "Cisco.*",
+  "familyRegExp": true,
+  "id": 3,
+  "partNumber": "",
+  "partNumberRegExp": false,
+  "targetGroup": null
+}

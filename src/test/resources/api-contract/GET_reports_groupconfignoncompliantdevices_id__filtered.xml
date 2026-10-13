@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <checkDate>1609502400000</checkDate>
+    <configCompliant>false</configCompliant>
+    <driver>CiscoIOS12</driver>
+    <eol>false</eol>
+    <eos>false</eos>
+    <family>Cisco 2900</family>
+    <id>1</id>
+    <mgmtAddress>10.1.1.1</mgmtAddress>
+    <name>router-paris-1</name>
+    <networkClass>ROUTER</networkClass>
+    <policyId>1</policyId>
+    <policyName>Security baseline</policyName>
+    <result>NONCONFORMING</result>
+    <ruleId>1</ruleId>
+    <ruleName>No telnet</ruleName>
+    <softwareLevel>GOLD</softwareLevel>
+    <status>INPRODUCTION</status>
+  </item>
+</ArrayList>

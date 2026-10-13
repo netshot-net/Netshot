@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <deviceType>Cisco IOS and IOS-XE</deviceType>
+    <driver>CiscoIOS12</driver>
+    <family>Cisco 1900</family>
+    <familyRegExp>false</familyRegExp>
+    <id>2</id>
+    <level>SILVER</level>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup/>
+    <version>15\..*</version>
+    <versionRegExp>true</versionRegExp>
+  </item>
+</ArrayList>

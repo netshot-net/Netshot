@@ -1,0 +1,33 @@
+[
+  {
+    "creationDate": 1609502400000,
+    "diagnosticId": 1,
+    "diagnosticName": "Reload reason",
+    "lastCheckDate": 1609502400500,
+    "text": "Reload Command",
+    "type": "TEXT"
+  },
+  {
+    "creationDate": 1609502401000,
+    "diagnosticId": 2,
+    "diagnosticName": "Full inventory",
+    "lastCheckDate": 1609502401500,
+    "type": "LONGTEXT"
+  },
+  {
+    "creationDate": 1609502402000,
+    "diagnosticId": 3,
+    "diagnosticName": "CPU load",
+    "lastCheckDate": 1609502402500,
+    "number": 42.5,
+    "type": "NUMERIC"
+  },
+  {
+    "assumption": true,
+    "creationDate": 1609502403000,
+    "diagnosticId": 4,
+    "diagnosticName": "Config saved",
+    "lastCheckDate": 1609502403500,
+    "type": "BINARY"
+  }
+]

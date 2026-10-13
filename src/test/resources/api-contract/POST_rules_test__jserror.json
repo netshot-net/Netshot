@@ -1,0 +1,5 @@
+{
+  "comment": "",
+  "result": "INVALIDRULE",
+  "scriptError": "[ERROR] Error while running the script: Error: boom\n[DEBUG] End of check\n"
+}
