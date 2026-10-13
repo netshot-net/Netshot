@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type="TextRule">
+    <anyBlock>true</anyBlock>
+    <context/>
+    <deviceDriver/>
+    <deviceDriverDescription>Unknown driver</deviceDriverDescription>
+    <enabled>false</enabled>
+    <field>runningConfig</field>
+    <id>2</id>
+    <invert>false</invert>
+    <matchAll>true</matchAll>
+    <name>Hostname set</name>
+    <normalize>false</normalize>
+    <regExp>true</regExp>
+    <text>^hostname .+$</text>
+  </item>
+  <item type="TextRule">
+    <anyBlock>false</anyBlock>
+    <context>line vty</context>
+    <deviceDriver>CiscoIOS12</deviceDriver>
+    <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+    <enabled>true</enabled>
+    <field>runningConfig</field>
+    <id>1</id>
+    <invert>true</invert>
+    <matchAll>false</matchAll>
+    <name>No telnet</name>
+    <normalize>true</normalize>
+    <regExp>false</regExp>
+    <text>transport input telnet</text>
+  </item>
+</ArrayList>

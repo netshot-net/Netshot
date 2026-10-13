@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type="StaticDeviceGroup">
+    <changeDate>&lt;now&gt;</changeDate>
+    <folder>Production/Core</folder>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>1</id>
+    <name>Core routers</name>
+  </item>
+  <item type="StaticDeviceGroup">
+    <changeDate>&lt;now&gt;</changeDate>
+    <folder/>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>4</id>
+    <name>Empty group</name>
+  </item>
+  <item type="DynamicDeviceGroup">
+    <changeDate>&lt;now&gt;</changeDate>
+    <folder>Production</folder>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>2</id>
+    <name>All Cisco devices</name>
+    <query>[Family] contains &quot;Cisco&quot;</query>
+  </item>
+  <item type="DynamicDeviceGroup">
+    <changeDate>&lt;now&gt;</changeDate>
+    <folder/>
+    <hiddenFromReports>true</hiddenFromReports>
+    <id>3</id>
+    <name>Everything</name>
+    <query>[Name] contains &quot;&quot;</query>
+  </item>
+</ArrayList>

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <author>API Token [5: Test Token - level 1000]</author>
+    <deviceDriver>CiscoIOS12</deviceDriver>
+    <folder/>
+    <id>2</id>
+    <name>Other script</name>
+    <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+    <script/>
+    <userInputDefinitions/>
+  </item>
+</ArrayList>

@@ -1,0 +1,14 @@
+# Content-Disposition: attachment; filename="router-paris-1_2022-01-01_12-00_runningConfig.cfg"
+hostname router-paris-1
+!
+interface Gi0/0
+ ip address 10.0.0.1 255.255.255.0
+ description "Uplink"
+!
+interface Gi0/1
+ shutdown
+!
+line vty 0 4
+ password secret
+!
+end

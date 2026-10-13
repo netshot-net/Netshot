@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<StaticDeviceGroup type="StaticDeviceGroup">
+  <changeDate>&lt;now&gt;</changeDate>
+  <folder>Production/Core</folder>
+  <hiddenFromReports>false</hiddenFromReports>
+  <id>1</id>
+  <name>Core routers</name>
+</StaticDeviceGroup>

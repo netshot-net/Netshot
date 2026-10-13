@@ -1,0 +1,5 @@
+{
+  "comment": "tested",
+  "result": "CONFORMING",
+  "scriptError": "[INFO] The script returned CONFORMING (0), comment 'tested'.\n[DEBUG] End of check\n"
+}

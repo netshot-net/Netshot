@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "id": 2,
+  "name": "Full inventory",
+  "resultType": "LONGTEXT",
+  "script": "function diagnose(cli, device, diagnostic) {\n  diagnostic.set('x');\n}",
+  "targetGroup": null,
+  "type": "JavaScriptDiagnostic"
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "creationDate": 1609502404000,
+    "diagnosticId": 1,
+    "diagnosticName": "Reload reason",
+    "lastCheckDate": 1609502404500,
+    "text": "Power failure",
+    "type": "TEXT"
+  },
+  {
+    "assumption": false,
+    "creationDate": 1609502405000,
+    "diagnosticId": 4,
+    "diagnosticName": "Config saved",
+    "lastCheckDate": 1609502405500,
+    "type": "BINARY"
+  }
+]

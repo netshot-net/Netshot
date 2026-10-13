@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <deviceType>Cisco IOS and IOS-XE</deviceType>
+    <driver>CiscoIOS12</driver>
+    <endOfLife>2240524800000</endOfLife>
+    <endOfSale>2208988800000</endOfSale>
+    <family/>
+    <familyRegExp>false</familyRegExp>
+    <id>1</id>
+    <partNumber>CISCO2911/K9</partNumber>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>2</id>
+      <name>All Cisco devices</name>
+      <query>[Family] contains &quot;Cisco&quot;</query>
+    </targetGroup>
+  </item>
+  <item>
+    <deviceType/>
+    <driver/>
+    <endOfLife/>
+    <endOfSale>1641038400000</endOfSale>
+    <family>Cisco 1900.*</family>
+    <familyRegExp>true</familyRegExp>
+    <id>2</id>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup/>
+  </item>
+</ArrayList>

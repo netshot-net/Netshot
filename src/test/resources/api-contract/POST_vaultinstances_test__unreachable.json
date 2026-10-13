@@ -1,0 +1,4 @@
+{
+  "errorCode": 255,
+  "errorMsg": "Vault connection test failed: Error while logging in to Vault instance 'Unreachable': java.net.ConnectException: <os-message>"
+}

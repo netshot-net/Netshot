@@ -1,0 +1,56 @@
+[
+  {
+    "description": "Uplink",
+    "enabled": true,
+    "id": 1,
+    "interfaceName": "GigabitEthernet0/0",
+    "ip4Addresses": [
+      {
+        "addressUsage": "PRIMARY",
+        "ip": "10.0.0.1",
+        "prefixLength": 24
+      }
+    ],
+    "ip6Addresses": [
+      {
+        "addressUsage": "PRIMARY",
+        "ip": "2001:db8:1:0:0:0:0:1",
+        "prefixLength": 64
+      }
+    ],
+    "level3": true,
+    "macAddress": "0000.0000.0000",
+    "virtualDevice": "",
+    "vrfInstance": "VRF1"
+  },
+  {
+    "description": "Downlink",
+    "enabled": false,
+    "id": 2,
+    "interfaceName": "GigabitEthernet0/1",
+    "ip4Addresses": [
+      {
+        "addressUsage": "PRIMARY",
+        "ip": "10.0.1.1",
+        "prefixLength": 25
+      }
+    ],
+    "ip6Addresses": [ ],
+    "level3": true,
+    "macAddress": "0000.0000.0000",
+    "virtualDevice": "",
+    "vrfInstance": "VRF2"
+  },
+  {
+    "description": "",
+    "enabled": true,
+    "id": 3,
+    "interfaceName": "Loopback0",
+    "ip4Addresses": [ ],
+    "ip6Addresses": [ ],
+    "level3": false,
+    "macAddress": "0000.0000.0000",
+    "virtualDevice": "",
+    "vrfInstance": ""
+  }
+]

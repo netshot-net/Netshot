@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<CheckComplianceTask type="CheckComplianceTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502422000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Check compliance</comments>
+  <creationDate>1609502420000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver/>
+  <deviceId>1</deviceId>
+  <executionDate>1609502421000</executionDate>
+  <id>3</id>
+  <log>Done</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502420000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>router-paris-1</target>
+  <taskDescription>Device compliance check</taskDescription>
+  <userInputValues/>
+</CheckComplianceTask>

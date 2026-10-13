@@ -1,0 +1,38 @@
+# Content-Disposition: attachment; filename="netshot-export_<timestamp>.xlsx"
+## Sheet Summary
+0='Netshot version' | 1='<version>'
+0='Exported by' | 1='API Token [5: Test Token - level 1000]'
+0='Date and time' | 1=<now>
+0='Selected Domain' | 1='Paris DC (1)'
+0='Selected Group' | 1='All Cisco devices (2)'
+## Sheet Devices
+0='ID' | 1='Name' | 2='Management IP' | 3='Domain' | 4='Network Class' | 5='Family' | 6='Creation' | 7='Last Change' | 8='Software' | 9='Software Level' | 10='End of Sale Date' | 11='End Of Life Date' | 12='Location' | 13='Contact'
+0=1.0 | 1='router-paris-1' | 2='10.1.1.1' | 3='Paris DC' | 4='ROUTER' | 5='Cisco 2900' | 6=date:1577880000000 | 7=<now> | 8='16.1.6' | 9='GOLD' | 10=date:2208988800000 | 11=date:2240524800000 | 12='Paris, rack A1' | 13='noc@example.net'
+## Sheet Interfaces
+0='Device ID' | 1='Device Name' | 2='Virtual Device' | 3='Name' | 4='Description' | 5='VRF' | 6='MAC Address' | 7='Enabled' | 8='Level 3' | 9='IP Address' | 10='Length' | 11='Usage'
+0=1.0 | 1='router-paris-1' | 2='' | 3='GigabitEthernet0/0' | 4='Uplink' | 5='VRF1' | 6='0000.0000.0000' | 7=true | 8=true | 9='10.0.0.1' | 10=24.0 | 11='PRIMARY'
+0=1.0 | 1='router-paris-1' | 2='' | 3='GigabitEthernet0/0' | 4='Uplink' | 5='VRF1' | 6='0000.0000.0000' | 7=true | 8=true | 9='2001:db8:1:0:0:0:0:1' | 10=64.0 | 11='PRIMARY'
+0=1.0 | 1='router-paris-1' | 2='' | 3='GigabitEthernet0/1' | 4='Downlink' | 5='VRF2' | 6='0000.0000.0000' | 7=false | 8=true | 9='10.0.1.1' | 10=25.0 | 11='PRIMARY'
+0=1.0 | 1='router-paris-1' | 2='' | 3='Loopback0' | 4='' | 5='' | 6='0000.0000.0000' | 7=true | 8=false | 9='' | 10='' | 11=''
+## Sheet Inventory
+0='Device ID' | 1='Device Name' | 2='Slot' | 3='Part Number' | 4='Serial Number' | 5='First seen' | 6='Last seen' | 7='Removed'
+0=1.0 | 1='router-paris-1' | 2='chassis' | 3='CISCO2911/K9' | 4='FTX1234ABCD' | 5= | 6= | 7=false
+0=1.0 | 1='router-paris-1' | 2='slot 1' | 3='HWIC-4ESW' | 4='FOC5678WXYZ' | 5= | 6= | 7=false
+0=1.0 | 1='router-paris-1' | 2='slot 2' | 3='HWIC-1T' | 4='FOC0001AAAA' | 5= | 6= | 7=true
+## Sheet Configuration Compliance
+0='Device ID' | 1='Device Name' | 2='Policy' | 3='Rule' | 4='Check Date' | 5='Result'
+0=1.0 | 1='router-paris-1' | 2='Security baseline' | 3='Hostname set' | 4=date:1609502401000 | 5='CONFORMING'
+0=1.0 | 1='router-paris-1' | 2='Security baseline' | 3='No telnet' | 4=date:1609502400000 | 5='NONCONFORMING'
+## Sheet Device Groups
+0='Group ID' | 1='Group Name' | 2='Folder' | 3='Device Count' | 4='Config Compliant Count' | 5='Config Compliance'
+0=2.0 | 1='All Cisco devices' | 2='Production' | 3=1.0 | 4=0.0 | 5=E2 / D2
+## Sheet Group Memberships
+0='Device ID' | 1='Device Name' | 2='Group ID' | 3='Group Name'
+0=1.0 | 1='router-paris-1' | 2=1.0 | 3='Core routers'
+0=1.0 | 1='router-paris-1' | 2=2.0 | 3='All Cisco devices'
+## Sheet Device Attributes
+0='Device ID' | 1='Device Name' | 2='Attribute Name' | 3='Attribute Value'
+0=1.0 | 1='router-paris-1' | 2=
+0=1.0 | 1='router-paris-1' | 2='Configuration saved' | 3='true'
+0=1.0 | 1='router-paris-1' | 2='IOS config register' | 3='0x1202'
+0=1.0 | 1='router-paris-1' | 2='Main memory size (MB)' | 3='2048.0'

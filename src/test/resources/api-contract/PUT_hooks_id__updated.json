@@ -1,0 +1,20 @@
+{
+  "action": "POST_JSON",
+  "enabled": false,
+  "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+  "httpsCustomCaCertificate": null,
+  "id": 3,
+  "name": "New hook renamed",
+  "triggers": [
+    {
+      "item": "CheckComplianceTask",
+      "type": "POST_TASK"
+    },
+    {
+      "item": "RunDiagnosticsTask",
+      "type": "POST_TASK"
+    }
+  ],
+  "type": "Web",
+  "url": "https://example.net/renamed"
+}

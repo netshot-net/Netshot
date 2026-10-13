@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<RsServerInfo>
+  <maxIdleTimeout>1800</maxIdleTimeout>
+  <serverVersion>&lt;serverVersion&gt;</serverVersion>
+</RsServerInfo>

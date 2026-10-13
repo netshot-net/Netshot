@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <deviceCount>1</deviceCount>
+    <name>branch</name>
+  </item>
+  <item>
+    <deviceCount>1</deviceCount>
+    <name>core</name>
+  </item>
+  <item>
+    <deviceCount>2</deviceCount>
+    <name>production</name>
+  </item>
+</ArrayList>

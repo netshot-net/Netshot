@@ -1,0 +1,14 @@
+[
+  {
+    "deviceCount": 1,
+    "name": "branch"
+  },
+  {
+    "deviceCount": 1,
+    "name": "core"
+  },
+  {
+    "deviceCount": 2,
+    "name": "production"
+  }
+]

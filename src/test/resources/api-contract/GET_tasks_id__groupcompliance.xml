@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<CheckGroupComplianceTask type="CheckGroupComplianceTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1641038404000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Group compliance</comments>
+  <creationDate>1641038402000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver/>
+  <deviceGroupId>1</deviceGroupId>
+  <executionDate/>
+  <id>10</id>
+  <log/>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1641038402000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>NEW</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>Core routers</target>
+  <taskDescription>Group compliance check</taskDescription>
+  <userInputValues/>
+</CheckGroupComplianceTask>

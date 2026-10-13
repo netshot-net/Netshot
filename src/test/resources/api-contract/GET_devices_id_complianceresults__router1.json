@@ -1,0 +1,62 @@
+[
+  {
+    "checkDate": 1609502403000,
+    "comment": "",
+    "expirationDate": null,
+    "policyId": 2,
+    "policyName": "Routing policy",
+    "result": "NOTAPPLICABLE",
+    "ruleId": 4,
+    "ruleName": "Python check"
+  },
+  {
+    "checkDate": 1609502402000,
+    "comment": "Script error",
+    "expirationDate": null,
+    "policyId": 2,
+    "policyName": "Routing policy",
+    "result": "INVALIDRULE",
+    "ruleId": 3,
+    "ruleName": "JS check"
+  },
+  {
+    "checkDate": 1609502400000,
+    "comment": "Found text 'transport input telnet'",
+    "expirationDate": null,
+    "policyId": 1,
+    "policyName": "Security baseline",
+    "result": "NONCONFORMING",
+    "ruleId": 1,
+    "ruleName": "No telnet"
+  },
+  {
+    "checkDate": 1609502401000,
+    "comment": "",
+    "expirationDate": null,
+    "policyId": 1,
+    "policyName": "Security baseline",
+    "result": "CONFORMING",
+    "ruleId": 2,
+    "ruleName": "Hostname set"
+  },
+  {
+    "checkDate": 1609502403000,
+    "comment": "",
+    "expirationDate": null,
+    "policyId": 2,
+    "policyName": "Routing policy",
+    "result": "NOTAPPLICABLE",
+    "ruleId": 4,
+    "ruleName": "Python check"
+  },
+  {
+    "checkDate": 1609502402000,
+    "comment": "Script error",
+    "expirationDate": null,
+    "policyId": 2,
+    "policyName": "Routing policy",
+    "result": "INVALIDRULE",
+    "ruleId": 3,
+    "ruleName": "JS check"
+  }
+]

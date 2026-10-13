@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <description>Paris data center</description>
+    <id>1</id>
+    <ipAddress>10.255.0.1</ipAddress>
+    <name>Paris DC</name>
+  </item>
+  <item>
+    <description>Lyon data center</description>
+    <id>2</id>
+    <ipAddress>10.255.1.1</ipAddress>
+    <name>Lyon DC</name>
+  </item>
+</ArrayList>

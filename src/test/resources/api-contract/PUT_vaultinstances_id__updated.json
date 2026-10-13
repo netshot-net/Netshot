@@ -1,0 +1,20 @@
+{
+  "appRoleId": "role-10",
+  "appRoleMountPath": "approle",
+  "appRoleSecretId": "=",
+  "authMethod": "APPROLE",
+  "baseUrl": "https://vault4.example.net:8200",
+  "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+  "httpsCustomCaCertificate": null,
+  "id": 3,
+  "jwtClientId": null,
+  "jwtClientSecret": null,
+  "jwtIdpTokenEndpoint": null,
+  "jwtMountPath": "jwt",
+  "jwtScope": null,
+  "jwtVaultRole": null,
+  "kvMountPath": "secret",
+  "name": "New vault renamed",
+  "namespace": null,
+  "type": "Vault KV v2"
+}

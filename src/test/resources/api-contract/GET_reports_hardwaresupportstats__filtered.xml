@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type=".RestService..RsHardwareSupportEoSStat">
+    <deviceCount>1</deviceCount>
+    <eoxDate>2208988800000</eoxDate>
+  </item>
+  <item type=".RestService..RsHardwareSupportEoLStat">
+    <deviceCount>1</deviceCount>
+    <eoxDate>2240524800000</eoxDate>
+  </item>
+</ArrayList>

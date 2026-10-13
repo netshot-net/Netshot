@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <description>Lyon data center</description>
+    <id>2</id>
+    <ipAddress>10.255.1.1</ipAddress>
+    <name>Lyon DC</name>
+  </item>
+</ArrayList>

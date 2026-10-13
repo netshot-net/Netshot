@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <bronzeDeviceCount>0</bronzeDeviceCount>
+    <deviceCount>1</deviceCount>
+    <goldDeviceCount>1</goldDeviceCount>
+    <groupId>1</groupId>
+    <groupName>Core routers</groupName>
+    <silverDeviceCount>0</silverDeviceCount>
+  </item>
+  <item>
+    <bronzeDeviceCount>0</bronzeDeviceCount>
+    <deviceCount>1</deviceCount>
+    <goldDeviceCount>1</goldDeviceCount>
+    <groupId>2</groupId>
+    <groupName>All Cisco devices</groupName>
+    <silverDeviceCount>0</silverDeviceCount>
+  </item>
+  <item>
+    <bronzeDeviceCount>0</bronzeDeviceCount>
+    <deviceCount>0</deviceCount>
+    <goldDeviceCount>0</goldDeviceCount>
+    <groupId>4</groupId>
+    <groupName>Empty group</groupName>
+    <silverDeviceCount>0</silverDeviceCount>
+  </item>
+</ArrayList>

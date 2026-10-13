@@ -1,0 +1,145 @@
+{
+  "accesses": [
+    {
+      "accessName": "ssh",
+      "address": "192.0.2.10",
+      "globalCredentialSet": null,
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": 2222,
+      "specificCredentialSet": {
+        "deviceSpecific": true,
+        "id": 9,
+        "mgmtDomain": null,
+        "name": "DEVICESPECIFIC-<uuid>",
+        "password": "=",
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "superPassword": "=",
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "SSH",
+        "username": "specific-user",
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "telnet",
+      "address": null,
+      "globalCredentialSet": {
+        "deviceSpecific": false,
+        "id": 6,
+        "mgmtDomain": null,
+        "name": "Telnet account",
+        "password": "=",
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "superPassword": "=",
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "Telnet",
+        "username": "telnetuser",
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    }
+  ],
+  "attributes": [
+    {
+      "assumption": true,
+      "name": "configurationSaved",
+      "type": "BINARY"
+    },
+    {
+      "name": "configRegister",
+      "text": "0x1202",
+      "type": "TEXT"
+    },
+    {
+      "name": "inventoryNotes",
+      "type": "LONGTEXT"
+    },
+    {
+      "name": "mainMemorySize",
+      "number": 2048.0,
+      "type": "NUMERIC"
+    }
+  ],
+  "cachedIpAddress": "10.1.1.1",
+  "changeDate": "<now>",
+  "comments": "Main Paris router",
+  "compliant": false,
+  "contact": "noc@example.net",
+  "createdDate": 1577880000000,
+  "creator": "seed",
+  "driver": "CiscoIOS12",
+  "endOfLife": false,
+  "endOfSale": false,
+  "eolDate": 2240524800000,
+  "eolModule": null,
+  "eosDate": 2208988800000,
+  "eosModule": null,
+  "family": "Cisco 2900",
+  "id": 1,
+  "location": "Paris, rack A1",
+  "mgmtAddress": "10.1.1.1",
+  "mgmtDomain": {
+    "changeDate": "<now>",
+    "description": "Paris data center",
+    "id": 1,
+    "name": "Paris DC",
+    "server4Address": "10.255.0.1",
+    "server6Address": "0:0:0:0:0:0:0:0"
+  },
+  "name": "router-paris-1",
+  "networkClass": "ROUTER",
+  "options": { },
+  "ownerGroups": [
+    {
+      "changeDate": "<now>",
+      "folder": "",
+      "hiddenFromReports": true,
+      "id": 3,
+      "name": "Everything",
+      "query": "[Name] contains \"\"",
+      "type": "DynamicDeviceGroup"
+    },
+    {
+      "changeDate": "<now>",
+      "folder": "Production",
+      "hiddenFromReports": false,
+      "id": 2,
+      "name": "All Cisco devices",
+      "query": "[Family] contains \"Cisco\"",
+      "type": "DynamicDeviceGroup"
+    },
+    {
+      "changeDate": "<now>",
+      "folder": "Production/Core",
+      "hiddenFromReports": false,
+      "id": 1,
+      "name": "Core routers",
+      "type": "StaticDeviceGroup"
+    }
+  ],
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "serialNumber": "FTX1234ABCD",
+  "softwareLevel": "GOLD",
+  "softwareVersion": "16.1.6",
+  "status": "INPRODUCTION",
+  "tags": [
+    "core",
+    "production"
+  ]
+}

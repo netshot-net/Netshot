@@ -1,0 +1,5 @@
+{
+  "comment": "py",
+  "result": "NONCONFORMING",
+  "scriptError": "[INFO] The script returned NONCONFORMING (1), comment 'py'.\n[DEBUG] End of check\n"
+}
