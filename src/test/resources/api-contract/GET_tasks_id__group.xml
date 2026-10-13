@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<TakeGroupSnapshotTask type="TakeGroupSnapshotTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1641038403000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Group snapshot</comments>
+  <creationDate>1641038401000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver/>
+  <deviceGroupId>1</deviceGroupId>
+  <executionDate>1641038402000</executionDate>
+  <id>9</id>
+  <limitToOutofdateDeviceHours>-1</limitToOutofdateDeviceHours>
+  <log>Running</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1641038401000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>RUNNING</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>Core routers</target>
+  <taskDescription>Group snapshot</taskDescription>
+  <userInputValues/>
+</TakeGroupSnapshotTask>

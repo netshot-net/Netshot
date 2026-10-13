@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <checkDate>1609502403000</checkDate>
+    <comment/>
+    <expirationDate/>
+    <policyId>2</policyId>
+    <policyName>Routing policy</policyName>
+    <result>NOTAPPLICABLE</result>
+    <ruleId>4</ruleId>
+    <ruleName>Python check</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502402000</checkDate>
+    <comment>Script error</comment>
+    <expirationDate/>
+    <policyId>2</policyId>
+    <policyName>Routing policy</policyName>
+    <result>INVALIDRULE</result>
+    <ruleId>3</ruleId>
+    <ruleName>JS check</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502400000</checkDate>
+    <comment>Found text 'transport input telnet'</comment>
+    <expirationDate/>
+    <policyId>1</policyId>
+    <policyName>Security baseline</policyName>
+    <result>NONCONFORMING</result>
+    <ruleId>1</ruleId>
+    <ruleName>No telnet</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502401000</checkDate>
+    <comment/>
+    <expirationDate/>
+    <policyId>1</policyId>
+    <policyName>Security baseline</policyName>
+    <result>CONFORMING</result>
+    <ruleId>2</ruleId>
+    <ruleName>Hostname set</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502403000</checkDate>
+    <comment/>
+    <expirationDate/>
+    <policyId>2</policyId>
+    <policyName>Routing policy</policyName>
+    <result>NOTAPPLICABLE</result>
+    <ruleId>4</ruleId>
+    <ruleName>Python check</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502402000</checkDate>
+    <comment>Script error</comment>
+    <expirationDate/>
+    <policyId>2</policyId>
+    <policyName>Routing policy</policyName>
+    <result>INVALIDRULE</result>
+    <ruleId>3</ruleId>
+    <ruleName>JS check</ruleName>
+  </item>
+</ArrayList>

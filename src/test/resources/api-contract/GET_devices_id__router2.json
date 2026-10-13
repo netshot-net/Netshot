@@ -1,0 +1,85 @@
+{
+  "accesses": [ ],
+  "attributes": [
+    {
+      "assumption": true,
+      "name": "configurationSaved",
+      "type": "BINARY"
+    },
+    {
+      "name": "configRegister",
+      "text": "0x1202",
+      "type": "TEXT"
+    },
+    {
+      "name": "mainMemorySize",
+      "number": 2048.0,
+      "type": "NUMERIC"
+    }
+  ],
+  "cachedIpAddress": "10.2.1.1",
+  "changeDate": "<now>",
+  "comments": "",
+  "compliant": true,
+  "contact": "",
+  "createdDate": 1609502400000,
+  "creator": "seed",
+  "driver": "CiscoIOS12",
+  "endOfLife": false,
+  "endOfSale": false,
+  "eolDate": null,
+  "eolModule": null,
+  "eosDate": null,
+  "eosModule": null,
+  "family": "Cisco 1900",
+  "id": 2,
+  "location": "Lyon",
+  "mgmtAddress": "10.2.1.1",
+  "mgmtDomain": {
+    "changeDate": "<now>",
+    "description": "Lyon data center",
+    "id": 2,
+    "name": "Lyon DC",
+    "server4Address": "10.255.1.1",
+    "server6Address": "0:0:0:0:0:0:0:0"
+  },
+  "name": "router-lyon-1",
+  "networkClass": "SWITCHROUTER",
+  "options": { },
+  "ownerGroups": [
+    {
+      "changeDate": "<now>",
+      "folder": "",
+      "hiddenFromReports": true,
+      "id": 3,
+      "name": "Everything",
+      "query": "[Name] contains \"\"",
+      "type": "DynamicDeviceGroup"
+    },
+    {
+      "changeDate": "<now>",
+      "folder": "Production",
+      "hiddenFromReports": false,
+      "id": 2,
+      "name": "All Cisco devices",
+      "query": "[Family] contains \"Cisco\"",
+      "type": "DynamicDeviceGroup"
+    },
+    {
+      "changeDate": "<now>",
+      "folder": "Production/Core",
+      "hiddenFromReports": false,
+      "id": 1,
+      "name": "Core routers",
+      "type": "StaticDeviceGroup"
+    }
+  ],
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "serialNumber": "FTX9999ZZZZ",
+  "softwareLevel": "SILVER",
+  "softwareVersion": "15.2.4",
+  "status": "DISABLED",
+  "tags": [
+    "branch"
+  ]
+}

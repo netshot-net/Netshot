@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <description>Test Token - level 10</description>
+    <id>1</id>
+    <level>10</level>
+  </item>
+  <item>
+    <description>Test Token - level 50</description>
+    <id>2</id>
+    <level>50</level>
+  </item>
+  <item>
+    <description>Test Token - level 100</description>
+    <id>3</id>
+    <level>100</level>
+  </item>
+  <item>
+    <description>Test Token - level 500</description>
+    <id>4</id>
+    <level>500</level>
+  </item>
+  <item>
+    <description>Test Token - level 1000</description>
+    <id>5</id>
+    <level>1000</level>
+  </item>
+</ArrayList>

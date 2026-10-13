@@ -1,0 +1,54 @@
+[
+  {
+    "configCompliant": true,
+    "driver": "CiscoIOS12",
+    "eol": false,
+    "eos": false,
+    "family": "",
+    "id": 4,
+    "mgmtAddress": "2001:db8::4",
+    "name": "bare-1",
+    "networkClass": "UNKNOWN",
+    "softwareLevel": "UNKNOWN",
+    "status": "INPRODUCTION"
+  },
+  {
+    "configCompliant": false,
+    "driver": "CiscoIOS12",
+    "eol": false,
+    "eos": false,
+    "family": "Cisco 2900",
+    "id": 1,
+    "mgmtAddress": "10.1.1.1",
+    "name": "router-paris-1",
+    "networkClass": "ROUTER",
+    "softwareLevel": "GOLD",
+    "status": "INPRODUCTION"
+  },
+  {
+    "configCompliant": true,
+    "driver": "CiscoIOS12",
+    "eol": false,
+    "eos": false,
+    "family": "Cisco 1900",
+    "id": 2,
+    "mgmtAddress": "10.2.1.1",
+    "name": "router-lyon-1",
+    "networkClass": "SWITCHROUTER",
+    "softwareLevel": "SILVER",
+    "status": "DISABLED"
+  },
+  {
+    "configCompliant": true,
+    "driver": "SkyhighSWG",
+    "eol": false,
+    "eos": false,
+    "family": "Web gateway",
+    "id": 3,
+    "mgmtAddress": "10.1.2.2",
+    "name": "proxy-paris-1",
+    "networkClass": "SERVER",
+    "softwareLevel": "UNKNOWN",
+    "status": "PREPRODUCTION"
+  }
+]

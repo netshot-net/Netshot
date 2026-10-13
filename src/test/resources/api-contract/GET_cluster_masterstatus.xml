@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<RsClusterMasterCheck>
+  <clusterEnabled>false</clusterEnabled>
+  <currentMasterId/>
+  <master>true</master>
+</RsClusterMasterCheck>

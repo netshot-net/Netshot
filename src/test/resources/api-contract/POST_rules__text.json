@@ -1,0 +1,16 @@
+{
+  "anyBlock": false,
+  "context": "",
+  "deviceDriver": null,
+  "deviceDriverDescription": "Unknown driver",
+  "enabled": false,
+  "field": "runningConfig",
+  "id": 5,
+  "invert": false,
+  "matchAll": true,
+  "name": "New text rule",
+  "normalize": false,
+  "regExp": false,
+  "text": "ntp server",
+  "type": "TextRule"
+}

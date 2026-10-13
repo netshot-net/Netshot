@@ -1,0 +1,26 @@
+[
+  {
+    "bronzeDeviceCount": 0,
+    "deviceCount": 1,
+    "goldDeviceCount": 1,
+    "groupId": 1,
+    "groupName": "Core routers",
+    "silverDeviceCount": 0
+  },
+  {
+    "bronzeDeviceCount": 0,
+    "deviceCount": 1,
+    "goldDeviceCount": 1,
+    "groupId": 2,
+    "groupName": "All Cisco devices",
+    "silverDeviceCount": 0
+  },
+  {
+    "bronzeDeviceCount": 0,
+    "deviceCount": 0,
+    "goldDeviceCount": 0,
+    "groupId": 4,
+    "groupName": "Empty group",
+    "silverDeviceCount": 0
+  }
+]

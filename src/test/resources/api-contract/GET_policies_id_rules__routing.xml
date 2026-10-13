@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type="JavaScriptRule">
+    <enabled>false</enabled>
+    <id>3</id>
+    <name>JS check</name>
+    <script>function check(device) {&#10;  return { result: CONFORMING, comment: 'ok' };&#10;}</script>
+  </item>
+  <item type="PythonRule">
+    <enabled>false</enabled>
+    <id>4</id>
+    <name>Python check</name>
+    <script>def check(device):&#10;  return {'result': result_option.CONFORMING, 'comment': 'ok'}</script>
+  </item>
+</ArrayList>

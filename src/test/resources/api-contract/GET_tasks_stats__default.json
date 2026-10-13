@@ -1,0 +1,59 @@
+{
+  "bins": [
+    {
+      "countByStatus": {
+        "CANCELLED": 1,
+        "FAILURE": 1,
+        "SUCCESS": 4
+      },
+      "from": 1609502399999,
+      "to": 1617386402499
+    },
+    {
+      "countByStatus": {
+        "CANCELLED": 0,
+        "FAILURE": 0,
+        "SUCCESS": 0
+      },
+      "from": 1617386402499,
+      "to": 1625270405000
+    },
+    {
+      "countByStatus": {
+        "CANCELLED": 0,
+        "FAILURE": 0,
+        "SUCCESS": 0
+      },
+      "from": 1625270405000,
+      "to": 1633154407500
+    },
+    {
+      "countByStatus": {
+        "CANCELLED": 0,
+        "FAILURE": 0,
+        "SUCCESS": 0
+      },
+      "from": 1633154407500,
+      "to": 1641038410000
+    }
+  ],
+  "statusCounts": {
+    "CANCELLED": 1,
+    "FAILURE": 1,
+    "SUCCESS": 4
+  },
+  "typeCounts": {
+    "CheckComplianceTask": 1,
+    "CheckGroupComplianceTask": 0,
+    "CheckGroupSoftwareTask": 0,
+    "DiscoverDeviceTypeTask": 0,
+    "PurgeDatabaseTask": 0,
+    "RunDeviceGroupScriptTask": 0,
+    "RunDeviceScriptTask": 1,
+    "RunDiagnosticsTask": 1,
+    "RunGroupDiagnosticsTask": 0,
+    "ScanSubnetsTask": 1,
+    "TakeGroupSnapshotTask": 0,
+    "TakeSnapshotTask": 2
+  }
+}

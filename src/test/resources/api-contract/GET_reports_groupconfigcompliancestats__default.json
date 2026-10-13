@@ -1,0 +1,23 @@
+[
+  {
+    "compliantDeviceCount": 0,
+    "deviceCount": 1,
+    "groupFolder": "Production/Core",
+    "groupId": 1,
+    "groupName": "Core routers"
+  },
+  {
+    "compliantDeviceCount": 0,
+    "deviceCount": 1,
+    "groupFolder": "Production",
+    "groupId": 2,
+    "groupName": "All Cisco devices"
+  },
+  {
+    "compliantDeviceCount": 0,
+    "deviceCount": 0,
+    "groupFolder": "",
+    "groupId": 4,
+    "groupName": "Empty group"
+  }
+]

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<JavaScriptDiagnostic type="JavaScriptDiagnostic">
+  <enabled>true</enabled>
+  <id>2</id>
+  <name>Full inventory</name>
+  <resultType>LONGTEXT</resultType>
+  <script>function diagnose(cli, device, diagnostic) {&#10;  diagnostic.set('x');&#10;}</script>
+  <targetGroup/>
+</JavaScriptDiagnostic>

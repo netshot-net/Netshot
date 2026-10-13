@@ -1,0 +1,18 @@
+[
+  {
+    "deviceFamily": "",
+    "driver": "CiscoIOS12"
+  },
+  {
+    "deviceFamily": "Cisco 2900",
+    "driver": "CiscoIOS12"
+  },
+  {
+    "deviceFamily": "Cisco 1900",
+    "driver": "CiscoIOS12"
+  },
+  {
+    "deviceFamily": "Web gateway",
+    "driver": "SkyhighSWG"
+  }
+]

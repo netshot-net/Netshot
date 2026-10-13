@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<TextRule type="TextRule">
+  <anyBlock>true</anyBlock>
+  <context/>
+  <deviceDriver/>
+  <deviceDriverDescription>Unknown driver</deviceDriverDescription>
+  <enabled>false</enabled>
+  <field>runningConfig</field>
+  <id>2</id>
+  <invert>false</invert>
+  <matchAll>true</matchAll>
+  <name>Hostname set</name>
+  <normalize>false</normalize>
+  <regExp>true</regExp>
+  <text>^hostname .+$</text>
+</TextRule>

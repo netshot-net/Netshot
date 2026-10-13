@@ -1,0 +1,21 @@
+{
+  "deviceType": "Cisco IOS and IOS-XE",
+  "driver": "CiscoIOS12",
+  "family": "Cisco 2900",
+  "familyRegExp": false,
+  "id": 3,
+  "level": "SILVER",
+  "partNumber": "CISCO2911/K9",
+  "partNumberRegExp": false,
+  "targetGroup": {
+    "changeDate": "<now>",
+    "folder": "Production",
+    "hiddenFromReports": false,
+    "id": 2,
+    "name": "All Cisco devices",
+    "query": "[Family] contains \"Cisco\"",
+    "type": "DynamicDeviceGroup"
+  },
+  "version": "17.2",
+  "versionRegExp": false
+}

@@ -1,0 +1,15 @@
+[
+  {
+    "deviceType": "Cisco IOS and IOS-XE",
+    "driver": "CiscoIOS12",
+    "family": "Cisco 1900",
+    "familyRegExp": false,
+    "id": 2,
+    "level": "SILVER",
+    "partNumber": "",
+    "partNumberRegExp": false,
+    "targetGroup": null,
+    "version": "15\\..*",
+    "versionRegExp": true
+  }
+]
