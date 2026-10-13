@@ -31,10 +31,10 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.database.StringEncryptorConverter;
-import net.netshot.netshot.device.credentials.HideSecretDeserializer;
-import net.netshot.netshot.device.credentials.HideSecretSerializer;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.credentials.HideSecretDeserializer;
+import net.netshot.netshot.credentials.HideSecretSerializer;
+import net.netshot.netshot.platform.database.StringEncryptorConverter;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A HashiCorp Vault instance, using the KV v2 secrets engine.

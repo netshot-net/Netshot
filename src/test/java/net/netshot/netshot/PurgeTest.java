@@ -5,17 +5,17 @@ import java.util.Properties;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.device.Config;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.device.Domain;
-import net.netshot.netshot.device.Module;
-import net.netshot.netshot.device.StaticDeviceGroup;
-import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.work.Task;
-import net.netshot.netshot.work.tasks.PurgeDatabaseTask;
-import net.netshot.netshot.work.tasks.TakeSnapshotTask;
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Module;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.type.PurgeDatabaseTask;
+import net.netshot.netshot.task.type.TakeSnapshotTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;

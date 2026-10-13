@@ -34,8 +34,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.device.credentials.DeviceSshAccount;
+import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.VaultException;

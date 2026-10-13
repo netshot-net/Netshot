@@ -29,7 +29,7 @@ import org.testcontainers.utility.DockerImageName;
 
 /**
  * Base class for DB-backed test classes. A single PostgreSQL container is
- * shared by every subclass (mirroring {@link net.netshot.netshot.database.Database}'s
+ * shared by every subclass (mirroring {@link net.netshot.netshot.platform.database.Database}'s
  * own static-singleton design): it is started once per JVM, in a static
  * initializer, the first time any subclass is loaded, and Testcontainers'
  * own Ryuk reaper container tears it down when the test JVM exits. Each

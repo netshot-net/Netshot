@@ -59,38 +59,38 @@ import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import net.netshot.netshot.device.Config;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.Device.NetworkClass;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.DeviceDriver.AccessDefinition;
-import net.netshot.netshot.device.DeviceDriver.DriverProtocol;
-import net.netshot.netshot.device.DeviceDriver.Location;
-import net.netshot.netshot.device.DeviceDriver.LocationType;
-import net.netshot.netshot.device.Domain;
-import net.netshot.netshot.device.DriverValueType;
-import net.netshot.netshot.device.Network4Address;
-import net.netshot.netshot.device.PhysicalAddress;
-import net.netshot.netshot.device.access.AccessManager;
-import net.netshot.netshot.device.access.DeviceAccess;
-import net.netshot.netshot.device.access.Http;
-import net.netshot.netshot.device.access.Http.AuthScheme;
-import net.netshot.netshot.device.access.Ssh;
-import net.netshot.netshot.device.access.Telnet;
-import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.device.attribute.ConfigTextAttribute;
-import net.netshot.netshot.device.attribute.DeviceBinaryAttribute;
-import net.netshot.netshot.device.attribute.DeviceNumericAttribute;
-import net.netshot.netshot.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.device.attribute.OptionDefinition;
-import net.netshot.netshot.device.script.helper.JsDeviceHelper;
-import net.netshot.netshot.device.credentials.DeviceHttpAccount;
-import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
-import net.netshot.netshot.device.credentials.DeviceSshAccount;
-import net.netshot.netshot.device.script.SnapshotDeviceScript;
-import net.netshot.netshot.device.script.UserDeviceScript;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.access.Http;
+import net.netshot.netshot.access.Http.AuthScheme;
+import net.netshot.netshot.access.Ssh;
+import net.netshot.netshot.access.Telnet;
+import net.netshot.netshot.credentials.DeviceHttpAccount;
+import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
+import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.devicescript.SnapshotDeviceScript;
+import net.netshot.netshot.devicescript.UserDeviceScript;
+import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.DeviceDriver.Location;
+import net.netshot.netshot.driver.DeviceDriver.LocationType;
+import net.netshot.netshot.driver.DriverValueType;
+import net.netshot.netshot.driver.OptionDefinition;
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.PhysicalAddress;
+import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.task.engine.TaskContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -382,7 +382,7 @@ public class DeviceDriverTest {
 		 */
 		private static final String[] REKEY_DEBUG_LOGGER_NAMES = {
 			"org.apache.sshd.client.session",
-			"net.netshot.netshot.device.access.Ssh$NetshotClientSession",
+			"net.netshot.netshot.access.Ssh$NetshotClientSession",
 		};
 
 		/** Saved so the loggers above can be restored to their prior level afterwards. */
@@ -1105,8 +1105,8 @@ public class DeviceDriverTest {
 	 * binary-safe counterpart to {@code Http.request()}/{@code http.request(...)},
 	 * added because the latter always decodes the response body as a
 	 * (charset-decoded) {@link String} - lossy for arbitrary binary content
-	 * such as a backup archive (see {@link net.netshot.netshot.device.access.Http}
-	 * and {@link net.netshot.netshot.device.script.helper.JsHttpHelper}).
+	 * such as a backup archive (see {@link net.netshot.netshot.access.Http}
+	 * and {@link net.netshot.netshot.devicescript.helper.JsHttpHelper}).
 	 */
 	@Nested
 	@DisplayName("HTTP client binary download test")
