@@ -47,10 +47,10 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.device.attribute.AttributeDefinition.AttributeType;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A diagnostic describes how to get some data from a group of devices, and to store

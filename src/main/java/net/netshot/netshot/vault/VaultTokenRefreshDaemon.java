@@ -24,7 +24,7 @@ import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.database.Database;
+import net.netshot.netshot.platform.database.Database;
 
 /**
  * Background daemon that proactively refreshes Vault client tokens shortly

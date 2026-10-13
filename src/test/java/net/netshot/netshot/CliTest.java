@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.device.access.Cli;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.access.Cli;
+import net.netshot.netshot.task.engine.TaskContext;
 
 public class CliTest {
 
