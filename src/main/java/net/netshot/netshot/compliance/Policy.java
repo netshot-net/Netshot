@@ -42,10 +42,10 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.rest.RestViews.DefaultView;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.task.engine.TaskContext;
 
 /**
  * A policy is a set of rules, applied to a group of devices.

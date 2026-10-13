@@ -43,14 +43,14 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.database.migrator.NetworkAddressMigrator;
-import net.netshot.netshot.device.Network4Address;
-import net.netshot.netshot.device.Network6Address;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.migrator.NetworkAddressMigrator;
 
 /**
  * Tests for the Liquibase {@code CustomSqlChange} data migrators under
- * {@link net.netshot.netshot.database.migrator} (currently just
+ * {@link net.netshot.netshot.platform.database.migrator} (currently just
  * {@link NetworkAddressMigrator} - add further migrators here as
  * additional {@code @Nested} classes). Testcontainers-backed tests
  * otherwise only ever see a freshly created schema, so these
@@ -464,6 +464,69 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 				assertDeviceAccessPortAddress(statement, 112, "ssh", 2222, null);
 				assertDeviceAccess(statement, 112, "telnet", null, null);
 			}
+		}
+	}
+
+	@Nested
+	@DisplayName("Custom changes moved to platform.database.migrator keep upgrades of existing databases valid")
+	class CustomChangeChecksumTest {
+
+		/**
+		 * Checksums recorded in the DATABASECHANGELOG table by Netshot versions whose
+		 * Liquibase custom changes still lived in net.netshot.netshot.database.migrator
+		 * (the class name is part of the checksum, hence the validCheckSum elements).
+		 */
+		private static final java.util.Map<String, String> LEGACY_CHECKSUMS = java.util.Map.of(
+			"0.21.0_1", "9:a346810332ef3abb4e6ca55aeb24f9f3",
+			"0.24.0_2", "9:6fae930e4fda7d19cc20ca232b0ef395",
+			"0.25.0_18", "9:c3fe37ff86d1bf5735e5c8631652f9c0",
+			"0.25.0_24", "9:4319e4962071801f673e8e22fe1f936d");
+
+		private Properties getNetshotConfig() {
+			Properties config = getFreshDatabaseConfig("customchangechecksumtest");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "INFO");
+			return config;
+		}
+
+		@Test
+		@DisplayName("A database migrated with the legacy custom change class names still validates and upgrades")
+		void legacyChecksumsRemainValid() throws Exception {
+			Netshot.initConfig(this.getNetshotConfig());
+			Database.update();
+
+			// Simulate a database created by a version using the legacy class names
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				for (var entry : LEGACY_CHECKSUMS.entrySet()) {
+					int updated = statement.executeUpdate(
+						"update databasechangelog set md5sum = '%s' where id = '%s' and author = 'netshot'"
+							.formatted(entry.getValue(), entry.getKey()));
+					Assertions.assertEquals(1, updated, "Changeset %s not found".formatted(entry.getKey()));
+				}
+			}
+
+			// Liquibase validates the stored checksums before applying anything: this throws if the
+			// legacy checksums are not accepted by the current changelog.
+			Assertions.assertDoesNotThrow(() -> Database.update());
+
+			// The changesets now compute a different checksum (so the validCheckSum elements are required)
+			for (var entry : LEGACY_CHECKSUMS.entrySet()) {
+				Assertions.assertNotEquals(entry.getValue(), this.currentChecksum(entry.getKey()));
+			}
+		}
+
+		private String currentChecksum(String changeSetId) throws Exception {
+			ResourceAccessor resourceAccessor = new ClassLoaderResourceAccessor();
+			DatabaseChangeLog changeLog = ChangeLogParserFactory.getInstance()
+				.getParser("migration/netshot0.xml", resourceAccessor)
+				.parse("migration/netshot0.xml", new ChangeLogParameters(new liquibase.database.core.PostgresDatabase()), resourceAccessor);
+			for (ChangeSet changeSet : changeLog.getChangeSets()) {
+				if (changeSet.getId().equals(changeSetId) && changeSet.getAuthor().equals("netshot")) {
+					return changeSet.generateCheckSum(liquibase.ChecksumVersion.latest()).toString();
+				}
+			}
+			throw new IllegalArgumentException(changeSetId);
 		}
 	}
 }

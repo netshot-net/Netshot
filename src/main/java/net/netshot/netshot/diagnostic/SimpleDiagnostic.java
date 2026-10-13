@@ -34,11 +34,11 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.device.attribute.AttributeDefinition.AttributeType;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * This is a simple diagnostic: runs a CLI command in a CLI mode, and optionally

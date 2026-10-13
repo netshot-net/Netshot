@@ -38,12 +38,12 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.device.Module;
-import net.netshot.netshot.device.attribute.AttributeDefinition.EnumAttribute;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Module;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A software rule defines constraints that apply to the software versions.

@@ -48,8 +48,8 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
