@@ -1,0 +1,9 @@
+{
+  "changeDate": "<now>",
+  "folder": "Production",
+  "hiddenFromReports": false,
+  "id": 2,
+  "name": "All Cisco devices",
+  "query": "[Family] contains \"Cisco\"",
+  "type": "DynamicDeviceGroup"
+}

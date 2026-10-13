@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <firstSeenDate/>
+    <id>1</id>
+    <lastSeenDate/>
+    <partNumber>CISCO2911/K9</partNumber>
+    <removed>false</removed>
+    <serialNumber>FTX1234ABCD</serialNumber>
+    <slot>chassis</slot>
+  </item>
+  <item>
+    <firstSeenDate/>
+    <id>2</id>
+    <lastSeenDate/>
+    <partNumber>HWIC-4ESW</partNumber>
+    <removed>false</removed>
+    <serialNumber>FOC5678WXYZ</serialNumber>
+    <slot>slot 1</slot>
+  </item>
+</ArrayList>

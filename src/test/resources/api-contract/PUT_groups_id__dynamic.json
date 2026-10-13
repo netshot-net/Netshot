@@ -1,0 +1,9 @@
+{
+  "changeDate": "<now>",
+  "folder": "",
+  "hiddenFromReports": false,
+  "id": 6,
+  "name": "New dynamic group",
+  "query": "[Family] contains \"Cisco\"",
+  "type": "DynamicDeviceGroup"
+}

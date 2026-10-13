@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <id>1</id>
+    <name>Security baseline</name>
+    <targetGroups>
+      <targetGroups type="DynamicDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>2</id>
+        <name>All Cisco devices</name>
+        <query>[Family] contains &quot;Cisco&quot;</query>
+      </targetGroups>
+    </targetGroups>
+  </item>
+  <item>
+    <id>2</id>
+    <name>Routing policy</name>
+    <targetGroups>
+      <targetGroups type="DynamicDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>2</id>
+        <name>All Cisco devices</name>
+        <query>[Family] contains &quot;Cisco&quot;</query>
+      </targetGroups>
+      <targetGroups type="StaticDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production/Core</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>1</id>
+        <name>Core routers</name>
+      </targetGroups>
+    </targetGroups>
+  </item>
+  <item>
+    <id>3</id>
+    <name>Empty policy</name>
+    <targetGroups/>
+  </item>
+</ArrayList>

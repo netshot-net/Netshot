@@ -1,0 +1,25 @@
+[
+  {
+    "author": "tester",
+    "changeDate": 1609502432000,
+    "childOrder": 0,
+    "comments": "Run diagnostics",
+    "creationDate": 1609502430000,
+    "debugEnabled": false,
+    "deviceGroupId": null,
+    "deviceId": 1,
+    "executionDate": null,
+    "id": 4,
+    "parentTaskId": null,
+    "priority": 5,
+    "runnerId": null,
+    "scheduleFactor": 1,
+    "scheduleMode": "PARALLEL",
+    "scheduleReference": 1609502430000,
+    "scheduleType": "ASAP",
+    "status": "CANCELLED",
+    "stopOnFailure": false,
+    "target": "router-paris-1",
+    "type": "RunDiagnosticsTask"
+  }
+]

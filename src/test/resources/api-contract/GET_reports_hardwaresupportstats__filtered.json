@@ -1,0 +1,12 @@
+[
+  {
+    "deviceCount": 1,
+    "eoxDate": 2208988800000,
+    "type": ".RestService$RsHardwareSupportEoSStat"
+  },
+  {
+    "deviceCount": 1,
+    "eoxDate": 2240524800000,
+    "type": ".RestService$RsHardwareSupportEoLStat"
+  }
+]

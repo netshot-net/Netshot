@@ -1,0 +1,14 @@
+[
+  {
+    "description": "Paris data center",
+    "id": 1,
+    "ipAddress": "10.255.0.1",
+    "name": "Paris DC"
+  },
+  {
+    "description": "Lyon data center",
+    "id": 2,
+    "ipAddress": "10.255.1.1",
+    "name": "Lyon DC"
+  }
+]

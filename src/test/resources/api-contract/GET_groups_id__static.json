@@ -1,0 +1,8 @@
+{
+  "changeDate": "<now>",
+  "folder": "Production/Core",
+  "hiddenFromReports": false,
+  "id": 1,
+  "name": "Core routers",
+  "type": "StaticDeviceGroup"
+}

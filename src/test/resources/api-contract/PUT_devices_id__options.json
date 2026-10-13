@@ -1,0 +1,82 @@
+{
+  "accesses": [
+    {
+      "accessName": "ssh",
+      "address": null,
+      "globalCredentialSet": {
+        "deviceSpecific": false,
+        "id": 4,
+        "mgmtDomain": null,
+        "name": "SSH account",
+        "password": "=",
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "superPassword": "=",
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "SSH",
+        "username": "admin",
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    }
+  ],
+  "attributes": [ ],
+  "cachedIpAddress": "10.1.2.2",
+  "changeDate": "<now>",
+  "comments": "Proxy",
+  "compliant": true,
+  "contact": "",
+  "createdDate": 1641038400000,
+  "creator": "seed",
+  "driver": "SkyhighSWG",
+  "endOfLife": false,
+  "endOfSale": false,
+  "eolDate": null,
+  "eolModule": null,
+  "eosDate": null,
+  "eosModule": null,
+  "family": "Web gateway",
+  "id": 3,
+  "location": "",
+  "mgmtAddress": "10.1.2.2",
+  "mgmtDomain": {
+    "changeDate": "<now>",
+    "description": "Paris data center",
+    "id": 1,
+    "name": "Paris DC",
+    "server4Address": "10.255.0.1",
+    "server6Address": "0:0:0:0:0:0:0:0"
+  },
+  "name": "proxy-paris-1",
+  "networkClass": "SERVER",
+  "options": {
+    "fullBackup": true
+  },
+  "ownerGroups": [
+    {
+      "changeDate": "<now>",
+      "folder": "",
+      "hiddenFromReports": true,
+      "id": 3,
+      "name": "Everything",
+      "query": "[Name] contains \"\"",
+      "type": "DynamicDeviceGroup"
+    }
+  ],
+  "realDeviceType": "Skyhigh Secure Web Gateway",
+  "serialNumber": "",
+  "softwareLevel": "UNKNOWN",
+  "softwareVersion": "",
+  "status": "INPRODUCTION",
+  "tags": [
+    "production"
+  ]
+}

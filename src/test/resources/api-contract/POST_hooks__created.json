@@ -1,0 +1,16 @@
+{
+  "action": "POST_YAML",
+  "enabled": true,
+  "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+  "httpsCustomCaCertificate": null,
+  "id": 3,
+  "name": "New hook",
+  "triggers": [
+    {
+      "item": "TakeSnapshotTask",
+      "type": "POST_TASK"
+    }
+  ],
+  "type": "Web",
+  "url": "https://example.net/new"
+}

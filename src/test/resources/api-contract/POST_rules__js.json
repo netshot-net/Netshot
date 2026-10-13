@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "id": 6,
+  "name": "New JS rule",
+  "script": "function check(device) { return { result: NONCONFORMING, comment: 'no' }; }",
+  "type": "JavaScriptRule"
+}

@@ -1,0 +1,13 @@
+# Content-Disposition: attachment; filename="netshot-export_<timestamp>.xlsx"
+## Sheet Summary
+0='Netshot version' | 1='<version>'
+0='Exported by' | 1='API Token [5: Test Token - level 1000]'
+0='Date and time' | 1=<now>
+0='Selected Domain' | 1='Any'
+0='Selected Group' | 1='Any'
+## Sheet Devices
+0='ID' | 1='Name' | 2='Management IP' | 3='Domain' | 4='Network Class' | 5='Family' | 6='Creation' | 7='Last Change' | 8='Software'
+0=1.0 | 1='router-paris-1' | 2='10.1.1.1' | 3='Paris DC' | 4='ROUTER' | 5='Cisco 2900' | 6=date:1577880000000 | 7=<now> | 8='16.1.6'
+0=2.0 | 1='router-lyon-1' | 2='10.2.1.1' | 3='Lyon DC' | 4='SWITCHROUTER' | 5='Cisco 1900' | 6=date:1609502400000 | 7=<now> | 8='15.2.4'
+0=3.0 | 1='proxy-paris-1' | 2='10.1.2.2' | 3='Paris DC' | 4='SERVER' | 5='Web gateway' | 6=date:1641038400000 | 7=<now> | 8=''
+0=4.0 | 1='bare-1' | 2='2001:db8::4' | 3='Paris DC' | 4='UNKNOWN' | 5='' | 6=date:1641038400000 | 7=date:1641038400000 | 8=''

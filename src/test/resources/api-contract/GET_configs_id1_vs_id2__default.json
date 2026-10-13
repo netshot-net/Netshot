@@ -1,0 +1,53 @@
+{
+  "deltas": {
+    "Running configuration": [
+      {
+        "diffType": "INSERT",
+        "hierarchy": [ ],
+        "item": null,
+        "originalLines": [ ],
+        "originalPosition": 4,
+        "postContext": [
+          "!"
+        ],
+        "preContext": [
+          "!",
+          "interface Gi0/0",
+          " ip address 10.0.0.1 255.255.255.0"
+        ],
+        "revisedLines": [
+          " description \"Uplink\""
+        ],
+        "revisedPosition": 4
+      },
+      {
+        "diffType": "INSERT",
+        "hierarchy": [ ],
+        "item": null,
+        "originalLines": [ ],
+        "originalPosition": 5,
+        "postContext": [ ],
+        "preContext": [
+          "interface Gi0/0",
+          " ip address 10.0.0.1 255.255.255.0",
+          "!"
+        ],
+        "revisedLines": [
+          "interface Gi0/1",
+          " shutdown",
+          "!",
+          "line vty 0 4",
+          " password secret",
+          "!"
+        ],
+        "revisedPosition": 6
+      }
+    ]
+  },
+  "originalConfig": null,
+  "originalConfigId": 1,
+  "originalDate": 1577880000000,
+  "revisedConfig": null,
+  "revisedConfigId": 3,
+  "revisedDate": 1641038400000
+}
