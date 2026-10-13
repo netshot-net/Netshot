@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <configCompliant>true</configCompliant>
+    <driver>CiscoIOS12</driver>
+    <eol>false</eol>
+    <eos>false</eos>
+    <expirationDate>2208988800000</expirationDate>
+    <family>Cisco 1900</family>
+    <id>2</id>
+    <mgmtAddress>10.2.1.1</mgmtAddress>
+    <name>router-lyon-1</name>
+    <networkClass>SWITCHROUTER</networkClass>
+    <softwareLevel>SILVER</softwareLevel>
+    <status>DISABLED</status>
+  </item>
+</ArrayList>

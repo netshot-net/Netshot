@@ -1,0 +1,4 @@
+{
+  "errorCode": 113,
+  "errorMsg": "Unable to delete the domain, there must be devices or credential sets using it."
+}

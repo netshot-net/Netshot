@@ -1,0 +1,22 @@
+{
+  "cliMode": "enable",
+  "command": "show version | include reason",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": true,
+  "id": 1,
+  "modifierPattern": "(?s).*reason: (.+?)\\n.*",
+  "modifierReplacement": "$1",
+  "name": "Reload reason",
+  "resultType": "TEXT",
+  "targetGroup": {
+    "changeDate": "<now>",
+    "folder": "Production",
+    "hiddenFromReports": false,
+    "id": 2,
+    "name": "All Cisco devices",
+    "query": "[Family] contains \"Cisco\"",
+    "type": "DynamicDeviceGroup"
+  },
+  "type": "SimpleDiagnostic"
+}

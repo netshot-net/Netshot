@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<DeviceJsScript>
+  <author>API Token [5: Test Token - level 1000]</author>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <folder>Maintenance</folder>
+  <id>1</id>
+  <name>Show version</name>
+  <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+  <script>function run(cli, device) {&#10;  cli.macro(&quot;enable&quot;);&#10;  cli.command(&quot;show version&quot;);&#10;}</script>
+  <userInputDefinitions/>
+</DeviceJsScript>

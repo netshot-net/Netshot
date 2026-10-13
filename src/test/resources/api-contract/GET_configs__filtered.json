@@ -1,0 +1,18 @@
+[
+  {
+    "author": "tester",
+    "changeDate": 1609502400000,
+    "deviceId": 1,
+    "deviceName": "router-paris-1",
+    "deviceNetworkClass": "ROUTER",
+    "id": 2
+  },
+  {
+    "author": "snapshot",
+    "changeDate": 1641038400000,
+    "deviceId": 1,
+    "deviceName": "router-paris-1",
+    "deviceNetworkClass": "ROUTER",
+    "id": 3
+  }
+]

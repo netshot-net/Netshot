@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<PythonDiagnostic type="PythonDiagnostic">
+  <enabled>false</enabled>
+  <id>3</id>
+  <name>CPU load</name>
+  <resultType>NUMERIC</resultType>
+  <script>def diagnose(cli, device, diagnostic):&#10;  diagnostic.set(1)</script>
+  <targetGroup type="StaticDeviceGroup">
+    <changeDate>&lt;now&gt;</changeDate>
+    <folder>Production/Core</folder>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>1</id>
+    <name>Core routers</name>
+  </targetGroup>
+</PythonDiagnostic>

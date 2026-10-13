@@ -1,0 +1,87 @@
+[
+  {
+    "attributes": [
+      {
+        "assumption": true,
+        "name": "configSaved",
+        "type": "BINARY"
+      },
+      {
+        "checksum": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "fileSize": 4096,
+        "name": "backupFile",
+        "originalName": "backup-1641038400000.tar.gz",
+        "type": "BINARYFILE"
+      },
+      {
+        "name": "configSize",
+        "number": 1234.5,
+        "type": "NUMERIC"
+      },
+      {
+        "name": "iosVersion",
+        "text": "16.1.6",
+        "type": "TEXT"
+      },
+      {
+        "name": "runningConfig",
+        "type": "LONGTEXT"
+      }
+    ],
+    "author": "snapshot",
+    "changeDate": 1641038400000,
+    "customHash": null,
+    "id": 3
+  },
+  {
+    "attributes": [
+      {
+        "assumption": true,
+        "name": "configSaved",
+        "type": "BINARY"
+      },
+      {
+        "checksum": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "fileSize": 4096,
+        "name": "backupFile",
+        "originalName": "backup-1609502400000.tar.gz",
+        "type": "BINARYFILE"
+      },
+      {
+        "name": "configSize",
+        "number": 1234.5,
+        "type": "NUMERIC"
+      },
+      {
+        "name": "iosVersion",
+        "text": "16.1.6",
+        "type": "TEXT"
+      },
+      {
+        "name": "runningConfig",
+        "type": "LONGTEXT"
+      }
+    ],
+    "author": "tester",
+    "changeDate": 1609502400000,
+    "customHash": null,
+    "id": 2
+  },
+  {
+    "attributes": [
+      {
+        "name": "iosVersion",
+        "text": "16.1.6",
+        "type": "TEXT"
+      },
+      {
+        "name": "runningConfig",
+        "type": "LONGTEXT"
+      }
+    ],
+    "author": "tester",
+    "changeDate": 1577880000000,
+    "customHash": null,
+    "id": 1
+  }
+]

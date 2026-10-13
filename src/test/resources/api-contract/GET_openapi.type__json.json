@@ -1,0 +1,3953 @@
+{
+  "components": {
+    "securitySchemes": {
+      "ApiTokenAuth": {
+        "in": "header",
+        "name": "X-Netshot-API-Token",
+        "type": "apiKey"
+      },
+      "CookieAuth": {
+        "in": "cookie",
+        "name": "NetshotSessionID",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "contact@netshot.net"
+    },
+    "description": "Network Infrastructure Configuration and Compliance Management Software",
+    "license": {
+      "name": "GPLv3",
+      "url": "https://www.gnu.org/licenses/gpl-3.0.txt"
+    },
+    "title": "Netshot API",
+    "version": "1"
+  },
+  "openapi": "3.0.1",
+  "paths": {
+    "/apitokens": {
+      "get": {
+        "description": "Returns the list of API tokens.",
+        "operationId": "getApiTokens",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the API tokens",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "description": "Creates a new API token.",
+        "operationId": "addApiToken",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a new API token",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/apitokens/{id}": {
+      "delete": {
+        "description": "Removes an API token, by ID.",
+        "operationId": "deleteApiToken",
+        "parameters": [
+          {
+            "description": "Token ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove an API token",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/cluster/masterstatus": {
+      "get": {
+        "description": "Returns cluster mastership info of the current node. Might be used by local-balancer to redirect http to the proper server (return code 205 means the local server is not master).",
+        "operationId": "getClusterMasterStatus",
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Check if local server is cluster master",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/cluster/members": {
+      "get": {
+        "description": "Returns the members of the Netshot high availability cluster (empty list if clustering is not enabled).",
+        "operationId": "getClusterMembers",
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get cluster members",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/configs": {
+      "get": {
+        "description": "Retrieves a list of configurations, based on given criteria.",
+        "operationId": "getConfigs",
+        "parameters": [
+          {
+            "description": "Configs gathered after this date (as milliseconds since 1970)",
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Configs gathered before this date (as milliseconds since 1970)",
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given group ID(s)",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get configuration changes",
+        "tags": [
+          "Devices",
+          "Reports"
+        ]
+      }
+    },
+    "/configs/{id1}/vs/{id2}": {
+      "get": {
+        "description": "Retrieves the differences between two given device configuration objets, identified by full IDs.",
+        "operationId": "getDeviceConfigDiff",
+        "parameters": [
+          {
+            "description": "First config ID",
+            "in": "path",
+            "name": "id1",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Second config ID",
+            "in": "path",
+            "name": "id2",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Include/compute deltas",
+            "in": "query",
+            "name": "deltas",
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Include full configs",
+            "in": "query",
+            "name": "fullconfigs",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the diff between two configuration objects",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/configs/{id}/{item}": {
+      "get": {
+        "description": "Retrieves a device configuration item, in plain text.",
+        "operationId": "getDeviceConfigPlain",
+        "parameters": [
+          {
+            "description": "Config ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Config item name",
+            "in": "path",
+            "name": "item",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/octet-stream": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a device configuration item",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/credentialsets": {
+      "get": {
+        "description": "Returns the list of global credential sets (SSH, SNMP, etc. accounts) for authentication against the devices.",
+        "operationId": "getCredentialSets",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the global credential sets",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "description": "Creates a credential set, which then can be used to authenticate against the devices.",
+        "operationId": "addCredentialSet",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a credential set",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/credentialsets/{id}": {
+      "delete": {
+        "description": "Removes the given credential set, by ID.",
+        "operationId": "deleteCredentialSet",
+        "parameters": [
+          {
+            "description": "Credential set ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a credential set",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "description": "Edits a credential set, by ID.",
+        "operationId": "setCredentialSet",
+        "parameters": [
+          {
+            "description": "Credential set ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a credential set",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/devicefamilies": {
+      "get": {
+        "description": "Returns the list of device families (driver specific) currenly known in the database.",
+        "operationId": "getDeviceFamilies",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the existing device families",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices": {
+      "get": {
+        "description": "Retrieves the device list with minimal details.",
+        "operationId": "getDevices",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter on devices of the given group ID",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "details",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the devices",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "post": {
+        "description": "In auto discovery mode, this will create a 'discover device' task, and the device will be create if the discovery is successful. Otherwise, the device will be immediately created in the database, and a 'snapshot' task will be created.",
+        "operationId": "addDevice",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a device",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/search": {
+      "post": {
+        "description": "Find devices using a string-based query.",
+        "operationId": "searchDevices",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Search for devices",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{id}": {
+      "delete": {
+        "description": "Remove the given device, by ID.",
+        "operationId": "deleteDevice",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a device",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "get": {
+        "description": "Retrieve a device will all details.",
+        "operationId": "getDevice",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a device",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "put": {
+        "description": "Edits a device, by ID.",
+        "operationId": "setDevice",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a device",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{id}/complianceresults": {
+      "get": {
+        "description": "Returns the compliance results for a give device, by ID.",
+        "operationId": "getDeviceComplianceResults",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the compliance results for a device",
+        "tags": [
+          "Compliance",
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{id}/configs": {
+      "get": {
+        "description": "Returns the list of configurations of the given device, by ID.",
+        "operationId": "getDeviceConfigs",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get device configs",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{id}/diagnosticresults": {
+      "get": {
+        "description": "Returns the results of a given diagnostic, by ID.",
+        "operationId": "getDeviceDiagnosticResults",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get diagnostic results",
+        "tags": [
+          "Devices",
+          "Diagnostics"
+        ]
+      }
+    },
+    "/devices/{id}/interfaces": {
+      "get": {
+        "description": "Returns the list of interfaces of a given device (by ID).",
+        "operationId": "getDeviceInterfaces",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get device interfaces",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{id}/modules": {
+      "get": {
+        "description": "Returns the list of hardware modules of a given device, by ID.",
+        "operationId": "getDeviceModules",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Whether to include history (removed modules with dates)",
+            "in": "query",
+            "name": "history",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get device modules",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devices/{id}/tasks": {
+      "get": {
+        "description": "Returns the list of tasks of a given device (by ID). Tasks are returned sorted by status and significant date.",
+        "operationId": "getDeviceTasks",
+        "parameters": [
+          {
+            "description": "Device ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get device tasks",
+        "tags": [
+          "Devices",
+          "Tasks"
+        ]
+      }
+    },
+    "/devicetags": {
+      "get": {
+        "description": "Returns the list of distinct tags currently attached to at least one device, with the number of devices for each.",
+        "operationId": "getDeviceTags",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the existing device tags",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/devicetypes": {
+      "get": {
+        "description": "Returns the list of device types (drivers).",
+        "operationId": "getDeviceTypes",
+        "parameters": [
+          {
+            "description": "Whether to reload all drivers from sources",
+            "in": "query",
+            "name": "refresh",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the device types",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/diagnostics": {
+      "get": {
+        "description": "Returns the list of diagnostics.",
+        "operationId": "getDiagnostics",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the diagnostics",
+        "tags": [
+          "Diagnostics"
+        ]
+      },
+      "post": {
+        "description": "Creates a diagnostic.",
+        "operationId": "addDiagnostic",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a diagnostic.",
+        "tags": [
+          "Diagnostics"
+        ]
+      }
+    },
+    "/diagnostics/{id}": {
+      "delete": {
+        "description": "Removes a given diagnostic, by ID.",
+        "operationId": "deleteDiagnostic",
+        "parameters": [
+          {
+            "description": "Diagnostic ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a diagnostic",
+        "tags": [
+          "Diagnostics"
+        ]
+      },
+      "get": {
+        "description": "Returns a specific diagnostic, by ID.",
+        "operationId": "getDiagnostic",
+        "parameters": [
+          {
+            "description": "Diagnostic ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a diagnostic",
+        "tags": [
+          "Diagnostics"
+        ]
+      },
+      "put": {
+        "description": "Creates a new diagnostic.",
+        "operationId": "setDiagnostic",
+        "parameters": [
+          {
+            "description": "Diagnostic ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a diagnostic",
+        "tags": [
+          "Diagnostics"
+        ]
+      }
+    },
+    "/domains": {
+      "get": {
+        "description": "Returns the list of device domains.",
+        "operationId": "getDomains",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the device domains",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "description": "Creates a device domain.",
+        "operationId": "addDomain",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a device domain",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/domains/{id}": {
+      "delete": {
+        "description": "Remove the given device domain, by ID.",
+        "operationId": "deleteDomain",
+        "parameters": [
+          {
+            "description": "Domain ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a device domain",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "description": "Edits a device domain, by ID.",
+        "operationId": "setDomain",
+        "parameters": [
+          {
+            "description": "Domain ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a device domain",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/groups": {
+      "get": {
+        "description": "Returns the list of device groups, including their definition.",
+        "operationId": "getGroups",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the device groups",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "post": {
+        "description": "Creates a device group. A group can be either static (fixed list) or dynamic (query-based list).",
+        "operationId": "addGroup",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a device group",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/groups/{id}": {
+      "delete": {
+        "description": "Removes a device group. This doesn't remove the devices themselves.",
+        "operationId": "deleteGroup",
+        "parameters": [
+          {
+            "description": "Group ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a device group",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "get": {
+        "description": "Returns a specific group, by ID.",
+        "operationId": "getGroup",
+        "parameters": [
+          {
+            "description": "Group ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a device group",
+        "tags": [
+          "Devices"
+        ]
+      },
+      "put": {
+        "description": "Edits a device group, by ID.",
+        "operationId": "setGroup",
+        "parameters": [
+          {
+            "description": "Group ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a device group",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/hardwarerules": {
+      "get": {
+        "description": "Returns the list of hardware compliance rules.",
+        "operationId": "getHardwareRules",
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the hardware compliance rules",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "post": {
+        "description": "Creates an hardware compliance rule.",
+        "operationId": "addHardwareRule",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add an hardware compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/hardwarerules/{id}": {
+      "delete": {
+        "description": "Removes an hardware compliance rule, by ID.",
+        "operationId": "deleteHardwareRule",
+        "parameters": [
+          {
+            "description": "Hardware rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove an hardware compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "put": {
+        "description": "Edits an hardware compliance rule, by ID.",
+        "operationId": "setHardwareRule",
+        "parameters": [
+          {
+            "description": "Hardware rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update an hardware compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/hooks": {
+      "get": {
+        "description": "Returns the current list of hooks.",
+        "operationId": "getHooks",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the hooks",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "description": "Creates a hook. Based on given criteria, Netshot will run the given action when specific events occur.",
+        "operationId": "addHook",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a hook",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/hooks/{id}": {
+      "delete": {
+        "description": "Removes the hook, by ID.",
+        "operationId": "deleteHook",
+        "parameters": [
+          {
+            "description": "Hook ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a hook",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "description": "Edits a hook, by ID.",
+        "operationId": "setHook",
+        "parameters": [
+          {
+            "description": "Hook ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a hook",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/partnumbers": {
+      "get": {
+        "description": "Returns the list of all known part numbers currently existing in the module table.",
+        "operationId": "getPartNumbers",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the known part numbers",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/policies": {
+      "get": {
+        "description": "Returns the list of compliance policies.",
+        "operationId": "getPolicies",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the compliance policies",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "post": {
+        "description": "Creates a compliance policy.",
+        "operationId": "addPolicy",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a compliance policy",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/policies/{id}": {
+      "delete": {
+        "description": "Removes a given compliance policy, by ID",
+        "operationId": "deletePolicy",
+        "parameters": [
+          {
+            "description": "Policy ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a compliance policy",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "put": {
+        "description": "Edits a compliance policy, by ID.",
+        "operationId": "setPolicy",
+        "parameters": [
+          {
+            "description": "Policy ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a compliance policy",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/policies/{id}/rules": {
+      "get": {
+        "description": "Returns the rules owned by a given compliance policy.",
+        "operationId": "getPolicyRules",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Policy ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the compliance rules of a policy",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/policies/{pid}/rules/{id}": {
+      "get": {
+        "description": "Returns the specific rule owned by a given compliance policy.",
+        "operationId": "getPolicyRule",
+        "parameters": [
+          {
+            "description": "Policy ID",
+            "in": "path",
+            "name": "pid",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a specific compliance rule of a specific policy",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/reports/accessfailuredevices": {
+      "get": {
+        "description": "Returns the list of devices which didn't have a successful snapshot over the given number of days, optionally filtered by device domain.",
+        "operationId": "getAccessFailureDevices",
+        "parameters": [
+          {
+            "description": "Look for the given number of last days",
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the devices without successful snapshot over a given period",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/configcompliancedevicestatuses": {
+      "get": {
+        "description": "Returns the configuration compliance status of devices; optionally filtered by domain, group, policy or compliance level.",
+        "operationId": "getConfigComplianceDeviceStatuses",
+        "parameters": [
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given group ID(s)",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given policy ID(s)",
+            "in": "query",
+            "name": "policy",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given result(s)",
+            "in": "query",
+            "name": "result",
+            "schema": {
+              "items": {
+                "enum": [
+                  "CONFORMING",
+                  "EXEMPTED",
+                  "INVALIDRULE",
+                  "DISABLED",
+                  "NONCONFORMING",
+                  "NOTAPPLICABLE"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the configuration compliance status of devices",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/export": {
+      "get": {
+        "description": "Exports data as Excel datasheet. The devices can be filtered by groups or domains. The report can be customized to include or not interfaces, inventory, locations, compliance, groups. The only supported and default output format is xlsx (Excel file).",
+        "operationId": "getDataXLSX",
+        "parameters": [
+          {
+            "description": "Filter on given group ID(s)",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Whether to export interface data",
+            "in": "query",
+            "name": "interfaces",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Whether to export inventory data",
+            "in": "query",
+            "name": "inventory",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Whether to export interface history",
+            "in": "query",
+            "name": "inventoryhistory",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Whether to export locations",
+            "in": "query",
+            "name": "locations",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Whether to export compliance results",
+            "in": "query",
+            "name": "compliance",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Whether to export group info",
+            "in": "query",
+            "name": "groups",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Whether to export driver-specific attributes for devices",
+            "in": "query",
+            "name": "devicedriverattributes",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Export format (xlsx is supported)",
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "default": "xlsx",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Export data",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/groupconfigcompliancestats": {
+      "get": {
+        "description": "Returns the compliance status of a given device group, by ID.",
+        "operationId": "getGroupConfigComplianceStats",
+        "parameters": [
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given group ID(s)",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given policy ID(s)",
+            "in": "query",
+            "name": "policy",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the compliance status of a device group",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/groupconfignoncompliantdevices/{id}": {
+      "get": {
+        "description": "Returns the list of non-compliance devices part of a given group, optionally filtered by domains and policies",
+        "operationId": "getGroupConfigNonCompliantDevices",
+        "parameters": [
+          {
+            "description": "Group ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given policy ID(s)",
+            "in": "query",
+            "name": "policy",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the non compliant devices of a group",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/groupdevicesbysoftwarelevel/{id}/{level}": {
+      "get": {
+        "description": "Returns the list of devices of a given group by ID, and matching the given software compliance level.",
+        "operationId": "getGroupDevicesBySoftwareLevel",
+        "parameters": [
+          {
+            "description": "Group ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Software compliance level",
+            "in": "path",
+            "name": "level",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the devices of a group based on software compliance level",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/groupsoftwarecompliancestats": {
+      "get": {
+        "description": "Returns the software compliance status of devices, optionally filtered by a list of device domains.",
+        "operationId": "getGroupSoftwareComplianceStats",
+        "parameters": [
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the global software compliance status",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/hardwaresupportdevices/{type}/{date}": {
+      "get": {
+        "description": "Returns the list of devices getting End-of-Life (type 'eol') or End-of-Sale (type 'eos') at the given date (or never if 'date' is not given); optionally filtered by domain or group.",
+        "operationId": "getHardwareStatusDevices",
+        "parameters": [
+          {
+            "description": "eos (end-of-sale) or eol (end-of-life), type of date",
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "EoX date to filter on",
+            "in": "path",
+            "name": "date",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given group ID(s)",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the End-of-Life or End-of-Sale devices matching a date.",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/hardwaresupportstats": {
+      "get": {
+        "description": "Returns the global hardware support status, i.e. a list of End-of-Life and End-of-Sale dates with the corresponding device count; optionally filtered by domain or group.",
+        "operationId": "getHardwareSupportStats",
+        "parameters": [
+          {
+            "description": "Filter on given domain ID(s)",
+            "in": "query",
+            "name": "domain",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Filter on given group ID(s)",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "items": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the global hardware support status",
+        "tags": [
+          "Compliance",
+          "Reports"
+        ]
+      }
+    },
+    "/reports/last7dayschangesbyday": {
+      "get": {
+        "deprecated": true,
+        "description": "Returns the number of device configuration changes per day, for the last 7 days.",
+        "operationId": "getLast7DaysChangesByDayStats",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the number of configuration changes for the last 7 days",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/rule/{id}/exempteddevices": {
+      "get": {
+        "description": "Returns the list of devices which have an exemption against a given compliance rule, by ID.",
+        "operationId": "getExemptedDevices",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the exempted devices of a compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/rules": {
+      "get": {
+        "description": "Retrieves the list of compliance rules, across all policies, with minimal details.",
+        "operationId": "getRules",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the compliance rules",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "post": {
+        "description": "Creates a compliance rule. The associated policy must already exist.",
+        "operationId": "addRule",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/rules/test": {
+      "post": {
+        "description": "Test a compliance rule against a given device, in dry run mode.",
+        "operationId": "testRule",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Test a compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/rules/{id}": {
+      "delete": {
+        "description": "Removes a compliance rule, by ID.",
+        "operationId": "deleteRule",
+        "parameters": [
+          {
+            "description": "Rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "put": {
+        "description": "Edits a compliance rule, by ID.",
+        "operationId": "setRule",
+        "parameters": [
+          {
+            "description": "Rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/scripts": {
+      "get": {
+        "description": "Returns the list of command scripts.",
+        "operationId": "getScripts",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get command scripts",
+        "tags": [
+          "Scripts"
+        ]
+      },
+      "post": {
+        "description": "Create a command script (script to be later run over devices).",
+        "operationId": "addScript",
+        "parameters": [
+          {
+            "description": "True to validate script without saving",
+            "in": "query",
+            "name": "validateonly",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add/validate a command script",
+        "tags": [
+          "Scripts"
+        ]
+      }
+    },
+    "/scripts/{id}": {
+      "delete": {
+        "description": "Removes a given script, by ID.",
+        "operationId": "deleteScript",
+        "parameters": [
+          {
+            "description": "Script ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a script",
+        "tags": [
+          "Scripts"
+        ]
+      },
+      "get": {
+        "description": "Returns a given command script, by ID.",
+        "operationId": "getScript",
+        "parameters": [
+          {
+            "description": "Script ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a command script",
+        "tags": [
+          "Scripts"
+        ]
+      }
+    },
+    "/serverinfo": {
+      "get": {
+        "description": "Retrieves some general info about Netshot server.",
+        "operationId": "getServerInfo",
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get Netshot server info.",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/softwarerules": {
+      "get": {
+        "description": "Returns the list of software compliance rules.",
+        "operationId": "getSoftwareRules",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the software compliance rules",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "post": {
+        "description": "Creates a software compliance rule.",
+        "operationId": "addSoftwareRule",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a software compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/softwarerules/{id}": {
+      "delete": {
+        "description": "Removes a software compliance rule, by ID",
+        "operationId": "deleteSoftwareRule",
+        "parameters": [
+          {
+            "description": "Software rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a software compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      },
+      "put": {
+        "description": "Edits a software compliance rule.",
+        "operationId": "setSoftwareRule",
+        "parameters": [
+          {
+            "description": "Software rule ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a software compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/softwarerules/{id}/sort": {
+      "post": {
+        "description": "Sorts a software compliance rule by moving it before another one.",
+        "operationId": "sortSoftwareRule",
+        "parameters": [
+          {
+            "description": "Software rule ID to move",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "ID of the other rule to move this rule before (omit parameter to place the rule at last position)",
+            "in": "query",
+            "name": "next",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Sort a software compliance rule",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/softwareversions": {
+      "get": {
+        "description": "Returns the list of all known software versions currently existing in the device table.",
+        "operationId": "getSoftwareVersions",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the known software versions",
+        "tags": [
+          "Devices"
+        ]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "description": "Returns the list of tasks. Limited to 100 if no specific limit is provided.",
+        "operationId": "getTasks",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Include tasks of given status(es)",
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "items": {
+                "enum": [
+                  "CANCELLED",
+                  "FAILURE",
+                  "NEW",
+                  "RUNNING",
+                  "SCHEDULED",
+                  "SUCCESS",
+                  "WAITING",
+                  "DELAYED"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Include tasks of given type(s)",
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          {
+            "description": "Tasks executed or changed after this date (as milliseconds since 1970)",
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Tasks executed or changed before this date (as milliseconds since 1970)",
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Only include child tasks of the given parent task ID",
+            "in": "query",
+            "name": "parentTaskId",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the tasks",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "post": {
+        "description": "Creates a task and schedule it for execution.",
+        "operationId": "addTask",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/stats": {
+      "get": {
+        "description": "Returns, for the given date range, the number of completed tasks (success, failure, cancelled) bucketed over time, plus totals by status and by task type over the whole range.",
+        "operationId": "getTaskStats",
+        "parameters": [
+          {
+            "description": "Start of the range (as milliseconds since 1970)",
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "End of the range (as milliseconds since 1970)",
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of time buckets to split the range into",
+            "in": "query",
+            "name": "buckets",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get time-based statistics about completed tasks",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/summary": {
+      "get": {
+        "description": "Retrieves global info about tasks.",
+        "operationId": "getTaskSummary",
+        "parameters": [
+          {
+            "description": "Only summarize child tasks of the given parent task ID",
+            "in": "query",
+            "name": "parentTaskId",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get summary/overview of tasks",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}": {
+      "get": {
+        "description": "Retrieves the status of a given task, by ID.",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "description": "Task ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get a task.",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "put": {
+        "description": "Edits a task, by ID. Set 'cancel' property to true to cancel the task.",
+        "operationId": "setTask",
+        "parameters": [
+          {
+            "description": "Task ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/debuglog": {
+      "get": {
+        "description": "Retrieves the full debug log of a given task, by ID.",
+        "operationId": "getTaskDebugLog",
+        "parameters": [
+          {
+            "description": "Task ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/octet-stream": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the debug log of a task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/user": {
+      "get": {
+        "description": "Returns the current logged in user.",
+        "operationId": "getUser",
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the current user",
+        "tags": [
+          "Login"
+        ]
+      },
+      "post": {
+        "description": "Logs in (create session) by username and password or OIDC authorization code (useless when using API tokens).",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Log in",
+        "tags": [
+          "Login"
+        ]
+      }
+    },
+    "/user/{id}": {
+      "delete": {
+        "description": "Terminates the current user session (useless when using API tokens).",
+        "operationId": "logout",
+        "parameters": [
+          {
+            "description": "User ID - not used",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "User log out",
+        "tags": [
+          "Login"
+        ]
+      },
+      "put": {
+        "description": "Edits current user, especially password.",
+        "operationId": "setSelfUser",
+        "parameters": [
+          {
+            "description": "User ID (ignored)",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update self user",
+        "tags": [
+          "Login"
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "description": "Returns the list of Netshot users.",
+        "operationId": "getUsers",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the users",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "description": "Create a Netshot user.",
+        "operationId": "addUser",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a user to Netshot",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "delete": {
+        "description": "Removes a user from the Netshot database.",
+        "operationId": "deleteUser",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a Netshot user.",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "description": "Edits a Netshot user, by ID.",
+        "operationId": "setUser",
+        "parameters": [
+          {
+            "description": "User ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a Netshot user",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/vaultinstances": {
+      "get": {
+        "description": "Returns the list of configured Vault instances, used to resolve Vault-backed device credential fields.",
+        "operationId": "getVaultInstances",
+        "parameters": [
+          {
+            "description": "Pagination offset for the first item to return",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of items to return",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Get the Vault instances",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "description": "Creates a Vault instance, which can then be used to resolve Vault-backed device credential fields.",
+        "operationId": "addVaultInstance",
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Add a Vault instance",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/vaultinstances/test": {
+      "post": {
+        "description": "Attempts to log in to the given Vault instance to validate reachability and authentication, without persisting anything.",
+        "operationId": "testVaultInstance",
+        "parameters": [
+          {
+            "description": "Existing Vault instance ID, if any",
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "*/*": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Test a Vault instance connection",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/vaultinstances/{id}": {
+      "delete": {
+        "description": "Removes the given Vault instance, by ID.",
+        "operationId": "deleteVaultInstance",
+        "parameters": [
+          {
+            "description": "Vault instance ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Remove a Vault instance",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "description": "Edits a Vault instance, by ID.",
+        "operationId": "setVaultInstance",
+        "parameters": [
+          {
+            "description": "Vault instance ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { },
+            "application/xml": { }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": { },
+              "application/xml": { }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "Update a Vault instance",
+        "tags": [
+          "Admin"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiTokenAuth": [ ]
+    },
+    {
+      "CookieAuth": [ ]
+    }
+  ],
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Administrative actions",
+      "name": "Admin"
+    },
+    {
+      "description": "Configuration, software, hardware compliance",
+      "name": "Compliance"
+    },
+    {
+      "description": "Device (such as network or security equipment) management",
+      "name": "Devices"
+    },
+    {
+      "description": "Diagnostic management (execute commands and retrieve custom data from devices)",
+      "name": "Diagnostics"
+    },
+    {
+      "description": "Login and password management for standard user",
+      "name": "Login"
+    },
+    {
+      "description": "Report and statistics",
+      "name": "Reports"
+    },
+    {
+      "description": "Script management (push changes to devices)",
+      "name": "Scripts"
+    },
+    {
+      "description": "Task management",
+      "name": "Tasks"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "anyBlock": true,
+  "context": null,
+  "deviceDriver": null,
+  "deviceDriverDescription": "Unknown driver",
+  "enabled": false,
+  "field": "runningConfig",
+  "id": 2,
+  "invert": false,
+  "matchAll": true,
+  "name": "Hostname set",
+  "normalize": false,
+  "regExp": true,
+  "text": "^hostname .+$",
+  "type": "TextRule"
+}

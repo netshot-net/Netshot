@@ -1,0 +1,50 @@
+{
+  "accesses": [ ],
+  "attributes": [ ],
+  "cachedIpAddress": "2001:db8:0:0:0:0:0:4",
+  "changeDate": 1641038400000,
+  "comments": "",
+  "compliant": true,
+  "contact": "",
+  "createdDate": 1641038400000,
+  "creator": "seed",
+  "driver": "CiscoIOS12",
+  "endOfLife": false,
+  "endOfSale": false,
+  "eolDate": null,
+  "eolModule": null,
+  "eosDate": null,
+  "eosModule": null,
+  "family": "",
+  "id": 4,
+  "location": "",
+  "mgmtAddress": "2001:db8::4",
+  "mgmtDomain": {
+    "changeDate": "<now>",
+    "description": "Paris data center",
+    "id": 1,
+    "name": "Paris DC",
+    "server4Address": "10.255.0.1",
+    "server6Address": "0:0:0:0:0:0:0:0"
+  },
+  "name": "bare-1",
+  "networkClass": "UNKNOWN",
+  "options": { },
+  "ownerGroups": [
+    {
+      "changeDate": "<now>",
+      "folder": "",
+      "hiddenFromReports": true,
+      "id": 3,
+      "name": "Everything",
+      "query": "[Name] contains \"\"",
+      "type": "DynamicDeviceGroup"
+    }
+  ],
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "serialNumber": "",
+  "softwareLevel": "UNKNOWN",
+  "softwareVersion": "",
+  "status": "INPRODUCTION",
+  "tags": [ ]
+}

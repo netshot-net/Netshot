@@ -1,0 +1,9 @@
+{
+  "changeDate": "<now>",
+  "folder": "Tests",
+  "hiddenFromReports": true,
+  "id": 6,
+  "name": "New dynamic group",
+  "query": "[Name] contains \"router\"",
+  "type": "DynamicDeviceGroup"
+}

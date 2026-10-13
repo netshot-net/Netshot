@@ -1,0 +1,29 @@
+[
+  {
+    "firstSeenDate": null,
+    "id": 1,
+    "lastSeenDate": null,
+    "partNumber": "CISCO2911/K9",
+    "removed": false,
+    "serialNumber": "FTX1234ABCD",
+    "slot": "chassis"
+  },
+  {
+    "firstSeenDate": null,
+    "id": 2,
+    "lastSeenDate": null,
+    "partNumber": "HWIC-4ESW",
+    "removed": false,
+    "serialNumber": "FOC5678WXYZ",
+    "slot": "slot 1"
+  },
+  {
+    "firstSeenDate": null,
+    "id": 3,
+    "lastSeenDate": null,
+    "partNumber": "HWIC-1T",
+    "removed": true,
+    "serialNumber": "FOC0001AAAA",
+    "slot": "slot 2"
+  }
+]

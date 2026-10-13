@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "id": 4,
+  "name": "Python check",
+  "script": "def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}",
+  "type": "PythonRule"
+}

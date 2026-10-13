@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<Device>
+  <accesses/>
+  <attributes>
+    <attributes type="BINARY">
+      <assumption>true</assumption>
+      <name>configurationSaved</name>
+    </attributes>
+    <attributes type="NUMERIC">
+      <name>mainMemorySize</name>
+      <number>2048.0</number>
+    </attributes>
+    <attributes type="TEXT">
+      <name>configRegister</name>
+      <text>0x1202</text>
+    </attributes>
+  </attributes>
+  <cachedIpAddress>10.2.1.1</cachedIpAddress>
+  <changeDate>&lt;now&gt;</changeDate>
+  <comments/>
+  <compliant>true</compliant>
+  <contact/>
+  <createdDate>1609502400000</createdDate>
+  <creator>seed</creator>
+  <driver>CiscoIOS12</driver>
+  <endOfLife>false</endOfLife>
+  <endOfSale>false</endOfSale>
+  <eolDate/>
+  <eolModule/>
+  <eosDate/>
+  <eosModule/>
+  <family>Cisco 1900</family>
+  <id>2</id>
+  <location>Lyon</location>
+  <mgmtAddress>10.2.1.1</mgmtAddress>
+  <mgmtDomain>
+    <changeDate>&lt;now&gt;</changeDate>
+    <description>Lyon data center</description>
+    <id>2</id>
+    <name>Lyon DC</name>
+    <server4Address>10.255.1.1</server4Address>
+    <server6Address>0:0:0:0:0:0:0:0</server6Address>
+  </mgmtDomain>
+  <name>router-lyon-1</name>
+  <networkClass>SWITCHROUTER</networkClass>
+  <options/>
+  <ownerGroups>
+    <ownerGroups type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder/>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>3</id>
+      <name>Everything</name>
+      <query>[Name] contains &quot;&quot;</query>
+    </ownerGroups>
+    <ownerGroups type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>2</id>
+      <name>All Cisco devices</name>
+      <query>[Family] contains &quot;Cisco&quot;</query>
+    </ownerGroups>
+    <ownerGroups type="StaticDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder>Production/Core</folder>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>1</id>
+      <name>Core routers</name>
+    </ownerGroups>
+  </ownerGroups>
+  <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+  <serialNumber>FTX9999ZZZZ</serialNumber>
+  <softwareLevel>SILVER</softwareLevel>
+  <softwareVersion>15.2.4</softwareVersion>
+  <status>DISABLED</status>
+  <tags>
+    <tags>branch</tags>
+  </tags>
+</Device>
