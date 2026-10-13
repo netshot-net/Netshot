@@ -55,9 +55,9 @@ import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.rest.RestViews.DefaultView;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.task.engine.TaskContext;
 
 
 /**

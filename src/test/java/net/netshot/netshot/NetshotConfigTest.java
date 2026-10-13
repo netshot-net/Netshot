@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.database.Database;
+import net.netshot.netshot.platform.database.Database;
 
 @DisplayName("Secret configuration items")
 public class NetshotConfigTest {

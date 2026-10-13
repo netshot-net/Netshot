@@ -20,14 +20,14 @@ package net.netshot.netshot;
 
 import java.io.InvalidClassException;
 
-import net.netshot.netshot.crypto.Argon2idHash;
-import net.netshot.netshot.crypto.Hash;
-import net.netshot.netshot.crypto.Md5BasedHash;
-import net.netshot.netshot.crypto.Md5DesPasswordBasedEncryptor;
-import net.netshot.netshot.crypto.PasswordBasedEncryptor;
-import net.netshot.netshot.crypto.Sha2AesPasswordBasedEncryptor;
-import net.netshot.netshot.crypto.Sha2BasedHash;
-import net.netshot.netshot.utils.PasswordGenerator;
+import net.netshot.netshot.platform.crypto.Argon2idHash;
+import net.netshot.netshot.platform.crypto.Hash;
+import net.netshot.netshot.platform.crypto.Md5BasedHash;
+import net.netshot.netshot.platform.crypto.Md5DesPasswordBasedEncryptor;
+import net.netshot.netshot.platform.crypto.PasswordBasedEncryptor;
+import net.netshot.netshot.platform.crypto.PasswordGenerator;
+import net.netshot.netshot.platform.crypto.Sha2AesPasswordBasedEncryptor;
+import net.netshot.netshot.platform.crypto.Sha2BasedHash;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1374,7 +1374,8 @@
 		</sql>
 	</changeSet>
 	<changeSet author="netshot" id="0.21.0_1">
-		<customChange class="net.netshot.netshot.database.migrator.DeviceCredentialsReencryptChange"/>
+		<validCheckSum>9:a346810332ef3abb4e6ca55aeb24f9f3</validCheckSum>
+		<customChange class="net.netshot.netshot.platform.database.migrator.DeviceCredentialsReencryptChange"/>
 		<sql>
 			UPDATE api_token
 			SET hashed_token = CONCAT('$5$t=1000$', REPLACE(hashed_token, '=', ''))
@@ -1421,7 +1422,8 @@
 		<sql>UPDATE device SET driver = 'PaloAltoPANOS' WHERE driver = 'Palo Alto PAN-OS'</sql>
 	</changeSet>
 	<changeSet author="netshot" id="0.24.0_2">
-		<customChange class="net.netshot.netshot.database.migrator.DynamicDeviceGroupDriverRemoval"/>
+		<validCheckSum>9:6fae930e4fda7d19cc20ca232b0ef395</validCheckSum>
+		<customChange class="net.netshot.netshot.platform.database.migrator.DynamicDeviceGroupDriverRemoval"/>
 	</changeSet>
 	<changeSet author="netshot" id="0.24.0_3">
 		<dropColumn tableName="dynamic_device_group" columnName="driver" />
@@ -1701,7 +1703,8 @@
 		</addColumn>
 	</changeSet>
 	<changeSet author="netshot" id="0.25.0_18">
-		<customChange class="net.netshot.netshot.database.migrator.MgmtAddressMigrator"/>
+		<validCheckSum>9:c3fe37ff86d1bf5735e5c8631652f9c0</validCheckSum>
+		<customChange class="net.netshot.netshot.platform.database.migrator.MgmtAddressMigrator"/>
 	</changeSet>
 	<changeSet author="netshot" id="0.25.0_19">
 		<dropIndex indexName="UK_88j8woberkhc2jxjx2hfddv4a" tableName="device"/>
@@ -1742,7 +1745,8 @@
 		</addColumn>
 	</changeSet>
 	<changeSet author="netshot" id="0.25.0_24">
-		<customChange class="net.netshot.netshot.database.migrator.NetworkAddressMigrator"/>
+		<validCheckSum>9:4319e4962071801f673e8e22fe1f936d</validCheckSum>
+		<customChange class="net.netshot.netshot.platform.database.migrator.NetworkAddressMigrator"/>
 	</changeSet>
 	<changeSet author="netshot" id="0.25.0_25">
 		<dropPrimaryKey tableName="network_interface_ip4addresses"/>

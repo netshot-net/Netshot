@@ -31,7 +31,7 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.rest.RestViews.ClusteringView;
+import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 
 /**
  * HA-related message to be be exchanged with other Netshot instances

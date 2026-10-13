@@ -24,16 +24,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.hibernate.Session;
 
+import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.access.Ssh;
-import net.netshot.netshot.device.script.helper.PythonFileSystem;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.devicescript.helper.PythonFileSystem;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.task.engine.TaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

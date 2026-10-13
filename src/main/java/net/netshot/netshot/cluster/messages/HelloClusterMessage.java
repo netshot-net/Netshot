@@ -25,7 +25,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.cluster.ClusterMember;
-import net.netshot.netshot.rest.RestViews.ClusteringView;
+import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 
 /**
  * Hello message from cluster member.

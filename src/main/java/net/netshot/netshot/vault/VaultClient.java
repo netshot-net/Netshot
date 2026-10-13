@@ -46,7 +46,7 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.utils.HttpsTrustPolicy;
+import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
 /**
