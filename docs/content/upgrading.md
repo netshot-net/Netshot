@@ -59,6 +59,8 @@
 
 **Python**: the embedded Python version moves from 3.11 to 3.12. If you use a [Python virtualenv](extending/python-virtualenv.md), recreate it with the matching GraalPy version (see [GraalPy](installation/linux.md#10-optional-graalpy)) and reinstall your packages. Python scripts can no longer see the environment variables of the Netshot process, and Python compliance rules can now import the modules of the Python standard library (such as `json`) with the default file system filter.
 
+**Logging**: the Java classes were moved to a new package layout, so `netshot.log.class.<ClassName>` settings referring to Netshot classes (`net.netshot.netshot.*`) must be updated to the new package names.
+
 ### Any version to 0.20+
 
 Java environment must be upgraded to GraalVM for Java 21. Check the [install guide](installation/linux.md) for version details.
