@@ -41,50 +41,50 @@ import org.junit.jupiter.api.Assertions;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.aaa.ApiToken;
-import net.netshot.netshot.aaa.UiUser;
+import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.device.Config;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.Device.NetworkClass;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.Domain;
-import net.netshot.netshot.device.Module;
-import net.netshot.netshot.device.Network4Address;
-import net.netshot.netshot.device.Network6Address;
-import net.netshot.netshot.device.NetworkInterface;
-import net.netshot.netshot.device.access.DeviceAccess;
-import net.netshot.netshot.device.attribute.ConfigBinaryAttribute;
-import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.device.attribute.ConfigNumericAttribute;
-import net.netshot.netshot.device.attribute.ConfigTextAttribute;
-import net.netshot.netshot.device.attribute.DeviceBinaryAttribute;
-import net.netshot.netshot.device.attribute.DeviceLongTextAttribute;
-import net.netshot.netshot.device.attribute.DeviceNumericAttribute;
-import net.netshot.netshot.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.device.credentials.DeviceCredentialSet;
-import net.netshot.netshot.device.credentials.DeviceSshAccount;
+import net.netshot.netshot.credentials.DeviceCredentialSet;
+import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
-import net.netshot.netshot.work.DebugLog;
-import net.netshot.netshot.work.Task;
-import net.netshot.netshot.work.tasks.CheckComplianceTask;
-import net.netshot.netshot.work.tasks.CheckGroupComplianceTask;
-import net.netshot.netshot.work.tasks.DiscoverDeviceTypeTask;
-import net.netshot.netshot.work.tasks.PurgeDatabaseTask;
-import net.netshot.netshot.work.tasks.RunDeviceScriptTask;
-import net.netshot.netshot.work.tasks.RunDiagnosticsTask;
-import net.netshot.netshot.work.tasks.ScanSubnetsTask;
-import net.netshot.netshot.work.tasks.TakeGroupSnapshotTask;
-import net.netshot.netshot.work.tasks.TakeSnapshotTask;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Module;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.inventory.device.NetworkInterface;
+import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.task.DebugLog;
+import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.type.CheckComplianceTask;
+import net.netshot.netshot.task.type.CheckGroupComplianceTask;
+import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
+import net.netshot.netshot.task.type.PurgeDatabaseTask;
+import net.netshot.netshot.task.type.RunDeviceScriptTask;
+import net.netshot.netshot.task.type.RunDiagnosticsTask;
+import net.netshot.netshot.task.type.ScanSubnetsTask;
+import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
+import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 /**
  * Deterministic dataset used by the API contract tests.
@@ -201,7 +201,7 @@ final class ApiContractSeed {
 		try (Session session = Database.getSession()) {
 			session.beginTransaction();
 			// Remove default admin account
-			session.createMutationQuery("delete from net.netshot.netshot.aaa.UiUser").executeUpdate();
+			session.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser").executeUpdate();
 			Object[][] tokens = {
 				{UiUser.LEVEL_READONLY, READONLY_TOKEN},
 				{UiUser.LEVEL_OPERATOR, OPERATOR_TOKEN},
@@ -463,7 +463,7 @@ final class ApiContractSeed {
 	private void writeBinaryFiles(Device device) {
 		Path folder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
 		for (Config config : device.getConfigs()) {
-			for (net.netshot.netshot.device.attribute.ConfigAttribute attribute : config.getAttributes()) {
+			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.getAttributes()) {
 				if (attribute instanceof ConfigBinaryFileAttribute file) {
 					try {
 						Files.writeString(folder.resolve(file.getUid() + ".data"), "binary content of " + file.getOriginalName());
@@ -668,7 +668,7 @@ final class ApiContractSeed {
 			Device router1 = session.get(Device.class, this.id("device.router1"));
 			Device router2 = session.get(Device.class, this.id("device.router2"));
 			Domain paris = session.get(Domain.class, this.id("domain.paris"));
-			net.netshot.netshot.device.DeviceGroup group = session.get(net.netshot.netshot.device.DeviceGroup.class,
+			net.netshot.netshot.inventory.group.DeviceGroup group = session.get(net.netshot.netshot.inventory.group.DeviceGroup.class,
 				this.id("group.static"));
 
 			TakeSnapshotTask snapshot = new TakeSnapshotTask(router1, "Daily snapshot", "tester", true, false, false);
@@ -702,7 +702,7 @@ final class ApiContractSeed {
 			this.taskData(session, scan, Task.Status.SUCCESS, D2021 + 60000, "No device found");
 			this.remember("task.scan", scan.getId());
 
-			PurgeDatabaseTask purge = new PurgeDatabaseTask("Purge", "tester", 90, 365, 0, 0, 30, (net.netshot.netshot.device.DeviceGroup) null);
+			PurgeDatabaseTask purge = new PurgeDatabaseTask("Purge", "tester", 90, 365, 0, 0, 30, (net.netshot.netshot.inventory.group.DeviceGroup) null);
 			purge.setScheduleType(Task.ScheduleType.DAILY);
 			this.taskData(session, purge, Task.Status.SCHEDULED, D2022, null);
 			purge.setScheduleReference(new Date(D2040));

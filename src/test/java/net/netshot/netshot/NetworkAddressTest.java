@@ -21,8 +21,8 @@ package net.netshot.netshot;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import net.netshot.netshot.device.Network4Address;
-import net.netshot.netshot.device.Network6Address;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.Network6Address;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

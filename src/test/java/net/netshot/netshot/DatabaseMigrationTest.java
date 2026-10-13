@@ -43,14 +43,14 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.database.migrator.NetworkAddressMigrator;
-import net.netshot.netshot.device.Network4Address;
-import net.netshot.netshot.device.Network6Address;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.migrator.NetworkAddressMigrator;
 
 /**
  * Tests for the Liquibase {@code CustomSqlChange} data migrators under
- * {@link net.netshot.netshot.database.migrator} (currently just
+ * {@link net.netshot.netshot.platform.database.migrator} (currently just
  * {@link NetworkAddressMigrator} - add further migrators here as
  * additional {@code @Nested} classes). Testcontainers-backed tests
  * otherwise only ever see a freshly created schema, so these

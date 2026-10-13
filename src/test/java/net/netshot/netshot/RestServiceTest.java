@@ -53,35 +53,36 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.NetshotApiClient.WrongApiResponseException;
-import net.netshot.netshot.aaa.ApiToken;
-import net.netshot.netshot.aaa.Oidc;
-import net.netshot.netshot.aaa.PasswordPolicy;
-import net.netshot.netshot.aaa.PasswordPolicy.PasswordPolicyException;
-import net.netshot.netshot.aaa.UiUser;
+import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.PasswordPolicy;
+import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
+import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.api.NetshotBadRequestException;
+import net.netshot.netshot.api.RestService;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.DeviceDriver.DriverProtocol;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.device.Domain;
-import net.netshot.netshot.device.Network4Address;
-import net.netshot.netshot.device.StaticDeviceGroup;
-import net.netshot.netshot.device.access.DeviceAccess;
-import net.netshot.netshot.device.attribute.AttributeDefinition;
-import net.netshot.netshot.device.credentials.DeviceCredentialSet;
-import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
-import net.netshot.netshot.device.credentials.DeviceSshAccount;
-import net.netshot.netshot.hooks.Hook;
-import net.netshot.netshot.hooks.WebHook;
-import net.netshot.netshot.rest.NetshotBadRequestException;
-import net.netshot.netshot.rest.RestService;
-import net.netshot.netshot.utils.HttpsCaTrustMode;
-import net.netshot.netshot.work.tasks.DeviceJsScript;
+import net.netshot.netshot.credentials.DeviceCredentialSet;
+import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
+import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.driver.AttributeDefinition;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.hook.Hook;
+import net.netshot.netshot.hook.WebHook;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.userscript.DeviceJsScript;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -112,7 +113,7 @@ public class RestServiceTest extends WithDatabaseTest {
 			session.beginTransaction();
 			// Remove default admin account
 			session
-				.createMutationQuery("delete from net.netshot.netshot.aaa.UiUser")
+				.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser")
 				.executeUpdate();
 			for (Map.Entry<Integer, String> entry : API_TOKENS.entrySet()) {
 				String description = "Test Token - level %d".formatted(entry.getKey());
@@ -176,7 +177,7 @@ public class RestServiceTest extends WithDatabaseTest {
 			try (Session session = Database.getSession()) {
 				session.beginTransaction();
 				session
-					.createMutationQuery("delete from net.netshot.netshot.aaa.UiUser")
+					.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser")
 					.executeUpdate();
 				session.getTransaction().commit();
 			}
@@ -981,7 +982,7 @@ public class RestServiceTest extends WithDatabaseTest {
 				try (Session session = Database.getSession()) {
 					session.beginTransaction();
 					session
-						.createMutationQuery("delete from net.netshot.netshot.aaa.UiUser")
+						.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser")
 						.executeUpdate();
 					session.getTransaction().commit();
 				}
@@ -1058,7 +1059,7 @@ public class RestServiceTest extends WithDatabaseTest {
 
 				try (Session session = Database.getSession()) {
 					UiUser newUser = session
-						.createQuery("from net.netshot.netshot.aaa.UiUser u where u.username = :name", UiUser.class)
+						.createQuery("from net.netshot.netshot.aaa.user.UiUser u where u.username = :name", UiUser.class)
 						.setParameter("name", user.getUsername())
 						.uniqueResult();
 					Assertions.assertEquals(user.getUsername(), newUser.getUsername(), "User not created as expected");

@@ -45,15 +45,15 @@ import jakarta.xml.bind.annotation.XmlID;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.rest.RestViews.DefaultView;
-import net.netshot.netshot.utils.HttpsCaTrustMode;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
  * A named external Vault instance, used to resolve device credential fields
  * that are configured to be Vault-backed rather than stored locally.
  * <p>
  * Modeled as a discriminated hierarchy (same pattern as
- * {@link net.netshot.netshot.device.credentials.DeviceCredentialSet}), with
+ * {@link net.netshot.netshot.credentials.DeviceCredentialSet}), with
  * a single concrete type implemented today ({@link HashicorpVaultKv2Instance}),
  * so other Vault backend types can be added later without redesign.
  */
