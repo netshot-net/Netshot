@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "id": 7,
+  "name": "New Python diagnostic",
+  "resultType": "BINARY",
+  "script": "def diagnose(cli, device, diagnostic):\n  diagnostic.set(True)",
+  "targetGroup": null,
+  "type": "PythonDiagnostic"
+}

@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type="Web">
+    <action>POST_XML</action>
+    <enabled>false</enabled>
+    <httpsCaTrustMode>TRUST_ANY</httpsCaTrustMode>
+    <httpsCustomCaCertificate/>
+    <id>2</id>
+    <name>Disabled XML hook</name>
+    <triggers/>
+    <url>http://example.net/callback2</url>
+  </item>
+  <item type="Web">
+    <action>POST_JSON</action>
+    <enabled>true</enabled>
+    <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+    <httpsCustomCaCertificate/>
+    <id>1</id>
+    <name>Notify on tasks</name>
+    <triggers>
+      <triggers>
+        <item>CheckComplianceTask</item>
+        <type>POST_TASK</type>
+      </triggers>
+      <triggers>
+        <item>TakeSnapshotTask</item>
+        <type>POST_TASK</type>
+      </triggers>
+    </triggers>
+    <url>https://example.net/callback1</url>
+  </item>
+</ArrayList>

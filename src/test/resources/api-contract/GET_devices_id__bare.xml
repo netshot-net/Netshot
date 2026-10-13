@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<Device>
+  <accesses/>
+  <attributes/>
+  <cachedIpAddress>2001:db8:0:0:0:0:0:4</cachedIpAddress>
+  <changeDate>1641038400000</changeDate>
+  <comments/>
+  <compliant>true</compliant>
+  <contact/>
+  <createdDate>1641038400000</createdDate>
+  <creator>seed</creator>
+  <driver>CiscoIOS12</driver>
+  <endOfLife>false</endOfLife>
+  <endOfSale>false</endOfSale>
+  <eolDate/>
+  <eolModule/>
+  <eosDate/>
+  <eosModule/>
+  <family/>
+  <id>4</id>
+  <location/>
+  <mgmtAddress>2001:db8::4</mgmtAddress>
+  <mgmtDomain>
+    <changeDate>&lt;now&gt;</changeDate>
+    <description>Paris data center</description>
+    <id>1</id>
+    <name>Paris DC</name>
+    <server4Address>10.255.0.1</server4Address>
+    <server6Address>0:0:0:0:0:0:0:0</server6Address>
+  </mgmtDomain>
+  <name>bare-1</name>
+  <networkClass>UNKNOWN</networkClass>
+  <options/>
+  <ownerGroups>
+    <ownerGroups type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder/>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>3</id>
+      <name>Everything</name>
+      <query>[Name] contains &quot;&quot;</query>
+    </ownerGroups>
+  </ownerGroups>
+  <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+  <serialNumber/>
+  <softwareLevel>UNKNOWN</softwareLevel>
+  <softwareVersion/>
+  <status>INPRODUCTION</status>
+  <tags/>
+</Device>

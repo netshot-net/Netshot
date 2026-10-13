@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<RsTaskSummary>
+  <countByStatus>
+    <CANCELLED>1</CANCELLED>
+    <DELAYED>0</DELAYED>
+    <FAILURE>1</FAILURE>
+    <NEW>1</NEW>
+    <RUNNING>1</RUNNING>
+    <SCHEDULED>1</SCHEDULED>
+    <SUCCESS>4</SUCCESS>
+    <WAITING>1</WAITING>
+  </countByStatus>
+  <threadCount>10</threadCount>
+</RsTaskSummary>

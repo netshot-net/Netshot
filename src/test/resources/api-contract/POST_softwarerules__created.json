@@ -1,0 +1,20 @@
+{
+  "deviceType": "Cisco IOS and IOS-XE",
+  "driver": "CiscoIOS12",
+  "family": "",
+  "familyRegExp": false,
+  "id": 3,
+  "level": "BRONZE",
+  "partNumber": "",
+  "partNumberRegExp": false,
+  "targetGroup": {
+    "changeDate": "<now>",
+    "folder": "Production/Core",
+    "hiddenFromReports": false,
+    "id": 1,
+    "name": "Core routers",
+    "type": "StaticDeviceGroup"
+  },
+  "version": "17.1",
+  "versionRegExp": false
+}

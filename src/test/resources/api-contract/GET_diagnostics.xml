@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type="JavaScriptDiagnostic">
+    <enabled>true</enabled>
+    <id>2</id>
+    <name>Full inventory</name>
+    <resultType>LONGTEXT</resultType>
+    <script>function diagnose(cli, device, diagnostic) {&#10;  diagnostic.set('x');&#10;}</script>
+    <targetGroup/>
+  </item>
+  <item type="SimpleDiagnostic">
+    <cliMode>enable</cliMode>
+    <command>show startup-config</command>
+    <deviceDriver>CiscoIOS12</deviceDriver>
+    <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+    <enabled>true</enabled>
+    <id>4</id>
+    <modifierPattern/>
+    <modifierReplacement/>
+    <name>Config saved</name>
+    <resultType>BINARY</resultType>
+    <targetGroup/>
+  </item>
+  <item type="SimpleDiagnostic">
+    <cliMode>enable</cliMode>
+    <command>show version | include reason</command>
+    <deviceDriver>CiscoIOS12</deviceDriver>
+    <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+    <enabled>true</enabled>
+    <id>1</id>
+    <modifierPattern>(?s).*reason: (.+?)\n.*</modifierPattern>
+    <modifierReplacement>$1</modifierReplacement>
+    <name>Reload reason</name>
+    <resultType>TEXT</resultType>
+    <targetGroup type="DynamicDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>2</id>
+      <name>All Cisco devices</name>
+      <query>[Family] contains &quot;Cisco&quot;</query>
+    </targetGroup>
+  </item>
+  <item type="PythonDiagnostic">
+    <enabled>false</enabled>
+    <id>3</id>
+    <name>CPU load</name>
+    <resultType>NUMERIC</resultType>
+    <script>def diagnose(cli, device, diagnostic):&#10;  diagnostic.set(1)</script>
+    <targetGroup type="StaticDeviceGroup">
+      <changeDate>&lt;now&gt;</changeDate>
+      <folder>Production/Core</folder>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>1</id>
+      <name>Core routers</name>
+    </targetGroup>
+  </item>
+</ArrayList>

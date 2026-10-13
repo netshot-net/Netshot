@@ -1,0 +1,13 @@
+{
+  "countByStatus": {
+    "CANCELLED": 1,
+    "DELAYED": 0,
+    "FAILURE": 1,
+    "NEW": 1,
+    "RUNNING": 1,
+    "SCHEDULED": 1,
+    "SUCCESS": 4,
+    "WAITING": 1
+  },
+  "threadCount": 10
+}

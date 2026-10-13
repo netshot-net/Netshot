@@ -1,0 +1,22 @@
+{
+  "cliMode": "enable",
+  "command": "show clock detail",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": false,
+  "id": 5,
+  "modifierPattern": "(.*)",
+  "modifierReplacement": "$1",
+  "name": "New simple diagnostic renamed",
+  "resultType": "LONGTEXT",
+  "targetGroup": {
+    "changeDate": "<now>",
+    "folder": "Production",
+    "hiddenFromReports": false,
+    "id": 2,
+    "name": "All Cisco devices",
+    "query": "[Family] contains \"Cisco\"",
+    "type": "DynamicDeviceGroup"
+  },
+  "type": "SimpleDiagnostic"
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "level": 10,
+    "local": true,
+    "username": "reader"
+  },
+  {
+    "id": 2,
+    "level": 100,
+    "local": true,
+    "username": "writer"
+  },
+  {
+    "id": 3,
+    "level": 1000,
+    "local": true,
+    "username": "boss"
+  },
+  {
+    "id": 4,
+    "level": 50,
+    "local": false,
+    "username": "radius-user"
+  }
+]

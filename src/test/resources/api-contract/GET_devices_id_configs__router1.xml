@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <attributes>
+      <attributes type="BINARY">
+        <assumption>true</assumption>
+        <name>configSaved</name>
+      </attributes>
+      <attributes type="BINARYFILE">
+        <checksum>0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</checksum>
+        <fileSize>4096</fileSize>
+        <name>backupFile</name>
+        <originalName>backup-1641038400000.tar.gz</originalName>
+      </attributes>
+      <attributes type="LONGTEXT">
+        <name>runningConfig</name>
+      </attributes>
+      <attributes type="NUMERIC">
+        <name>configSize</name>
+        <number>1234.5</number>
+      </attributes>
+      <attributes type="TEXT">
+        <name>iosVersion</name>
+        <text>16.1.6</text>
+      </attributes>
+    </attributes>
+    <author>snapshot</author>
+    <changeDate>1641038400000</changeDate>
+    <customHash/>
+    <id>3</id>
+  </item>
+  <item>
+    <attributes>
+      <attributes type="BINARY">
+        <assumption>true</assumption>
+        <name>configSaved</name>
+      </attributes>
+      <attributes type="BINARYFILE">
+        <checksum>0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</checksum>
+        <fileSize>4096</fileSize>
+        <name>backupFile</name>
+        <originalName>backup-1609502400000.tar.gz</originalName>
+      </attributes>
+      <attributes type="LONGTEXT">
+        <name>runningConfig</name>
+      </attributes>
+      <attributes type="NUMERIC">
+        <name>configSize</name>
+        <number>1234.5</number>
+      </attributes>
+      <attributes type="TEXT">
+        <name>iosVersion</name>
+        <text>16.1.6</text>
+      </attributes>
+    </attributes>
+    <author>tester</author>
+    <changeDate>1609502400000</changeDate>
+    <customHash/>
+    <id>2</id>
+  </item>
+  <item>
+    <attributes>
+      <attributes type="LONGTEXT">
+        <name>runningConfig</name>
+      </attributes>
+      <attributes type="TEXT">
+        <name>iosVersion</name>
+        <text>16.1.6</text>
+      </attributes>
+    </attributes>
+    <author>tester</author>
+    <changeDate>1577880000000</changeDate>
+    <customHash/>
+    <id>1</id>
+  </item>
+</ArrayList>

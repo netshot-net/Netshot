@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item type="TEXT">
+    <creationDate>1609502404000</creationDate>
+    <diagnosticId>1</diagnosticId>
+    <diagnosticName>Reload reason</diagnosticName>
+    <lastCheckDate>1609502404500</lastCheckDate>
+    <text>Power failure</text>
+  </item>
+  <item type="BINARY">
+    <assumption>false</assumption>
+    <creationDate>1609502405000</creationDate>
+    <diagnosticId>4</diagnosticId>
+    <diagnosticName>Config saved</diagnosticName>
+    <lastCheckDate>1609502405500</lastCheckDate>
+  </item>
+</ArrayList>
