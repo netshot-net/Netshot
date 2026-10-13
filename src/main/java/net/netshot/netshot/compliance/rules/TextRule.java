@@ -39,11 +39,11 @@ import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.script.helper.JsDeviceHelper;
-import net.netshot.netshot.rest.RestViews.DefaultView;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.task.engine.TaskContext;
 
 @Entity
 @OnDelete(action = OnDeleteAction.CASCADE)

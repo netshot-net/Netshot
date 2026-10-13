@@ -60,30 +60,31 @@ import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.util.FileSize;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.aaa.Oidc;
-import net.netshot.netshot.aaa.PasswordPolicy;
-import net.netshot.netshot.aaa.Radius;
-import net.netshot.netshot.aaa.Tacacs;
-import net.netshot.netshot.aaa.UiUser;
+import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.auth.Radius;
+import net.netshot.netshot.aaa.auth.Tacacs;
+import net.netshot.netshot.aaa.user.PasswordPolicy;
+import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.access.Ssh;
+import net.netshot.netshot.access.Telnet;
+import net.netshot.netshot.access.collector.Collector;
+import net.netshot.netshot.access.collector.SnmpTrapReceiver;
+import net.netshot.netshot.access.collector.SshServer;
+import net.netshot.netshot.access.collector.SyslogServer;
+import net.netshot.netshot.api.LoggerFilter;
+import net.netshot.netshot.api.RestService;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
-import net.netshot.netshot.database.Database;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.access.Ssh;
-import net.netshot.netshot.device.access.Telnet;
-import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.device.collector.Collector;
-import net.netshot.netshot.device.collector.SnmpTrapReceiver;
-import net.netshot.netshot.device.collector.SshServer;
-import net.netshot.netshot.device.collector.SyslogServer;
-import net.netshot.netshot.device.script.helper.PythonFileSystem;
-import net.netshot.netshot.rest.LoggerFilter;
-import net.netshot.netshot.rest.RestService;
-import net.netshot.netshot.utils.BouncyCastleLoader;
+import net.netshot.netshot.devicescript.helper.PythonFileSystem;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.tls.BouncyCastleLoader;
+import net.netshot.netshot.task.engine.TaskLockManager;
+import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.vault.VaultManager;
-import net.netshot.netshot.work.TaskLockManager;
-import net.netshot.netshot.work.tasks.TakeSnapshotTask;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -320,7 +321,7 @@ public class Netshot extends Thread {
 	 *
 	 * @return true, if successful
 	 */
-	protected static boolean readConfig() {
+	public static boolean readConfig() {
 		return readConfig(Netshot.CONFIG_FILENAMES);
 	}
 

@@ -52,10 +52,6 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
  * review the diff of the store: it must only shrink or follow renames. Alternatively refreeze existing rules
  * (rewrites the stored violations of rules that already have a store file) with
  * "./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true".</p>
- *
- * <p>Rules are split in two groups: rules on the TARGET package names (empty today, hence
- * allowEmptyShould(true)), and rules on the CURRENT package names, which make the freeze meaningful now and
- * must be deleted once the package moves are done.</p>
  */
 @AnalyzeClasses(packages = "net.netshot.netshot", importOptions = ImportOption.DoNotIncludeTests.class)
 public class ArchitectureTest {
@@ -67,17 +63,16 @@ public class ArchitectureTest {
 		ROOT + "api..", ROOT + "inventory..", ROOT + "driver..", ROOT + "access..", ROOT + "credentials..",
 		ROOT + "vault..", ROOT + "devicescript..", ROOT + "userscript..", ROOT + "compliance..",
 		ROOT + "diagnostic..", ROOT + "task..", ROOT + "report..", ROOT + "hook..", ROOT + "aaa..",
-		ROOT + "boot..", ROOT + "tools..",
+		ROOT + "boot..", ROOT + "tools..", ROOT + "cluster..",
 	};
 
 	/** Packages allowed to use the JAX-RS client API (jakarta.ws.rs.client..): outgoing HTTP calls. */
 	private static final String[] CLIENT_USERS = {
-		ROOT + "hooks..", ROOT + "hook..", ROOT + "vault..", ROOT + "access..", ROOT + "device.access..",
-		ROOT + "platform.rest..", ROOT + "rest..", ROOT + "api..",
+		ROOT + "hook..", ROOT + "vault..", ROOT + "access..", ROOT + "api..",
 	};
 
 	// ---------------------------------------------------------------------
-	// Group 1: rules on TARGET package names
+	// Rules on package names
 	// ---------------------------------------------------------------------
 
 	@ArchTest
@@ -97,24 +92,6 @@ public class ArchitectureTest {
 	static final ArchRule apiDoesNotUseSession = freeze(
 		noClasses().that().resideInAPackage(ROOT + "api..")
 			.should().dependOnClassesThat().haveFullyQualifiedName("org.hibernate.Session")
-			.allowEmptyShould(true));
-
-	// ---------------------------------------------------------------------
-	// Group 2: rules on CURRENT package names (delete after the package moves)
-	// ---------------------------------------------------------------------
-
-	@ArchTest
-	static final ArchRule currentInfraDoesNotDependOnFeatures = freeze(
-		noClasses().that().resideInAnyPackage(ROOT + "database..", ROOT + "crypto..", ROOT + "utils..")
-			.should().dependOnClassesThat().resideInAnyPackage(
-				ROOT + "aaa..", ROOT + "compliance..", ROOT + "device..", ROOT + "diagnostic..",
-				ROOT + "hooks..", ROOT + "vault..", ROOT + "work..", ROOT + "rest..", ROOT + "cluster..")
-			.allowEmptyShould(true));
-
-	@ArchTest
-	static final ArchRule nothingOutsideRestDependsOnRest = freeze(
-		noClasses().that().resideOutsideOfPackage(ROOT + "rest..")
-			.should().dependOnClassesThat().resideInAPackage(ROOT + "rest..")
 			.allowEmptyShould(true));
 
 	// ---------------------------------------------------------------------
@@ -143,13 +120,12 @@ public class ArchitectureTest {
 	@ArchTest
 	static final ArchRule entitiesDoNotUseDatabase = freeze(
 		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
-			.should().dependOnClassesThat().haveFullyQualifiedName(ROOT + "database.Database")
-			.orShould().dependOnClassesThat().haveFullyQualifiedName(ROOT + "platform.database.Database")
+			.should().dependOnClassesThat().haveFullyQualifiedName(ROOT + "platform.database.Database")
 			.allowEmptyShould(true));
 
 	@ArchTest
 	static final ArchRule jaxRsServerApiOnlyInRestLayer = freeze(
-		noClasses().that().resideOutsideOfPackages(ROOT + "api..", ROOT + "rest..", ROOT + "platform.rest..")
+		noClasses().that().resideOutsideOfPackages(ROOT + "api..", ROOT + "platform.rest..")
 			.should().dependOnClassesThat(
 				DescribedPredicate.and(
 					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.."),

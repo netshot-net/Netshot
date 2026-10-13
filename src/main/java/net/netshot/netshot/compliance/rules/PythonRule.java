@@ -51,13 +51,13 @@ import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.script.helper.PyDeviceHelper;
-import net.netshot.netshot.device.script.helper.PythonFileSystem;
-import net.netshot.netshot.device.script.helper.ScriptToolbox;
-import net.netshot.netshot.rest.RestViews.DefaultView;
-import net.netshot.netshot.work.TaskContext;
+import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
+import net.netshot.netshot.devicescript.helper.PythonFileSystem;
+import net.netshot.netshot.devicescript.helper.ScriptToolbox;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.task.engine.TaskContext;
 
 /**
  * A PythonRule is a Python-coded script that will check the device attributes,
@@ -279,7 +279,7 @@ public class PythonRule extends Rule {
 	}
 
 	/*(non-Javadoc)
-	 * @see net.netshot.netshot.compliance.Rule#check(net.netshot.netshot.device.Device, org.hibernate.Session)
+	 * @see net.netshot.netshot.compliance.Rule#check(net.netshot.netshot.inventory.device.Device, org.hibernate.Session)
 	 */
 	@Override
 	public CheckResult check(Device device, Session session, TaskContext taskContext) {

@@ -39,8 +39,8 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A CheckResult object is the result of a compliance test for a given rule,

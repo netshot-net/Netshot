@@ -36,11 +36,11 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.device.access.Http;
-import net.netshot.netshot.device.access.Http.AuthScheme;
-import net.netshot.netshot.device.access.Http.HttpConfig;
-import net.netshot.netshot.device.access.Http.HttpResult;
-import net.netshot.netshot.device.credentials.DeviceHttpAccount;
+import net.netshot.netshot.access.Http;
+import net.netshot.netshot.access.Http.AuthScheme;
+import net.netshot.netshot.access.Http.HttpConfig;
+import net.netshot.netshot.access.Http.HttpResult;
+import net.netshot.netshot.credentials.DeviceHttpAccount;
 
 /**
  * Unit tests for {@link Http}, in particular the per-access-declared

@@ -36,11 +36,11 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.DeviceGroup;
-import net.netshot.netshot.device.attribute.AttributeDefinition.AttributeType;
-import net.netshot.netshot.device.script.helper.ScriptToolbox;
-import net.netshot.netshot.rest.RestViews.DefaultView;
+import net.netshot.netshot.devicescript.helper.ScriptToolbox;
+import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * This is a Javascript-based diagnostic. Declare the diagnostic type along with

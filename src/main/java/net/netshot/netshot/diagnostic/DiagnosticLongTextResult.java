@@ -30,8 +30,8 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.device.Device;
-import net.netshot.netshot.device.attribute.LongTextConfiguration;
+import net.netshot.netshot.inventory.config.attribute.LongTextConfiguration;
+import net.netshot.netshot.inventory.device.Device;
 
 @Entity
 @DiscriminatorValue("T")

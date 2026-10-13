@@ -42,10 +42,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import net.netshot.netshot.device.DeviceDriver;
-import net.netshot.netshot.device.attribute.AttributeDefinition.AttributeType;
-import net.netshot.netshot.device.script.helper.ScriptToolbox;
+import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
+import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.driver.DeviceDriver;
 
 /**
  * Tests of the script toolbox (toolbox.js and toolbox.py).
