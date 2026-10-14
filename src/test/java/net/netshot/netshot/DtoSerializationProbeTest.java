@@ -60,9 +60,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.ext.MessageBodyWriter;
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.v0.RestService.RsLightDevice;
-import net.netshot.netshot.api.rest.v0.RestService.RsLightExemptedDevice;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.inventory.device.Device;
@@ -345,6 +347,30 @@ class DtoSerializationProbeTest {
 	/** Q5: second named subtype. */
 	@JsonView(DefaultView.class)
 	public record ScriptDto(long id, String script) implements NamedTaskDto {
+	}
+
+	/**
+	 * Q3: the former {@code RestService.RsLightExemptedDevice} (a subclass of the light device),
+	 * kept here as the reference the composition is compared to.
+	 */
+	@XmlRootElement
+	@XmlAccessorType(XmlAccessType.NONE)
+	public static class RsLightExemptedDevice extends RsLightDevice {
+
+		private Date expirationDate;
+
+		public RsLightExemptedDevice(long id, String name, String family, String mgmtAddress, Device.Status status,
+			String driver, Boolean eol, Boolean eos, Boolean configCompliant, SoftwareRule.ConformanceLevel softwareLevel,
+			Device.NetworkClass networkClass, Date expirationDate) {
+			super(id, name, family, mgmtAddress, status, driver, eol, eos, configCompliant, softwareLevel, networkClass);
+			this.expirationDate = expirationDate;
+		}
+
+		@XmlElement
+		@JsonView(DefaultView.class)
+		public Date getExpirationDate() {
+			return this.expirationDate;
+		}
 	}
 
 	private static final Device.Status ST = Device.Status.INPRODUCTION;
