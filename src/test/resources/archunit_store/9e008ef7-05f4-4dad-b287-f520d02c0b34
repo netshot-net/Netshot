@@ -68,10 +68,17 @@ Class <net.netshot.netshot.api.rest.ApiTokenAuthFilter> (slice api) depends on <
 Class <net.netshot.netshot.api.rest.ApiTokenAuthFilter> (slice api) depends on <net.netshot.netshot.platform.database.Database> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.LoggerFilter> (slice api) depends on <net.netshot.netshot.aaa.auth.Tacacs> (slice aaa) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.LoggerFilter> (slice api) depends on <net.netshot.netshot.aaa.user.User> (slice aaa) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.NetshotBadRequestException> (slice api) depends on <net.netshot.netshot.platform.error.ErrorCode> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.NetshotExceptionMapper> (slice api) depends on <net.netshot.netshot.aaa.auth.Oidc> (slice aaa) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.NetshotExceptionMapper> (slice api) depends on <net.netshot.netshot.platform.error.ErrorCode> (slice platform) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.NetshotExceptionMapper> (slice api) depends on <net.netshot.netshot.platform.error.NetshotException> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.NetshotWebApplication> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$RestApiView> (slice platform) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.RsErrorBean> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.SecurityFilter$Authorizer> (slice api) depends on <net.netshot.netshot.aaa.user.User$Role> (slice aaa) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.SecurityFilter$Authorizer> (slice api) depends on <net.netshot.netshot.aaa.user.User> (slice aaa) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$2> (slice api) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$3> (slice api) depends on <net.netshot.netshot.driver.DriverValueType> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.v0.RestService$PaginationParams> (slice api) depends on <net.netshot.netshot.platform.error.ErrorCode> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$PaginationParams> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsApiToken> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsClusterMasterCheck> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
@@ -93,7 +100,6 @@ Class <net.netshot.netshot.api.rest.v0.RestService$RsDomain> (slice api) depends
 Class <net.netshot.netshot.api.rest.v0.RestService$RsDomain> (slice api) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsDomain> (slice api) depends on <net.netshot.netshot.inventory.domain.Domain> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsDomain> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
-Class <net.netshot.netshot.api.rest.v0.RestService$RsErrorBean> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsGroupConfigComplianceStat> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsGroupSoftwareComplianceStat> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService$RsHardwareRule> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$DefaultView> (slice platform) which is part of a dependency cycle
@@ -231,6 +237,7 @@ Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.inventory.search.Finder$FinderParseException> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.inventory.search.Finder> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.platform.database.Database> (slice platform) which is part of a dependency cycle
+Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.platform.error.ErrorCode> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.platform.rest.RestViews$RestApiView> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.platform.tls.HttpsCaTrustMode> (slice platform) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.task.DebugLog> (slice task) which is part of a dependency cycle
@@ -259,8 +266,6 @@ Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.vault.VaultInstance> (slice vault) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.vault.VaultManager> (slice vault) which is part of a dependency cycle
 Class <net.netshot.netshot.api.rest.v0.RestService> (slice api) depends on <net.netshot.netshot.vault.VaultableSecret> (slice vault) which is part of a dependency cycle
-Class <net.netshot.netshot.api.rest.SecurityFilter$Authorizer> (slice api) depends on <net.netshot.netshot.aaa.user.User$Role> (slice aaa) which is part of a dependency cycle
-Class <net.netshot.netshot.api.rest.SecurityFilter$Authorizer> (slice api) depends on <net.netshot.netshot.aaa.user.User> (slice aaa) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.api.rest.v0.RestService> (slice api) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.platform.database.Database> (slice platform) which is part of a dependency cycle

@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest;
 
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.api.rest.v0.RestService.RsErrorBean;
 
 /**
  * Exception to be thrown when the user is authenticated but not
