@@ -43,7 +43,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.api.RestService;
+import net.netshot.netshot.api.rest.v0.RestService;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;

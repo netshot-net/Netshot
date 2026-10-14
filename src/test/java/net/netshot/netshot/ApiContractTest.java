@@ -44,7 +44,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.ApiContractCase.Reply;
 import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.api.RestService;
+import net.netshot.netshot.api.rest.v0.RestService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.engine.TaskManager;
 import org.quartz.Scheduler;

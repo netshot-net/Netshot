@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.api.rest;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -30,7 +30,7 @@ import jakarta.ws.rs.core.Response;
  */
 public class ResponseCodeFilter implements ContainerResponseFilter {
 	/** Request property name to embed the suggested HTTP response code. */
-	static final String SUGGESTED_RESPONSE_CODE = "net.netshot.netshot.rest.SuggestedResponseCode";
+	public static final String SUGGESTED_RESPONSE_CODE = "net.netshot.netshot.rest.SuggestedResponseCode";
 
 	@Context
 	private HttpServletRequest httpRequest;

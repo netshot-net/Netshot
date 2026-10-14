@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.api.rest.v0;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -160,6 +160,13 @@ import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.NetshotAuthenticationRequiredException;
+import net.netshot.netshot.api.rest.NetshotBadRequestException;
+import net.netshot.netshot.api.rest.NetshotNotAuthorizedException;
+import net.netshot.netshot.api.rest.NetshotWebApplication;
+import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.SecurityFilter;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterMember;

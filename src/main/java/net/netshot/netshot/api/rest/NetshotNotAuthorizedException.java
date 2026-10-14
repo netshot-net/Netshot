@@ -16,22 +16,23 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.api.rest;
 
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.Response;
+import net.netshot.netshot.api.rest.v0.RestService.RsErrorBean;
 
 /**
- * The NetshotAuthenticationRequiredException class, which indicates that user authentication is required (401 error).
+ * Exception to be thrown when the user is authenticated but not
+ * not allowed to perform an action.
  */
-public class NetshotAuthenticationRequiredException extends ForbiddenException {
-	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = -2463854660543944995L;
+public class NetshotNotAuthorizedException extends ForbiddenException {
 
-	/**
-	 * Default constructor.
-	 */
-	public NetshotAuthenticationRequiredException() {
-		super(Response.status(Response.Status.FORBIDDEN).build());
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = -453816975689585686L;
+
+	public NetshotNotAuthorizedException(String message, int errorCode) {
+		super(Response.status(Response.Status.FORBIDDEN)
+			.entity(new RsErrorBean(message, errorCode)).build());
 	}
 }

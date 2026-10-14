@@ -16,12 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.api.rest;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import lombok.Getter;
-import net.netshot.netshot.api.RestService.RsErrorBean;
+import net.netshot.netshot.api.rest.v0.RestService.RsErrorBean;
 
 /**
  * The NetshotBadRequestException class, a WebApplication exception
