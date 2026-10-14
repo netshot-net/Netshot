@@ -32,7 +32,10 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.task.engine.TaskManagerEngine;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -55,21 +58,34 @@ public final class Wiring {
 	private static volatile Wiring instance;
 
 	private final Transactions transactions;
+	// Device
 	private final DeviceService deviceService;
 	// Compliance
 	private final PolicyService policyService;
 	private final RuleService ruleService;
 	private final SoftwareRuleService softwareRuleService;
 	private final HardwareRuleService hardwareRuleService;
+	// Tasks
+	private final TaskService taskService;
 
-	private Wiring(Transactions transactions, DeviceService deviceService, PolicyService policyService,
-		RuleService ruleService, SoftwareRuleService softwareRuleService, HardwareRuleService hardwareRuleService) {
-		this.transactions = transactions;
-		this.deviceService = deviceService;
-		this.policyService = policyService;
-		this.ruleService = ruleService;
-		this.softwareRuleService = softwareRuleService;
-		this.hardwareRuleService = hardwareRuleService;
+	/**
+	 * Builds the objects of the application. Each feature adds its own block
+	 * (repositories, then services).
+	 */
+	private Wiring() {
+		this.transactions = new Transactions();
+		// Device
+		DeviceRepository deviceRepository = new DeviceRepository();
+		this.deviceService = new DeviceService(this.transactions, deviceRepository, TaskManager::addTask);
+		// Compliance
+		PolicyRepository policyRepository = new PolicyRepository();
+		this.policyService = new PolicyService(this.transactions, policyRepository);
+		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository);
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository());
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository());
+		// Tasks
+		TaskRepository taskRepository = new TaskRepository();
+		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine());
 	}
 
 	/**
@@ -79,17 +95,7 @@ public final class Wiring {
 	 */
 	public static synchronized Wiring init() {
 		Database.init(EntityModel.build());
-		Transactions transactions = new Transactions();
-		DeviceRepository deviceRepository = new DeviceRepository();
-		DeviceService deviceService = new DeviceService(transactions, deviceRepository, TaskManager::addTask);
-		// Compliance
-		PolicyRepository policyRepository = new PolicyRepository();
-		PolicyService policyService = new PolicyService(transactions, policyRepository);
-		RuleService ruleService = new RuleService(transactions, new RuleRepository(), policyRepository);
-		SoftwareRuleService softwareRuleService = new SoftwareRuleService(transactions, new SoftwareRuleRepository());
-		HardwareRuleService hardwareRuleService = new HardwareRuleService(transactions, new HardwareRuleRepository());
-		instance = new Wiring(transactions, deviceService, policyService, ruleService, softwareRuleService,
-			hardwareRuleService);
+		instance = new Wiring();
 		return instance;
 	}
 
@@ -174,5 +180,14 @@ public final class Wiring {
 	 */
 	public HardwareRuleService hardwareRuleService() {
 		return this.hardwareRuleService;
+	}
+
+	/**
+	 * Gets the task use cases.
+	 *
+	 * @return the task service
+	 */
+	public TaskService taskService() {
+		return this.taskService;
 	}
 }

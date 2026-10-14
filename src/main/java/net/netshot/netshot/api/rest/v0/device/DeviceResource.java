@@ -47,6 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.task.TaskDto;
+import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
@@ -151,13 +153,12 @@ public class DeviceResource {
 			+ " Otherwise, the device will be immediately created in the database, and a 'snapshot' task will be created."
 	)
 	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
-	public Task addDevice(NewDeviceRequest device) throws WebApplicationException {
+	public TaskDto addDevice(NewDeviceRequest device) throws WebApplicationException {
 		log.debug("REST request, new device.");
 		User user = (User) this.securityContext.getUserPrincipal();
-		// The task is still serialized from the entity, until the tasks get their own DTO
 		Task task = this.deviceService.create(DeviceMapper.toCreation(device, user.getUsername()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return task;
+		return TaskMapper.toDto(task);
 	}
 
 	/**
