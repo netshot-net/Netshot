@@ -68,8 +68,8 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.glassfish.jersey.servlet.ServletProperties;
 import org.hibernate.HibernateException;
 import org.hibernate.ObjectNotFoundException;
 import org.hibernate.Session;
@@ -115,6 +115,7 @@ import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.ServletSessionConfig;
+import io.undertow.servlet.util.ImmediateInstanceFactory;
 import io.undertow.util.Headers;
 import jakarta.annotation.security.DenyAll;
 import jakarta.annotation.security.PermitAll;
@@ -297,13 +298,16 @@ public class RestService extends Thread {
 
 	/**
 	 * Initializes the service.
+	 *
+	 * @param binder the dependency injection binder exposing the services to the REST resources
+	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
 	 */
-	public static void init() {
+	public static void init(AbstractBinder binder) {
 		if (!Netshot.getConfig("netshot.http.enabled", true)) {
 			log.info("HTTP server is not enabled.");
 			return;
 		}
-		nsRestService = new RestService();
+		nsRestService = new RestService(binder);
 		nsRestService.setUncaughtExceptionHandler(Netshot.exceptionHandler);
 		nsRestService.start();
 	}
@@ -319,10 +323,23 @@ public class RestService extends Thread {
 	@Context
 	private SecurityContext securityContext;
 
+	/** The dependency injection binder for the web application (only set on the server thread instance). */
+	private AbstractBinder binder;
+
 	/**
-	 * Instantiates a new Netshot REST service.
+	 * Instantiates a new Netshot REST service, as a resource (the JAX-RS runtime creates it for each request).
 	 */
 	public RestService() {
+		this(null);
+	}
+
+	/**
+	 * Instantiates the Netshot REST service, as the server thread.
+	 *
+	 * @param binder the dependency injection binder for the web application
+	 */
+	private RestService(AbstractBinder binder) {
+		this.binder = binder;
 		this.setName("REST Service");
 		httpUseSsl = true;
 		if (!Netshot.getConfig("netshot.http.ssl.enabled", true)) {
@@ -438,10 +455,9 @@ public class RestService extends Thread {
 				.setContextPath(HTTP_API_PATH) // same as Grizzly context path
 				.setDeploymentName("NetshotREST")
 				.addServlets(
-					Servlets.servlet("Jersey", ServletContainer.class)
+					Servlets.servlet("Jersey", ServletContainer.class,
+						new ImmediateInstanceFactory<>(new ServletContainer(new NetshotWebApplication(this.binder))))
 						.setLoadOnStartup(1)
-						.addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS,
-							NetshotWebApplication.class.getName())
 						.addMapping("/*")
 				)
 				.setServletSessionConfig(new ServletSessionConfig()

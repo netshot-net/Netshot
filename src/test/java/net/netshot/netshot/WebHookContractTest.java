@@ -125,7 +125,7 @@ public class WebHookContractTest extends WithDatabaseTest {
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestService.init();
+		RestService.init(Wiring.get().binder());
 		Thread.sleep(1000);
 		this.seed = new ApiContractSeed(API_URL, HttpClient.newHttpClient());
 		this.seed.seed();
