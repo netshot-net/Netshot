@@ -16,12 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.api.rest;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
@@ -50,6 +51,9 @@ import io.swagger.v3.oas.models.security.SecurityScheme.In;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
@@ -58,7 +62,12 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 @Slf4j
 public class NetshotWebApplication extends ResourceConfig {
 	public NetshotWebApplication() {
-		registerClasses(RestService.class, SecurityFilter.class, ApiTokenAuthFilter.class);
+		// Resources (@Path classes) are discovered by scanning the REST channel package, including
+		// its API version sub-packages. Filters, providers and the exception mapper are not
+		// annotated with @Provider and thus registered explicitly below, so that they cannot be
+		// registered twice and their registration is not subject to the scanning.
+		packages(NetshotWebApplication.class.getPackageName());
+		registerClasses(SecurityFilter.class, ApiTokenAuthFilter.class);
 		register(NetshotExceptionMapper.class);
 		register(RolesAllowedDynamicFeature.class);
 		property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, "true");
@@ -67,6 +76,15 @@ public class NetshotWebApplication extends ResourceConfig {
 		register(LoggerFilter.class);
 		register(ResponseCodeFilter.class);
 		// property(ServerProperties.TRACING, "ALL");
+
+		// Dependency injection: the objects of the composition root, injectable into the resources
+		register(new AbstractBinder() {
+			@Override
+			protected void configure() {
+				Wiring wiring = Wiring.get();
+				bind(wiring.transactions()).to(Transactions.class);
+			}
+		});
 
 		// JSON
 		JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();
@@ -112,7 +130,7 @@ public class NetshotWebApplication extends ResourceConfig {
 		oas.addSecurityItem(new SecurityRequirement().addList("ApiTokenAuth"));
 		oas.addSecurityItem(new SecurityRequirement().addList("CookieAuth"));
 		SwaggerConfiguration oasConfig = new SwaggerConfiguration().openAPI(oas).prettyPrint(true)
-			.resourcePackages(Stream.of(RestService.class.getPackageName()).collect(Collectors.toSet()));
+			.resourcePackages(Stream.of(NetshotWebApplication.class.getPackageName()).collect(Collectors.toSet()));
 
 		try {
 			new JaxrsOpenApiContextBuilder<>().application(this).openApiConfiguration(oasConfig).buildContext(true);

@@ -71,14 +71,15 @@ import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
-import net.netshot.netshot.api.LoggerFilter;
-import net.netshot.netshot.api.RestService;
+import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.v0.RestService;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.task.engine.TaskLockManager;
@@ -701,7 +702,7 @@ public class Netshot extends Thread {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Database.init();
+			Wiring.init();
 
 			Netshot.loadModuleConfigs();
 

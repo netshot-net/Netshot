@@ -520,7 +520,17 @@ final class ApiContractGolden {
 	 * @return the content, or null if absent
 	 */
 	static String readGolden(String fileName) {
-		Path path = GOLDEN_DIR.resolve(fileName);
+		return readGolden(GOLDEN_DIR, fileName);
+	}
+
+	/**
+	 * Reads a golden file from a given directory, if any.
+	 * @param dir the golden directory
+	 * @param fileName the golden file name
+	 * @return the content, or null if absent
+	 */
+	static String readGolden(Path dir, String fileName) {
+		Path path = dir.resolve(fileName);
 		if (!Files.exists(path)) {
 			return null;
 		}
@@ -533,9 +543,13 @@ final class ApiContractGolden {
 	}
 
 	static void writeGolden(String fileName, String content) {
+		writeGolden(GOLDEN_DIR, fileName, content);
+	}
+
+	static void writeGolden(Path dir, String fileName, String content) {
 		try {
-			Files.createDirectories(GOLDEN_DIR);
-			Files.writeString(GOLDEN_DIR.resolve(fileName), content, StandardCharsets.UTF_8);
+			Files.createDirectories(dir);
+			Files.writeString(dir.resolve(fileName), content, StandardCharsets.UTF_8);
 		}
 		catch (IOException e) {
 			throw new UncheckedIOException(e);

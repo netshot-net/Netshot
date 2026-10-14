@@ -34,8 +34,6 @@ import liquibase.resource.ResourceAccessor;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.UpdateStatement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
 
 /**
  * Converts the legacy 32-bit-int/64-bit-long IPv4/IPv6 columns on
@@ -119,7 +117,7 @@ public class NetworkAddressMigrator implements CustomSqlChange {
 		while (rows.next()) {
 			long id = rows.getLong(idColumn);
 			int address = rows.getInt(intColumn);
-			String ip = Network4Address.intToIP(address);
+			String ip = AddressConverter.intToIP(address);
 			UpdateStatement update = new UpdateStatement(
 				database.getDefaultCatalogName(), database.getDefaultSchemaName(), tableName)
 				.setWhereClause("%s = ?".formatted(idColumn)).addWhereParameter(id);
@@ -151,7 +149,7 @@ public class NetworkAddressMigrator implements CustomSqlChange {
 			long id = rows.getLong(idColumn);
 			long address1 = rows.getLong(longColumn1);
 			long address2 = rows.getLong(longColumn2);
-			String ip = Network6Address.intToIP(address1, address2);
+			String ip = AddressConverter.intToIP(address1, address2);
 			UpdateStatement update = new UpdateStatement(
 				database.getDefaultCatalogName(), database.getDefaultSchemaName(), tableName)
 				.setWhereClause("%s = ?".formatted(idColumn)).addWhereParameter(id);
@@ -182,7 +180,7 @@ public class NetworkAddressMigrator implements CustomSqlChange {
 		ResultSet rows = connection.createStatement().executeQuery(select);
 		while (rows.next()) {
 			int address = rows.getInt(intColumn);
-			String ip = Network4Address.intToIP(address);
+			String ip = AddressConverter.intToIP(address);
 			UpdateStatement update = this.buildKeyedUpdate(database, tableName, keyColumns, rows);
 			update.addNewColumnValue(inetColumn, ip);
 			statements.add(update);
@@ -213,7 +211,7 @@ public class NetworkAddressMigrator implements CustomSqlChange {
 		while (rows.next()) {
 			long address1 = rows.getLong(longColumn1);
 			long address2 = rows.getLong(longColumn2);
-			String ip = Network6Address.intToIP(address1, address2);
+			String ip = AddressConverter.intToIP(address1, address2);
 			UpdateStatement update = this.buildKeyedUpdate(database, tableName, keyColumns, rows);
 			update.addNewColumnValue(inetColumn, ip);
 			statements.add(update);

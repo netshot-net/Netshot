@@ -43,7 +43,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.api.RestService;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;
@@ -276,7 +275,12 @@ public class ClusterManager extends Thread {
 			}
 		}
 		if (localId == null) {
-			// Second option: based on MAC address and REST port
+			// Second option: based on MAC address and REST port.
+			// The cluster manager is initialized before the REST service, so the port used to
+			// be unknown here (RestService.getRestPort() returned 0): the port part of the
+			// generated ID is therefore always 0000. Kept as is, so that the IDs of the
+			// existing members don't change.
+			final int restPort = 0;
 			try {
 				InetAddress mainAddress = InetAddress.getLocalHost();
 				NetworkInterface networkInterface = NetworkInterface.getByInetAddress(mainAddress);
@@ -284,7 +288,7 @@ public class ClusterManager extends Thread {
 				if (mainMac != null && mainMac.length == 6 && (mainMac[0] != 0 || mainMac[1] != 0
 					|| mainMac[2] != 0 || mainMac[3] != 0 || mainMac[4] != 0 || mainMac[5] != 0)) {
 					localId = String.format("01ff%02x%02x%02x%02x%02x%02x%04x",
-						mainMac[0], mainMac[1], mainMac[2], mainMac[3], mainMac[4], mainMac[5], RestService.getRestPort());
+						mainMac[0], mainMac[1], mainMac[2], mainMac[3], mainMac[4], mainMac[5], restPort);
 					log.info("Cluster ID {} was automatically generated based on main local MAC address", localId);
 				}
 			}
