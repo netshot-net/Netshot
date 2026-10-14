@@ -20,6 +20,14 @@ package net.netshot.netshot.boot;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import net.netshot.netshot.compliance.HardwareRuleRepository;
+import net.netshot.netshot.compliance.HardwareRuleService;
+import net.netshot.netshot.compliance.PolicyRepository;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.RuleRepository;
+import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.SoftwareRuleRepository;
+import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
@@ -48,10 +56,20 @@ public final class Wiring {
 
 	private final Transactions transactions;
 	private final DeviceService deviceService;
+	// Compliance
+	private final PolicyService policyService;
+	private final RuleService ruleService;
+	private final SoftwareRuleService softwareRuleService;
+	private final HardwareRuleService hardwareRuleService;
 
-	private Wiring(Transactions transactions, DeviceService deviceService) {
+	private Wiring(Transactions transactions, DeviceService deviceService, PolicyService policyService,
+		RuleService ruleService, SoftwareRuleService softwareRuleService, HardwareRuleService hardwareRuleService) {
 		this.transactions = transactions;
 		this.deviceService = deviceService;
+		this.policyService = policyService;
+		this.ruleService = ruleService;
+		this.softwareRuleService = softwareRuleService;
+		this.hardwareRuleService = hardwareRuleService;
 	}
 
 	/**
@@ -64,7 +82,14 @@ public final class Wiring {
 		Transactions transactions = new Transactions();
 		DeviceRepository deviceRepository = new DeviceRepository();
 		DeviceService deviceService = new DeviceService(transactions, deviceRepository, TaskManager::addTask);
-		instance = new Wiring(transactions, deviceService);
+		// Compliance
+		PolicyRepository policyRepository = new PolicyRepository();
+		PolicyService policyService = new PolicyService(transactions, policyRepository);
+		RuleService ruleService = new RuleService(transactions, new RuleRepository(), policyRepository);
+		SoftwareRuleService softwareRuleService = new SoftwareRuleService(transactions, new SoftwareRuleRepository());
+		HardwareRuleService hardwareRuleService = new HardwareRuleService(transactions, new HardwareRuleRepository());
+		instance = new Wiring(transactions, deviceService, policyService, ruleService, softwareRuleService,
+			hardwareRuleService);
 		return instance;
 	}
 
@@ -113,5 +138,41 @@ public final class Wiring {
 	 */
 	public DeviceService deviceService() {
 		return this.deviceService;
+	}
+
+	/**
+	 * Gets the compliance policy use cases.
+	 *
+	 * @return the policy service
+	 */
+	public PolicyService policyService() {
+		return this.policyService;
+	}
+
+	/**
+	 * Gets the compliance rule use cases.
+	 *
+	 * @return the rule service
+	 */
+	public RuleService ruleService() {
+		return this.ruleService;
+	}
+
+	/**
+	 * Gets the software compliance rule use cases.
+	 *
+	 * @return the software rule service
+	 */
+	public SoftwareRuleService softwareRuleService() {
+		return this.softwareRuleService;
+	}
+
+	/**
+	 * Gets the hardware compliance rule use cases.
+	 *
+	 * @return the hardware rule service
+	 */
+	public HardwareRuleService hardwareRuleService() {
+		return this.hardwareRuleService;
 	}
 }

@@ -209,7 +209,13 @@ public final class DeviceMapper {
 			module.isRemoved());
 	}
 
-	private static DeviceGroupDto toDto(DeviceGroup groupOrProxy) {
+	/**
+	 * Maps a device group to its representation.
+	 *
+	 * @param groupOrProxy the group, or a proxy of it
+	 * @return the DTO
+	 */
+	public static DeviceGroupDto toDto(DeviceGroup groupOrProxy) {
 		DeviceGroup group = (DeviceGroup) Hibernate.unproxy(groupOrProxy);
 		if (group instanceof DynamicDeviceGroup dynamic) {
 			return new DeviceGroupDto.DynamicGroup(dynamic.getId(), dynamic.getChangeDate(), dynamic.getName(),
