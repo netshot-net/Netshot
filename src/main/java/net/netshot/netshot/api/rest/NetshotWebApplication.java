@@ -52,8 +52,6 @@ import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.api.rest.v0.RestService;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
@@ -61,7 +59,15 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
  */
 @Slf4j
 public class NetshotWebApplication extends ResourceConfig {
-	public NetshotWebApplication() {
+
+	/**
+	 * Instantiates the web application.
+	 *
+	 * @param binder the dependency injection binder exposing the services (transactions, feature services)
+	 *        to the REST resources; given by the composition root ({@code boot.Wiring}), so that the
+	 *        REST channel does not depend on {@code boot}
+	 */
+	public NetshotWebApplication(AbstractBinder binder) {
 		// Resources (@Path classes) are discovered by scanning the REST channel package, including
 		// its API version sub-packages. Filters, providers and the exception mapper are not
 		// annotated with @Provider and thus registered explicitly below, so that they cannot be
@@ -78,13 +84,7 @@ public class NetshotWebApplication extends ResourceConfig {
 		// property(ServerProperties.TRACING, "ALL");
 
 		// Dependency injection: the objects of the composition root, injectable into the resources
-		register(new AbstractBinder() {
-			@Override
-			protected void configure() {
-				Wiring wiring = Wiring.get();
-				bind(wiring.transactions()).to(Transactions.class);
-			}
-		});
+		register(binder);
 
 		// JSON
 		JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();

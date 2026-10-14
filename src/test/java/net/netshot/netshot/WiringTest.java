@@ -57,7 +57,7 @@ public class WiringTest extends WithDatabaseTest {
 	@DisplayName("The web application makes the wiring injectable into the resources")
 	void injection() {
 		Wiring wiring = Wiring.init();
-		ApplicationHandler handler = new ApplicationHandler(new NetshotWebApplication());
+		ApplicationHandler handler = new ApplicationHandler(new NetshotWebApplication(wiring.binder()));
 		Transactions injected = handler.getInjectionManager().getInstance(Transactions.class);
 		Assertions.assertSame(wiring.transactions(), injected);
 	}

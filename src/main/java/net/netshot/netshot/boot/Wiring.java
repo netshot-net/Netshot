@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.boot;
 
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
 
@@ -32,7 +34,8 @@ import net.netshot.netshot.platform.database.Transactions;
  * tests which need a working database.</p>
  *
  * <p>The REST resources receive the objects of the wiring through dependency
- * injection (the web application registers them into Jersey). Code which is
+ * injection: {@link #binder()} is handed to the web application, which registers
+ * it into Jersey. Code which is
  * not created by an injection container (Quartz jobs, cluster code, entities)
  * can only reach them through {@link #get()}.</p>
  */
@@ -74,6 +77,16 @@ public final class Wiring {
 			throw new IllegalStateException("The wiring has not been initialized");
 		}
 		return wiring;
+	}
+
+	/**
+	 * Gets the dependency injection binder exposing the objects of this wiring
+	 * to the REST resources. To be handed to the web application.
+	 *
+	 * @return a new binder
+	 */
+	public AbstractBinder binder() {
+		return new WiringBinder(this);
 	}
 
 	/**
