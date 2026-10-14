@@ -20,6 +20,10 @@ package net.netshot.netshot.boot;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import net.netshot.netshot.compliance.HardwareRuleService;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Transactions;
 
@@ -42,5 +46,10 @@ final class WiringBinder extends AbstractBinder {
 	protected void configure() {
 		this.bind(this.wiring.transactions()).to(Transactions.class);
 		this.bind(this.wiring.deviceService()).to(DeviceService.class);
+		// Compliance
+		this.bind(this.wiring.policyService()).to(PolicyService.class);
+		this.bind(this.wiring.ruleService()).to(RuleService.class);
+		this.bind(this.wiring.softwareRuleService()).to(SoftwareRuleService.class);
+		this.bind(this.wiring.hardwareRuleService()).to(HardwareRuleService.class);
 	}
 }

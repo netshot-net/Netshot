@@ -1,0 +1,468 @@
+/**
+ * Copyright 2013-2025 Netshot
+ * 
+ * This file is part of Netshot project.
+ * 
+ * Netshot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Netshot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package net.netshot.netshot.compliance;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.hibernate.HibernateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
+import org.slf4j.helpers.MessageFormatter;
+
+import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.compliance.rules.JavaScriptRule;
+import net.netshot.netshot.compliance.rules.PythonRule;
+import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.task.engine.TaskContext;
+
+/**
+ * The compliance rule use cases: list, read, add, edit, delete and test the rules, and read their
+ * exemptions and the compliance state of a device.
+ *
+ * <p>The rules it returns are detached entities loaded with their own properties only. Checking
+ * a rule against a device (see {@link #test}) calls the {@link Rule#check} of the entity.</p>
+ */
+@Slf4j
+public class RuleService {
+
+	/** Authentication, Authorization, Accounting logger. */
+	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
+
+	private static final String TEXT_RULE = "TextRule";
+	private static final String JAVASCRIPT_RULE = "JavaScriptRule";
+	private static final String PYTHON_RULE = "PythonRule";
+
+	private final Transactions transactions;
+	private final RuleRepository repository;
+	private final PolicyRepository policyRepository;
+
+	/**
+	 * Instantiates the service.
+	 *
+	 * @param transactions the transaction support
+	 * @param repository the rule repository
+	 * @param policyRepository the policy repository (to find the policy of a rule)
+	 */
+	public RuleService(Transactions transactions, RuleRepository repository, PolicyRepository policyRepository) {
+		this.transactions = transactions;
+		this.repository = repository;
+		this.policyRepository = policyRepository;
+	}
+
+	/**
+	 * Lists all the rules, across all the policies, with minimal details.
+	 *
+	 * @param page the window on the result
+	 * @return the rule summaries
+	 * @throws NetshotException if the rules can't be read
+	 */
+	public List<RuleSummary> list(Page page) {
+		try {
+			return this.transactions.read(session -> this.repository.findSummaries(session, page));
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the rules.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
+		}
+	}
+
+	/**
+	 * Lists the rules of a policy.
+	 *
+	 * @param policyId the policy ID
+	 * @param page the window on the result
+	 * @return the rules
+	 * @throws NetshotException if the policy doesn't exist, or the rules can't be read
+	 */
+	public List<Rule> listOfPolicy(long policyId, Page page) {
+		try {
+			return this.transactions.read(session -> {
+				if (this.policyRepository.find(session, policyId) == null) {
+					log.error("Invalid policy.");
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy");
+				}
+				return this.repository.findByPolicy(session, policyId, page);
+			});
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the rules.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
+		}
+	}
+
+	/**
+	 * Gets a rule of a policy.
+	 *
+	 * @param policyId the policy ID
+	 * @param id the rule ID
+	 * @return the rule
+	 * @throws NetshotException if the policy or the rule of the policy doesn't exist, or the rule can't be read
+	 */
+	public Rule getOfPolicy(long policyId, long id) {
+		try {
+			return this.transactions.read(session -> {
+				if (this.policyRepository.find(session, policyId) == null) {
+					log.error("Invalid policy.");
+					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unknown policy");
+				}
+				Rule rule = this.repository.findOfPolicy(session, policyId, id);
+				if (rule == null) {
+					log.warn("Unable to find the rule object.");
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unknown rule");
+				}
+				return rule;
+			});
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the rule.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rule");
+		}
+	}
+
+	/**
+	 * Adds a rule to a policy. The rule is created disabled.
+	 *
+	 * @param definition the rule
+	 * @return the new rule
+	 * @throws NetshotException if the name is blank or already used in the policy, the policy doesn't
+	 *         exist, the kind of rule is invalid, or the rule can't be stored
+	 */
+	public Rule create(RuleDefinition definition) {
+		if (definition.name() == null || definition.name().trim().isEmpty()) {
+			log.warn("User posted an empty rule name.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+		}
+		String name = definition.name().trim();
+		Rule rule;
+		try {
+			rule = this.transactions.write(session -> {
+				Policy policy = this.policyRepository.find(session, definition.policyId());
+				if (policy == null) {
+					log.error("The policy of ID {} doesn't exist.", definition.policyId());
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy.");
+				}
+				Rule newRule;
+				if (TEXT_RULE.equals(definition.type())) {
+					TextRule textRule = new TextRule(name, policy);
+					applyTextRule(textRule, definition);
+					newRule = textRule;
+				}
+				else if (JAVASCRIPT_RULE.equals(definition.type())) {
+					JavaScriptRule jsRule = new JavaScriptRule(name, policy);
+					if (definition.script() != null) {
+						jsRule.setScript(definition.script().trim());
+					}
+					newRule = jsRule;
+				}
+				else if (PYTHON_RULE.equals(definition.type())) {
+					PythonRule pyRule = new PythonRule(name, policy);
+					if (definition.script() != null) {
+						pyRule.setScript(definition.script().trim());
+					}
+					newRule = pyRule;
+				}
+				else {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
+				}
+				session.persist(newRule);
+				return newRule;
+			});
+		}
+		catch (HibernateException e) {
+			log.error("Error while saving the new rule.", e);
+			if (Database.isDuplicateException(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_RULE, "A rule with this name already exists.");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
+		}
+		catch (NetshotException e) {
+			log.error("Error while saving the new rule.", e);
+			throw e;
+		}
+		AAA_LOG.info("{} has been created.", rule);
+		return rule;
+	}
+
+	/**
+	 * Edits a rule. The name (if provided), the enabled flag, the exemptions (all of them are
+	 * replaced) and the properties of the kind of the rule are changed; its policy and kind are not.
+	 *
+	 * @param id the rule ID
+	 * @param definition the new properties
+	 * @return the rule
+	 * @throws NetshotException if the rule doesn't exist, the name is blank or already used in the
+	 *         policy, an exempted device doesn't exist, or the rule can't be stored
+	 */
+	public Rule update(long id, RuleDefinition definition) {
+		Rule rule;
+		try {
+			rule = this.transactions.write(session -> {
+				Rule existing = this.repository.find(session, id);
+				if (existing == null) {
+					log.error("Unable to find the rule {} to be edited.", id);
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
+				}
+
+				if (definition.name() != null) {
+					String name = definition.name().trim();
+					if (name.isEmpty()) {
+						log.warn("User posted an empty rule name.");
+						throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+					}
+					existing.setName(name);
+				}
+				existing.setEnabled(definition.enabled());
+
+				Map<Long, Date> postedExemptions = new HashMap<>();
+				postedExemptions.putAll(definition.exemptions());
+				Iterator<Exemption> i = existing.getExemptions().iterator();
+				while (i.hasNext()) {
+					Exemption exemption = i.next();
+					Long deviceId = exemption.getDevice().getId();
+					if (postedExemptions.containsKey(deviceId)) {
+						exemption.setExpirationDate(postedExemptions.get(deviceId));
+						postedExemptions.remove(deviceId);
+					}
+					else {
+						i.remove();
+					}
+				}
+				for (Map.Entry<Long, Date> postedExemption : postedExemptions.entrySet()) {
+					Device device = this.repository.findDevice(session, postedExemption.getKey());
+					if (device == null) {
+						log.warn("Unknown device of ID {}", postedExemption.getKey());
+						throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE,
+							"Unknown device of ID %d.".formatted(postedExemption.getKey()));
+					}
+					existing.addExemption(new Exemption(existing, device, postedExemption.getValue()));
+				}
+
+				if (existing instanceof JavaScriptRule jsRule) {
+					if (definition.script() != null) {
+						jsRule.setScript(definition.script().trim());
+					}
+				}
+				else if (existing instanceof PythonRule pyRule) {
+					if (definition.script() != null) {
+						pyRule.setScript(definition.script().trim());
+					}
+				}
+				else if (existing instanceof TextRule textRule) {
+					applyTextRule(textRule, definition);
+				}
+
+				session.merge(existing);
+				return existing;
+			});
+		}
+		catch (HibernateException e) {
+			log.error("Error while saving the new rule.", e);
+			if (Database.isDuplicateException(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_RULE, "A rule with this name already exists.");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
+		}
+		AAA_LOG.info("{} has been edited.", rule);
+		return rule;
+	}
+
+	/**
+	 * Deletes a rule.
+	 *
+	 * @param id the rule ID
+	 * @return true if the rule has been deleted, false if there was no such rule
+	 * @throws NetshotException if the rule can't be deleted
+	 */
+	public boolean delete(long id) {
+		try {
+			boolean deleted = this.transactions.write(session -> {
+				Rule rule = this.repository.find(session, id);
+				if (rule == null) {
+					log.info("No such rule of ID {}", id);
+					return false;
+				}
+				session.remove(rule);
+				return true;
+			});
+			if (deleted) {
+				AAA_LOG.info("Rule of ID {} has been deleted.", id);
+			}
+			return deleted;
+		}
+		catch (HibernateException e) {
+			log.error("Unable to delete the rule {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the rule.");
+		}
+	}
+
+	/**
+	 * Tests a rule against a device, in dry run mode: the rule is built from the definition (it is not
+	 * stored), enabled and checked against the device. The check is the {@link Rule#check} of the
+	 * entity. If the device doesn't exist (or has no configuration) the result is "not applicable".
+	 *
+	 * @param deviceId the ID of the device to check
+	 * @param definition the rule to test (only its kind-specific properties are used)
+	 * @return the result of the check, with what it logged
+	 * @throws NetshotException if the kind of rule is invalid, or the device can't be read or checked
+	 */
+	public RuleTestResult test(long deviceId, RuleDefinition definition) {
+		try {
+			return this.transactions.read(session -> {
+				Device device = this.repository.findDeviceWithLastConfig(session, deviceId);
+				if (device == null) {
+					log.warn("Unable to find the device {}.", deviceId);
+					return new RuleTestResult(CheckResult.ResultOption.NOTAPPLICABLE, null, "Unable to find the device");
+				}
+
+				Rule rule;
+				if (TEXT_RULE.equals(definition.type())) {
+					TextRule txRule = new TextRule("TEST", null);
+					txRule.setDeviceDriver(definition.driver());
+					txRule.setField(definition.field());
+					txRule.setInvert(definition.invert());
+					txRule.setContext(definition.context());
+					txRule.setRegExp(definition.regExp());
+					txRule.setText(definition.text());
+					txRule.setAnyBlock(definition.anyBlock());
+					txRule.setMatchAll(definition.matchAll());
+					txRule.setNormalize(definition.normalize());
+					rule = txRule;
+				}
+				else if (JAVASCRIPT_RULE.equals(definition.type())) {
+					JavaScriptRule jsRule = new JavaScriptRule("TEST", null);
+					jsRule.setScript(definition.script());
+					rule = jsRule;
+				}
+				else if (PYTHON_RULE.equals(definition.type())) {
+					PythonRule pyRule = new PythonRule("TEST", null);
+					pyRule.setScript(definition.script());
+					rule = pyRule;
+				}
+				else {
+					log.warn("Invalid rule type {}.", definition.type());
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type");
+				}
+
+				StringBuilder taskLog = new StringBuilder();
+				TaskContext taskContext = new TaskContext() {
+					@Override
+					public void log(Level level, String message, Object... params) {
+						taskLog.append("[%s] ".formatted(level.toString()));
+						taskLog.append(
+							MessageFormatter.arrayFormat(message, params).getMessage());
+						taskLog.append("\n");
+					}
+
+					@Override
+					public String getIdentifier() {
+						return "RuleTest";
+					}
+				};
+
+				rule.setEnabled(true);
+				CheckResult check = rule.check(device, session, taskContext);
+				return new RuleTestResult(check.getResult(), taskLog.toString(), check.getComment());
+			});
+		}
+		catch (NetshotException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Unable to retrieve the device {}.", deviceId, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the device.");
+		}
+	}
+
+	/**
+	 * Lists the devices exempted from a rule.
+	 *
+	 * @param ruleId the rule ID
+	 * @param page the window on the result
+	 * @return the exempted devices (empty if the rule doesn't exist)
+	 * @throws NetshotException if the exemptions can't be read
+	 */
+	public List<ExemptedDevice> listExemptedDevices(long ruleId, Page page) {
+		try {
+			return this.transactions.read(session -> this.repository.findExemptedDevices(session, ruleId, page));
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the exemptions.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the exemptions");
+		}
+	}
+
+	/**
+	 * Lists the compliance state of a device: the rules of the policies applying to it, with their last result.
+	 *
+	 * @param deviceId the device ID
+	 * @param page the window on the result
+	 * @return the rule results (empty if the device doesn't exist)
+	 * @throws NetshotException if the results can't be read
+	 */
+	public List<DeviceRuleResult> listDeviceResults(long deviceId, Page page) {
+		try {
+			return this.transactions.read(session -> this.repository.findDeviceResults(session, deviceId, page));
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the rules.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
+		}
+	}
+
+	private static void applyTextRule(TextRule textRule, RuleDefinition definition) {
+		if (definition.text() != null) {
+			textRule.setText(definition.text());
+		}
+		if (definition.regExp() != null) {
+			textRule.setRegExp(definition.regExp());
+		}
+		if (definition.context() != null) {
+			textRule.setContext(definition.context());
+		}
+		if (definition.field() != null) {
+			textRule.setField(definition.field());
+		}
+		if (definition.driver() != null) {
+			textRule.setDeviceDriver(definition.driver());
+		}
+		if (definition.invert() != null) {
+			textRule.setInvert(definition.invert());
+		}
+		if (definition.matchAll() != null) {
+			textRule.setMatchAll(definition.matchAll());
+		}
+		if (definition.anyBlock() != null) {
+			textRule.setAnyBlock(definition.anyBlock());
+		}
+		if (definition.normalize() != null) {
+			textRule.setNormalize(definition.normalize());
+		}
+	}
+}
