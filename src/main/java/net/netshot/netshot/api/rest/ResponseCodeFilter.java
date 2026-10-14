@@ -35,6 +35,16 @@ public class ResponseCodeFilter implements ContainerResponseFilter {
 	@Context
 	private HttpServletRequest httpRequest;
 
+	/**
+	 * Attaches a suggested return code to the request, so that this filter can in turn change
+	 * the status of the response, e.g. 201 or 204 instead of the default 200.
+	 * @param request the current request
+	 * @param status the status to answer with
+	 */
+	public static void suggest(HttpServletRequest request, Response.Status status) {
+		request.setAttribute(SUGGESTED_RESPONSE_CODE, status);
+	}
+
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
 		Response.Status status = (Response.Status) httpRequest.getAttribute(ResponseCodeFilter.SUGGESTED_RESPONSE_CODE);
