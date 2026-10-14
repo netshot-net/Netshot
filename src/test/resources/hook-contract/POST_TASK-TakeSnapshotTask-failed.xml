@@ -1,0 +1,92 @@
+# Content-Type: application/xml
+<?xml version="1.0"?>
+<TakeSnapshotTask type="TakeSnapshotTask">
+  <author>tester</author>
+  <automatic>false</automatic>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502412000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Failing snapshot</comments>
+  <creationDate>1609502410000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <device>
+    <accesses/>
+    <cachedIpAddress>10.2.1.1</cachedIpAddress>
+    <changeDate>&lt;now&gt;</changeDate>
+    <comments/>
+    <compliant>true</compliant>
+    <contact/>
+    <createdDate>1609502400000</createdDate>
+    <creator>seed</creator>
+    <driver>CiscoIOS12</driver>
+    <endOfLife>false</endOfLife>
+    <endOfSale>false</endOfSale>
+    <eolDate/>
+    <eolModule/>
+    <eosDate/>
+    <eosModule/>
+    <family>Cisco 1900</family>
+    <location>Lyon</location>
+    <mgmtAddress>10.2.1.1</mgmtAddress>
+    <name>router-lyon-1</name>
+    <networkClass>SWITCHROUTER</networkClass>
+    <ownerGroups>
+      <ownerGroups type="DynamicDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder/>
+        <hiddenFromReports>true</hiddenFromReports>
+        <id>3</id>
+        <name>Everything</name>
+        <query>[Name] contains &quot;&quot;</query>
+      </ownerGroups>
+      <ownerGroups type="DynamicDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>2</id>
+        <name>All Cisco devices</name>
+        <query>[Family] contains &quot;Cisco&quot;</query>
+      </ownerGroups>
+      <ownerGroups type="StaticDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production/Core</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>1</id>
+        <name>Core routers</name>
+      </ownerGroups>
+    </ownerGroups>
+    <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+    <serialNumber>FTX9999ZZZZ</serialNumber>
+    <softwareLevel>SILVER</softwareLevel>
+    <softwareVersion>15.2.4</softwareVersion>
+    <status>DISABLED</status>
+    <tags>
+      <tags>branch</tags>
+    </tags>
+  </device>
+  <deviceDriver/>
+  <deviceId>2</deviceId>
+  <dontCheckCompliance>true</dontCheckCompliance>
+  <dontRunDiagnostics>true</dontRunDiagnostics>
+  <executionDate>1609502411000</executionDate>
+  <id>2</id>
+  <log>Unable to connect</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502410000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>FAILURE</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>router-lyon-1</target>
+  <taskDescription>Device snapshot</taskDescription>
+  <userInputValues/>
+</TakeSnapshotTask>
