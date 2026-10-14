@@ -45,6 +45,7 @@ import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.ApiContractCase.Reply;
 import net.netshot.netshot.ApiContractGolden.Format;
 import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.boot.EntityModel;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.engine.TaskManager;
 import org.quartz.Scheduler;
@@ -94,7 +95,7 @@ public class ApiContractTest extends WithDatabaseTest {
 		Netshot.loadModuleConfigs();
 		net.netshot.netshot.driver.DeviceDriver.refreshDrivers();
 		Database.update();
-		Database.init();
+		Database.init(EntityModel.build());
 		TaskManager.init();
 		// Tasks must be stored but never run: keep the schedulers in standby, and drop
 		// any job left by another test class sharing the JVM.
