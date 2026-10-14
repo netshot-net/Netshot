@@ -253,3 +253,12 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **A shape which is both composed and projected.** `select new ExemptedDevice(new DeviceSummary(...), e.expirationDate)` works in HQL, so a REST type made of a summary and extra columns (`@JsonUnwrapped` around `DeviceSummaryDto`) has a service-level record made of the summary record and the extra components.
 - **Records can't extend.** A request which used to extend another one (`RsRuleTest extends RsRule`) repeats the components of the first (`RuleTestRequest`, `RuleRequest`).
 - **`Session.get` of an unknown ID returns null.** Code which puts the result in a collection without checking (the target groups of a policy, the group of a software or hardware rule) silently accepts an ID that doesn't exist. The migrated use cases keep that, and the mappers have to cope with the null.
+
+### Pitfalls met on the task slice
+
+- **A polymorphic family shares its common part.** `TaskDto` is a sealed interface of twelve records, each composing the properties common to all tasks (`TaskBaseDto`, `@JsonUnwrapped`) with the ones of its type, and published under the simple name of the task class (`@JacksonXmlRootElement`). `TaskMapper.toDto(Task)` is the single way to represent a task: reuse it from any endpoint answering with a task (`POST /devices` does).
+- **Protected getters.** Some task getters (`getDeviceId`) are protected and serialized anyway by the entity mapper: read the value through public accessors (`task.getDevice().getId()`) in the mapper.
+- **A request with many defaults stays a bean.** `TaskRequest` (about thirty properties, each with a default for an absent property and another outcome for an explicit `null`) is not a record: a bean with initialized fields reproduces the three cases for free, a record would need one deserializer per property.
+- **Authorization depending on the payload.** The role needed to create a task depends on its `type`: the resource checks it before calling the service (the service knows nothing of roles), which is the order of the legacy code.
+- **An unknown id is not always a 404.** `GET /tasks/{id}` answers 204 for an unknown task (the service returns `null`), `PUT /tasks/{id}` answers 400 `NETSHOT_INVALID_TASK`, and the debug log answers 404: the goldens record them, keep them.
+
