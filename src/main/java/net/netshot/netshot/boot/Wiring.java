@@ -20,10 +20,19 @@ package net.netshot.netshot.boot;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
+import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.user.ApiTokenRepository;
+import net.netshot.netshot.aaa.user.ApiTokenService;
+import net.netshot.netshot.aaa.user.UserRepository;
+import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.cluster.ClusterManager;
+import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.task.engine.TaskManager;
 
 /**
@@ -48,10 +57,23 @@ public final class Wiring {
 
 	private final Transactions transactions;
 	private final DeviceService deviceService;
+	// AAA and system
+	private final UserService userService;
+	private final ApiTokenService apiTokenService;
+	private final LoginService loginService;
+	private final ClusterService clusterService;
+	private final ServerInfoService serverInfoService;
 
-	private Wiring(Transactions transactions, DeviceService deviceService) {
+	private Wiring(Transactions transactions, DeviceService deviceService, UserService userService,
+		ApiTokenService apiTokenService, LoginService loginService, ClusterService clusterService,
+		ServerInfoService serverInfoService) {
 		this.transactions = transactions;
 		this.deviceService = deviceService;
+		this.userService = userService;
+		this.apiTokenService = apiTokenService;
+		this.loginService = loginService;
+		this.clusterService = clusterService;
+		this.serverInfoService = serverInfoService;
 	}
 
 	/**
@@ -64,7 +86,15 @@ public final class Wiring {
 		Transactions transactions = new Transactions();
 		DeviceRepository deviceRepository = new DeviceRepository();
 		DeviceService deviceService = new DeviceService(transactions, deviceRepository, TaskManager::addTask);
-		instance = new Wiring(transactions, deviceService);
+		// AAA and system
+		UserRepository userRepository = new UserRepository();
+		UserService userService = new UserService(transactions, userRepository);
+		ApiTokenService apiTokenService = new ApiTokenService(transactions, new ApiTokenRepository());
+		LoginService loginService = new LoginService(transactions, userRepository, new ConfiguredRemoteAuthenticator());
+		ClusterService clusterService = new ClusterService(ClusterManager::getClusterMembers);
+		ServerInfoService serverInfoService = new ServerInfoService();
+		instance = new Wiring(transactions, deviceService, userService, apiTokenService, loginService,
+			clusterService, serverInfoService);
 		return instance;
 	}
 
@@ -113,5 +143,50 @@ public final class Wiring {
 	 */
 	public DeviceService deviceService() {
 		return this.deviceService;
+	}
+
+	/**
+	 * Gets the user use cases.
+	 *
+	 * @return the user service
+	 */
+	public UserService userService() {
+		return this.userService;
+	}
+
+	/**
+	 * Gets the API token use cases.
+	 *
+	 * @return the API token service
+	 */
+	public ApiTokenService apiTokenService() {
+		return this.apiTokenService;
+	}
+
+	/**
+	 * Gets the login use case.
+	 *
+	 * @return the login service
+	 */
+	public LoginService loginService() {
+		return this.loginService;
+	}
+
+	/**
+	 * Gets the cluster use cases.
+	 *
+	 * @return the cluster service
+	 */
+	public ClusterService clusterService() {
+		return this.clusterService;
+	}
+
+	/**
+	 * Gets the server information use case.
+	 *
+	 * @return the server information service
+	 */
+	public ServerInfoService serverInfoService() {
+		return this.serverInfoService;
 	}
 }
