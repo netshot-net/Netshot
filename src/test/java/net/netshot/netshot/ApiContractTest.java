@@ -103,7 +103,7 @@ public class ApiContractTest extends WithDatabaseTest {
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestService.init();
+		RestService.init(Wiring.get().binder());
 		Thread.sleep(1000);
 		this.httpClient = HttpClient.newHttpClient();
 		this.seed = new ApiContractSeed(API_URL, this.httpClient);

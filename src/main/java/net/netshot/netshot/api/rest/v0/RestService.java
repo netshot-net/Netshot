@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v0;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,17 +25,11 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -67,9 +60,8 @@ import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.sshd.common.config.keys.PublicKeyEntry;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.glassfish.jersey.servlet.ServletProperties;
 import org.hibernate.HibernateException;
 import org.hibernate.ObjectNotFoundException;
 import org.hibernate.Session;
@@ -115,6 +107,7 @@ import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.ServletSessionConfig;
+import io.undertow.servlet.util.ImmediateInstanceFactory;
 import io.undertow.util.Headers;
 import jakarta.annotation.security.DenyAll;
 import jakarta.annotation.security.PermitAll;
@@ -168,7 +161,8 @@ import net.netshot.netshot.api.rest.NetshotWebApplication;
 import net.netshot.netshot.api.rest.LoggerFilter;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.SecurityFilter;
-import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.credentials.CredentialSets;
+import net.netshot.netshot.platform.tls.CaCertificates;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
@@ -200,7 +194,6 @@ import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.driver.OptionDefinition;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.WebHook;
@@ -225,6 +218,7 @@ import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -238,7 +232,6 @@ import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 import net.netshot.netshot.task.type.ChildOrchestratingTask;
 import net.netshot.netshot.task.type.DeviceBasedTask;
-import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
@@ -252,7 +245,6 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultInstance;
 import net.netshot.netshot.vault.VaultManager;
-import net.netshot.netshot.vault.VaultableSecret;
 
 /**
  * The RestService class exposes the Netshot methods as a REST service.
@@ -297,13 +289,16 @@ public class RestService extends Thread {
 
 	/**
 	 * Initializes the service.
+	 *
+	 * @param binder the dependency injection binder exposing the services to the REST resources
+	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
 	 */
-	public static void init() {
+	public static void init(AbstractBinder binder) {
 		if (!Netshot.getConfig("netshot.http.enabled", true)) {
 			log.info("HTTP server is not enabled.");
 			return;
 		}
-		nsRestService = new RestService();
+		nsRestService = new RestService(binder);
 		nsRestService.setUncaughtExceptionHandler(Netshot.exceptionHandler);
 		nsRestService.start();
 	}
@@ -319,10 +314,23 @@ public class RestService extends Thread {
 	@Context
 	private SecurityContext securityContext;
 
+	/** The dependency injection binder for the web application (only set on the server thread instance). */
+	private AbstractBinder binder;
+
 	/**
-	 * Instantiates a new Netshot REST service.
+	 * Instantiates a new Netshot REST service, as a resource (the JAX-RS runtime creates it for each request).
 	 */
 	public RestService() {
+		this(null);
+	}
+
+	/**
+	 * Instantiates the Netshot REST service, as the server thread.
+	 *
+	 * @param binder the dependency injection binder for the web application
+	 */
+	private RestService(AbstractBinder binder) {
+		this.binder = binder;
 		this.setName("REST Service");
 		httpUseSsl = true;
 		if (!Netshot.getConfig("netshot.http.ssl.enabled", true)) {
@@ -438,10 +446,9 @@ public class RestService extends Thread {
 				.setContextPath(HTTP_API_PATH) // same as Grizzly context path
 				.setDeploymentName("NetshotREST")
 				.addServlets(
-					Servlets.servlet("Jersey", ServletContainer.class)
+					Servlets.servlet("Jersey", ServletContainer.class,
+						new ImmediateInstanceFactory<>(new ServletContainer(new NetshotWebApplication(this.binder))))
 						.setLoadOnStartup(1)
-						.addInitParam(ServletProperties.JAXRS_APPLICATION_CLASS,
-							NetshotWebApplication.class.getName())
 						.addMapping("/*")
 				)
 				.setServletSessionConfig(new ServletSessionConfig()
@@ -1423,60 +1430,6 @@ public class RestService extends Thread {
 	}
 
 	/**
-	 * Gets a specific device.
-	 *
-	 * @param id the id
-	 * @return the device
-	 * @throws WebApplicationException the web application exception
-	 */
-	@GET
-	@Path("/devices/{id}")
-	@RolesAllowed(User.ROLE_READONLY)
-	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
-	@Operation(
-		summary = "Get a device",
-		description = "Retrieve a device will all details."
-	)
-	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
-	public Device getDevice(@PathParam("id") @Parameter(description = "Device ID") Long id)
-		throws WebApplicationException {
-		log.debug("REST request, device {}.", id);
-		Session session = Database.getSession(true);
-		Device device;
-		try {
-			device = session.createQuery(
-				"from Device d "
-					+ "left join fetch d.mgmtDomain "
-					+ "left join fetch d.eolModule "
-					+ "left join fetch d.eosModule "
-					+ "left join fetch d.attributes "
-					+ "where d.id = :id",
-				Device.class)
-				.setParameter("id", id)
-				.uniqueResult();
-			if (device == null) {
-				throw new NetshotBadRequestException("Can't find this device",
-					ErrorCode.NETSHOT_DEVICE_NOT_FOUND);
-			}
-			device.getGroupMemberships().size();
-			device.getOwnerGroups().size();
-			device.getComplianceCheckResults().size();
-			device.getAccesses().size();
-			device.getTags().size();
-		}
-		catch (HibernateException e) {
-			log.error("Unable to fetch the device", e);
-			throw new NetshotBadRequestException("Unable to fetch the device",
-				ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-		}
-		finally {
-			session.close();
-		}
-		return device;
-	}
-
-	/**
 	 * The Class RsLightDevice.
 	 */
 	@XmlRootElement
@@ -1561,67 +1514,6 @@ public class RestService extends Thread {
 		}))
 		@Setter
 		protected Device.NetworkClass networkClass = Device.NetworkClass.UNKNOWN;
-	}
-
-	/**
-	 * Gets the devices.
-	 *
-	 * @param paginationParams = the pagination parameters
-	 * @param groupId = the group ID
-	 * @param withDetails = whether to include details
-	 * @return the devices
-	 * @throws WebApplicationException the web application exception
-	 */
-	@GET
-	@Path("/devices")
-	@RolesAllowed(User.ROLE_READONLY)
-	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
-	@Operation(
-		summary = "Get the devices",
-		description = "Retrieves the device list with minimal details."
-	)
-	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
-	public List<RsLightDevice> getDevices(
-		@BeanParam PaginationParams paginationParams,
-		@QueryParam("group") @Parameter(description = "Filter on devices of the given group ID") Long groupId,
-		@QueryParam("details") Boolean withDetails) throws WebApplicationException {
-		log.debug("REST request, devices.");
-
-		Session session = Database.getSession(true);
-		try {
-			String hqlQuery = "select new RsLightDevice("
-				+ "d.id, "
-				+ "d.name, "
-				+ "d.family, "
-				+ "d.mgmtAddress, "
-				+ "d.status, "
-				+ "d.driver, "
-				+ "case when (d.eolDate < current_date()) then true else false end,  "
-				+ "case when (d.eosDate < current_date()) then true else false end, "
-				+ "case when (select count(cr) from CheckResult cr where cr.key.device = d and cr.result = :nonConforming) = 0 then true else false end, "
-				+ "d.softwareLevel, "
-				+ "d.networkClass "
-				+ ") from Device d";
-			if (groupId != null) {
-				hqlQuery += " join d.groupMemberships gm where gm.key.group.id = :groupId order by gm.position asc, d.name asc";
-			}
-			Query<RsLightDevice> query = session.createQuery(hqlQuery, RsLightDevice.class);
-			query.setParameter("nonConforming", CheckResult.ResultOption.NONCONFORMING);
-			if (groupId != null) {
-				query.setParameter("groupId", groupId);
-			}
-			paginationParams.apply(query);
-			return query.list();
-		}
-		catch (HibernateException e) {
-			log.error("Unable to fetch the devices", e);
-			throw new NetshotBadRequestException("Unable to fetch the devices",
-				ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-		}
-		finally {
-			session.close();
-		}
 	}
 
 	/**
@@ -1866,388 +1758,6 @@ public class RestService extends Thread {
 	}
 
 	/**
-	 * The Class RsNewDevice.
-	 */
-	@XmlRootElement(name = "device")
-	@XmlAccessorType(XmlAccessType.NONE)
-	public static class RsNewDevice {
-
-		/** The auto discover. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private boolean autoDiscover = true;
-
-		/** The auto discovery task. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private long autoDiscoveryTask;
-
-		/** The ip address. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String ipAddress = "";
-
-		/** The domain id. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private long domainId = -1;
-
-		/** The name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String name = "";
-
-		/** The device type. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String deviceType = "";
-
-		/** Per-access configuration (address/port overrides, credential pins), keyed by access name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private List<DeviceAccess> accesses;
-
-		/** Per-device values for the driver-declared Options, keyed by option name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Map<String, Object> options;
-
-		/** The device comments. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String comments;
-
-		/** The device tags. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private List<String> tags;
-	}
-
-	/**
-	 * Validates posted device tags: each tag must be a non-blank string
-	 * of at most {@link Device#MAX_TAG_LENGTH} characters (once trimmed).
-	 * @param tags the tags to validate (may be null)
-	 * @throws NetshotBadRequestException if any tag is invalid
-	 */
-	private static void validateDeviceTags(List<String> tags) throws NetshotBadRequestException {
-		if (tags == null) {
-			return;
-		}
-		for (String tag : tags) {
-			if (Device.normalizeTag(tag) == null) {
-				throw new NetshotBadRequestException(
-					"Invalid device tag (tags must be non-empty and at most %d characters long).".formatted(Device.MAX_TAG_LENGTH),
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-		}
-	}
-
-	/** Strict IPv4 dotted-quad pattern (each octet 0-255), to detect an IPv4 literal without ever risking a DNS lookup. */
-	private static final Pattern IPV4_LITERAL_PATTERN = Pattern.compile(
-		"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-
-	/** RFC-1123-ish hostname/FQDN pattern. */
-	private static final Pattern HOSTNAME_PATTERN = Pattern.compile(
-		"^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$");
-
-	/**
-	 * Validates a device management/connect address, accepting an IPv4 literal, an IPv6
-	 * literal, or a syntactically valid hostname/FQDN. Never performs a DNS lookup:
-	 * hostnames are only resolved later, at actual connect time.
-	 *
-	 * @param address the address to validate
-	 * @param allowLoopback whether a loopback address should be accepted (used for the
-	 *                      optional "connect address" override, which may point to a
-	 *                      local port-forwarded tunnel)
-	 * @throws NetshotBadRequestException if the address is malformed or invalid
-	 */
-	private static void validateMgmtAddress(String address, boolean allowLoopback) throws NetshotBadRequestException {
-		if (address == null || "".equals(address)) {
-			throw new NetshotBadRequestException("Malformed IP address",
-				ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS);
-		}
-		if (IPV4_LITERAL_PATTERN.matcher(address).matches()) {
-			try {
-				Network4Address v4Address = new Network4Address(address);
-				if (!v4Address.isNormalUnicast() && !(allowLoopback && v4Address.isLoopback())) {
-					throw new NetshotBadRequestException("Invalid IP address",
-						ErrorCode.NETSHOT_INVALID_IP_ADDRESS);
-				}
-			}
-			catch (UnknownHostException e) {
-				throw new NetshotBadRequestException("Malformed IP address",
-					ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS);
-			}
-		}
-		else if (address.contains(":")) {
-			try {
-				Network6Address v6Address = new Network6Address(address);
-				if (v6Address.isMulticast()) {
-					throw new NetshotBadRequestException("Invalid IP address",
-						ErrorCode.NETSHOT_INVALID_IP_ADDRESS);
-				}
-			}
-			catch (UnknownHostException e) {
-				throw new NetshotBadRequestException("Malformed IP address",
-					ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS);
-			}
-		}
-		else if (!HOSTNAME_PATTERN.matcher(address).matches()) {
-			throw new NetshotBadRequestException("Malformed IP address or hostname",
-				ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS);
-		}
-	}
-
-	/**
-	 * Validates a list of per-(device, access) configurations posted by a
-	 * device create/update request: address must be a valid address/hostname
-	 * if set, port must be in the 1-65535 range if set, access name must be
-	 * present. If a credential is pinned (at most one of globalCredentialSet/
-	 * specificCredentialSet may be set - both is rejected), the access name
-	 * must be a real access declared by the driver and the credential's
-	 * runtime class must match that access's declared credential family. A
-	 * posted {@code globalCredentialSet} is resolved here (by id) to the
-	 * managed, persistent entity and written back onto the same {@link DeviceAccess}
-	 * instance, so the caller can pass the list straight into
-	 * {@link Device#replaceAccesses} afterwards.
-	 * @param session the Hibernate session (used to resolve a posted globalCredentialSet id)
-	 * @param driver the device's driver, or null if not known yet (e.g. an
-	 *        autodiscovering device) - credential pins are rejected in that case
-	 * @param accesses the accesses to validate (may be null)
-	 * @throws NetshotBadRequestException if any entry is invalid
-	 */
-	private static void validateDeviceAccesses(Session session, DeviceDriver driver, List<DeviceAccess> accesses)
-			throws NetshotBadRequestException {
-		if (accesses == null) {
-			return;
-		}
-		for (DeviceAccess access : accesses) {
-			if (access.getAccessName() == null || access.getAccessName().isEmpty()) {
-				throw new NetshotBadRequestException("Missing access name in one of the device accesses.",
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			if (access.getAddress() != null && !access.getAddress().isEmpty()) {
-				RestService.validateMgmtAddress(access.getAddress(), true);
-			}
-			if (access.getPort() != null && (access.getPort() < 1 || access.getPort() > 65535)) {
-				throw new NetshotBadRequestException(
-					"Invalid port for access '" + access.getAccessName() + "'.",
-					ErrorCode.NETSHOT_INVALID_PORT);
-			}
-			if (access.getSshHostKeyVerification() == null) {
-				access.setSshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN);
-			}
-			access.setSshTrustedHostKeys(
-				RestService.normalizeSshTrustedHostKeys(access.getSshTrustedHostKeys(), access.getAccessName()));
-			if (access.getHttpsCaTrustMode() == null) {
-				access.setHttpsCaTrustMode(HttpsCaTrustMode.SYSTEM_TRUSTSTORE);
-			}
-			if (access.getHttpsCaTrustMode() == HttpsCaTrustMode.CUSTOM_CA) {
-				if (access.getHttpsCustomCaCertificate() == null || access.getHttpsCustomCaCertificate().isBlank()) {
-					throw new NetshotBadRequestException(
-						"Access '" + access.getAccessName() + "' requires a custom CA certificate "
-							+ "when the HTTPS trust mode is CUSTOM_CA.",
-						ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-				}
-				RestService.validateHttpsCustomCaCertificate(access.getHttpsCustomCaCertificate(),
-					"access '" + access.getAccessName() + "'");
-			}
-			if (access.getGlobalCredentialSet() == null && access.getSpecificCredentialSet() == null) {
-				continue;
-			}
-			if (access.getGlobalCredentialSet() != null && access.getSpecificCredentialSet() != null) {
-				throw new NetshotBadRequestException(
-					"Cannot set both a global and a specific credential set for access '" + access.getAccessName() + "'.",
-					ErrorCode.NETSHOT_INVALID_CREDENTIALS);
-			}
-			if (driver == null) {
-				throw new NetshotBadRequestException(
-					"Cannot pin credentials for access '" + access.getAccessName() + "' without a known device type.",
-					ErrorCode.NETSHOT_INVALID_CREDENTIALS);
-			}
-			DeviceDriver.AccessDefinition accessDef = driver.getAccessDefinition(access.getAccessName());
-			if (accessDef == null) {
-				throw new NetshotBadRequestException(
-					"Unknown access '" + access.getAccessName() + "' for this device type.",
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			Class<? extends DeviceCredentialSet> credentialClass = accessDef.getCredentialClass();
-			if (access.getGlobalCredentialSet() != null) {
-				DeviceCredentialSet global = session.get(DeviceCredentialSet.class, access.getGlobalCredentialSet().getId());
-				if (global == null || global.isDeviceSpecific()) {
-					throw new NetshotBadRequestException(
-						"Invalid global credential set for access '" + access.getAccessName() + "'.",
-						ErrorCode.NETSHOT_INVALID_CREDENTIALS);
-				}
-				if (!credentialClass.isInstance(global)) {
-					throw new NetshotBadRequestException(
-						"The selected credential set is not compatible with access '" + access.getAccessName() + "'.",
-						ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE);
-				}
-				access.setGlobalCredentialSet(global);
-			}
-			else if (!credentialClass.isInstance(access.getSpecificCredentialSet())) {
-				throw new NetshotBadRequestException(
-					"The specific credential set is not compatible with access '" + access.getAccessName() + "'.",
-					ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE);
-			}
-		}
-	}
-
-	/**
-	 * Validates posted per-device Options values against the driver's declared
-	 * {@link OptionDefinition}s: every key must be a known option, and the value
-	 * must be properly typed for it (a real boolean for BOOLEAN, a string for
-	 * TEXT - one of {@code choices} when declared) - values are stored as-is,
-	 * as real JSON, not stringified (see {@link net.netshot.netshot.inventory.device.Device#getOptions()}).
-	 * @param driver the device's driver, or null if not known yet - a non-empty
-	 *        options map is rejected in that case
-	 * @param options the options to validate (may be null)
-	 * @throws NetshotBadRequestException if any entry is invalid
-	 */
-	private static void validateDeviceOptions(DeviceDriver driver, Map<String, Object> options)
-			throws NetshotBadRequestException {
-		if (options == null || options.isEmpty()) {
-			return;
-		}
-		if (driver == null) {
-			throw new NetshotBadRequestException(
-				"Cannot set options without a known device type.",
-				ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-		}
-		for (Map.Entry<String, Object> entry : options.entrySet()) {
-			OptionDefinition definition = driver.getOptions().get(entry.getKey());
-			if (definition == null) {
-				throw new NetshotBadRequestException(
-					"Unknown option '%s' for this device type.".formatted(entry.getKey()),
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			Object value = entry.getValue();
-			if (value == null) {
-				continue;
-			}
-			switch (definition.getType()) {
-				case BOOLEAN:
-					if (!(value instanceof Boolean)) {
-						throw new NetshotBadRequestException(
-							"Option '%s' should be a boolean.".formatted(entry.getKey()),
-							ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-					}
-					break;
-				case TEXT:
-					if (!(value instanceof String)) {
-						throw new NetshotBadRequestException(
-							"Option '%s' should be a string.".formatted(entry.getKey()),
-							ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-					}
-					if (definition.getChoices() != null && !definition.getChoices().contains(value)) {
-						throw new NetshotBadRequestException(
-							"Option '%s' is not one of the allowed choices.".formatted(entry.getKey()),
-							ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-					}
-					break;
-				default:
-					break;
-			}
-		}
-	}
-
-	/** Recognized SSH public key algorithm name prefixes, to locate the algorithm token in a pasted line. */
-	private static final Pattern SSH_KEY_TYPE_PATTERN = Pattern.compile(
-		"^(ssh-|ecdsa-sha2-|rsa-sha2-|sk-ssh-|sk-ecdsa-).+");
-
-	/**
-	 * Normalizes a block of admin-pasted SSH host key entries into the canonical, storage-ready
-	 * form: one "{@code <algorithm> <base64-key>}" per line, no hostname prefix or trailing
-	 * comment (both optional and tolerated on input, e.g. pasted straight from {@code ssh-keyscan}
-	 * or a {@code known_hosts} file), each validated to actually decode as a public key.
-	 * @param raw the raw, possibly null/blank, pasted block
-	 * @param accessName the access name (for the error message)
-	 * @return the normalized block, or null if {@code raw} had no usable entry
-	 * @throws NetshotBadRequestException if any non-blank, non-comment line is malformed
-	 */
-	private static String normalizeSshTrustedHostKeys(String raw, String accessName) throws NetshotBadRequestException {
-		if (raw == null || raw.isBlank()) {
-			return null;
-		}
-		List<String> normalized = new ArrayList<>();
-		for (String rawLine : raw.split("\\R")) {
-			String line = rawLine.trim();
-			if (line.isEmpty() || line.startsWith("#")) {
-				continue;
-			}
-			String[] tokens = line.split("\\s+");
-			int algorithmIndex = -1;
-			for (int i = 0; i < tokens.length; i++) {
-				if (RestService.SSH_KEY_TYPE_PATTERN.matcher(tokens[i]).matches()) {
-					algorithmIndex = i;
-					break;
-				}
-			}
-			if (algorithmIndex < 0 || algorithmIndex + 1 >= tokens.length) {
-				throw new NetshotBadRequestException(
-					"Invalid SSH host key entry for access '" + accessName + "': '" + line + "'.",
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			String algorithm = tokens[algorithmIndex];
-			String keyData = tokens[algorithmIndex + 1];
-			try {
-				PublicKeyEntry.parsePublicKeyEntry(algorithm + " " + keyData)
-					.resolvePublicKey(null, Collections.emptyMap(), null);
-			}
-			catch (Exception e) {
-				throw new NetshotBadRequestException(
-					"Invalid SSH host key entry for access '" + accessName + "': " + e.getMessage(),
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			normalized.add(algorithm + " " + keyData);
-		}
-		return normalized.isEmpty() ? null : String.join("\n", normalized);
-	}
-
-	/**
-	 * Validates that a posted custom CA block parses as at least one X.509 certificate.
-	 * @param pem the PEM-encoded certificate(s)
-	 * @param context what the certificate belongs to, e.g. "access 'https'" or "the webhook" (for the error message)
-	 * @throws NetshotBadRequestException if the block is malformed or empty
-	 */
-	private static void validateHttpsCustomCaCertificate(String pem, String context) throws NetshotBadRequestException {
-		try {
-			CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-			Collection<? extends Certificate> certificates = certificateFactory.generateCertificates(
-				new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8)));
-			if (certificates.isEmpty()) {
-				throw new CertificateException("No certificate found.");
-			}
-		}
-		catch (Exception e) {
-			throw new NetshotBadRequestException(
-				"Invalid custom CA certificate for " + context + ": " + e.getMessage(),
-				ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-		}
-	}
-
-	/**
 	 * Validates a Web hook's HTTPS trust policy: defaults a missing CA trust
 	 * mode to {@code SYSTEM_TRUSTSTORE}, and requires/validates a custom CA
 	 * certificate when the mode is {@code CUSTOM_CA}.
@@ -2264,621 +1774,8 @@ public class RestService extends Thread {
 					"The webhook requires a custom CA certificate when the HTTPS trust mode is CUSTOM_CA.",
 					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
 			}
-			RestService.validateHttpsCustomCaCertificate(webHook.getHttpsCustomCaCertificate(), "the webhook");
+			CaCertificates.validateCustomCa(webHook.getHttpsCustomCaCertificate(), "the webhook");
 		}
-	}
-
-	/**
-	 * Resolves an incoming vaultable field's Local/Vault state into a fresh
-	 * {@link VaultableSecret} bundle: either the referenced {@link VaultInstance}
-	 * is resolved and the local value cleared, or any Vault reference is
-	 * cleared and the local value is carried over from {@code current}
-	 * (respecting the usual "null = unchanged" masking convention for the
-	 * genuinely secret fields) or from {@code incoming} if it was changed.
-	 * <p>
-	 * Callers must apply the result back onto the owning entity via its
-	 * {@code setXxxSecret(...)} setter - each vaultable field is backed by
-	 * plain, individually mapped columns/association on the entity (not a
-	 * JPA embeddable), so mutating a bundle returned by a getter has no
-	 * effect on its own.
-	 * @param session the Hibernate session, used to resolve the Vault instance ID
-	 * @param incoming the incoming (deserialized) field
-	 * @param current the field's current value on the target entity, used to preserve
-	 *        the local value when unchanged (pass the same object as {@code incoming}
-	 *        when resolving a brand-new, not-yet-persisted entity's own references)
-	 * @return the resolved bundle to apply via {@code setXxxSecret(...)}
-	 */
-	private static VaultableSecret resolveVaultableField(Session session, VaultableSecret incoming, VaultableSecret current) {
-		VaultableSecret result = new VaultableSecret();
-		Long vaultInstanceId = incoming.getVaultInstanceId();
-		if (vaultInstanceId != null) {
-			VaultInstance vaultInstance = session.get(VaultInstance.class, vaultInstanceId);
-			if (vaultInstance == null) {
-				throw new NetshotBadRequestException("Invalid Vault instance.",
-					ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE);
-			}
-			result.setVaultInstance(vaultInstance);
-			result.setVaultPath(incoming.getVaultPath());
-			result.setLocalValue(null);
-		}
-		else {
-			result.setVaultInstance(null);
-			result.setVaultPath(null);
-			result.setLocalValue(incoming.getLocalValue() != null ? incoming.getLocalValue() : current.getLocalValue());
-		}
-		return result;
-	}
-
-	/**
-	 * Applies {@link #resolveVaultableField} to every vaultable field of a
-	 * credential set, dispatching by concrete type (most-specific first,
-	 * since {@link DeviceSnmpv3Community} is itself a {@link DeviceSnmpCommunity}).
-	 * @param session the Hibernate session
-	 * @param target the credential set to update (may be the same object as {@code source})
-	 * @param source the incoming (deserialized) credential set
-	 */
-	private static void applyVaultableFields(Session session, DeviceCredentialSet target, DeviceCredentialSet source) {
-		if (target instanceof DeviceCliAccount cliTarget && source instanceof DeviceCliAccount cliSource) {
-			cliTarget.setUsernameSecret(resolveVaultableField(session, cliSource.getUsernameSecret(), cliTarget.getUsernameSecret()));
-			cliTarget.setPasswordSecret(resolveVaultableField(session, cliSource.getPasswordSecret(), cliTarget.getPasswordSecret()));
-			cliTarget.setSuperPasswordSecret(resolveVaultableField(session, cliSource.getSuperPasswordSecret(), cliTarget.getSuperPasswordSecret()));
-			if (cliTarget instanceof DeviceSshKeyAccount keyTarget && cliSource instanceof DeviceSshKeyAccount keySource) {
-				keyTarget.setPrivateKeySecret(resolveVaultableField(session, keySource.getPrivateKeySecret(), keyTarget.getPrivateKeySecret()));
-			}
-		}
-		else if (target instanceof DeviceSnmpv3Community snmp3Target && source instanceof DeviceSnmpv3Community snmp3Source) {
-			snmp3Target.setCommunitySecret(resolveVaultableField(session, snmp3Source.getCommunitySecret(), snmp3Target.getCommunitySecret()));
-			snmp3Target.setUsernameSecret(resolveVaultableField(session, snmp3Source.getUsernameSecret(), snmp3Target.getUsernameSecret()));
-			snmp3Target.setAuthKeySecret(resolveVaultableField(session, snmp3Source.getAuthKeySecret(), snmp3Target.getAuthKeySecret()));
-			snmp3Target.setPrivKeySecret(resolveVaultableField(session, snmp3Source.getPrivKeySecret(), snmp3Target.getPrivKeySecret()));
-		}
-		else if (target instanceof DeviceSnmpCommunity communityTarget && source instanceof DeviceSnmpCommunity communitySource) {
-			communityTarget.setCommunitySecret(resolveVaultableField(session, communitySource.getCommunitySecret(), communityTarget.getCommunitySecret()));
-		}
-		else if (target instanceof DeviceHttpAccount httpTarget && source instanceof DeviceHttpAccount httpSource) {
-			httpTarget.setUsernameSecret(resolveVaultableField(session, httpSource.getUsernameSecret(), httpTarget.getUsernameSecret()));
-			httpTarget.setPasswordSecret(resolveVaultableField(session, httpSource.getPasswordSecret(), httpTarget.getPasswordSecret()));
-		}
-	}
-
-	/**
-	 * Creates or updates an owned, per-access specific credential set: if
-	 * {@code existing} is null or of a different concrete class than
-	 * {@code incoming}, the old one (if any) is deleted and {@code incoming}
-	 * is persisted as the new owned credential set (stamped
-	 * {@code deviceSpecific=true}, given a synthetic name); otherwise
-	 * {@code incoming}'s fields are copied onto {@code existing} in place,
-	 * preserving secret fields submitted as the unchanged sentinel ("="),
-	 * matching the convention already used for the device-wide singleton.
-	 * @param session the Hibernate session
-	 * @param existing the currently persisted specific credential set, or null if none yet
-	 * @param incoming the incoming (deserialized, not yet persisted) credential set payload
-	 * @return the resulting persisted credential set
-	 */
-	private static DeviceCredentialSet applySpecificCredentialSet(Session session, DeviceCredentialSet existing,
-			DeviceCredentialSet incoming) {
-		if (existing != null && !existing.getClass().equals(incoming.getClass())) {
-			session.remove(existing);
-			existing = null;
-		}
-		if (existing == null) {
-			incoming.setDeviceSpecific(true);
-			incoming.setName(DeviceCredentialSet.generateSpecificName());
-			applyVaultableFields(session, incoming, incoming);
-			session.persist(incoming);
-			return incoming;
-		}
-		if (DeviceCliAccount.class.isInstance(existing)) {
-			DeviceCliAccount cliAccount = (DeviceCliAccount) existing;
-			DeviceCliAccount rsCliAccount = (DeviceCliAccount) incoming;
-			cliAccount.setUsername(rsCliAccount.getUsername());
-			if (rsCliAccount.getPassword() != null && !"=".equals(rsCliAccount.getPassword())) {
-				cliAccount.setPassword(rsCliAccount.getPassword());
-			}
-			if (rsCliAccount.getSuperPassword() != null && !"=".equals(rsCliAccount.getSuperPassword())) {
-				cliAccount.setSuperPassword(rsCliAccount.getSuperPassword());
-			}
-			if (DeviceSshKeyAccount.class.isInstance(existing)) {
-				((DeviceSshKeyAccount) cliAccount).setPrivateKey(((DeviceSshKeyAccount) rsCliAccount).getPrivateKey());
-			}
-		}
-		else if (DeviceSnmpv3Community.class.isInstance(existing)) {
-			DeviceSnmpv3Community rsSnmp3 = (DeviceSnmpv3Community) incoming;
-			((DeviceSnmpv3Community) existing).setUsername(rsSnmp3.getUsername());
-			((DeviceSnmpv3Community) existing).setAuthType(rsSnmp3.getAuthType());
-			if (rsSnmp3.getAuthKey() != null && !"=".equals(rsSnmp3.getAuthKey())) {
-				((DeviceSnmpv3Community) existing).setAuthKey(rsSnmp3.getAuthKey());
-			}
-			((DeviceSnmpv3Community) existing).setPrivType(rsSnmp3.getPrivType());
-			if (rsSnmp3.getPrivKey() != null && !"=".equals(rsSnmp3.getPrivKey())) {
-				((DeviceSnmpv3Community) existing).setPrivKey(rsSnmp3.getPrivKey());
-			}
-		}
-		else if (DeviceSnmpCommunity.class.isInstance(existing)) {
-			String community = ((DeviceSnmpCommunity) incoming).getCommunity();
-			if (community != null) {
-				((DeviceSnmpCommunity) existing).setCommunity(community);
-			}
-		}
-		else if (DeviceHttpAccount.class.isInstance(existing)) {
-			DeviceHttpAccount httpAccount = (DeviceHttpAccount) existing;
-			DeviceHttpAccount rsHttpAccount = (DeviceHttpAccount) incoming;
-			httpAccount.setUsername(rsHttpAccount.getUsername());
-			if (rsHttpAccount.getPassword() != null && !"=".equals(rsHttpAccount.getPassword())) {
-				httpAccount.setPassword(rsHttpAccount.getPassword());
-			}
-		}
-		// Applied last so that switching a field to Vault mode always wins over
-		// the unconditional local-value copies above (e.g. setUsername(...)).
-		applyVaultableFields(session, existing, incoming);
-		return existing;
-	}
-
-	/**
-	 * Resolves each posted access's specific credential set against the
-	 * device's current state before {@link Device#replaceAccesses} is
-	 * called, reusing {@link #applySpecificCredentialSet}. Mutates each
-	 * {@link DeviceAccess} in the list in place.
-	 * @param session the Hibernate session
-	 * @param device the device being edited (may be a brand-new, not-yet-persisted device)
-	 * @param accesses the posted accesses (already validated)
-	 */
-	private static void resolveDeviceAccessSpecificCredentials(Session session, Device device, List<DeviceAccess> accesses) {
-		for (DeviceAccess input : accesses) {
-			if (input.getSpecificCredentialSet() == null) {
-				continue;
-			}
-			DeviceAccess existingAccess = device.getDeviceAccess(input.getAccessName());
-			DeviceCredentialSet existingSpecific = existingAccess == null ? null : existingAccess.getSpecificCredentialSet();
-			DeviceCredentialSet resolved = RestService.applySpecificCredentialSet(session, existingSpecific, input.getSpecificCredentialSet());
-			input.setSpecificCredentialSet(resolved);
-		}
-	}
-
-	/**
-	 * Adds the device.
-	 *
-	 * @param device the device
-	 * @return the task
-	 * @throws WebApplicationException the web application exception
-	 */
-	@POST
-	@Path("/devices")
-	@RolesAllowed(User.ROLE_READWRITE)
-	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
-	@Operation(
-		summary = "Add a device",
-		description = "In auto discovery mode, this will create a 'discover device' task, and the device will be create if the discovery is successful."
-			+ " Otherwise, the device will be immediately created in the database, and a 'snapshot' task will be created."
-	)
-	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
-	public Task addDevice(RsNewDevice device) throws WebApplicationException {
-		log.debug("REST request, new device.");
-		String deviceAddress = device.getIpAddress();
-		RestService.validateMgmtAddress(deviceAddress, false);
-		RestService.validateDeviceTags(device.getTags());
-		Domain domain;
-		List<DeviceCredentialSet> knownCommunities;
-		Session session = Database.getSession();
-		try {
-			log.debug("Looking for an active device with this IP address.");
-			Device duplicate = session
-				.createQuery("from Device d where lower(d.mgmtAddress) = lower(:address) and d.status <> :disabled", Device.class)
-				.setParameter("address", deviceAddress)
-				.setParameter("disabled", Device.Status.DISABLED)
-				.uniqueResult();
-			if (duplicate != null) {
-				log.error("Device {} is already present with this IP address.",
-					duplicate.getId());
-				throw new NetshotBadRequestException(String.format(
-						"The device '%s' (%d) already exists with this IP address.",
-						duplicate.getName(), duplicate.getId()),
-					ErrorCode.NETSHOT_DUPLICATE_DEVICE);
-			}
-			domain = session.get(Domain.class, device.getDomainId());
-			if (domain == null) {
-				log.error("No such domain of ID {}.", device.getDomainId());
-				throw new NetshotBadRequestException("No such domain",
-					ErrorCode.NETSHOT_INVALID_DOMAIN);
-			}
-			knownCommunities = session
-				.createQuery("from DeviceSnmpCommunity c where (mgmtDomain = :domain or mgmtDomain is null) and (not (c.deviceSpecific))",
-					DeviceCredentialSet.class)
-				.setParameter("domain", domain)
-				.list();
-			if (knownCommunities.isEmpty() && device.isAutoDiscover()) {
-				log.error("No available SNMP community");
-				throw new NetshotBadRequestException(
-					"There is no known SNMP community in the database to poll the device.",
-					ErrorCode.NETSHOT_INVALID_CREDENTIALS);
-			}
-		}
-		catch (HibernateException e) {
-			log.error("Error while loading domain or communities.", e);
-			throw new NetshotBadRequestException("Database error",
-				ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-		}
-		finally {
-			session.close();
-		}
-		User user = (User) securityContext.getUserPrincipal();
-		if (device.isAutoDiscover()) {
-			try {
-				DiscoverDeviceTypeTask task = new DiscoverDeviceTypeTask(deviceAddress, domain,
-					String.format("Device added by %s", user.getUsername()), user.getUsername());
-				task.setComments(String.format("Autodiscover device %s",
-					deviceAddress));
-				task.setDeviceComments(device.getComments());
-				task.setDeviceTags(device.getTags());
-				for (DeviceCredentialSet credentialSet : knownCommunities) {
-					task.addCredentialSet(credentialSet);
-				}
-				TaskManager.addTask(task);
-				AAA_LOG.info("{} has been added.", task);
-				this.suggestReturnCode(Response.Status.CREATED);
-				return task;
-			}
-			catch (SchedulerException e) {
-				log.error("Unable to schedule the discovery task.", e);
-				throw new NetshotBadRequestException("Unable to schedule the task",
-					ErrorCode.NETSHOT_SCHEDULE_ERROR);
-			}
-			catch (HibernateException e) {
-				log.error("Error while adding the discovery task.", e);
-				throw new NetshotBadRequestException("Database error",
-					ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-			}
-		}
-		else {
-			DeviceDriver driver = DeviceDriver.getDriverByName(device.getDeviceType());
-			if (driver == null) {
-				log.warn("Invalid posted device driver.");
-				throw new NetshotBadRequestException("Invalid device type.",
-					ErrorCode.NETSHOT_INVALID_DEVICE_DRIVER);
-			}
-			session = Database.getSession();
-			TakeSnapshotTask task;
-			Device newDevice = null;
-			try {
-				session.beginTransaction();
-				RestService.validateDeviceAccesses(session, driver, device.getAccesses());
-				RestService.validateDeviceOptions(driver, device.getOptions());
-				newDevice = new Device(driver.getName(), deviceAddress, domain, user.getUsername());
-				if (device.getAccesses() != null) {
-					RestService.resolveDeviceAccessSpecificCredentials(session, newDevice, device.getAccesses());
-					newDevice.replaceAccesses(device.getAccesses());
-				}
-				if (device.getOptions() != null) {
-					newDevice.setOptions(device.getOptions());
-				}
-				if (device.getComments() != null) {
-					newDevice.setComments(device.getComments());
-				}
-				newDevice.replaceTags(device.getTags());
-				session.persist(newDevice);
-				task = new TakeSnapshotTask(newDevice, "Initial snapshot after device creation", user.getUsername(), true, false, false);
-				session.persist(task);
-				session.getTransaction().commit();
-				AAA_LOG.info("{} has been created.", newDevice);
-			}
-			catch (NetshotBadRequestException e) {
-				Database.rollbackSilently(session);
-				throw e;
-			}
-			catch (Exception e) {
-				Database.rollbackSilently(session);
-				log.error("Error while creating the device", e);
-				throw new NetshotBadRequestException("Database error",
-					ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-			}
-			finally {
-				session.close();
-			}
-			if (newDevice != null) {
-				DynamicDeviceGroup.refreshAllGroupsOfOneDevice(newDevice);
-			}
-			try {
-				TaskManager.addTask(task);
-				this.suggestReturnCode(Response.Status.CREATED);
-				return task;
-			}
-			catch (HibernateException e) {
-				log.error("Unable to add the task.", e);
-				throw new NetshotBadRequestException(
-					"Unable to add the task to the database.",
-					ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-			}
-			catch (SchedulerException e) {
-				log.error("Unable to schedule the task.", e);
-				throw new NetshotBadRequestException("Unable to schedule the task.",
-					ErrorCode.NETSHOT_SCHEDULE_ERROR);
-			}
-		}
-
-	}
-
-	/**
-	 * Delete device.
-	 *
-	 * @param id the id
-	 * @throws WebApplicationException the web application exception
-	 */
-	@DELETE
-	@Path("/devices/{id}")
-	@RolesAllowed(User.ROLE_READWRITE)
-	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
-	@Operation(
-		summary = "Remove a device",
-		description = "Remove the given device, by ID."
-	)
-	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
-	public void deleteDevice(@PathParam("id") @Parameter(description = "Device ID") Long id)
-		throws WebApplicationException {
-		log.debug("REST request, delete device {}.", id);
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			Device device = session.get(Device.class, id);
-			if (device == null) {
-				log.info("No such device of ID {}", id);
-				this.suggestReturnCode(Response.Status.NOT_FOUND);
-				return;
-			}
-			List<java.nio.file.Path> toDeletePathes = new ArrayList<>();
-			List<ConfigBinaryFileAttribute> attributes = session
-				.createQuery("from ConfigBinaryFileAttribute cfa where cfa.config.device = :device",
-					ConfigBinaryFileAttribute.class)
-				.setParameter("device", device)
-				.list();
-			for (ConfigBinaryFileAttribute attribute : attributes) {
-				toDeletePathes.add(attribute.getFilePath());
-			}
-			// Remove the long text attributes (due to delete cascade constraint)
-			session
-				.createMutationQuery("delete from LongTextConfiguration ltc where ltc in (select da.longText from DeviceLongTextAttribute da where da.device = :device)")
-				.setParameter("device", device)
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from LongTextConfiguration ltc where ltc in (select ca.longText from Config c join c.attributes ca where c.device = :device)")
-				.setParameter("device", device)
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from LongTextConfiguration ltc where ltc in (select dr.longText from DiagnosticLongTextResult dr where dr.device = :device)")
-				.setParameter("device", device)
-				.executeUpdate();
-			// Remove the device
-			session.remove(device);
-			session.getTransaction().commit();
-			AAA_LOG.info("Device of ID {} has been deleted.", device.getId());
-			for (java.nio.file.Path toDeletePath : toDeletePathes) {
-				try {
-					Files.delete(toDeletePath);
-				}
-				catch (Exception e) {
-					log.error("Error while removing binary file {}", toDeletePath, e);
-				}
-			}
-			this.suggestReturnCode(Response.Status.NO_CONTENT);
-		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
-			log.error("Unable to delete the device {}.", id, e);
-			if (e instanceof ConstraintViolationException) {
-				throw new NetshotBadRequestException(
-					"Unable to delete the device, there must be other objects using it.",
-					ErrorCode.NETSHOT_DEVICE_IN_USE);
-			}
-			throw new NetshotBadRequestException("Unable to delete the device",
-				ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-		}
-		catch (Exception e) {
-			log.error("Error", e);
-		}
-		finally {
-			session.close();
-		}
-	}
-
-	/**
-	 * The Class RsDevice.
-	 */
-	@XmlRootElement(name = "device")
-	@XmlAccessorType(XmlAccessType.NONE)
-	public static class RsDevice {
-
-		/** The id. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private long id = -1;
-
-		/** The enable. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Boolean enabled;
-
-		/** The comments. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String comments;
-
-		/** The ip address. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String ipAddress;
-
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Long mgmtDomain;
-
-		/** Per-access configuration (address/port overrides, credential pins), keyed by access name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private List<DeviceAccess> accesses;
-
-		/** Per-device values for the driver-declared Options, keyed by option name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Map<String, Object> options;
-
-		/** The device tags (replacing all the existing ones, if not null). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private List<String> tags;
-
-		/**
-		 * Instantiates a new rs device.
-		 */
-		public RsDevice() {
-
-		}
-	}
-
-	/**
-	 * Sets the device.
-	 *
-	 * @param id the id
-	 * @param rsDevice the rs device
-	 * @return the device
-	 * @throws WebApplicationException the web application exception
-	 */
-	@PUT
-	@Path("/devices/{id}")
-	@RolesAllowed(User.ROLE_READWRITE)
-	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
-	@Operation(
-		summary = "Update a device",
-		description = "Edits a device, by ID."
-	)
-	@Tag(name = "Devices", description = "Device (such as network or security equipment) management")
-	public Device setDevice(@PathParam("id") @Parameter(description = "Device ID") Long id, RsDevice rsDevice)
-		throws WebApplicationException {
-		log.debug("REST request, edit device {}.", id);
-		Device device;
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			device = session.get(Device.class, id);
-			if (device == null) {
-				log.error("The device of ID {} doesn't exist.", id);
-				throw new NetshotBadRequestException("The device doesn't exist.",
-					ErrorCode.NETSHOT_DEVICE_NOT_FOUND);
-			}
-			if (rsDevice.getEnabled() != null) {
-				device.setStatus(rsDevice.getEnabled() ? Status.INPRODUCTION : Status.DISABLED);
-			}
-			if (rsDevice.getIpAddress() != null) {
-				RestService.validateMgmtAddress(rsDevice.getIpAddress(), false);
-				device.setMgmtAddress(rsDevice.getIpAddress());
-				device.refreshCachedIpAddress();
-			}
-			if (rsDevice.getAccesses() != null) {
-				try {
-					DeviceDriver driver = DeviceDriver.getDriverByName(device.getDriver());
-					RestService.validateDeviceAccesses(session, driver, rsDevice.getAccesses());
-				}
-				catch (NetshotBadRequestException e) {
-					Database.rollbackSilently(session);
-					throw e;
-				}
-				RestService.resolveDeviceAccessSpecificCredentials(session, device, rsDevice.getAccesses());
-				device.replaceAccesses(rsDevice.getAccesses());
-			}
-			if (rsDevice.getOptions() != null) {
-				try {
-					DeviceDriver driver = DeviceDriver.getDriverByName(device.getDriver());
-					RestService.validateDeviceOptions(driver, rsDevice.getOptions());
-				}
-				catch (NetshotBadRequestException e) {
-					Database.rollbackSilently(session);
-					throw e;
-				}
-				device.setOptions(rsDevice.getOptions());
-			}
-			if (rsDevice.getComments() != null) {
-				device.setComments(rsDevice.getComments());
-			}
-			if (rsDevice.getTags() != null) {
-				RestService.validateDeviceTags(rsDevice.getTags());
-				device.replaceTags(rsDevice.getTags());
-			}
-			if (rsDevice.getMgmtDomain() != null) {
-				Domain domain = session.get(Domain.class, rsDevice.getMgmtDomain());
-				if (domain == null) {
-					throw new NetshotBadRequestException("Invalid domain",
-						ErrorCode.NETSHOT_INVALID_DOMAIN);
-				}
-				device.setMgmtDomain(domain);
-			}
-
-			if (!Device.Status.DISABLED.equals(device.getStatus())) {
-				log.debug("Looking for an active device with this IP address.");
-				Device duplicate = session
-					.createQuery("from Device d where d.id <> :id and lower(d.mgmtAddress) = lower(:address) and d.status <> :disabled", Device.class)
-					.setParameter("id", device.getId())
-					.setParameter("address", device.getMgmtAddress())
-					.setParameter("disabled", Device.Status.DISABLED)
-					.setMaxResults(1)
-					.uniqueResult();
-				if (duplicate != null) {
-					log.error("Device {} is already present with this IP address.",
-						duplicate.getId());
-					throw new NetshotBadRequestException(String.format(
-							"The device '%s' (%d) already exists with this IP address.",
-							duplicate.getName(), duplicate.getId()),
-						ErrorCode.NETSHOT_DUPLICATE_DEVICE);
-				}
-			}
-			session.merge(device);
-			session.getTransaction().commit();
-			AAA_LOG.info("{} has been edited.", device);
-		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
-			log.error("Cannot edit the device.", e);
-			if (Database.isDuplicateException(e)) {
-				throw new NetshotBadRequestException(
-					"A device with this IP address already exists.",
-					ErrorCode.NETSHOT_DUPLICATE_DEVICE);
-			}
-			Throwable t = e.getCause();
-			if (t != null && t.getMessage().contains("domain")) {
-				throw new NetshotBadRequestException("Unable to find the domain",
-					ErrorCode.NETSHOT_INVALID_DOMAIN);
-			}
-			throw new NetshotBadRequestException("Unable to save the device.",
-				ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
-		}
-		catch (NetshotBadRequestException e) {
-			Database.rollbackSilently(session);
-			log.error("Cannot edit the device.", e);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
-		return this.getDevice(id);
 	}
 
 	/**
@@ -3416,7 +2313,7 @@ public class RestService extends Thread {
 				credentialSet.setMgmtDomain(domain);
 			}
 			credentialSet.setDeviceSpecific(false);
-			applyVaultableFields(session, credentialSet, credentialSet);
+			CredentialSets.applyVaultableFields(session, credentialSet, credentialSet);
 			session.persist(credentialSet);
 			session.getTransaction().commit();
 			AAA_LOG.info("{} has been created.", credentialSet);
@@ -3424,7 +2321,7 @@ public class RestService extends Thread {
 			this.suggestReturnCode(Response.Status.CREATED);
 			return credentialSet;
 		}
-		catch (NetshotBadRequestException e) {
+		catch (NetshotBadRequestException | NetshotException e) {
 			Database.rollbackSilently(session);
 			throw e;
 		}
@@ -3547,7 +2444,7 @@ public class RestService extends Thread {
 			}
 			// Applied last so that switching a field to Vault mode always wins over
 			// the unconditional local-value copies above (e.g. setUsername(...)).
-			applyVaultableFields(session, credentialSet, rsCredentialSet);
+			CredentialSets.applyVaultableFields(session, credentialSet, rsCredentialSet);
 			session.merge(credentialSet);
 			session.getTransaction().commit();
 			AAA_LOG.info("{} has been edited", credentialSet);
@@ -3569,7 +2466,7 @@ public class RestService extends Thread {
 			throw new NetshotBadRequestException("Unable to save the credential set",
 				ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR);
 		}
-		catch (NetshotBadRequestException e) {
+		catch (NetshotBadRequestException | NetshotException e) {
 			Database.rollbackSilently(session);
 			throw e;
 		}
