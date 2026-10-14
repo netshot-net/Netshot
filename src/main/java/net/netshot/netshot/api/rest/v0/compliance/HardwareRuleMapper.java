@@ -1,0 +1,89 @@
+/**
+ * Copyright 2013-2025 Netshot
+ * 
+ * This file is part of Netshot project.
+ * 
+ * Netshot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Netshot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package net.netshot.netshot.api.rest.v0.compliance;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
+import net.netshot.netshot.compliance.HardwareRule;
+import net.netshot.netshot.compliance.HardwareRuleDefinition;
+
+/**
+ * Maps the hardware compliance rules between the entities and their REST representation. All
+ * the methods are pure functions.
+ *
+ * <p>{@link #toDto(HardwareRule)} reads a <em>detached</em> rule whose target group is loaded.</p>
+ */
+public final class HardwareRuleMapper {
+
+	private HardwareRuleMapper() {
+		// Static helpers only
+	}
+
+	/**
+	 * Maps a hardware rule to its representation.
+	 *
+	 * @param rule the rule, with its target group loaded
+	 * @return the DTO
+	 */
+	public static HardwareRuleDto toDto(HardwareRule rule) {
+		return new HardwareRuleDto(
+			rule.getDeviceType(),
+			rule.getDriver(),
+			rule.getEndOfLife(),
+			rule.getEndOfSale(),
+			rule.getFamily(),
+			rule.isFamilyRegExp(),
+			rule.getId(),
+			rule.getPartNumber(),
+			rule.isPartNumberRegExp(),
+			rule.getTargetGroup() == null ? null : DeviceMapper.toDto(rule.getTargetGroup()));
+	}
+
+	/**
+	 * Maps the hardware rules to their representation.
+	 *
+	 * @param rules the rules, with their target group loaded
+	 * @return the DTOs, in the same order
+	 */
+	public static List<HardwareRuleDto> toDtos(List<HardwareRule> rules) {
+		List<HardwareRuleDto> dtos = new ArrayList<>(rules.size());
+		rules.forEach(rule -> dtos.add(toDto(rule)));
+		return dtos;
+	}
+
+	/**
+	 * Maps a request to add or edit a hardware rule to the command of the service.
+	 *
+	 * @param request the request
+	 * @return the command
+	 */
+	public static HardwareRuleDefinition toDefinition(HardwareRuleRequest request) {
+		return new HardwareRuleDefinition(
+			request.group() == -1 ? null : request.group(),
+			request.driver(),
+			request.family(),
+			request.familyRegExp(),
+			request.partNumber(),
+			request.partNumberRegExp(),
+			request.endOfSale(),
+			request.endOfLife());
+	}
+}
