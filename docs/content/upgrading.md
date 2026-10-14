@@ -61,6 +61,8 @@
 
 **Logging**: the Java classes were moved to a new package layout, so `netshot.log.class.<ClassName>` settings referring to Netshot classes (`net.netshot.netshot.*`) must be updated to the new package names.
 
+**Clustering**: when `netshot.cluster.id` is not set, the member ID generated from the MAC address now ends with the HTTP port (it previously always ended with `0000`). Each such member therefore joins the cluster under a new ID after the upgrade; the tasks assigned to its former ID are handled like those of a lost member. Set `netshot.cluster.id` to keep a stable ID.
+
 ### Any version to 0.20+
 
 Java environment must be upgraded to GraalVM for Java 21. Check the [install guide](installation/linux.md) for version details.

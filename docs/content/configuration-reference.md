@@ -323,7 +323,7 @@ See [Clustering and High Availability](clustering-ha.md) for the full model.
 | Parameter | Description |
 |---|---|
 | `netshot.cluster.enabled` | Enables clustering mode. Default: `false`. |
-| `netshot.cluster.id` | Statically assigns this instance's cluster member ID (20 lowercase letters/digits). Recommended when clustering is enabled. |
+| `netshot.cluster.id` | Statically assigns this instance's cluster member ID (20 lowercase letters/digits). Recommended when clustering is enabled. Without it, the ID is generated from the main MAC address and the HTTP port (or randomly, if no MAC address is available). |
 | `netshot.cluster.master.priority` | Priority to become cluster master (higher wins). |
 | `netshot.cluster.runner.priority` | Priority to be selected as a task runner (higher wins). |
 | `netshot.cluster.runner.weight` | Relative weight for task distribution once selected as a runner. |
