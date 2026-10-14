@@ -31,6 +31,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.boot.EntityModel;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.TenantIdentifier;
 import net.netshot.netshot.platform.database.Transactions;
@@ -47,7 +48,7 @@ public class TransactionsTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Database.update();
-		Database.init();
+		Database.init(EntityModel.build());
 	}
 
 	private long countDomains(String name) {
