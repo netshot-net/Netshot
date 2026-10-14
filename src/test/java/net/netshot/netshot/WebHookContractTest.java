@@ -56,7 +56,7 @@ import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.boot.EntityModel;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskManager;
@@ -118,7 +118,7 @@ public class WebHookContractTest extends WithDatabaseTest {
 		Netshot.loadModuleConfigs();
 		DeviceDriver.refreshDrivers();
 		Database.update();
-		Database.init(EntityModel.build());
+		Wiring.init();
 		TaskManager.init();
 		// Tasks must be stored but never run
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {

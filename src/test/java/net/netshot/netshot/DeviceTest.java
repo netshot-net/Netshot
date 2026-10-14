@@ -70,7 +70,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.boot.EntityModel;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
@@ -319,7 +319,7 @@ public class DeviceTest extends WithDatabaseTest {
 			Netshot.loadModuleConfigs();
 			DeviceDriver.refreshDrivers();
 			Database.update();
-			Database.init(EntityModel.build());
+			Wiring.init();
 			DeviceFinderTest.createDevices();
 		}
 
@@ -1192,7 +1192,7 @@ public class DeviceTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "INFO");
 			Netshot.initConfig(config);
 			Database.update();
-			Database.init(EntityModel.build());
+			Wiring.init();
 			DeviceDriver.refreshDrivers();
 		}
 
