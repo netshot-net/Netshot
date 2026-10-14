@@ -68,7 +68,7 @@ import org.quartz.impl.SchedulerRepository;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ApiContractTest extends WithDatabaseTest {
 
-	private static final String API_URL = "http://localhost:8889/api";
+	private static final String API_URL = TestNetwork.freeLocalApiUrl();
 
 	private final long startTime = System.currentTimeMillis();
 	private TimeZone previousTimeZone;
