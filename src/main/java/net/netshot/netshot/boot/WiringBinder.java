@@ -20,8 +20,13 @@ package net.netshot.netshot.boot;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.user.ApiTokenService;
+import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.system.ServerInfoService;
 
 /**
  * Exposes the objects of the {@link Wiring} to the dependency injection of the REST
@@ -42,5 +47,11 @@ final class WiringBinder extends AbstractBinder {
 	protected void configure() {
 		this.bind(this.wiring.transactions()).to(Transactions.class);
 		this.bind(this.wiring.deviceService()).to(DeviceService.class);
+		// AAA and system
+		this.bind(this.wiring.userService()).to(UserService.class);
+		this.bind(this.wiring.apiTokenService()).to(ApiTokenService.class);
+		this.bind(this.wiring.loginService()).to(LoginService.class);
+		this.bind(this.wiring.clusterService()).to(ClusterService.class);
+		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
 	}
 }
