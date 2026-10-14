@@ -163,6 +163,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.NetshotAuthenticationRequiredException;
 import net.netshot.netshot.api.rest.NetshotBadRequestException;
 import net.netshot.netshot.api.rest.NetshotNotAuthorizedException;
+import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.NetshotWebApplication;
 import net.netshot.netshot.api.rest.LoggerFilter;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
@@ -276,48 +277,6 @@ public class RestService extends Thread {
 	/** Name of the session cookie. */
 	public static final String SESSION_COOKIE_NAME = Netshot.getConfig("netshot.http.sessioncookiename", "NetshotSessionID");
 
-	/** Pagination default query params. */
-	public static class PaginationParams {
-		/** Pagination offset. */
-		@Parameter(description = "Pagination offset for the first item to return")
-		@QueryParam("offset")
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Integer offset;
-
-		/** Pagination limit. */
-		@Parameter(description = "Maximum number of items to return")
-		@QueryParam("limit")
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Integer limit;
-
-		/**
-		 * Apply the pagination parameters to the HQL query.
-		 * @param query The query being prepared
-		 */
-		public void apply(Query<?> query) {
-			if (this.offset != null) {
-				if (this.offset < 0) {
-					throw new NetshotBadRequestException("Invalid offset parameter",
-						ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-				}
-				query.setFirstResult(this.offset);
-			}
-			if (this.limit != null) {
-				if (this.limit < 1) {
-					throw new NetshotBadRequestException("Invalid limit parameter",
-						ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-				}
-				query.setMaxResults(this.limit);
-			}
-		}
-	}
-
 	/**
 	 * Get the current REST service TCP port.
 	 * @return the current REST service TCP port
@@ -426,28 +385,6 @@ public class RestService extends Thread {
 			// Whatever may happen
 		}
 		return "<Unknown>";
-	}
-
-	/**
-	 * Check whether a PersistenceException is caused by key conflict (duplicate key).
-	 * @param e = the exception to check
-	 * @return true if duplicate key
-	 */
-	private boolean isDuplicateException(PersistenceException e) {
-		Throwable t = e;
-		for (int i = 0; i < 2; i++) {
-			if (t == null) {
-				return false;
-			}
-			if (t instanceof ConstraintViolationException) {
-				return true;
-			}
-			if (t.getMessage().toLowerCase().contains("duplicate")) {
-				return true;
-			}
-			t = t.getCause();
-		}
-		return false;
 	}
 
 	/*(non-Javadoc)
@@ -707,7 +644,7 @@ public class RestService extends Thread {
 			catch (HibernateException e) {
 				Database.rollbackSilently(session);
 				log.error("Error while adding a domain.", e);
-				if (this.isDuplicateException(e)) {
+				if (Database.isDuplicateException(e)) {
 					throw new NetshotBadRequestException(
 						"A domain with this name already exists.",
 						ErrorCode.NETSHOT_DUPLICATE_DOMAIN);
@@ -787,7 +724,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while editing the domain.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A domain with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_DOMAIN);
@@ -968,8 +905,8 @@ public class RestService extends Thread {
 	public List<RsLightTask> getDeviceTasks(@PathParam("id") @Parameter(description = "Device ID") Long id, @BeanParam PaginationParams paginationParams)
 		throws WebApplicationException {
 		log.debug("REST request, get device {} tasks.", id);
-		if (paginationParams.limit == null) {
-			paginationParams.limit = 100;
+		if (paginationParams.getLimit() == null) {
+			paginationParams.setLimit(100);
 		}
 		Session session = Database.getSession(true);
 		try {
@@ -1002,7 +939,7 @@ public class RestService extends Thread {
 				.setParameter("waiting", Task.Status.WAITING)
 				.setParameter("scheduled", Task.Status.SCHEDULED)
 				.setParameter("newStatus", Task.Status.NEW)
-				.setMaxResults(paginationParams.limit);
+				.setMaxResults(paginationParams.getLimit());
 			paginationParams.apply(query);
 			return query.list();
 		}
@@ -2919,7 +2856,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Cannot edit the device.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A device with this IP address already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_DEVICE);
@@ -3292,8 +3229,8 @@ public class RestService extends Thread {
 		@QueryParam("parentTaskId") @Parameter(description = "Only include child tasks of the given parent task ID") Long parentTaskId) {
 
 		log.debug("REST request, get tasks.");
-		if (paginationParams.limit == null) {
-			paginationParams.limit = 100;
+		if (paginationParams.getLimit() == null) {
+			paginationParams.setLimit(100);
 		}
 
 		Session session = Database.getSession(true);
@@ -4135,7 +4072,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while saving the new device group.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A group with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_GROUP);
@@ -4417,7 +4354,7 @@ public class RestService extends Thread {
 		catch (PersistenceException e) {
 			Database.rollbackSilently(session);
 			log.error("Unable to save the group {}.", id, e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A group with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_GROUP);
@@ -6024,7 +5961,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while saving the new policy.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A policy with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_POLICY);
@@ -6154,7 +6091,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Unable to save the policy {}.", id, e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A policy with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_POLICY);
@@ -6385,7 +6322,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while saving the new rule.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A rule with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_RULE);
@@ -6523,7 +6460,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while saving the new rule.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A rule with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_RULE);
@@ -9060,7 +8997,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while saving the new user.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A user with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_USER);
@@ -9156,7 +9093,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Unable to save the user {}.", id, e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A user with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_USER);
@@ -10232,7 +10169,7 @@ public class RestService extends Thread {
 			catch (HibernateException e) {
 				Database.rollbackSilently(session);
 				log.error("Error while saving the new rule.", e);
-				if (this.isDuplicateException(e)) {
+				if (Database.isDuplicateException(e)) {
 					throw new NetshotBadRequestException(
 						"A script with this name already exists.",
 						ErrorCode.NETSHOT_DUPLICATE_SCRIPT);
@@ -10646,7 +10583,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Error while saving the new diagnostic.", e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException(
 					"A diagnostic with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC);
@@ -10789,7 +10726,7 @@ public class RestService extends Thread {
 		catch (HibernateException e) {
 			Database.rollbackSilently(session);
 			log.error("Unable to save the diagnostic {}.", id, e);
-			if (this.isDuplicateException(e)) {
+			if (Database.isDuplicateException(e)) {
 				throw new NetshotBadRequestException("A diagnostic with this name already exists.",
 					ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC);
 			}

@@ -44,6 +44,7 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.StatelessSession;
+import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataBuilder;
 import org.hibernate.boot.MetadataSources;
@@ -57,6 +58,7 @@ import org.slf4j.MarkerFactory;
 
 import com.mchange.v2.c3p0.C3P0Registry;
 import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.PersistenceException;
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.command.CommandScope;
 import liquibase.command.core.UpdateCommandStep;
@@ -429,6 +431,28 @@ public final class Database {
 			entity = (T) proxy.getHibernateLazyInitializer().getImplementation();
 		}
 		return entity;
+	}
+
+	/**
+	 * Check whether a PersistenceException is caused by key conflict (duplicate key).
+	 * @param e = the exception to check
+	 * @return true if duplicate key
+	 */
+	public static boolean isDuplicateException(PersistenceException e) {
+		Throwable t = e;
+		for (int i = 0; i < 2; i++) {
+			if (t == null) {
+				return false;
+			}
+			if (t instanceof ConstraintViolationException) {
+				return true;
+			}
+			if (t.getMessage().toLowerCase().contains("duplicate")) {
+				return true;
+			}
+			t = t.getCause();
+		}
+		return false;
 	}
 
 	/**
