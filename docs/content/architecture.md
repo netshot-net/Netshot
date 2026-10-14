@@ -33,7 +33,10 @@ The core server is a Java application. It is organized into a set of packages un
 - **`hook`** — outbound webhooks: `Hook`, `WebHook`, and the `HookTrigger`s that fire them. See [Webhooks](api/webhooks.md).
 - **`api`** — the API layer: `api.rest` (Jersey application, security and logging filters, exception mapper) and `api.rest.v0` (`RestService`, the current REST API), which is the only way the Web UI talks to the core server, and is also available for external integrations. See [REST API](api/rest-api.md).
 - **`platform`** — technical building blocks that do not depend on the features above: `platform.database` (Hibernate configuration, naming strategies, the encrypted-column support `StringEncryptorConverter` used for secrets stored in the database, and the Liquibase data migrators in `platform.database.migrator`), `platform.crypto` (password hashing such as `Argon2idHash` and `Sha2BasedHash`, reversible encryption for stored secrets such as `Sha2AesPasswordBasedEncryptor`, password generation), `platform.tls` (HTTPS trust policies and the Bouncy Castle loader) and `platform.rest` (REST serialization views).
+- **`boot`** — the composition root: `Wiring` builds the long-lived objects (transaction support, and the services as they are introduced) and `EntityModel` lists the persistent entities given to the database layer.
 - **`tools`** — standalone helpers: the demo data creator and the device list extractor.
+
+The layering rules, the conventions and the way the REST layer is being restructured are described in [Backend architecture](extending/backend-architecture.md).
 
 ## Persistence
 

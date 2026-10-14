@@ -42,6 +42,7 @@ nav = [
     { "Writing a new driver" = "extending/writing-a-driver.md" },
     { "Loading an alternative driver" = "extending/loading-a-driver.md" },
     { "Python virtualenv for additional packages" = "extending/python-virtualenv.md" },
+    { "Backend architecture" = "extending/backend-architecture.md" },
   ] },
   { "Troubleshooting" = "troubleshooting.md" },
 ]
