@@ -245,3 +245,13 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **Request defaults.** A bean field initialized to a value, or a primitive, behaves differently from a record component on an absent property (`autoDiscover` was true when absent, `sshHostKeyVerification` was `TRUST_ANY` when absent but `TRUST_KNOWN` when null). The contract goldens caught one of them: write the test for each.
 - **Status codes.** `DELETE` answered 204, or 404 with an empty body when the device does not exist, through `suggestReturnCode`: the service tells (`delete` returns a boolean), the resource chooses the status.
 - **Swallowed exceptions.** The legacy `deleteDevice` ended with `catch (Exception e) { log.error(...); }` (answering 204). The service does not reproduce it: an unexpected exception is a 500.
+
+### Pitfalls met on the task slice
+
+- **List root element in XML.** A list is published under the class name of the `List` implementation: `Stream.toList()` gives `ListN` instead of `ArrayList`. Build the DTO list with an `ArrayList`, as `DeviceMapper` does.
+- **A polymorphic family shares its common part.** `TaskDto` is a sealed interface of twelve records, each composing the properties common to all tasks (`TaskBaseDto`, `@JsonUnwrapped`) with the ones of its type, and published under the simple name of the task class (`@JacksonXmlRootElement`). `TaskMapper.toDto(Task)` is the single way to represent a task: reuse it from any endpoint answering with a task (`POST /devices` does).
+- **Protected getters.** Some task getters (`getDeviceId`) are protected and serialized anyway by the entity mapper: read the value through public accessors (`task.getDevice().getId()`) in the mapper.
+- **A request with many defaults stays a bean.** `TaskRequest` (about thirty properties, each with a default for an absent property and another outcome for an explicit `null`) is not a record: a bean with initialized fields reproduces the three cases for free, a record would need one deserializer per property.
+- **Authorization depending on the payload.** The role needed to create a task depends on its `type`: the resource checks it before calling the service (the service knows nothing of roles), which is the order of the legacy code.
+- **An unknown id is not always a 404.** `GET /tasks/{id}` answers 204 for an unknown task (the service returns `null`), `PUT /tasks/{id}` answers 400 `NETSHOT_INVALID_TASK`, and the debug log answers 404: the goldens record them, keep them.
+
