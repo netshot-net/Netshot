@@ -245,3 +245,11 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **Request defaults.** A bean field initialized to a value, or a primitive, behaves differently from a record component on an absent property (`autoDiscover` was true when absent, `sshHostKeyVerification` was `TRUST_ANY` when absent but `TRUST_KNOWN` when null). The contract goldens caught one of them: write the test for each.
 - **Status codes.** `DELETE` answered 204, or 404 with an empty body when the device does not exist, through `suggestReturnCode`: the service tells (`delete` returns a boolean), the resource chooses the status.
 - **Swallowed exceptions.** The legacy `deleteDevice` ended with `catch (Exception e) { log.error(...); }` (answering 204). The service does not reproduce it: an unexpected exception is a 500.
+
+### More pitfalls, met on the compliance slice
+
+- **Differential tests keep the entity annotations alive.** A test comparing a DTO to the output of the entity it replaces (`ComplianceDtoTest`) needs the entity to keep its `@JsonView`/JAXB annotations. Removing them from an entity which no endpoint serializes anymore (the compliance entities) has to come together with turning that test into a comparison against stored expectations.
+- **Lists in a differential test.** The XML root element of a list is the class name of the collection (`ArrayList`): compare an `ArrayList` of entities with an `ArrayList` of DTOs, not a `List.of(...)`.
+- **A shape which is both composed and projected.** `select new ExemptedDevice(new DeviceSummary(...), e.expirationDate)` works in HQL, so a REST type made of a summary and extra columns (`@JsonUnwrapped` around `DeviceSummaryDto`) has a service-level record made of the summary record and the extra components.
+- **Records can't extend.** A request which used to extend another one (`RsRuleTest extends RsRule`) repeats the components of the first (`RuleTestRequest`, `RuleRequest`).
+- **`Session.get` of an unknown ID returns null.** Code which puts the result in a collection without checking (the target groups of a policy, the group of a software or hardware rule) silently accepts an ID that doesn't exist. The migrated use cases keep that, and the mappers have to cope with the null.
