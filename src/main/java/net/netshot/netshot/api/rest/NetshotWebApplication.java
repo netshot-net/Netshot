@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.api.rest;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -50,6 +50,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme.In;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.api.rest.v0.RestService;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
