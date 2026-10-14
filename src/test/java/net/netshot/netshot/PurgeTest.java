@@ -12,6 +12,7 @@ import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.boot.EntityModel;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
@@ -43,7 +44,7 @@ public class PurgeTest extends WithDatabaseTest {
 	protected static void initNetshot() throws Exception {
 		Netshot.initConfig(PurgeTest.getNetshotConfig());
 		Database.update();
-		Database.init();
+		Database.init(EntityModel.build());
 		Thread.sleep(1000);
 	}
 

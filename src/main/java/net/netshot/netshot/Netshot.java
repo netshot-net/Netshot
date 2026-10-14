@@ -79,6 +79,7 @@ import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.boot.EntityModel;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.task.engine.TaskLockManager;
@@ -701,7 +702,7 @@ public class Netshot extends Thread {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Database.init();
+			Database.init(EntityModel.build());
 
 			Netshot.loadModuleConfigs();
 

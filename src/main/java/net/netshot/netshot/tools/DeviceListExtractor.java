@@ -33,6 +33,7 @@ import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.boot.EntityModel;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultManager;
@@ -99,7 +100,7 @@ public class DeviceListExtractor extends Netshot {
 
 		try {
 			log.info("Initializing access to the database.");
-			Database.init();
+			Database.init(EntityModel.build());
 
 			log.info("Requesting data from the DB...");
 			Session session = Database.getSession();

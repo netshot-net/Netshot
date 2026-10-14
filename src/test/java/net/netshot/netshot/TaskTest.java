@@ -42,6 +42,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.boot.EntityModel;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.ScheduleType;
@@ -291,7 +292,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Database.init();
+			Database.init(EntityModel.build());
 		}
 
 		@BeforeEach
@@ -593,7 +594,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Database.init();
+			Database.init(EntityModel.build());
 		}
 
 		@BeforeEach
@@ -683,7 +684,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 			Netshot.initConfig(config);
 			Database.update();
-			Database.init();
+			Database.init(EntityModel.build());
 			ConfigBinaryFileAttribute.loadConfig();
 		}
 
@@ -811,7 +812,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Database.init();
+			Database.init(EntityModel.build());
 			TaskManager.init();
 		}
 
@@ -943,7 +944,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.tasks.devicelock.pollintervalms", "500");
 			Netshot.initConfig(config);
 			Database.update();
-			Database.init();
+			Database.init(EntityModel.build());
 			TaskManager.init();
 			TaskLockManager.init(false);
 		}

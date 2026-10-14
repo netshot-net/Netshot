@@ -34,7 +34,6 @@ import liquibase.resource.ResourceAccessor;
 import liquibase.statement.SqlStatement;
 import liquibase.statement.core.UpdateStatement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.device.Network4Address;
 
 /**
  * Converts the legacy 32-bit-int management/connect/discovery addresses
@@ -107,7 +106,7 @@ public class MgmtAddressMigrator implements CustomSqlChange {
 		while (rows.next()) {
 			long id = rows.getLong(idColumn);
 			int address = rows.getInt(intColumn);
-			String ip = Network4Address.intToIP(address);
+			String ip = AddressConverter.intToIP(address);
 			UpdateStatement update = new UpdateStatement(
 				database.getDefaultCatalogName(), database.getDefaultSchemaName(), tableName)
 				.setWhereClause("%s = ?".formatted(idColumn)).addWhereParameter(id);
