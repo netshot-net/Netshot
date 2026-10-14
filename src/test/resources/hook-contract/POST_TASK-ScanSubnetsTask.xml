@@ -1,0 +1,36 @@
+# Content-Type: application/xml
+<?xml version="1.0"?>
+<ScanSubnetsTask type="ScanSubnetsTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502462000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Scan subnet</comments>
+  <creationDate>1609502460000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <device/>
+  <deviceDriver/>
+  <dontCheckCompliance>false</dontCheckCompliance>
+  <dontRunDiagnostics>false</dontRunDiagnostics>
+  <executionDate>1609502461000</executionDate>
+  <id>7</id>
+  <log>No device found</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502460000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>10.9.0.0/24</target>
+  <taskDescription>Subnet scan</taskDescription>
+  <userInputValues/>
+</ScanSubnetsTask>
