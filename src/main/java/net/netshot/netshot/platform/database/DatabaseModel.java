@@ -16,22 +16,21 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api;
+package net.netshot.netshot.platform.database;
 
-import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.core.Response;
+import java.util.List;
+
+import jakarta.persistence.AttributeConverter;
 
 /**
- * The NetshotAuthenticationRequiredException class, which indicates that user authentication is required (401 error).
+ * The persistent model handed to {@link Database#init(DatabaseModel)}: the
+ * platform does not know the entities of the features, whoever initializes
+ * the database (the boot code) provides them.
+ *
+ * @param entityClasses the annotated entity classes, in registration order
+ * @param attributeConverters the JPA attribute converters to apply to the whole model
  */
-public class NetshotAuthenticationRequiredException extends ForbiddenException {
-	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = -2463854660543944995L;
-
-	/**
-	 * Default constructor.
-	 */
-	public NetshotAuthenticationRequiredException() {
-		super(Response.status(Response.Status.FORBIDDEN).build());
-	}
+public record DatabaseModel(
+	List<Class<?>> entityClasses,
+	List<Class<? extends AttributeConverter<?, ?>>> attributeConverters) {
 }

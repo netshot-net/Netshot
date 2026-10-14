@@ -59,8 +59,8 @@ import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.api.NetshotBadRequestException;
-import net.netshot.netshot.api.RestService;
+import net.netshot.netshot.api.rest.NetshotBadRequestException;
+import net.netshot.netshot.api.rest.v0.RestService;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
@@ -79,7 +79,9 @@ import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.userscript.DeviceJsScript;
@@ -141,7 +143,7 @@ public class RestServiceTest extends WithDatabaseTest {
 		Netshot.initConfig(getNetshotConfig());
 		Netshot.loadModuleConfigs();
 		Database.update();
-		Database.init();
+		Wiring.init();
 		TaskManager.init();
 		RestService.init();
 		Thread.sleep(1000);
@@ -492,7 +494,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_PASSWORD.getCode(),
+					ErrorCode.NETSHOT_INVALID_PASSWORD.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -506,7 +508,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_PASSWORD.getCode(),
+					ErrorCode.NETSHOT_INVALID_PASSWORD.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -521,7 +523,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
+					ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -536,7 +538,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
+					ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -551,7 +553,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
+					ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -566,7 +568,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
+					ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -581,7 +583,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					"Not getting 400 response");
 				Assertions.assertEquals(
 					response.body().get("errorCode").asInt(),
-					NetshotBadRequestException.Reason.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
+					ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY.getCode(),
 					"Unexpected Netshot error code");
 			}
 			{
@@ -1396,7 +1398,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 					"Not getting 400 response for an invalid webhook URL");
 				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_HOOK_WEB_URL.getCode(),
+					ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL.getCode(),
 					response.body().get("errorCode").asInt());
 			}
 
@@ -1411,7 +1413,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 					"Not getting 400 response for a webhook with no action");
 				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_HOOK_WEB.getCode(),
+					ErrorCode.NETSHOT_INVALID_HOOK_WEB.getCode(),
 					response.body().get("errorCode").asInt());
 			}
 
@@ -1426,7 +1428,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 					"Not getting 400 response for a CUSTOM_CA webhook with no certificate");
 				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_REQUEST_PARAMETER.getCode(),
+					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER.getCode(),
 					response.body().get("errorCode").asInt());
 			}
 
@@ -1442,7 +1444,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 					"Not getting 400 response for a CUSTOM_CA webhook with an unparseable certificate");
 				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_REQUEST_PARAMETER.getCode(),
+					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER.getCode(),
 					response.body().get("errorCode").asInt());
 			}
 
@@ -1478,7 +1480,7 @@ public class RestServiceTest extends WithDatabaseTest {
 					Response.Status.CONFLICT.getStatusCode(), response.statusCode(),
 					"Not getting 409 response for a duplicate webhook name");
 				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_DUPLICATE_HOOK.getCode(),
+					ErrorCode.NETSHOT_DUPLICATE_HOOK.getCode(),
 					response.body().get("errorCode").asInt());
 			}
 

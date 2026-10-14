@@ -55,6 +55,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 
 @Slf4j
@@ -731,7 +732,7 @@ public class DemoDataCreator {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Database.init();
+			Wiring.init();
 		}
 		catch (Exception e) {
 			log.error("Error while updating/initializing DB", e);
