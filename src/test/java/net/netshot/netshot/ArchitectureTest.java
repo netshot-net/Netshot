@@ -88,6 +88,19 @@ public class ArchitectureTest {
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api..")
 			.allowEmptyShould(true));
 
+	/** API channels are independent: each owns its DTOs, and they only share services and entities. */
+	@ArchTest
+	static final ArchRule restChannelDoesNotDependOnHookChannel = freeze(
+		noClasses().that().resideInAPackage(ROOT + "api.rest..")
+			.should().dependOnClassesThat().resideInAPackage(ROOT + "api.hook..")
+			.allowEmptyShould(true));
+
+	@ArchTest
+	static final ArchRule hookChannelDoesNotDependOnRestChannel = freeze(
+		noClasses().that().resideInAPackage(ROOT + "api.hook..")
+			.should().dependOnClassesThat().resideInAPackage(ROOT + "api.rest..")
+			.allowEmptyShould(true));
+
 	@ArchTest
 	static final ArchRule apiDoesNotUseSession = freeze(
 		noClasses().that().resideInAPackage(ROOT + "api..")
