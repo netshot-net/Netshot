@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
@@ -51,6 +52,8 @@ import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
@@ -68,6 +71,15 @@ public class NetshotWebApplication extends ResourceConfig {
 		register(LoggerFilter.class);
 		register(ResponseCodeFilter.class);
 		// property(ServerProperties.TRACING, "ALL");
+
+		// Dependency injection: the objects of the composition root, injectable into the resources
+		register(new AbstractBinder() {
+			@Override
+			protected void configure() {
+				Wiring wiring = Wiring.get();
+				bind(wiring.transactions()).to(Transactions.class);
+			}
+		});
 
 		// JSON
 		JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();

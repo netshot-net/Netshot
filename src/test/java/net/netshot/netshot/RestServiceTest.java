@@ -79,7 +79,7 @@ import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.boot.EntityModel;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -143,7 +143,7 @@ public class RestServiceTest extends WithDatabaseTest {
 		Netshot.initConfig(getNetshotConfig());
 		Netshot.loadModuleConfigs();
 		Database.update();
-		Database.init(EntityModel.build());
+		Wiring.init();
 		TaskManager.init();
 		RestService.init();
 		Thread.sleep(1000);

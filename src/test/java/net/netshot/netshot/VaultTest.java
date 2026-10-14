@@ -35,7 +35,7 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.boot.EntityModel;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
@@ -159,7 +159,7 @@ public class VaultTest extends WithDatabaseTest {
 			Netshot.initConfig(config);
 			VaultManager.loadConfig();
 			Database.update();
-			Database.init(EntityModel.build());
+			Wiring.init();
 
 			HashicorpVaultKv2Instance vaultInstance = new HashicorpVaultKv2Instance("test-vault");
 			vaultInstance.setBaseUrl(vaultContainer.getHttpHostAddress());
