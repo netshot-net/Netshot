@@ -132,7 +132,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
-import jakarta.ws.rs.core.UriBuilder;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
@@ -219,6 +218,7 @@ import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -270,24 +270,6 @@ public class RestService extends Thread {
 	public static final String SESSION_COOKIE_NAME = Netshot.getConfig("netshot.http.sessioncookiename", "NetshotSessionID");
 
 	/**
-	 * Get the current REST service TCP port.
-	 * @return the current REST service TCP port
-	 */
-	public static int getRestPort() {
-		if (nsRestService == null) {
-			return 0;
-		}
-		int port = nsRestService.httpBaseUri.getPort();
-		if (port != -1 && port != 0) {
-			return port;
-		}
-		if (nsRestService.httpUseSsl) {
-			return 443;
-		}
-		return 80;
-	}
-
-	/**
 	 * Initializes the service.
 	 *
 	 * @param binder the dependency injection binder exposing the services to the REST resources
@@ -332,27 +314,13 @@ public class RestService extends Thread {
 	private RestService(AbstractBinder binder) {
 		this.binder = binder;
 		this.setName("REST Service");
-		httpUseSsl = true;
-		if (!Netshot.getConfig("netshot.http.ssl.enabled", true)) {
-			httpUseSsl = false;
-		}
-
-		UriBuilder uriBuilder = UriBuilder.newInstance();
+		HttpServerAddress address = HttpServerAddress.fromConfig();
+		this.httpBaseUri = address.baseUri();
+		httpUseSsl = address.useSsl();
 		if (httpUseSsl) {
-			uriBuilder.uri(
-				Netshot.getConfig("netshot.http.baseurl", "http://localhost:8443"));
 			httpSslKeystoreFile = Netshot.getConfig("netshot.http.ssl.keystore.file", "netshot.jks");
 			httpSslKeystorePass = Netshot.getSecretConfig("netshot.http.ssl.keystore.pass", "netshotpass");
 		}
-		else {
-			uriBuilder.uri(
-				Netshot.getConfig("netshot.http.baseurl", "http://localhost:8080"));
-		}
-		int port = Netshot.getConfig("netshot.http.baseport", 0, 0, 65535);
-		if (port != 0) {
-			uriBuilder.port(port);
-		}
-		this.httpBaseUri = uriBuilder.build();
 	}
 
 	/**
