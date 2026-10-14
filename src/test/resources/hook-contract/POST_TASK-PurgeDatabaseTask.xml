@@ -1,0 +1,43 @@
+# Content-Type: application/xml
+<?xml version="1.0"?>
+<PurgeDatabaseTask type="PurgeDatabaseTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>&lt;now&gt;</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Purge</comments>
+  <configDays>365</configDays>
+  <configKeepDays>0</configKeepDays>
+  <configSize>0</configSize>
+  <creationDate>1641038400000</creationDate>
+  <days>90</days>
+  <debugEnabled>false</debugEnabled>
+  <device/>
+  <deviceDriver/>
+  <deviceGroupId>0</deviceGroupId>
+  <dontCheckCompliance>false</dontCheckCompliance>
+  <dontRunDiagnostics>false</dontRunDiagnostics>
+  <executionDate/>
+  <id>8</id>
+  <log/>
+  <moduleDays>30</moduleDays>
+  <nextExecutionDate>2208988800000</nextExecutionDate>
+  <parentTaskId/>
+  <priority>5</priority>
+  <removeOrphanFiles>false</removeOrphanFiles>
+  <repeating>true</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>2208988800000</scheduleReference>
+  <scheduleType>DAILY</scheduleType>
+  <script/>
+  <status>SCHEDULED</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>Global</target>
+  <taskDescription>Database purge</taskDescription>
+  <userInputValues/>
+</PurgeDatabaseTask>
