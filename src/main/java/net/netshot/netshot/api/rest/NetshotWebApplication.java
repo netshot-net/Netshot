@@ -62,7 +62,12 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 @Slf4j
 public class NetshotWebApplication extends ResourceConfig {
 	public NetshotWebApplication() {
-		registerClasses(RestService.class, SecurityFilter.class, ApiTokenAuthFilter.class);
+		// Resources (@Path classes) are discovered by scanning the REST channel package, including
+		// its API version sub-packages. Filters, providers and the exception mapper are not
+		// annotated with @Provider and thus registered explicitly below, so that they cannot be
+		// registered twice and their registration is not subject to the scanning.
+		packages(NetshotWebApplication.class.getPackageName());
+		registerClasses(SecurityFilter.class, ApiTokenAuthFilter.class);
 		register(NetshotExceptionMapper.class);
 		register(RolesAllowedDynamicFeature.class);
 		property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, "true");
@@ -125,7 +130,7 @@ public class NetshotWebApplication extends ResourceConfig {
 		oas.addSecurityItem(new SecurityRequirement().addList("ApiTokenAuth"));
 		oas.addSecurityItem(new SecurityRequirement().addList("CookieAuth"));
 		SwaggerConfiguration oasConfig = new SwaggerConfiguration().openAPI(oas).prettyPrint(true)
-			.resourcePackages(Stream.of(RestService.class.getPackageName()).collect(Collectors.toSet()));
+			.resourcePackages(Stream.of(NetshotWebApplication.class.getPackageName()).collect(Collectors.toSet()));
 
 		try {
 			new JaxrsOpenApiContextBuilder<>().application(this).openApiConfiguration(oasConfig).buildContext(true);
