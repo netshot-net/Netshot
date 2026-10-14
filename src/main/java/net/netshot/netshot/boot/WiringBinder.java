@@ -22,6 +22,7 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.TaskService;
 
 /**
  * Exposes the objects of the {@link Wiring} to the dependency injection of the REST
@@ -42,5 +43,7 @@ final class WiringBinder extends AbstractBinder {
 	protected void configure() {
 		this.bind(this.wiring.transactions()).to(Transactions.class);
 		this.bind(this.wiring.deviceService()).to(DeviceService.class);
+		// Tasks
+		this.bind(this.wiring.taskService()).to(TaskService.class);
 	}
 }
