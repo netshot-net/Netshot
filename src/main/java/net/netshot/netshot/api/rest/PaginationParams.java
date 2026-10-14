@@ -27,6 +27,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
+import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
@@ -49,6 +50,15 @@ public class PaginationParams {
 	}))
 	@Setter
 	private Integer limit;
+
+	/**
+	 * Gets the pagination parameters as the window a service takes.
+	 * @return the page
+	 * @throws net.netshot.netshot.platform.error.NetshotException if a parameter is invalid
+	 */
+	public Page toPage() {
+		return new Page(this.offset, this.limit);
+	}
 
 	/**
 	 * Apply the pagination parameters to the HQL query.
