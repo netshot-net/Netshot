@@ -84,7 +84,7 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 @TestInstance(Lifecycle.PER_CLASS)
 public class WebHookContractTest extends WithDatabaseTest {
 
-	private static final String API_URL = "http://localhost:8890/api";
+	private static final String API_URL = TestNetwork.freeLocalApiUrl();
 
 	/** System property, set to true to rewrite the golden files. */
 	static final String UPDATE_PROPERTY = "netshot.hook.contract.update";

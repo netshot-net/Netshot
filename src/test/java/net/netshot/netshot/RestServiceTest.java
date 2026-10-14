@@ -99,7 +99,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 public class RestServiceTest extends WithDatabaseTest {
 
-	private static final String apiUrl = "http://localhost:8888/api";
+	private static final String apiUrl = TestNetwork.freeLocalApiUrl();
 	private static final long UNKNOWN_ID = 99999999;
 
 	protected static final Map<Integer, String> API_TOKENS = Map.of(
