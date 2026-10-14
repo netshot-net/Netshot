@@ -24,7 +24,10 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.task.engine.TaskManagerEngine;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -48,10 +51,13 @@ public final class Wiring {
 
 	private final Transactions transactions;
 	private final DeviceService deviceService;
+	// Tasks
+	private final TaskService taskService;
 
-	private Wiring(Transactions transactions, DeviceService deviceService) {
+	private Wiring(Transactions transactions, DeviceService deviceService, TaskService taskService) {
 		this.transactions = transactions;
 		this.deviceService = deviceService;
+		this.taskService = taskService;
 	}
 
 	/**
@@ -64,7 +70,10 @@ public final class Wiring {
 		Transactions transactions = new Transactions();
 		DeviceRepository deviceRepository = new DeviceRepository();
 		DeviceService deviceService = new DeviceService(transactions, deviceRepository, TaskManager::addTask);
-		instance = new Wiring(transactions, deviceService);
+		// Tasks
+		TaskRepository taskRepository = new TaskRepository();
+		TaskService taskService = new TaskService(transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine());
+		instance = new Wiring(transactions, deviceService, taskService);
 		return instance;
 	}
 
@@ -113,5 +122,14 @@ public final class Wiring {
 	 */
 	public DeviceService deviceService() {
 		return this.deviceService;
+	}
+
+	/**
+	 * Gets the task use cases.
+	 *
+	 * @return the task service
+	 */
+	public TaskService taskService() {
+		return this.taskService;
 	}
 }
