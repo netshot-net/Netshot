@@ -53,6 +53,7 @@ import net.netshot.netshot.cluster.messages.ReloadDriversMessage;
 import net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
@@ -275,12 +276,9 @@ public class ClusterManager extends Thread {
 			}
 		}
 		if (localId == null) {
-			// Second option: based on MAC address and REST port.
-			// The cluster manager is initialized before the REST service, so the port used to
-			// be unknown here (RestService.getRestPort() returned 0): the port part of the
-			// generated ID is therefore always 0000. Kept as is, so that the IDs of the
-			// existing members don't change.
-			final int restPort = 0;
+			// Second option: based on MAC address and HTTP port (read from the configuration,
+			// the HTTP server isn't started yet)
+			final int restPort = HttpServerAddress.fromConfig().port();
 			try {
 				InetAddress mainAddress = InetAddress.getLocalHost();
 				NetworkInterface networkInterface = NetworkInterface.getByInetAddress(mainAddress);
