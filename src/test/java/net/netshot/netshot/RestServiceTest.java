@@ -145,7 +145,7 @@ public class RestServiceTest extends WithDatabaseTest {
 		Database.update();
 		Wiring.init();
 		TaskManager.init();
-		RestService.init();
+		RestService.init(Wiring.get().binder());
 		Thread.sleep(1000);
 	}
 

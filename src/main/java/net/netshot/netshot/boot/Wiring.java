@@ -18,12 +18,17 @@
  */
 package net.netshot.netshot.boot;
 
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.engine.TaskManager;
 
 /**
  * The composition root: builds the long-lived objects of the application
- * (transaction support, then the repositories and services) and holds them.
+ * (transaction support, the repositories and the services) and holds them.
  *
  * <p>{@link #init()} initializes the database access and builds the wiring;
  * it must be called once the database schema is up to date, and before
@@ -32,7 +37,8 @@ import net.netshot.netshot.platform.database.Transactions;
  * tests which need a working database.</p>
  *
  * <p>The REST resources receive the objects of the wiring through dependency
- * injection (the web application registers them into Jersey). Code which is
+ * injection: {@link #binder()} is handed to the web application, which registers
+ * it into Jersey. Code which is
  * not created by an injection container (Quartz jobs, cluster code, entities)
  * can only reach them through {@link #get()}.</p>
  */
@@ -41,9 +47,11 @@ public final class Wiring {
 	private static volatile Wiring instance;
 
 	private final Transactions transactions;
+	private final DeviceService deviceService;
 
-	private Wiring(Transactions transactions) {
+	private Wiring(Transactions transactions, DeviceService deviceService) {
 		this.transactions = transactions;
+		this.deviceService = deviceService;
 	}
 
 	/**
@@ -53,7 +61,10 @@ public final class Wiring {
 	 */
 	public static synchronized Wiring init() {
 		Database.init(EntityModel.build());
-		instance = new Wiring(new Transactions());
+		Transactions transactions = new Transactions();
+		DeviceRepository deviceRepository = new DeviceRepository();
+		DeviceService deviceService = new DeviceService(transactions, deviceRepository, TaskManager::addTask);
+		instance = new Wiring(transactions, deviceService);
 		return instance;
 	}
 
@@ -77,11 +88,30 @@ public final class Wiring {
 	}
 
 	/**
+	 * Gets the dependency injection binder exposing the objects of this wiring
+	 * to the REST resources. To be handed to the web application.
+	 *
+	 * @return a new binder
+	 */
+	public AbstractBinder binder() {
+		return new WiringBinder(this);
+	}
+
+	/**
 	 * Gets the transaction support.
 	 *
 	 * @return the transactions
 	 */
 	public Transactions transactions() {
 		return this.transactions;
+	}
+
+	/**
+	 * Gets the device use cases.
+	 *
+	 * @return the device service
+	 */
+	public DeviceService deviceService() {
+		return this.deviceService;
 	}
 }

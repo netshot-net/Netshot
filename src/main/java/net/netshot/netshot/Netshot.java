@@ -733,7 +733,7 @@ public class Netshot extends Thread {
 			log.info("Cancelling orphaned delayed tasks.");
 			TaskManager.cancelOrphanedDelayedTasks();
 			log.info("Starting the REST service.");
-			RestService.init();
+			RestService.init(Wiring.get().binder());
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {
