@@ -22,7 +22,7 @@ api/               API channels: how the outside world talks to the core
 ├── hook/          (later) webhook payloads, mappers and HTTP sender
 └── grpc/          (later)
 inventory/ driver/ access/ credentials/ vault/ devicescript/ userscript/
-compliance/ diagnostic/ task/ report/ hook/ aaa/ cluster/ tools/
+compliance/ diagnostic/ task/ report/ hook/ aaa/ cluster/ system/ tools/
                    features: entities, repositories, services, engines
 ```
 
