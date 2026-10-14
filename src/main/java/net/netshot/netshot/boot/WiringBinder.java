@@ -20,12 +20,17 @@ package net.netshot.netshot.boot;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.user.ApiTokenService;
+import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.compliance.HardwareRuleService;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.task.TaskService;
 
 /**
@@ -54,5 +59,11 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.hardwareRuleService()).to(HardwareRuleService.class);
 		// Tasks
 		this.bind(this.wiring.taskService()).to(TaskService.class);
+		// AAA and system
+		this.bind(this.wiring.userService()).to(UserService.class);
+		this.bind(this.wiring.apiTokenService()).to(ApiTokenService.class);
+		this.bind(this.wiring.loginService()).to(LoginService.class);
+		this.bind(this.wiring.clusterService()).to(ClusterService.class);
+		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
 	}
 }
