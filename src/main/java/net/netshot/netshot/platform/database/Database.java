@@ -44,7 +44,9 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.StatelessSession;
+import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.boot.Metadata;
+import org.hibernate.boot.MetadataBuilder;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.SessionFactoryBuilder;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -55,7 +57,8 @@ import org.hibernate.service.ServiceRegistry;
 import org.slf4j.MarkerFactory;
 
 import com.mchange.v2.c3p0.C3P0Registry;
-import jakarta.persistence.Entity;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.PersistenceException;
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.command.CommandScope;
 import liquibase.command.core.UpdateCommandStep;
@@ -65,61 +68,6 @@ import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.aaa.user.ApiToken;
-import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.Exemption;
-import net.netshot.netshot.compliance.HardwareRule;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.credentials.DeviceHttpAccount;
-import net.netshot.netshot.credentials.DeviceSnmpv1Community;
-import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
-import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.credentials.DeviceSshKeyAccount;
-import net.netshot.netshot.credentials.DeviceTelnetAccount;
-import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
-import net.netshot.netshot.hook.Hook;
-import net.netshot.netshot.hook.HookTrigger;
-import net.netshot.netshot.hook.WebHook;
-import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
-import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
-import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
-import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.config.attribute.LongTextConfiguration;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.inventory.device.NetworkAddress;
-import net.netshot.netshot.inventory.device.NetworkInterface;
-import net.netshot.netshot.inventory.device.PhysicalAddress;
-import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.DeviceGroupMembership;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.task.DebugLog;
-import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.TaskDeviceListMember;
-import net.netshot.netshot.userscript.DeviceJsScript;
-import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 
 /**
  * The Database class, utilities to access the database.
@@ -239,8 +187,11 @@ public final class Database {
 
 	/**
 	 * Initializes the database access, with Hibernate.
+	 *
+	 * @param model the persistent model (entities and converters), provided by the caller
 	 */
-	public static void init() {
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static void init(DatabaseModel model) {
 		try {
 			Properties serviceProperties = new Properties();
 			serviceProperties.setProperty(AvailableSettings.TRANSACTION_COORDINATOR_STRATEGY, "jdbc");
@@ -288,85 +239,18 @@ public final class Database {
 			}
 			serviceRegistry = new StandardServiceRegistryBuilder().applySettings(serviceProperties).build();
 
-			MetadataSources sources = new MetadataSources(serviceRegistry)
-				.addAnnotatedClass(Device.class)
-				.addAnnotatedClass(DeviceGroup.class)
-				.addAnnotatedClass(DeviceGroupMembership.class)
-				.addAnnotatedClass(Config.class)
-				.addAnnotatedClass(DeviceAttribute.class)
-				.addAnnotatedClass(DeviceNumericAttribute.class)
-				.addAnnotatedClass(DeviceTextAttribute.class)
-				.addAnnotatedClass(DeviceLongTextAttribute.class)
-				.addAnnotatedClass(DeviceBinaryAttribute.class)
-				.addAnnotatedClass(ConfigAttribute.class)
-				.addAnnotatedClass(ConfigNumericAttribute.class)
-				.addAnnotatedClass(ConfigTextAttribute.class)
-				.addAnnotatedClass(ConfigLongTextAttribute.class)
-				.addAnnotatedClass(ConfigBinaryAttribute.class)
-				.addAnnotatedClass(ConfigBinaryFileAttribute.class)
-				.addAnnotatedClass(LongTextConfiguration.class)
-				.addAnnotatedClass(StaticDeviceGroup.class)
-				.addAnnotatedClass(DynamicDeviceGroup.class)
-				.addAnnotatedClass(Module.class)
-				.addAnnotatedClass(Domain.class)
-				.addAnnotatedClass(PhysicalAddress.class)
-				.addAnnotatedClass(NetworkAddress.class)
-				.addAnnotatedClass(Network4Address.class)
-				.addAnnotatedClass(Network6Address.class)
-				.addAnnotatedClass(NetworkInterface.class)
-				.addAnnotatedClass(DeviceAccess.class)
-				.addAnnotatedClass(DeviceSnmpv1Community.class)
-				.addAnnotatedClass(DeviceSnmpv2cCommunity.class)
-				.addAnnotatedClass(DeviceSnmpv3Community.class)
-				.addAnnotatedClass(DeviceSshAccount.class)
-				.addAnnotatedClass(DeviceSshKeyAccount.class)
-				.addAnnotatedClass(DeviceTelnetAccount.class)
-				.addAnnotatedClass(DeviceHttpAccount.class)
-				.addAnnotatedClass(Policy.class)
-				.addAnnotatedClass(Rule.class)
-				.addAnnotatedClass(Task.class)
-				.addAnnotatedClass(TaskDeviceListMember.class)
-				.addAnnotatedClass(DebugLog.class)
-				.addAnnotatedClass(Exemption.class)
-				.addAnnotatedClass(Exemption.Key.class)
-				.addAnnotatedClass(CheckResult.class)
-				.addAnnotatedClass(CheckResult.Key.class)
-				.addAnnotatedClass(SoftwareRule.class)
-				.addAnnotatedClass(HardwareRule.class)
-				.addAnnotatedClass(DeviceJsScript.class)
-				.addAnnotatedClass(Diagnostic.class)
-				.addAnnotatedClass(DiagnosticResult.class)
-				.addAnnotatedClass(DiagnosticBinaryResult.class)
-				.addAnnotatedClass(DiagnosticNumericResult.class)
-				.addAnnotatedClass(DiagnosticLongTextResult.class)
-				.addAnnotatedClass(DiagnosticTextResult.class)
-				.addAnnotatedClass(UiUser.class)
-				.addAnnotatedClass(ApiToken.class)
-				.addAnnotatedClass(Hook.class)
-				.addAnnotatedClass(WebHook.class)
-				.addAnnotatedClass(HookTrigger.class)
-				.addAnnotatedClass(HashicorpVaultKv2Instance.class);
-			for (Class<?> clazz : Task.getTaskClasses()) {
-				log.debug("Registering task class " + clazz.getName());
-				sources.addAnnotatedClass(clazz);
-			}
-			for (Class<?> clazz : Rule.getRuleClasses()) {
-				sources.addAnnotatedClass(clazz);
-				for (Class<?> subClass : clazz.getClasses()) {
-					if (subClass.getAnnotation(Entity.class) != null) {
-						sources.addAnnotatedClass(subClass);
-					}
-				}
-			}
-			for (Class<?> clazz : Diagnostic.getDiagnosticClasses()) {
+			MetadataSources sources = new MetadataSources(serviceRegistry);
+			for (Class<?> clazz : model.entityClasses()) {
 				sources.addAnnotatedClass(clazz);
 			}
 
-			Metadata metadata = sources.getMetadataBuilder()
+			MetadataBuilder metadataBuilder = sources.getMetadataBuilder()
 				.applyImplicitNamingStrategy(new ImprovedImplicitNamingStrategy())
-				.applyPhysicalNamingStrategy(new ImprovedPhysicalNamingStrategy())
-				.applyAttributeConverter(Task.Status.StatusConverter.class)
-				.build();
+				.applyPhysicalNamingStrategy(new ImprovedPhysicalNamingStrategy());
+			for (Class<? extends AttributeConverter<?, ?>> converter : model.attributeConverters()) {
+				metadataBuilder.applyAttributeConverter((Class) converter);
+			}
+			Metadata metadata = metadataBuilder.build();
 
 			SessionFactoryBuilder sessionFactoryBuilder = metadata.getSessionFactoryBuilder();
 			sessionFactoryBuilder.applyInterceptor(new DatabaseInterceptor());
@@ -547,6 +431,28 @@ public final class Database {
 			entity = (T) proxy.getHibernateLazyInitializer().getImplementation();
 		}
 		return entity;
+	}
+
+	/**
+	 * Check whether a PersistenceException is caused by key conflict (duplicate key).
+	 * @param e = the exception to check
+	 * @return true if duplicate key
+	 */
+	public static boolean isDuplicateException(PersistenceException e) {
+		Throwable t = e;
+		for (int i = 0; i < 2; i++) {
+			if (t == null) {
+				return false;
+			}
+			if (t instanceof ConstraintViolationException) {
+				return true;
+			}
+			if (t.getMessage().toLowerCase().contains("duplicate")) {
+				return true;
+			}
+			t = t.getCause();
+		}
+		return false;
 	}
 
 	/**
