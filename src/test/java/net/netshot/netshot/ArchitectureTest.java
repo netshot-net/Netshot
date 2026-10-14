@@ -88,6 +88,13 @@ public class ArchitectureTest {
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api..")
 			.allowEmptyShould(true));
 
+	/** The composition root hands the services to the API channels, which therefore never reach back to it. */
+	@ArchTest
+	static final ArchRule apiDoesNotDependOnBoot = freeze(
+		noClasses().that().resideInAPackage(ROOT + "api..")
+			.should().dependOnClassesThat().resideInAPackage(ROOT + "boot..")
+			.allowEmptyShould(true));
+
 	/** API channels are independent: each owns its DTOs, and they only share services and entities. */
 	@ArchTest
 	static final ArchRule restChannelDoesNotDependOnHookChannel = freeze(
