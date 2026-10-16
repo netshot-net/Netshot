@@ -554,7 +554,7 @@ public class Device {
 	 * (even a bare one, with nothing set, for plain auto-try). Existing rows
 	 * are updated in place (matched by access name) rather than deleted and
 	 * recreated, so that an owned {@code specificCredentialSet} already
-	 * resolved/updated in place by the caller (see {@code RestService}) keeps
+	 * resolved/updated in place by the caller (see the device service) keeps
 	 * its identity instead of racing with this same access's own orphan removal.
 	 * @param newAccesses the new full list of accesses (may be null, meaning "clear all")
 	 */

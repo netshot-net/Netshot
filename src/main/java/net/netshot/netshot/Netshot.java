@@ -72,7 +72,7 @@ import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.rest.LoggerFilter;
-import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
@@ -733,7 +733,7 @@ public class Netshot extends Thread {
 			log.info("Cancelling orphaned delayed tasks.");
 			TaskManager.cancelOrphanedDelayedTasks();
 			log.info("Starting the REST service.");
-			RestService.init(Wiring.get().binder());
+			RestServer.init(Wiring.get().binder());
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {

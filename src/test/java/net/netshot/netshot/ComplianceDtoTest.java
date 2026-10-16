@@ -41,7 +41,6 @@ import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.api.rest.v0.RestService.RsLightDevice;
 import net.netshot.netshot.api.rest.v0.compliance.ExemptedDeviceDto;
 import net.netshot.netshot.api.rest.v0.compliance.HardwareRuleMapper;
 import net.netshot.netshot.api.rest.v0.compliance.HardwareRuleRequest;

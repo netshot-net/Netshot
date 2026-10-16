@@ -16,14 +16,17 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest.v0.device;
+package net.netshot.netshot.api.rest.v0.credentials;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
+import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.v0.domain.DomainDto;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
@@ -32,8 +35,9 @@ import net.netshot.netshot.credentials.HideSecretSerializer;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
- * A credential set, as nested in the device accesses (the global one the access is pinned to,
- * or the one specific to the access). The same shape is written and read.
+ * A credential set: the representation of the credential set endpoints, and of the credential sets
+ * nested in the device accesses (the global one the access is pinned to, or the one specific to the
+ * access). The same shape is written and read.
  *
  * <p>The {@code type} property tells the kind of credential set. The secrets are never written
  * ({@code =} stands for them), and {@code =} read as a secret means "unchanged". A secret
@@ -42,7 +46,18 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * <p>Every subtype repeats the common components (a record can't extend another one, and
  * {@code @JsonUnwrapped} doesn't work on the properties which are read): {@code id}, {@code name},
  * {@code mgmtDomain} and {@code deviceSpecific}.</p>
+ *
+ * <p>When read, the properties of the entities which were never part of the representation
+ * (the version and change date, the Vault bundles of the secrets) are ignored if present, like they
+ * always were; any other unknown property is refused.</p>
  */
+// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
+// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
+@XmlRootElement(name = "credentialSet")
+@JsonIgnoreProperties({
+	"changeDate", "version", "usernameSecret", "passwordSecret", "superPasswordSecret", "privateKeySecret",
+	"communitySecret", "authKeySecret", "privKeySecret"
+})
 @JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
@@ -96,6 +111,7 @@ public sealed interface CredentialSetDto {
 	 * @param communityVaultPath the path of the community in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceSnmpv1Community")
 	record SnmpV1(
 		long id,
 		String name,
@@ -118,6 +134,7 @@ public sealed interface CredentialSetDto {
 	 * @param communityVaultPath the path of the community in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceSnmpv2cCommunity")
 	record SnmpV2c(
 		long id,
 		String name,
@@ -151,6 +168,7 @@ public sealed interface CredentialSetDto {
 	 * @param privKeyVaultPath the path of the privacy key in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceSnmpv3Community")
 	record SnmpV3(
 		long id,
 		String name,
@@ -190,6 +208,7 @@ public sealed interface CredentialSetDto {
 	 * @param superPasswordVaultPath the path of the super password in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceSshAccount")
 	record Ssh(
 		long id,
 		String name,
@@ -227,6 +246,7 @@ public sealed interface CredentialSetDto {
 	 * @param privateKeyVaultPath the path of the private key in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceSshKeyAccount")
 	record SshKey(
 		long id,
 		String name,
@@ -264,6 +284,7 @@ public sealed interface CredentialSetDto {
 	 * @param superPasswordVaultPath the path of the super password in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceTelnetAccount")
 	record Telnet(
 		long id,
 		String name,
@@ -295,6 +316,7 @@ public sealed interface CredentialSetDto {
 	 * @param passwordVaultPath the path of the password in the Vault instance
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DeviceHttpAccount")
 	record Http(
 		long id,
 		String name,

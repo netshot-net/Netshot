@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.api.rest;
 
-import org.hibernate.query.Query;
-
 import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,7 +26,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /** Pagination default query params. */
@@ -58,26 +55,5 @@ public class PaginationParams {
 	 */
 	public Page toPage() {
 		return new Page(this.offset, this.limit);
-	}
-
-	/**
-	 * Apply the pagination parameters to the HQL query.
-	 * @param query The query being prepared
-	 */
-	public void apply(Query<?> query) {
-		if (this.offset != null) {
-			if (this.offset < 0) {
-				throw new NetshotBadRequestException("Invalid offset parameter",
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			query.setFirstResult(this.offset);
-		}
-		if (this.limit != null) {
-			if (this.limit < 1) {
-				throw new NetshotBadRequestException("Invalid limit parameter",
-					ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER);
-			}
-			query.setMaxResults(this.limit);
-		}
 	}
 }

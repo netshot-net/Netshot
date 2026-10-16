@@ -55,7 +55,7 @@ import org.quartz.Scheduler;
 import org.quartz.impl.SchedulerRepository;
 
 import jakarta.ws.rs.core.UriBuilder;
-import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.engine.TaskManager;
@@ -106,7 +106,7 @@ public class ReportExportTest extends WithDatabaseTest {
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestService.init(Wiring.get().binder());
+		RestServer.init(Wiring.get().binder());
 		Thread.sleep(1000);
 		this.httpClient = HttpClient.newHttpClient();
 		this.seed = new ApiContractSeed(API_URL, this.httpClient);

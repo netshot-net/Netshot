@@ -112,7 +112,7 @@ public class WebHook extends Hook {
 	/**
 	 * Instantiates a new web hook.
 	 */
-	protected WebHook() {
+	public WebHook() {
 	}
 
 	@XmlElement

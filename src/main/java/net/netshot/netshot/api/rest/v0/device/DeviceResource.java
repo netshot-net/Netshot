@@ -59,8 +59,7 @@ import net.netshot.netshot.task.Task;
  * <p>It only translates between HTTP and the {@link DeviceService}: it reads the request into a
  * command, calls the service, maps the result to a DTO, and chooses the status code. The class
  * is mounted on {@code /} with the full path on each method, because a narrower class-level
- * path would hide the other {@code /devices/...} methods which are still served by the legacy
- * {@code RestService}.</p>
+ * path would hide the other {@code /devices/...} methods which are served by the other resources.</p>
  */
 @Path("/")
 @Slf4j
