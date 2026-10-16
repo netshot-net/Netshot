@@ -36,6 +36,8 @@ import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
+import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
@@ -47,6 +49,8 @@ import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManagerEngine;
+import net.netshot.netshot.userscript.ScriptRepository;
+import net.netshot.netshot.userscript.ScriptService;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -86,6 +90,10 @@ public final class Wiring {
 	private final LoginService loginService;
 	private final ClusterService clusterService;
 	private final ServerInfoService serverInfoService;
+	// Diagnostics
+	private final DiagnosticService diagnosticService;
+	// Scripts
+	private final ScriptService scriptService;
 
 	/**
 	 * Builds the objects of the application. Each feature adds its own block
@@ -114,6 +122,10 @@ public final class Wiring {
 		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator());
 		this.clusterService = new ClusterService(ClusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService();
+		// Diagnostics
+		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
+		// Scripts
+		this.scriptService = new ScriptService(this.transactions, new ScriptRepository());
 	}
 
 	/**
@@ -262,6 +274,24 @@ public final class Wiring {
 	 */
 	public ServerInfoService serverInfoService() {
 		return this.serverInfoService;
+	}
+
+	/**
+	 * Gets the diagnostic use cases.
+	 *
+	 * @return the diagnostic service
+	 */
+	public DiagnosticService diagnosticService() {
+		return this.diagnosticService;
+	}
+
+	/**
+	 * Gets the command script use cases.
+	 *
+	 * @return the script service
+	 */
+	public ScriptService scriptService() {
+		return this.scriptService;
 	}
 
 	/**
