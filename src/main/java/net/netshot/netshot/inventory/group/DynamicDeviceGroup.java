@@ -145,7 +145,7 @@ public class DynamicDeviceGroup extends DeviceGroup {
 				// position is set explicitly in StaticDeviceGroup.addDevice()/updateCachedDevices()),
 				// so "position" is only a placeholder to satisfy the NOT NULL column; it's not
 				// meant to be meaningful or kept dense. Devices are listed by name instead, see
-				// RestService#getDevices().
+				// the device list of the group resource.
 				MutationQuery insertQuery = session.createMutationQuery(
 					"insert into DeviceGroupMembership(key.device, key.group, position) "
 					+ "select d, :group, 0 " + finder.getHql() + " "

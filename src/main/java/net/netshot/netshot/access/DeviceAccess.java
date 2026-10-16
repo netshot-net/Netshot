@@ -280,7 +280,7 @@ public final class DeviceAccess {
 
 	/**
 	 * Sets the access name. Only meant for REST deserialization of an
-	 * incoming (not-yet-attached) payload object - see {@code RestService}/
+	 * incoming (not-yet-attached) payload object - see the device mapper and
 	 * {@code Device.replaceAccesses}, which reads it back off via
 	 * {@link #getAccessName()} rather than persisting this instance as-is.
 	 * @param accessName the access name
