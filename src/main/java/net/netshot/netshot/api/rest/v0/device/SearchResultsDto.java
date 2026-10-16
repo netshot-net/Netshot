@@ -18,28 +18,20 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
-import java.util.Date;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
- * A management domain, as nested in the device representations.
+ * The result of a device search.
  *
- * @param id the domain ID
- * @param changeDate the last change date
- * @param name the name
- * @param description the description
- * @param server4Address the IPv4 address of the domain server
- * @param server6Address the IPv6 address of the domain server
+ * @param query the query, as normalized by the query parser
+ * @param devices the matching devices
  */
 @JsonView(DefaultView.class)
-public record DomainDto(
-	long id,
-	Date changeDate,
-	String name,
-	String description,
-	String server4Address,
-	String server6Address) {
+@JacksonXmlRootElement(localName = "RsSearchResults")
+public record SearchResultsDto(String query, List<DeviceSummaryDto> devices) {
 }
