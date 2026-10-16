@@ -27,13 +27,14 @@ import org.hibernate.c3p0.internal.C3P0ConnectionProvider;
 import org.hibernate.cfg.C3p0Settings;
 import org.hibernate.engine.jdbc.connections.spi.AbstractMultiTenantConnectionProvider;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.service.spi.Stoppable;
 
 import net.netshot.netshot.Netshot;
 
 /**
  * Custom connection provider, to handle read-write and read-only connections to the database.
  */
-public class CustomConnectionProvider extends AbstractMultiTenantConnectionProvider<TenantIdentifier> {
+public class CustomConnectionProvider extends AbstractMultiTenantConnectionProvider<TenantIdentifier> implements Stoppable {
 
 	/** Map of ConnectionProvider objects (read-only and read-write). */
 	private final Map<TenantIdentifier, ConnectionProvider> providerMap = new HashMap<>();
@@ -91,4 +92,17 @@ public class CustomConnectionProvider extends AbstractMultiTenantConnectionProvi
 		return cp;
 	}
 
+	/**
+	 * Closes the connection pools.
+	 */
+	@Override
+	public void stop() {
+		for (ConnectionProvider provider : this.providerMap.values()) {
+			if (provider instanceof Stoppable stoppable) {
+				stoppable.stop();
+			}
+		}
+		this.providerMap.clear();
+		this.defaultProvider = null;
+	}
 }
