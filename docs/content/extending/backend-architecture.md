@@ -262,3 +262,8 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **Authorization depending on the payload.** The role needed to create a task depends on its `type`: the resource checks it before calling the service (the service knows nothing of roles), which is the order of the legacy code.
 - **An unknown id is not always a 404.** `GET /tasks/{id}` answers 204 for an unknown task (the service returns `null`), `PUT /tasks/{id}` answers 400 `NETSHOT_INVALID_TASK`, and the debug log answers 404: the goldens record them, keep them.
 
+
+### More pitfalls, met on the reports slice
+
+- **`MINIMAL_CLASS` type ids are not `NAME` ids in XML.** Jackson's XML module rewrites the `$` of a `CLASS`/`MINIMAL_CLASS` type id as `..` (`.RestService..RsHardwareSupportEoSStat`) while JSON keeps it (`.RestService$RsHardwareSupportEoSStat`); a `NAME` id is the same in both. A DTO that must keep both forms (`HardwareSupportStatDto`) therefore carries the type as an explicit property with a format-aware serializer instead of `@JsonTypeInfo`.
+- **Streaming exports.** `ReportService.export` pushes rows to a `ReportExportSink` inside one read transaction, page by page (with `session.clear()` as before), and the REST layer's `XlsxReportWriter` turns them into a streaming workbook: data access stays in the service, presentation in `api`, and memory use is unchanged.
