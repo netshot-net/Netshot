@@ -21,7 +21,7 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleDefinition;
 
@@ -53,7 +53,7 @@ public final class SoftwareRuleMapper {
 			rule.getLevel(),
 			rule.getPartNumber(),
 			rule.isPartNumberRegExp(),
-			rule.getTargetGroup() == null ? null : DeviceMapper.toDto(rule.getTargetGroup()),
+			rule.getTargetGroup() == null ? null : GroupMapper.toDto(rule.getTargetGroup()),
 			rule.getVersion(),
 			rule.isVersionRegExp());
 	}

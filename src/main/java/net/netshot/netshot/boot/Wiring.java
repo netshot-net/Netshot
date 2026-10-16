@@ -38,8 +38,18 @@ import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
+import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.inventory.config.ConfigRepository;
+import net.netshot.netshot.inventory.config.ConfigService;
+import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.inventory.domain.DomainService;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.inventory.search.SearchRepository;
+import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.report.ReportRepository;
@@ -84,6 +94,13 @@ public final class Wiring {
 	private final TaskService taskService;
 	// Reports
 	private final ReportService reportService;
+	// Inventory
+	private final DeviceCatalogService deviceCatalogService;
+	private final DeviceDriverService deviceDriverService;
+	private final DomainService domainService;
+	private final GroupService groupService;
+	private final SearchService searchService;
+	private final ConfigService configService;
 	// AAA and system
 	private final UserService userService;
 	private final ApiTokenService apiTokenService;
@@ -115,6 +132,13 @@ public final class Wiring {
 		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine());
 		// Reports
 		this.reportService = new ReportService(this.transactions, new ReportRepository());
+		// Inventory
+		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
+		this.deviceDriverService = new DeviceDriverService();
+		this.domainService = new DomainService(this.transactions, new DomainRepository());
+		this.groupService = new GroupService(this.transactions, new GroupRepository());
+		this.searchService = new SearchService(this.transactions, new SearchRepository());
+		this.configService = new ConfigService(this.transactions, new ConfigRepository());
 		// AAA and system
 		UserRepository userRepository = new UserRepository();
 		this.userService = new UserService(this.transactions, userRepository);
@@ -229,6 +253,60 @@ public final class Wiring {
 	 */
 	public TaskService taskService() {
 		return this.taskService;
+	}
+
+	/**
+	 * Gets the reference lists built from the devices.
+	 *
+	 * @return the device catalog service
+	 */
+	public DeviceCatalogService deviceCatalogService() {
+		return this.deviceCatalogService;
+	}
+
+	/**
+	 * Gets the device driver (device type) use case.
+	 *
+	 * @return the device driver service
+	 */
+	public DeviceDriverService deviceDriverService() {
+		return this.deviceDriverService;
+	}
+
+	/**
+	 * Gets the domain use cases.
+	 *
+	 * @return the domain service
+	 */
+	public DomainService domainService() {
+		return this.domainService;
+	}
+
+	/**
+	 * Gets the device group use cases.
+	 *
+	 * @return the group service
+	 */
+	public GroupService groupService() {
+		return this.groupService;
+	}
+
+	/**
+	 * Gets the device search use case.
+	 *
+	 * @return the search service
+	 */
+	public SearchService searchService() {
+		return this.searchService;
+	}
+
+	/**
+	 * Gets the configuration use cases.
+	 *
+	 * @return the config service
+	 */
+	public ConfigService configService() {
+		return this.configService;
 	}
 
 	/**

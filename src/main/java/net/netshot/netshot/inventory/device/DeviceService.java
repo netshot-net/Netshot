@@ -142,6 +142,44 @@ public class DeviceService {
 	}
 
 	/**
+	 * Lists the network interfaces of a device, with their IP addresses (see
+	 * {@link DeviceRepository#findInterfaces} for what is loaded).
+	 *
+	 * @param deviceId the device ID
+	 * @param page the window on the result
+	 * @return the detached interfaces (none if there is no such device)
+	 * @throws NetshotException if the interfaces can't be read
+	 */
+	public List<NetworkInterface> getInterfaces(long deviceId, Page page) {
+		try {
+			return this.transactions.read(session -> this.repository.findInterfaces(session, deviceId, page));
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the interfaces.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the interfaces");
+		}
+	}
+
+	/**
+	 * Lists the hardware modules of a device.
+	 *
+	 * @param deviceId the device ID
+	 * @param includeHistory whether to include the modules which have been removed
+	 * @param page the window on the result
+	 * @return the detached modules (none if there is no such device)
+	 * @throws NetshotException if the modules can't be read
+	 */
+	public List<Module> getModules(long deviceId, boolean includeHistory, Page page) {
+		try {
+			return this.transactions.read(session -> this.repository.findModules(session, deviceId, includeHistory, page));
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the modules.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the modules");
+		}
+	}
+
+	/**
 	 * Adds a device.
 	 *
 	 * <p>With auto discovery, a "discover device type" task is created, and the device will be

@@ -23,8 +23,8 @@ import java.util.List;
 
 import org.hibernate.Hibernate;
 
-import net.netshot.netshot.api.rest.v0.device.DeviceGroupDto;
-import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
+import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
@@ -55,7 +55,7 @@ public final class DiagnosticMapper {
 	 */
 	public static DiagnosticDto toDto(Diagnostic diagnosticOrProxy) {
 		Diagnostic diagnostic = (Diagnostic) Hibernate.unproxy(diagnosticOrProxy);
-		DeviceGroupDto group = diagnostic.getTargetGroup() == null ? null : DeviceMapper.toDto(diagnostic.getTargetGroup());
+		DeviceGroupDto group = diagnostic.getTargetGroup() == null ? null : GroupMapper.toDto(diagnostic.getTargetGroup());
 		if (diagnostic instanceof SimpleDiagnostic simple) {
 			return new DiagnosticDto.Simple(simple.getCliMode(), simple.getCommand(), simple.getDeviceDriver(),
 				simple.getDeviceDriverDescription(), simple.isEnabled(), simple.getId(), simple.getModifierPattern(),

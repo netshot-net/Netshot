@@ -21,6 +21,8 @@ package net.netshot.netshot.api.rest.v0.device;
 import org.hibernate.Hibernate;
 
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.api.rest.v0.domain.DomainDto;
+import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
 import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
@@ -90,25 +92,6 @@ public final class DeviceAccessMapper {
 		return access;
 	}
 
-	/**
-	 * Maps a management domain to its representation.
-	 *
-	 * @param domain the domain (may be null)
-	 * @return the DTO, or null if there is no domain
-	 */
-	public static DomainDto toDto(Domain domain) {
-		if (domain == null) {
-			return null;
-		}
-		return new DomainDto(
-			domain.getId(),
-			domain.getChangeDate(),
-			domain.getName(),
-			domain.getDescription(),
-			domain.getServer4Address() == null ? null : domain.getServer4Address().getIp(),
-			domain.getServer6Address() == null ? null : domain.getServer6Address().getIp());
-	}
-
 	private static Domain toEntity(DomainDto dto) {
 		if (dto == null) {
 			return null;
@@ -132,7 +115,7 @@ public final class DeviceAccessMapper {
 			return null;
 		}
 		DeviceCredentialSet cs = (DeviceCredentialSet) Hibernate.unproxy(credentialSet);
-		DomainDto domain = toDto(cs.getMgmtDomain());
+		DomainDto domain = DomainMapper.toDto(cs.getMgmtDomain());
 		if (cs instanceof DeviceSnmpv3Community c) {
 			return new CredentialSetDto.SnmpV3(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
 				c.getCommunity(), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath(),

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.api.rest.v0.device.DeviceGroupDto;
+import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 

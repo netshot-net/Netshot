@@ -29,7 +29,13 @@ import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.diagnostic.DiagnosticService;
+import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.inventory.config.ConfigService;
+import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.inventory.domain.DomainService;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
@@ -62,6 +68,13 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.hardwareRuleService()).to(HardwareRuleService.class);
 		// Tasks
 		this.bind(this.wiring.taskService()).to(TaskService.class);
+		// Inventory
+		this.bind(this.wiring.deviceCatalogService()).to(DeviceCatalogService.class);
+		this.bind(this.wiring.deviceDriverService()).to(DeviceDriverService.class);
+		this.bind(this.wiring.domainService()).to(DomainService.class);
+		this.bind(this.wiring.groupService()).to(GroupService.class);
+		this.bind(this.wiring.searchService()).to(SearchService.class);
+		this.bind(this.wiring.configService()).to(ConfigService.class);
 		// AAA and system
 		this.bind(this.wiring.userService()).to(UserService.class);
 		this.bind(this.wiring.apiTokenService()).to(ApiTokenService.class);
