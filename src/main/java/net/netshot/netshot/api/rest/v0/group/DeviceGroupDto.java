@@ -16,13 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest.v0.device;
+package net.netshot.netshot.api.rest.v0.group;
 
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
@@ -49,6 +50,7 @@ public sealed interface DeviceGroupDto {
 	 * @param query the search query
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "DynamicDeviceGroup")
 	record DynamicGroup(
 		long id,
 		Date changeDate,
@@ -68,6 +70,7 @@ public sealed interface DeviceGroupDto {
 	 * @param hiddenFromReports whether the group is hidden in the reports
 	 */
 	@JsonView(DefaultView.class)
+	@JacksonXmlRootElement(localName = "StaticDeviceGroup")
 	record StaticGroup(
 		long id,
 		Date changeDate,

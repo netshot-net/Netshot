@@ -21,7 +21,7 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.api.rest.v0.device.DeviceGroupDto;
+import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
