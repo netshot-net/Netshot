@@ -109,6 +109,8 @@ Class <net.netshot.netshot.compliance.rules.TextRule> (slice compliance) depends
 Class <net.netshot.netshot.compliance.rules.TextRule> (slice compliance) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.rules.TextRule> (slice compliance) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.rules.TextRule> (slice compliance) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
+Class <net.netshot.netshot.credentials.CredentialSetRepository> (slice credentials) depends on <net.netshot.netshot.inventory.domain.Domain> (slice inventory) which is part of a dependency cycle
+Class <net.netshot.netshot.credentials.CredentialSetService> (slice credentials) depends on <net.netshot.netshot.inventory.domain.Domain> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.credentials.CredentialSets> (slice credentials) depends on <net.netshot.netshot.vault.VaultInstance> (slice vault) which is part of a dependency cycle
 Class <net.netshot.netshot.credentials.CredentialSets> (slice credentials) depends on <net.netshot.netshot.vault.VaultableSecret> (slice vault) which is part of a dependency cycle
 Class <net.netshot.netshot.credentials.DeviceCliAccount> (slice credentials) depends on <net.netshot.netshot.vault.VaultInstance> (slice vault) which is part of a dependency cycle
