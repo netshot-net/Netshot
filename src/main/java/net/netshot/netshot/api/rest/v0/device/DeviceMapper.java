@@ -24,6 +24,9 @@ import java.util.List;
 import org.hibernate.Hibernate;
 
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
+import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
+import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceSummary;
@@ -34,9 +37,6 @@ import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 
 /**
  * Maps the devices between the entities (or the projections) of the inventory and their REST
@@ -64,7 +64,7 @@ public final class DeviceMapper {
 		List<DeviceAttributeDto> attributes = new ArrayList<>();
 		device.getAttributes().forEach(attribute -> attributes.add(toDto(attribute)));
 		List<DeviceGroupDto> ownerGroups = new ArrayList<>();
-		device.getOwnerGroups().forEach(group -> ownerGroups.add(toDto(group)));
+		device.getOwnerGroups().forEach(group -> ownerGroups.add(GroupMapper.toDto(group)));
 		return new DeviceDto(
 			accesses,
 			attributes,
@@ -86,7 +86,7 @@ public final class DeviceMapper {
 			device.getId(),
 			device.getLocation(),
 			device.getMgmtAddress(),
-			DeviceAccessMapper.toDto(device.getMgmtDomain()),
+			DomainMapper.toDto(device.getMgmtDomain()),
 			device.getName(),
 			device.getNetworkClass(),
 			device.getOptions(),
@@ -194,7 +194,7 @@ public final class DeviceMapper {
 		throw new IllegalArgumentException("Unknown kind of device attribute: " + attribute.getClass().getName());
 	}
 
-	private static ModuleDto toDto(Module moduleOrProxy) {
+	public static ModuleDto toDto(Module moduleOrProxy) {
 		if (moduleOrProxy == null) {
 			return null;
 		}
@@ -209,22 +209,4 @@ public final class DeviceMapper {
 			module.isRemoved());
 	}
 
-	/**
-	 * Maps a device group to its representation.
-	 *
-	 * @param groupOrProxy the group, or a proxy of it
-	 * @return the DTO
-	 */
-	public static DeviceGroupDto toDto(DeviceGroup groupOrProxy) {
-		DeviceGroup group = (DeviceGroup) Hibernate.unproxy(groupOrProxy);
-		if (group instanceof DynamicDeviceGroup dynamic) {
-			return new DeviceGroupDto.DynamicGroup(dynamic.getId(), dynamic.getChangeDate(), dynamic.getName(),
-				dynamic.getFolder(), dynamic.isHiddenFromReports(), dynamic.getQuery());
-		}
-		else if (group instanceof StaticDeviceGroup) {
-			return new DeviceGroupDto.StaticGroup(group.getId(), group.getChangeDate(), group.getName(),
-				group.getFolder(), group.isHiddenFromReports());
-		}
-		throw new IllegalArgumentException("Unknown kind of device group: " + group.getClass().getName());
-	}
 }
