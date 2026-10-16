@@ -274,3 +274,11 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **A default for an absent property, null for an explicit null.** A bean field initialized to `""` (`name`, `folder`) is `""` when absent and `null` when explicit: use `api.rest.EmptyWhenAbsentDeserializer` rather than a compact constructor.
 - **Polymorphic results.** `DiagnosticResultDto` is published under the `NUMERIC`/`TEXT`/`LONGTEXT`/`BINARY` type ids (the entity's `@JsonSubTypes`), whereas `DiagnosticDto` uses the simple class names; the long text value is not part of the representation.
 - **An unknown script is not an error.** `GET /scripts/{id}` answers 204 (the service returns `null`), `DELETE` answers 400 `NETSHOT_SCRIPT_NOT_FOUND`, and an unknown diagnostic group is silently ignored (the diagnostic is created without group).
+
+### Pitfalls met on the inventory slice
+
+- **The class of a list is part of the XML.** A query with a collection fetch and a page (`GET /devices/{id}/configs?limit=...`) is paginated in memory by Hibernate, which answers a sub list: XML publishes it as `<SubList>` instead of `<ArrayList>`. The mappers keep that (`ConfigMapper.toDtos`) by answering a sub list when the service result is not a plain `ArrayList`.
+- **A download is not a JSON error.** `GET /configs/{id}/{item}` answers its errors with bare `WebApplicationException` statuses (no body), not with an `ErrorCode`. The service throws a feature exception (`ConfigItemException`, with a reason) and the resource turns it into the same statuses.
+- **Two shapes for one entity.** A domain is `DomainDto` when nested (complete) and `DomainSummaryDto` when served by `/domains` (id, name, description and IPv4 address only). Check the golden of each endpoint before reusing a DTO.
+- **A dynamic group is evaluated inside the transaction.** Creating or editing one runs its query (`refreshCache`) before the commit, and a failing query rolls everything back; the order of the checks (devices or query before the name, on edit) is observable.
+- **Read-only sessions.** `POST /devices/search` has always used a read-write session; it is kept so (`Transactions.write`), not moved to the read pool.
