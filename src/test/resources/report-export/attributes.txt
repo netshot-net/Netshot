@@ -1,0 +1,33 @@
+## Sheet Summary
+widths 5000 8000
+freeze none
+filter none
+column0 General,bold,GENERAL
+[-] 0='Netshot version'{General,bold,GENERAL} | 1='<version>'{General,GENERAL}
+[-] 0='Exported by'{General,bold,GENERAL} | 1='API Token [5: Test Token - level 1000]'{General,GENERAL}
+[-] 0='Date and time'{General,bold,GENERAL} | 1=<now>{yyyy-mm-dd hh:mm,LEFT}
+[-] 0='Selected Domain'{General,bold,GENERAL} | 1='Any'{General,GENERAL}
+[-] 0='Selected Group'{General,bold,GENERAL} | 1='Any'{General,GENERAL}
+## Sheet Devices
+widths 2200 5000 4000 4000 4000 5000 4200 4200 5000
+freeze 1/0
+filter A1:I1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='ID'{General,bold,GENERAL} | 1='Name'{General,bold,GENERAL} | 2='Management IP'{General,bold,GENERAL} | 3='Domain'{General,bold,GENERAL} | 4='Network Class'{General,bold,GENERAL} | 5='Family'{General,bold,GENERAL} | 6='Creation'{General,bold,GENERAL} | 7='Last Change'{General,bold,GENERAL} | 8='Software'{General,bold,GENERAL}
+[-] 0=4.0{General,GENERAL} | 1='bare-1'{General,GENERAL} | 2='2001:db8::4'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='UNKNOWN'{General,GENERAL} | 5=''{General,GENERAL} | 6=date:1641038400000{yyyy-mm-dd hh:mm,LEFT} | 7=date:1641038400000{yyyy-mm-dd hh:mm,LEFT} | 8=''{General,GENERAL}
+[-] 0=3.0{General,GENERAL} | 1='proxy-paris-1'{General,GENERAL} | 2='10.1.2.2'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='SERVER'{General,GENERAL} | 5='Web gateway'{General,GENERAL} | 6=date:1641038400000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8=''{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='10.2.1.1'{General,GENERAL} | 3='Lyon DC'{General,GENERAL} | 4='SWITCHROUTER'{General,GENERAL} | 5='Cisco 1900'{General,GENERAL} | 6=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='15.2.4'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='10.1.1.1'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='ROUTER'{General,GENERAL} | 5='Cisco 2900'{General,GENERAL} | 6=date:1577880000000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='16.1.6'{General,GENERAL}
+## Sheet Device Attributes
+widths 2200 5000 5000 7000
+freeze 1/0
+filter A1:D1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Attribute Name'{General,bold,GENERAL} | 3='Attribute Value'{General,bold,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='Main memory size (MB)'{General,GENERAL} | 3='2048.0'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='IOS config register'{General,GENERAL} | 3='0x1202'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='Configuration saved'{General,GENERAL} | 3='true'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Main memory size (MB)'{General,GENERAL} | 3='2048.0'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='IOS config register'{General,GENERAL} | 3='0x1202'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Configuration saved'{General,GENERAL} | 3='true'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2={General,GENERAL}

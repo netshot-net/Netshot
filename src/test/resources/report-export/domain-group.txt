@@ -1,0 +1,25 @@
+## Sheet Summary
+widths 5000 8000
+freeze none
+filter none
+column0 General,bold,GENERAL
+[-] 0='Netshot version'{General,bold,GENERAL} | 1='<version>'{General,GENERAL}
+[-] 0='Exported by'{General,bold,GENERAL} | 1='API Token [5: Test Token - level 1000]'{General,GENERAL}
+[-] 0='Date and time'{General,bold,GENERAL} | 1=<now>{yyyy-mm-dd hh:mm,LEFT}
+[-] 0='Selected Domain'{General,bold,GENERAL} | 1='Paris DC (1)'{General,GENERAL}
+[-] 0='Selected Group'{General,bold,GENERAL} | 1='All Cisco devices (2)'{General,GENERAL}
+## Sheet Devices
+widths 2200 5000 4000 4000 4000 5000 4200 4200 5000
+freeze 1/0
+filter A1:I1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='ID'{General,bold,GENERAL} | 1='Name'{General,bold,GENERAL} | 2='Management IP'{General,bold,GENERAL} | 3='Domain'{General,bold,GENERAL} | 4='Network Class'{General,bold,GENERAL} | 5='Family'{General,bold,GENERAL} | 6='Creation'{General,bold,GENERAL} | 7='Last Change'{General,bold,GENERAL} | 8='Software'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='10.1.1.1'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='ROUTER'{General,GENERAL} | 5='Cisco 2900'{General,GENERAL} | 6=date:1577880000000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='16.1.6'{General,GENERAL}
+## Sheet Inventory
+widths 2200 5000 5000 5000 4000
+freeze 1/0
+filter A1:E1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Slot'{General,bold,GENERAL} | 3='Part Number'{General,bold,GENERAL} | 4='Serial Number'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='chassis'{General,GENERAL} | 3='CISCO2911/K9'{General,GENERAL} | 4='FTX1234ABCD'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='slot 1'{General,GENERAL} | 3='HWIC-4ESW'{General,GENERAL} | 4='FOC5678WXYZ'{General,GENERAL}
