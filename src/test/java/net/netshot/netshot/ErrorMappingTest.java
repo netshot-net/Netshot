@@ -23,7 +23,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.api.rest.NetshotBadRequestException;
 import net.netshot.netshot.api.rest.NetshotExceptionMapper;
 import net.netshot.netshot.api.rest.RsErrorBean;
 import net.netshot.netshot.platform.error.ErrorCode;

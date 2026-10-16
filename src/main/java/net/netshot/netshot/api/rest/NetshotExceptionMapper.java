@@ -73,7 +73,7 @@ public class NetshotExceptionMapper implements ExceptionMapper<Throwable> {
 			return wae.getResponse();
 		}
 		else if (t instanceof NetshotException ne) {
-			// Same rendering as NetshotBadRequestException
+			// Same rendering as the former NetshotBadRequestException
 			return Response.status(ne.getErrorCode().getHttpStatus())
 				.entity(new RsErrorBean(ne.getMessage(), ne.getErrorCode().getCode())).build();
 		}
