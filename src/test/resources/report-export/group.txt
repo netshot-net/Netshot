@@ -1,0 +1,43 @@
+## Sheet Summary
+widths 5000 8000
+freeze none
+filter none
+column0 General,bold,GENERAL
+[-] 0='Netshot version'{General,bold,GENERAL} | 1='<version>'{General,GENERAL}
+[-] 0='Exported by'{General,bold,GENERAL} | 1='API Token [5: Test Token - level 1000]'{General,GENERAL}
+[-] 0='Date and time'{General,bold,GENERAL} | 1=<now>{yyyy-mm-dd hh:mm,LEFT}
+[-] 0='Selected Domain'{General,bold,GENERAL} | 1='Any'{General,GENERAL}
+[-] 0='Selected Group'{General,bold,GENERAL} | 1='Core routers (1)'{General,GENERAL}
+## Sheet Devices
+widths 2200 5000 4000 4000 4000 5000 4200 4200 5000 3500 4200 4200 5000 5000
+freeze 1/0
+filter A1:N1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='ID'{General,bold,GENERAL} | 1='Name'{General,bold,GENERAL} | 2='Management IP'{General,bold,GENERAL} | 3='Domain'{General,bold,GENERAL} | 4='Network Class'{General,bold,GENERAL} | 5='Family'{General,bold,GENERAL} | 6='Creation'{General,bold,GENERAL} | 7='Last Change'{General,bold,GENERAL} | 8='Software'{General,bold,GENERAL} | 9='Software Level'{General,bold,GENERAL} | 10='End of Sale Date'{General,bold,GENERAL} | 11='End Of Life Date'{General,bold,GENERAL} | 12='Location'{General,bold,GENERAL} | 13='Contact'{General,bold,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='10.2.1.1'{General,GENERAL} | 3='Lyon DC'{General,GENERAL} | 4='SWITCHROUTER'{General,GENERAL} | 5='Cisco 1900'{General,GENERAL} | 6=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='15.2.4'{General,GENERAL} | 9='SILVER'{General,GENERAL} | 10={General,GENERAL} | 11={General,GENERAL} | 12='Lyon'{General,GENERAL} | 13=''{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='10.1.1.1'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='ROUTER'{General,GENERAL} | 5='Cisco 2900'{General,GENERAL} | 6=date:1577880000000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='16.1.6'{General,GENERAL} | 9='GOLD'{General,GENERAL} | 10=date:2208988800000{yyyy-mm-dd,GENERAL} | 11=date:2240524800000{yyyy-mm-dd,GENERAL} | 12='Paris, rack A1'{General,GENERAL} | 13='noc@example.net'{General,GENERAL}
+## Sheet Configuration Compliance
+widths 2200 5000 5000 8000 4200 4000
+freeze 1/0
+filter A1:F1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Policy'{General,bold,GENERAL} | 3='Rule'{General,bold,GENERAL} | 4='Check Date'{General,bold,GENERAL} | 5='Result'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
+## Sheet Device Groups
+widths 2200 5000 8000 4000 6000 5000
+freeze 1/0
+filter A1:F1
+column0 General,GENERAL
+[-] 0='Group ID'{General,bold,GENERAL} | 1='Group Name'{General,bold,GENERAL} | 2='Folder'{General,bold,GENERAL} | 3='Device Count'{General,bold,GENERAL} | 4='Config Compliant Count'{General,bold,GENERAL} | 5='Config Compliance'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='Core routers'{General,GENERAL} | 2='Production/Core'{General,GENERAL} | 3=1.0{General,GENERAL} | 4=0.0{General,GENERAL} | 5==E2 / D2{0%,GENERAL}
+## Sheet Group Memberships
+widths 2200 5000 2200 5000
+freeze 1/0
+filter A1:D1
+column0 General,GENERAL
+[-] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Group ID'{General,bold,GENERAL} | 3='Group Name'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=1.0{General,GENERAL} | 3='Core routers'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=2.0{General,GENERAL} | 3='All Cisco devices'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2=1.0{General,GENERAL} | 3='Core routers'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2=2.0{General,GENERAL} | 3='All Cisco devices'{General,GENERAL}

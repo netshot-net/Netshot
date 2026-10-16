@@ -1,0 +1,84 @@
+## Sheet Summary
+widths 5000 8000
+freeze none
+filter none
+column0 General,bold,GENERAL
+[-] 0='Netshot version'{General,bold,GENERAL} | 1='<version>'{General,GENERAL}
+[-] 0='Exported by'{General,bold,GENERAL} | 1='API Token [5: Test Token - level 1000]'{General,GENERAL}
+[-] 0='Date and time'{General,bold,GENERAL} | 1=<now>{yyyy-mm-dd hh:mm,LEFT}
+[-] 0='Selected Domain'{General,bold,GENERAL} | 1='Any'{General,GENERAL}
+[-] 0='Selected Group'{General,bold,GENERAL} | 1='Any'{General,GENERAL}
+## Sheet Devices
+widths 2200 5000 4000 4000 4000 5000 4200 4200 5000 3500 4200 4200 5000 5000
+freeze 1/0
+filter A1:N1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='ID'{General,bold,GENERAL} | 1='Name'{General,bold,GENERAL} | 2='Management IP'{General,bold,GENERAL} | 3='Domain'{General,bold,GENERAL} | 4='Network Class'{General,bold,GENERAL} | 5='Family'{General,bold,GENERAL} | 6='Creation'{General,bold,GENERAL} | 7='Last Change'{General,bold,GENERAL} | 8='Software'{General,bold,GENERAL} | 9='Software Level'{General,bold,GENERAL} | 10='End of Sale Date'{General,bold,GENERAL} | 11='End Of Life Date'{General,bold,GENERAL} | 12='Location'{General,bold,GENERAL} | 13='Contact'{General,bold,GENERAL}
+[-] 0=4.0{General,GENERAL} | 1='bare-1'{General,GENERAL} | 2='2001:db8::4'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='UNKNOWN'{General,GENERAL} | 5=''{General,GENERAL} | 6=date:1641038400000{yyyy-mm-dd hh:mm,LEFT} | 7=date:1641038400000{yyyy-mm-dd hh:mm,LEFT} | 8=''{General,GENERAL} | 9='UNKNOWN'{General,GENERAL} | 10={General,GENERAL} | 11={General,GENERAL} | 12=''{General,GENERAL} | 13=''{General,GENERAL}
+[-] 0=3.0{General,GENERAL} | 1='proxy-paris-1'{General,GENERAL} | 2='10.1.2.2'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='SERVER'{General,GENERAL} | 5='Web gateway'{General,GENERAL} | 6=date:1641038400000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8=''{General,GENERAL} | 9='UNKNOWN'{General,GENERAL} | 10={General,GENERAL} | 11={General,GENERAL} | 12=''{General,GENERAL} | 13=''{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='10.2.1.1'{General,GENERAL} | 3='Lyon DC'{General,GENERAL} | 4='SWITCHROUTER'{General,GENERAL} | 5='Cisco 1900'{General,GENERAL} | 6=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='15.2.4'{General,GENERAL} | 9='SILVER'{General,GENERAL} | 10={General,GENERAL} | 11={General,GENERAL} | 12='Lyon'{General,GENERAL} | 13=''{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='10.1.1.1'{General,GENERAL} | 3='Paris DC'{General,GENERAL} | 4='ROUTER'{General,GENERAL} | 5='Cisco 2900'{General,GENERAL} | 6=date:1577880000000{yyyy-mm-dd hh:mm,LEFT} | 7=<now>{yyyy-mm-dd hh:mm,LEFT} | 8='16.1.6'{General,GENERAL} | 9='GOLD'{General,GENERAL} | 10=date:2208988800000{yyyy-mm-dd,GENERAL} | 11=date:2240524800000{yyyy-mm-dd,GENERAL} | 12='Paris, rack A1'{General,GENERAL} | 13='noc@example.net'{General,GENERAL}
+## Sheet Interfaces
+widths 2200 5000 5000 5000 7000 5000 4000 2000 2000 4000 2000 4000
+freeze 1/0
+filter A1:L1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Virtual Device'{General,bold,GENERAL} | 3='Name'{General,bold,GENERAL} | 4='Description'{General,bold,GENERAL} | 5='VRF'{General,bold,GENERAL} | 6='MAC Address'{General,bold,GENERAL} | 7='Enabled'{General,bold,GENERAL} | 8='Level 3'{General,bold,GENERAL} | 9='IP Address'{General,bold,GENERAL} | 10='Length'{General,bold,GENERAL} | 11='Usage'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=''{General,GENERAL} | 3='GigabitEthernet0/0'{General,GENERAL} | 4='Uplink'{General,GENERAL} | 5='VRF1'{General,GENERAL} | 6='0000.0000.0000'{General,GENERAL} | 7=true{General,GENERAL} | 8=true{General,GENERAL} | 9='10.0.0.1'{General,GENERAL} | 10=24.0{General,GENERAL} | 11='PRIMARY'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=''{General,GENERAL} | 3='GigabitEthernet0/0'{General,GENERAL} | 4='Uplink'{General,GENERAL} | 5='VRF1'{General,GENERAL} | 6='0000.0000.0000'{General,GENERAL} | 7=true{General,GENERAL} | 8=true{General,GENERAL} | 9='2001:db8:1:0:0:0:0:1'{General,GENERAL} | 10=64.0{General,GENERAL} | 11='PRIMARY'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=''{General,GENERAL} | 3='GigabitEthernet0/1'{General,GENERAL} | 4='Downlink'{General,GENERAL} | 5='VRF2'{General,GENERAL} | 6='0000.0000.0000'{General,GENERAL} | 7=false{General,GENERAL} | 8=true{General,GENERAL} | 9='10.0.1.1'{General,GENERAL} | 10=25.0{General,GENERAL} | 11='PRIMARY'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=''{General,GENERAL} | 3='Loopback0'{General,GENERAL} | 4=''{General,GENERAL} | 5=''{General,GENERAL} | 6='0000.0000.0000'{General,GENERAL} | 7=true{General,GENERAL} | 8=false{General,GENERAL} | 9=''{General,GENERAL} | 10=''{General,GENERAL} | 11=''{General,GENERAL}
+## Sheet Inventory
+widths 2200 5000 5000 5000 4000 4200 4200 4200
+freeze 1/0
+filter A1:H1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Slot'{General,bold,GENERAL} | 3='Part Number'{General,bold,GENERAL} | 4='Serial Number'{General,bold,GENERAL} | 5='First seen'{General,bold,GENERAL} | 6='Last seen'{General,bold,GENERAL} | 7='Removed'{General,bold,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='chassis'{General,GENERAL} | 3='CISCO1921/K9'{General,GENERAL} | 4='FTX9999ZZZZ'{General,GENERAL} | 5={yyyy-mm-dd hh:mm,LEFT} | 6={yyyy-mm-dd hh:mm,LEFT} | 7=false{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='chassis'{General,GENERAL} | 3='CISCO2911/K9'{General,GENERAL} | 4='FTX1234ABCD'{General,GENERAL} | 5={yyyy-mm-dd hh:mm,LEFT} | 6={yyyy-mm-dd hh:mm,LEFT} | 7=false{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='slot 1'{General,GENERAL} | 3='HWIC-4ESW'{General,GENERAL} | 4='FOC5678WXYZ'{General,GENERAL} | 5={yyyy-mm-dd hh:mm,LEFT} | 6={yyyy-mm-dd hh:mm,LEFT} | 7=false{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='slot 2'{General,GENERAL} | 3='HWIC-1T'{General,GENERAL} | 4='FOC0001AAAA'{General,GENERAL} | 5={yyyy-mm-dd hh:mm,LEFT} | 6={yyyy-mm-dd hh:mm,LEFT} | 7=true{General,GENERAL}
+## Sheet Configuration Compliance
+widths 2200 5000 5000 8000 4200 4000
+freeze 1/0
+filter A1:F1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Policy'{General,bold,GENERAL} | 3='Rule'{General,bold,GENERAL} | 4='Check Date'{General,bold,GENERAL} | 5='Result'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
+## Sheet Device Groups
+widths 2200 5000 8000 4000 6000 5000
+freeze 1/0
+filter A1:F1
+column0 General,GENERAL
+[-] 0='Group ID'{General,bold,GENERAL} | 1='Group Name'{General,bold,GENERAL} | 2='Folder'{General,bold,GENERAL} | 3='Device Count'{General,bold,GENERAL} | 4='Config Compliant Count'{General,bold,GENERAL} | 5='Config Compliance'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='Core routers'{General,GENERAL} | 2='Production/Core'{General,GENERAL} | 3=1.0{General,GENERAL} | 4=0.0{General,GENERAL} | 5==E2 / D2{0%,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='All Cisco devices'{General,GENERAL} | 2='Production'{General,GENERAL} | 3=1.0{General,GENERAL} | 4=0.0{General,GENERAL} | 5==E3 / D3{0%,GENERAL}
+[-] 0=4.0{General,GENERAL} | 1='Empty group'{General,GENERAL} | 2=''{General,GENERAL} | 3=0.0{General,GENERAL} | 4=0.0{General,GENERAL} | 5==E4 / D4{0%,GENERAL}
+## Sheet Group Memberships
+widths 2200 5000 2200 5000
+freeze 1/0
+filter A1:D1
+column0 General,GENERAL
+[-] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Group ID'{General,bold,GENERAL} | 3='Group Name'{General,bold,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=1.0{General,GENERAL} | 3='Core routers'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2=2.0{General,GENERAL} | 3='All Cisco devices'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2=1.0{General,GENERAL} | 3='Core routers'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2=2.0{General,GENERAL} | 3='All Cisco devices'{General,GENERAL}
+## Sheet Device Attributes
+widths 2200 5000 5000 7000
+freeze 1/0
+filter A1:D1
+column0 General,GENERAL
+[General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Attribute Name'{General,bold,GENERAL} | 3='Attribute Value'{General,bold,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='Main memory size (MB)'{General,GENERAL} | 3='2048.0'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='IOS config register'{General,GENERAL} | 3='0x1202'{General,GENERAL}
+[-] 0=2.0{General,GENERAL} | 1='router-lyon-1'{General,GENERAL} | 2='Configuration saved'{General,GENERAL} | 3='true'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Main memory size (MB)'{General,GENERAL} | 3='2048.0'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='IOS config register'{General,GENERAL} | 3='0x1202'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Configuration saved'{General,GENERAL} | 3='true'{General,GENERAL}
+[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2={General,GENERAL}
