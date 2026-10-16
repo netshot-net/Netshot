@@ -61,8 +61,8 @@ import net.netshot.netshot.task.TaskService;
  * list of the tasks of a device.
  *
  * <p>It only translates between HTTP and the {@link TaskService}. The class is mounted on {@code /}
- * with the full path on each method, because a narrower class-level path would hide the other
- * methods of the legacy {@code RestService} sharing the prefix (for instance {@code /devices/...}).</p>
+ * with the full path on each method, because a narrower class-level path would hide the methods of
+ * the other resources sharing the prefix (for instance {@code /devices/...}).</p>
  */
 @Path("/")
 @Slf4j

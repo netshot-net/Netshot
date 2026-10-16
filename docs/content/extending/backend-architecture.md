@@ -1,9 +1,9 @@
 # Backend architecture
 
-This page is for developers working on the Netshot core server (Java). It describes the target layering the code base is being migrated to, the rules that protect it, and the conventions to follow when adding or moving code. For the map of the components, see [Architecture](../architecture.md).
+This page is for developers working on the Netshot core server (Java). It describes the layering of the code base, the rules that protect it, and the conventions to follow when adding or moving code. For the map of the components, see [Architecture](../architecture.md).
 
-!!! note "Work in progress"
-    The REST API is being moved out of the monolithic `RestService` class, one feature at a time. Until that is finished both worlds coexist: old code is still in `api.rest.v0.RestService`, new code follows this page. The last section is a step-by-step guide to migrate an endpoint, with the device endpoints (`/devices`) as the worked example: they are the reference slice, copy it.
+!!! note "History"
+    The REST API used to be one monolithic class, `RestService`. It has been moved, one feature at a time, to the layered structure described here, and the class is gone: `api.rest.RestServer` only starts the web server, and every endpoint is a resource of `api.rest.v0.<feature>`. The last section is the step-by-step guide that was followed, with the device endpoints (`/devices`) as the worked example: use it when you add or change an endpoint, and for the same kind of work on another API.
 
 ## Layers and packages
 
@@ -17,7 +17,7 @@ platform/          technical building blocks; depends on no feature
 ├── error/         ErrorCode, NetshotException
 ├── crypto/ tls/ rest/
 api/               API channels: how the outside world talks to the core
-├── rest/          Jersey application, filters, exception mapper, shared REST bits
+├── rest/          web server (RestServer), Jersey application, filters, exception mapper, shared REST bits
 │   └── v0/        the current (legacy, unversioned) REST API, served on /api
 ├── hook/          (later) webhook payloads, mappers and HTTP sender
 └── grpc/          (later)
@@ -75,9 +75,9 @@ public Domain rename(long id, String name) {
 
 `platform.error.ErrorCode` lists the errors reported to API clients: each code has a stable numeric value and the HTTP status the REST API answers with. Services signal them with `platform.error.NetshotException(ErrorCode, message)`, a runtime exception that knows nothing of the transport. The REST exception mapper renders it exactly like the legacy `NetshotBadRequestException`: HTTP status of the code, body `{ "errorMsg": ..., "errorCode": ... }` (`RsErrorBean`). Other API channels translate it to their own error format.
 
-Legacy `RestService` code still throws `NetshotBadRequestException(message, ErrorCode)`, which is a JAX-RS `WebApplicationException`: services must not use it. To detect a duplicate key on persist, use `Database.isDuplicateException()`.
+The former REST code threw `NetshotBadRequestException(message, ErrorCode)`, a JAX-RS `WebApplicationException` (it only survives in the tests, as the reference the rendering of the errors is compared with): services must not use JAX-RS types. To detect a duplicate key on persist, use `Database.isDuplicateException()`, unless the rule of an existing use case has to be kept (see the [pitfalls](#pitfalls-met-on-the-credential-set-vault-instance-and-hook-slices)).
 
-A helper moved out of `RestService` to be shared (for example `credentials.CredentialSets`) throws `NetshotException` instead. Mind the legacy callers: a method which catches `NetshotBadRequestException` to roll back its transaction has to catch `NetshotException` as well (`catch (NetshotBadRequestException | NetshotException e)`).
+A helper shared by several services (for example `credentials.CredentialSets`) throws `NetshotException` too.
 
 Inside a service, a failing query is a `HibernateException`: catch it around the `Transactions` call and report it as `NETSHOT_DATABASE_ACCESS_ERROR` (or a more specific code when the cause is known, like a duplicate key), keeping the message the clients know. Check the failure of the business rules *inside* the transaction (the exception rolls it back) and keep the order of the checks, as it decides which error a client gets when several apply.
 
@@ -93,7 +93,7 @@ The device use cases (`inventory.device`) show how the layers fit together.
 - **Side effects** which must not happen if the transaction fails (refresh of the dynamic groups, scheduling of tasks, removal of files) are explicit statements *after* the `Transactions` call. A service reaches the static task engine only through a port, here `task.TaskSubmitter`, which `Wiring` implements with `TaskManager::addTask` and the tests with a recording lambda.
 - **Pagination**: a list use case takes a `platform.database.Page` (offset and limit, validated by its constructor); `PaginationParams.toPage()` builds it in the REST layer.
 - **Input objects which are entities**: some inputs are too rich to duplicate as service records (the accesses of a device and their credential sets). The API mapper builds *transient entities* from the request (`DeviceAccess`, `DeviceSshAccount`...), the command carries them, and the service validates them and resolves them against the persistent ones (global credential set by ID, Vault instance by ID...). They are never persisted as they are.
-- **Validation** (`DeviceValidation`) is made of static, side-effect free functions which throw `NetshotException`. Other callers (the legacy `RestService`) call them at their new location.
+- **Validation** (`DeviceValidation`) is made of static, side-effect free functions which throw `NetshotException`. Other services which need the same checks call them.
 
 ```java
 // DeviceService.update, abridged
@@ -144,14 +144,14 @@ Webhook payloads serialize the `Task` entities (including `Device`) with `HookVi
 
 - **Adding an entity**: register it in `boot.EntityModel` (task, rule and diagnostic subclasses are discovered by scanning).
 - **Adding a service**: build it in `Wiring.init()`, give it an accessor, and bind it in `boot.WiringBinder`.
-- **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, `Netshot.main` hands it to `RestService.init(binder)` which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
+- **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, `Netshot.main` hands it to `RestServer.init(binder)` which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
 - **Code outside Jersey** (Quartz jobs, cluster code) can reach the wiring through the static `Wiring.get()`. This accessor is **transitional**: it is a service locator that hides dependencies, kept only until such code gets its dependencies explicitly. Do not use it from code that can be injected.
 
 Resources are discovered by Jersey package scanning of `net.netshot.netshot.api.rest` (sub-packages included): a new `@Path` class is picked up with no registration. Filters, providers and the exception mapper carry no `@Provider` annotation and are registered explicitly in `NetshotWebApplication`.
 
-## Migrating a v0 endpoint out of RestService
+## Adding or moving a v0 endpoint
 
-This is the procedure to move a group of endpoints out of `RestService`, as it was done for `GET /devices`, `GET /devices/{id}`, `POST /devices`, `PUT /devices/{id}` and `DELETE /devices/{id}`. Follow the steps in this order, and keep the API contract tests green at each step: **a golden file must never change** (never run the tests with the update flags to make them pass).
+This is the procedure that was followed to move every group of endpoints out of the former `RestService`, starting with `GET /devices`, `GET /devices/{id}`, `POST /devices`, `PUT /devices/{id}` and `DELETE /devices/{id}`. It also tells how to add an endpoint (skip what only concerns the removal of legacy code). Follow the steps in this order, and keep the API contract tests green at each step: **a golden file must never change** (never run the tests with the update flags to make them pass).
 
 The files of the worked example:
 
@@ -161,8 +161,8 @@ The files of the worked example:
 | `inventory/device/DeviceService` | use cases, transactions, side effects |
 | `inventory/device/DeviceCreation`, `DeviceUpdate` | commands (inputs of the use cases) |
 | `inventory/device/DeviceSummary` | projection of the list query |
-| `inventory/device/DeviceValidation` | validation helpers moved out of `RestService` |
-| `credentials/CredentialSets`, `platform/tls/CaCertificates`, `platform/database/Page` | helpers moved or created because `RestService` and the service share them |
+| `inventory/device/DeviceValidation` | validation helpers (they used to be in `RestService`) |
+| `credentials/CredentialSets`, `platform/tls/CaCertificates`, `platform/database/Page` | helpers shared by the service and other code |
 | `task/TaskSubmitter` | port to the task engine |
 | `boot/Wiring`, `boot/WiringBinder` | construction and injection |
 | `api/rest/v0/device/DeviceResource` | the JAX-RS resource |
@@ -185,7 +185,7 @@ For each endpoint note the status codes and the way they are chosen (`suggestRet
 
 ### 4. Commands and service
 
-`<feature>/<Entity>Service`, constructed with `Transactions`, the repository and the ports it needs (see [Repositories and services](#repositories-and-services)). One public method per endpoint. Commands are records (`DeviceCreation`); the author of a change (user name) is a component of the command, since the service knows nothing of the security context. Copy the legacy logic *including its order*; replace `NetshotBadRequestException` by `NetshotException` with the same `ErrorCode` and message; replace each `Database.getSession()` block by one `Transactions` call; put the side effects after it. Move the validation helpers the use cases need to a `<Entity>Validation` class (static, throwing `NetshotException`); if `RestService` still uses one, delete its copy and call the new one (mind the `catch` blocks, see [Errors](#errors)). A service method never receives `Session`, a DTO or a JAX-RS type.
+`<feature>/<Entity>Service`, constructed with `Transactions`, the repository and the ports it needs (see [Repositories and services](#repositories-and-services)). One public method per endpoint. Commands are records (`DeviceCreation`); the author of a change (user name) is a component of the command, since the service knows nothing of the security context. Copy the legacy logic *including its order*; replace `NetshotBadRequestException` by `NetshotException` with the same `ErrorCode` and message; replace each `Database.getSession()` block by one `Transactions` call; put the side effects after it. Move the validation helpers the use cases need to a `<Entity>Validation` class (static, throwing `NetshotException`); if other code still has its own copy of one, delete the copy and call the new one. A service method never receives `Session`, a DTO or a JAX-RS type.
 
 ### 5. Wiring
 
@@ -210,11 +210,11 @@ In `api.rest.v0.<feature>`, following the [DTO conventions](#dto-conventions):
 A class in `api.rest.v0.<feature>` annotated `@Path("/")`, with the **full path on each method**, and the service injected by an `@Inject` constructor. Copy for every method: `@RolesAllowed`, `@Consumes`/`@Produces`, `@Operation`, `@Tag`, `@Parameter` (also on the parameters the method ignores, like `details` of `GET /devices`), the method *name* (it is the OpenAPI `operationId`), and `@JsonView(RestApiView.class)` (it keeps the schema names of the OpenAPI document). Declare concrete generic return types (`List<DeviceSummaryDto>`). The resource only: reads the principal (`SecurityContext`) for the author, builds the command, calls the service, maps the result, and chooses a status code other than 200 with `ResponseCodeFilter.suggest(request, status)`. It has no `Session`, no repository, no `try`/`catch` of its own (a `NetshotException` is rendered by the exception mapper exactly like a `NetshotBadRequestException`). An endpoint which answers with an entity not migrated yet (here the `Task` of `POST /devices`) keeps returning the entity, with a comment: a later wave replaces it.
 
 !!! warning "Do not give the new resource a narrower @Path than the paths it takes over"
-    JAX-RS selects the root resource class *before* looking at the methods, with no fallback. A new class annotated `@Path("/devices")` hides every `RestService` method under `/devices/...` (they answer 404 or 405), even those that were not moved. Use `@Path("/")` with the full path on each method like `RestService` does (several root resources with the same `@Path("/")` and different method paths work fine), or move a whole path prefix at once. Declaring the same method and path in both classes fails at startup.
+    JAX-RS selects the root resource class *before* looking at the methods, with no fallback. A new class annotated `@Path("/devices")` hides every method of the other resources under `/devices/...` (they answer 404 or 405). Use `@Path("/")` with the full path on each method like the existing resources do (several root resources with the same `@Path("/")` and different method paths work fine), or move a whole path prefix at once. Declaring the same method and path in both classes fails at startup.
 
 ### 9. Remove the legacy code
 
-In the same change, delete the migrated methods of `RestService`, the request classes, and every helper nothing uses anymore (the compiler and `checkstyle:check` report the unused imports). Keep what other endpoints still use: for example `RsLightDevice` is the base class of other response classes, and stays until their own migration.
+In the same change, delete the migrated methods from where they were, the request classes, and every helper nothing uses anymore (the compiler and `checkstyle:check` report the unused imports). Keep what other endpoints still use. Classes only the tests still need (a former response class, the former exception) move to the test tree, as the reference the new code is compared with.
 
 ### 10. Entities
 
@@ -282,3 +282,15 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **Two shapes for one entity.** A domain is `DomainDto` when nested (complete) and `DomainSummaryDto` when served by `/domains` (id, name, description and IPv4 address only). Check the golden of each endpoint before reusing a DTO.
 - **A dynamic group is evaluated inside the transaction.** Creating or editing one runs its query (`refreshCache`) before the commit, and a failing query rolls everything back; the order of the checks (devices or query before the name, on edit) is observable.
 - **Read-only sessions.** `POST /devices/search` has always used a read-write session; it is kept so (`Transactions.write`), not moved to the read pool.
+
+### Pitfalls met on the credential set, Vault instance and hook slices
+
+- **Secrets stay masked, and unchanged means null.** `HideSecretSerializer` writes `=` for any non-null secret (a missing one stays `null`) and `HideSecretDeserializer` reads `=` as `null`. In the services a `null` secret means "keep the stored value" for the passwords, communities, keys and AppRole/JWT secrets, but not for the username (cleared when not given) nor for the private key of a SSH key account, which is wiped when it is not given (a quirk of the legacy code, kept). The DTO tests assert that no secret value appears in the JSON, XML or YAML of any kind, and that every secret of every kind is read as `null` for `=`.
+- **Do not replace the duplicate rule.** These use cases recognize a duplicate name by the message of the cause of the Hibernate exception ("uplicate"), and a missing domain by the column name in it: `DatabaseErrors.causeMentions` keeps that rule. `Database.isDuplicateException` is not equivalent (it takes any constraint violation, a foreign key for instance, for a duplicate).
+- **Known but ignored properties.** The entities have properties which are not part of the `RestApiView` (`version`, `changeDate`, the `...Secret` bundles of the credential sets): they are silently skipped when a request holds them, whereas a really unknown property is refused. A request record or bean lists them in `@JsonIgnoreProperties` to keep that. Find them by introspecting the entity, and compare a matrix of bodies read by the entity and by the request type (`CredentialSetDtoTest`).
+- **A XML root element per record.** The XML of a single credential set (`POST`, `PUT`) is rooted at the class name of the entity, whereas a list uses `item`: every record of a polymorphic family needs its `@JacksonXmlRootElement` (`DeviceSshAccount`, `HashicorpVaultKv2Instance`, `WebHook`...). The contract goldens only had JSON for these writes.
+- **A request with defaults stays a bean, here too.** The Vault instance (mount paths, CA trust mode) and the hook (`enabled`, the triggers, the CA trust mode) requests are beans with initialized fields: absent gives the default, explicit `null` gives `null` (`enabled: null` is `false`; `triggers: null` is accepted when creating a hook, and makes the update fail, as it did).
+- **The order of the triggers means nothing.** `HookTrigger.hashCode()` uses the identity hash of an enum, so the iteration order of a set of triggers changes from one JVM to the next: compare triggers as a set. The request keeps them in a list, to store them in the order of the request.
+- **Side effects through ports.** The cache invalidation and cluster notification of a Vault instance change (`VaultInstanceChangeNotifier`) and the login attempt of the connection test (`VaultConnectionTester`) are ports given by `Wiring`, so that the service tests can record and fake them.
+- **Dead error paths.** Deleting a credential set "in use" is practically unreachable now: the foreign keys of the device accesses and of the tasks cascade or set null. Deleting a Vault instance referenced by a credential field is the one which still fails (`NETSHOT_VAULT_INSTANCE_IN_USE`). The service tests inject a failing repository to cover the translation of the constraint violation.
+- **A throwaway HTTP probe finds what the goldens miss.** Before moving a group, send a few hundred requests (every kind, absent/null/`=` secrets, refused bodies, XML and JSON, paged lists) to the unchanged server, record the answers, and compare them with the ones of the migrated server (ignoring the order of the keys and elements). That is how the XML root names above were found.

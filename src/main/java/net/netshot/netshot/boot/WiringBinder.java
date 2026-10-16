@@ -28,8 +28,10 @@ import net.netshot.netshot.compliance.HardwareRuleService;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.device.DeviceService;
@@ -41,6 +43,7 @@ import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.userscript.ScriptService;
+import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
  * Exposes the objects of the {@link Wiring} to the dependency injection of the REST
@@ -87,5 +90,11 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.scriptService()).to(ScriptService.class);
 		// Reports
 		this.bind(this.wiring.reportService()).to(ReportService.class);
+		// Credentials
+		this.bind(this.wiring.credentialSetService()).to(CredentialSetService.class);
+		// Vault
+		this.bind(this.wiring.vaultInstanceService()).to(VaultInstanceService.class);
+		// Hooks
+		this.bind(this.wiring.hookService()).to(HookService.class);
 	}
 }
