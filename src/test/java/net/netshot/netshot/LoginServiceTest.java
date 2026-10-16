@@ -53,7 +53,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * Tests of the authentication of the users who log in (local password, expired password, remote
  * methods), against a real database and a fake set of remote authentication methods. The HTTP
- * session handling is the resource's: it is covered by the end-to-end tests of {@code RestServiceTest}.
+ * session handling is the resource's: it is covered by the end-to-end tests of {@code RestServerTest}.
  */
 @TestInstance(Lifecycle.PER_CLASS)
 class LoginServiceTest extends WithDatabaseTest {

@@ -59,8 +59,7 @@ import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.api.rest.NetshotBadRequestException;
-import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
@@ -97,7 +96,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
-public class RestServiceTest extends WithDatabaseTest {
+public class RestServerTest extends WithDatabaseTest {
 
 	private static final String apiUrl = TestNetwork.freeLocalApiUrl();
 	private static final long UNKNOWN_ID = 99999999;
@@ -145,7 +144,7 @@ public class RestServiceTest extends WithDatabaseTest {
 		Database.update();
 		Wiring.init();
 		TaskManager.init();
-		RestService.init(Wiring.get().binder());
+		RestServer.init(Wiring.get().binder());
 		Thread.sleep(1000);
 	}
 
@@ -153,9 +152,9 @@ public class RestServiceTest extends WithDatabaseTest {
 
 	@BeforeEach
 	void createToken() throws URISyntaxException {
-		RestServiceTest.createApiTokens();
-		this.apiClient = new NetshotApiClient(RestServiceTest.apiUrl,
-			RestServiceTest.API_TOKENS.get(UiUser.LEVEL_ADMIN));
+		RestServerTest.createApiTokens();
+		this.apiClient = new NetshotApiClient(RestServerTest.apiUrl,
+			RestServerTest.API_TOKENS.get(UiUser.LEVEL_ADMIN));
 	}
 
 	@AfterEach
@@ -223,7 +222,7 @@ public class RestServiceTest extends WithDatabaseTest {
 		@Test
 		@DisplayName("Missing privilege")
 		void notAdminToken() throws IOException, InterruptedException {
-			apiClient.setApiToken(RestServiceTest.API_TOKENS.get(UiUser.LEVEL_EXECUTEREADWRITE));
+			apiClient.setApiToken(RestServerTest.API_TOKENS.get(UiUser.LEVEL_EXECUTEREADWRITE));
 			HttpResponse<JsonNode> response = apiClient.get("/apitokens");
 			Assertions.assertEquals(Response.Status.FORBIDDEN.getStatusCode(), response.statusCode(),
 				"Not getting 403 response while missing privileges");
