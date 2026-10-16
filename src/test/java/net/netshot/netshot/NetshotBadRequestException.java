@@ -16,15 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import net.netshot.netshot.api.rest.RsErrorBean;
 import net.netshot.netshot.platform.error.ErrorCode;
 
 /**
- * The NetshotBadRequestException class, a WebApplication exception
- * embedding an error message, and HTTP status code, to be sent to the REST client.
+ * The former way the REST resources reported an error, a WebApplication exception embedding an error
+ * message and an HTTP status code, to be sent to the REST client. The server does not use it anymore (it
+ * throws {@code NetshotException}); the tests keep it as the reference the rendering of the errors is
+ * compared with.
  */
 public class NetshotBadRequestException extends WebApplicationException {
 
