@@ -48,4 +48,22 @@ public record DeviceSummary(
 	Boolean configCompliant,
 	SoftwareRule.ConformanceLevel softwareLevel,
 	Device.NetworkClass networkClass) {
+
+	/**
+	 * The select clause projecting the devices (aliased {@code d}) into summaries. The query has to
+	 * bind the {@code nonConforming} parameter to {@code CheckResult.ResultOption.NONCONFORMING}.
+	 */
+	public static final String SELECT_HQL = "select new " + DeviceSummary.class.getName() + "("
+		+ "d.id, "
+		+ "d.name, "
+		+ "d.family, "
+		+ "d.mgmtAddress, "
+		+ "d.status, "
+		+ "d.driver, "
+		+ "case when (d.eolDate < current_date()) then true else false end,  "
+		+ "case when (d.eosDate < current_date()) then true else false end, "
+		+ "case when (select count(cr) from CheckResult cr where cr.key.device = d and cr.result = :nonConforming) = 0 then true else false end, "
+		+ "d.softwareLevel, "
+		+ "d.networkClass"
+		+ ")";
 }
