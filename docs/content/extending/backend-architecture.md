@@ -267,3 +267,10 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 
 - **`MINIMAL_CLASS` type ids are not `NAME` ids in XML.** Jackson's XML module rewrites the `$` of a `CLASS`/`MINIMAL_CLASS` type id as `..` (`.RestService..RsHardwareSupportEoSStat`) while JSON keeps it (`.RestService$RsHardwareSupportEoSStat`); a `NAME` id is the same in both. A DTO that must keep both forms (`HardwareSupportStatDto`) therefore carries the type as an explicit property with a format-aware serializer instead of `@JsonTypeInfo`.
 - **Streaming exports.** `ReportService.export` pushes rows to a `ReportExportSink` inside one read transaction, page by page (with `session.clear()` as before), and the REST layer's `XlsxReportWriter` turns them into a streaming workbook: data access stays in the service, presentation in `api`, and memory use is unchanged.
+
+### Pitfalls met on the diagnostic and script slices
+
+- **An entity used as a request body reads more than its setters.** `POST /scripts` read a `DeviceJsScript`: Jackson also writes to a private field behind a getter (`userInputDefinitions`), so a posted map was accepted, kept (the script was then not evaluated) and returned. Probe the former class with a matrix of bodies before writing the request record, and test the same matrix against both (`DiagnosticDtoTest`). The read-only `realDeviceType`, on the other hand, is refused as an unknown property.
+- **A default for an absent property, null for an explicit null.** A bean field initialized to `""` (`name`, `folder`) is `""` when absent and `null` when explicit: use `api.rest.EmptyWhenAbsentDeserializer` rather than a compact constructor.
+- **Polymorphic results.** `DiagnosticResultDto` is published under the `NUMERIC`/`TEXT`/`LONGTEXT`/`BINARY` type ids (the entity's `@JsonSubTypes`), whereas `DiagnosticDto` uses the simple class names; the long text value is not part of the representation.
+- **An unknown script is not an error.** `GET /scripts/{id}` answers 204 (the service returns `null`), `DELETE` answers 400 `NETSHOT_SCRIPT_NOT_FOUND`, and an unknown diagnostic group is silently ignored (the diagnostic is created without group).
