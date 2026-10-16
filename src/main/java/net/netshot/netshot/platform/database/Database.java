@@ -81,6 +81,9 @@ public final class Database {
 	/** The service registry. */
 	private static ServiceRegistry serviceRegistry;
 
+	/** The connection pools of the current session factory. */
+	private static CustomConnectionProvider connectionProvider;
+
 	/**
 	 * List classes in a given package.
 	 *
@@ -192,6 +195,8 @@ public final class Database {
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static void init(DatabaseModel model) {
+		// Initialized again (tests): release the connections of the previous initialization
+		shutdown();
 		try {
 			Properties serviceProperties = new Properties();
 			serviceProperties.setProperty(AvailableSettings.TRANSACTION_COORDINATOR_STRATEGY, "jdbc");
@@ -203,7 +208,7 @@ public final class Database {
 			serviceProperties.setProperty(AvailableSettings.JDBC_TIME_ZONE, "UTC");
 
 			// Use the custom Multi Tenant connection provider (to handle read vs read-write connections)
-			final CustomConnectionProvider connectionProvider = new CustomConnectionProvider();
+			connectionProvider = new CustomConnectionProvider();
 
 
 			final Map<String, Object> connectionProviderProperties = new HashMap<>();
@@ -260,6 +265,24 @@ public final class Database {
 		catch (HibernateException e) {
 			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate Hibernate", e);
 			throw new RuntimeException("Unable to instantiate Hibernate, see logs for more details");
+		}
+	}
+
+	/**
+	 * Closes the session factory and its connection pools, if initialized.
+	 */
+	public static synchronized void shutdown() {
+		if (sessionFactory != null) {
+			sessionFactory.close();
+			sessionFactory = null;
+		}
+		if (serviceRegistry != null) {
+			StandardServiceRegistryBuilder.destroy(serviceRegistry);
+			serviceRegistry = null;
+		}
+		if (connectionProvider != null) {
+			connectionProvider.stop();
+			connectionProvider = null;
 		}
 	}
 
