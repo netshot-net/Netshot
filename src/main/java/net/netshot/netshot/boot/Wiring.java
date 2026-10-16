@@ -36,9 +36,13 @@ import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.credentials.CredentialSetRepository;
+import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.hook.HookRepository;
+import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
@@ -61,6 +65,9 @@ import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManagerEngine;
 import net.netshot.netshot.userscript.ScriptRepository;
 import net.netshot.netshot.userscript.ScriptService;
+import net.netshot.netshot.vault.VaultInstanceRepository;
+import net.netshot.netshot.vault.VaultInstanceService;
+import net.netshot.netshot.vault.VaultManager;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -111,6 +118,12 @@ public final class Wiring {
 	private final DiagnosticService diagnosticService;
 	// Scripts
 	private final ScriptService scriptService;
+	// Credentials
+	private final CredentialSetService credentialSetService;
+	// Vault
+	private final VaultInstanceService vaultInstanceService;
+	// Hooks
+	private final HookService hookService;
 
 	/**
 	 * Builds the objects of the application. Each feature adds its own block
@@ -150,6 +163,17 @@ public final class Wiring {
 		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
 		// Scripts
 		this.scriptService = new ScriptService(this.transactions, new ScriptRepository());
+		// Credentials
+		this.credentialSetService = new CredentialSetService(this.transactions, new CredentialSetRepository());
+		// Vault
+		this.vaultInstanceService = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
+			vaultInstanceId -> {
+				VaultManager.invalidate(vaultInstanceId);
+				ClusterManager.requestVaultInstanceReload(vaultInstanceId);
+			},
+			VaultManager::testConnection);
+		// Hooks
+		this.hookService = new HookService(this.transactions, new HookRepository());
 	}
 
 	/**
@@ -379,5 +403,32 @@ public final class Wiring {
 	 */
 	public ReportService reportService() {
 		return this.reportService;
+	}
+
+	/**
+	 * Gets the global credential set use cases.
+	 *
+	 * @return the credential set service
+	 */
+	public CredentialSetService credentialSetService() {
+		return this.credentialSetService;
+	}
+
+	/**
+	 * Gets the Vault instance use cases.
+	 *
+	 * @return the Vault instance service
+	 */
+	public VaultInstanceService vaultInstanceService() {
+		return this.vaultInstanceService;
+	}
+
+	/**
+	 * Gets the hook use cases.
+	 *
+	 * @return the hook service
+	 */
+	public HookService hookService() {
+		return this.hookService;
 	}
 }
