@@ -30,6 +30,7 @@ import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.task.TaskService;
 
@@ -65,5 +66,7 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.loginService()).to(LoginService.class);
 		this.bind(this.wiring.clusterService()).to(ClusterService.class);
 		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
+		// Reports
+		this.bind(this.wiring.reportService()).to(ReportService.class);
 	}
 }
