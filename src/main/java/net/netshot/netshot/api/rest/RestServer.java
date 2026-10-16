@@ -16,10 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest.v0;
+package net.netshot.netshot.api.rest;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.KeyStore;
@@ -29,17 +28,7 @@ import javax.net.ssl.SSLContext;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.servlet.ServletContainer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
-
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.jakarta.rs.cfg.EndpointConfigBase;
-import com.fasterxml.jackson.jakarta.rs.cfg.ObjectWriterInjector;
-import com.fasterxml.jackson.jakarta.rs.cfg.ObjectWriterModifier;
 
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -56,56 +45,32 @@ import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 import io.undertow.servlet.api.ServletSessionConfig;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
-import jakarta.annotation.security.DenyAll;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.SecurityContext;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.NetshotWebApplication;
-import net.netshot.netshot.api.rest.ResponseCodeFilter;
-import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.http.HttpServerAddress;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
- * The RestService class exposes the Netshot methods as a REST service.
+ * The web server of Netshot: a thread which starts Undertow, serving the Web UI (static files) and the
+ * REST API (the Jersey application, see {@link NetshotWebApplication}) with the HTTP(S) and session cookie
+ * settings of the configuration.
  */
-@Path("/")
-@DenyAll
 @Slf4j
-public class RestService extends Thread {
+public final class RestServer extends Thread {
 
-		/** Authentication, Authorization, Accounting logger. */
-	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
-
-	/** The static instance service. */
-	private static RestService nsRestService;
+	/** The static instance of the server. */
+	private static RestServer instance;
 
 	private static final String HTTP_STATIC_PATH = Netshot.getConfig("netshot.http.staticpath", "/");
+
+	/** The path the REST API is served on. */
 	public static final String HTTP_API_PATH = Netshot.getConfig("netshot.http.apipath", "/api");
 
 	/** Name of the session cookie. */
 	public static final String SESSION_COOKIE_NAME = Netshot.getConfig("netshot.http.sessioncookiename", "NetshotSessionID");
 
 	/**
-	 * Initializes the service.
+	 * Initializes the server, and starts it unless the HTTP server is disabled by the configuration.
 	 *
 	 * @param binder the dependency injection binder exposing the services to the REST resources
 	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
@@ -115,9 +80,9 @@ public class RestService extends Thread {
 			log.info("HTTP server is not enabled.");
 			return;
 		}
-		nsRestService = new RestService(binder);
-		nsRestService.setUncaughtExceptionHandler(Netshot.exceptionHandler);
-		nsRestService.start();
+		instance = new RestServer(binder);
+		instance.setUncaughtExceptionHandler(Netshot.exceptionHandler);
+		instance.start();
 	}
 
 	private URI httpBaseUri;
@@ -125,28 +90,15 @@ public class RestService extends Thread {
 	private String httpSslKeystoreFile;
 	private String httpSslKeystorePass;
 
-	@Context
-	private HttpServletRequest request;
-
-	@Context
-	private SecurityContext securityContext;
-
-	/** The dependency injection binder for the web application (only set on the server thread instance). */
+	/** The dependency injection binder for the web application. */
 	private AbstractBinder binder;
 
 	/**
-	 * Instantiates a new Netshot REST service, as a resource (the JAX-RS runtime creates it for each request).
-	 */
-	public RestService() {
-		this(null);
-	}
-
-	/**
-	 * Instantiates the Netshot REST service, as the server thread.
+	 * Instantiates the web server thread.
 	 *
 	 * @param binder the dependency injection binder for the web application
 	 */
-	private RestService(AbstractBinder binder) {
+	private RestServer(AbstractBinder binder) {
 		this.binder = binder;
 		this.setName("REST Service");
 		HttpServerAddress address = HttpServerAddress.fromConfig();
@@ -156,45 +108,6 @@ public class RestService extends Thread {
 			httpSslKeystoreFile = Netshot.getConfig("netshot.http.ssl.keystore.file", "netshot.jks");
 			httpSslKeystorePass = Netshot.getSecretConfig("netshot.http.ssl.keystore.pass", "netshotpass");
 		}
-	}
-
-	/**
-	 * Override the resource JSON view.
-	 * @param view = The view to use to serialize data
-	 */
-	protected void setWriterView(Class<? extends RestApiView> view) {
-		ObjectWriterInjector.set(new ObjectWriterModifier() {
-			@Override
-			public ObjectWriter modify(EndpointConfigBase<?> endpoint, MultivaluedMap<String, Object> responseHeaders,
-				Object valueToWrite, ObjectWriter w, JsonGenerator g) throws IOException {
-				return w.withView(view);
-			}
-		});
-	}
-
-	/**
-	 * Attach a suggested return code to the request, so the ResponseCodeFilter
-	 * can in turn change the return code of the response.
-	 * e.g. 201 or 204 instead of default 200
-	 * @param status = the status code
-	 */
-	private void suggestReturnCode(Response.Status status) {
-		this.request.setAttribute(ResponseCodeFilter.SUGGESTED_RESPONSE_CODE, status);
-	}
-
-	/**
-	 * Get the name of the current user making the request.
-	 * @return the current username or unknown
-	 */
-	private String getUsername() {
-		User user = (User) securityContext.getUserPrincipal();
-		try {
-			return user.getUsername();
-		}
-		catch (Exception e) {
-			// Whatever may happen
-		}
-		return "<Unknown>";
 	}
 
 	/*(non-Javadoc)
@@ -254,7 +167,7 @@ public class RestService extends Thread {
 						.addMapping("/*")
 				)
 				.setServletSessionConfig(new ServletSessionConfig()
-					.setName(RestService.SESSION_COOKIE_NAME)
+					.setName(RestServer.SESSION_COOKIE_NAME)
 					.setHttpOnly(true)
 					.setSecure(secureCookie)
 					.setAttribute("SameSite", "Strict")
@@ -312,92 +225,4 @@ public class RestService extends Thread {
 				"Error with the REST service, see logs for more details.");
 		}
 	}
-
-	/**
-	 * The Class RsLightDevice.
-	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
-	@AllArgsConstructor
-	@NoArgsConstructor
-	public static class RsLightDevice {
-
-		/** The id. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private long id;
-
-		/** The name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String name;
-
-		/** The family. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String family;
-
-		/** The mgmt address. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private String mgmtAddress;
-
-		/** The status. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		private Device.Status status;
-
-		/** The device deviceDriver name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		protected String driver;
-
-		/** End of Life. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		protected Boolean eol;
-
-		/** End of Sale. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		protected Boolean eos;
-
-		/** Configuration compliant. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		protected Boolean configCompliant;
-
-		/** The software level. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		protected SoftwareRule.ConformanceLevel softwareLevel = ConformanceLevel.UNKNOWN;
-
-		/** The network class. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
-		@Setter
-		protected Device.NetworkClass networkClass = Device.NetworkClass.UNKNOWN;
-	}
-
 }

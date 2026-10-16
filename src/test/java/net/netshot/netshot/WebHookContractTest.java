@@ -50,7 +50,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.inventory.device.Device;
@@ -125,7 +125,7 @@ public class WebHookContractTest extends WithDatabaseTest {
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestService.init(Wiring.get().binder());
+		RestServer.init(Wiring.get().binder());
 		Thread.sleep(1000);
 		this.seed = new ApiContractSeed(API_URL, HttpClient.newHttpClient());
 		this.seed.seed();
