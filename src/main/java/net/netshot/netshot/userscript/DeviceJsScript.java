@@ -94,6 +94,7 @@ public class DeviceJsScript {
 		@Transient,
 		@XmlElement, @JsonView(DefaultView.class)
 	}))
+	@Setter
 	private Map<String, UserInputDefinition> userInputDefinitions;
 
 	protected DeviceJsScript() {
