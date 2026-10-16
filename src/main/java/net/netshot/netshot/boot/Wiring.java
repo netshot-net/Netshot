@@ -40,6 +40,8 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.report.ReportRepository;
+import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskService;
@@ -76,6 +78,8 @@ public final class Wiring {
 	private final HardwareRuleService hardwareRuleService;
 	// Tasks
 	private final TaskService taskService;
+	// Reports
+	private final ReportService reportService;
 	// AAA and system
 	private final UserService userService;
 	private final ApiTokenService apiTokenService;
@@ -101,6 +105,8 @@ public final class Wiring {
 		// Tasks
 		TaskRepository taskRepository = new TaskRepository();
 		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine());
+		// Reports
+		this.reportService = new ReportService(this.transactions, new ReportRepository());
 		// AAA and system
 		UserRepository userRepository = new UserRepository();
 		this.userService = new UserService(this.transactions, userRepository);
@@ -256,5 +262,14 @@ public final class Wiring {
 	 */
 	public ServerInfoService serverInfoService() {
 		return this.serverInfoService;
+	}
+
+	/**
+	 * Gets the report use cases.
+	 *
+	 * @return the report service
+	 */
+	public ReportService reportService() {
+		return this.reportService;
 	}
 }
