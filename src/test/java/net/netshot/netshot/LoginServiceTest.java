@@ -287,7 +287,7 @@ class LoginServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("OIDC: a rejected code, a missing redirect URI or a malformed one authenticate nobody")
+	@DisplayName("OIDC: a rejected code, a missing redirect URI, a malformed or relative one authenticate nobody")
 	void oidcFailures() {
 		this.remote.codeUser = null;
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "bad", "https://netshot.example/cb", ADDRESS)));
@@ -298,6 +298,8 @@ class LoginServiceTest extends WithDatabaseTest {
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", null, ADDRESS)));
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, null, "https://netshot.example/cb", ADDRESS)));
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", "foo://unknown-protocol", ADDRESS)));
+		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", "/relative/callback", ADDRESS)));
+		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", "https://bad uri", ADDRESS)));
 		Assertions.assertEquals(List.of(), this.remote.calls, "The code is not exchanged without a valid redirect URL");
 	}
 
