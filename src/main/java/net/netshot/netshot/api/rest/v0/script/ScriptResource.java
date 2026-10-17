@@ -48,6 +48,8 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -133,8 +135,10 @@ public class ScriptResource {
 	public ScriptDto getScript(@PathParam("id") @Parameter(description = "Script ID") Long id) {
 		log.debug("REST request, get script {}", id);
 		DeviceJsScript script = this.scriptService.get(id);
-		// An unknown script is no error: the answer is empty (204)
-		return script == null ? null : ScriptMapper.toDto(this.driverRegistry, script);
+		if (script == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "Script not found.");
+		}
+		return ScriptMapper.toDto(this.driverRegistry, script);
 	}
 
 	/**
