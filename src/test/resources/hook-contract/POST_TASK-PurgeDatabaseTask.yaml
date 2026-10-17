@@ -38,5 +38,6 @@
   "stopOnFailure": false,
   "target": "Global",
   "taskDescription": "Database purge",
+  "type": "PurgeDatabaseTask",
   "userInputValues": null
 }
