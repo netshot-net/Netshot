@@ -151,6 +151,7 @@ class GroupServiceTest extends WithDatabaseTest {
 	@DisplayName("create() checks the name first, then the type")
 	void createValidation() {
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.create(new GroupDefinition("Nope", "  ", List.of(), null, "", false)));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.create(new GroupDefinition("Nope", null, List.of(), null, "", false)));
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.service.create(new GroupDefinition("Nope", this.nextName(), List.of(), null, "", false)));
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.service.create(new GroupDefinition(null, this.nextName(), List.of(), null, "", false)));
 	}
@@ -241,6 +242,7 @@ class GroupServiceTest extends WithDatabaseTest {
 		// The devices are checked before the name
 		assertError(ErrorCode.NETSHOT_INVALID_DEVICE, () -> this.service.update(fixed.getId(), staticGroup(" ", 99999999L)));
 		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(fixed.getId(), staticGroup(" ")));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(fixed.getId(), staticGroup(null)));
 		DeviceGroup dynamic = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
 		// The query is checked before the name, and a failure leaves the group unchanged
 		assertError(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, () -> this.service.update(dynamic.getId(), dynamicGroup(" ", "[Nope] ???")));

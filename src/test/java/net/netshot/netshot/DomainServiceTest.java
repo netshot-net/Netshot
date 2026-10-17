@@ -94,9 +94,14 @@ class DomainServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("create() refuses a blank name, before looking at the address")
+	@DisplayName("create() refuses a blank or null name, before looking at the address; a null description is empty")
 	void createBlankName() throws Exception {
 		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, () -> this.service.create(new DomainDefinition("  ", "d", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, () -> this.service.create(new DomainDefinition(null, "d", null)));
+		Domain noDescription = this.service.create(new DomainDefinition(this.nextName(), null, "10.255.5.1"));
+		Assertions.assertEquals("", noDescription.getDescription(), "a null description is stored as empty");
+		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME,
+			() -> this.service.update(noDescription.getId(), new DomainDefinition(null, null, "10.255.5.1")));
 	}
 
 	@Test

@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* REST API: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty.
 * REST API: `POST /domains` and `PUT /domains/{id}` with a malformed `ipAddress` now answer 400 (`NETSHOT_MALFORMED_IP_ADDRESS`), and without `ipAddress` 400 (`NETSHOT_INVALID_IP_ADDRESS`), instead of 500.
 * REST API: an unknown ID now answers 404 on `GET /tasks/{id}` (`NETSHOT_TASK_NOT_FOUND`) and `GET /scripts/{id}` (`NETSHOT_SCRIPT_NOT_FOUND`), which used to answer 204 with an empty body, and on `PUT /tasks/{id}` (`NETSHOT_TASK_NOT_FOUND`), which used to answer 400 (`NETSHOT_INVALID_TASK`).
 * REST API: the `userInputDefinitions` posted with a script (`POST /scripts`) are now ignored, and the script is always evaluated to extract them. Posting them used to skip the evaluation, so a script with a syntax error could be saved; object entries (as returned by `GET /scripts`) were refused.

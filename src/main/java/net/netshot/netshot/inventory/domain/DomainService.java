@@ -87,12 +87,12 @@ public class DomainService {
 	 *         or the domain can't be stored
 	 */
 	public Domain create(DomainDefinition definition) {
-		String name = definition.name().trim();
+		String name = definition.name() == null ? "" : definition.name().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an empty domain name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
 		}
-		String description = definition.description().trim();
+		String description = definition.description() == null ? "" : definition.description().trim();
 		Domain domain;
 		try {
 			Network4Address v4Address = parseServerAddress(definition.server4Address());
@@ -127,12 +127,12 @@ public class DomainService {
 	 *         the name is already used, or the domain can't be stored
 	 */
 	public Domain update(long id, DomainDefinition definition) {
-		String name = definition.name().trim();
+		String name = definition.name() == null ? "" : definition.name().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an invalid domain name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
 		}
-		String description = definition.description().trim();
+		String description = definition.description() == null ? "" : definition.description().trim();
 		Network4Address v4Address;
 		try {
 			v4Address = parseServerAddress(definition.server4Address());
