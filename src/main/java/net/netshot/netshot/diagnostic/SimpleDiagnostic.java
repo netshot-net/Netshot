@@ -18,9 +18,7 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess.Export;
-import org.graalvm.polyglot.Value;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -36,7 +34,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
@@ -169,37 +166,6 @@ public class SimpleDiagnostic extends Diagnostic {
 		catch (Exception e) {
 			return "Unknown driver";
 		}
-	}
-
-
-	@Transient
-	@Override
-	public DiagnosticResult makeResult(Device device, Value value) {
-		String newValue = value.asString();
-		if (this.getModifierPattern() != null) {
-			newValue = newValue.replaceAll(this.getModifierPattern(), this.getModifierReplacement());
-		}
-		switch (this.resultType) {
-			case LONGTEXT:
-				return new DiagnosticLongTextResult(device, this, newValue);
-			case TEXT:
-				return new DiagnosticTextResult(device, this, newValue);
-			case NUMERIC:
-				return new DiagnosticNumericResult(device, this, Double.parseDouble(newValue));
-			case BINARY:
-				boolean booleanValue = !"".equals(newValue) && !"false".equals(newValue.toLowerCase()) && !"no".equals(newValue.toLowerCase());
-				return new DiagnosticBinaryResult(device, this, booleanValue);
-			default:
-				return null;
-		}
-	}
-
-	@Override
-	public Value getJsObject(Device device, Context context) {
-		if (!device.getDriver().equals(this.getDeviceDriver())) {
-			return null;
-		}
-		return Value.asValue(new JsSimpleDiagnostic(this.cliMode, this.command));
 	}
 
 }
