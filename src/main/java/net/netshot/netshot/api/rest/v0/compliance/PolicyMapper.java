@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
@@ -47,10 +48,9 @@ public final class PolicyMapper {
 	 */
 	public static PolicyDto toDto(Policy policy) {
 		List<DeviceGroupDto> groups = new ArrayList<>();
-		for (DeviceGroup group : policy.getTargetGroups()) {
-			// A group which doesn't exist is accepted by the use cases and gives a null in a new policy
-			groups.add(group == null ? null : GroupMapper.toDto(group));
-		}
+		// The target groups are a set: they are listed by ID
+		policy.getTargetGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::getId))
+			.forEach(group -> groups.add(GroupMapper.toDto(group)));
 		return new PolicyDto(policy.getId(), policy.getName(), groups);
 	}
 

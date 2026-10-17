@@ -45,6 +45,7 @@ import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.api.rest.v0.device.DeviceAccessDto;
 import net.netshot.netshot.api.rest.v0.device.DeviceAccessMapper;
+import net.netshot.netshot.api.rest.v0.device.DeviceAttributeDto;
 import net.netshot.netshot.api.rest.v0.device.DeviceDto;
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
 import net.netshot.netshot.api.rest.v0.device.NewDeviceRequest;
@@ -235,6 +236,21 @@ class DeviceDtoTest {
 		Assertions.assertTrue(json.contains("\"endOfLife\":true"), json);
 		Assertions.assertTrue(json.contains("\"password\":\"=\""), json);
 		Assertions.assertTrue(new String(xml(DeviceMapper.toDto(TestDrivers.registry(), device))).startsWith("<Device>"));
+	}
+
+	@Test
+	@DisplayName("The tags and the attributes of a device (sets) are listed in a stable order, by name")
+	void collectionsInStableOrder() {
+		Device device = new Device("CiscoIOS12", "10.1.1.3", null, "seed");
+		List<String> tags = List.of("zulu", "alpha", "mike", "bravo", "yankee", "charlie", "x-ray", "delta");
+		device.replaceTags(tags);
+		for (String name : tags) {
+			device.addAttribute(new DeviceTextAttribute(device, name, "v"));
+		}
+		DeviceDto dto = DeviceMapper.toDto(TestDrivers.registry(), device);
+		List<String> sorted = tags.stream().sorted().toList();
+		Assertions.assertEquals(sorted, dto.tags());
+		Assertions.assertEquals(sorted, dto.attributes().stream().map(DeviceAttributeDto::name).toList());
 	}
 
 	@Test

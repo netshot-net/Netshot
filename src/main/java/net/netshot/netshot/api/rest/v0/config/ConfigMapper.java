@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.config;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,7 +59,9 @@ public final class ConfigMapper {
 	 */
 	public static ConfigDto toDto(Config config) {
 		List<ConfigAttributeDto> attributes = new ArrayList<>();
-		config.getAttributes().forEach(attribute -> attributes.add(toDto(attribute)));
+		// The attributes are a set: they are listed by name
+		config.getAttributes().stream().sorted(Comparator.comparing(ConfigAttribute::getName, Comparator.nullsFirst(Comparator.naturalOrder())))
+			.forEach(attribute -> attributes.add(toDto(attribute)));
 		return new ConfigDto(config.getId(), config.getChangeDate(), config.getAuthor(), attributes, config.getCustomHash());
 	}
 

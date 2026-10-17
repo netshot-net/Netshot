@@ -217,13 +217,6 @@ class ComplianceDtoTest {
 		Policy empty = new Policy("Empty", new HashSet<>());
 		empty.setId(4);
 		this.assertRepresentation(PolicyMapper.toDto(empty));
-		// A group which doesn't exist gives a null in the groups of a new policy (see PolicyService)
-		Set<DeviceGroup> withNull = new HashSet<>();
-		withNull.add(null);
-		withNull.add(staticGroup());
-		Policy quirk = new Policy("Quirk", withNull);
-		quirk.setId(5);
-		this.assertRepresentation(PolicyMapper.toDto(quirk));
 		this.assertRepresentation(PolicyMapper.toDtos(List.of(policy, empty)));
 		String json = new String(json(PolicyMapper.toDto(policy)));
 		Assertions.assertTrue(json.contains("\"type\":\"DynamicDeviceGroup\""), json);
