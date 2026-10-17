@@ -21,6 +21,7 @@ package net.netshot.netshot.inventory.device;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -215,18 +216,22 @@ public final class DeviceValidation {
 	/**
 	 * Validates per-device Options values against the driver's declared
 	 * {@link OptionDefinition}s: every key must be a known option, and the value
-	 * must be properly typed for it (a real boolean for BOOLEAN, a string for
-	 * TEXT - one of {@code choices} when declared) - values are stored as-is,
-	 * as real JSON, not stringified (see {@link Device#getOptions()}).
+	 * must be properly typed for it (a boolean for BOOLEAN, a string for
+	 * TEXT - one of {@code choices} when declared) - values are stored as real JSON,
+	 * not stringified (see {@link Device#getOptions()}). A BOOLEAN option may also be
+	 * given as the text {@code true} or {@code false} (the only way in XML, where all
+	 * the values are text): it is then converted to a boolean.
 	 * @param driver the device's driver, or null if not known yet - a non-empty
 	 *        options map is rejected in that case
 	 * @param options the options to validate (may be null)
+	 * @return the options to store (the given ones, with the converted booleans), or the given map if null or empty
 	 * @throws NetshotException if any entry is invalid
 	 */
-	public static void validateOptions(DeviceDriver driver, Map<String, Object> options) {
+	public static Map<String, Object> validateOptions(DeviceDriver driver, Map<String, Object> options) {
 		if (options == null || options.isEmpty()) {
-			return;
+			return options;
 		}
+		Map<String, Object> normalized = new LinkedHashMap<>();
 		if (driver == null) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
 				"Cannot set options without a known device type.");
@@ -238,11 +243,16 @@ public final class DeviceValidation {
 					"Unknown option '%s' for this device type.".formatted(entry.getKey()));
 			}
 			Object value = entry.getValue();
+			normalized.put(entry.getKey(), value);
 			if (value == null) {
 				continue;
 			}
 			switch (definition.getType()) {
 				case BOOLEAN:
+					if ("true".equals(value) || "false".equals(value)) {
+						value = Boolean.valueOf((String) value);
+						normalized.put(entry.getKey(), value);
+					}
 					if (!(value instanceof Boolean)) {
 						throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
 							"Option '%s' should be a boolean.".formatted(entry.getKey()));
@@ -262,6 +272,7 @@ public final class DeviceValidation {
 					break;
 			}
 		}
+		return normalized;
 	}
 
 	/**

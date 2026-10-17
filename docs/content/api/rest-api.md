@@ -73,7 +73,7 @@ Request bodies can be sent as XML (`Content-Type: application/xml`) as well as J
 - A list is a wrapper element holding one child element of the same name per item, e.g. `<tags><tags>core</tags><tags>edge</tags></tags>`.
 - The `type` discriminator of the polymorphic bodies (credential sets...) is an attribute of the root element, e.g. `<credentialSet type="SSH">`.
 - Absent elements take the same default values as absent JSON properties.
-- The values of free-form maps (such as the driver `options` when adding a device) are read as strings in XML, so options which have to be booleans or numbers can't be set that way: use JSON for these requests.
+- The values of free-form maps (such as the driver `options` of a device) are read as text in XML: a boolean driver option is given as `true` or `false`, and stored as a boolean.
 
 ```bash
 curl -X POST -H "Content-Type: application/xml" -H "Accept: application/xml" \
