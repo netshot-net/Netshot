@@ -30,12 +30,6 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hibernate.Session;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +45,6 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -65,44 +58,30 @@ public class UserDeviceScript extends DeviceScript {
 	/**
 	 * Definition of user input data.
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static class UserInputDefinition {
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String name;
 
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private DriverValueType type;
 
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String label;
 
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String description;
 
 		/** Valid choices restricting a TEXT input's value; when set, the value must be one of these. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private List<String> choices;
 
 		/** Default value, as a raw string (e.g. "true"/"false" for BOOLEAN). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String defaultValue;
 

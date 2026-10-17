@@ -20,13 +20,9 @@ package net.netshot.netshot.driver;
 
 import org.graalvm.polyglot.Value;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 public final class AttributeDefinition {
 
@@ -57,45 +53,31 @@ public final class AttributeDefinition {
 	@Setter
 	private DeviceDriver driver;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private AttributeType type;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private AttributeLevel level;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String name;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String title;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean comparable;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean searchable;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean checkable;
 

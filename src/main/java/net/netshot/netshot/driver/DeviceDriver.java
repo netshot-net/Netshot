@@ -46,13 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 import org.slf4j.event.Level;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -72,15 +66,12 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
  * This is a device driver.
  */
-@XmlRootElement()
-@XmlAccessorType(XmlAccessType.NONE)
 @Slf4j
 public class DeviceDriver implements Comparable<DeviceDriver> {
 
@@ -132,20 +123,14 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	/**
 	 * Driver location.
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static class Location {
 		/** Location type. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private LocationType type;
 
 		/** File name. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String fileName;
 
@@ -272,57 +257,41 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	}
 
 	/** The name of the driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private String name;
 
 	/** The author of the driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private String author;
 
 	/** The description of the driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private String description;
 
 	/** The version of the driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private String version;
 
 	/**
 	 * The priority of the driver for autodiscovery.
 	 * 65536 by default, larger number gives higher priority.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private int priority;
 
 	/** The device attributed provided by this driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private Set<AttributeDefinition> attributes = new HashSet<>();
 
 	/** The device attributes as map for faster lookup. */
 	private Map<AttributeDefinition.AttributeLevel, Map<String, AttributeDefinition>> attributesByName;
 
 	/** The per-device, user-configurable options declared by this driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private Map<String, OptionDefinition> options = new HashMap<>();
 
 	/** The protocols provided by this driver. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Set<DriverProtocol> protocols = new HashSet<>();
 
@@ -330,9 +299,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * The main CLI modes supported by this driver (e.g. 'enable', 'configure',
 	 * etc.)
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private Set<String> cliMainModes = new HashSet<>();
 
 	/** Set to true if the driver can analyze SNMP traps. */
@@ -351,15 +318,11 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	private Source source;
 
 	/** Source hash. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private String sourceHash;
 
 	/** Driver file location. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private Location location;
 
 	/** The execution engine (for eval caching). */
@@ -371,25 +334,17 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * SSH/Telnet config. A driver may declare several accesses of the same
 	 * protocol (e.g. a secondary SSH access on another port).
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static final class AccessDefinition {
 		/** The JS key this access was declared under (e.g. "alternateSsh"). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		private final String name;
 
 		/** The protocol family (SSH, TELNET, SNMPV1/V2C/V3 or HTTP). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		private final DriverProtocol protocol;
 
 		/** Optional human-readable description. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		private final String description;
 
 		/** Populated only when protocol == SSH. */
@@ -409,9 +364,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		 * HTTP/HTTPS, UDP for SNMP. This is what the frontend should display/
 		 * prefill for a per-access address/port override.
 		 */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		private final int defaultPort;
 
 		/**
@@ -421,9 +374,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		 * access's protocol family (see {@link #defaultGroupFor}) but may be
 		 * overridden by the driver, including to a fully custom value.
 		 */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		private final String group;
 
 		/**
@@ -431,9 +382,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		 * (higher = tried first). Defaults per protocol (see
 		 * {@link #defaultPriorityFor}) but may be overridden by the driver.
 		 */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		private final int priority;
 
 		/**
@@ -537,9 +486,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	}
 
 	/** The named accesses (CLI/SNMP/HTTP) declared by this driver, in declaration order. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	private Map<String, AccessDefinition> accessDefinitions = new LinkedHashMap<>();
 
 	/**

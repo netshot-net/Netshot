@@ -25,9 +25,6 @@ import org.apache.commons.net.telnet.InvalidTelnetOptionException;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.apache.commons.net.telnet.WindowSizeOptionHandler;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -88,8 +85,6 @@ public class Telnet extends Cli {
 	/**
 	 * Embedded class to represent Telnet-specific configuration.
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static class TelnetConfig {
 
 		/** Type of terminal. Null means "not set" (see {@link #withDefaults}). */
