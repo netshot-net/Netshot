@@ -266,14 +266,16 @@ class CredentialSetServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("update() of a SSH key account clears the private key when it is not given (a known quirk)")
+	@DisplayName("update() of a SSH key account keeps the private key when it is not given, and changes it when it is")
 	void updateSshKey() {
 		DeviceSshKeyAccount created = (DeviceSshKeyAccount) this.service.create(
 			new DeviceSshKeyAccount("u", "the-key", "p", null, this.nextName()));
 		this.service.update(created.getId(), new DeviceSshKeyAccount("u", null, null, null, created.getName()));
 		DeviceSshKeyAccount reloaded = (DeviceSshKeyAccount) this.stored(created.getId());
 		Assertions.assertEquals("p", reloaded.getPassword(), "the password is kept");
-		Assertions.assertNull(reloaded.getPrivateKey(), "the private key is not kept when it is not given");
+		Assertions.assertEquals("the-key", reloaded.getPrivateKey(), "the private key is kept when it is not given");
+		this.service.update(created.getId(), new DeviceSshKeyAccount("u", "new-key", null, null, created.getName()));
+		Assertions.assertEquals("new-key", ((DeviceSshKeyAccount) this.stored(created.getId())).getPrivateKey());
 	}
 
 	@Test
