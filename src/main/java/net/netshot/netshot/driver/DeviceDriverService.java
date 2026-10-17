@@ -28,10 +28,21 @@ import net.netshot.netshot.cluster.ClusterManager;
  * The device driver use case: list the device types (the drivers loaded by the server), and
  * optionally reload them all from their sources first.
  *
- * <p>The drivers are held by a static registry ({@link DeviceDriver}), not by the database.</p>
+ * <p>The drivers are held by the {@link DriverRegistry}, not by the database.</p>
  */
 @Slf4j
 public class DeviceDriverService {
+
+	private final DriverRegistry driverRegistry;
+
+	/**
+	 * Instantiates the service.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 */
+	public DeviceDriverService(DriverRegistry driverRegistry) {
+		this.driverRegistry = driverRegistry;
+	}
 
 	/**
 	 * Lists the device types.
@@ -45,12 +56,12 @@ public class DeviceDriverService {
 		if (refresh) {
 			ClusterManager.requestDriverReload();
 			try {
-				DeviceDriver.refreshDrivers();
+				this.driverRegistry.refresh();
 			}
 			catch (Exception e) {
 				log.error("Error while refreshing the device types.", e);
 			}
 		}
-		return new ArrayList<>(DeviceDriver.getAllDrivers());
+		return new ArrayList<>(this.driverRegistry.getAllDrivers());
 	}
 }

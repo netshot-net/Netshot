@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -47,16 +47,19 @@ public class HardwareRuleService {
 
 	private final Transactions transactions;
 	private final HardwareRuleRepository repository;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the hardware rule repository
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public HardwareRuleService(Transactions transactions, HardwareRuleRepository repository) {
+	public HardwareRuleService(Transactions transactions, HardwareRuleRepository repository, DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -179,8 +182,8 @@ public class HardwareRuleService {
 		return this.repository.findGroup(session, groupId);
 	}
 
-	private static String knownDriver(String driver) {
-		if (DeviceDriver.getDriverByName(driver) == null) {
+	private String knownDriver(String driver) {
+		if (this.driverRegistry.getDriverByName(driver) == null) {
 			return null;
 		}
 		return driver;
