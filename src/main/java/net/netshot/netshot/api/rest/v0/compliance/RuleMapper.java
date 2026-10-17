@@ -33,6 +33,8 @@ import net.netshot.netshot.compliance.RuleTestResult;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * Maps the compliance rules (and what is read about them) between the entities, the projections
@@ -44,17 +46,30 @@ public final class RuleMapper {
 		// Static helpers only
 	}
 
+	// The description of the driver of the rule: empty for any driver, "Unknown driver" when it isn't loaded
+	private static String deviceDriverDescription(DriverRegistry driverRegistry, TextRule rule) {
+		if ("".equals(rule.getDeviceDriver())) {
+			return "";
+		}
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.getDeviceDriver());
+		if (deviceDriver == null) {
+			return "Unknown driver";
+		}
+		return deviceDriver.getDescription();
+	}
+
 	/**
 	 * Maps a rule to its representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param ruleOrProxy the rule (or a proxy of it)
 	 * @return the DTO, of the kind of the rule
 	 */
-	public static RuleDto toDto(Rule ruleOrProxy) {
+	public static RuleDto toDto(DriverRegistry driverRegistry, Rule ruleOrProxy) {
 		Rule rule = (Rule) Hibernate.unproxy(ruleOrProxy);
 		if (rule instanceof TextRule text) {
 			return new RuleDto.Text(text.isAnyBlock(), text.getContext(), text.getDeviceDriver(),
-				text.getDeviceDriverDescription(), text.isEnabled(), text.getField(), text.getId(), text.isInvert(),
+				deviceDriverDescription(driverRegistry, text), text.isEnabled(), text.getField(), text.getId(), text.isInvert(),
 				text.isMatchAll(), text.getName(), text.isNormalize(), text.isRegExp(), text.getText());
 		}
 		else if (rule instanceof JavaScriptRule js) {
@@ -69,12 +84,13 @@ public final class RuleMapper {
 	/**
 	 * Maps the rules to their representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param rules the rules
 	 * @return the DTOs, in the same order
 	 */
-	public static List<RuleDto> toDtos(List<Rule> rules) {
+	public static List<RuleDto> toDtos(DriverRegistry driverRegistry, List<Rule> rules) {
 		List<RuleDto> dtos = new ArrayList<>(rules.size());
-		rules.forEach(rule -> dtos.add(toDto(rule)));
+		rules.forEach(rule -> dtos.add(toDto(driverRegistry, rule)));
 		return dtos;
 	}
 

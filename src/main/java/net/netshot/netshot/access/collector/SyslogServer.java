@@ -30,8 +30,9 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
 
 /**
  * A Syslog server receives the syslog messages from devices and triggers
@@ -42,6 +43,12 @@ public class SyslogServer extends Collector {
 
 	/** The socket. */
 	private DatagramSocket socket;
+
+	/** The loaded device drivers. */
+	private final DriverRegistry driverRegistry;
+
+	/** The scheduler of the automatic snapshots. */
+	private final AutoSnapshotScheduler autoSnapshotScheduler;
 
 	/** The UDP port to listen Syslog messages on. */
 	private int udpPort = 514;
@@ -57,20 +64,28 @@ public class SyslogServer extends Collector {
 
 	/**
 	 * Initializes the Syslog server.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
-	public static void init() {
+	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
 		if (Netshot.getConfig("netshot.syslog.disabled", false)) {
 			log.warn("The Syslog server is disabled by configuration.");
 			return;
 		}
-		nsSyslogServer = new SyslogServer();
+		nsSyslogServer = new SyslogServer(driverRegistry, autoSnapshotScheduler);
 		nsSyslogServer.start();
 	}
 
 	/**
 	 * Instantiates a new syslog server.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
-	public SyslogServer() {
+	public SyslogServer(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
+		this.driverRegistry = driverRegistry;
+		this.autoSnapshotScheduler = autoSnapshotScheduler;
 		this.setName("Syslog Receiver");
 		this.setDaemon(true);
 		this.udpPort = Netshot.getConfig("netshot.syslog.port", 514, 1, 65535);
@@ -99,13 +114,13 @@ public class SyslogServer extends Collector {
 					String message = new String(dato.getData(), 0, dato.getLength());
 					log.trace("Received Syslog message: '{}'.", message);
 
-					for (DeviceDriver driver : DeviceDriver.getAllDrivers()) {
+					for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
 						if (driver.analyzeSyslog(message, source)) {
 							matchingDrivers.add(driver.getName());
 						}
 					}
 					if (matchingDrivers.size() > 0) {
-						TakeSnapshotTask.scheduleSnapshotIfNeeded(matchingDrivers, source);
+						this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(matchingDrivers, source);
 					}
 				}
 			}

@@ -49,6 +49,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.NetshotNotAuthorizedException;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskFilter;
@@ -67,6 +68,7 @@ import net.netshot.netshot.task.TaskService;
 public class TaskResource {
 
 	private final TaskService taskService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -78,10 +80,12 @@ public class TaskResource {
 	 * Instantiates the resource.
 	 *
 	 * @param taskService the task use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public TaskResource(TaskService taskService) {
+	public TaskResource(TaskService taskService, DriverRegistry driverRegistry) {
 		this.taskService = taskService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	private String getUsername() {
@@ -137,7 +141,7 @@ public class TaskResource {
 		log.debug("REST request, get task {}", id);
 		// An unknown task has always been answered with an empty body (HTTP 204)
 		Task task = this.taskService.find(id);
-		return task == null ? null : TaskMapper.toDto(task);
+		return task == null ? null : TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**
@@ -219,7 +223,7 @@ public class TaskResource {
 	public TaskDto setTask(@PathParam("id") @Parameter(description = "Task ID") Long id, TaskRequest rsTask)
 		throws WebApplicationException {
 		log.debug("REST request, edit task {}.", id);
-		return TaskMapper.toDto(this.taskService.update(id, rsTask.isCancelled(), this.getUsername()));
+		return TaskMapper.toDto(this.driverRegistry, this.taskService.update(id, rsTask.isCancelled(), this.getUsername()));
 	}
 
 	/**
@@ -295,7 +299,7 @@ public class TaskResource {
 		this.checkPermission(rsTask.getType());
 		Task task = this.taskService.create(TaskMapper.toCreation(rsTask, this.getUsername()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return TaskMapper.toDto(task);
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	// Some task types need a role higher than the one required to create tasks

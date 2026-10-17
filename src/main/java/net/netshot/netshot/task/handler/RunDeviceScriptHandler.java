@@ -22,6 +22,7 @@ import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.devicescript.UserDeviceScript;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.platform.database.Database;
@@ -40,13 +41,16 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 @Slf4j
 public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> {
 
+	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
 
 	/**
 	 * Creates the handler.
+	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 */
-	public RunDeviceScriptHandler(TaskSubmitter taskSubmitter) {
+	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
 	}
 
@@ -88,7 +92,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 				return;
 			}
 
-			deviceScript = new UserDeviceScript(task.getDeviceDriver(), task.getScript(), task.logger);
+			deviceScript = new UserDeviceScript(this.driverRegistry, task.getDeviceDriver(), task.getScript(), task.logger);
 			deviceScript.setUserInputValues(task.getUserInputValues());
 			deviceScript.connectRun(session, device);
 
