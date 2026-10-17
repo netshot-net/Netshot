@@ -1,0 +1,43 @@
+[
+  {
+    "description": "Uplink",
+    "enabled": true,
+    "id": 3,
+    "interfaceName": "Gi0/0",
+    "ip4Addresses": [
+      {
+        "addressUsage": "PRIMARY",
+        "ip": "10.0.0.1",
+        "prefixLength": 24
+      },
+      {
+        "addressUsage": "SECONDARY",
+        "ip": "10.0.1.1",
+        "prefixLength": 24
+      }
+    ],
+    "ip6Addresses": [
+      {
+        "addressUsage": "HSRP",
+        "ip": "2001:db8:0:0:0:0:0:1",
+        "prefixLength": 64
+      }
+    ],
+    "level3": true,
+    "macAddress": "0000.0000.0000",
+    "virtualDevice": "vd",
+    "vrfInstance": "VRF1"
+  },
+  {
+    "description": null,
+    "enabled": false,
+    "id": 4,
+    "interfaceName": "",
+    "ip4Addresses": [ ],
+    "ip6Addresses": [ ],
+    "level3": false,
+    "macAddress": "0000.0000.0000",
+    "virtualDevice": "",
+    "vrfInstance": ""
+  }
+]

@@ -1,0 +1,304 @@
+<?xml version="1.0"?>
+<Device>
+  <accesses>
+    <accesses>
+      <accessName>a1</accessName>
+      <address/>
+      <globalCredentialSet type="SNMP v1">
+        <community>=</community>
+        <communityVaultInstanceId>5</communityVaultInstanceId>
+        <communityVaultPath>path/community1</communityVaultPath>
+        <deviceSpecific>false</deviceSpecific>
+        <id>1</id>
+        <mgmtDomain/>
+        <name>SNMP v1</name>
+      </globalCredentialSet>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet/>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>a2</accessName>
+      <address/>
+      <globalCredentialSet/>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet type="SNMP v2">
+        <community>=</community>
+        <communityVaultInstanceId/>
+        <communityVaultPath/>
+        <deviceSpecific>false</deviceSpecific>
+        <id>2</id>
+        <mgmtDomain>
+          <changeDate>1600000000000</changeDate>
+          <description>Description of Paris DC</description>
+          <id>1</id>
+          <name>Paris DC</name>
+          <server4Address>10.255.0.1</server4Address>
+          <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
+        </mgmtDomain>
+        <name>SNMP v2</name>
+      </specificCredentialSet>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>a3</accessName>
+      <address/>
+      <globalCredentialSet type="SNMP v3">
+        <authKey>=</authKey>
+        <authKeyVaultInstanceId>7</authKeyVaultInstanceId>
+        <authKeyVaultPath>path/auth</authKeyVaultPath>
+        <authType>HMAC192SHA256</authType>
+        <community/>
+        <communityVaultInstanceId/>
+        <communityVaultPath/>
+        <deviceSpecific>false</deviceSpecific>
+        <id>3</id>
+        <mgmtDomain>
+          <changeDate>1600000000000</changeDate>
+          <description>Description of Paris DC</description>
+          <id>1</id>
+          <name>Paris DC</name>
+          <server4Address>10.255.0.1</server4Address>
+          <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
+        </mgmtDomain>
+        <name>SNMP v3</name>
+        <privKey>=</privKey>
+        <privKeyVaultInstanceId>8</privKeyVaultInstanceId>
+        <privKeyVaultPath>path/priv</privKeyVaultPath>
+        <privType>AES256</privType>
+        <username>user</username>
+        <usernameVaultInstanceId>6</usernameVaultInstanceId>
+        <usernameVaultPath>path/user</usernameVaultPath>
+      </globalCredentialSet>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet/>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>a4</accessName>
+      <address/>
+      <globalCredentialSet/>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet type="SSH">
+        <deviceSpecific>false</deviceSpecific>
+        <id>4</id>
+        <mgmtDomain/>
+        <name>SSH</name>
+        <password>=</password>
+        <passwordVaultInstanceId>9</passwordVaultInstanceId>
+        <passwordVaultPath>path/pass</passwordVaultPath>
+        <superPassword>=</superPassword>
+        <superPasswordVaultInstanceId/>
+        <superPasswordVaultPath/>
+        <username>sshuser</username>
+        <usernameVaultInstanceId/>
+        <usernameVaultPath/>
+      </specificCredentialSet>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>a5</accessName>
+      <address/>
+      <globalCredentialSet type="SSH Key">
+        <deviceSpecific>false</deviceSpecific>
+        <id>5</id>
+        <mgmtDomain>
+          <changeDate>1600000000000</changeDate>
+          <description>Description of Paris DC</description>
+          <id>1</id>
+          <name>Paris DC</name>
+          <server4Address>10.255.0.1</server4Address>
+          <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
+        </mgmtDomain>
+        <name>SSH Key</name>
+        <password>=</password>
+        <passwordVaultInstanceId/>
+        <passwordVaultPath/>
+        <privateKey>=</privateKey>
+        <privateKeyVaultInstanceId>10</privateKeyVaultInstanceId>
+        <privateKeyVaultPath>path/key</privateKeyVaultPath>
+        <superPassword>=</superPassword>
+        <superPasswordVaultInstanceId/>
+        <superPasswordVaultPath/>
+        <username>keyuser</username>
+        <usernameVaultInstanceId/>
+        <usernameVaultPath/>
+      </globalCredentialSet>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet/>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>a6</accessName>
+      <address/>
+      <globalCredentialSet/>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet type="Telnet">
+        <deviceSpecific>false</deviceSpecific>
+        <id>6</id>
+        <mgmtDomain/>
+        <name>Telnet</name>
+        <password>=</password>
+        <passwordVaultInstanceId/>
+        <passwordVaultPath/>
+        <superPassword>=</superPassword>
+        <superPasswordVaultInstanceId/>
+        <superPasswordVaultPath/>
+        <username>telnetuser</username>
+        <usernameVaultInstanceId/>
+        <usernameVaultPath/>
+      </specificCredentialSet>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>a7</accessName>
+      <address/>
+      <globalCredentialSet type="HTTP">
+        <deviceSpecific>true</deviceSpecific>
+        <id>7</id>
+        <mgmtDomain/>
+        <name>HTTP</name>
+        <password>=</password>
+        <passwordVaultInstanceId/>
+        <passwordVaultPath/>
+        <username>httpuser</username>
+        <usernameVaultInstanceId>11</usernameVaultInstanceId>
+        <usernameVaultPath>path/http</usernameVaultPath>
+      </globalCredentialSet>
+      <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+      <httpsCustomCaCertificate/>
+      <port/>
+      <specificCredentialSet/>
+      <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+      <sshTrustedHostKeys/>
+      <sshTrustedHostKeysSince/>
+    </accesses>
+    <accesses>
+      <accessName>plain</accessName>
+      <address>192.0.2.1</address>
+      <globalCredentialSet/>
+      <httpsCaTrustMode>CUSTOM_CA</httpsCaTrustMode>
+      <httpsCustomCaCertificate>-----BEGIN CERTIFICATE-----</httpsCustomCaCertificate>
+      <port>8443</port>
+      <specificCredentialSet/>
+      <sshHostKeyVerification>TRUST_KNOWN</sshHostKeyVerification>
+      <sshTrustedHostKeys>ssh-ed25519 AAAA</sshTrustedHostKeys>
+      <sshTrustedHostKeysSince>1600000400000</sshTrustedHostKeysSince>
+    </accesses>
+  </accesses>
+  <attributes>
+    <attributes type="BINARY">
+      <assumption>true</assumption>
+      <name>binary</name>
+    </attributes>
+    <attributes type="LONGTEXT">
+      <name>long</name>
+    </attributes>
+    <attributes type="NUMERIC">
+      <name>number</name>
+      <number>12.5</number>
+    </attributes>
+    <attributes type="TEXT">
+      <name>text</name>
+      <text>some text</text>
+    </attributes>
+  </attributes>
+  <cachedIpAddress>10.1.1.1</cachedIpAddress>
+  <changeDate>1600000100000</changeDate>
+  <comments>Some comments</comments>
+  <compliant>true</compliant>
+  <contact>noc@example.net</contact>
+  <createdDate>1500000000000</createdDate>
+  <creator>seed</creator>
+  <driver>CiscoIOS12</driver>
+  <endOfLife>true</endOfLife>
+  <endOfSale>false</endOfSale>
+  <eolDate>1000000000000</eolDate>
+  <eolModule>
+    <firstSeenDate>1400000000000</firstSeenDate>
+    <id>10</id>
+    <lastSeenDate>1410000000000</lastSeenDate>
+    <partNumber>PN-EOL</partNumber>
+    <removed>false</removed>
+    <serialNumber>SN-EOL</serialNumber>
+    <slot>1</slot>
+  </eolModule>
+  <eosDate>4000000000000</eosDate>
+  <eosModule>
+    <firstSeenDate/>
+    <id>11</id>
+    <lastSeenDate/>
+    <partNumber>PN-EOS</partNumber>
+    <removed>true</removed>
+    <serialNumber>SN-EOS</serialNumber>
+    <slot>2</slot>
+  </eosModule>
+  <family>Cisco 2900</family>
+  <id>42</id>
+  <location>Paris</location>
+  <mgmtAddress>10.1.1.1</mgmtAddress>
+  <mgmtDomain>
+    <changeDate>1600000000000</changeDate>
+    <description>Description of Paris DC</description>
+    <id>1</id>
+    <name>Paris DC</name>
+    <server4Address>10.255.0.1</server4Address>
+    <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
+  </mgmtDomain>
+  <name>router-1</name>
+  <networkClass>ROUTER</networkClass>
+  <options>
+    <fullBackup>true</fullBackup>
+    <mode>fast</mode>
+  </options>
+  <ownerGroups>
+    <ownerGroups type="DynamicDeviceGroup">
+      <changeDate>1600000200000</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>100</id>
+      <name>Dynamic</name>
+      <query>[Name] contains &quot;r&quot;</query>
+    </ownerGroups>
+    <ownerGroups type="StaticDeviceGroup">
+      <changeDate>1600000300000</changeDate>
+      <folder/>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>101</id>
+      <name>Static</name>
+    </ownerGroups>
+  </ownerGroups>
+  <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+  <serialNumber>SN1</serialNumber>
+  <softwareLevel>GOLD</softwareLevel>
+  <softwareVersion>16.1</softwareVersion>
+  <status>PREPRODUCTION</status>
+  <tags>
+    <tags>core</tags>
+    <tags>production</tags>
+  </tags>
+</Device>

@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "id": 7,
+  "name": "Python",
+  "resultType": "BINARY",
+  "script": "def diagnose():\n  pass",
+  "targetGroup": {
+    "changeDate": 1600000200000,
+    "folder": "Production",
+    "hiddenFromReports": false,
+    "id": 100,
+    "name": "Dynamic",
+    "query": "[Name] contains \"r\"",
+    "type": "DynamicDeviceGroup"
+  },
+  "type": "PythonDiagnostic"
+}

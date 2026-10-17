@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -92,7 +93,8 @@ class ComplianceDtoTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(ComplianceDtoTest.class);
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
@@ -111,13 +113,8 @@ class ComplianceDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	private static DynamicDeviceGroup dynamicGroup() {
@@ -156,13 +153,13 @@ class ComplianceDtoTest {
 	@DisplayName("A text rule has the same JSON and XML representation as the entity")
 	void textRuleRepresentation() throws Exception {
 		TextRule rule = textRule();
-		this.assertSameRepresentation(rule, RuleMapper.toDto(rule));
+		this.assertRepresentation(RuleMapper.toDto(rule));
 		TextRule unknownDriver = new TextRule("Other", null);
 		unknownDriver.setDeviceDriver("NoSuchDriver");
-		this.assertSameRepresentation(unknownDriver, RuleMapper.toDto(unknownDriver));
+		this.assertRepresentation(RuleMapper.toDto(unknownDriver));
 		TextRule noDriver = new TextRule("Another", null);
 		noDriver.setDeviceDriver("");
-		this.assertSameRepresentation(noDriver, RuleMapper.toDto(noDriver));
+		this.assertRepresentation(RuleMapper.toDto(noDriver));
 		// Make sure the check is meaningful
 		String json = new String(json(RuleMapper.toDto(rule)));
 		Assertions.assertTrue(json.contains("\"type\":\"TextRule\""), json);
@@ -178,9 +175,9 @@ class ComplianceDtoTest {
 		rule.setId(8);
 		rule.setEnabled(true);
 		rule.setScript("function check(device) {\n  return CONFORMING;\n}");
-		this.assertSameRepresentation(rule, RuleMapper.toDto(rule));
+		this.assertRepresentation(RuleMapper.toDto(rule));
 		JavaScriptRule template = new JavaScriptRule("JS template", null);
-		this.assertSameRepresentation(template, RuleMapper.toDto(template));
+		this.assertRepresentation(RuleMapper.toDto(template));
 		String json = new String(json(RuleMapper.toDto(rule)));
 		Assertions.assertTrue(json.contains("\"type\":\"JavaScriptRule\""), json);
 		Assertions.assertTrue(new String(xml(RuleMapper.toDto(rule))).startsWith("<JavaScriptRule type=\"JavaScriptRule\">"));
@@ -192,9 +189,9 @@ class ComplianceDtoTest {
 		PythonRule rule = new PythonRule("Python rule", null);
 		rule.setId(9);
 		rule.setScript("def check(device):\n  return {'result': result_option.CONFORMING}");
-		this.assertSameRepresentation(rule, RuleMapper.toDto(rule));
+		this.assertRepresentation(RuleMapper.toDto(rule));
 		PythonRule template = new PythonRule("Python template", null);
-		this.assertSameRepresentation(template, RuleMapper.toDto(template));
+		this.assertRepresentation(RuleMapper.toDto(template));
 		String json = new String(json(RuleMapper.toDto(rule)));
 		Assertions.assertTrue(json.contains("\"type\":\"PythonRule\""), json);
 		Assertions.assertTrue(new String(xml(RuleMapper.toDto(rule))).startsWith("<PythonRule type=\"PythonRule\">"));
@@ -208,7 +205,7 @@ class ComplianceDtoTest {
 		PythonRule python = new PythonRule("Python rule", null);
 		python.setId(9);
 		List<Rule> rules = new ArrayList<>(List.of(textRule(), js, python));
-		this.assertSameRepresentation(rules, RuleMapper.toDtos(rules));
+		this.assertRepresentation(RuleMapper.toDtos(rules));
 		List<RuleDto> dtos = RuleMapper.toDtos(rules);
 		Assertions.assertInstanceOf(RuleDto.Text.class, dtos.get(0));
 		Assertions.assertInstanceOf(RuleDto.JavaScript.class, dtos.get(1));
@@ -223,18 +220,18 @@ class ComplianceDtoTest {
 		groups.add(staticGroup());
 		Policy policy = new Policy("Policy", groups);
 		policy.setId(3);
-		this.assertSameRepresentation(policy, PolicyMapper.toDto(policy));
+		this.assertRepresentation(PolicyMapper.toDto(policy));
 		Policy empty = new Policy("Empty", new HashSet<>());
 		empty.setId(4);
-		this.assertSameRepresentation(empty, PolicyMapper.toDto(empty));
+		this.assertRepresentation(PolicyMapper.toDto(empty));
 		// A group which doesn't exist gives a null in the groups of a new policy (see PolicyService)
 		Set<DeviceGroup> withNull = new HashSet<>();
 		withNull.add(null);
 		withNull.add(staticGroup());
 		Policy quirk = new Policy("Quirk", withNull);
 		quirk.setId(5);
-		this.assertSameRepresentation(quirk, PolicyMapper.toDto(quirk));
-		this.assertSameRepresentation(new ArrayList<>(List.of(policy, empty)), PolicyMapper.toDtos(List.of(policy, empty)));
+		this.assertRepresentation(PolicyMapper.toDto(quirk));
+		this.assertRepresentation(PolicyMapper.toDtos(List.of(policy, empty)));
 		String json = new String(json(PolicyMapper.toDto(policy)));
 		Assertions.assertTrue(json.contains("\"type\":\"DynamicDeviceGroup\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"StaticDeviceGroup\""), json);
@@ -247,15 +244,14 @@ class ComplianceDtoTest {
 		SoftwareRule rule = new SoftwareRule(10, dynamicGroup(), "CiscoIOS12", "Cisco 2900", true, "15\\..*", true,
 			"CISCO.*", true, ConformanceLevel.SILVER);
 		rule.setId(5);
-		this.assertSameRepresentation(rule, SoftwareRuleMapper.toDto(rule));
+		this.assertRepresentation(SoftwareRuleMapper.toDto(rule));
 		SoftwareRule anything = new SoftwareRule(20, null, null, "", false, "1", false, "", false, ConformanceLevel.BRONZE);
 		anything.setId(6);
-		this.assertSameRepresentation(anything, SoftwareRuleMapper.toDto(anything));
+		this.assertRepresentation(SoftwareRuleMapper.toDto(anything));
 		SoftwareRule staticTarget = new SoftwareRule(30, staticGroup(), "NoSuchDriver", "", false, "1", false, null, false,
 			ConformanceLevel.GOLD);
 		staticTarget.setId(7);
-		this.assertSameRepresentation(new ArrayList<>(List.of(rule, anything, staticTarget)),
-			SoftwareRuleMapper.toDtos(List.of(rule, anything, staticTarget)));
+		this.assertRepresentation(SoftwareRuleMapper.toDtos(List.of(rule, anything, staticTarget)));
 		Assertions.assertTrue(new String(xml(SoftwareRuleMapper.toDto(rule))).startsWith("<SoftwareRule>"));
 		Assertions.assertTrue(new String(json(SoftwareRuleMapper.toDto(rule))).contains("\"deviceType\":\"Cisco IOS and IOS-XE\""));
 	}
@@ -266,56 +262,29 @@ class ComplianceDtoTest {
 		HardwareRule rule = new HardwareRule("CiscoIOS12", staticGroup(), "Cisco 2900", false, "CISCO29.*", true,
 			new Date(1_600_000_000_000L), new Date(1_700_000_000_000L));
 		rule.setId(5);
-		this.assertSameRepresentation(rule, HardwareRuleMapper.toDto(rule));
+		this.assertRepresentation(HardwareRuleMapper.toDto(rule));
 		HardwareRule anything = new HardwareRule(null, null, "", true, "", false, null, null);
 		anything.setId(6);
-		this.assertSameRepresentation(anything, HardwareRuleMapper.toDto(anything));
+		this.assertRepresentation(HardwareRuleMapper.toDto(anything));
 		HardwareRule dynamicTarget = new HardwareRule("NoSuchDriver", dynamicGroup(), null, false, null, false, null,
 			new Date(1_700_000_000_000L));
 		dynamicTarget.setId(7);
-		this.assertSameRepresentation(new ArrayList<>(List.of(rule, anything, dynamicTarget)),
-			HardwareRuleMapper.toDtos(List.of(rule, anything, dynamicTarget)));
+		this.assertRepresentation(HardwareRuleMapper.toDtos(List.of(rule, anything, dynamicTarget)));
 		Assertions.assertTrue(new String(xml(HardwareRuleMapper.toDto(rule))).startsWith("<HardwareRule>"));
 	}
 
-	/** The former exempted device: a subclass of the light device. */
-	@XmlRootElement(name = "RsLightExemptedDevice")
-	@XmlAccessorType(XmlAccessType.NONE)
-	public static class RsLightExemptedDevice extends RsLightDevice {
-
-		private final Date expirationDate;
-
-		public RsLightExemptedDevice(long id, String name, String family, String mgmtAddress, Device.Status status,
-			String driver, Boolean eol, Boolean eos, Boolean configCompliant, ConformanceLevel softwareLevel,
-			Device.NetworkClass networkClass, Date expirationDate) {
-			super(id, name, family, mgmtAddress, status, driver, eol, eos, configCompliant, softwareLevel, networkClass);
-			this.expirationDate = expirationDate;
-		}
-
-		@XmlElement
-		@JsonView(DefaultView.class)
-		public Date getExpirationDate() {
-			return this.expirationDate;
-		}
-	}
-
 	@Test
-	@DisplayName("An exempted device has the same representation as the former subclass of the light device")
+	@DisplayName("An exempted device is written like a light device with its expiration date")
 	void exemptedDeviceRepresentation() throws Exception {
 		Date expiration = new Date(1_700_000_000_000L);
-		RsLightExemptedDevice legacy = new RsLightExemptedDevice(1, "r1", "Cisco", "1.2.3.4", Device.Status.INPRODUCTION,
-			"CiscoIOS12", false, null, true, ConformanceLevel.GOLD, Device.NetworkClass.ROUTER, expiration);
 		ExemptedDevice exempted = new ExemptedDevice(new DeviceSummary(1, "r1", "Cisco", "1.2.3.4",
 			Device.Status.INPRODUCTION, "CiscoIOS12", false, null, true, ConformanceLevel.GOLD, Device.NetworkClass.ROUTER),
 			expiration);
 		ExemptedDeviceDto dto = RuleMapper.toExemptedDtos(List.of(exempted)).get(0);
-		this.assertSameRepresentation(legacy, dto);
-		this.assertSameRepresentation(new ArrayList<>(List.of(legacy)), new ArrayList<>(List.of(dto)));
+		this.assertRepresentation(dto);
+		this.assertRepresentation(new ArrayList<>(List.of(dto)));
 		ExemptedDevice noExpiration = new ExemptedDevice(exempted.device(), null);
-		this.assertSameRepresentation(
-			new RsLightExemptedDevice(1, "r1", "Cisco", "1.2.3.4", Device.Status.INPRODUCTION, "CiscoIOS12", false, null, true,
-				ConformanceLevel.GOLD, Device.NetworkClass.ROUTER, null),
-			RuleMapper.toExemptedDtos(List.of(noExpiration)).get(0));
+		this.assertRepresentation(RuleMapper.toExemptedDtos(List.of(noExpiration)).get(0));
 	}
 
 	@Test

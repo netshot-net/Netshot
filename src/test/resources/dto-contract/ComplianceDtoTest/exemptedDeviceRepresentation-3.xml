@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<RsLightExemptedDevice>
+  <configCompliant>true</configCompliant>
+  <driver>CiscoIOS12</driver>
+  <eol>false</eol>
+  <eos/>
+  <expirationDate/>
+  <family>Cisco</family>
+  <id>1</id>
+  <mgmtAddress>1.2.3.4</mgmtAddress>
+  <name>r1</name>
+  <networkClass>ROUTER</networkClass>
+  <softwareLevel>GOLD</softwareLevel>
+  <status>INPRODUCTION</status>
+</RsLightExemptedDevice>

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<JavaScriptDiagnostic type="JavaScriptDiagnostic">
+  <enabled>false</enabled>
+  <id>6</id>
+  <name>JS</name>
+  <resultType>NUMERIC</resultType>
+  <script>function diagnose() {&#10;}</script>
+  <targetGroup type="StaticDeviceGroup">
+    <changeDate>1600000300000</changeDate>
+    <folder/>
+    <hiddenFromReports>true</hiddenFromReports>
+    <id>101</id>
+    <name>Static</name>
+  </targetGroup>
+</JavaScriptDiagnostic>

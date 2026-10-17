@@ -1,0 +1,16 @@
+[
+  {
+    "configCompliant": true,
+    "driver": "CiscoIOS12",
+    "eol": false,
+    "eos": null,
+    "expirationDate": 1700000000000,
+    "family": "Cisco",
+    "id": 1,
+    "mgmtAddress": "1.2.3.4",
+    "name": "r1",
+    "networkClass": "ROUTER",
+    "softwareLevel": "GOLD",
+    "status": "INPRODUCTION"
+  }
+]

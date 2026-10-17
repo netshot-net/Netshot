@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<TakeGroupSnapshotTask type="TakeGroupSnapshotTask">
+  <author>author-7</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000007</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>7</childOrder>
+  <comments>Comments of 7</comments>
+  <creationDate>1500000000007</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>10</deviceGroupId>
+  <executionDate>1550000000007</executionDate>
+  <id>7</id>
+  <limitToOutofdateDeviceHours>12</limitToOutofdateDeviceHours>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>107</parentTaskId>
+  <priority>7</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>3</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 7</script>
+  <status>WAITING</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>Group 10</target>
+  <taskDescription>Group snapshot</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</TakeGroupSnapshotTask>

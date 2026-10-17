@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<RsGroupConfigComplianceStat>
+  <compliantDeviceCount>2</compliantDeviceCount>
+  <deviceCount>5</deviceCount>
+  <groupFolder>Production/Core</groupFolder>
+  <groupId>1</groupId>
+  <groupName>Core</groupName>
+</RsGroupConfigComplianceStat>

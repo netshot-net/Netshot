@@ -1,0 +1,26 @@
+{
+  "deviceSpecific": false,
+  "id": 5,
+  "mgmtDomain": {
+    "changeDate": 1600000000000,
+    "description": "Paris data center",
+    "id": 1,
+    "name": "Paris DC",
+    "server4Address": "10.255.0.1",
+    "server6Address": "2001:db8:0:0:0:0:0:1"
+  },
+  "name": "SSH Key",
+  "password": "=",
+  "passwordVaultInstanceId": 13,
+  "passwordVaultPath": "netshot/key/password",
+  "privateKey": "=",
+  "privateKeyVaultInstanceId": 13,
+  "privateKeyVaultPath": "netshot/key/private",
+  "superPassword": "=",
+  "superPasswordVaultInstanceId": 13,
+  "superPasswordVaultPath": "netshot/key/super",
+  "type": "SSH Key",
+  "username": "keyuser",
+  "usernameVaultInstanceId": 13,
+  "usernameVaultPath": "netshot/key/username"
+}

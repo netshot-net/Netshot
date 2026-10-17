@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
@@ -58,7 +59,8 @@ class AaaDtoTest {
 
 	private static final String TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345";
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(AaaDtoTest.class);
 
 	private static byte[] json(Object value) throws Exception {
 		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
@@ -68,15 +70,8 @@ class AaaDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false),
-			"JSON");
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false),
-			"XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	private static UiUser localUser() {
@@ -99,7 +94,7 @@ class AaaDtoTest {
 	@DisplayName("A local user has the same representation as the entity")
 	void localUserRepresentation() throws Exception {
 		UiUser user = localUser();
-		this.assertSameRepresentation(user, UserMapper.toDto(user));
+		this.assertRepresentation(UserMapper.toDto(user));
 		Assertions.assertTrue(new String(xml(UserMapper.toDto(user))).startsWith("<UiUser>"));
 	}
 
@@ -108,24 +103,24 @@ class AaaDtoTest {
 	void remoteUserRepresentation() throws Exception {
 		UiUser user = new UiUser("radius-user", 50);
 		user.setId(8);
-		this.assertSameRepresentation(user, UserMapper.toDto(user));
+		this.assertRepresentation(UserMapper.toDto(user));
 	}
 
 	@Test
 	@DisplayName("A list of users has the same representation as a list of entities")
 	void userListRepresentation() throws Exception {
 		List<UiUser> users = new ArrayList<>(List.of(localUser(), new UiUser("radius-user", 50)));
-		this.assertSameRepresentation(users, UserMapper.toUserDtos(users));
+		this.assertRepresentation(UserMapper.toUserDtos(users));
 	}
 
 	@Test
 	@DisplayName("An API token has the same representation as the entity")
 	void apiTokenRepresentation() throws Exception {
 		ApiToken apiToken = token();
-		this.assertSameRepresentation(apiToken, UserMapper.toDto(apiToken));
+		this.assertRepresentation(UserMapper.toDto(apiToken));
 		Assertions.assertTrue(new String(xml(UserMapper.toDto(apiToken))).startsWith("<ApiToken>"));
 		List<ApiToken> tokens = new ArrayList<>(List.of(apiToken, new ApiToken("", "ZyXwVuTsRqPoNmLkJiHgFeDcBa987654", 1000)));
-		this.assertSameRepresentation(tokens, UserMapper.toApiTokenDtos(tokens));
+		this.assertRepresentation(UserMapper.toApiTokenDtos(tokens));
 	}
 
 	@Test
@@ -134,11 +129,11 @@ class AaaDtoTest {
 		UiUser user = localUser();
 		CurrentUserDto userDto = UserMapper.toCurrentUserDto(user);
 		Assertions.assertInstanceOf(UserDto.class, userDto);
-		this.assertSameRepresentation(user, userDto);
+		this.assertRepresentation(userDto);
 		ApiToken apiToken = token();
 		CurrentUserDto tokenDto = UserMapper.toCurrentUserDto(apiToken);
 		Assertions.assertInstanceOf(ApiTokenDto.class, tokenDto);
-		this.assertSameRepresentation(apiToken, tokenDto);
+		this.assertRepresentation(tokenDto);
 	}
 
 	@Test

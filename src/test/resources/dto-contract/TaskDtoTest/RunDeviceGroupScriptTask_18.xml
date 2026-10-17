@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<RunDeviceGroupScriptTask type="RunDeviceGroupScriptTask">
+  <author>author-18</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000018</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>18</childOrder>
+  <comments>Comments of 18</comments>
+  <creationDate>1500000000018</creationDate>
+  <debugEnabled>true</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>0</deviceGroupId>
+  <executionDate/>
+  <id>18</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>118</parentTaskId>
+  <priority>7</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>3</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 18</script>
+  <status>NEW</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>None</target>
+  <taskDescription>Group script execution</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</RunDeviceGroupScriptTask>

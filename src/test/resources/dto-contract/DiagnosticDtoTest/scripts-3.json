@@ -1,0 +1,30 @@
+{
+  "author": "tester",
+  "deviceDriver": "CiscoIOS12",
+  "folder": "Folder",
+  "id": 3,
+  "name": "Script",
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "script": "function run() {}",
+  "userInputDefinitions": {
+    "flag": {
+      "choices": null,
+      "defaultValue": null,
+      "description": null,
+      "label": "Flag",
+      "name": "flag",
+      "type": "BOOLEAN"
+    },
+    "hostname": {
+      "choices": [
+        "a",
+        "b"
+      ],
+      "defaultValue": "a",
+      "description": "The host",
+      "label": "Hostname",
+      "name": "hostname",
+      "type": "TEXT"
+    }
+  }
+}
