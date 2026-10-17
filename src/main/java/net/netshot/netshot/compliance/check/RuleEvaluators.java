@@ -27,6 +27,7 @@ import org.hibernate.Session;
 
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -62,13 +63,14 @@ public final class RuleEvaluators {
 	 *
 	 * @param jsRuntime the JavaScript runtime of the rules
 	 * @param pyRuntime the Python runtime of the rules
+	 * @param driverRegistry the loaded device drivers
 	 * @return the registry
 	 */
-	public static RuleEvaluators standard(JsRuleRuntime jsRuntime, PyRuleRuntime pyRuntime) {
+	public static RuleEvaluators standard(JsRuleRuntime jsRuntime, PyRuleRuntime pyRuntime, DriverRegistry driverRegistry) {
 		return new RuleEvaluators(List.of(
-			new TextRuleEvaluator(),
-			new JavaScriptRuleEvaluator(jsRuntime),
-			new PythonRuleEvaluator(pyRuntime)));
+			new TextRuleEvaluator(driverRegistry),
+			new JavaScriptRuleEvaluator(jsRuntime, driverRegistry),
+			new PythonRuleEvaluator(pyRuntime, driverRegistry)));
 	}
 
 	/**

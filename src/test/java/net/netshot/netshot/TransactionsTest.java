@@ -48,7 +48,7 @@ public class TransactionsTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 	}
 
 	private long countDomains(String name) {

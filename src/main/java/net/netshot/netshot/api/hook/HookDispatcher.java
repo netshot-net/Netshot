@@ -23,6 +23,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.api.hook.payload.TaskPayload;
 import net.netshot.netshot.api.hook.payload.TaskPayloads;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.hook.HookTrigger;
@@ -44,6 +45,7 @@ public class HookDispatcher {
 	private final HookService hookService;
 	private final TaskService taskService;
 	private final WebHookSender webHookSender;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the dispatcher.
@@ -51,11 +53,14 @@ public class HookDispatcher {
 	 * @param hookService the hook use cases
 	 * @param taskService the task use cases
 	 * @param webHookSender the sender of the web hooks
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public HookDispatcher(HookService hookService, TaskService taskService, WebHookSender webHookSender) {
+	public HookDispatcher(HookService hookService, TaskService taskService, WebHookSender webHookSender,
+		DriverRegistry driverRegistry) {
 		this.hookService = hookService;
 		this.taskService = taskService;
 		this.webHookSender = webHookSender;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -80,7 +85,7 @@ public class HookDispatcher {
 				return;
 			}
 			// Mapped once, in the transaction which loads the task, for all the hooks
-			TaskPayload payload = this.taskService.mapTask(id, TaskPayloads::toPayload);
+			TaskPayload payload = this.taskService.mapTask(id, mapped -> TaskPayloads.toPayload(this.driverRegistry, mapped));
 			for (Hook hook : hooks) {
 				log.trace("Executing post-task hook {}", hook.getName());
 				try {

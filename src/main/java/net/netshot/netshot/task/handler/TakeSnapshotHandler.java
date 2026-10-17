@@ -23,12 +23,14 @@ import org.hibernate.Session;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.devicescript.DeviceScript;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
@@ -43,13 +45,16 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 @Slf4j
 public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
+	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
 
 	/**
 	 * Creates the handler.
+	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 */
-	public TakeSnapshotHandler(TaskSubmitter taskSubmitter) {
+	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
 	}
 
@@ -69,7 +74,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			return;
 		}
 		Session session = Database.getSession();
-		DeviceScript deviceScript = new SnapshotDeviceScript(task.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, task.logger);
 		try {
 			session.beginTransaction();
 			// Start over from a fresh device from DB
@@ -112,7 +117,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			}
 			session.close();
 			if (task.isAutomatic()) {
-				TakeSnapshotTask.clearScheduledAutoSnapshot(task.getDevice().getId());
+				AutoSnapshotScheduler.clearScheduledAutoSnapshot(task.getDevice().getId());
 			}
 		}
 

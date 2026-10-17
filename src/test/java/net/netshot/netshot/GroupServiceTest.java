@@ -30,7 +30,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -68,9 +67,9 @@ class GroupServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new GroupService(this.transactions, new GroupRepository());
 		Domain domain = new Domain("Lab", "Test domain", null, null);

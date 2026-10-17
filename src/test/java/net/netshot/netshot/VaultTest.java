@@ -159,7 +159,7 @@ public class VaultTest extends WithDatabaseTest {
 			Netshot.initConfig(config);
 			VaultManager.loadConfig();
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 
 			HashicorpVaultKv2Instance vaultInstance = new HashicorpVaultKv2Instance("test-vault");
 			vaultInstance.setBaseUrl(vaultContainer.getHttpHostAddress());

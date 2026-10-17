@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptCreation;
 
@@ -37,13 +39,23 @@ public final class ScriptMapper {
 		// Static helpers only
 	}
 
+	// The description of the driver of the script (the typo of the unknown case is part of the API output)
+	private static String realDeviceType(DriverRegistry driverRegistry, DeviceJsScript script) {
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(script.getDeviceDriver());
+		if (deviceDriver == null) {
+			return "Unknwon driver";
+		}
+		return deviceDriver.getDescription();
+	}
+
 	/**
 	 * Maps a script to its representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param script the script
 	 * @return the DTO
 	 */
-	public static ScriptDto toDto(DeviceJsScript script) {
+	public static ScriptDto toDto(DriverRegistry driverRegistry, DeviceJsScript script) {
 		Map<String, UserInputDefinitionDto> definitions = null;
 		if (script.getUserInputDefinitions() != null) {
 			definitions = new LinkedHashMap<>();
@@ -54,18 +66,19 @@ public final class ScriptMapper {
 			}
 		}
 		return new ScriptDto(script.getAuthor(), script.getDeviceDriver(), script.getFolder(), script.getId(), script.getName(),
-			script.getRealDeviceType(), script.getScript(), definitions);
+			realDeviceType(driverRegistry, script), script.getScript(), definitions);
 	}
 
 	/**
 	 * Maps the scripts to their representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param scripts the scripts
 	 * @return the DTOs, in the same order
 	 */
-	public static List<ScriptDto> toDtos(List<DeviceJsScript> scripts) {
+	public static List<ScriptDto> toDtos(DriverRegistry driverRegistry, List<DeviceJsScript> scripts) {
 		List<ScriptDto> dtos = new ArrayList<>(scripts.size());
-		scripts.forEach(script -> dtos.add(toDto(script)));
+		scripts.forEach(script -> dtos.add(toDto(driverRegistry, script)));
 		return dtos;
 	}
 

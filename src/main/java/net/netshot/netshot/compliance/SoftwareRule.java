@@ -28,11 +28,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -179,20 +177,6 @@ public class SoftwareRule implements Comparable<SoftwareRule> {
 		}
 		SoftwareRule other = (SoftwareRule) obj;
 		return id == other.id;
-	}
-
-	/**
-	 * Gets the device type.
-	 *
-	 * @return the device type
-	 */
-	@Transient
-	public String getDeviceType() {
-		DeviceDriver deviceDriver = DeviceDriver.getDriverByName(driver);
-		if (deviceDriver == null) {
-			return "";
-		}
-		return deviceDriver.getDescription();
 	}
 
 	/**

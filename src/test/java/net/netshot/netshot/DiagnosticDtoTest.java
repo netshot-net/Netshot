@@ -53,7 +53,6 @@ import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -78,7 +77,7 @@ class DiagnosticDtoTest {
 		config.setProperty("netshot.log.file", "CONSOLE");
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	private static byte[] json(Object value) throws Exception {
@@ -115,19 +114,19 @@ class DiagnosticDtoTest {
 		SimpleDiagnostic diagnostic = new SimpleDiagnostic("Simple", true, dynamicGroup(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(.*)", "$1");
 		diagnostic.setId(5);
-		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
 		diagnostic.setTargetGroup(staticGroup());
-		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
 		diagnostic.setTargetGroup(null);
 		diagnostic.setDeviceDriver("NoSuchDriver");
 		diagnostic.setModifierPattern(null);
 		diagnostic.setResultType(AttributeType.LONGTEXT);
-		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
 		diagnostic.setDeviceDriver("");
-		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
-		String json = new String(json(DiagnosticMapper.toDto(diagnostic)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
+		String json = new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic)));
 		Assertions.assertTrue(json.contains("\"type\":\"SimpleDiagnostic\""), json);
-		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(diagnostic))).startsWith("<SimpleDiagnostic type=\"SimpleDiagnostic\">"));
+		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic))).startsWith("<SimpleDiagnostic type=\"SimpleDiagnostic\">"));
 	}
 
 	@Test
@@ -135,17 +134,17 @@ class DiagnosticDtoTest {
 	void scriptDiagnostics() throws Exception {
 		JavaScriptDiagnostic js = new JavaScriptDiagnostic("JS", false, staticGroup(), AttributeType.NUMERIC, "function diagnose() {\n}");
 		js.setId(6);
-		this.assertRepresentation(DiagnosticMapper.toDto(js));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), js));
 		js.setTargetGroup(null);
 		js.setScript(null);
-		this.assertRepresentation(DiagnosticMapper.toDto(js));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), js));
 		PythonDiagnostic python = new PythonDiagnostic("Python", true, dynamicGroup(), AttributeType.BINARY, "def diagnose():\n  pass");
 		python.setId(7);
-		this.assertRepresentation(DiagnosticMapper.toDto(python));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), python));
 		python.setTargetGroup(null);
-		this.assertRepresentation(DiagnosticMapper.toDto(python));
-		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(python))).contains("\"type\":\"PythonDiagnostic\""));
-		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(js))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), python));
+		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), python))).contains("\"type\":\"PythonDiagnostic\""));
+		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), js))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
 	}
 
 	@Test
@@ -158,7 +157,7 @@ class DiagnosticDtoTest {
 		JavaScriptDiagnostic js = new JavaScriptDiagnostic("JS", true, staticGroup(), AttributeType.TEXT, "y");
 		js.setId(3);
 		List<Diagnostic> entities = new ArrayList<>(List.of(simple, python, js));
-		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(entities)));
+		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(TestDrivers.registry(), entities)));
 	}
 
 	private static void dates(DiagnosticResult result) {
@@ -213,9 +212,9 @@ class DiagnosticDtoTest {
 	@DisplayName("A script has the same JSON and XML representation as the entity, with or without input definitions")
 	void scripts() throws Exception {
 		DeviceJsScript script = script();
-		this.assertRepresentation(ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		definitions(script, new LinkedHashMap<>());
-		this.assertRepresentation(ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		UserInputDefinition text = new UserInputDefinition("hostname");
 		text.setDescription("The host");
 		text.setChoices(List.of("a", "b"));
@@ -225,14 +224,14 @@ class DiagnosticDtoTest {
 		map.put("hostname", text);
 		map.put("flag", flag);
 		definitions(script, map);
-		this.assertRepresentation(ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		script.setScript(null);
 		script.setDeviceDriver("NoSuchDriver");
 		script.setFolder(null);
-		this.assertRepresentation(ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		DeviceJsScript other = script();
 		List<DeviceJsScript> list = new ArrayList<>(List.of(script, other));
-		this.assertRepresentation(new ArrayList<>(ScriptMapper.toDtos(list)));
+		this.assertRepresentation(new ArrayList<>(ScriptMapper.toDtos(TestDrivers.registry(), list)));
 	}
 
 	private static DiagnosticRequest diagnosticRequest(String body) throws Exception {

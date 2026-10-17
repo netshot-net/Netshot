@@ -198,64 +198,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		return source;
 	}
 
-	/**
-	/**
-	 * Gets all loaded drivers.
-	 *
-	 * @return the loaded drivers
-	 * @deprecated use the injected {@link DriverRegistry}; only for code which cannot be injected
-	 */
-	@Deprecated
-	public static List<DeviceDriver> getAllDrivers() {
-		return DriverRegistry.shared().getAllDrivers();
-	}
-
-	/**
-	 * Gets a driver from its name.
-	 *
-	 * @param name the name of the device driver
-	 * @return the device driver from that name, or null if not found
-	 * @deprecated use the injected {@link DriverRegistry}; only for code which cannot be injected
-	 */
-	@Deprecated
-	public static DeviceDriver getDriverByName(String name) {
-		return DriverRegistry.shared().getDriverByName(name);
-	}
-
-	/**
-	 * Gets a driver by description.
-	 *
-	 * @param description The description to look for
-	 * @return the device driver from that name, or null if not found
-	 * @deprecated use the injected {@link DriverRegistry}; only for code which cannot be injected
-	 */
-	@Deprecated
-	public static DeviceDriver getDriverByDescription(String description) {
-		return DriverRegistry.shared().getDriverByDescription(description);
-	}
-
-	/**
-	 * Gets the loaded drivers by name.
-	 *
-	 * @return the loaded drivers
-	 * @deprecated use the injected {@link DriverRegistry}; only for code which cannot be injected
-	 */
-	@Deprecated
-	public static Map<String, DeviceDriver> getDrivers() {
-		return DriverRegistry.shared().getDrivers();
-	}
-
-	/**
-	 * Reloads all the drivers from disk.
-	 *
-	 * @throws Exception something bad
-	 * @deprecated use the injected {@link DriverRegistry}; only for code which cannot be injected
-	 */
-	@Deprecated
-	public static void refreshDrivers() throws Exception {
-		DriverRegistry.shared().refresh();
-	}
-
 	/** The name of the driver. */
 	@Getter
 	private String name;

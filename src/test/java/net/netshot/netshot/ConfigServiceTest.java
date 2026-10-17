@@ -38,7 +38,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigDelta;
 import net.netshot.netshot.inventory.config.ConfigDiff;
@@ -95,11 +94,11 @@ class ConfigServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
-		this.service = new ConfigService(this.transactions, new ConfigRepository());
+		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
 		this.transactions.run(session -> {
 			Domain domain = new Domain("Lab", "Test domain", null, null);
 			session.persist(domain);

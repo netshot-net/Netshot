@@ -47,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -58,6 +59,7 @@ import net.netshot.netshot.userscript.ScriptService;
 public class ScriptResource {
 
 	private final ScriptService scriptService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -69,10 +71,12 @@ public class ScriptResource {
 	 * Instantiates the resource.
 	 *
 	 * @param scriptService the script use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public ScriptResource(ScriptService scriptService) {
+	public ScriptResource(ScriptService scriptService, DriverRegistry driverRegistry) {
 		this.scriptService = scriptService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	@POST
@@ -94,11 +98,11 @@ public class ScriptResource {
 		Principal principal = this.securityContext.getUserPrincipal();
 		String author = principal instanceof User user ? user.getUsername() : null;
 		if (validateOnly) {
-			return ScriptMapper.toDto(this.scriptService.validate(ScriptMapper.toCreation(rsScript, author)));
+			return ScriptMapper.toDto(this.driverRegistry, this.scriptService.validate(ScriptMapper.toCreation(rsScript, author)));
 		}
 		DeviceJsScript script = this.scriptService.create(ScriptMapper.toCreation(rsScript, author));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return ScriptMapper.toDto(script);
+		return ScriptMapper.toDto(this.driverRegistry, script);
 	}
 
 	@DELETE
@@ -130,7 +134,7 @@ public class ScriptResource {
 		log.debug("REST request, get script {}", id);
 		DeviceJsScript script = this.scriptService.get(id);
 		// An unknown script is no error: the answer is empty (204)
-		return script == null ? null : ScriptMapper.toDto(script);
+		return script == null ? null : ScriptMapper.toDto(this.driverRegistry, script);
 	}
 
 	/**
@@ -149,6 +153,6 @@ public class ScriptResource {
 	@Tag(name = "Scripts", description = "Script management (push changes to devices)")
 	public List<ScriptDto> getScripts(@BeanParam PaginationParams paginationParams) {
 		log.debug("REST request, get scripts.");
-		return ScriptMapper.toDtos(this.scriptService.list(paginationParams.toPage()));
+		return ScriptMapper.toDtos(this.driverRegistry, this.scriptService.list(paginationParams.toPage()));
 	}
 }

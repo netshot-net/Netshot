@@ -133,7 +133,7 @@ public class ScriptService {
 		script.setFolder(creation.folder());
 		script.setUserInputDefinitions(creation.userInputDefinitions());
 		try {
-			script.extractUserInputDefinitions();
+			script.extractUserInputDefinitions(this.driverRegistry);
 		}
 		catch (IllegalArgumentException e) {
 			log.warn("Invalid script.");

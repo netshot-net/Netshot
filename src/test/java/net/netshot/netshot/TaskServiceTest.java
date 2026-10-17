@@ -35,8 +35,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -94,9 +92,9 @@ class TaskServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		net.netshot.netshot.boot.Wiring.init();
+		net.netshot.netshot.boot.Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
@@ -126,7 +124,7 @@ class TaskServiceTest extends WithDatabaseTest {
 				return 7;
 			}
 		};
-		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, DriverRegistry.shared());
+		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, TestDrivers.registry());
 		this.domainId = this.transactions.write(session -> {
 			Domain domain = new Domain("Lab", "Test domain", null, null);
 			session.persist(domain);

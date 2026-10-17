@@ -40,6 +40,7 @@ import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
@@ -66,6 +67,7 @@ import net.netshot.netshot.task.engine.TaskContext;
 @Slf4j
 public final class PyDeviceHelper {
 
+	private final DriverRegistry driverRegistry;
 	private Device device;
 	private Session session;
 	private TaskContext taskContext;
@@ -103,8 +105,9 @@ public final class PyDeviceHelper {
 		return field;
 	}
 
-	public PyDeviceHelper(Device device, Session session, TaskContext taskContext, boolean readOnly)
+	public PyDeviceHelper(DriverRegistry driverRegistry, Device device, Session session, TaskContext taskContext, boolean readOnly)
 		throws MissingDeviceDriverException {
+		this.driverRegistry = driverRegistry;
 		this.device = device;
 		this.taskContext = taskContext;
 		this.readOnly = readOnly;
@@ -278,7 +281,7 @@ public final class PyDeviceHelper {
 			return;
 		}
 		try {
-			DeviceDriver driver = device.getDeviceDriver();
+			DeviceDriver driver = this.driverRegistry.forDevice(device);
 			for (AttributeDefinition attribute : driver.getAttributes()) {
 				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 					switch (attribute.getType()) {
@@ -309,7 +312,7 @@ public final class PyDeviceHelper {
 			return;
 		}
 		try {
-			DeviceDriver driver = device.getDeviceDriver();
+			DeviceDriver driver = this.driverRegistry.forDevice(device);
 			for (AttributeDefinition attribute : driver.getAttributes()) {
 				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 					switch (attribute.getType()) {
@@ -368,7 +371,7 @@ public final class PyDeviceHelper {
 				}
 			}
 			else {
-				DeviceDriver driver = device.getDeviceDriver();
+				DeviceDriver driver = this.driverRegistry.forDevice(device);
 				for (AttributeDefinition attribute : driver.getAttributes()) {
 					if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 						switch (attribute.getType()) {
@@ -401,7 +404,7 @@ public final class PyDeviceHelper {
 	private Object getDeviceItem(Device targetDevice, String item) {
 		DeviceDriver driver;
 		try {
-			driver = targetDevice.getDeviceDriver();
+			driver = this.driverRegistry.forDevice(targetDevice);
 		}
 		catch (MissingDeviceDriverException e) {
 			return null;

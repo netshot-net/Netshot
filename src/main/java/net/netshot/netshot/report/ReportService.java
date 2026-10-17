@@ -36,6 +36,7 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.device.Module;
@@ -71,16 +72,19 @@ public class ReportService {
 
 	private final Transactions transactions;
 	private final ReportRepository repository;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the report repository
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public ReportService(Transactions transactions, ReportRepository repository) {
+	public ReportService(Transactions transactions, ReportRepository repository, DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -427,7 +431,7 @@ public class ReportService {
 				try {
 					String value = attribute.getData().toString();
 					Device device = attribute.getDevice();
-					DeviceDriver driver = device.getDeviceDriver();
+					DeviceDriver driver = this.driverRegistry.forDevice(device);
 					AttributeDefinition definition = driver.getAttributeDefinition(AttributeLevel.DEVICE, attribute.getName());
 					sink.attribute(new ExportedAttribute(device.getId(), device.getName(),
 						definition == null ? null : definition.getTitle(), value));

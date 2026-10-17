@@ -41,6 +41,7 @@ import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.task.engine.TaskContext;
@@ -56,12 +57,14 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 
 	/**
 	 * Instantiates a diagnostic CLI script.
+	 * @param driverRegistry = the loaded device drivers
 	 * @param diagnostics = the list of diagnostics
 	 * @param adapters = the diagnostic adapters
 	 * @param logger = the task context
 	 */
-	public RunDiagnosticDeviceScript(List<Diagnostic> diagnostics, DiagnosticAdapters adapters, TaskContext logger) {
-		super(logger);
+	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
+		TaskContext logger) {
+		super(driverRegistry, logger);
 		this.diagnostics = diagnostics;
 		this.adapters = adapters;
 	}
@@ -69,7 +72,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 	@Override
 	protected void run(Session session, Device device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, UnsupportedOperationException, MissingDeviceDriverException {
-		DeviceDriver driver = device.getDeviceDriver();
+		DeviceDriver driver = this.driverRegistry.forDevice(device);
 		JsCliHelper jsCliHelper = new JsCliHelper(accessManager, driver.getDefaultCliAccessDefinitions(), true, this.taskContext);
 		JsSnmpHelper jsSnmpHelper = new JsSnmpHelper(accessManager, driver.getDefaultSnmpAccessDefinitions(), true, this.taskContext);
 		JsClientFactory clientFactory = new JsClientFactory(accessManager, driver);
@@ -79,7 +82,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
 			clientFactory.setOptions(options);
-			options.setDeviceHelper(new JsDeviceHelper(device, jsCliHelper, null, this.taskContext, false));
+			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, null, this.taskContext, false));
 
 			Map<String, Object> jsDiagnostics = new HashMap<String, Object>();
 			for (Diagnostic diagnostic : this.diagnostics) {

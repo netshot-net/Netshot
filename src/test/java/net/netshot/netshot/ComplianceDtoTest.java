@@ -68,7 +68,6 @@ import net.netshot.netshot.compliance.SoftwareRuleDefinition;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -96,7 +95,7 @@ class ComplianceDtoTest {
 		config.setProperty("netshot.log.file", "CONSOLE");
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	private static byte[] json(Object value) throws Exception {
@@ -147,18 +146,18 @@ class ComplianceDtoTest {
 	@DisplayName("A text rule has the same JSON and XML representation as the entity")
 	void textRuleRepresentation() throws Exception {
 		TextRule rule = textRule();
-		this.assertRepresentation(RuleMapper.toDto(rule));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), rule));
 		TextRule unknownDriver = new TextRule("Other", null);
 		unknownDriver.setDeviceDriver("NoSuchDriver");
-		this.assertRepresentation(RuleMapper.toDto(unknownDriver));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), unknownDriver));
 		TextRule noDriver = new TextRule("Another", null);
 		noDriver.setDeviceDriver("");
-		this.assertRepresentation(RuleMapper.toDto(noDriver));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), noDriver));
 		// Make sure the check is meaningful
-		String json = new String(json(RuleMapper.toDto(rule)));
+		String json = new String(json(RuleMapper.toDto(TestDrivers.registry(), rule)));
 		Assertions.assertTrue(json.contains("\"type\":\"TextRule\""), json);
 		Assertions.assertTrue(json.contains("\"deviceDriverDescription\":\"Cisco IOS and IOS-XE\""), json);
-		String xml = new String(xml(RuleMapper.toDto(rule)));
+		String xml = new String(xml(RuleMapper.toDto(TestDrivers.registry(), rule)));
 		Assertions.assertTrue(xml.startsWith("<TextRule type=\"TextRule\">"), xml);
 	}
 
@@ -169,12 +168,12 @@ class ComplianceDtoTest {
 		rule.setId(8);
 		rule.setEnabled(true);
 		rule.setScript("function check(device) {\n  return CONFORMING;\n}");
-		this.assertRepresentation(RuleMapper.toDto(rule));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), rule));
 		JavaScriptRule template = new JavaScriptRule("JS template", null);
-		this.assertRepresentation(RuleMapper.toDto(template));
-		String json = new String(json(RuleMapper.toDto(rule)));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), template));
+		String json = new String(json(RuleMapper.toDto(TestDrivers.registry(), rule)));
 		Assertions.assertTrue(json.contains("\"type\":\"JavaScriptRule\""), json);
-		Assertions.assertTrue(new String(xml(RuleMapper.toDto(rule))).startsWith("<JavaScriptRule type=\"JavaScriptRule\">"));
+		Assertions.assertTrue(new String(xml(RuleMapper.toDto(TestDrivers.registry(), rule))).startsWith("<JavaScriptRule type=\"JavaScriptRule\">"));
 	}
 
 	@Test
@@ -183,12 +182,12 @@ class ComplianceDtoTest {
 		PythonRule rule = new PythonRule("Python rule", null);
 		rule.setId(9);
 		rule.setScript("def check(device):\n  return {'result': result_option.CONFORMING}");
-		this.assertRepresentation(RuleMapper.toDto(rule));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), rule));
 		PythonRule template = new PythonRule("Python template", null);
-		this.assertRepresentation(RuleMapper.toDto(template));
-		String json = new String(json(RuleMapper.toDto(rule)));
+		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), template));
+		String json = new String(json(RuleMapper.toDto(TestDrivers.registry(), rule)));
 		Assertions.assertTrue(json.contains("\"type\":\"PythonRule\""), json);
-		Assertions.assertTrue(new String(xml(RuleMapper.toDto(rule))).startsWith("<PythonRule type=\"PythonRule\">"));
+		Assertions.assertTrue(new String(xml(RuleMapper.toDto(TestDrivers.registry(), rule))).startsWith("<PythonRule type=\"PythonRule\">"));
 	}
 
 	@Test
@@ -199,8 +198,8 @@ class ComplianceDtoTest {
 		PythonRule python = new PythonRule("Python rule", null);
 		python.setId(9);
 		List<Rule> rules = new ArrayList<>(List.of(textRule(), js, python));
-		this.assertRepresentation(RuleMapper.toDtos(rules));
-		List<RuleDto> dtos = RuleMapper.toDtos(rules);
+		this.assertRepresentation(RuleMapper.toDtos(TestDrivers.registry(), rules));
+		List<RuleDto> dtos = RuleMapper.toDtos(TestDrivers.registry(), rules);
 		Assertions.assertInstanceOf(RuleDto.Text.class, dtos.get(0));
 		Assertions.assertInstanceOf(RuleDto.JavaScript.class, dtos.get(1));
 		Assertions.assertInstanceOf(RuleDto.Python.class, dtos.get(2));
@@ -238,16 +237,16 @@ class ComplianceDtoTest {
 		SoftwareRule rule = new SoftwareRule(10, dynamicGroup(), "CiscoIOS12", "Cisco 2900", true, "15\\..*", true,
 			"CISCO.*", true, ConformanceLevel.SILVER);
 		rule.setId(5);
-		this.assertRepresentation(SoftwareRuleMapper.toDto(rule));
+		this.assertRepresentation(SoftwareRuleMapper.toDto(TestDrivers.registry(), rule));
 		SoftwareRule anything = new SoftwareRule(20, null, null, "", false, "1", false, "", false, ConformanceLevel.BRONZE);
 		anything.setId(6);
-		this.assertRepresentation(SoftwareRuleMapper.toDto(anything));
+		this.assertRepresentation(SoftwareRuleMapper.toDto(TestDrivers.registry(), anything));
 		SoftwareRule staticTarget = new SoftwareRule(30, staticGroup(), "NoSuchDriver", "", false, "1", false, null, false,
 			ConformanceLevel.GOLD);
 		staticTarget.setId(7);
-		this.assertRepresentation(SoftwareRuleMapper.toDtos(List.of(rule, anything, staticTarget)));
-		Assertions.assertTrue(new String(xml(SoftwareRuleMapper.toDto(rule))).startsWith("<SoftwareRule>"));
-		Assertions.assertTrue(new String(json(SoftwareRuleMapper.toDto(rule))).contains("\"deviceType\":\"Cisco IOS and IOS-XE\""));
+		this.assertRepresentation(SoftwareRuleMapper.toDtos(TestDrivers.registry(), List.of(rule, anything, staticTarget)));
+		Assertions.assertTrue(new String(xml(SoftwareRuleMapper.toDto(TestDrivers.registry(), rule))).startsWith("<SoftwareRule>"));
+		Assertions.assertTrue(new String(json(SoftwareRuleMapper.toDto(TestDrivers.registry(), rule))).contains("\"deviceType\":\"Cisco IOS and IOS-XE\""));
 	}
 
 	@Test
@@ -256,15 +255,15 @@ class ComplianceDtoTest {
 		HardwareRule rule = new HardwareRule("CiscoIOS12", staticGroup(), "Cisco 2900", false, "CISCO29.*", true,
 			new Date(1_600_000_000_000L), new Date(1_700_000_000_000L));
 		rule.setId(5);
-		this.assertRepresentation(HardwareRuleMapper.toDto(rule));
+		this.assertRepresentation(HardwareRuleMapper.toDto(TestDrivers.registry(), rule));
 		HardwareRule anything = new HardwareRule(null, null, "", true, "", false, null, null);
 		anything.setId(6);
-		this.assertRepresentation(HardwareRuleMapper.toDto(anything));
+		this.assertRepresentation(HardwareRuleMapper.toDto(TestDrivers.registry(), anything));
 		HardwareRule dynamicTarget = new HardwareRule("NoSuchDriver", dynamicGroup(), null, false, null, false, null,
 			new Date(1_700_000_000_000L));
 		dynamicTarget.setId(7);
-		this.assertRepresentation(HardwareRuleMapper.toDtos(List.of(rule, anything, dynamicTarget)));
-		Assertions.assertTrue(new String(xml(HardwareRuleMapper.toDto(rule))).startsWith("<HardwareRule>"));
+		this.assertRepresentation(HardwareRuleMapper.toDtos(TestDrivers.registry(), List.of(rule, anything, dynamicTarget)));
+		Assertions.assertTrue(new String(xml(HardwareRuleMapper.toDto(TestDrivers.registry(), rule))).startsWith("<HardwareRule>"));
 	}
 
 	@Test
