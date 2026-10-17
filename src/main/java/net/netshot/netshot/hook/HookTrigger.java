@@ -23,25 +23,16 @@ import java.io.Serializable;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A trigger for a hook.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class HookTrigger implements Serializable {
 
 	private static final long serialVersionUID = -1209506185538121214L;
@@ -56,16 +47,14 @@ public class HookTrigger implements Serializable {
 
 	/** Type of trigger. */
 	@Getter(onMethod = @__({
-		@Id,
-		@XmlElement, @JsonView(DefaultView.class)
+		@Id
 	}))
 	@Setter
 	private TriggerType type;
 
 	/** Item to be matched. */
 	@Getter(onMethod = @__({
-		@Id,
-		@XmlElement, @JsonView(DefaultView.class)
+		@Id
 	}))
 	@Setter
 	private String item;

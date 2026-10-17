@@ -25,30 +25,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A CheckResult object is the result of a compliance test for a given rule,
  * tested against a given device.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class CheckResult {
 
 	/**
@@ -186,23 +177,18 @@ public class CheckResult {
 	private Key key = new Key();
 
 	/** The check date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date checkDate = new Date();
 
 	/** The comment. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(length = 10000)
 	}))
 	private String comment = "";
 
 	/** The result. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private CheckResult.ResultOption result = CheckResult.ResultOption.NOTAPPLICABLE;
 

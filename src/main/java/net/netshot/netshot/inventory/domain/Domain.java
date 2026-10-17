@@ -24,10 +24,6 @@ import java.util.Set;
 
 import org.hibernate.annotations.NaturalId;
 
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
@@ -37,38 +33,27 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Version;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A domain identifies a part of the network managed from the same IP address.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public final class Domain {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlAttribute, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
 
 	/** The change date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date changeDate;
 
@@ -80,16 +65,13 @@ public final class Domain {
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@NaturalId(mutable = true),
-		@XmlElement, @JsonView(DefaultView.class)
+		@NaturalId(mutable = true)
 	}))
 	@Setter
 	private String name;
 
 	/** The description. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String description;
 
@@ -102,9 +84,6 @@ public final class Domain {
 
 	/** The server4 address. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = Network4Address.AddressOnlySerializer.class),
-		@JsonDeserialize(using = Network4Address.AddressOnlyDeserializer.class),
 		@AttributeOverrides({
 			@AttributeOverride(name = "address", column = @Column(name = "ipv4_address")),
 			@AttributeOverride(name = "prefixLength", column = @Column(name = "ipv4_pfxlen")),
@@ -115,9 +94,6 @@ public final class Domain {
 
 	/** The server6 address. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = Network6Address.AddressOnlySerializer.class),
-		@JsonDeserialize(using = Network6Address.AddressOnlyDeserializer.class),
 		@AttributeOverrides({
 			@AttributeOverride(name = "address", column = @Column(name = "ipv6_address")),
 			@AttributeOverride(name = "prefixLength", column = @Column(name = "ipv6_pfxlen")),

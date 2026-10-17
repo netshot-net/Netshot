@@ -22,11 +22,6 @@ import java.util.Date;
 
 import org.hibernate.annotations.NaturalId;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -38,14 +33,8 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlID;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -60,12 +49,6 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 @Entity
 @Table(name = "vault_instance")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@XmlAccessorType(XmlAccessType.NONE)
-@XmlRootElement()
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({
-	@Type(value = HashicorpVaultKv2Instance.class, name = "Vault KV v2"),
-})
 public abstract class VaultInstance {
 
 	/** The change date. */
@@ -81,15 +64,13 @@ public abstract class VaultInstance {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@XmlID, @Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
+		 @Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	protected long id;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@NaturalId(mutable = true)
 	}))
 	@Setter
@@ -97,24 +78,20 @@ public abstract class VaultInstance {
 
 	/** The Vault instance base URL (e.g. https://vault.example.com:8200). */
 	@Getter(onMethod = @__({
-		@Column(name = "base_url", nullable = false),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "base_url", nullable = false)
 	}))
 	@Setter
 	protected String baseUrl;
 
 	/** Optional Vault Enterprise namespace. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String namespace;
 
 	/** HTTPS certificate CA trust mode for the connection to this Vault instance. */
 	@Getter(onMethod = @__({
 		@Enumerated(EnumType.STRING),
-		@Column(name = "https_ca_trust_mode", nullable = false),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "https_ca_trust_mode", nullable = false)
 	}))
 	@Setter
 	protected HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
@@ -125,8 +102,7 @@ public abstract class VaultInstance {
 	 * {@link HttpsCaTrustMode#CUSTOM_CA}.
 	 */
 	@Getter(onMethod = @__({
-		@Column(name = "https_custom_ca_certificate", columnDefinition = "TEXT"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "https_custom_ca_certificate", columnDefinition = "TEXT")
 	}))
 	@Setter
 	protected String httpsCustomCaCertificate;

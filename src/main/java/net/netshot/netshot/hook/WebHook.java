@@ -23,15 +23,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -69,8 +65,6 @@ public class WebHook extends Hook {
 	public WebHook() {
 	}
 
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public String getUrl() {
 		return url;
 	}
@@ -98,8 +92,6 @@ public class WebHook extends Hook {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public HttpsCaTrustMode getHttpsCaTrustMode() {
 		return httpsCaTrustMode;
 	}
@@ -109,8 +101,6 @@ public class WebHook extends Hook {
 	}
 
 	@Column(columnDefinition = "TEXT")
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public String getHttpsCustomCaCertificate() {
 		return httpsCustomCaCertificate;
 	}
@@ -119,8 +109,6 @@ public class WebHook extends Hook {
 		this.httpsCustomCaCertificate = httpsCustomCaCertificate;
 	}
 
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public Action getAction() {
 		return action;
 	}

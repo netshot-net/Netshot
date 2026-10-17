@@ -18,23 +18,14 @@
  */
 package net.netshot.netshot.credentials;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.platform.database.StringEncryptorConverter;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.vault.VaultInstance;
 import net.netshot.netshot.vault.VaultableSecret;
 
@@ -47,26 +38,21 @@ import net.netshot.netshot.vault.VaultableSecret;
  * driver never sees these values directly.
  */
 @Entity
-@XmlRootElement
 public class DeviceHttpAccount extends DeviceCredentialSet {
 
 	/** The username (used for Basic auth only). Shares the "username" physical column (SINGLE_TABLE). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(RestApiView.class)
-	}))
+	@Getter
 	@Setter
 	private String username;
 
 	/** See {@code DeviceCliAccount.usernameVaultInstanceId} for why this isn't named "usernameVaultInstance". Shared with {@code DeviceCliAccount}/{@code DeviceSnmpv3Community}. */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@JsonIgnore
+		@ManyToOne
 	}))
 	@Setter
 	private VaultInstance usernameVaultInstanceId;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(RestApiView.class),
 		@Column(name = "username_vault_path")
 	}))
 	@Setter
@@ -76,9 +62,6 @@ public class DeviceHttpAccount extends DeviceCredentialSet {
 
 	/** The password - or, when the scheme is Bearer/apiKey, the token/key value. Shares the "password" physical column. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(RestApiView.class),
-		@JsonSerialize(using = HideSecretSerializer.class),
-		@JsonDeserialize(using = HideSecretDeserializer.class),
 		@Convert(converter = StringEncryptorConverter.class)
 	}))
 	@Setter
@@ -86,14 +69,12 @@ public class DeviceHttpAccount extends DeviceCredentialSet {
 
 	/** See {@code DeviceCliAccount.usernameVaultInstanceId} for why this isn't named "passwordVaultInstance". Shared with {@code DeviceCliAccount}. */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@JsonIgnore
+		@ManyToOne
 	}))
 	@Setter
 	private VaultInstance passwordVaultInstanceId;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(RestApiView.class),
 		@Column(name = "password_vault_path")
 	}))
 	@Setter
@@ -122,13 +103,10 @@ public class DeviceHttpAccount extends DeviceCredentialSet {
 	}
 
 	/**
-	 * JSON/XML-facing accessor - named differently in Java than the internal JPA getter (which returns the
-	 * entity, not the ID), but mapped to the same wire property name via {@code @JsonProperty}.
+	 * Accessor of the Vault instance ID, named differently in Java than the internal JPA getter (which returns the
+	 * entity, not the ID).
 	 * @return the Vault instance ID, or null if not Vault-backed
 	 */
-	@XmlElement(name = "usernameVaultInstanceId")
-	@JsonView(RestApiView.class)
-	@JsonProperty("usernameVaultInstanceId")
 	@Transient
 	public Long getResolvedUsernameVaultInstanceId() {
 		if (this.usernamePendingVaultInstanceId != null) {
@@ -137,13 +115,12 @@ public class DeviceHttpAccount extends DeviceCredentialSet {
 		return this.usernameVaultInstanceId == null ? null : this.usernameVaultInstanceId.getId();
 	}
 
-	@JsonProperty("usernameVaultInstanceId")
 	public void setResolvedUsernameVaultInstanceId(Long vaultInstanceId) {
 		this.usernamePendingVaultInstanceId = vaultInstanceId;
 	}
 
 	/**
-	 * Bundles the username's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped, not Jackson-visible.
+	 * Bundles the username's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
 	 * @return the bundled username secret
 	 */
 	@Transient
@@ -165,9 +142,6 @@ public class DeviceHttpAccount extends DeviceCredentialSet {
 		this.usernamePendingVaultInstanceId = null;
 	}
 
-	@XmlElement(name = "passwordVaultInstanceId")
-	@JsonView(RestApiView.class)
-	@JsonProperty("passwordVaultInstanceId")
 	@Transient
 	public Long getResolvedPasswordVaultInstanceId() {
 		if (this.passwordPendingVaultInstanceId != null) {
@@ -176,13 +150,12 @@ public class DeviceHttpAccount extends DeviceCredentialSet {
 		return this.passwordVaultInstanceId == null ? null : this.passwordVaultInstanceId.getId();
 	}
 
-	@JsonProperty("passwordVaultInstanceId")
 	public void setResolvedPasswordVaultInstanceId(Long vaultInstanceId) {
 		this.passwordPendingVaultInstanceId = vaultInstanceId;
 	}
 
 	/**
-	 * Bundles the password's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped, not Jackson-visible.
+	 * Bundles the password's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
 	 * @return the bundled password secret
 	 */
 	@Transient

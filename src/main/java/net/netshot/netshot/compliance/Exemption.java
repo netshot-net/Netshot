@@ -24,21 +24,14 @@ import java.util.Date;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 
 /**
@@ -46,8 +39,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * rule, until the expiration date/time.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class Exemption {
 
 	/**
@@ -149,9 +140,7 @@ public class Exemption {
 	private Key key = new Key();
 
 	/** The expiration date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date expirationDate;
 

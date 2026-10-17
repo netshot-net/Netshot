@@ -18,23 +18,15 @@
  */
 package net.netshot.netshot.diagnostic;
 
-
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * This is a Javascript-based diagnostic. Declare the diagnostic type along with
@@ -44,16 +36,13 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  */
 @Entity
 @OnDelete(action = OnDeleteAction.CASCADE)
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class JavaScriptDiagnostic extends Diagnostic {
 
 	/**
 	 * The JS script to execute on the device.
 	 */
 	@Getter(onMethod = @__({
-		@Column(length = 10000000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 10000000)
 	}))
 	@Setter
 	private String script;

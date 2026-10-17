@@ -18,24 +18,18 @@
  */
 package net.netshot.netshot.inventory.config.attribute;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Entity
 @DiscriminatorValue("N")
 public final class ConfigNumericAttribute extends ConfigAttribute {
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Double number;
 
