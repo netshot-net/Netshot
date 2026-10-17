@@ -19,7 +19,6 @@
 package net.netshot.netshot.task.type;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.hibernate.Hibernate;
-import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -50,23 +48,17 @@ import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
-import net.netshot.netshot.credentials.DeviceSnmpv1Community;
-import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.engine.TaskManager;
 
 /**
  * This task discovers the type of the given device.
@@ -96,10 +88,11 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	@Setter
 	private String deviceAddress;
 
-	/** The resolved device address, computed once at the start of {@link #run()}. */
+	/** The resolved device address, computed once at the start of the discovery. */
 	@Getter(onMethod = @__({
 		@Transient
 	}))
+	@Setter
 	private transient NetworkAddress resolvedAddress;
 
 	/** The success credential set. */
@@ -229,7 +222,7 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 *
 	 * @param snapshotTaskId the new snapshot task id
 	 */
-	protected void setSnapshotTaskId(long snapshotTaskId) {
+	public void setSnapshotTaskId(long snapshotTaskId) {
 		this.setAttribute("snapshotTaskId", snapshotTaskId);
 	}
 
@@ -366,123 +359,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	public void prepare(Session session) {
 		Hibernate.initialize(this.getCredentialSets());
 		this.getDomain().getId();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		log.debug("Task {}. Starting autodiscovery process.", this.getId());
-		boolean didTrySnmp = false;
-
-		try {
-			this.resolvedAddress = NetworkAddress.getNetworkAddress(InetAddress.getByName(this.deviceAddress));
-		}
-		catch (UnknownHostException e) {
-			log.warn("Task {}. Unable to resolve device address '{}'.", this.getId(), this.deviceAddress, e);
-			this.logger.error("Unable to resolve device address '{}'.", this.deviceAddress);
-			this.status = Status.FAILURE;
-			return;
-		}
-
-		log.trace("Task {}. {} credential sets in the list.", this.getId(), credentialSets.size());
-		for (DeviceCredentialSet credentialSet : credentialSets) {
-			if (credentialSet instanceof DeviceSnmpv1Community snmpCommunity) {
-				log.trace("Task {}. SNMPv1 credential set.", this.getId());
-				didTrySnmp = true;
-				if (snmpv1Discover(snmpCommunity)) {
-					this.status = Status.SUCCESS;
-					this.successCredentialSet = credentialSet;
-					break;
-				}
-			}
-			else if (credentialSet instanceof DeviceSnmpv2cCommunity snmpCommunity) {
-				log.trace("Task {}. SNMPv2c credential set.", this.getId());
-				didTrySnmp = true;
-				if (snmpv2cDiscover(snmpCommunity)) {
-					this.status = Status.SUCCESS;
-					this.successCredentialSet = credentialSet;
-					break;
-				}
-			}
-			else if (credentialSet instanceof DeviceSnmpv3Community snmpCreds) {
-				log.trace("Task {}. SNMPv3 credential set.", this.getId());
-				didTrySnmp = true;
-				if (snmpv3Discover(snmpCreds)) {
-					this.status = Status.SUCCESS;
-					this.successCredentialSet = credentialSet;
-					break;
-				}
-			}
-		}
-		if (this.status == Status.SUCCESS) {
-			Task snapshotTask = null;
-			Session session = Database.getSession();
-			this.setDiscoverResultDevice(null);
-			Device newDevice = null;
-			try {
-				session.beginTransaction();
-				newDevice = new Device(this.getDiscoveredDeviceType(), deviceAddress, this.getDomain(), this.author);
-				// Create a bare (enabled, no pin) DeviceAccess row for every access the
-				// driver declares, so each is usable via the domain's auto-try pool -
-				// an access with no row at all is never used (see AccessManager).
-				DeviceDriver newDeviceDriver = DeviceDriver.getDriverByName(this.getDiscoveredDeviceType());
-				if (newDeviceDriver != null) {
-					for (String accessName : newDeviceDriver.getAccessDefinitions().keySet()) {
-						newDevice.getAccesses().add(new DeviceAccess(newDevice, accessName));
-					}
-				}
-				if (this.getDeviceComments() != null) {
-					newDevice.setComments(this.getDeviceComments());
-				}
-				newDevice.replaceTags(this.getDeviceTags());
-				this.setDiscoverResultDevice(newDevice);
-				session.persist(newDevice);
-				snapshotTask = new TakeSnapshotTask(newDevice,
-					"Automatic snapshot after discovery", author, true, false, false);
-				snapshotTask.setPriority(this.getPriority());
-				snapshotTask.setParentTaskId(this.getId());
-				session.persist(snapshotTask);
-				session.getTransaction().commit();
-				this.setSnapshotTaskId(snapshotTask.getId());
-			}
-			catch (HibernateException e) {
-				Database.rollbackSilently(session);
-				log.error("Task {}. Couldn't save the new device.", this.getId(), e);
-				this.logger.error("Database error while adding the device");
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while saving the new device or the new task.", this.getId(), e);
-				this.logger.error("Couldn't add the device after discovery");
-			}
-			finally {
-				session.close();
-			}
-
-			if (newDevice != null) {
-				DynamicDeviceGroup.refreshAllGroupsOfOneDevice(newDevice);
-			}
-
-			try {
-				if (snapshotTask != null) {
-					TaskManager.addTask(snapshotTask);
-				}
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the new snapshot task.", this.getId(), e);
-			}
-
-			return;
-		}
-		if (!didTrySnmp) {
-			log.warn("Task {}. No available SNMP credential set.", this.getId());
-			this.logger.error(
-				"No available SNMP credential set... cannot start autodiscovery.");
-		}
-		this.status = Status.FAILURE;
 	}
 
 	/*
