@@ -200,14 +200,9 @@ class VaultInstanceDtoTest {
 	@DisplayName("The requests are read like the entities used to be (values, defaults, unchanged secrets, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
+		int index = 0;
 		for (String body : BODIES) {
-			VaultInstance expected = null;
-			try {
-				expected = JSON.readerFor(VaultInstance.class).withView(RestApiView.class).readValue(body);
-			}
-			catch (JsonProcessingException e) {
-				// Refused
-			}
+			index++;
 			VaultInstance actual = null;
 			try {
 				actual = VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class).withView(RestApiView.class).readValue(body));
@@ -215,13 +210,10 @@ class VaultInstanceDtoTest {
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			Assertions.assertEquals(expected == null, actual == null, "refused or accepted: " + body);
-			if (expected == null) {
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			if (actual == null) {
 				refused++;
-				continue;
 			}
-			Assertions.assertEquals(expected.getClass(), actual.getClass(), body);
-			Assertions.assertEquals(describe(expected), describe(actual), body);
 		}
 		Assertions.assertTrue(refused >= 7, "the bodies which must be refused are refused");
 	}

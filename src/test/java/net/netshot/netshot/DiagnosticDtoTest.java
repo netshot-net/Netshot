@@ -25,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -267,13 +269,10 @@ class DiagnosticDtoTest {
 		return JSON.readerFor(ScriptRequest.class).withView(RestApiView.class).readValue(body);
 	}
 
-	private static DeviceJsScript legacyScriptRequest(String body) throws Exception {
-		return JSON.readerFor(DeviceJsScript.class).withView(RestApiView.class).readValue(body);
-	}
-
 	@Test
 	@DisplayName("A script request is read like the script entity it replaces, quirks included")
 	void scriptRequest() throws Exception {
+		int index = 0;
 		for (String body : List.of(
 			"{}",
 			"{\"name\": \"n\", \"deviceDriver\": \"CiscoIOS12\", \"script\": \"s\"}",
@@ -284,17 +283,16 @@ class DiagnosticDtoTest {
 			"{\"userInputDefinitions\": {}}",
 			"{\"userInputDefinitions\": {\"a\": null}}",
 			"{\"userInputDefinitions\": {\"a\": \"x\"}}")) {
-			DeviceJsScript legacy = legacyScriptRequest(body);
+			index++;
 			ScriptRequest request = scriptRequest(body);
-			Assertions.assertEquals(legacy.getName(), request.name(), body);
-			Assertions.assertEquals(legacy.getScript(), request.script(), body);
-			Assertions.assertEquals(legacy.getDeviceDriver(), request.deviceDriver(), body);
-			Assertions.assertEquals(legacy.getAuthor(), request.author(), body);
-			Assertions.assertEquals(legacy.getFolder(), request.folder(), body);
-			Assertions.assertEquals(legacy.getUserInputDefinitions() == null, request.userInputDefinitions() == null, body);
-			if (legacy.getUserInputDefinitions() != null) {
-				Assertions.assertEquals(legacy.getUserInputDefinitions().keySet(), request.userInputDefinitions().keySet(), body);
-			}
+			Map<String, Object> read = new TreeMap<>();
+			read.put("name", request.name());
+			read.put("script", request.script());
+			read.put("deviceDriver", request.deviceDriver());
+			read.put("author", request.author());
+			read.put("folder", request.folder());
+			read.put("userInputDefinitions", request.userInputDefinitions() == null ? null : new TreeSet<>(request.userInputDefinitions().keySet()));
+			this.contract.checkText("script-request-" + index, DtoContract.render(request, read));
 		}
 		Assertions.assertEquals("", scriptRequest("{}").folder());
 		Assertions.assertNull(scriptRequest("{\"folder\": null}").folder());
@@ -305,7 +303,6 @@ class DiagnosticDtoTest {
 			"{\"unknown\": 1}",
 			"{\"realDeviceType\": \"Cisco IOS\"}",
 			"{\"id\": \"x\"}")) {
-			Assertions.assertThrows(JsonMappingException.class, () -> legacyScriptRequest(body), "legacy " + body);
 			Assertions.assertThrows(JsonMappingException.class, () -> scriptRequest(body), body);
 		}
 		Assertions.assertEquals("x", ScriptMapper.toCreation(scriptRequest("{\"author\": \"x\"}"), null).author(), "posted author kept");
