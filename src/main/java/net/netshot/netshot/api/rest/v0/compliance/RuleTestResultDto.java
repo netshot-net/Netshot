@@ -18,11 +18,9 @@
  */
 package net.netshot.netshot.api.rest.v0.compliance;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The outcome of the test of a rule against a device.
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param scriptError what the check logged, including the script errors
  * @param comment the comment of the check
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsRuleTestResult")
 public record RuleTestResultDto(CheckResult.ResultOption result, String scriptError, String comment) {
 }

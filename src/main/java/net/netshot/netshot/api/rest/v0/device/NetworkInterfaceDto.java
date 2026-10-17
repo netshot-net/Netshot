@@ -20,11 +20,9 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of a network interface of a device, with its IP addresses.
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param level3 whether the interface is a layer 3 one
  * @param macAddress the MAC address
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "NetworkInterface")
 public record NetworkInterfaceDto(
 	long id,
@@ -61,7 +58,6 @@ public record NetworkInterfaceDto(
 	 * @param prefixLength the prefix length
 	 * @param addressUsage the usage of the address
 	 */
-	@JsonView(DefaultView.class)
 	public record Address(String ip, int prefixLength, AddressUsage addressUsage) {
 	}
 }

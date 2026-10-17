@@ -21,9 +21,7 @@ package net.netshot.netshot.api.hook.payload;
 import java.util.Date;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -63,7 +61,6 @@ import net.netshot.netshot.task.Task;
  * @param taskDescription the description of the type of task
  * @param userInputValues the values of the user inputs of the script
  */
-@JsonView(HookView.class)
 public record TaskBasePayload(
 	String author,
 	boolean cancelRequested,

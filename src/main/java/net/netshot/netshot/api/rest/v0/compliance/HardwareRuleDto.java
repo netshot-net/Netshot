@@ -20,11 +20,9 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A hardware compliance rule.
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param partNumberRegExp whether the part number is a regular expression
  * @param targetGroup the group the rule applies to, or null for all the devices
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "HardwareRule")
 public record HardwareRuleDto(
 	String deviceType,

@@ -23,11 +23,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.inventory.config.ConfigDelta;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of the differences between two configurations.
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param revisedConfig the revised configuration, if it was asked for
  * @param deltas the differences by title of the compared item, if they were asked for
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsConfigDiff")
 public record ConfigDiffDto(
 	Date originalDate,
@@ -64,7 +61,6 @@ public record ConfigDiffDto(
 	 * @param postContext the (up to 3) original lines after the difference
 	 * @param hierarchy the (indentation-based) hierarchy of the original lines the difference is in
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "RsConfigDelta")
 	public record Delta(
 		String item,
@@ -84,7 +80,6 @@ public record ConfigDiffDto(
 	 * @param line the line
 	 * @param position the position
 	 */
-	@JsonView(DefaultView.class)
 	public record LineWithPosition(String line, int position) {
 	}
 }

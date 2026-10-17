@@ -20,12 +20,10 @@ package net.netshot.netshot.api.hook.payload;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 
 /**
  * A credential set, as nested in the device accesses of the webhook payloads. The {@code type}
@@ -35,7 +33,6 @@ import net.netshot.netshot.platform.rest.RestViews.HookView;
  * and the payload is never given the secret itself. The CLI and HTTP accounts only carry the
  * properties common to every credential set.</p>
  */
-@JsonView(HookView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = CredentialSetPayload.SnmpV1.class, name = "SNMP v1"),
@@ -59,7 +56,6 @@ public sealed interface CredentialSetPayload {
 	 * @param communityVaultInstanceId the ID of the Vault instance holding the community
 	 * @param communityVaultPath the path of the community in the Vault instance
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceSnmpv1Community")
 	record SnmpV1(
 		long id,
@@ -82,7 +78,6 @@ public sealed interface CredentialSetPayload {
 	 * @param communityVaultInstanceId the ID of the Vault instance holding the community
 	 * @param communityVaultPath the path of the community in the Vault instance
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceSnmpv2cCommunity")
 	record SnmpV2c(
 		long id,
@@ -116,7 +111,6 @@ public sealed interface CredentialSetPayload {
 	 * @param privKeyVaultInstanceId the ID of the Vault instance holding the privacy key
 	 * @param privKeyVaultPath the path of the privacy key in the Vault instance
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceSnmpv3Community")
 	record SnmpV3(
 		long id,
@@ -147,7 +141,6 @@ public sealed interface CredentialSetPayload {
 	 * @param mgmtDomain the domain
 	 * @param deviceSpecific whether it is specific to a device access
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceSshAccount")
 	record Ssh(
 		long id,
@@ -167,7 +160,6 @@ public sealed interface CredentialSetPayload {
 	 * @param privateKeyVaultInstanceId the ID of the Vault instance holding the private key
 	 * @param privateKeyVaultPath the path of the private key in the Vault instance
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceSshKeyAccount")
 	record SshKey(
 		long id,
@@ -187,7 +179,6 @@ public sealed interface CredentialSetPayload {
 	 * @param mgmtDomain the domain
 	 * @param deviceSpecific whether it is specific to a device access
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceTelnetAccount")
 	record Telnet(
 		long id,
@@ -204,7 +195,6 @@ public sealed interface CredentialSetPayload {
 	 * @param mgmtDomain the domain
 	 * @param deviceSpecific whether it is specific to a device access
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DeviceHttpAccount")
 	record Http(
 		long id,

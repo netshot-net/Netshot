@@ -19,10 +19,8 @@
 package net.netshot.netshot.api.rest.v0.hook;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonView;
 
 import net.netshot.netshot.hook.HookTrigger.TriggerType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * An event which triggers a hook. The same shape is written and read (a {@code hook} property,
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param type the type of trigger
  * @param item the item to be matched (e.g. the name of a task type)
  */
-@JsonView(DefaultView.class)
 @JsonIgnoreProperties({"hook"})
 public record HookTriggerDto(TriggerType type, String item) {
 }

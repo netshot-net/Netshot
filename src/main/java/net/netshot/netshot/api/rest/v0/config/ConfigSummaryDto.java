@@ -20,11 +20,9 @@ package net.netshot.netshot.api.rest.v0.config;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The summary representation of a configuration, as listed by the configuration changes.
@@ -36,7 +34,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param author the author of the change
  * @param deviceNetworkClass the network class of the device
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightConfig")
 public record ConfigSummaryDto(
 	long id,

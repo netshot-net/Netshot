@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.aaa;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -53,7 +52,6 @@ import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.api.rest.LoggerFilter;
 import net.netshot.netshot.api.rest.NetshotAuthenticationRequiredException;
 import net.netshot.netshot.api.rest.SecurityFilter;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the current user: log in, log out, read the current user and change its
@@ -101,7 +99,6 @@ public class LoginResource {
 	@Path("/user/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "User log out",
 		description = "Terminates the current user session (useless when using API tokens)."
@@ -138,7 +135,6 @@ public class LoginResource {
 	@RolesAllowed(User.ROLE_READONLY)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update self user",
 		description = "Edits current user, especially password."
@@ -167,7 +163,6 @@ public class LoginResource {
 	@Path("/user")
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Log in",
 		description = "Logs in (create session) by username and password or OIDC authorization code (useless when using API tokens)."
@@ -204,7 +199,6 @@ public class LoginResource {
 	@RolesAllowed(User.ROLE_READONLY)
 	@Path("/user")
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the current user",
 		description = "Returns the current logged in user."

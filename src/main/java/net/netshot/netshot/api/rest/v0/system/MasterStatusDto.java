@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.system;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The cluster mastership status of the local server.
@@ -30,7 +28,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param master whether the local server is the master
  * @param currentMasterId the instance ID of the current master
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsClusterMasterCheck")
 public record MasterStatusDto(
 	boolean clusterEnabled,

@@ -18,12 +18,10 @@
  */
 package net.netshot.netshot.api.rest.v0.compliance;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A software compliance rule.
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param version the software version (or the regular expression it has to match)
  * @param versionRegExp whether the version is a regular expression
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "SoftwareRule")
 public record SoftwareRuleDto(
 	String deviceType,

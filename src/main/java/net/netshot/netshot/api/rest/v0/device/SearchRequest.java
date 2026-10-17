@@ -18,17 +18,14 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to search for devices.
  *
  * @param query the string-based query
  */
-@JsonView(DefaultView.class)
 // Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
 // (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
 @XmlRootElement(name = "RsSearchCriteria")

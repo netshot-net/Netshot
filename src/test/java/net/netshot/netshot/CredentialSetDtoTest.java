@@ -35,7 +35,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -55,7 +54,6 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * Checks that the credential set DTOs and their mapper are a faithful replacement of the entities
@@ -65,12 +63,9 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
  */
 class CredentialSetDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final YAMLMapper YAML = YAMLMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
+	private static final YAMLMapper YAML = YAMLMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(CredentialSetDtoTest.class);
@@ -144,15 +139,15 @@ class CredentialSetDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] yaml(Object value) throws Exception {
-		return YAML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return YAML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -161,8 +156,8 @@ class CredentialSetDtoTest {
 
 	private void assertListRepresentation(List<CredentialSetDto> dtos) throws Exception {
 		TypeReference<List<CredentialSetDto>> dtoType = new TypeReference<>() { };
-		byte[] json = JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos);
-		byte[] xml = XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos);
+		byte[] json = JSON.writerFor(dtoType).writeValueAsBytes(dtos);
+		byte[] xml = XML.writerFor(dtoType).writeValueAsBytes(dtos);
 		this.contract.checkBoth(json, xml);
 		Assertions.assertTrue(new String(json).contains("SNMP v3"), "the items have their type");
 		Assertions.assertTrue(new String(xml).contains("type=\"SNMP v3\""), "the items have their type");
@@ -236,10 +231,10 @@ class CredentialSetDtoTest {
 		};
 		for (String[] body : bodies) {
 			String text = "{\"type\": \"%s\", \"name\": \"n\", \"%s\": \"=\"}".formatted(body[0], body[1]);
-			DeviceCredentialSet actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(text));
+			DeviceCredentialSet actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).readValue(text));
 			Assertions.assertNull(describe(actual).get(body[1]), text);
 			String set = "{\"type\": \"%s\", \"name\": \"n\", \"%s\": \"value\"}".formatted(body[0], body[1]);
-			DeviceCredentialSet actualSet = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(set));
+			DeviceCredentialSet actualSet = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).readValue(set));
 			Assertions.assertEquals("value", describe(actualSet).get(body[1]), set);
 		}
 	}
@@ -321,7 +316,7 @@ class CredentialSetDtoTest {
 			index++;
 			DeviceCredentialSet actual = null;
 			try {
-				actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(body));
+				actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).readValue(body));
 			}
 			catch (JsonProcessingException e) {
 				// Refused
@@ -339,7 +334,7 @@ class CredentialSetDtoTest {
 	void listsAreRead() throws Exception {
 		String body = "[" + String.join(",", BODIES.subList(0, 9)) + "]";
 		List<CredentialSetDto> dtos = JSON.readerFor(new TypeReference<List<CredentialSetDto>>() { })
-			.withView(RestApiView.class).readValue(body);
+			.readValue(body);
 		Assertions.assertEquals(9, dtos.size());
 		for (int i = 0; i < dtos.size(); i++) {
 			DeviceCredentialSet actual = CredentialSetMapper.toEntity(dtos.get(i));

@@ -20,9 +20,7 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A hardware module of a device, as nested in the device representation
@@ -36,7 +34,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param lastSeenDate when the module was last seen
  * @param removed whether the module was removed
  */
-@JsonView(DefaultView.class)
 public record ModuleDto(
 	long id,
 	String slot,

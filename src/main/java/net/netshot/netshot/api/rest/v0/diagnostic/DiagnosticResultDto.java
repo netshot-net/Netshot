@@ -22,16 +22,13 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of the result of a diagnostic on a device. The {@code type} property (an
  * attribute in XML) is the type of the value. A long text is not part of the representation.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = DiagnosticResultDto.Numeric.class, name = "NUMERIC"),
@@ -57,7 +54,6 @@ public sealed interface DiagnosticResultDto {
 	 * @param lastCheckDate when the result was last returned
 	 * @param number the value
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DiagnosticNumericResult")
 	record Numeric(Date creationDate, long diagnosticId, String diagnosticName, Date lastCheckDate, Double number)
 		implements DiagnosticResultDto {
@@ -72,7 +68,6 @@ public sealed interface DiagnosticResultDto {
 	 * @param lastCheckDate when the result was last returned
 	 * @param text the value
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DiagnosticTextResult")
 	record Text(Date creationDate, long diagnosticId, String diagnosticName, Date lastCheckDate, String text)
 		implements DiagnosticResultDto {
@@ -86,7 +81,6 @@ public sealed interface DiagnosticResultDto {
 	 * @param diagnosticName the name of the diagnostic
 	 * @param lastCheckDate when the result was last returned
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DiagnosticLongTextResult")
 	record LongText(Date creationDate, long diagnosticId, String diagnosticName, Date lastCheckDate)
 		implements DiagnosticResultDto {
@@ -101,7 +95,6 @@ public sealed interface DiagnosticResultDto {
 	 * @param diagnosticName the name of the diagnostic
 	 * @param lastCheckDate when the result was last returned
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DiagnosticBinaryResult")
 	record Binary(Boolean assumption, Date creationDate, long diagnosticId, String diagnosticName, Date lastCheckDate)
 		implements DiagnosticResultDto {
