@@ -20,26 +20,23 @@ package net.netshot.netshot.api.rest;
 
 import java.io.IOException;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.annotation.Priority;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
-import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.ApiToken;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.aaa.user.ApiTokenService;
 
 /**
  * Filter to authenticate requests based on API token.
  */
 @Priority(Priorities.AUTHENTICATION)
 @PreMatching
-@Slf4j
 public class ApiTokenAuthFilter implements ContainerRequestFilter {
 
 	/** Authentication, Authorization, Accounting logger. */
@@ -51,6 +48,9 @@ public class ApiTokenAuthFilter implements ContainerRequestFilter {
 	/** Name of the attribute attached to the the request to carry the token. */
 	public static final String ATTRIBUTE = "apiToken";
 
+	@Inject
+	private ApiTokenService apiTokenService;
+
 	@Override
 	public void filter(ContainerRequestContext requestContext) throws IOException {
 		String token = requestContext.getHeaderString(ApiTokenAuthFilter.HTTP_API_TOKEN_HEADER);
@@ -58,26 +58,9 @@ public class ApiTokenAuthFilter implements ContainerRequestFilter {
 			return;
 		}
 		AAA_LOG.debug("Received request with API token.");
-		token = token.trim();
-		String hash = ApiToken.hashToken(token);
-		Session session = Database.getSession();
-		try {
-			ApiToken apiToken = session
-				.createQuery("from ApiToken t where t.hashedToken = :hash", ApiToken.class)
-				.setParameter("hash", hash).uniqueResult();
-			if (apiToken == null) {
-				AAA_LOG.warn("Invalid API token received.");
-			}
-			else {
-				AAA_LOG.info("Successful API token usage {}.", apiToken);
-				requestContext.setProperty(ApiTokenAuthFilter.ATTRIBUTE, apiToken);
-			}
-		}
-		catch (HibernateException e) {
-			log.error("Database error while looking for API token", e);
-		}
-		finally {
-			session.close();
+		ApiToken apiToken = this.apiTokenService.authenticate(token);
+		if (apiToken != null) {
+			requestContext.setProperty(ApiTokenAuthFilter.ATTRIBUTE, apiToken);
 		}
 	}
 

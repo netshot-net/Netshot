@@ -143,19 +143,30 @@ public class ArchitectureTest {
 			.should().dependOnClassesThat().haveFullyQualifiedName(ROOT + "platform.database.Database")
 			.allowEmptyShould(true));
 
+	/**
+	 * Server-side JAX-RS (annotations such as @Path and @GET, the container filters, the ext providers...) stays in the
+	 * REST layer. What the outgoing calls use is allowed everywhere the next rule allows it: the client API, the
+	 * {@code core} types (Response, MediaType, Form...) and the ProcessingException the client throws.
+	 */
 	@ArchTest
 	static final ArchRule jaxRsServerApiOnlyInRestLayer = freeze(
 		noClasses().that().resideOutsideOfPackages(ROOT + "api..", ROOT + "platform.rest..")
 			.should().dependOnClassesThat(
 				DescribedPredicate.and(
 					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.."),
-					DescribedPredicate.not(JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.client.."))))
+					DescribedPredicate.not(JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.client..")),
+					DescribedPredicate.not(JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.core..")),
+					DescribedPredicate.not(JavaClass.Predicates.equivalentTo(jakarta.ws.rs.ProcessingException.class))))
 			.allowEmptyShould(true));
 
 	@ArchTest
 	static final ArchRule jaxRsClientApiOnlyForOutgoingCalls = freeze(
 		noClasses().that().resideOutsideOfPackages(CLIENT_USERS)
-			.should().dependOnClassesThat().resideInAPackage("jakarta.ws.rs.client..")
+			.should().dependOnClassesThat(
+				DescribedPredicate.or(
+					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.client.."),
+					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.core.."),
+					JavaClass.Predicates.equivalentTo(jakarta.ws.rs.ProcessingException.class)))
 			.allowEmptyShould(true));
 
 	/**
