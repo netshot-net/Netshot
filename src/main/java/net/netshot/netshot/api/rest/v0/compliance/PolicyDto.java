@@ -20,11 +20,9 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A compliance policy, with the device groups it applies to.
@@ -33,7 +31,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param name the name
  * @param targetGroups the target groups
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "Policy")
 public record PolicyDto(long id, String name, List<DeviceGroupDto> targetGroups) {
 }

@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.system;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A member of the high availability cluster.
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param lastStatusChangeTime the time of the last status change (epoch milliseconds)
  * @param lastSeenTime the time the member was last seen (epoch milliseconds)
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "ClusterMember")
 public record ClusterMemberDto(
 	boolean local,

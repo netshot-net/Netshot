@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -58,7 +57,6 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.userscript.DeviceJsScript;
 
 /**
@@ -68,10 +66,8 @@ import net.netshot.netshot.userscript.DeviceJsScript;
  */
 class DiagnosticDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(DiagnosticDtoTest.class);
@@ -86,11 +82,11 @@ class DiagnosticDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -240,7 +236,7 @@ class DiagnosticDtoTest {
 	}
 
 	private static DiagnosticRequest diagnosticRequest(String body) throws Exception {
-		return JSON.readerFor(DiagnosticRequest.class).withView(RestApiView.class).readValue(body);
+		return JSON.readerFor(DiagnosticRequest.class).readValue(body);
 	}
 
 	@Test
@@ -266,7 +262,7 @@ class DiagnosticDtoTest {
 	}
 
 	private static ScriptRequest scriptRequest(String body) throws Exception {
-		return JSON.readerFor(ScriptRequest.class).withView(RestApiView.class).readValue(body);
+		return JSON.readerFor(ScriptRequest.class).readValue(body);
 	}
 
 	@Test

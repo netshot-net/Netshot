@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.credentials;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
@@ -32,7 +31,6 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.credentials.HideSecretDeserializer;
 import net.netshot.netshot.credentials.HideSecretSerializer;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A credential set: the representation of the credential set endpoints, and of the credential sets
@@ -58,7 +56,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 	"changeDate", "version", "usernameSecret", "passwordSecret", "superPasswordSecret", "privateKeySecret",
 	"communitySecret", "authKeySecret", "privKeySecret"
 })
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = CredentialSetDto.SnmpV1.class, name = "SNMP v1"),
@@ -110,7 +107,6 @@ public sealed interface CredentialSetDto {
 	 * @param communityVaultInstanceId the ID of the Vault instance holding the community
 	 * @param communityVaultPath the path of the community in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceSnmpv1Community")
 	record SnmpV1(
 		long id,
@@ -133,7 +129,6 @@ public sealed interface CredentialSetDto {
 	 * @param communityVaultInstanceId the ID of the Vault instance holding the community
 	 * @param communityVaultPath the path of the community in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceSnmpv2cCommunity")
 	record SnmpV2c(
 		long id,
@@ -167,7 +162,6 @@ public sealed interface CredentialSetDto {
 	 * @param privKeyVaultInstanceId the ID of the Vault instance holding the privacy key
 	 * @param privKeyVaultPath the path of the privacy key in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceSnmpv3Community")
 	record SnmpV3(
 		long id,
@@ -207,7 +201,6 @@ public sealed interface CredentialSetDto {
 	 * @param superPasswordVaultInstanceId the ID of the Vault instance holding the super password
 	 * @param superPasswordVaultPath the path of the super password in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceSshAccount")
 	record Ssh(
 		long id,
@@ -245,7 +238,6 @@ public sealed interface CredentialSetDto {
 	 * @param privateKeyVaultInstanceId the ID of the Vault instance holding the private key
 	 * @param privateKeyVaultPath the path of the private key in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceSshKeyAccount")
 	record SshKey(
 		long id,
@@ -283,7 +275,6 @@ public sealed interface CredentialSetDto {
 	 * @param superPasswordVaultInstanceId the ID of the Vault instance holding the super password
 	 * @param superPasswordVaultPath the path of the super password in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceTelnetAccount")
 	record Telnet(
 		long id,
@@ -315,7 +306,6 @@ public sealed interface CredentialSetDto {
 	 * @param passwordVaultInstanceId the ID of the Vault instance holding the password
 	 * @param passwordVaultPath the path of the password in the Vault instance
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DeviceHttpAccount")
 	record Http(
 		long id,

@@ -27,7 +27,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -36,7 +35,6 @@ import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.report.AccessFailureDevice;
 import net.netshot.netshot.report.DailyChangeCount;
 import net.netshot.netshot.report.GroupConfigComplianceStat;
@@ -53,10 +51,8 @@ import net.netshot.netshot.report.SoftwareLevelDevice;
  */
 class ReportDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(ReportDtoTest.class);
@@ -65,11 +61,11 @@ class ReportDtoTest {
 	private static final Date D2 = new Date(1_700_000_000_000L);
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {

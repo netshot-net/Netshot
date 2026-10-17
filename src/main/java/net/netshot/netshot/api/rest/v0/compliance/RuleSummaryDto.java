@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.compliance;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A compliance rule with minimal details.
@@ -32,7 +30,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param enabled whether the rule is enabled
  * @param policyId the ID of the policy owning the rule
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightRule")
 public record RuleSummaryDto(long id, String name, String type, boolean enabled, long policyId) {
 }

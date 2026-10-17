@@ -21,10 +21,8 @@ package net.netshot.netshot.api.rest.v0.config;
 import java.util.Date;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of a configuration, with its attributes.
@@ -35,7 +33,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param attributes the attributes
  * @param customHash the hash set by the driver, if any
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "Config")
 public record ConfigDto(
 	long id,

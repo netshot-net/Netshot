@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.domain;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of a domain given by the domain endpoints (list, add, edit): the IPv4
@@ -33,7 +31,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param description the description
  * @param ipAddress the IPv4 address of the server of the domain
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsDomain")
 public record DomainSummaryDto(
 	long id,

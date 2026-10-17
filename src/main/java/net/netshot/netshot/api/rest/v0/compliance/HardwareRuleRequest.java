@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add or edit a hardware compliance rule. A property absent from the request
@@ -39,7 +37,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param endOfSale the end of sale date of the matching hardware
  * @param endOfLife the end of life date of the matching hardware
  */
-@JsonView(DefaultView.class)
 // Transitional, see NewDeviceRequest
 @XmlRootElement(name = "rsHardwareRule")
 public record HardwareRuleRequest(

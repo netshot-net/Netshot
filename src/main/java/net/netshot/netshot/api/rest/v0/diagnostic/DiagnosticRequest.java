@@ -18,12 +18,10 @@
  */
 package net.netshot.netshot.api.rest.v0.diagnostic;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add or edit a diagnostic. Only the properties of the kind of diagnostic (the
@@ -43,7 +41,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param modifierPattern the pattern to search in the result (simple diagnostic)
  * @param modifierReplacement the replacement of the pattern (simple diagnostic)
  */
-@JsonView(DefaultView.class)
 // Transitional, see NewDeviceRequest
 @XmlRootElement(name = "rsDiagnostic")
 public record DiagnosticRequest(

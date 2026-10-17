@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the compliance policies: list, add, edit and delete.
@@ -85,7 +83,6 @@ public class PolicyResource {
 	@Path("/policies")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance policies",
 		description = "Returns the list of compliance policies."
@@ -108,7 +105,6 @@ public class PolicyResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a compliance policy",
 		description = "Creates a compliance policy."
@@ -131,7 +127,6 @@ public class PolicyResource {
 	@Path("/policies/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a compliance policy",
 		description = "Removes a given compliance policy, by ID"
@@ -161,7 +156,6 @@ public class PolicyResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a compliance policy",
 		description = "Edits a compliance policy, by ID."

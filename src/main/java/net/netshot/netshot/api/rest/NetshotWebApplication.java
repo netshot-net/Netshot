@@ -27,7 +27,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -51,7 +50,6 @@ import io.swagger.v3.oas.models.security.SecurityScheme.In;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * Netshot Web application definition.
@@ -87,25 +85,19 @@ public class NetshotWebApplication extends ResourceConfig {
 
 		// JSON
 		JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();
-		jsonProvider.setDefaultView(RestApiView.class);
 		jsonProvider.setMapper(JsonMapper.builder()
-			.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 			.build());
 		register(jsonProvider);
 
 		// XML
 		JacksonXmlBindXMLProvider xmlProvider = new JacksonXmlBindXMLProvider();
-		xmlProvider.setDefaultView(RestApiView.class);
 		xmlProvider.setMapper(XmlMapper.builder()
-			.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 			.build());
 		register(xmlProvider);
 
 		// YAML
 		JacksonXmlBindYAMLProvider yamlProvider = new JacksonXmlBindYAMLProvider();
-		yamlProvider.setDefaultView(RestApiView.class);
 		yamlProvider.setMapper(YAMLMapper.builder()
-			.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 			.build());
 		register(yamlProvider);
 
