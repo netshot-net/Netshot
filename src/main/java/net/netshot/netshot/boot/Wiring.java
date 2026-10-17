@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.boot;
 
+import java.util.List;
+
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
@@ -68,10 +70,27 @@ import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.TaskService;
+import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
+import net.netshot.netshot.task.engine.TaskJobFactory;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManagerEngine;
+import net.netshot.netshot.task.handler.CheckComplianceHandler;
+import net.netshot.netshot.task.handler.CheckGroupComplianceHandler;
+import net.netshot.netshot.task.handler.CheckGroupSoftwareHandler;
+import net.netshot.netshot.task.handler.DiscoverDeviceTypeHandler;
+import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
+import net.netshot.netshot.task.handler.RunDeviceGroupScriptHandler;
+import net.netshot.netshot.task.handler.RunDeviceScriptHandler;
+import net.netshot.netshot.task.handler.RunDiagnosticsHandler;
+import net.netshot.netshot.task.handler.RunGroupDiagnosticsHandler;
+import net.netshot.netshot.task.handler.ScanSubnetsHandler;
+import net.netshot.netshot.task.handler.TakeGroupSnapshotHandler;
+import net.netshot.netshot.task.handler.TakeSnapshotHandler;
 import net.netshot.netshot.userscript.ScriptRepository;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.VaultInstanceRepository;
@@ -142,6 +161,10 @@ public final class Wiring {
 	private final HookService hookService;
 	// Events
 	private final DomainEvents domainEvents;
+	// Task handlers
+	private final AutoSnapshotScheduler autoSnapshotScheduler;
+	private final TaskHandlers taskHandlers;
+	private final TaskJobFactory taskJobFactory;
 
 	/**
 	 * Builds the objects of the application. Each feature adds its own block
@@ -203,6 +226,24 @@ public final class Wiring {
 		// Events
 		this.domainEvents = new DomainEvents();
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender()).register(this.domainEvents);
+		// Task handlers
+		TaskSubmitter taskSubmitter = TaskManager::addTask;
+		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(TaskManager::addTask);
+		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter);
+		this.taskHandlers = new TaskHandlers(List.of(
+			new CheckComplianceHandler(this.complianceChecker),
+			new CheckGroupComplianceHandler(this.complianceChecker),
+			new CheckGroupSoftwareHandler(),
+			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter),
+			new PurgeDatabaseHandler(),
+			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
+			new RunDeviceScriptHandler(taskSubmitter),
+			new RunDiagnosticsHandler(this.diagnosticAdapters, taskSubmitter),
+			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
+			new ScanSubnetsHandler(childTaskOrchestrator),
+			new TakeGroupSnapshotHandler(childTaskOrchestrator),
+			new TakeSnapshotHandler(taskSubmitter)));
+		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents);
 	}
 
 	/**
@@ -244,6 +285,17 @@ public final class Wiring {
 		if (wiring != null) {
 			wiring.jsRuleRuntime.loadConfig();
 			wiring.pyRuleRuntime.loadConfig();
+		}
+	}
+
+	/**
+	 * Reloads the configuration of the task settings (such as the automatic snapshots), if the wiring
+	 * has been initialized. Their settings are also read when the wiring is built.
+	 */
+	public static void reloadTaskConfigs() {
+		Wiring wiring = instance;
+		if (wiring != null) {
+			wiring.autoSnapshotScheduler.loadConfig();
 		}
 	}
 
@@ -327,6 +379,33 @@ public final class Wiring {
 	 */
 	public TaskService taskService() {
 		return this.taskService;
+	}
+
+	/**
+	 * Gets the scheduler of the automatic snapshots.
+	 *
+	 * @return the automatic snapshot scheduler
+	 */
+	public AutoSnapshotScheduler autoSnapshotScheduler() {
+		return this.autoSnapshotScheduler;
+	}
+
+	/**
+	 * Gets the registry of the task handlers.
+	 *
+	 * @return the task handlers
+	 */
+	public TaskHandlers taskHandlers() {
+		return this.taskHandlers;
+	}
+
+	/**
+	 * Gets the factory of the Quartz task jobs.
+	 *
+	 * @return the task job factory
+	 */
+	public TaskJobFactory taskJobFactory() {
+		return this.taskJobFactory;
 	}
 
 	/**

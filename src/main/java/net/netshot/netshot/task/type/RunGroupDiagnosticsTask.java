@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.hibernate.Hibernate;
@@ -120,33 +119,6 @@ public final class RunGroupDiagnosticsTask extends Task
 		else {
 			Hibernate.initialize(this.getDeviceListMembers());
 		}
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		List<Device> devices = this.getTargetDevices();
-		if (this.getDeviceGroup() == null && devices.isEmpty()) {
-			this.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		log.debug("Task {}. {} device(s) to process.", this.getId(), devices.size());
-		String comment = this.getDeviceGroup() == null
-			? String.format("Started due to %d-device diagnostics list", devices.size())
-			: String.format("Started due to group %s diagnostics", this.getDeviceGroup().getName());
-
-		List<Task> children = this.reloadExistingChildren();
-		if (children.isEmpty()) {
-			children = new ArrayList<>();
-			for (Device device : devices) {
-				children.add(new RunDiagnosticsTask(device, comment, author, this.isDontCheckCompliance()));
-			}
-			this.preCreateChildren(children);
-		}
-		this.status = this.orchestrateChildren(children);
 	}
 
 	/*(non-Javadoc)

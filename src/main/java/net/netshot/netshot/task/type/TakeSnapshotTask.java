@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.hibernate.Session;
 import org.quartz.JobKey;
 
 import com.fasterxml.jackson.annotation.JsonView;
@@ -31,25 +30,14 @@ import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.devicescript.DeviceScript;
-import net.netshot.netshot.devicescript.SnapshotDeviceScript;
-import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
-import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.rest.RestViews.HookView;
-import net.netshot.netshot.task.DebugLog;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskLockManager;
-import net.netshot.netshot.task.engine.TaskManager;
 
 /**
  * This task takes a snapshot of a device.
@@ -58,31 +46,6 @@ import net.netshot.netshot.task.engine.TaskManager;
 @DiscriminatorValue("TakeSnapshotTask")
 @Slf4j
 public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
-
-	/**
-	 * Settings/config for the current class.
-	 */
-	public static final class Settings {
-
-		/** Allow trap from any IP of a device to trigger a automatic snapshot. */
-		@Getter
-		private boolean autoSnapshotAnyIp;
-
-		/** Minutes to wait before starting an automatic snapshot. */
-		@Getter
-		private int autoSnapshotInterval;
-
-		/**
-		 * Load settings from config.
-		 */
-		private void load() {
-			this.autoSnapshotAnyIp = Netshot.getConfig("netshot.snapshots.auto.anyip", false);
-			this.autoSnapshotInterval = Netshot.getConfig("netshot.snapshots.auto.interval", 10, 1, 60 * 24 * 7);
-		}
-	}
-
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
 
 	/** The scheduled automatic snapshots. */
 	private static Set<Long> scheduledAutoSnapshots = ConcurrentHashMap.newKeySet();
@@ -104,17 +67,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	 */
 	public static boolean checkAutoSnapshot(Long deviceId) {
 		return scheduledAutoSnapshots.add(deviceId);
-	}
-
-	/**
-	 * Load TakeSnapshotTask specific configuration from Netshot config file.
-	 */
-	public static void loadConfig() {
-		TakeSnapshotTask.SETTINGS.load();
-	}
-
-	static {
-		TakeSnapshotTask.loadConfig();
 	}
 
 	/**
@@ -159,95 +111,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 		this.setAutomatic(automatic);
 		this.setDontRunDiagnostics(dontRunDiagnostics);
 		this.setDontCheckCompliance(dontCheckCompliance);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		log.debug("Task {}. Starting snapshot task for device {}.", this.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			this.logger.info("The device doesn't exist, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		Session session = Database.getSession();
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.logger);
-		try {
-			session.beginTransaction();
-			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			this.logger.info("Snapshot task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (device.getStatus() != Device.Status.INPRODUCTION) {
-				log.trace("Task {}. Device not INPRODUCTION, stopping the snapshot task.", this.getId());
-				this.logger.warn("The device is not enabled (not in production).");
-				this.status = Status.CANCELLED;
-				return;
-			}
-			deviceScript.connectRun(session, device);
-			session.persist(device);
-			session.getTransaction().commit();
-			Config lastConfig = device.getLastConfig();
-			if (lastConfig != null) {
-				for (ConfigAttribute ca : lastConfig.getAttributes()) {
-					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
-						cbfa.finalizeStorage();
-					}
-				}
-			}
-			this.status = Status.SUCCESS;
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while taking the snapshot.", this.getId(), e);
-			this.logger.error("Error while taking the snapshot: {}", e.getMessage());
-			this.status = Status.FAILURE;
-			return;
-		}
-		finally {
-			try {
-				if (this.fullLogs != null) {
-					this.debugLog = new DebugLog(this.fullLogs.toString());
-				}
-			}
-			catch (Exception e1) {
-				log.error("Task {}. Error while saving the debug logs.", this.getId(), e1);
-			}
-			session.close();
-			if (this.isAutomatic()) {
-				clearScheduledAutoSnapshot(this.getDevice().getId());
-			}
-		}
-
-		log.debug("Task {}. Request to refresh all the groups for the device after the snapshot.", this.getId());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
-
-		if (!this.dontRunDiagnostics) {
-			try {
-				Task diagTask = new RunDiagnosticsTask(device, "Run diagnostics after device snapshot", "Auto", this.dontCheckCompliance);
-				diagTask.setPriority(this.getPriority());
-				diagTask.setParentTaskId(this.getId());
-				TaskManager.addTask(diagTask);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the diagnostic task.", this.getId(), e);
-			}
-
-		}
-		else if (!this.dontCheckCompliance) {
-			try {
-				Task checkTask = new CheckComplianceTask(device, "Check compliance after device snapshot", "Auto");
-				checkTask.setPriority(this.getPriority());
-				checkTask.setParentTaskId(this.getId());
-				TaskManager.addTask(checkTask);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the check compliance task.", this.getId(), e);
-			}
-		}
 	}
 
 	/*(non-Javadoc)
@@ -302,94 +165,29 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 		return task;
 	}
 
+	/**
+	 * Schedules an automatic snapshot of the device with the given address, if needed.
+	 *
+	 * @param drivers the names of the drivers requesting a snapshot
+	 * @param address the address of the device
+	 * @return true if the request was handled
+	 * @deprecated use {@link net.netshot.netshot.task.AutoSnapshotScheduler}; kept for the callers which can't be injected
+	 */
+	@Deprecated
 	public static boolean scheduleSnapshotIfNeeded(List<String> drivers, Network4Address address) {
-		log.debug("Request to take a snapshot of device with IP {}, if necessary.",
-			address.getIp());
-		Device device;
-		Session session = Database.getSession();
-		try {
-			log.trace("Retrieving the device.");
-			device = session.createQuery(
-				"select d from Device d where d.status = :inprod and d.cachedIpAddress = :ip",
-				Device.class)
-				.setParameter("inprod", Device.Status.INPRODUCTION)
-				.setParameter("ip", address.getInetAddress())
-				.uniqueResult();
-			if (device == null && TakeSnapshotTask.SETTINGS.isAutoSnapshotAnyIp()) {
-				log.warn("No device with such management IP {} in the database. Looking for this address in the interface table.",
-					address.getIp());
-				device = session
-					.createQuery(
-						"select d from Device d join d.networkInterfaces ni join ni.ip4Addresses a where d.status = :inprod and a.address = :ip",
-						Device.class)
-					.setParameter("inprod", Device.Status.INPRODUCTION)
-					.setParameter("ip", address.getAddress())
-					.uniqueResult();
-			}
-			if (device == null) {
-				log.warn("No device with such IP address {} in the database.", address.getIp());
-				return false;
-			}
-			if (!drivers.contains(device.getDriver())) {
-				log.warn("The driver {} of the device {} in database isn't in the list of drivers requesting a snapshot (address {}).",
-					device.getDriver(), device.getId(), device.getMgmtAddress());
-				return false;
-			}
-		}
-		catch (Exception e) {
-			log.error("Error while checking whether the snapshot is needed or not.", e);
-			return true;
-		}
-		finally {
-			session.close();
-		}
-
-		if (TaskManager.Mode.CLUSTER_MEMBER.equals(TaskManager.getMode())) {
-			log.debug("The local instance is cluster member: sending notification to master for an auto snapshot of device ID {}", device.getId());
-			ClusterManager.requestAutoSnapshot(device.getId());
-			return true;
-		}
-
-		return scheduleSnapshotIfNeeded(device);
+		return Wiring.get().autoSnapshotScheduler().scheduleSnapshotIfNeeded(drivers, address);
 	}
 
+	/**
+	 * Schedules an automatic snapshot of the given device, if needed.
+	 *
+	 * @param deviceId the device ID
+	 * @return true if the request was handled
+	 * @deprecated use {@link net.netshot.netshot.task.AutoSnapshotScheduler}; kept for the callers which can't be injected
+	 */
+	@Deprecated
 	public static boolean scheduleSnapshotIfNeeded(long deviceId) {
-		log.debug("Request to take a snapshot of device ID {}.", deviceId);
-		Device device;
-		Session session = Database.getSession();
-		try {
-			log.trace("Retrieving the device.");
-			device = session.get(Device.class, deviceId);
-			if (device == null) {
-				log.warn("No device with such ID {} in the database.", deviceId);
-				return false;
-			}
-		}
-		catch (Exception e) {
-			log.error("Error while checking whether the snapshot is needed or not.", e);
-			return true;
-		}
-		finally {
-			session.close();
-		}
-
-		return scheduleSnapshotIfNeeded(device);
-	}
-
-	private static boolean scheduleSnapshotIfNeeded(Device device) {
-		if (!checkAutoSnapshot(device.getId())) {
-			log.debug("A snapshot task is already scheduled.");
-			return true;
-		}
-		try {
-			Task snapshot = new TakeSnapshotTask(device, "Automatic snapshot after config change", "Auto", true, false, false);
-			snapshot.schedule(TakeSnapshotTask.SETTINGS.getAutoSnapshotInterval());
-			TaskManager.addTask(snapshot);
-		}
-		catch (Exception e) {
-			log.error("Error while scheduling the automatic snapshot.", e);
-		}
-		return true;
+		return Wiring.get().autoSnapshotScheduler().scheduleSnapshotIfNeeded(deviceId);
 	}
 
 	/*(non-Javadoc)

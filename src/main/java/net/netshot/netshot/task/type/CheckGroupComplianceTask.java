@@ -20,10 +20,7 @@ package net.netshot.netshot.task.type;
 
 import java.util.List;
 
-import org.hibernate.CacheMode;
 import org.hibernate.Hibernate;
-import org.hibernate.ScrollMode;
-import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.quartz.JobKey;
 
@@ -34,12 +31,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
@@ -134,96 +127,6 @@ public final class CheckGroupComplianceTask extends Task implements GroupBasedTa
 			task.setDeviceList(this.getDeviceList());
 		}
 		return task;
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		DeviceGroup group = this.getDeviceGroup();
-		List<Device> devices = group == null ? this.getDeviceList() : null;
-		if (group == null && (devices == null || devices.isEmpty())) {
-			this.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		log.debug("Task {}. Starting check compliance task for {}.", this.getId(),
-			group == null ? devices.size() + " listed device(s)" : "group " + group.getId());
-
-		List<Long> deviceIds = group == null ? devices.stream().map(Device::getId).toList() : null;
-
-		Session session = Database.getSession();
-		try {
-			List<Policy> policies =
-				session.createQuery("select p from Policy p", Policy.class).list();
-
-			session.beginTransaction();
-			if (group != null) {
-				session
-					.createMutationQuery(
-						"delete from CheckResult c where c.key.device.id in "
-						+ "(select dm1.key.device.id as id from DeviceGroup g1 join g1.cachedMemberships dm1 where dm1.key.group.id = :id)")
-					.setParameter("id", group.getId())
-					.executeUpdate();
-			}
-			else {
-				session
-					.createMutationQuery("delete from CheckResult c where c.key.device.id in :ids")
-					.setParameter("ids", deviceIds)
-					.executeUpdate();
-			}
-			for (Policy policy : policies) {
-				// Get devices which are part of the target group/list and which are in a group which the policy is applied to
-				ScrollableResults<Device> scrolledDevices;
-				if (group != null) {
-					scrolledDevices = session
-						.createQuery(
-							"select d from Device d join d.groupMemberships gm where gm.key.group.id = :groupId and d in "
-							+ "(select dm1.key.device from Policy p join p.targetGroups g1 join g1.cachedMemberships dm1 where p.id = :policyId)",
-							Device.class)
-						.setParameter("groupId", group.getId())
-						.setParameter("policyId", policy.getId())
-						.setCacheMode(CacheMode.IGNORE)
-						.scroll(ScrollMode.FORWARD_ONLY);
-				}
-				else {
-					scrolledDevices = session
-						.createQuery(
-							"select d from Device d where d.id in :deviceIds and d in "
-							+ "(select dm1.key.device from Policy p join p.targetGroups g1 join g1.cachedMemberships dm1 where p.id = :policyId)",
-							Device.class)
-						.setParameter("deviceIds", deviceIds)
-						.setParameter("policyId", policy.getId())
-						.setCacheMode(CacheMode.IGNORE)
-						.scroll(ScrollMode.FORWARD_ONLY);
-				}
-				while (scrolledDevices.next()) {
-					Device device = scrolledDevices.get();
-					this.logger.info("Checking configuration compliance of device {} ({})", device.getName(), device.getId());
-					Wiring.get().complianceChecker().check(policy, device, session, this.logger);
-					session.persist(device);
-					session.flush();
-					session.evict(device);
-				}
-			}
-			session.getTransaction().commit();
-			this.status = Status.SUCCESS;
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while checking compliance.", this.getId(), e);
-			this.logger.error("Error while checking compliance: {}", e.getMessage());
-			this.status = Status.FAILURE;
-			return;
-		}
-		finally {
-			session.close();
-		}
-
-		log.debug("Task {}. Request to refresh all the groups after compliance check.", this.getId());
-		DynamicDeviceGroup.refreshAllGroups();
-		log.debug("Task {}. Group refreshing done.", this.getId());
 	}
 
 	/*
