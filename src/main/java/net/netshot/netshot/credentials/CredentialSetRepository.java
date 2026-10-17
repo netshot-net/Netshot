@@ -38,12 +38,12 @@ public class CredentialSetRepository {
 	 *
 	 * @param session the session
 	 * @param page the window on the result
-	 * @return the credential sets, with everything their representation reads: the associations
+	 * @return the credential sets, by ID, with everything their representation reads: the associations
 	 *         to the domain and to the Vault instances are eager
 	 */
 	public List<DeviceCredentialSet> findGlobal(Session session, Page page) {
 		Query<DeviceCredentialSet> query = session
-			.createQuery("select cs from DeviceCredentialSet cs where not (cs.deviceSpecific)", DeviceCredentialSet.class);
+			.createQuery("select cs from DeviceCredentialSet cs where not (cs.deviceSpecific) order by cs.id", DeviceCredentialSet.class);
 		page.apply(query);
 		return query.list();
 	}
