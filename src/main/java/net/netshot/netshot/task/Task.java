@@ -67,18 +67,6 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.engine.TaskContext;
-import net.netshot.netshot.task.type.CheckComplianceTask;
-import net.netshot.netshot.task.type.CheckGroupComplianceTask;
-import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
-import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
-import net.netshot.netshot.task.type.PurgeDatabaseTask;
-import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
-import net.netshot.netshot.task.type.RunDeviceScriptTask;
-import net.netshot.netshot.task.type.RunDiagnosticsTask;
-import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
-import net.netshot.netshot.task.type.ScanSubnetsTask;
-import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 
 /**
