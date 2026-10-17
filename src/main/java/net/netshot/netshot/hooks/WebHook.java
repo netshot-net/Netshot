@@ -229,9 +229,10 @@ public class WebHook extends Hook {
 		}
 		clientBuilder.withConfig(config);
 
-		Client client = clientBuilder.build();
-		Response response = client.target(targetUrl.toURI()).request().post(jakarta.ws.rs.client.Entity.entity(data, mediaType));
-
-		return String.format("HTTP response code %d", response.getStatus());
+		// The client (its connection pool) and the response are released after each call
+		try (Client client = clientBuilder.build();
+				Response response = client.target(targetUrl.toURI()).request().post(jakarta.ws.rs.client.Entity.entity(data, mediaType))) {
+			return String.format("HTTP response code %d", response.getStatus());
+		}
 	}
 }
