@@ -131,7 +131,7 @@ public class DiagnosticService {
 			if (Database.isDuplicateException(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, "A diagnostic with this name already exists.");
 			}
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database.");
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the diagnostic to the database.");
 		}
 		AAA_LOG.info("{} has been created", diagnostic);
 		return diagnostic;
@@ -201,7 +201,7 @@ public class DiagnosticService {
 			if (Database.isDuplicateException(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, "A diagnostic with this name already exists.");
 			}
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the policy.");
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the diagnostic.");
 		}
 		AAA_LOG.info("{} has been edited", diagnostic);
 		return diagnostic;
