@@ -39,6 +39,7 @@ import org.quartz.Trigger;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -670,7 +671,8 @@ public abstract class Task implements Cloneable {
 	 * @return the ordered list of target devices, empty if neither source is set
 	 */
 	@Transient
-	protected List<Device> getTargetDevices() {
+	@JsonIgnore
+	public List<Device> getTargetDevices() {
 		if (this.deviceGroup != null) {
 			return new ArrayList<>(this.deviceGroup.getCachedDevices());
 		}
@@ -1451,6 +1453,16 @@ public abstract class Task implements Cloneable {
 	 */
 	public void prepare(Session session) {
 		// Override to actually do something
+	}
+
+	/**
+	 * Attaches the full debug logs collected so far (if debugging is enabled) to this task,
+	 * as its {@link DebugLog}.
+	 */
+	public void attachDebugLog() {
+		if (this.fullLogs != null) {
+			this.debugLog = new DebugLog(this.fullLogs.toString());
+		}
 	}
 
 	/**

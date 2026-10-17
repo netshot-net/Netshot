@@ -100,6 +100,7 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	@Getter(onMethod = @__({
 		@Transient
 	}))
+	@Setter
 	private transient NetworkAddress resolvedAddress;
 
 	/** The success credential set. */
@@ -229,7 +230,7 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 *
 	 * @param snapshotTaskId the new snapshot task id
 	 */
-	protected void setSnapshotTaskId(long snapshotTaskId) {
+	public void setSnapshotTaskId(long snapshotTaskId) {
 		this.setAttribute("snapshotTaskId", snapshotTaskId);
 	}
 
