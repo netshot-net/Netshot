@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -50,7 +49,6 @@ import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -96,7 +94,6 @@ public class DeviceResource {
 	@Path("/devices")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the devices",
 		description = "Retrieves the device list with minimal details."
@@ -121,7 +118,6 @@ public class DeviceResource {
 	@Path("/devices/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a device",
 		description = "Retrieve a device will all details."
@@ -145,7 +141,6 @@ public class DeviceResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a device",
 		description = "In auto discovery mode, this will create a 'discover device' task, and the device will be create if the discovery is successful."
@@ -170,7 +165,6 @@ public class DeviceResource {
 	@Path("/devices/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a device",
 		description = "Remove the given device, by ID."
@@ -200,7 +194,6 @@ public class DeviceResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a device",
 		description = "Edits a device, by ID."

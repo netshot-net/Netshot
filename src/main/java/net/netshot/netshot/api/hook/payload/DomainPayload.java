@@ -20,9 +20,7 @@ package net.netshot.netshot.api.hook.payload;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 
 /**
  * A management domain, as nested in the webhook payloads.
@@ -34,7 +32,6 @@ import net.netshot.netshot.platform.rest.RestViews.HookView;
  * @param server4Address the IPv4 address of the domain server
  * @param server6Address the IPv6 address of the domain server
  */
-@JsonView(HookView.class)
 public record DomainPayload(
 	long id,
 	Date changeDate,

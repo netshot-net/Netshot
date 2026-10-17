@@ -23,7 +23,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -32,7 +31,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.hook.WebHook.Action;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -54,21 +52,21 @@ public abstract class HookRequest {
 
 	/** The id (ignored when editing a hook). */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private long id;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String name;
 
 	/** Whether the hook is enabled. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean enabled = true;
@@ -78,7 +76,7 @@ public abstract class HookRequest {
 	 * the order the triggers are stored in follows from it.
 	 */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private List<HookTriggerDto> triggers = new ArrayList<>();
@@ -90,28 +88,28 @@ public abstract class HookRequest {
 
 		/** The way the payload is posted. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private Action action;
 
 		/** The target URL. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String url;
 
 		/** How the certificate of the target is trusted. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
 
 		/** The PEM trust anchors, for the custom CA mode. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String httpsCustomCaCertificate;

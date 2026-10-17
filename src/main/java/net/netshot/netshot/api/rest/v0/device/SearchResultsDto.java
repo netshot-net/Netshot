@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The result of a device search.
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param query the query, as normalized by the query parser
  * @param devices the matching devices
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsSearchResults")
 public record SearchResultsDto(String query, List<DeviceSummaryDto> devices) {
 }

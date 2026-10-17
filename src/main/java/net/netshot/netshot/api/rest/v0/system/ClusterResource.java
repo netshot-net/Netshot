@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.system;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,7 +39,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the high availability cluster: members and mastership status of the
@@ -75,7 +73,6 @@ public class ClusterResource {
 	@Path("/cluster/members")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get cluster members",
 		description = "Returns the members of the Netshot high availability cluster "
@@ -97,7 +94,6 @@ public class ClusterResource {
 	@PermitAll
 	@Path("/cluster/masterstatus")
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Check if local server is cluster master",
 		description = "Returns cluster mastership info of the current node. "

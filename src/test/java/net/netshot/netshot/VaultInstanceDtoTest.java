@@ -35,7 +35,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -43,7 +42,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import net.netshot.netshot.api.rest.v0.vault.VaultInstanceDto;
 import net.netshot.netshot.api.rest.v0.vault.VaultInstanceMapper;
 import net.netshot.netshot.api.rest.v0.vault.VaultInstanceRequest;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
@@ -56,12 +54,9 @@ import net.netshot.netshot.vault.VaultInstance;
  */
 class VaultInstanceDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final YAMLMapper YAML = YAMLMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
+	private static final YAMLMapper YAML = YAMLMapper.builder().build();
 
 	private static final String APPROLE_SECRET = "S3CRET-approle-secret-id";
 	private static final String JWT_SECRET = "S3CRET-jwt-client-secret";
@@ -92,15 +87,15 @@ class VaultInstanceDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] yaml(Object value) throws Exception {
-		return YAML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return YAML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -117,8 +112,8 @@ class VaultInstanceDtoTest {
 
 		List<VaultInstance> entities = new ArrayList<>(List.of(full, bare));
 		TypeReference<List<VaultInstanceDto>> dtoType = new TypeReference<>() { };
-		byte[] json = JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(VaultInstanceMapper.toDtos(entities));
-		byte[] xml = XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(VaultInstanceMapper.toDtos(entities));
+		byte[] json = JSON.writerFor(dtoType).writeValueAsBytes(VaultInstanceMapper.toDtos(entities));
+		byte[] xml = XML.writerFor(dtoType).writeValueAsBytes(VaultInstanceMapper.toDtos(entities));
 		this.contract.checkBoth(json, xml);
 		Assertions.assertTrue(new String(json).contains("Vault KV v2"));
 		Assertions.assertTrue(new String(xml(VaultInstanceMapper.toDto(full))).startsWith("<HashicorpVaultKv2Instance type=\"Vault KV v2\">"));
@@ -200,28 +195,20 @@ class VaultInstanceDtoTest {
 	@DisplayName("The requests are read like the entities used to be (values, defaults, unchanged secrets, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
+		int index = 0;
 		for (String body : BODIES) {
-			VaultInstance expected = null;
-			try {
-				expected = JSON.readerFor(VaultInstance.class).withView(RestApiView.class).readValue(body);
-			}
-			catch (JsonProcessingException e) {
-				// Refused
-			}
+			index++;
 			VaultInstance actual = null;
 			try {
-				actual = VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class).withView(RestApiView.class).readValue(body));
+				actual = VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class).readValue(body));
 			}
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			Assertions.assertEquals(expected == null, actual == null, "refused or accepted: " + body);
-			if (expected == null) {
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			if (actual == null) {
 				refused++;
-				continue;
 			}
-			Assertions.assertEquals(expected.getClass(), actual.getClass(), body);
-			Assertions.assertEquals(describe(expected), describe(actual), body);
 		}
 		Assertions.assertTrue(refused >= 7, "the bodies which must be refused are refused");
 	}
@@ -230,17 +217,17 @@ class VaultInstanceDtoTest {
 	@DisplayName("A request has the defaults of the entity, and = is read as unchanged (null)")
 	void requestDefaults() throws Exception {
 		HashicorpVaultKv2Instance minimal = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(
-			JSON.readerFor(VaultInstanceRequest.class).withView(RestApiView.class).readValue("{\"type\": \"Vault KV v2\", \"name\": \"n\"}"));
+			JSON.readerFor(VaultInstanceRequest.class).readValue("{\"type\": \"Vault KV v2\", \"name\": \"n\"}"));
 		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.getHttpsCaTrustMode());
 		Assertions.assertEquals("secret", minimal.getKvMountPath());
 		Assertions.assertEquals("approle", minimal.getAppRoleMountPath());
 		Assertions.assertEquals("jwt", minimal.getJwtMountPath());
 		HashicorpVaultKv2Instance masked = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
-			.withView(RestApiView.class).readValue("{" + BASE + ", \"appRoleSecretId\": \"=\", \"jwtClientSecret\": \"=\"}"));
+			.readValue("{" + BASE + ", \"appRoleSecretId\": \"=\", \"jwtClientSecret\": \"=\"}"));
 		Assertions.assertNull(masked.getAppRoleSecretId());
 		Assertions.assertNull(masked.getJwtClientSecret());
 		HashicorpVaultKv2Instance given = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
-			.withView(RestApiView.class).readValue("{" + BASE + ", \"appRoleSecretId\": \"new\"}"));
+			.readValue("{" + BASE + ", \"appRoleSecretId\": \"new\"}"));
 		Assertions.assertEquals("new", given.getAppRoleSecretId());
 	}
 }

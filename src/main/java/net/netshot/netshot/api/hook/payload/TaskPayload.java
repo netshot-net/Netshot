@@ -21,10 +21,8 @@ package net.netshot.netshot.api.hook.payload;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 
 /**
  * What a webhook posts about a finished task. The {@code type} property (the simple class name of
@@ -32,7 +30,6 @@ import net.netshot.netshot.platform.rest.RestViews.HookView;
  * after the type. Every subtype carries the properties common to all tasks ({@link TaskBasePayload})
  * and the ones specific to its type.
  */
-@JsonView(HookView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = TaskPayload.CheckCompliance.class, name = "CheckComplianceTask"),
@@ -56,7 +53,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "CheckComplianceTask")
 	record CheckCompliance(@JsonUnwrapped TaskBasePayload base, long deviceId) implements TaskPayload {
 	}
@@ -67,7 +63,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "CheckGroupComplianceTask")
 	record CheckGroupCompliance(@JsonUnwrapped TaskBasePayload base, long deviceGroupId) implements TaskPayload {
 	}
@@ -78,7 +73,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "CheckGroupSoftwareTask")
 	record CheckGroupSoftware(@JsonUnwrapped TaskBasePayload base, long deviceGroupId) implements TaskPayload {
 	}
@@ -93,7 +87,6 @@ public sealed interface TaskPayload {
 	 * @param discoveredDeviceTypeDescription the description of the discovered device type
 	 * @param snapshotTaskId the ID of the snapshot task started after the discovery
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "DiscoverDeviceTypeTask")
 	record DiscoverDeviceType(@JsonUnwrapped TaskBasePayload base, String deviceAddress, long deviceId,
 		DevicePayload discoverResultDevice, String discoveredDeviceTypeDescription, long snapshotTaskId) implements TaskPayload {
@@ -111,7 +104,6 @@ public sealed interface TaskPayload {
 	 * @param moduleDays the number of days of removed modules to keep
 	 * @param removeOrphanFiles whether the orphan binary attribute files are removed
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "PurgeDatabaseTask")
 	record PurgeDatabase(@JsonUnwrapped TaskBasePayload base, int configDays, int configKeepDays, int configSize, int days,
 		long deviceGroupId, int moduleDays, boolean removeOrphanFiles) implements TaskPayload {
@@ -123,7 +115,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "RunDeviceGroupScriptTask")
 	record RunDeviceGroupScript(@JsonUnwrapped TaskBasePayload base, long deviceGroupId) implements TaskPayload {
 	}
@@ -134,7 +125,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "RunDeviceScriptTask")
 	record RunDeviceScript(@JsonUnwrapped TaskBasePayload base, long deviceId) implements TaskPayload {
 	}
@@ -145,7 +135,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "RunDiagnosticsTask")
 	record RunDiagnostics(@JsonUnwrapped TaskBasePayload base, long deviceId) implements TaskPayload {
 	}
@@ -156,7 +145,6 @@ public sealed interface TaskPayload {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "RunGroupDiagnosticsTask")
 	record RunGroupDiagnostics(@JsonUnwrapped TaskBasePayload base, long deviceGroupId) implements TaskPayload {
 	}
@@ -166,7 +154,6 @@ public sealed interface TaskPayload {
 	 *
 	 * @param base the common properties
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "ScanSubnetsTask")
 	record ScanSubnets(@JsonUnwrapped TaskBasePayload base) implements TaskPayload {
 	}
@@ -178,7 +165,6 @@ public sealed interface TaskPayload {
 	 * @param deviceGroupId the ID of the target group
 	 * @param limitToOutofdateDeviceHours the devices having a successful snapshot in the last given hours are ignored
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "TakeGroupSnapshotTask")
 	record TakeGroupSnapshot(@JsonUnwrapped TaskBasePayload base, long deviceGroupId, int limitToOutofdateDeviceHours) implements TaskPayload {
 	}
@@ -190,7 +176,6 @@ public sealed interface TaskPayload {
 	 * @param automatic whether the snapshot was automatically started (not by a user)
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(HookView.class)
 	@JacksonXmlRootElement(localName = "TakeSnapshotTask")
 	record TakeSnapshot(@JsonUnwrapped TaskBasePayload base, boolean automatic, long deviceId) implements TaskPayload {
 	}

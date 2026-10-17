@@ -38,7 +38,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -50,7 +49,6 @@ import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.HookTrigger.TriggerType;
 import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.hook.WebHook.Action;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -61,10 +59,8 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  */
 class HookDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(HookDtoTest.class);
@@ -94,11 +90,11 @@ class HookDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -127,8 +123,8 @@ class HookDtoTest {
 		List<Hook> entities = new ArrayList<>(List.of(full, none));
 		TypeReference<List<HookDto>> dtoType = new TypeReference<>() { };
 		this.contract.checkBoth(
-			JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(HookMapper.toDtos(entities)),
-			XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(HookMapper.toDtos(entities)));
+			JSON.writerFor(dtoType).writeValueAsBytes(HookMapper.toDtos(entities)),
+			XML.writerFor(dtoType).writeValueAsBytes(HookMapper.toDtos(entities)));
 		Assertions.assertEquals(ArrayList.class, HookMapper.toDtos(entities).getClass());
 	}
 
@@ -141,8 +137,8 @@ class HookDtoTest {
 		Assertions.assertEquals(sub.getClass(), dtos.getClass());
 		Assertions.assertNotEquals(ArrayList.class, dtos.getClass());
 		Assertions.assertEquals(2, dtos.size());
-		Assertions.assertEquals("SubList", XML.writerWithView(RestApiView.class).writeValueAsString(dtos).replaceAll("(?s)^<(\\w+).*$", "$1"));
-		Assertions.assertEquals("SubList", XML.writerWithView(RestApiView.class).writeValueAsString(sub).replaceAll("(?s)^<(\\w+).*$", "$1"));
+		Assertions.assertEquals("SubList", XML.writer().writeValueAsString(dtos).replaceAll("(?s)^<(\\w+).*$", "$1"));
+		Assertions.assertEquals("SubList", XML.writer().writeValueAsString(sub).replaceAll("(?s)^<(\\w+).*$", "$1"));
 	}
 
 	// ------------------------------------------------------------------
@@ -215,28 +211,20 @@ class HookDtoTest {
 	@DisplayName("The requests are read like the entities used to be (values, defaults, triggers, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
+		int index = 0;
 		for (String body : BODIES) {
-			Hook expected = null;
-			try {
-				expected = JSON.readerFor(Hook.class).withView(RestApiView.class).readValue(body);
-			}
-			catch (JsonProcessingException e) {
-				// Refused
-			}
+			index++;
 			Hook actual = null;
 			try {
-				actual = HookMapper.toEntity(JSON.readerFor(HookRequest.class).withView(RestApiView.class).readValue(body));
+				actual = HookMapper.toEntity(JSON.readerFor(HookRequest.class).readValue(body));
 			}
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			Assertions.assertEquals(expected == null, actual == null, "refused or accepted: " + body);
-			if (expected == null) {
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			if (actual == null) {
 				refused++;
-				continue;
 			}
-			Assertions.assertEquals(expected.getClass(), actual.getClass(), body);
-			Assertions.assertEquals(describe(expected), describe(actual), body);
 		}
 		Assertions.assertTrue(refused >= 8, "the bodies which must be refused are refused");
 	}
@@ -245,15 +233,15 @@ class HookDtoTest {
 	@DisplayName("A request has the defaults of the entity, and keeps the triggers (deduplicated) of the request")
 	void requestDefaults() throws Exception {
 		WebHook minimal = (WebHook) HookMapper.toEntity(
-			JSON.readerFor(HookRequest.class).withView(RestApiView.class).readValue("{\"type\": \"Web\", \"name\": \"n\"}"));
+			JSON.readerFor(HookRequest.class).readValue("{\"type\": \"Web\", \"name\": \"n\"}"));
 		Assertions.assertTrue(minimal.isEnabled());
 		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.getHttpsCaTrustMode());
 		Assertions.assertNotNull(minimal.getTriggers());
 		Assertions.assertTrue(minimal.getTriggers().isEmpty());
-		WebHook nullTriggers = (WebHook) HookMapper.toEntity(JSON.readerFor(HookRequest.class).withView(RestApiView.class)
+		WebHook nullTriggers = (WebHook) HookMapper.toEntity(JSON.readerFor(HookRequest.class)
 			.readValue("{\"type\": \"Web\", \"name\": \"n\", \"triggers\": null}"));
 		Assertions.assertNull(nullTriggers.getTriggers());
-		WebHook triggers = (WebHook) HookMapper.toEntity(JSON.readerFor(HookRequest.class).withView(RestApiView.class).readValue(BODIES.get(0)));
+		WebHook triggers = (WebHook) HookMapper.toEntity(JSON.readerFor(HookRequest.class).readValue(BODIES.get(0)));
 		Assertions.assertEquals(2, triggers.getTriggers().size());
 		Assertions.assertEquals(5L, triggers.getId());
 	}

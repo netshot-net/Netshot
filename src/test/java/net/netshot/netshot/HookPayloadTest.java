@@ -33,7 +33,6 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -62,7 +61,6 @@ import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 /**
@@ -89,20 +87,17 @@ public class HookPayloadTest extends HookSeededTest {
 		return switch (format) {
 			case JSON -> {
 				JacksonXmlBindJsonProvider provider = new JacksonXmlBindJsonProvider();
-				provider.setDefaultView(HookView.class);
-				provider.setMapper(JsonMapper.builder().disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build());
+				provider.setMapper(JsonMapper.builder().build());
 				yield value -> write(provider, value, MediaType.APPLICATION_JSON_TYPE);
 			}
 			case XML -> {
 				JacksonXmlBindXMLProvider provider = new JacksonXmlBindXMLProvider();
-				provider.setDefaultView(HookView.class);
-				provider.setMapper(XmlMapper.builder().disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build());
+				provider.setMapper(XmlMapper.builder().build());
 				yield value -> write(provider, value, MediaType.APPLICATION_XML_TYPE);
 			}
 			case YAML -> {
 				JacksonXmlBindYAMLProvider provider = new JacksonXmlBindYAMLProvider();
-				provider.setDefaultView(HookView.class);
-				provider.setMapper(YAMLMapper.builder().disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build());
+				provider.setMapper(YAMLMapper.builder().build());
 				yield value -> write(provider, value, YAMLMediaTypes.APPLICATION_JACKSON_YAML_TYPE);
 			}
 			default -> throw new IllegalArgumentException(format.name());

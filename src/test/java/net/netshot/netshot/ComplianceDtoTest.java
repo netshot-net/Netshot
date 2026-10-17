@@ -32,9 +32,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -76,8 +74,6 @@ import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * Checks that the compliance DTOs and their mappers are a faithful replacement of the entities
@@ -88,10 +84,8 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
  */
 class ComplianceDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(ComplianceDtoTest.class);
@@ -106,11 +100,11 @@ class ComplianceDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -308,10 +302,10 @@ class ComplianceDtoTest {
 	@Test
 	@DisplayName("A policy request has the default values of the former request")
 	void policyRequestDefaults() throws Exception {
-		PolicyRequest empty = JSON.readerFor(PolicyRequest.class).withView(RestApiView.class).readValue("{}");
+		PolicyRequest empty = JSON.readerFor(PolicyRequest.class).readValue("{}");
 		Assertions.assertEquals("", empty.name());
 		Assertions.assertTrue(empty.targetGroups().isEmpty());
-		PolicyRequest request = JSON.readerFor(PolicyRequest.class).withView(RestApiView.class)
+		PolicyRequest request = JSON.readerFor(PolicyRequest.class)
 			.readValue("{\"id\": 3, \"name\": \" Policy \", \"targetGroups\": [1, 2, 2]}");
 		Assertions.assertEquals(" Policy ", request.name());
 		Assertions.assertEquals(Set.of(1L, 2L), request.targetGroups());
@@ -322,7 +316,7 @@ class ComplianceDtoTest {
 	@Test
 	@DisplayName("A rule request has the default values of the former request, and maps to the command")
 	void ruleRequestDefaults() throws Exception {
-		RuleRequest empty = JSON.readerFor(RuleRequest.class).withView(RestApiView.class).readValue("{}");
+		RuleRequest empty = JSON.readerFor(RuleRequest.class).readValue("{}");
 		Assertions.assertEquals("", empty.type());
 		Assertions.assertNull(empty.name());
 		Assertions.assertNull(empty.script());
@@ -332,14 +326,14 @@ class ComplianceDtoTest {
 		Assertions.assertNull(empty.regExp());
 		Assertions.assertNull(empty.invert());
 		Assertions.assertNull(empty.normalize());
-		RuleRequest request = JSON.readerFor(RuleRequest.class).withView(RestApiView.class).readValue("""
+		RuleRequest request = JSON.readerFor(RuleRequest.class).readValue("""
 			{"id": 4, "type": "TextRule", "name": "n", "policy": 2, "enabled": true, "exemptions": {"5": 1700000000000},
 			 "text": "t", "regExp": false, "context": "c", "driver": "d", "field": "f", "anyBlock": true,
 			 "matchAll": false, "invert": true, "normalize": false, "script": "s"}""");
 		RuleDefinition definition = RuleMapper.toDefinition(request);
 		Assertions.assertEquals(new RuleDefinition("TextRule", "n", 2, true, Map.of(5L, new Date(1_700_000_000_000L)), "s",
 			"t", false, "c", "d", "f", true, false, true, false), definition);
-		RuleTestRequest test = JSON.readerFor(RuleTestRequest.class).withView(RestApiView.class)
+		RuleTestRequest test = JSON.readerFor(RuleTestRequest.class)
 			.readValue("{\"type\": \"JavaScriptRule\", \"script\": \"s\", \"device\": 12}");
 		Assertions.assertEquals(12, test.device());
 		Assertions.assertEquals("JavaScriptRule", RuleMapper.toDefinition(test).type());
@@ -349,7 +343,7 @@ class ComplianceDtoTest {
 	@Test
 	@DisplayName("A software rule request has the default values of the former request, and maps to the command")
 	void softwareRuleRequestDefaults() throws Exception {
-		SoftwareRuleRequest empty = JSON.readerFor(SoftwareRuleRequest.class).withView(RestApiView.class).readValue("{}");
+		SoftwareRuleRequest empty = JSON.readerFor(SoftwareRuleRequest.class).readValue("{}");
 		Assertions.assertEquals(-1L, empty.group());
 		Assertions.assertEquals("", empty.driver());
 		Assertions.assertEquals("", empty.version());
@@ -359,7 +353,7 @@ class ComplianceDtoTest {
 		Assertions.assertFalse(empty.versionRegExp());
 		Assertions.assertEquals(new SoftwareRuleDefinition(null, "", "", false, "", false, "", false, ConformanceLevel.GOLD),
 			SoftwareRuleMapper.toDefinition(empty));
-		SoftwareRuleRequest request = JSON.readerFor(SoftwareRuleRequest.class).withView(RestApiView.class).readValue("""
+		SoftwareRuleRequest request = JSON.readerFor(SoftwareRuleRequest.class).readValue("""
 			{"id": 1, "group": 5, "driver": "CiscoIOS12", "version": "1", "versionRegExp": true, "family": "f",
 			 "familyRegExp": true, "partNumber": "p", "partNumberRegExp": true, "level": "BRONZE"}""");
 		Assertions.assertEquals(new SoftwareRuleDefinition(5L, "CiscoIOS12", "f", true, "1", true, "p", true, ConformanceLevel.BRONZE),
@@ -369,14 +363,14 @@ class ComplianceDtoTest {
 	@Test
 	@DisplayName("A hardware rule request has the default values of the former request, and maps to the command")
 	void hardwareRuleRequestDefaults() throws Exception {
-		HardwareRuleRequest empty = JSON.readerFor(HardwareRuleRequest.class).withView(RestApiView.class).readValue("{}");
+		HardwareRuleRequest empty = JSON.readerFor(HardwareRuleRequest.class).readValue("{}");
 		Assertions.assertEquals(-1L, empty.group());
 		Assertions.assertEquals("", empty.driver());
 		Assertions.assertEquals("", empty.family());
 		Assertions.assertEquals("", empty.partNumber());
 		Assertions.assertNull(empty.endOfSale());
 		Assertions.assertNull(empty.endOfLife());
-		HardwareRuleRequest request = JSON.readerFor(HardwareRuleRequest.class).withView(RestApiView.class).readValue("""
+		HardwareRuleRequest request = JSON.readerFor(HardwareRuleRequest.class).readValue("""
 			{"id": 1, "group": 5, "driver": "d", "partNumber": "p", "partNumberRegExp": true, "family": "f",
 			 "familyRegExp": true, "endOfSale": 1700000000000, "endOfLife": null}""");
 		Assertions.assertEquals(new HardwareRuleDefinition(5L, "d", "f", true, "p", true,
@@ -387,14 +381,14 @@ class ComplianceDtoTest {
 	@DisplayName("A request with an unknown property is refused, like it used to be")
 	void unknownPropertiesAreRefused() {
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(PolicyRequest.class)
-			.withView(RestApiView.class).readValue("{\"name\": \"p\", \"unknown\": 1}"));
+			.readValue("{\"name\": \"p\", \"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(RuleRequest.class)
-			.withView(RestApiView.class).readValue("{\"name\": \"p\", \"unknown\": 1}"));
+			.readValue("{\"name\": \"p\", \"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(RuleTestRequest.class)
-			.withView(RestApiView.class).readValue("{\"unknown\": 1}"));
+			.readValue("{\"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(SoftwareRuleRequest.class)
-			.withView(RestApiView.class).readValue("{\"unknown\": 1}"));
+			.readValue("{\"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(HardwareRuleRequest.class)
-			.withView(RestApiView.class).readValue("{\"unknown\": 1}"));
+			.readValue("{\"unknown\": 1}"));
 	}
 }

@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.script;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of a command script. The content is null in the list of scripts, and the
@@ -38,7 +36,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param script the JavaScript code
  * @param userInputDefinitions the user inputs declared by the script, or null
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "DeviceJsScript")
 public record ScriptDto(
 	String author,

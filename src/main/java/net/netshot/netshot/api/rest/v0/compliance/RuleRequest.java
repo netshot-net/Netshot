@@ -22,10 +22,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add or edit a compliance rule. The properties used depend on the kind of rule
@@ -49,7 +47,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param invert whether to invert the result (text rules)
  * @param normalize whether to normalize the text before searching (text rules)
  */
-@JsonView(DefaultView.class)
 // Transitional, see NewDeviceRequest
 @XmlRootElement(name = "rsRule")
 public record RuleRequest(

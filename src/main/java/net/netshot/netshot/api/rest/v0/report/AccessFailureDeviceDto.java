@@ -21,11 +21,9 @@ package net.netshot.netshot.api.rest.v0.report;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A device without recent successful snapshot.
@@ -34,7 +32,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param lastSuccess the date of the last successful snapshot
  * @param lastFailure the date of the last failed snapshot
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightAccessFailureDevice")
 public record AccessFailureDeviceDto(@JsonUnwrapped DeviceSummaryDto device, Date lastSuccess, Date lastFailure) {
 }

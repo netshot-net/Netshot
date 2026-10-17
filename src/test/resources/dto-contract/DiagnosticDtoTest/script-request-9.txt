@@ -1,0 +1,7 @@
+ScriptRequest
+author=null
+deviceDriver=null
+folder=
+name=null
+script=null
+userInputDefinitions=[a]

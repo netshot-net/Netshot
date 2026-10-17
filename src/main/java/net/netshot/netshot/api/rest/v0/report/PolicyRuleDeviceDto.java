@@ -21,12 +21,10 @@ package net.netshot.netshot.api.rest.v0.report;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The result of a compliance rule for a device.
@@ -39,7 +37,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param checkDate the date of the check
  * @param result the result
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightPolicyRuleDevice")
 public record PolicyRuleDeviceDto(
 	@JsonUnwrapped DeviceSummaryDto device,

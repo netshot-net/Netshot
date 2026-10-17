@@ -22,18 +22,15 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.hook.WebHook.Action;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
  * The representation of a hook, according to its kind (the {@code type} property). This is the
  * hook <em>definition</em> managed through the REST API, not the payload the hook sends.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = HookDto.Web.class, name = "Web"),
@@ -73,7 +70,6 @@ public sealed interface HookDto {
 	 * @param httpsCaTrustMode how the certificate of the target is trusted
 	 * @param httpsCustomCaCertificate the PEM trust anchors, for the custom CA mode
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "WebHook")
 	record Web(
 		long id,

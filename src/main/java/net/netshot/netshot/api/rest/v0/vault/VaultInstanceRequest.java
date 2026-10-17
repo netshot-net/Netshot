@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.vault;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
@@ -31,7 +30,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.credentials.HideSecretDeserializer;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -57,42 +55,42 @@ public abstract class VaultInstanceRequest {
 
 	/** The id (a Vault instance which has an ID can't be added). */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private long id;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String name;
 
 	/** The base URL of the Vault server. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String baseUrl;
 
 	/** The namespace (Vault Enterprise). */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String namespace;
 
 	/** How the certificate of the server is trusted. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
 
 	/** The PEM trust anchors, for the custom CA mode. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String httpsCustomCaCertificate;
@@ -104,35 +102,35 @@ public abstract class VaultInstanceRequest {
 
 		/** The mount path of the KV v2 secrets engine. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String kvMountPath = "secret";
 
 		/** The authentication method. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private AuthMethod authMethod;
 
 		/** The mount path of the AppRole authentication method. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String appRoleMountPath = "approle";
 
 		/** The AppRole role ID. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String appRoleId;
 
 		/** The AppRole secret ID ({@code null} when masked). */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class),
+			@XmlElement,
 			@JsonDeserialize(using = HideSecretDeserializer.class)
 		}))
 		@Setter
@@ -140,28 +138,28 @@ public abstract class VaultInstanceRequest {
 
 		/** The mount path of the JWT authentication method. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String jwtMountPath = "jwt";
 
 		/** The token endpoint of the identity provider. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String jwtIdpTokenEndpoint;
 
 		/** The OAuth2 client ID. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String jwtClientId;
 
 		/** The OAuth2 client secret ({@code null} when masked). */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class),
+			@XmlElement,
 			@JsonDeserialize(using = HideSecretDeserializer.class)
 		}))
 		@Setter
@@ -169,14 +167,14 @@ public abstract class VaultInstanceRequest {
 
 		/** The Vault role to log in as. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String jwtVaultRole;
 
 		/** The OAuth2 scope. */
 		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
+			@XmlElement
 		}))
 		@Setter
 		private String jwtScope;

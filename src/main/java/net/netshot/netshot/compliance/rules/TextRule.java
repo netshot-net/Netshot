@@ -18,79 +18,58 @@
  */
 package net.netshot.netshot.compliance.rules;
 
-
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Entity
 @OnDelete(action = OnDeleteAction.CASCADE)
 public class TextRule extends Rule {
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String field;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(length = 10000)
 	}))
 	@Setter
 	private String context;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(length = 10000000)
 	}))
 	private String text;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean regExp;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean invert;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean anyBlock;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean matchAll;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean normalize;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String deviceDriver;
 
@@ -110,8 +89,6 @@ public class TextRule extends Rule {
 	}
 
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public String getDeviceDriverDescription() {
 		if ("".equals(deviceDriver)) {
 			return "";

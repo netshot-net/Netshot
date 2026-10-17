@@ -20,12 +20,10 @@ package net.netshot.netshot.api.rest.v0.vault;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.credentials.HideSecretSerializer;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -33,7 +31,6 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
  * The representation of a Vault instance, according to its kind (the {@code type} property).
  * The secrets (AppRole secret ID, JWT client secret) are never written: {@code =} stands for them.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = VaultInstanceDto.HashicorpVaultKv2.class, name = "Vault KV v2"),
@@ -75,7 +72,6 @@ public sealed interface VaultInstanceDto {
 	 * @param jwtVaultRole the Vault role to log in as
 	 * @param jwtScope the OAuth2 scope
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "HashicorpVaultKv2Instance")
 	record HashicorpVaultKv2(
 		long id,

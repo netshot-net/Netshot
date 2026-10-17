@@ -26,7 +26,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -42,7 +41,6 @@ import net.netshot.netshot.api.rest.v0.aaa.LoginRequest;
 import net.netshot.netshot.api.rest.v0.aaa.UserDto;
 import net.netshot.netshot.api.rest.v0.aaa.UserMapper;
 import net.netshot.netshot.api.rest.v0.aaa.UserRequest;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * Checks that the user and API token DTOs are a faithful replacement of the entities the REST API
@@ -52,10 +50,8 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
  */
 class AaaDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	private static final String TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345";
 
@@ -63,11 +59,11 @@ class AaaDtoTest {
 	private final DtoContract contract = new DtoContract(AaaDtoTest.class);
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -187,19 +183,19 @@ class AaaDtoTest {
 	@Test
 	@DisplayName("A user request is read like RsUser: absent properties are zero, false or null")
 	void userRequest() throws Exception {
-		UserRequest empty = JSON.readerFor(UserRequest.class).withView(RestApiView.class).readValue("{}");
+		UserRequest empty = JSON.readerFor(UserRequest.class).readValue("{}");
 		Assertions.assertEquals(new UserRequest(0, null, null, 0, false), empty);
-		UserRequest nulls = JSON.readerFor(UserRequest.class).withView(RestApiView.class)
+		UserRequest nulls = JSON.readerFor(UserRequest.class)
 			.readValue("{\"id\": null, \"level\": null, \"local\": null, \"username\": null, \"password\": null}");
 		Assertions.assertEquals(new UserRequest(0, null, null, 0, false), nulls);
-		UserRequest full = JSON.readerFor(UserRequest.class).withView(RestApiView.class)
+		UserRequest full = JSON.readerFor(UserRequest.class)
 			.readValue("{\"id\": 4, \"username\": \" bob \", \"password\": \"pw\", \"level\": 100, \"local\": true}");
 		Assertions.assertEquals(new UserRequest(4, " bob ", "pw", 100, true), full);
 		// The mask of the secrets is not applied to the password of a user (a scalar has no content)
-		UserRequest masked = JSON.readerFor(UserRequest.class).withView(RestApiView.class).readValue("{\"password\": \"=\"}");
+		UserRequest masked = JSON.readerFor(UserRequest.class).readValue("{\"password\": \"=\"}");
 		Assertions.assertEquals("=", masked.password());
 		Assertions.assertThrows(UnrecognizedPropertyException.class,
-			() -> JSON.readerFor(UserRequest.class).withView(RestApiView.class).readValue("{\"admin\": true}"));
+			() -> JSON.readerFor(UserRequest.class).readValue("{\"admin\": true}"));
 	}
 
 	@Test
@@ -213,24 +209,24 @@ class AaaDtoTest {
 	@Test
 	@DisplayName("An API token request is read like RsApiToken")
 	void apiTokenRequest() throws Exception {
-		ApiTokenRequest empty = JSON.readerFor(ApiTokenRequest.class).withView(RestApiView.class).readValue("{}");
+		ApiTokenRequest empty = JSON.readerFor(ApiTokenRequest.class).readValue("{}");
 		Assertions.assertEquals(new ApiTokenRequest(0, null, null, 0), empty);
-		ApiTokenRequest full = JSON.readerFor(ApiTokenRequest.class).withView(RestApiView.class)
+		ApiTokenRequest full = JSON.readerFor(ApiTokenRequest.class)
 			.readValue("{\"id\": 9, \"description\": \"d\", \"token\": \"" + TOKEN + "\", \"level\": 50}");
 		Assertions.assertEquals(new ApiTokenRequest(9, "d", TOKEN, 50), full);
 		Assertions.assertThrows(UnrecognizedPropertyException.class,
-			() -> JSON.readerFor(ApiTokenRequest.class).withView(RestApiView.class).readValue("{\"hashedToken\": \"x\"}"));
+			() -> JSON.readerFor(ApiTokenRequest.class).readValue("{\"hashedToken\": \"x\"}"));
 	}
 
 	@Test
 	@DisplayName("A login request is read like RsLogin")
 	void loginRequest() throws Exception {
-		LoginRequest empty = JSON.readerFor(LoginRequest.class).withView(RestApiView.class).readValue("{}");
+		LoginRequest empty = JSON.readerFor(LoginRequest.class).readValue("{}");
 		Assertions.assertEquals(new LoginRequest(null, null, null, null, null), empty);
-		LoginRequest full = JSON.readerFor(LoginRequest.class).withView(RestApiView.class).readValue("""
+		LoginRequest full = JSON.readerFor(LoginRequest.class).readValue("""
 			{"username": "u", "password": "p", "newPassword": "n", "authorizationCode": "c", "redirectUri": "https://x/"}""");
 		Assertions.assertEquals(new LoginRequest("u", "p", "n", "c", "https://x/"), full);
 		Assertions.assertThrows(UnrecognizedPropertyException.class,
-			() -> JSON.readerFor(LoginRequest.class).withView(RestApiView.class).readValue("{\"remember\": true}"));
+			() -> JSON.readerFor(LoginRequest.class).readValue("{\"remember\": true}"));
 	}
 }

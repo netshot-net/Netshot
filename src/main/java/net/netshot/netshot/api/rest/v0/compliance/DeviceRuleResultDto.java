@@ -20,11 +20,9 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The compliance state of a device for one rule.
@@ -38,7 +36,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param checkDate the date of the last check
  * @param expirationDate the expiration date of the exemption of the device, or null if it isn't exempted
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsDeviceRule")
 public record DeviceRuleResultDto(
 	long ruleId,

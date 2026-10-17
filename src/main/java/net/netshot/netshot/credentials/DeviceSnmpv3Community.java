@@ -18,12 +18,6 @@
  */
 package net.netshot.netshot.credentials;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -31,12 +25,9 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.platform.database.StringEncryptorConverter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.vault.VaultInstance;
 import net.netshot.netshot.vault.VaultableSecret;
 
@@ -45,7 +36,6 @@ import net.netshot.netshot.vault.VaultableSecret;
  * The Class DeviceSnmpv3Community.
  */
 @Entity
-@XmlRootElement
 public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/**
@@ -77,9 +67,7 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 	}
 
 	/** The username. Shares the "username" physical column with DeviceCliAccount (SINGLE_TABLE). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String username;
 
@@ -94,14 +82,12 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 	 * explicit name and the implicit default it computes anyway).
 	 */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@JsonIgnore
+		@ManyToOne
 	}))
 	@Setter
 	private VaultInstance usernameVaultInstanceId;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(name = "username_vault_path")
 	}))
 	@Setter
@@ -111,7 +97,6 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/** The auth type. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Enumerated(EnumType.STRING)
 	}))
 	@Setter
@@ -119,9 +104,6 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/** The auth key. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = HideSecretSerializer.class),
-		@JsonDeserialize(using = HideSecretDeserializer.class),
 		@Convert(converter = StringEncryptorConverter.class)
 	}))
 	@Setter
@@ -129,14 +111,12 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/** See {@link #usernameVaultInstanceId} for why this isn't named "authKeyVaultInstance". */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@JsonIgnore
+		@ManyToOne
 	}))
 	@Setter
 	private VaultInstance authKeyVaultInstanceId;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(name = "auth_key_vault_path")
 	}))
 	@Setter
@@ -146,7 +126,6 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/** The priv type. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Enumerated(EnumType.STRING)
 	}))
 	@Setter
@@ -154,9 +133,6 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/** The priv key. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = HideSecretSerializer.class),
-		@JsonDeserialize(using = HideSecretDeserializer.class),
 		@Convert(converter = StringEncryptorConverter.class)
 	}))
 	@Setter
@@ -164,14 +140,12 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 
 	/** See {@link #usernameVaultInstanceId} for why this isn't named "privKeyVaultInstance". */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@JsonIgnore
+		@ManyToOne
 	}))
 	@Setter
 	private VaultInstance privKeyVaultInstanceId;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(name = "priv_key_vault_path")
 	}))
 	@Setter
@@ -208,12 +182,9 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 	}
 
 	/**
-	 * JSON/XML-facing accessor - see {@link DeviceSnmpCommunity#getResolvedCommunityVaultInstanceId()} for why this is named differently from the internal JPA getter.
+	 * Accessor of the Vault instance ID - see {@link DeviceSnmpCommunity#getResolvedCommunityVaultInstanceId()} for why this is named differently from the internal JPA getter.
 	 * @return the Vault instance ID, or null if not Vault-backed
 	 */
-	@XmlElement(name = "usernameVaultInstanceId")
-	@JsonView(DefaultView.class)
-	@JsonProperty("usernameVaultInstanceId")
 	@Transient
 	public Long getResolvedUsernameVaultInstanceId() {
 		if (this.usernamePendingVaultInstanceId != null) {
@@ -222,13 +193,12 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 		return this.usernameVaultInstanceId == null ? null : this.usernameVaultInstanceId.getId();
 	}
 
-	@JsonProperty("usernameVaultInstanceId")
 	public void setResolvedUsernameVaultInstanceId(Long vaultInstanceId) {
 		this.usernamePendingVaultInstanceId = vaultInstanceId;
 	}
 
 	/**
-	 * Bundles the username's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped, not Jackson-visible.
+	 * Bundles the username's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
 	 * @return the bundled username secret
 	 */
 	@Transient
@@ -250,9 +220,6 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 		this.usernamePendingVaultInstanceId = null;
 	}
 
-	@XmlElement(name = "authKeyVaultInstanceId")
-	@JsonView(DefaultView.class)
-	@JsonProperty("authKeyVaultInstanceId")
 	@Transient
 	public Long getResolvedAuthKeyVaultInstanceId() {
 		if (this.authKeyPendingVaultInstanceId != null) {
@@ -261,13 +228,12 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 		return this.authKeyVaultInstanceId == null ? null : this.authKeyVaultInstanceId.getId();
 	}
 
-	@JsonProperty("authKeyVaultInstanceId")
 	public void setResolvedAuthKeyVaultInstanceId(Long vaultInstanceId) {
 		this.authKeyPendingVaultInstanceId = vaultInstanceId;
 	}
 
 	/**
-	 * Bundles the auth key's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped, not Jackson-visible.
+	 * Bundles the auth key's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
 	 * @return the bundled auth key secret
 	 */
 	@Transient
@@ -289,9 +255,6 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 		this.authKeyPendingVaultInstanceId = null;
 	}
 
-	@XmlElement(name = "privKeyVaultInstanceId")
-	@JsonView(DefaultView.class)
-	@JsonProperty("privKeyVaultInstanceId")
 	@Transient
 	public Long getResolvedPrivKeyVaultInstanceId() {
 		if (this.privKeyPendingVaultInstanceId != null) {
@@ -300,13 +263,12 @@ public final class DeviceSnmpv3Community extends DeviceSnmpCommunity {
 		return this.privKeyVaultInstanceId == null ? null : this.privKeyVaultInstanceId.getId();
 	}
 
-	@JsonProperty("privKeyVaultInstanceId")
 	public void setResolvedPrivKeyVaultInstanceId(Long vaultInstanceId) {
 		this.privKeyPendingVaultInstanceId = vaultInstanceId;
 	}
 
 	/**
-	 * Bundles the priv key's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped, not Jackson-visible.
+	 * Bundles the priv key's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
 	 * @return the bundled priv key secret
 	 */
 	@Transient

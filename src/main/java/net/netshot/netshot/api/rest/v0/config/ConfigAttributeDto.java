@@ -20,16 +20,13 @@ package net.netshot.netshot.api.rest.v0.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * An attribute of a configuration (a value collected by the device driver). The {@code type}
  * property tells the kind of value. The long text values and the content of the binary files
  * are not part of the representation: only their name (and a few properties for the files) is.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = ConfigAttributeDto.Numeric.class, name = "NUMERIC"),
@@ -53,7 +50,6 @@ public sealed interface ConfigAttributeDto {
 	 * @param name the name
 	 * @param number the value
 	 */
-	@JsonView(DefaultView.class)
 	record Numeric(String name, Double number) implements ConfigAttributeDto {
 	}
 
@@ -63,7 +59,6 @@ public sealed interface ConfigAttributeDto {
 	 * @param name the name
 	 * @param text the value
 	 */
-	@JsonView(DefaultView.class)
 	record Text(String name, String text) implements ConfigAttributeDto {
 	}
 
@@ -72,7 +67,6 @@ public sealed interface ConfigAttributeDto {
 	 *
 	 * @param name the name
 	 */
-	@JsonView(DefaultView.class)
 	record LongText(String name) implements ConfigAttributeDto {
 	}
 
@@ -82,7 +76,6 @@ public sealed interface ConfigAttributeDto {
 	 * @param name the name
 	 * @param assumption the value
 	 */
-	@JsonView(DefaultView.class)
 	record Binary(String name, Boolean assumption) implements ConfigAttributeDto {
 	}
 
@@ -94,7 +87,6 @@ public sealed interface ConfigAttributeDto {
 	 * @param fileSize the size of the file
 	 * @param checksum the checksum of the file
 	 */
-	@JsonView(DefaultView.class)
 	record BinaryFile(String name, String originalName, long fileSize, String checksum) implements ConfigAttributeDto {
 	}
 }

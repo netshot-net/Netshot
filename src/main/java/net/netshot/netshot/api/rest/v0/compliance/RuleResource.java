@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the compliance rules (text and script rules): list, read, add, edit,
@@ -85,7 +83,6 @@ public class RuleResource {
 	@Path("/rules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance rules",
 		description = "Retrieves the list of compliance rules, across all policies, with minimal details."
@@ -108,7 +105,6 @@ public class RuleResource {
 	@Path("/policies/{id}/rules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance rules of a policy",
 		description = "Returns the rules owned by a given compliance policy."
@@ -133,7 +129,6 @@ public class RuleResource {
 	@Path("/policies/{pid}/rules/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a specific compliance rule of a specific policy",
 		description = "Returns the specific rule owned by a given compliance policy."
@@ -159,7 +154,6 @@ public class RuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a compliance rule",
 		description = "Creates a compliance rule. The associated policy must already exist."
@@ -185,7 +179,6 @@ public class RuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a compliance rule",
 		description = "Edits a compliance rule, by ID."
@@ -207,7 +200,6 @@ public class RuleResource {
 	@Path("/rules/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a compliance rule",
 		description = "Removes a compliance rule, by ID."
@@ -236,7 +228,6 @@ public class RuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Test a compliance rule",
 		description = "Test a compliance rule against a given device, in dry run mode."
@@ -259,7 +250,6 @@ public class RuleResource {
 	@Path("/rule/{id}/exempteddevices")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the exempted devices of a compliance rule",
 		description = "Returns the list of devices which have an exemption against a given compliance rule, by ID."
@@ -283,7 +273,6 @@ public class RuleResource {
 	@Path("/devices/{id}/complianceresults")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance results for a device",
 		description = "Returns the compliance results for a give device, by ID."

@@ -21,10 +21,8 @@ package net.netshot.netshot.api.rest.v0.task;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The full representation of a task. The {@code type} property (the simple class name of the
@@ -32,7 +30,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * after the type. Every subtype carries the properties common to all tasks
  * ({@link TaskBaseDto}) and the ones specific to its type.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = TaskDto.CheckCompliance.class, name = "CheckComplianceTask"),
@@ -56,7 +53,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "CheckComplianceTask")
 	record CheckCompliance(@JsonUnwrapped TaskBaseDto base, long deviceId) implements TaskDto {
 	}
@@ -67,7 +63,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "CheckGroupComplianceTask")
 	record CheckGroupCompliance(@JsonUnwrapped TaskBaseDto base, long deviceGroupId) implements TaskDto {
 	}
@@ -78,7 +73,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "CheckGroupSoftwareTask")
 	record CheckGroupSoftware(@JsonUnwrapped TaskBaseDto base, long deviceGroupId) implements TaskDto {
 	}
@@ -92,7 +86,6 @@ public sealed interface TaskDto {
 	 * @param discoveredDeviceTypeDescription the description of the discovered device type
 	 * @param snapshotTaskId the ID of the snapshot task started after the discovery
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DiscoverDeviceTypeTask")
 	record DiscoverDeviceType(@JsonUnwrapped TaskBaseDto base, String deviceAddress, long deviceId,
 		String discoveredDeviceTypeDescription, long snapshotTaskId) implements TaskDto {
@@ -110,7 +103,6 @@ public sealed interface TaskDto {
 	 * @param moduleDays the number of days of removed modules to keep
 	 * @param removeOrphanFiles whether the orphan binary attribute files are removed
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "PurgeDatabaseTask")
 	record PurgeDatabase(@JsonUnwrapped TaskBaseDto base, int configDays, int configKeepDays, int configSize, int days,
 		long deviceGroupId, int moduleDays, boolean removeOrphanFiles) implements TaskDto {
@@ -122,7 +114,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "RunDeviceGroupScriptTask")
 	record RunDeviceGroupScript(@JsonUnwrapped TaskBaseDto base, long deviceGroupId) implements TaskDto {
 	}
@@ -133,7 +124,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "RunDeviceScriptTask")
 	record RunDeviceScript(@JsonUnwrapped TaskBaseDto base, long deviceId) implements TaskDto {
 	}
@@ -144,7 +134,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "RunDiagnosticsTask")
 	record RunDiagnostics(@JsonUnwrapped TaskBaseDto base, long deviceId) implements TaskDto {
 	}
@@ -155,7 +144,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceGroupId the ID of the target group
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "RunGroupDiagnosticsTask")
 	record RunGroupDiagnostics(@JsonUnwrapped TaskBaseDto base, long deviceGroupId) implements TaskDto {
 	}
@@ -165,7 +153,6 @@ public sealed interface TaskDto {
 	 *
 	 * @param base the common properties
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "ScanSubnetsTask")
 	record ScanSubnets(@JsonUnwrapped TaskBaseDto base) implements TaskDto {
 	}
@@ -177,7 +164,6 @@ public sealed interface TaskDto {
 	 * @param deviceGroupId the ID of the target group
 	 * @param limitToOutofdateDeviceHours the devices having a successful snapshot in the last given hours are ignored
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "TakeGroupSnapshotTask")
 	record TakeGroupSnapshot(@JsonUnwrapped TaskBaseDto base, long deviceGroupId, int limitToOutofdateDeviceHours) implements TaskDto {
 	}
@@ -188,7 +174,6 @@ public sealed interface TaskDto {
 	 * @param base the common properties
 	 * @param deviceId the ID of the target device
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "TakeSnapshotTask")
 	record TakeSnapshot(@JsonUnwrapped TaskBaseDto base, long deviceId) implements TaskDto {
 	}

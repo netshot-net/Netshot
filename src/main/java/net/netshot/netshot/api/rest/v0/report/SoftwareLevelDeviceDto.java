@@ -19,11 +19,9 @@
 package net.netshot.netshot.api.rest.v0.report;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A device with its software version.
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param device the device (its properties are published at the level of the others)
  * @param softwareVersion the software version
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightSoftwareLevelDevice")
 public record SoftwareLevelDeviceDto(@JsonUnwrapped DeviceSummaryDto device, String softwareVersion) {
 }

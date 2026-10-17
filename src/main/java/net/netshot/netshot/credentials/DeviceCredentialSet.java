@@ -25,11 +25,6 @@ import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -38,33 +33,15 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Version;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlID;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A credential set. Authentication data to access a device.
  */
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@XmlAccessorType(XmlAccessType.NONE)
-@XmlRootElement()
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({
-	@Type(value = DeviceSnmpv1Community.class, name = "SNMP v1"),
-	@Type(value = DeviceSnmpv2cCommunity.class, name = "SNMP v2"),
-	@Type(value = DeviceSnmpv3Community.class, name = "SNMP v3"),
-	@Type(value = DeviceSshAccount.class, name = "SSH"),
-	@Type(value = DeviceSshKeyAccount.class, name = "SSH Key"),
-	@Type(value = DeviceTelnetAccount.class, name = "Telnet"),
-	@Type(value = DeviceHttpAccount.class, name = "HTTP")
-})
 public abstract class DeviceCredentialSet {
 
 	public static String generateSpecificName() {
@@ -84,15 +61,13 @@ public abstract class DeviceCredentialSet {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@XmlID, @Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	protected long id;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@NaturalId(mutable = true)
 	}))
 	@Setter
@@ -102,15 +77,12 @@ public abstract class DeviceCredentialSet {
 	@Getter(onMethod = @__({
 		@ManyToOne,
 		@OnDelete(action = OnDeleteAction.CASCADE),
-		@XmlElement, @JsonView(DefaultView.class),
 	}))
 	@Setter
 	protected Domain mgmtDomain;
 
 	/** Device-specific credential set. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean deviceSpecific;
 

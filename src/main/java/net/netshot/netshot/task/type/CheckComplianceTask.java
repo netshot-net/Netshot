@@ -18,18 +18,13 @@
  */
 package net.netshot.netshot.task.type;
 
-
 import org.quartz.JobKey;
-
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -62,8 +57,6 @@ public final class CheckComplianceTask extends Task implements DeviceBasedTask {
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Device compliance check";
@@ -74,8 +67,6 @@ public final class CheckComplianceTask extends Task implements DeviceBasedTask {
 	 * 
 	 * @return the ID of the device
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getDeviceId() {
 		if (this.device == null) {

@@ -26,7 +26,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -37,7 +36,6 @@ import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.system.ServerInfo;
 import net.netshot.netshot.system.ServerInfoService;
 
@@ -47,10 +45,8 @@ import net.netshot.netshot.system.ServerInfoService;
  */
 class ClusterServiceTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(ClusterServiceTest.class, System.currentTimeMillis());
@@ -102,9 +98,9 @@ class ClusterServiceTest {
 	void memberRepresentation() throws Exception {
 		List<ClusterMember> members = new ArrayList<>(List.of(member("a", true, MastershipStatus.MASTER), member("b", false, MastershipStatus.EXPIRED)));
 		Object actual = SystemMapper.toMemberDtos(members);
-		this.contract.checkBoth(JSON.writerWithView(RestApiView.class).writeValueAsBytes(actual),
-			XML.writerWithView(RestApiView.class).writeValueAsBytes(actual));
-		String json = new String(JSON.writerWithView(RestApiView.class).writeValueAsBytes(actual));
+		this.contract.checkBoth(JSON.writer().writeValueAsBytes(actual),
+			XML.writer().writeValueAsBytes(actual));
+		String json = new String(JSON.writer().writeValueAsBytes(actual));
 		Assertions.assertTrue(json.contains("\"status\":\"MASTER\""), json);
 		Assertions.assertTrue(json.contains("\"local\":true"), json);
 		Assertions.assertTrue(json.contains("\"lastSeenTime\":1700000000000"), json);
@@ -114,12 +110,12 @@ class ClusterServiceTest {
 	@DisplayName("The master status and the server information are published under the name of the former classes")
 	void statusRepresentation() throws Exception {
 		MasterStatusDto status = SystemMapper.toDto(new MasterStatus(true, false, "b"));
-		String xml = new String(XML.writerWithView(RestApiView.class).writeValueAsBytes(status));
+		String xml = new String(XML.writer().writeValueAsBytes(status));
 		Assertions.assertTrue(xml.startsWith("<RsClusterMasterCheck>"), xml);
 		Assertions.assertTrue(xml.contains("<master>false</master>") && xml.contains("<currentMasterId>b</currentMasterId>"), xml);
-		Assertions.assertTrue(new String(XML.writerWithView(RestApiView.class).writeValueAsBytes(SystemMapper.toDto(new ServerInfo("1.0", 1800))))
+		Assertions.assertTrue(new String(XML.writer().writeValueAsBytes(SystemMapper.toDto(new ServerInfo("1.0", 1800))))
 			.startsWith("<RsServerInfo>"));
-		String json = new String(JSON.writerWithView(RestApiView.class).writeValueAsBytes(SystemMapper.toDto(new ServerInfo("1.0", 1800))));
+		String json = new String(JSON.writer().writeValueAsBytes(SystemMapper.toDto(new ServerInfo("1.0", 1800))));
 		Assertions.assertTrue(json.contains("\"serverVersion\":\"1.0\""), json);
 		Assertions.assertTrue(json.contains("\"maxIdleTimeout\":1800"), json);
 	}

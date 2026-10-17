@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.device;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
@@ -29,7 +28,6 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.driver.DriverValueType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of a device type: a device driver loaded by the server.
@@ -47,7 +45,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param location where the driver comes from
  * @param accessDefinitions the accesses the driver declares, by name
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "DeviceDriver")
 public record DeviceTypeDto(
 	String name,
@@ -74,7 +71,6 @@ public record DeviceTypeDto(
 	 * @param searchable whether the values can be searched
 	 * @param checkable whether the values can be checked by compliance rules
 	 */
-	@JsonView(DefaultView.class)
 	public record Attribute(
 		AttributeType type,
 		AttributeLevel level,
@@ -94,7 +90,6 @@ public record DeviceTypeDto(
 	 * @param choices the valid choices of a text option
 	 * @param defaultValue the default value
 	 */
-	@JsonView(DefaultView.class)
 	public record Option(
 		String name,
 		String title,
@@ -109,7 +104,6 @@ public record DeviceTypeDto(
 	 * @param type the type of location
 	 * @param fileName the name of the file
 	 */
-	@JsonView(DefaultView.class)
 	public record Location(LocationType type, String fileName) {
 	}
 
@@ -123,7 +117,6 @@ public record DeviceTypeDto(
 	 * @param group the group of alternative accesses
 	 * @param priority the priority within the group
 	 */
-	@JsonView(DefaultView.class)
 	public record Access(
 		String name,
 		DriverProtocol protocol,

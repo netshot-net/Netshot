@@ -22,16 +22,13 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A device group, as nested in the device representation (the groups a device belongs to).
  * The {@code type} property tells the kind of group, with the names of the entity classes.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = DeviceGroupDto.DynamicGroup.class, name = "DynamicDeviceGroup"),
@@ -49,7 +46,6 @@ public sealed interface DeviceGroupDto {
 	 * @param hiddenFromReports whether the group is hidden in the reports
 	 * @param query the search query
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "DynamicDeviceGroup")
 	record DynamicGroup(
 		long id,
@@ -69,7 +65,6 @@ public sealed interface DeviceGroupDto {
 	 * @param folder the folder containing the group
 	 * @param hiddenFromReports whether the group is hidden in the reports
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "StaticDeviceGroup")
 	record StaticGroup(
 		long id,

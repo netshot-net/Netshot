@@ -20,10 +20,8 @@ package net.netshot.netshot.api.hook.payload;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * @param httpsCaTrustMode the HTTPS certificate trust mode
  * @param httpsCustomCaCertificate the PEM trust anchor certificate(s) for the custom CA trust mode
  */
-@JsonView(HookView.class)
 public record DeviceAccessPayload(
 	String accessName,
 	String address,

@@ -25,11 +25,6 @@ import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.DiscriminatorValue;
@@ -42,28 +37,14 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.CHAR)
 @DiscriminatorValue("A")
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({
-	@Type(value = DiagnosticNumericResult.class, name = "NUMERIC"),
-	@Type(value = DiagnosticTextResult.class, name = "TEXT"),
-	@Type(value = DiagnosticLongTextResult.class, name = "LONGTEXT"),
-	@Type(value = DiagnosticBinaryResult.class, name = "BINARY")
-})
 @FilterDef(name = "lightDiagAttributesOnly", defaultCondition = "type <> 'T'")
 public abstract class DiagnosticResult {
 
@@ -75,16 +56,12 @@ public abstract class DiagnosticResult {
 	protected long id;
 
 	/** The date this result was created on. **/
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date creationDate = new Date();
 
 	/** The last date this result was returned. **/
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date lastCheckDate = new Date();
 
@@ -140,8 +117,6 @@ public abstract class DiagnosticResult {
 	 * @return the name of the diagnostic.
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public String getDiagnosticName() {
 		return this.getDiagnostic().getName();
 	}
@@ -151,8 +126,6 @@ public abstract class DiagnosticResult {
 	 * @return the id of the diagnostic.
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public Long getDiagnosticId() {
 		return this.getDiagnostic().getId();
 	}

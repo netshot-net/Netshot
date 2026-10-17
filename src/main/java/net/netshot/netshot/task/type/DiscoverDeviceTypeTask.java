@@ -33,8 +33,6 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.quartz.JobKey;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
@@ -44,7 +42,6 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +53,6 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -82,8 +77,7 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 
 	/** The device address (IPv4 literal, IPv6 literal, or FQDN, resolved lazily). */
 	@Getter(onMethod = @__({
-		@Column(name = "device_address"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "device_address")
 	}))
 	@Setter
 	private String deviceAddress;
@@ -108,7 +102,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 * ON DELETE CASCADE behavior is the opposite of the shared column's SET NULL.
 	 */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(HookView.class),
 		@ManyToOne(fetch = FetchType.LAZY),
 		@OnDelete(action = OnDeleteAction.CASCADE)
 	}))
@@ -210,8 +203,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 *
 	 * @return the snapshot task id
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getSnapshotTaskId() {
 		return this.getLongAttribute("snapshotTaskId", 0);
@@ -231,8 +222,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 * 
 	 * @return the discovered device type description
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getDiscoveredDeviceTypeDescription() {
 		String description = "Unknown";
@@ -419,8 +408,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Device autodiscovery";
@@ -449,8 +436,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	 *
 	 * @return the ID of the device
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	protected long getDeviceId() {
 		if (this.getDiscoverResultDevice() == null) {
