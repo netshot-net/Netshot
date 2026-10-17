@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -49,16 +50,19 @@ public class SoftwareRuleService {
 
 	private final Transactions transactions;
 	private final SoftwareRuleRepository repository;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the software rule repository
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public SoftwareRuleService(Transactions transactions, SoftwareRuleRepository repository) {
+	public SoftwareRuleService(Transactions transactions, SoftwareRuleRepository repository, DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -246,8 +250,8 @@ public class SoftwareRuleService {
 		return this.repository.findGroup(session, groupId);
 	}
 
-	private static String knownDriver(String driver) {
-		if (DeviceDriver.getDriverByName(driver) == null) {
+	private String knownDriver(String driver) {
+		if (this.driverRegistry.getDriverByName(driver) == null) {
 			return null;
 		}
 		return driver;

@@ -77,7 +77,6 @@ import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
@@ -707,7 +706,7 @@ public class Netshot extends Thread {
 			Netshot.loadModuleConfigs();
 
 			log.info("Loading the device drivers.");
-			DeviceDriver.refreshDrivers();
+			Wiring.get().driverRegistry().refresh();
 			log.info("Starting the Syslog server.");
 			SyslogServer.init();
 			log.info("Starting the SNMP v1/v2c/v3 trap receiver.");
