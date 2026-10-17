@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
+import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
 
@@ -1260,7 +1261,7 @@ public class ToolboxTest {
 				+ ".find_value(r'^set hostname \"(.*)\"', recursive=True)\n");
 			try (Context context = driver.getContext()) {
 				driver.loadCode(context);
-				Value diagnose = diagnostic.getJsObject(null, context);
+				Value diagnose = DiagnosticAdapters.standard().toJsObject(diagnostic, null, context);
 				Assertions.assertEquals("fw", diagnose.execute(null, null, null).asString());
 			}
 		}

@@ -31,6 +31,7 @@ import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
@@ -47,7 +48,7 @@ import net.netshot.netshot.task.engine.TaskContext;
  * exemptions and the compliance state of a device.
  *
  * <p>The rules it returns are detached entities loaded with their own properties only. Checking
- * a rule against a device (see {@link #test}) calls the {@link Rule#check} of the entity.</p>
+ * a rule against a device (see {@link #test}) goes through the {@link RuleEvaluators}.</p>
  */
 @Slf4j
 public class RuleService {
@@ -62,6 +63,7 @@ public class RuleService {
 	private final Transactions transactions;
 	private final RuleRepository repository;
 	private final PolicyRepository policyRepository;
+	private final RuleEvaluators evaluators;
 
 	/**
 	 * Instantiates the service.
@@ -69,9 +71,12 @@ public class RuleService {
 	 * @param transactions the transaction support
 	 * @param repository the rule repository
 	 * @param policyRepository the policy repository (to find the policy of a rule)
+	 * @param evaluators the rule evaluators (to test a rule)
 	 */
-	public RuleService(Transactions transactions, RuleRepository repository, PolicyRepository policyRepository) {
+	public RuleService(Transactions transactions, RuleRepository repository, PolicyRepository policyRepository,
+		RuleEvaluators evaluators) {
 		this.transactions = transactions;
+		this.evaluators = evaluators;
 		this.repository = repository;
 		this.policyRepository = policyRepository;
 	}
@@ -387,7 +392,7 @@ public class RuleService {
 				};
 
 				rule.setEnabled(true);
-				CheckResult check = rule.check(device, session, taskContext);
+				CheckResult check = this.evaluators.evaluate(rule, device, session, taskContext);
 				return new RuleTestResult(check.getResult(), taskLog.toString(), check.getComment());
 			});
 		}

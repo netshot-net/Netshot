@@ -21,7 +21,6 @@ package net.netshot.netshot.compliance;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.hibernate.Session;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -42,10 +41,8 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.task.engine.TaskContext;
 
 /**
  * A policy is a set of rules, applied to a group of devices.
@@ -112,39 +109,6 @@ public class Policy {
 	public void addRule(Rule rule) {
 		rules.add(rule);
 		rule.setPolicy(this);
-	}
-
-	/**
-	 * Check all devices of the target groups against the policy.
-	 *
-	 * @param session the session
-	 * @param taskContext the task context
-	 */
-	public void check(Session session, TaskContext taskContext) {
-		if (targetGroups == null) {
-			return;
-		}
-		Set<Device> devices = new HashSet<>();
-		for (DeviceGroup group : this.targetGroups) {
-			devices.addAll(group.getCachedDevices());
-		}
-		for (Device device : devices) {
-			this.check(device, session, taskContext);
-		}
-	}
-
-	/**
-	 * Check a given device against the policy.
-	 *
-	 * @param device the device
-	 * @param session the session
-	 * @param taskContext the task context
-	 */
-	public void check(Device device, Session session, TaskContext taskContext) {
-		for (Rule rule : rules) {
-			taskContext.info("Evaluating rule {} (policy {})...", rule.getName(), this.getName());
-			device.getComplianceCheckResults().add(rule.check(device, session, taskContext));
-		}
 	}
 
 	/*(non-Javadoc)

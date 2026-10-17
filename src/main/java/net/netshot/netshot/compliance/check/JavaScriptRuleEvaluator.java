@@ -1,0 +1,192 @@
+/**
+ * Copyright 2013-2025 Netshot
+ * 
+ * This file is part of Netshot project.
+ * 
+ * Netshot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Netshot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package net.netshot.netshot.compliance.check;
+
+import static net.netshot.netshot.compliance.check.RuleDeadline.runBeforeDeadline;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
+
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
+import org.hibernate.Session;
+
+import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.compliance.rules.JavaScriptRule;
+import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
+import net.netshot.netshot.devicescript.helper.JsUtils;
+import net.netshot.netshot.devicescript.helper.ScriptToolbox;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.task.engine.TaskContext;
+
+/**
+ * Evaluates the JavaScript rules: a JavaScript-coded script checks the device
+ * attributes, including config, and returns whether the device is compliant or not.
+ */
+@Slf4j
+public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
+
+	/** The allowed results. */
+	private static final CheckResult.ResultOption[] ALLOWED_RESULTS = new CheckResult.ResultOption[] {
+		CheckResult.ResultOption.CONFORMING,
+		CheckResult.ResultOption.NONCONFORMING,
+		CheckResult.ResultOption.NOTAPPLICABLE,
+	};
+
+	private final JsRuleRuntime runtime;
+
+	/** Is the script of the rule a JS-valid rule (once prepared, for the lifetime of the rule instance)? */
+	private final RuleStateCache<JavaScriptRule, Boolean> validity = new RuleStateCache<>();
+
+	/**
+	 * Builds the evaluator.
+	 *
+	 * @param runtime the JavaScript runtime of the rules
+	 */
+	public JavaScriptRuleEvaluator(JsRuleRuntime runtime) {
+		this.runtime = runtime;
+	}
+
+	@Override
+	public Class<JavaScriptRule> ruleType() {
+		return JavaScriptRule.class;
+	}
+
+	/**
+	 * Prepare the polyglot source.
+	 * @param rule the rule
+	 * @return the source
+	 */
+	private static Source getSource(JavaScriptRule rule) {
+		return Source
+			.newBuilder("js", rule.getScript(), "_rule%d.js".formatted(rule.getId()))
+			.cached(false).buildLiteral();
+	}
+
+	/**
+	 * Prepare the rule.
+	 * @param rule = the rule
+	 * @param context = the context
+	 * @param taskContext = the task context
+	 * @return true if the script is a valid rule
+	 */
+	private boolean prepare(JavaScriptRule rule, Context context, TaskContext taskContext) {
+		return this.validity.get(rule, r -> {
+			boolean jsValid = false;
+			try {
+				Value checkFunction = context.getBindings("js").getMember("check");
+				if (checkFunction == null || !checkFunction.canExecute()) {
+					log.warn("The check function wasn't found in the script");
+					taskContext.error("The 'check' function couldn't be found in the script.");
+				}
+				else {
+					jsValid = true;
+				}
+			}
+			catch (PolyglotException e) {
+				taskContext.error("Error while evaluating the Javascript script.");
+				log.warn("Error while evaluating the Javascript script.", e);
+				jsValid = false;
+			}
+			return jsValid;
+		});
+	}
+
+	@Override
+	public CheckResult evaluate(JavaScriptRule rule, Device device, Session session, TaskContext taskContext) {
+		if (!rule.isEnabled()) {
+			return new CheckResult(rule, device, ResultOption.DISABLED);
+		}
+
+		// Both the script top-level code and the check function run on the executor, within the
+		// same deadline, so that an endless loop can't block the calling thread
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		long deadline = System.currentTimeMillis() + this.runtime.getMaxExecutionTime();
+		try (Context context = this.runtime.newContext()) {
+			Value result;
+			try {
+				runBeforeDeadline(executor, () -> {
+					ScriptToolbox.loadJs(context);
+					context.eval(getSource(rule));
+					context.eval(this.runtime.getLoaderSource());
+					return null;
+				}, deadline);
+				boolean jsValid = this.prepare(rule, context, taskContext);
+				if (!jsValid) {
+					return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+				}
+				if (device.isExempted(rule)) {
+					return new CheckResult(rule, device, ResultOption.EXEMPTED);
+				}
+				JsDeviceHelper deviceHelper = new JsDeviceHelper(device, null, session, taskContext, true);
+				result = runBeforeDeadline(executor,
+					() -> context.getBindings("js").getMember("_check").execute(deviceHelper), deadline);
+			}
+			catch (TimeoutException e1) {
+				try {
+					context.close(true);
+				}
+				catch (Exception e2) {
+					log.warn("Error while closing abnormally long JavaScript context", e2);
+				}
+				taskContext.error(
+					"The rule took too long to execute (check for endless loop in the script or adjust netshot.javascript.maxexecutiontime value)");
+				return new CheckResult(rule, device, CheckResult.ResultOption.INVALIDRULE,
+					"The rule took too long to execute");
+			}
+			String txtResult = null;
+			String comment = "";
+			if (result.isString()) {
+				txtResult = result.asString();
+			}
+			else if (result.hasMembers()) {
+				Value jsComment = result.getMember("comment");
+				if (jsComment != null && jsComment.isString()) {
+					comment = jsComment.asString();
+				}
+				Value jsResult = result.getMember("result");
+				if (jsResult != null && jsResult.isString()) {
+					txtResult = jsResult.asString();
+				}
+			}
+			for (CheckResult.ResultOption allowedResult : ALLOWED_RESULTS) {
+				if (allowedResult.toString().equals(txtResult)) {
+					taskContext.info("The script returned {} ({}), comment '{}'.",
+						allowedResult.toString(), allowedResult.getValue(), comment);
+					return new CheckResult(rule, device, allowedResult, comment);
+				}
+			}
+		}
+		catch (Exception e) {
+			taskContext.error("Error while running the script: {}", JsUtils.jsErrorToMessage(e));
+			log.error("Error while running the script on device {}.", device.getId(), e);
+		}
+		finally {
+			executor.shutdownNow();
+			taskContext.debug("End of check");
+		}
+		return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+	}
+
+}
