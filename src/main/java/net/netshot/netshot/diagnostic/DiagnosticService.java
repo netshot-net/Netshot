@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.hibernate.HibernateException;
 import org.hibernate.ObjectNotFoundException;
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,8 +100,7 @@ public class DiagnosticService {
 	}
 
 	/**
-	 * Adds a diagnostic. A group which doesn't exist is silently ignored: the diagnostic has no
-	 * target group.
+	 * Adds a diagnostic.
 	 *
 	 * @param definition the diagnostic
 	 * @return the new diagnostic, with its target group
@@ -115,7 +115,7 @@ public class DiagnosticService {
 			diagnostic = this.transactions.write(session -> {
 				DeviceGroup group = null;
 				if (definition.targetGroup() != -1) {
-					group = this.repository.findGroup(session, definition.targetGroup());
+					group = this.requireGroup(session, definition.targetGroup());
 				}
 				Diagnostic newDiagnostic = build(definition, name, group, resultType);
 				session.persist(newDiagnostic);
@@ -164,7 +164,7 @@ public class DiagnosticService {
 				}
 				DeviceGroup group = null;
 				if (definition.targetGroup() != -1) {
-					group = this.repository.findGroup(session, definition.targetGroup());
+					group = this.requireGroup(session, definition.targetGroup());
 				}
 				existing.setTargetGroup(group);
 				existing.setResultType(resultType);
@@ -319,5 +319,14 @@ public class DiagnosticService {
 				definition.cliMode(), definition.command(), definition.modifierPattern(), definition.modifierReplacement());
 		}
 		throw new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_TYPE, "Invalid diagnostic type.");
+	}
+
+	private DeviceGroup requireGroup(Session session, long groupId) {
+		DeviceGroup group = this.repository.findGroup(session, groupId);
+		if (group == null) {
+			log.error("Unable to find the group {}.", groupId);
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
+		}
+		return group;
 	}
 }
