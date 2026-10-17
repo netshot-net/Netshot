@@ -18,15 +18,13 @@
  */
 package net.netshot.netshot.inventory.domain;
 
-import net.netshot.netshot.inventory.device.Network4Address;
-
 /**
  * What the client gives to add a domain or to edit one. The strings are given as they come
  * from the client (the service trims them).
  *
  * @param name the name
  * @param description the description
- * @param server4Address the IPv4 address of the server of the domain
+ * @param server4Address the IPv4 address of the server of the domain, as text (the service parses it)
  */
-public record DomainDefinition(String name, String description, Network4Address server4Address) {
+public record DomainDefinition(String name, String description, String server4Address) {
 }

@@ -18,14 +18,11 @@
  */
 package net.netshot.netshot.api.rest.v0.domain;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.inventory.device.Network4Address;
 
 /**
  * The request to add or edit a domain.
@@ -59,11 +56,10 @@ public class DomainRequest {
 	@Setter
 	private String description = "";
 
-	/** The IPv4 address of the server of the domain. */
+	/** The IPv4 address of the server of the domain (parsed by the service). */
 	@Getter(onMethod = @__({
-		@XmlElement,
-		@JsonDeserialize(using = Network4Address.AddressOnlyDeserializer.class),
+		@XmlElement
 	}))
 	@Setter
-	private Network4Address ipAddress;
+	private String ipAddress;
 }

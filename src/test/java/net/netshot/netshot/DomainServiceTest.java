@@ -32,7 +32,6 @@ import org.junit.jupiter.api.function.Executable;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.domain.DomainDefinition;
 import net.netshot.netshot.inventory.domain.DomainRepository;
@@ -78,14 +77,14 @@ class DomainServiceTest extends WithDatabaseTest {
 	}
 
 	private static DomainDefinition definition(String name, String address) throws Exception {
-		return new DomainDefinition(name, "Some description", new Network4Address(address));
+		return new DomainDefinition(name, "Some description", address);
 	}
 
 	@Test
 	@DisplayName("create() stores the domain, trimming the name and the description")
 	void create() throws Exception {
 		String name = this.nextName();
-		Domain created = this.service.create(new DomainDefinition("  " + name + " ", "  desc  ", new Network4Address("10.255.0.1")));
+		Domain created = this.service.create(new DomainDefinition("  " + name + " ", "  desc  ", "10.255.0.1"));
 		Assertions.assertTrue(created.getId() > 0);
 		Domain stored = this.transactions.read(session -> session.get(Domain.class, created.getId()));
 		Assertions.assertEquals(name, stored.getName());
@@ -105,6 +104,19 @@ class DomainServiceTest extends WithDatabaseTest {
 	void createInvalidAddress() throws Exception {
 		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.create(definition(this.nextName(), "127.0.0.1")));
 		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.create(definition(this.nextName(), "224.0.0.1")));
+	}
+
+	@Test
+	@DisplayName("create() and update() refuse a malformed or missing address, and change nothing")
+	void malformedAddress() throws Exception {
+		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, () -> this.service.create(definition(this.nextName(), "not-an-ip")));
+		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.create(definition(this.nextName(), null)));
+		Domain created = this.service.create(definition(this.nextName(), "10.255.4.1"));
+		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS,
+			() -> this.service.update(created.getId(), definition(created.getName(), "10.255.4.300")));
+		assertError(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, () -> this.service.update(created.getId(), definition(created.getName(), null)));
+		Assertions.assertEquals("10.255.4.1", this.service.list(Page.ALL).stream()
+			.filter(d -> d.getId() == created.getId()).findFirst().orElseThrow().getServer4Address().getIp());
 	}
 
 	@Test
@@ -139,7 +151,7 @@ class DomainServiceTest extends WithDatabaseTest {
 	void update() throws Exception {
 		Domain created = this.service.create(definition(this.nextName(), "10.255.3.1"));
 		String name = this.nextName();
-		Domain updated = this.service.update(created.getId(), new DomainDefinition(" " + name + " ", " new ", new Network4Address("10.255.3.9")));
+		Domain updated = this.service.update(created.getId(), new DomainDefinition(" " + name + " ", " new ", "10.255.3.9"));
 		Assertions.assertEquals(created.getId(), updated.getId());
 		Domain stored = this.transactions.read(session -> session.get(Domain.class, created.getId()));
 		Assertions.assertEquals(name, stored.getName());

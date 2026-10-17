@@ -250,10 +250,11 @@ class InventoryDtoTest {
 		Assertions.assertNull(explicitNull.getName());
 		Assertions.assertNull(explicitNull.getDescription());
 		DomainRequest full = read(DomainRequest.class, "{\"id\": 4, \"name\": \"n\", \"description\": \"d\", \"ipAddress\": \"10.0.0.1\"}");
-		Assertions.assertEquals("10.0.0.1", DomainMapper.toDefinition(full).server4Address().getIp());
+		Assertions.assertEquals("10.0.0.1", DomainMapper.toDefinition(full).server4Address());
 		Assertions.assertEquals("n", DomainMapper.toDefinition(full).name());
 		Assertions.assertThrows(JsonMappingException.class, () -> read(DomainRequest.class, "{\"unknown\": 1}"));
-		Assertions.assertThrows(JsonMappingException.class, () -> read(DomainRequest.class, "{\"ipAddress\": \"not an address\"}"));
+		// The address is parsed by the service, which reports a malformed one
+		Assertions.assertEquals("not an address", read(DomainRequest.class, "{\"ipAddress\": \"not an address\"}").getIpAddress());
 	}
 
 	@Test
