@@ -354,6 +354,8 @@ final class ApiContractCases {
 			{"name": "Marseille DC", "description": "Duplicate", "ipAddress": "10.255.2.2"}""");
 		c.write("POST", "/domains", "blankname", () -> "/domains", () -> """
 			{"name": "  ", "description": "No name", "ipAddress": "10.255.2.3"}""");
+		c.write("POST", "/domains", "nullname", () -> "/domains", () -> """
+			{"name": null, "description": null, "ipAddress": "10.255.2.4"}""");
 		c.write("POST", "/domains", "badaddress", () -> "/domains", () -> """
 			{"name": "Bad address", "description": "", "ipAddress": "not-an-ip"}""");
 		c.write("PUT", "/domains/{id}", "updated", c.path("/domains/%d", "new.domain"), c.body("""
@@ -416,6 +418,8 @@ final class ApiContractCases {
 			{"type": "StaticDeviceGroup", "name": "New static group", "staticDevices": []}""");
 		c.write("POST", "/groups", "blankname", () -> "/groups", () -> """
 			{"type": "StaticDeviceGroup", "name": " ", "staticDevices": []}""");
+		c.write("POST", "/groups", "nullname", () -> "/groups", () -> """
+			{"type": "StaticDeviceGroup", "name": null, "staticDevices": []}""");
 		c.write("POST", "/groups", "badtype", () -> "/groups", () -> """
 			{"type": "UnknownGroup", "name": "Bad type", "staticDevices": []}""");
 		c.write("POST", "/groups", "badquery", () -> "/groups", () -> """

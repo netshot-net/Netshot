@@ -117,7 +117,7 @@ public class GroupService {
 	 *         or the group can't be stored
 	 */
 	public DeviceGroup create(GroupDefinition definition) {
-		String name = definition.name().trim();
+		String name = definition.name() == null ? "" : definition.name().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an empty group name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP_NAME, "Invalid group name.");
@@ -189,7 +189,7 @@ public class GroupService {
 				else {
 					throw new NetshotException(ErrorCode.NETSHOT_INCOMPATIBLE_GROUP_TYPE, "Unknown group type.");
 				}
-				String name = definition.name().trim();
+				String name = definition.name() == null ? "" : definition.name().trim();
 				if (name.isEmpty()) {
 					log.warn("User posted an empty group name.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP_NAME, "Invalid group name.");
