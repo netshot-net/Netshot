@@ -32,5 +32,6 @@
   "stopOnFailure": false,
   "target": "Core routers",
   "taskDescription": "Group snapshot",
+  "type": "TakeGroupSnapshotTask",
   "userInputValues": null
 }

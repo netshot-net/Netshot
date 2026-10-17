@@ -35,5 +35,6 @@
   "stopOnFailure": false,
   "target": "10.9.9.9",
   "taskDescription": "Device autodiscovery",
+  "type": "DiscoverDeviceTypeTask",
   "userInputValues": null
 }

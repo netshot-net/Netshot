@@ -31,5 +31,6 @@
   "stopOnFailure": false,
   "target": "Core routers",
   "taskDescription": "Group compliance check",
+  "type": "CheckGroupComplianceTask",
   "userInputValues": null
 }

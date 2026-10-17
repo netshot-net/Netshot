@@ -21,12 +21,10 @@ package net.netshot.netshot;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
@@ -35,7 +33,6 @@ import org.junit.jupiter.api.TestFactory;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.jakarta.rs.json.JacksonXmlBindJsonProvider;
 import com.fasterxml.jackson.jakarta.rs.xml.JacksonXmlBindXMLProvider;
 import com.fasterxml.jackson.jakarta.rs.yaml.JacksonXmlBindYAMLProvider;
@@ -45,6 +42,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import net.netshot.netshot.ApiContractGolden.Format;
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.api.hook.WebHookSender;
 import net.netshot.netshot.api.hook.payload.TaskPayload;
 import net.netshot.netshot.api.hook.payload.TaskPayloads;
 import net.netshot.netshot.boot.Wiring;
@@ -97,7 +95,7 @@ public class HookPayloadTest extends HookSeededTest {
 			}
 			case YAML -> {
 				JacksonXmlBindYAMLProvider provider = new JacksonXmlBindYAMLProvider();
-				provider.setMapper(YAMLMapper.builder().build());
+				provider.setMapper(WebHookSender.yamlMapper());
 				yield value -> write(provider, value, YAMLMediaTypes.APPLICATION_JACKSON_YAML_TYPE);
 			}
 			default -> throw new IllegalArgumentException(format.name());
@@ -112,13 +110,7 @@ public class HookPayloadTest extends HookSeededTest {
 	}
 
 	private String canonical(Format format, byte[] body) {
-		byte[] parsed = body;
-		if (format == Format.YAML) {
-			// The type ids with a space ("SNMP v1") make invalid YAML tags (a known flaw of the YAML payloads, kept as is)
-			parsed = Pattern.compile("!<([^<>]*)>").matcher(new String(body, StandardCharsets.UTF_8))
-				.replaceAll(match -> "!<" + match.group(1).replace(' ', '_') + ">").getBytes(StandardCharsets.UTF_8);
-		}
-		return new ApiContractGolden(this.startTime).canonicalize(format, parsed, ApiContractGolden.Transform.NONE, false);
+		return new ApiContractGolden(this.startTime).canonicalize(format, body, ApiContractGolden.Transform.NONE, false);
 	}
 
 	private static final Format[] FORMATS = { Format.JSON, Format.XML, Format.YAML };
