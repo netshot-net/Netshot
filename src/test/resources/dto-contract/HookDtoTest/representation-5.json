@@ -1,0 +1,33 @@
+[
+  {
+    "action": "POST_YAML",
+    "enabled": true,
+    "httpsCaTrustMode": "CUSTOM_CA",
+    "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
+    "id": 2,
+    "name": "Full",
+    "triggers": [
+      {
+        "item": "CheckComplianceTask",
+        "type": "POST_TASK"
+      },
+      {
+        "item": "TakeSnapshotTask",
+        "type": "POST_TASK"
+      }
+    ],
+    "type": "Web",
+    "url": "https://user:pass@example.net/hook?token=abc"
+  },
+  {
+    "action": "POST_YAML",
+    "enabled": false,
+    "httpsCaTrustMode": "CUSTOM_CA",
+    "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
+    "id": 3,
+    "name": "No trigger",
+    "triggers": [ ],
+    "type": "Web",
+    "url": "https://user:pass@example.net/hook?token=abc"
+  }
+]

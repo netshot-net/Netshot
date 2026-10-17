@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<RsSearchResults>
+  <devices>
+    <devices>
+      <configCompliant>false</configCompliant>
+      <driver>CiscoIOS12</driver>
+      <eol>false</eol>
+      <eos>false</eos>
+      <family>Cisco 2900</family>
+      <id>1</id>
+      <mgmtAddress>10.1.1.1</mgmtAddress>
+      <name>router-paris-1</name>
+      <networkClass>ROUTER</networkClass>
+      <softwareLevel>GOLD</softwareLevel>
+      <status>INPRODUCTION</status>
+    </devices>
+    <devices>
+      <configCompliant>true</configCompliant>
+      <driver>CiscoIOS12</driver>
+      <eol>false</eol>
+      <eos>false</eos>
+      <family>Cisco 1900</family>
+      <id>2</id>
+      <mgmtAddress>10.2.1.1</mgmtAddress>
+      <name>router-lyon-1</name>
+      <networkClass>SWITCHROUTER</networkClass>
+      <softwareLevel>SILVER</softwareLevel>
+      <status>DISABLED</status>
+    </devices>
+  </devices>
+  <query>[Family] contains &quot;Cisco&quot;</query>
+</RsSearchResults>

@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "id": 7,
+  "name": "Python",
+  "resultType": "BINARY",
+  "script": "def diagnose():\n  pass",
+  "targetGroup": null,
+  "type": "PythonDiagnostic"
+}

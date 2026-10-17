@@ -21,14 +21,13 @@ package net.netshot.netshot.api.rest.v0.device;
 import java.io.IOException;
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.api.rest.v0.credentials.CredentialSetDto;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -50,7 +49,6 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * @param httpsCaTrustMode the HTTPS certificate trust mode
  * @param httpsCustomCaCertificate the PEM trust anchor certificate(s) for the custom CA trust mode
  */
-@JsonView(DefaultView.class)
 public record DeviceAccessDto(
 	String accessName,
 	String address,

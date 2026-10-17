@@ -48,6 +48,7 @@ import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -59,8 +60,8 @@ import net.netshot.netshot.task.engine.TaskContext;
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
 
-	public SnapshotDeviceScript(TaskContext logger) {
-		super(logger);
+	public SnapshotDeviceScript(DriverRegistry driverRegistry, TaskContext logger) {
+		super(driverRegistry, logger);
 	}
 
 	/**
@@ -83,7 +84,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			try {
 				BufferedWriter output = new BufferedWriter(new FileWriter(dumpFile.toFile()));
 				Map<String, ConfigAttribute> newAttributes = config.getAttributeMap();
-				for (AttributeDefinition definition : device.getDeviceDriver().getAttributes()) {
+				for (AttributeDefinition definition : this.driverRegistry.forDevice(device).getAttributes()) {
 					if (!definition.isDump()) {
 						continue;
 					}
@@ -138,7 +139,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	protected void run(Session session, Device device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, InvalidOperationException, MissingDeviceDriverException {
 
-		DeviceDriver driver = device.getDeviceDriver();
+		DeviceDriver driver = this.driverRegistry.forDevice(device);
 		JsCliHelper jsCliHelper = new JsCliHelper(accessManager, driver.getDefaultCliAccessDefinitions(), true, this.taskContext);
 		JsSnmpHelper jsSnmpHelper = new JsSnmpHelper(accessManager, driver.getDefaultSnmpAccessDefinitions(), true, this.taskContext);
 		JsClientFactory clientFactory = new JsClientFactory(accessManager, driver);
@@ -150,14 +151,14 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			this.taskContext.info("Starting snapshot of device {} using driver {} version {}",
 				device.getId(), driver.getName(), driver.getVersion());
 			driver.loadCode(context);
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(device, jsCliHelper, session, this.taskContext, false);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, session, this.taskContext, false);
 			options.setDeviceHelper(deviceHelper);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Device {} options: {}", device.getId(), deviceHelper.resolveOptionValues());
 			}
 			Config config = new Config(device);
 			Config lastConfig = Database.unproxy(device.getLastConfig());
-			JsConfigHelper configHelper = new JsConfigHelper(device, config, lastConfig, jsCliHelper, this.taskContext);
+			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.taskContext);
 			options.setConfigHelper(configHelper);
 			context.getBindings("js").getMember("_connect")
 				.execute("snapshot", options);

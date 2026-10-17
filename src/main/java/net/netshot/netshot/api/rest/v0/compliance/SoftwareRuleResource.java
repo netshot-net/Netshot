@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,7 +46,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.SoftwareRuleService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * The REST resource of the software compliance rules: list, add, edit, delete and sort.
@@ -60,6 +59,7 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 public class SoftwareRuleResource {
 
 	private final SoftwareRuleService softwareRuleService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -68,10 +68,12 @@ public class SoftwareRuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param softwareRuleService the software rule use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public SoftwareRuleResource(SoftwareRuleService softwareRuleService) {
+	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, DriverRegistry driverRegistry) {
 		this.softwareRuleService = softwareRuleService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -85,7 +87,6 @@ public class SoftwareRuleResource {
 	@Path("/softwarerules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the software compliance rules",
 		description = "Returns the list of software compliance rules."
@@ -93,7 +94,7 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public List<SoftwareRuleDto> getSoftwareRules(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, software rules.");
-		return SoftwareRuleMapper.toDtos(this.softwareRuleService.list(paginationParams.toPage()));
+		return SoftwareRuleMapper.toDtos(this.driverRegistry, this.softwareRuleService.list(paginationParams.toPage()));
 	}
 
 	/**
@@ -108,7 +109,6 @@ public class SoftwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a software compliance rule",
 		description = "Creates a software compliance rule."
@@ -116,7 +116,7 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public SoftwareRuleDto addSoftwareRule(SoftwareRuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add software rule.");
-		SoftwareRuleDto rule = SoftwareRuleMapper.toDto(
+		SoftwareRuleDto rule = SoftwareRuleMapper.toDto(this.driverRegistry, 
 			this.softwareRuleService.create(SoftwareRuleMapper.toDefinition(rsRule)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return rule;
@@ -132,7 +132,6 @@ public class SoftwareRuleResource {
 	@Path("/softwarerules/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a software compliance rule",
 		description = "Removes a software compliance rule, by ID"
@@ -162,7 +161,6 @@ public class SoftwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a software compliance rule",
 		description = "Edits a software compliance rule."
@@ -173,7 +171,7 @@ public class SoftwareRuleResource {
 		SoftwareRuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit software rule {}.", id);
-		return SoftwareRuleMapper.toDto(this.softwareRuleService.update(id, SoftwareRuleMapper.toDefinition(rsRule)));
+		return SoftwareRuleMapper.toDto(this.driverRegistry, this.softwareRuleService.update(id, SoftwareRuleMapper.toDefinition(rsRule)));
 	}
 
 	/**
@@ -188,7 +186,6 @@ public class SoftwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Sort a software compliance rule",
 		description = "Sorts a software compliance rule by moving it before another one."

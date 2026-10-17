@@ -18,28 +18,15 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import javax.script.ScriptException;
-
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * This is a Javascript-based diagnostic. Declare the diagnostic type along with
@@ -49,16 +36,13 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  */
 @Entity
 @OnDelete(action = OnDeleteAction.CASCADE)
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class JavaScriptDiagnostic extends Diagnostic {
 
 	/**
 	 * The JS script to execute on the device.
 	 */
 	@Getter(onMethod = @__({
-		@Column(length = 10000000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 10000000)
 	}))
 	@Setter
 	private String script;
@@ -87,18 +71,6 @@ public class JavaScriptDiagnostic extends Diagnostic {
 		String script) {
 		super(name, enabled, targetGroup, resultType);
 		this.script = script;
-	}
-
-	@Override
-	public Value getJsObject(Device device, Context context) throws ScriptException {
-		Source diagSource = Source.newBuilder("js", this.getScript(),
-			"_diag%d.js".formatted(this.getId())).buildLiteral();
-		context.eval(diagSource);
-		Value diagnose = context.getBindings("js").getMember("diagnose");
-		if (!diagnose.canExecute()) {
-			throw new ScriptException(String.format("Unable to find 'diagnose' function in '%s' JS diagnostic", this.getName()));
-		}
-		return diagnose;
 	}
 
 }

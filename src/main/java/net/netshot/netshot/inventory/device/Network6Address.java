@@ -18,31 +18,15 @@
  */
 package net.netshot.netshot.inventory.device;
 
-import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.platform.database.InetAddressUserType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 import org.hibernate.annotations.Type;
 
@@ -50,8 +34,6 @@ import org.hibernate.annotations.Type;
  * An IPv6 address.
  */
 @Embeddable
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public final class Network6Address extends NetworkAddress {
 
 	/**
@@ -82,21 +64,6 @@ public final class Network6Address extends NetworkAddress {
 		}
 		catch (UnknownHostException e) {
 			return null;
-		}
-	}
-
-	public static class AddressOnlySerializer extends JsonSerializer<Network6Address> {
-		@Override
-		public void serialize(Network6Address value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-			gen.writeString(value.getIp());
-		}
-	}
-
-	public static class AddressOnlyDeserializer extends JsonDeserializer<Network6Address> {
-		@Override
-		public Network6Address deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
-			String text = p.getText();
-			return new Network6Address(text);
 		}
 	}
 
@@ -236,7 +203,6 @@ public final class Network6Address extends NetworkAddress {
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getIP()
 	 */
 	@Transient
-	@XmlAttribute
 	@Override
 	public String getIp() {
 		return Network6Address.intToIP(this.getAddress1(), this.getAddress2());
@@ -258,7 +224,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the prefix length
 	 */
-	@XmlAttribute
 	@Override
 	public int getPrefixLength() {
 		return prefixLength;
@@ -295,8 +260,6 @@ public final class Network6Address extends NetworkAddress {
 
 	private AddressUsage addressUsage = AddressUsage.PRIMARY;
 
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Override
 	public AddressUsage getAddressUsage() {
 		return addressUsage;

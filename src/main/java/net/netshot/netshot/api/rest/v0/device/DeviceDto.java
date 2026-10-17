@@ -22,12 +22,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
+import net.netshot.netshot.api.rest.v0.domain.DomainDto;
+import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The full representation of a device. In XML, the root element is {@code Device}.
@@ -65,7 +65,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param tags the tags
  */
 @JacksonXmlRootElement(localName = "Device")
-@JsonView(DefaultView.class)
 public record DeviceDto(
 	List<DeviceAccessDto> accesses,
 	List<DeviceAttributeDto> attributes,

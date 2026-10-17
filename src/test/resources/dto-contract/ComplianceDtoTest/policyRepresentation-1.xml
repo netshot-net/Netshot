@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Policy>
+  <id>3</id>
+  <name>Policy</name>
+  <targetGroups>
+    <targetGroups type="DynamicDeviceGroup">
+      <changeDate>1600000200000</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>100</id>
+      <name>Dynamic</name>
+      <query>[Name] contains &quot;r&quot;</query>
+    </targetGroups>
+    <targetGroups type="StaticDeviceGroup">
+      <changeDate>1600000300000</changeDate>
+      <folder/>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>101</id>
+      <name>Static</name>
+    </targetGroups>
+  </targetGroups>
+</Policy>

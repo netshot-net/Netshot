@@ -28,22 +28,20 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.api.rest.v0.task.TaskRequest;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskCreation;
 import net.netshot.netshot.task.type.CheckComplianceTask;
@@ -67,17 +65,16 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  */
 class TaskDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(TaskDtoTest.class);
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
 		Netshot.initConfig(new java.util.Properties());
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	private static Domain domain() throws Exception {
@@ -134,7 +131,7 @@ class TaskDtoTest {
 		tasks.add(filled(new TakeSnapshotTask(device(1), "snap", "tester", false, true, true), 1, Task.Status.SUCCESS));
 		tasks.add(filled(new CheckComplianceTask(device(2), "check", "tester"), 2, Task.Status.FAILURE));
 		tasks.add(filled(new RunDiagnosticsTask(device(3), "diag", "tester", true), 3, Task.Status.RUNNING));
-		tasks.add(filled(new RunDeviceScriptTask(device(4), "script", DeviceDriver.getDriverByName("CiscoIOS12"), "script", "tester"),
+		tasks.add(filled(new RunDeviceScriptTask(device(4), "script", TestDrivers.registry().getDriverByName("CiscoIOS12"), "script", "tester"),
 			4, Task.Status.SCHEDULED));
 		DiscoverDeviceTypeTask discover = new DiscoverDeviceTypeTask("10.9.9.9", domain(), "discover", "tester");
 		discover.setDiscoveredDeviceType("CiscoIOS12");
@@ -166,22 +163,16 @@ class TaskDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
-	private void assertSame(Object expected, Object actual, String message) throws Exception {
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(expected), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(actual), ApiContractGolden.Transform.NONE, false),
-			message + " (JSON)");
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(expected), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(actual), ApiContractGolden.Transform.NONE, false),
-			message + " (XML)");
+	private void assertRepresentation(TaskDto dto, String message) throws Exception {
+		this.contract.check(message, ApiContractGolden.Format.JSON, json(dto));
+		this.contract.check(message, ApiContractGolden.Format.XML, xml(dto));
 	}
 
 	@Test
@@ -189,8 +180,8 @@ class TaskDtoTest {
 	void everyTypeRepresentation() throws Exception {
 		Set<Class<?>> covered = new java.util.HashSet<>();
 		for (Task task : this.allTasks()) {
-			TaskDto dto = TaskMapper.toDto(task);
-			this.assertSame(task, dto, task.getClass().getSimpleName() + " " + task.getId());
+			TaskDto dto = TaskMapper.toDto(TestDrivers.registry(), task);
+			this.assertRepresentation(dto, task.getClass().getSimpleName() + " " + task.getId());
 			covered.add(task.getClass());
 			// Make sure the check is meaningful
 			String json = new String(json(dto));
@@ -205,21 +196,18 @@ class TaskDtoTest {
 	@DisplayName("A list of tasks keeps the type of each one")
 	void listRepresentation() throws Exception {
 		List<Task> tasks = this.allTasks();
-		List<TaskDto> dtos = tasks.stream().map(TaskMapper::toDto).toList();
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class)
-				.forType(new TypeReference<List<Task>>() { }).writeValueAsBytes(tasks), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class)
-				.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos), ApiContractGolden.Transform.NONE, false));
+		List<TaskDto> dtos = tasks.stream().map(task -> TaskMapper.toDto(TestDrivers.registry(), task)).toList();
+		this.contract.check("listRepresentation", ApiContractGolden.Format.JSON, JSON.writer()
+			.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos));
 	}
 
 	@Test
 	@DisplayName("The device and group IDs are the ones of the target, 0 for none")
 	void targets() throws Exception {
-		Assertions.assertEquals(1L, ((TaskDto.TakeSnapshot) TaskMapper.toDto(this.allTasks().get(0))).deviceId());
-		Assertions.assertEquals(0L, ((TaskDto.RunDeviceGroupScript) TaskMapper.toDto(this.allTasks().get(17))).deviceGroupId());
-		Assertions.assertEquals(0L, ((TaskDto.TakeGroupSnapshot) TaskMapper.toDto(this.allTasks().get(15))).deviceGroupId());
-		Assertions.assertEquals(15L, ((TaskDto.PurgeDatabase) TaskMapper.toDto(this.allTasks().get(11))).deviceGroupId());
+		Assertions.assertEquals(1L, ((TaskDto.TakeSnapshot) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(0))).deviceId());
+		Assertions.assertEquals(0L, ((TaskDto.RunDeviceGroupScript) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(17))).deviceGroupId());
+		Assertions.assertEquals(0L, ((TaskDto.TakeGroupSnapshot) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(15))).deviceGroupId());
+		Assertions.assertEquals(15L, ((TaskDto.PurgeDatabase) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(11))).deviceGroupId());
 	}
 
 	// ------------------------------------------------------------------
@@ -229,7 +217,7 @@ class TaskDtoTest {
 	@Test
 	@DisplayName("An absent property of the request has its default, an explicit null does not")
 	void requestDefaults() throws Exception {
-		TaskRequest absent = JSON.readerWithView(RestApiView.class).forType(TaskRequest.class).readValue("{}");
+		TaskRequest absent = JSON.readerFor(TaskRequest.class).readValue("{}");
 		Assertions.assertEquals("", absent.getType());
 		Assertions.assertEquals(0L, absent.getGroup());
 		Assertions.assertEquals(0L, absent.getDevice());
@@ -246,7 +234,7 @@ class TaskDtoTest {
 		Assertions.assertEquals(Task.ScheduleMode.PARALLEL, absent.getScheduleMode());
 		Assertions.assertNull(absent.getDriver());
 
-		TaskRequest nulls = JSON.readerWithView(RestApiView.class).forType(TaskRequest.class)
+		TaskRequest nulls = JSON.readerFor(TaskRequest.class)
 			.readValue("{\"type\": null, \"group\": null, \"scheduleReference\": null, \"script\": null, \"schedulePriority\": null}");
 		Assertions.assertNull(nulls.getType());
 		Assertions.assertNull(nulls.getGroup());
@@ -258,7 +246,7 @@ class TaskDtoTest {
 	@Test
 	@DisplayName("The request is mapped to the command, component by component")
 	void requestToCommand() throws Exception {
-		TaskRequest request = JSON.readerWithView(RestApiView.class).forType(TaskRequest.class).readValue("""
+		TaskRequest request = JSON.readerFor(TaskRequest.class).readValue("""
 			{"type": "PurgeDatabaseTask", "device": 1, "group": 2, "deviceList": [3, 4], "scheduleMode": "SEQUENTIAL",
 			 "stopOnFailure": true, "domain": 5, "subnets": "10.0.0.0/24", "scheduleReference": 1700000000000,
 			 "scheduleType": "DAILY", "scheduleFactor": 2, "schedulePriority": 6, "comments": "c", "debugEnabled": true,

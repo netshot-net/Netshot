@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "id": 6,
+  "name": "JS",
+  "resultType": "NUMERIC",
+  "script": null,
+  "targetGroup": null,
+  "type": "JavaScriptDiagnostic"
+}

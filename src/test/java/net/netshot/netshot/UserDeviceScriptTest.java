@@ -25,7 +25,6 @@ import java.util.Map;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -47,7 +46,7 @@ public class UserDeviceScriptTest {
 	static void initNetshot() throws Exception {
 		Netshot.readConfig();
 		Ssh.loadConfig();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	/** Any already-loaded driver works here - the script's JS context is borrowed from it, not executed against a real device. */
@@ -81,7 +80,7 @@ public class UserDeviceScriptTest {
 
 	private UserDeviceScript buildScript(String code, Map<String, String> userInputValues) {
 		TaskContext taskContext = new FakeTaskContext();
-		UserDeviceScript script = new UserDeviceScript(DRIVER_NAME, code, taskContext);
+		UserDeviceScript script = new UserDeviceScript(TestDrivers.registry(), DRIVER_NAME, code, taskContext);
 		script.setUserInputValues(userInputValues);
 		return script;
 	}

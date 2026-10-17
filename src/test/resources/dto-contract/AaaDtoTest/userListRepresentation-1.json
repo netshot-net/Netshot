@@ -1,0 +1,14 @@
+[
+  {
+    "id": 7,
+    "level": 100,
+    "local": true,
+    "username": "alice"
+  },
+  {
+    "id": 0,
+    "level": 50,
+    "local": false,
+    "username": "radius-user"
+  }
+]

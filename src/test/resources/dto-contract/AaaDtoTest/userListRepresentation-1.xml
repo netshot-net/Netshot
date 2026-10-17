@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <id>7</id>
+    <level>100</level>
+    <local>true</local>
+    <username>alice</username>
+  </item>
+  <item>
+    <id>0</id>
+    <level>50</level>
+    <local>false</local>
+    <username>radius-user</username>
+  </item>
+</ArrayList>

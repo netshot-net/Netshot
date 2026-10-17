@@ -1,0 +1,9 @@
+WebHook
+action=null
+enabled=true
+httpsCaTrustMode=SYSTEM_TRUSTSTORE
+httpsCustomCaCertificate=null
+id=0
+name=min
+triggers=[]
+url=null

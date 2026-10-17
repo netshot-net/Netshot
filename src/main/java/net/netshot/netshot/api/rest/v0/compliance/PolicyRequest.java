@@ -21,11 +21,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
-import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-
 /**
  * The request to add or edit a compliance policy. A property absent from the request has its
  * default value: an empty name and no target group.
@@ -34,9 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param name the name
  * @param targetGroups the IDs of the groups the policy applies to
  */
-@JsonView(DefaultView.class)
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "rsPolicy")
 public record PolicyRequest(long id, String name, Set<Long> targetGroups) {
 
 	/**

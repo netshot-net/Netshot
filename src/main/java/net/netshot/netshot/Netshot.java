@@ -72,19 +72,15 @@ import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.rest.LoggerFilter;
-import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.compliance.rules.JavaScriptRule;
-import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.vault.VaultManager;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
@@ -619,9 +615,8 @@ public class Netshot extends Thread {
 		Radius.loadConfig();
 		Tacacs.loadConfig();
 		Oidc.loadConfig();
-		TakeSnapshotTask.loadConfig();
-		JavaScriptRule.loadConfig();
-		PythonRule.loadConfig();
+		Wiring.reloadTaskConfigs();
+		Wiring.reloadRuleRuntimeConfigs();
 		PythonFileSystem.loadConfig();
 		Ssh.loadConfig();
 		Telnet.loadConfig();
@@ -702,16 +697,16 @@ public class Netshot extends Thread {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Wiring.init();
+			Wiring wiring = Wiring.init();
 
 			Netshot.loadModuleConfigs();
 
 			log.info("Loading the device drivers.");
-			DeviceDriver.refreshDrivers();
+			wiring.driverRegistry().refresh();
 			log.info("Starting the Syslog server.");
-			SyslogServer.init();
+			SyslogServer.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
 			log.info("Starting the SNMP v1/v2c/v3 trap receiver.");
-			SnmpTrapReceiver.init();
+			SnmpTrapReceiver.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
 			log.info("Starting the SSH/SCP/SFTP server.");
 			SshServer.init();
 			//log.info("Starting the TFTP server.");
@@ -721,19 +716,19 @@ public class Netshot extends Thread {
 			TaskLockManager.init(Netshot.getConfig("netshot.cluster.enabled", false));
 
 			log.info("Starting the clustering manager.");
-			ClusterManager.init();
+			ClusterManager.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
 
 			log.info("Starting the Vault token refresh daemon.");
 			VaultManager.init();
 
 			log.info("Initializing the task manager.");
-			TaskManager.init();
+			TaskManager.init(wiring.taskJobFactory());
 			log.info("Scheduling the existing tasks.");
 			TaskManager.rescheduleAll();
 			log.info("Cancelling orphaned delayed tasks.");
 			TaskManager.cancelOrphanedDelayedTasks();
 			log.info("Starting the REST service.");
-			RestService.init(Wiring.get().binder());
+			RestServer.init(wiring.binder());
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {

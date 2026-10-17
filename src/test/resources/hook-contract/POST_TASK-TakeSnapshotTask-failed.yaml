@@ -1,6 +1,7 @@
 # Content-Type: application/yaml
 {
   "author": "tester",
+  "automatic": false,
   "cancelRequested": false,
   "changeDate": 1609502412000,
   "checkCompliance": false,
@@ -8,8 +9,65 @@
   "comments": "Failing snapshot",
   "creationDate": 1609502410000,
   "debugEnabled": false,
+  "device": {
+    "accesses": [ ],
+    "cachedIpAddress": "10.2.1.1",
+    "changeDate": "<now>",
+    "comments": "",
+    "compliant": true,
+    "contact": "",
+    "createdDate": 1609502400000,
+    "creator": "seed",
+    "driver": "CiscoIOS12",
+    "endOfLife": false,
+    "endOfSale": false,
+    "eolDate": null,
+    "eolModule": null,
+    "eosDate": null,
+    "eosModule": null,
+    "family": "Cisco 1900",
+    "location": "Lyon",
+    "mgmtAddress": "10.2.1.1",
+    "name": "router-lyon-1",
+    "networkClass": "SWITCHROUTER",
+    "ownerGroups": [
+      {
+        "changeDate": "<now>",
+        "folder": "",
+        "hiddenFromReports": true,
+        "id": 3,
+        "name": "Everything",
+        "query": "[Name] contains \"\""
+      },
+      {
+        "changeDate": "<now>",
+        "folder": "Production",
+        "hiddenFromReports": false,
+        "id": 2,
+        "name": "All Cisco devices",
+        "query": "[Family] contains \"Cisco\""
+      },
+      {
+        "changeDate": "<now>",
+        "folder": "Production/Core",
+        "hiddenFromReports": false,
+        "id": 1,
+        "name": "Core routers"
+      }
+    ],
+    "realDeviceType": "Cisco IOS and IOS-XE",
+    "serialNumber": "FTX9999ZZZZ",
+    "softwareLevel": "SILVER",
+    "softwareVersion": "15.2.4",
+    "status": "DISABLED",
+    "tags": [
+      "branch"
+    ]
+  },
   "deviceDriver": null,
   "deviceId": 2,
+  "dontCheckCompliance": true,
+  "dontRunDiagnostics": true,
   "executionDate": 1609502411000,
   "id": 2,
   "log": "Unable to connect",

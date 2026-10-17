@@ -41,6 +41,10 @@
 
 ## Specific update steps
 
+### Any version to the next release
+
+* XML request bodies (`Content-Type: application/xml`) used to be rejected with a 500 error on all `POST` and `PUT` endpoints, and are now accepted, with the same properties as the JSON bodies (the name of the root element is ignored). Clients which sent JSON are not affected. See [XML requests](api/rest-api.md#xml-requests).
+
 ### Any version to 0.25.1+
 
 **Container image**: the image no longer has built-in secrets (previous images had `netshot` as DB password and encryption password, and `Netsh01` as SNMP trap community). If you run the image without setting them yourself (the provided `compose.yaml` sets the passwords):
@@ -62,6 +66,8 @@
 **Logging**: the Java classes were moved to a new package layout, so `netshot.log.class.<ClassName>` settings referring to Netshot classes (`net.netshot.netshot.*`) must be updated to the new package names.
 
 **Clustering**: when `netshot.cluster.id` is not set, the member ID generated from the MAC address now ends with the HTTP port (it previously always ended with `0000`). Each such member therefore joins the cluster under a new ID after the upgrade; the tasks assigned to its former ID are handled like those of a lost member. Set `netshot.cluster.id` to keep a stable ID.
+
+**Webhooks**: the YAML payload of a webhook now has the same content as the JSON one (it used to be the REST API representation of the task, without the embedded device and some other fields). Update the receivers which parse YAML payloads.
 
 ### Any version to 0.20+
 

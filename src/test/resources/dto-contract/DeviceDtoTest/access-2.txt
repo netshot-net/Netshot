@@ -1,0 +1,12 @@
+DeviceAccess
+accessName=a2
+address=null
+device=null
+globalCredentialSet=null
+httpsCaTrustMode=SYSTEM_TRUSTSTORE
+httpsCustomCaCertificate=null
+port=null
+specificCredentialSet={changeDate=null, community=null, communityVaultInstanceId=null, communityVaultPath=null, deviceSpecific=false, id=0, mgmtDomain={description=dd3, id=3, name=d3}, name=n2, resolvedCommunityVaultInstanceId=null, version=0}
+sshHostKeyVerification=TRUST_ANY
+sshTrustedHostKeys=null
+sshTrustedHostKeysSince=null

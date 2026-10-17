@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<Device>
+  <accesses/>
+  <attributes/>
+  <cachedIpAddress>10.1.1.2</cachedIpAddress>
+  <changeDate/>
+  <comments/>
+  <compliant>true</compliant>
+  <contact/>
+  <createdDate>&lt;now&gt;</createdDate>
+  <creator>seed</creator>
+  <driver>CiscoIOS12</driver>
+  <endOfLife>false</endOfLife>
+  <endOfSale>false</endOfSale>
+  <eolDate/>
+  <eolModule/>
+  <eosDate/>
+  <eosModule/>
+  <family/>
+  <id>43</id>
+  <location/>
+  <mgmtAddress>10.1.1.2</mgmtAddress>
+  <mgmtDomain/>
+  <name>[NONAME]</name>
+  <networkClass>UNKNOWN</networkClass>
+  <options/>
+  <ownerGroups/>
+  <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+  <serialNumber/>
+  <softwareLevel>UNKNOWN</softwareLevel>
+  <softwareVersion/>
+  <status>INPRODUCTION</status>
+  <tags/>
+</Device>

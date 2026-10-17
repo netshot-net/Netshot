@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<List>
+  <item type="Vault KV v2">
+    <appRoleId>role-1234</appRoleId>
+    <appRoleMountPath>approle-2</appRoleMountPath>
+    <appRoleSecretId>=</appRoleSecretId>
+    <authMethod>JWT</authMethod>
+    <baseUrl>https://vault.example.net:8200</baseUrl>
+    <httpsCaTrustMode>CUSTOM_CA</httpsCaTrustMode>
+    <httpsCustomCaCertificate>-----BEGIN CERTIFICATE-----</httpsCustomCaCertificate>
+    <id>3</id>
+    <jwtClientId>netshot</jwtClientId>
+    <jwtClientSecret>=</jwtClientSecret>
+    <jwtIdpTokenEndpoint>https://idp.example.net/token</jwtIdpTokenEndpoint>
+    <jwtMountPath>jwt-2</jwtMountPath>
+    <jwtScope>vault</jwtScope>
+    <jwtVaultRole>netshot-role</jwtVaultRole>
+    <kvMountPath>kv</kvMountPath>
+    <name>Main vault</name>
+    <namespace>netshot</namespace>
+  </item>
+  <item type="Vault KV v2">
+    <appRoleId/>
+    <appRoleMountPath>approle</appRoleMountPath>
+    <appRoleSecretId/>
+    <authMethod/>
+    <baseUrl/>
+    <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+    <httpsCustomCaCertificate/>
+    <id>0</id>
+    <jwtClientId/>
+    <jwtClientSecret/>
+    <jwtIdpTokenEndpoint/>
+    <jwtMountPath>jwt</jwtMountPath>
+    <jwtScope/>
+    <jwtVaultRole/>
+    <kvMountPath>secret</kvMountPath>
+    <name>Bare</name>
+    <namespace/>
+  </item>
+</List>

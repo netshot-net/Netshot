@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+<TakeSnapshotTask type="TakeSnapshotTask">
+  <author>tester</author>
+  <automatic>true</automatic>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502402000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Daily snapshot</comments>
+  <creationDate>1609502400000</creationDate>
+  <debugEnabled>true</debugEnabled>
+  <device>
+    <accesses>
+      <accesses>
+        <accessName>ssh</accessName>
+        <address>192.0.2.10</address>
+        <globalCredentialSet/>
+        <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+        <httpsCustomCaCertificate/>
+        <port>2222</port>
+        <specificCredentialSet type="SSH">
+          <deviceSpecific>true</deviceSpecific>
+          <id>9</id>
+          <mgmtDomain/>
+          <name>DEVICESPECIFIC-&lt;uuid&gt;</name>
+        </specificCredentialSet>
+        <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+        <sshTrustedHostKeys/>
+        <sshTrustedHostKeysSince/>
+      </accesses>
+      <accesses>
+        <accessName>telnet</accessName>
+        <address/>
+        <globalCredentialSet type="Telnet">
+          <deviceSpecific>false</deviceSpecific>
+          <id>6</id>
+          <mgmtDomain/>
+          <name>Telnet account</name>
+        </globalCredentialSet>
+        <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+        <httpsCustomCaCertificate/>
+        <port/>
+        <specificCredentialSet/>
+        <sshHostKeyVerification>TRUST_ANY</sshHostKeyVerification>
+        <sshTrustedHostKeys/>
+        <sshTrustedHostKeysSince/>
+      </accesses>
+    </accesses>
+    <cachedIpAddress>10.1.1.1</cachedIpAddress>
+    <changeDate>&lt;now&gt;</changeDate>
+    <comments>Main Paris router</comments>
+    <compliant>false</compliant>
+    <contact>noc@example.net</contact>
+    <createdDate>1577880000000</createdDate>
+    <creator>seed</creator>
+    <driver>CiscoIOS12</driver>
+    <endOfLife>false</endOfLife>
+    <endOfSale>false</endOfSale>
+    <eolDate>2240524800000</eolDate>
+    <eolModule/>
+    <eosDate>2208988800000</eosDate>
+    <eosModule/>
+    <family>Cisco 2900</family>
+    <location>Paris, rack A1</location>
+    <mgmtAddress>10.1.1.1</mgmtAddress>
+    <name>router-paris-1</name>
+    <networkClass>ROUTER</networkClass>
+    <ownerGroups>
+      <ownerGroups type="DynamicDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder/>
+        <hiddenFromReports>true</hiddenFromReports>
+        <id>3</id>
+        <name>Everything</name>
+        <query>[Name] contains &quot;&quot;</query>
+      </ownerGroups>
+      <ownerGroups type="DynamicDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>2</id>
+        <name>All Cisco devices</name>
+        <query>[Family] contains &quot;Cisco&quot;</query>
+      </ownerGroups>
+      <ownerGroups type="StaticDeviceGroup">
+        <changeDate>&lt;now&gt;</changeDate>
+        <folder>Production/Core</folder>
+        <hiddenFromReports>false</hiddenFromReports>
+        <id>1</id>
+        <name>Core routers</name>
+      </ownerGroups>
+    </ownerGroups>
+    <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+    <serialNumber>FTX1234ABCD</serialNumber>
+    <softwareLevel>GOLD</softwareLevel>
+    <softwareVersion>16.1.6</softwareVersion>
+    <status>INPRODUCTION</status>
+    <tags>
+      <tags>core</tags>
+      <tags>production</tags>
+    </tags>
+  </device>
+  <deviceDriver/>
+  <deviceId>1</deviceId>
+  <dontCheckCompliance>false</dontCheckCompliance>
+  <dontRunDiagnostics>false</dontRunDiagnostics>
+  <executionDate>1609502401000</executionDate>
+  <id>1</id>
+  <log>Snapshot done&#10;Config 1 saved</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502400000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>router-paris-1</target>
+  <taskDescription>Device snapshot</taskDescription>
+  <userInputValues/>
+</TakeSnapshotTask>

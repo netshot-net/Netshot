@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <deviceType>Cisco IOS and IOS-XE</deviceType>
+    <driver>CiscoIOS12</driver>
+    <endOfLife>1700000000000</endOfLife>
+    <endOfSale>1600000000000</endOfSale>
+    <family>Cisco 2900</family>
+    <familyRegExp>false</familyRegExp>
+    <id>5</id>
+    <partNumber>CISCO29.*</partNumber>
+    <partNumberRegExp>true</partNumberRegExp>
+    <targetGroup type="StaticDeviceGroup">
+      <changeDate>1600000300000</changeDate>
+      <folder/>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>101</id>
+      <name>Static</name>
+    </targetGroup>
+  </item>
+  <item>
+    <deviceType/>
+    <driver/>
+    <endOfLife/>
+    <endOfSale/>
+    <family/>
+    <familyRegExp>true</familyRegExp>
+    <id>6</id>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup/>
+  </item>
+  <item>
+    <deviceType/>
+    <driver>NoSuchDriver</driver>
+    <endOfLife>1700000000000</endOfLife>
+    <endOfSale/>
+    <family/>
+    <familyRegExp>false</familyRegExp>
+    <id>7</id>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup type="DynamicDeviceGroup">
+      <changeDate>1600000200000</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>100</id>
+      <name>Dynamic</name>
+      <query>[Name] contains &quot;r&quot;</query>
+    </targetGroup>
+  </item>
+</ArrayList>

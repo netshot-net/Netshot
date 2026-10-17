@@ -116,19 +116,7 @@ public class DeviceRepository {
 	 * @return the device summaries
 	 */
 	public List<DeviceSummary> findSummaries(Session session, Long groupId, Page page) {
-		String hql = "select new " + DeviceSummary.class.getName() + "("
-			+ "d.id, "
-			+ "d.name, "
-			+ "d.family, "
-			+ "d.mgmtAddress, "
-			+ "d.status, "
-			+ "d.driver, "
-			+ "case when (d.eolDate < current_date()) then true else false end,  "
-			+ "case when (d.eosDate < current_date()) then true else false end, "
-			+ "case when (select count(cr) from CheckResult cr where cr.key.device = d and cr.result = :nonConforming) = 0 then true else false end, "
-			+ "d.softwareLevel, "
-			+ "d.networkClass "
-			+ ") from Device d";
+		String hql = DeviceSummary.SELECT_HQL + " from Device d";
 		if (groupId != null) {
 			hql += " join d.groupMemberships gm where gm.key.group.id = :groupId order by gm.position asc, d.name asc";
 		}
@@ -137,6 +125,108 @@ public class DeviceRepository {
 		if (groupId != null) {
 			query.setParameter("groupId", groupId);
 		}
+		page.apply(query);
+		return query.list();
+	}
+
+	/**
+	 * Finds the network interfaces of a device.
+	 *
+	 * <p>Fetch plan: the IPv4 and IPv6 addresses of the interfaces are fetched with them.</p>
+	 *
+	 * @param session the session
+	 * @param deviceId the device ID
+	 * @param page the window on the result
+	 * @return the interfaces (none if there is no such device)
+	 */
+	public List<NetworkInterface> findInterfaces(Session session, long deviceId, Page page) {
+		Query<NetworkInterface> query = session
+			.createQuery(
+				"select ni from NetworkInterface ni "
+					+ "left join fetch ni.ip4Addresses "
+					+ "left join fetch ni.ip6Addresses "
+					+ "where device.id = :deviceId", NetworkInterface.class)
+			.setParameter("deviceId", deviceId);
+		page.apply(query);
+		return query.list();
+	}
+
+	/**
+	 * Finds the hardware modules of a device.
+	 *
+	 * @param session the session
+	 * @param deviceId the device ID
+	 * @param includeHistory whether to include the modules which have been removed
+	 * @param page the window on the result
+	 * @return the modules (none if there is no such device)
+	 */
+	public List<Module> findModules(Session session, long deviceId, boolean includeHistory, Page page) {
+		String hql = "select m from Module m where m.device.id = :device";
+		if (!includeHistory) {
+			hql += " and m.removed = :falsy";
+		}
+		Query<Module> query = session
+			.createQuery(hql, Module.class)
+			.setParameter("device", deviceId);
+		if (!includeHistory) {
+			query.setParameter("falsy", false);
+		}
+		page.apply(query);
+		return query.list();
+	}
+
+	/**
+	 * Lists the device families currently known: the driver and family of every device.
+	 *
+	 * @param session the session
+	 * @param page the window on the result
+	 * @return the families, one per device
+	 */
+	public List<DeviceFamily> findFamilies(Session session, Page page) {
+		Query<DeviceFamily> query = session
+			.createQuery("select new " + DeviceFamily.class.getName() + "(d.driver, d.family) from Device d", DeviceFamily.class);
+		page.apply(query);
+		return query.list();
+	}
+
+	/**
+	 * Lists the part numbers currently known: the part number of every module.
+	 *
+	 * @param session the session
+	 * @param page the window on the result
+	 * @return the part numbers, one per module
+	 */
+	public List<String> findPartNumbers(Session session, Page page) {
+		Query<String> query = session.createQuery("select m.partNumber from Module m", String.class);
+		page.apply(query);
+		return query.list();
+	}
+
+	/**
+	 * Lists the tags attached to at least one device, with the number of devices of each.
+	 *
+	 * @param session the session
+	 * @param page the window on the result
+	 * @return the tags, sorted
+	 */
+	public List<DeviceTagCount> findTagCounts(Session session, Page page) {
+		Query<DeviceTagCount> query = session
+			.createQuery("select new " + DeviceTagCount.class.getName()
+				+ "(t, count(d.id)) from Device d join d.tags t group by t order by t", DeviceTagCount.class);
+		page.apply(query);
+		return query.list();
+	}
+
+	/**
+	 * Lists the software versions currently known: the (non empty) version of every device.
+	 *
+	 * @param session the session
+	 * @param page the window on the result
+	 * @return the software versions, one per device
+	 */
+	public List<String> findSoftwareVersions(Session session, Page page) {
+		Query<String> query = session
+			.createQuery("select d.softwareVersion from Device d where d.softwareVersion is not null and d.softwareVersion != ''", String.class);
 		page.apply(query);
 		return query.list();
 	}

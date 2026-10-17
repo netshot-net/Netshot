@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "id": 8,
+  "name": "JS rule",
+  "script": "function check(device) {\n  return CONFORMING;\n}",
+  "type": "JavaScriptRule"
+}

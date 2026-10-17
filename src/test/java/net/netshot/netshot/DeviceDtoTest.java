@@ -26,16 +26,18 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -72,7 +74,6 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroupMembership;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -84,12 +85,11 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  */
 class DeviceDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(DeviceDtoTest.class, System.currentTimeMillis());
 
 	private static Domain domain(long id, String name) throws Exception {
 		Domain domain = new Domain(name, "Description of " + name, new Network4Address("10.255.0.1"), new Network6Address("2001:db8::1"));
@@ -202,38 +202,39 @@ class DeviceDtoTest {
 		device.getAccesses().add(access);
 	}
 
+	@BeforeAll
+	static void loadDrivers() throws Exception {
+		Netshot.initConfig(new Properties());
+		TestDrivers.reload();
+	}
+
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Device device) throws Exception {
-		DeviceDto dto = DeviceMapper.toDto(device);
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(device), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(device), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+	private void assertRepresentation(Device device) throws Exception {
+		DeviceDto dto = DeviceMapper.toDto(TestDrivers.registry(), device);
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	@Test
 	@DisplayName("A full device has the same JSON and XML representation as the entity (all kinds of credentials, attributes, groups)")
 	void fullDeviceRepresentation() throws Exception {
 		Device device = fullDevice();
-		this.assertSameRepresentation(device);
+		this.assertRepresentation(device);
 		// Make sure the check is meaningful
-		String json = new String(json(DeviceMapper.toDto(device)));
+		String json = new String(json(DeviceMapper.toDto(TestDrivers.registry(), device)));
 		Assertions.assertTrue(json.contains("\"type\":\"SNMP v3\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"SSH Key\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"LONGTEXT\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"DynamicDeviceGroup\""), json);
 		Assertions.assertTrue(json.contains("\"endOfLife\":true"), json);
 		Assertions.assertTrue(json.contains("\"password\":\"=\""), json);
-		Assertions.assertTrue(new String(xml(DeviceMapper.toDto(device))).startsWith("<Device>"));
+		Assertions.assertTrue(new String(xml(DeviceMapper.toDto(TestDrivers.registry(), device))).startsWith("<Device>"));
 	}
 
 	@Test
@@ -241,7 +242,7 @@ class DeviceDtoTest {
 	void bareDeviceRepresentation() throws Exception {
 		Device device = new Device("CiscoIOS12", "10.1.1.2", null, "seed");
 		device.setId(43);
-		this.assertSameRepresentation(device);
+		this.assertRepresentation(device);
 	}
 
 	// ------------------------------------------------------------------
@@ -298,19 +299,14 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("The accesses of a request are read like the entities used to be")
 	void accessesRequestIsReadLikeTheEntity() throws Exception {
-		List<DeviceAccess> expected = JSON.readerFor(new TypeReference<List<DeviceAccess>>() { })
-			.withView(RestApiView.class).readValue(ACCESSES);
 		List<DeviceAccessDto> dtos = JSON.readerFor(new TypeReference<List<DeviceAccessDto>>() { })
-			.withView(RestApiView.class).readValue(ACCESSES);
-		Assertions.assertEquals(expected.size(), dtos.size());
-		for (int i = 0; i < expected.size(); i++) {
+			.readValue(ACCESSES);
+		for (int i = 0; i < dtos.size(); i++) {
 			DeviceAccess actual = DeviceAccessMapper.toEntity(dtos.get(i));
-			Map<String, Object> expectedDescription = describe(expected.get(i));
 			Map<String, Object> actualDescription = describe(actual);
 			// Only the id and the name of the domain are kept
-			expectedDescription.values().forEach(DeviceDtoTest::keepIdentityOfDomains);
 			actualDescription.values().forEach(DeviceDtoTest::keepIdentityOfDomains);
-			Assertions.assertEquals(expectedDescription, actualDescription, "access " + expected.get(i).getAccessName());
+			this.contract.checkText("access-" + i, DtoContract.render(actual, actualDescription));
 		}
 		// Make sure the check is meaningful
 		Assertions.assertEquals("p4", ((DeviceSshAccount) dtos.stream().map(DeviceAccessMapper::toEntity)
@@ -334,7 +330,7 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("A new device request has the default values of the former request")
 	void newDeviceRequestDefaults() throws Exception {
-		NewDeviceRequest empty = JSON.readerFor(NewDeviceRequest.class).withView(RestApiView.class).readValue("{}");
+		NewDeviceRequest empty = JSON.readerFor(NewDeviceRequest.class).readValue("{}");
 		Assertions.assertTrue(empty.autoDiscover());
 		Assertions.assertEquals("", empty.ipAddress());
 		Assertions.assertEquals(-1L, empty.domainId());
@@ -344,11 +340,11 @@ class DeviceDtoTest {
 		Assertions.assertNull(empty.options());
 		Assertions.assertNull(empty.comments());
 		Assertions.assertNull(empty.tags());
-		NewDeviceRequest explicitNull = JSON.readerFor(NewDeviceRequest.class).withView(RestApiView.class)
+		NewDeviceRequest explicitNull = JSON.readerFor(NewDeviceRequest.class)
 			.readValue("{\"autoDiscover\": null}");
 		Assertions.assertFalse(explicitNull.autoDiscover(), "null is false, like it was for the primitive");
 
-		NewDeviceRequest full = JSON.readerFor(NewDeviceRequest.class).withView(RestApiView.class).readValue("""
+		NewDeviceRequest full = JSON.readerFor(NewDeviceRequest.class).readValue("""
 			{"autoDiscover": false, "autoDiscoveryTask": 3, "ipAddress": "10.0.0.1", "domainId": 4, "name": "n",
 			 "deviceType": "CiscoIOS12", "accesses": %s, "options": {"a": true}, "comments": "c", "tags": ["t"]}""".formatted(ACCESSES));
 		DeviceCreation creation = DeviceMapper.toCreation(full, "author");
@@ -366,11 +362,11 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("An update request leaves unchanged what it doesn't mention")
 	void updateRequestMapping() throws Exception {
-		UpdateDeviceRequest empty = JSON.readerFor(UpdateDeviceRequest.class).withView(RestApiView.class).readValue("{}");
+		UpdateDeviceRequest empty = JSON.readerFor(UpdateDeviceRequest.class).readValue("{}");
 		DeviceUpdate update = DeviceMapper.toUpdate(empty);
 		Assertions.assertEquals(new DeviceUpdate(null, null, null, null, null, null, null), update);
 
-		UpdateDeviceRequest request = JSON.readerFor(UpdateDeviceRequest.class).withView(RestApiView.class).readValue("""
+		UpdateDeviceRequest request = JSON.readerFor(UpdateDeviceRequest.class).readValue("""
 			{"id": 5, "enabled": false, "comments": "c", "ipAddress": "10.0.0.2", "mgmtDomain": 6,
 			 "accesses": [], "options": {}, "tags": []}""");
 		DeviceUpdate full = DeviceMapper.toUpdate(request);
@@ -386,16 +382,16 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("An access without SSH host key verification is TRUST_ANY, but an explicit null isn't set")
 	void sshHostKeyVerificationDefault() throws Exception {
-		DeviceAccessDto absent = JSON.readerFor(DeviceAccessDto.class).withView(RestApiView.class)
+		DeviceAccessDto absent = JSON.readerFor(DeviceAccessDto.class)
 			.readValue("{\"accessName\": \"ssh\"}");
 		Assertions.assertEquals(SshHostKeyVerification.TRUST_ANY, absent.sshHostKeyVerification());
-		DeviceAccessDto explicitNull = JSON.readerFor(DeviceAccessDto.class).withView(RestApiView.class)
+		DeviceAccessDto explicitNull = JSON.readerFor(DeviceAccessDto.class)
 			.readValue("{\"accessName\": \"ssh\", \"sshHostKeyVerification\": null}");
 		Assertions.assertNull(explicitNull.sshHostKeyVerification());
-		DeviceAccessDto known = JSON.readerFor(DeviceAccessDto.class).withView(RestApiView.class)
+		DeviceAccessDto known = JSON.readerFor(DeviceAccessDto.class)
 			.readValue("{\"accessName\": \"ssh\", \"sshHostKeyVerification\": \"TRUST_KNOWN\"}");
 		Assertions.assertEquals(SshHostKeyVerification.TRUST_KNOWN, known.sshHostKeyVerification());
-		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(DeviceAccessDto.class).withView(RestApiView.class)
+		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(DeviceAccessDto.class)
 			.readValue("{\"accessName\": \"ssh\", \"sshHostKeyVerification\": \"NOPE\"}"));
 	}
 
@@ -403,13 +399,13 @@ class DeviceDtoTest {
 	@DisplayName("A request with an unknown property is refused, like it used to be")
 	void unknownPropertiesAreRefused() {
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(NewDeviceRequest.class)
-			.withView(RestApiView.class).readValue("{\"ipAddress\": \"10.0.0.1\", \"unknown\": 1}"));
+			.readValue("{\"ipAddress\": \"10.0.0.1\", \"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(UpdateDeviceRequest.class)
-			.withView(RestApiView.class).readValue("{\"unknown\": 1}"));
+			.readValue("{\"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(DeviceAccessDto.class)
-			.withView(RestApiView.class).readValue("{\"accessName\": \"ssh\", \"unknown\": 1}"));
+			.readValue("{\"accessName\": \"ssh\", \"unknown\": 1}"));
 		Assertions.assertThrows(JsonMappingException.class, () -> JSON.readerFor(DeviceAccessDto.class)
-			.withView(RestApiView.class).readValue("{\"accessName\": \"ssh\", \"globalCredentialSet\": {\"id\": 1}}"),
+			.readValue("{\"accessName\": \"ssh\", \"globalCredentialSet\": {\"id\": 1}}"),
 			"a credential set needs its type");
 	}
 }

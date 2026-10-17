@@ -28,6 +28,7 @@ import org.graalvm.polyglot.proxy.ProxyObject;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
+import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -43,6 +44,8 @@ public class JsDiagnosticHelper {
 	public final Device device;
 	/** The list of diagnostics. */
 	public List<Diagnostic> diagnostics;
+	/** The diagnostic adapters, to build the results. */
+	private DiagnosticAdapters adapters;
 	/** The list of JS diagnostics. */
 	public Map<String, Object> jsDiagnostics;
 	/** The JS Logger. */
@@ -52,12 +55,15 @@ public class JsDiagnosticHelper {
 	 * Instantiate a new JS diagnostic helper.
 	 * @param device The device to run the diagnostics on
 	 * @param diagnostics The list of diagnostics
+	 * @param adapters The diagnostic adapters
 	 * @param jsDiagnostics The set of JS diagnostics to run
 	 * @param taskContext the JS logger
 	 */
-	public JsDiagnosticHelper(Device device, List<Diagnostic> diagnostics, Map<String, Object> jsDiagnostics, TaskContext taskContext) {
+	public JsDiagnosticHelper(Device device, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
+		Map<String, Object> jsDiagnostics, TaskContext taskContext) {
 		this.device = device;
 		this.diagnostics = diagnostics;
+		this.adapters = adapters;
 		this.jsDiagnostics = jsDiagnostics;
 		this.taskContext = taskContext;
 	}
@@ -77,7 +83,7 @@ public class JsDiagnosticHelper {
 			for (Diagnostic diagnostic : diagnostics) {
 				if (diagnostic.getName().equals(key)) {
 					this.taskContext.warn("Setting value for diagnostic key '{}'", key);
-					DiagnosticResult result = diagnostic.makeResult(this.device, value);
+					DiagnosticResult result = this.adapters.makeResult(diagnostic, this.device, value);
 					if (result != null) {
 						this.device.addDiagnosticResult(result);
 					}

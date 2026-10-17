@@ -39,9 +39,6 @@ import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -59,11 +56,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.access.DeviceAccess;
@@ -75,22 +67,17 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DeviceGroupMembership;
 import net.netshot.netshot.platform.database.InetAddressUserType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * A device.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class Device {
 
 	public static class MissingDeviceDriverException extends Exception {
@@ -162,7 +149,6 @@ public class Device {
 
 	/** The attributes. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(RestApiView.class),
 		@OneToMany(mappedBy = "device", orphanRemoval = true,
 			cascade = CascadeType.ALL)
 	}))
@@ -179,16 +165,13 @@ public class Device {
 	 * column rather than as stringified text.
 	 */
 	@Getter(onMethod = @__({
-		@JdbcTypeCode(SqlTypes.JSON),
-		@XmlElement, @JsonView(RestApiView.class)
+		@JdbcTypeCode(SqlTypes.JSON)
 	}))
 	@Setter
 	private Map<String, Object> options = new HashMap<>();
 
 	/** The change date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date changeDate;
 
@@ -199,9 +182,7 @@ public class Device {
 	private int version;
 
 	/** The comments. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String comments = "";
 
@@ -216,8 +197,7 @@ public class Device {
 	@Getter(onMethod = @__({
 		@ElementCollection,
 		@CollectionTable(name = "device_tags", joinColumns = @JoinColumn(name = "device")),
-		@Column(name = "tag", length = MAX_TAG_LENGTH),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "tag", length = MAX_TAG_LENGTH)
 	}))
 	@Setter
 	private Set<String> tags = new HashSet<>();
@@ -251,75 +231,58 @@ public class Device {
 	private Set<DiagnosticResult> diagnosticResults = new HashSet<>();
 
 	/** The contact. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String contact = "";
 
 	/** The created date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date createdDate = new Date();
 
 	/** The creator. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String creator;
 
 	/** The device deviceDriver name. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String driver;
 
 	/** End of Life Date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date eolDate;
 
 	/** End of Life responsible component. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@OneToOne(fetch = FetchType.LAZY)
 	}))
 	@Setter
 	private Module eolModule;
 
 	/** End of Sale Date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Date eosDate;
 
 	/** End of Sale responsible component. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@OneToOne(fetch = FetchType.LAZY)
 	}))
 	@Setter
 	private Module eosModule;
 
 	/** The family. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String family = "";
 
 	/** The id. */
 	@Getter(onMethod = @__({
 		@Id,
-		@GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlAttribute, @JsonView(RestApiView.class)
+		@GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
@@ -332,16 +295,13 @@ public class Device {
 	private Config lastConfig;
 
 	/** The location. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String location = "";
 
 	/** The mgmt address (IPv4 literal, IPv6 literal, or FQDN, resolved lazily at connect time). */
 	@Getter(onMethod = @__({
-		@Column(name = "mgmt_address"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "mgmt_address")
 	}))
 	@Setter
 	private String mgmtAddress;
@@ -365,17 +325,13 @@ public class Device {
 	 * @return the cached IP address as a string, or null if not set
 	 */
 	@Transient
-	@XmlElement(name = "cachedIpAddress")
-	@JsonProperty("cachedIpAddress")
-	@JsonView(DefaultView.class)
 	public String getCachedIpAddressAsString() {
 		return this.cachedIpAddress == null ? null : this.cachedIpAddress.getHostAddress();
 	}
 
 	/** The mgmt domain. */
 	@Getter(onMethod = @__({
-		@ManyToOne(fetch = FetchType.LAZY),
-		@XmlElement, @JsonView(RestApiView.class)
+		@ManyToOne(fetch = FetchType.LAZY)
 	}))
 	@Setter
 	private Domain mgmtDomain;
@@ -389,16 +345,12 @@ public class Device {
 	private List<Module> modules = new ArrayList<>();
 
 	/** The name. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String name = DEFAULTNAME;
 
 	/** The network class. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private NetworkClass networkClass = NetworkClass.UNKNOWN;
 
@@ -417,30 +369,23 @@ public class Device {
 	private Set<DeviceGroupMembership> groupMemberships = new HashSet<>();
 
 	/** The serial number. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String serialNumber = "";
 
 	/** The software level. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private SoftwareRule.ConformanceLevel softwareLevel = ConformanceLevel.UNKNOWN;
 
 	/** The software version. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String softwareVersion = "";
 
 	/** The status. */
 	@Getter(onMethod = @__({
-		@Enumerated(EnumType.ORDINAL),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Enumerated(EnumType.ORDINAL)
 	}))
 	@Setter
 	private Status status = Status.INPRODUCTION;
@@ -464,8 +409,7 @@ public class Device {
 	 * keyed by access name (e.g. "ssh", "telnet", "https") - see {@link DeviceAccess}.
 	 */
 	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.device", orphanRemoval = true, cascade = CascadeType.ALL),
-		@XmlElement, @JsonView(DefaultView.class)
+		@OneToMany(mappedBy = "key.device", orphanRemoval = true, cascade = CascadeType.ALL)
 	}))
 	@Setter
 	private Set<DeviceAccess> accesses = new HashSet<>();
@@ -554,7 +498,7 @@ public class Device {
 	 * (even a bare one, with nothing set, for plain auto-try). Existing rows
 	 * are updated in place (matched by access name) rather than deleted and
 	 * recreated, so that an owned {@code specificCredentialSet} already
-	 * resolved/updated in place by the caller (see {@code RestService}) keeps
+	 * resolved/updated in place by the caller (see the device service) keeps
 	 * its identity instead of racing with this same access's own orphan removal.
 	 * @param newAccesses the new full list of accesses (may be null, meaning "clear all")
 	 */
@@ -829,8 +773,6 @@ public class Device {
 	 * @return the groups of this device
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public Set<DeviceGroup> getOwnerGroups() {
 		HashSet<DeviceGroup> groups = new HashSet<>();
 		for (DeviceGroupMembership membership : this.groupMemberships) {
@@ -838,21 +780,6 @@ public class Device {
 		}
 		return groups;
 	}
-
-	@Transient
-	public DeviceDriver getDeviceDriver() throws MissingDeviceDriverException {
-		if (driver == null) {
-			String message = String.format("The device with ID %d has no associated driver.", id);
-			throw new MissingDeviceDriverException(message);
-		}
-		DeviceDriver deviceDriver = DeviceDriver.getDriverByName(driver);
-		if (deviceDriver == null) {
-			String message = String.format("Unable to locate the driver %s for device %d.", driver, id);
-			throw new MissingDeviceDriverException(message);
-		}
-		return deviceDriver;
-	}
-
 
 	/**
 	 * Get a network interface based on its name.
@@ -867,26 +794,6 @@ public class Device {
 			}
 		}
 		return null;
-	}
-
-
-	/**
-	 * Gets the device type - in a non static manner to include it with JAXB.
-	 * 
-	 * @return the device type
-	 */
-	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
-	public String getRealDeviceType() {
-		DeviceDriver deviceDriver;
-		try {
-			deviceDriver = getDeviceDriver();
-			return deviceDriver.getDescription();
-		}
-		catch (MissingDeviceDriverException e) {
-			return "Unknown driver";
-		}
 	}
 
 
@@ -907,8 +814,6 @@ public class Device {
 	 *
 	 * @return true, if is compliant
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public boolean isCompliant() {
 		for (CheckResult check : this.getComplianceCheckResults()) {
@@ -919,15 +824,11 @@ public class Device {
 		return true;
 	}
 
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public boolean isEndOfLife() {
 		return this.eolDate != null && this.eolDate.before(new Date());
 	}
 
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public boolean isEndOfSale() {
 		return this.eosDate != null && this.eosDate.before(new Date());

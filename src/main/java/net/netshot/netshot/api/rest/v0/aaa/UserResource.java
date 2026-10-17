@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.aaa;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,7 +46,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the users (administrators only): list, add, edit and delete.
@@ -88,7 +86,6 @@ public class UserResource {
 	@Path("/users")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the users",
 		description = "Returns the list of Netshot users."
@@ -110,7 +107,6 @@ public class UserResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a user to Netshot",
 		description = "Create a Netshot user."
@@ -136,7 +132,6 @@ public class UserResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a Netshot user",
 		description = "Edits a Netshot user, by ID."
@@ -160,7 +155,6 @@ public class UserResource {
 	@Path("/users/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a Netshot user.",
 		description = "Removes a user from the Netshot database."

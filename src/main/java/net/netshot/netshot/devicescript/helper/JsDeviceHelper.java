@@ -46,6 +46,7 @@ import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.OptionDefinition;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.device.Device;
@@ -72,6 +73,7 @@ import net.netshot.netshot.task.engine.TaskContext;
 @Slf4j
 public final class JsDeviceHelper {
 
+	private final DriverRegistry driverRegistry;
 	private Device device;
 	private JsCliHelper defaultCliHelper;
 	private Session session;
@@ -97,7 +99,9 @@ public final class JsDeviceHelper {
 		return defaultResult;
 	}
 
-	public JsDeviceHelper(Device device, JsCliHelper defaultCliHelper, Session session, TaskContext taskContext, boolean readOnly) throws MissingDeviceDriverException {
+	public JsDeviceHelper(DriverRegistry driverRegistry, Device device, JsCliHelper defaultCliHelper, Session session,
+		TaskContext taskContext, boolean readOnly) throws MissingDeviceDriverException {
+		this.driverRegistry = driverRegistry;
 		this.device = device;
 		this.defaultCliHelper = defaultCliHelper;
 		this.session = session;
@@ -285,7 +289,7 @@ public final class JsDeviceHelper {
 			return;
 		}
 		try {
-			DeviceDriver driver = device.getDeviceDriver();
+			DeviceDriver driver = this.driverRegistry.forDevice(device);
 			for (AttributeDefinition attribute : driver.getAttributes()) {
 				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 					switch (attribute.getType()) {
@@ -317,7 +321,7 @@ public final class JsDeviceHelper {
 			return;
 		}
 		try {
-			DeviceDriver driver = device.getDeviceDriver();
+			DeviceDriver driver = this.driverRegistry.forDevice(device);
 			for (AttributeDefinition attribute : driver.getAttributes()) {
 				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 					switch (attribute.getType()) {
@@ -384,7 +388,7 @@ public final class JsDeviceHelper {
 				}
 			}
 			else {
-				DeviceDriver driver = device.getDeviceDriver();
+				DeviceDriver driver = this.driverRegistry.forDevice(device);
 				for (AttributeDefinition attribute : driver.getAttributes()) {
 					if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 						switch (attribute.getType()) {
@@ -419,7 +423,7 @@ public final class JsDeviceHelper {
 	private Object getDeviceItem(Device targetDevice, String item) {
 		DeviceDriver driver;
 		try {
-			driver = targetDevice.getDeviceDriver();
+			driver = this.driverRegistry.forDevice(targetDevice);
 		}
 		catch (MissingDeviceDriverException e) {
 			return null;
@@ -566,7 +570,7 @@ public final class JsDeviceHelper {
 		Map<String, Object> values = new HashMap<>();
 		DeviceDriver driver;
 		try {
-			driver = this.device.getDeviceDriver();
+			driver = this.driverRegistry.forDevice(this.device);
 		}
 		catch (MissingDeviceDriverException e) {
 			driver = null;

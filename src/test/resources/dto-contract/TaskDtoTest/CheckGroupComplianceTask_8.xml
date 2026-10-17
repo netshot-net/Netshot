@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<CheckGroupComplianceTask type="CheckGroupComplianceTask">
+  <author>author-8</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000008</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>8</childOrder>
+  <comments>Comments of 8</comments>
+  <creationDate>1500000000008</creationDate>
+  <debugEnabled>true</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>11</deviceGroupId>
+  <executionDate>1550000000008</executionDate>
+  <id>8</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>108</parentTaskId>
+  <priority>7</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>3</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 8</script>
+  <status>DELAYED</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>Group 11</target>
+  <taskDescription>Group compliance check</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</CheckGroupComplianceTask>
