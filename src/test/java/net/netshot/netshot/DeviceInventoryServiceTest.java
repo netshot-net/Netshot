@@ -32,6 +32,7 @@ import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
@@ -82,7 +83,7 @@ class DeviceInventoryServiceTest extends WithDatabaseTest {
 		this.transactions = new Transactions();
 		DeviceRepository repository = new DeviceRepository();
 		TaskSubmitter noTask = task -> { };
-		this.deviceService = new DeviceService(this.transactions, repository, noTask);
+		this.deviceService = new DeviceService(this.transactions, repository, noTask, DriverRegistry.shared());
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
 		this.searchService = new SearchService(this.transactions, new SearchRepository());
 		this.transactions.run(session -> {
@@ -221,7 +222,7 @@ class DeviceInventoryServiceTest extends WithDatabaseTest {
 	@Test
 	@DisplayName("The device types are the loaded drivers")
 	void deviceTypes() {
-		DeviceDriverService service = new DeviceDriverService();
+		DeviceDriverService service = new DeviceDriverService(DriverRegistry.shared());
 		List<DeviceDriver> drivers = service.list(false);
 		Assertions.assertEquals(DeviceDriver.getAllDrivers().size(), drivers.size());
 		Assertions.assertTrue(drivers.stream().anyMatch(d -> "CiscoIOS12".equals(d.getName())));

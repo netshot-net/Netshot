@@ -44,6 +44,7 @@ import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
@@ -101,7 +102,7 @@ class DeviceServiceTest extends WithDatabaseTest {
 			}
 			this.submittedTasks.add(task);
 		};
-		this.service = new DeviceService(this.transactions, new DeviceRepository(), submitter);
+		this.service = new DeviceService(this.transactions, new DeviceRepository(), submitter, DriverRegistry.shared());
 		this.domainId = this.transactions.write(session -> {
 			Domain domain = new Domain("Lab", "Test domain", null, null);
 			session.persist(domain);

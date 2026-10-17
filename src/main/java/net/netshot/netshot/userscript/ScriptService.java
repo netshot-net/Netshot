@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -44,16 +45,19 @@ public class ScriptService {
 
 	private final Transactions transactions;
 	private final ScriptRepository repository;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the script repository
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public ScriptService(Transactions transactions, ScriptRepository repository) {
+	public ScriptService(Transactions transactions, ScriptRepository repository, DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -112,7 +116,7 @@ public class ScriptService {
 	 *         can't be evaluated
 	 */
 	public DeviceJsScript validate(ScriptCreation creation) {
-		DeviceDriver driver = DeviceDriver.getDriverByName(creation.deviceDriver());
+		DeviceDriver driver = this.driverRegistry.getDriverByName(creation.deviceDriver());
 		if (driver == null) {
 			log.warn("Invalid driver name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_SCRIPT, "Invalid driver name.");
