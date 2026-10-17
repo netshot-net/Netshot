@@ -1,12 +1,4 @@
 {
-  "deviceType": "",
-  "driver": null,
-  "endOfLife": null,
-  "endOfSale": 1,
-  "family": "",
-  "familyRegExp": false,
-  "id": 4,
-  "partNumber": "x",
-  "partNumberRegExp": false,
-  "targetGroup": null
+  "errorCode": 164,
+  "errorMsg": "Invalid group"
 }

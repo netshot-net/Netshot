@@ -1,9 +1,4 @@
 {
-  "enabled": false,
-  "id": 9,
-  "name": "Bad group",
-  "resultType": "TEXT",
-  "script": "x",
-  "targetGroup": null,
-  "type": "PythonDiagnostic"
+  "errorCode": 164,
+  "errorMsg": "Invalid group"
 }

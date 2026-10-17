@@ -246,7 +246,12 @@ public class SoftwareRuleService {
 		if (groupId == null) {
 			return null;
 		}
-		return this.repository.findGroup(session, groupId);
+		DeviceGroup group = this.repository.findGroup(session, groupId);
+		if (group == null) {
+			log.error("Unable to find the group {}.", groupId);
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
+		}
+		return group;
 	}
 
 	private String knownDriver(String driver) {
