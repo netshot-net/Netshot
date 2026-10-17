@@ -27,8 +27,6 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
-
 /**
  * The request to add a device. A property absent from the request has its default value (see the
  * canonical constructor): automatic discovery, empty address, name and device type, no domain.
@@ -45,10 +43,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * @param comments the comments
  * @param tags the tags
  */
-// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
-// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
-// Without it, the XML body would get read by Jackson, which is a fix of the API to decide on.
-@XmlRootElement(name = "device")
 public record NewDeviceRequest(
 	@JsonDeserialize(using = NewDeviceRequest.AutoDiscoverDeserializer.class) Boolean autoDiscover,
 	long autoDiscoveryTask,

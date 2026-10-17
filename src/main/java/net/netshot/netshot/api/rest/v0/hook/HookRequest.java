@@ -27,7 +27,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.hook.WebHook.Action;
@@ -40,9 +39,6 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * triggers, the CA trust mode) which applies when the property is absent, whereas an explicit
  * {@code null} is not the same thing, which a bean with initialized fields does for free.</p>
  */
-// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
-// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
-@XmlRootElement(name = "hook")
 @XmlAccessorType(XmlAccessType.NONE)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({

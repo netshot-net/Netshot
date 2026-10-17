@@ -22,9 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-
-import jakarta.xml.bind.annotation.XmlRootElement;
-
 /**
  * The request to add or edit a compliance rule. The properties used depend on the kind of rule
  * ({@code type}); a property absent from the request has its default value: an empty type, no
@@ -47,8 +44,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * @param invert whether to invert the result (text rules)
  * @param normalize whether to normalize the text before searching (text rules)
  */
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "rsRule")
 public record RuleRequest(
 	long id,
 	String name,

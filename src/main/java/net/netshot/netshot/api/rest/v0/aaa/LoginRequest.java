@@ -19,7 +19,6 @@
 package net.netshot.netshot.api.rest.v0.aaa;
 
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * The request to log in or to change the own password of the current user.
@@ -30,8 +29,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * @param authorizationCode the OIDC authorization code
  * @param redirectUri the redirect URI the OIDC authorization code was issued for
  */
-// Transitional: see UserRequest.
-@XmlRootElement(name = "rsLogin")
 public record LoginRequest(
 	String username,
 	String password,
