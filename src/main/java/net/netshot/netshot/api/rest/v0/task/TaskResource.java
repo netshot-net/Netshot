@@ -51,6 +51,8 @@ import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskFilter;
 import net.netshot.netshot.task.TaskService;
@@ -139,9 +141,11 @@ public class TaskResource {
 	@Tag(name = "Tasks", description = "Task management")
 	public TaskDto getTask(@PathParam("id") @Parameter(description = "Task ID") Long id) {
 		log.debug("REST request, get task {}", id);
-		// An unknown task has always been answered with an empty body (HTTP 204)
 		Task task = this.taskService.find(id);
-		return task == null ? null : TaskMapper.toDto(this.driverRegistry, task);
+		if (task == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found.");
+		}
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**

@@ -240,7 +240,7 @@ public class TaskService {
 		}
 		if (task == null) {
 			log.error("Unable to find the task {}.", id);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_TASK, "Unable to find the task.");
+			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Unable to find the task.");
 		}
 		if (cancel) {
 			this.cancel(task, author);

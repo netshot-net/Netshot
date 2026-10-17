@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<RsErrorBean>
+  <errorCode>123</errorCode>
+  <errorMsg>Task not found.</errorMsg>
+</RsErrorBean>

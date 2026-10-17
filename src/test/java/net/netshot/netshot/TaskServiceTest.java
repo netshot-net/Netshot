@@ -281,7 +281,7 @@ class TaskServiceTest extends WithDatabaseTest {
 	@Test
 	@DisplayName("update() reports an unknown task, and does nothing when not cancelling")
 	void updateUnknown() {
-		assertError(ErrorCode.NETSHOT_INVALID_TASK, () -> this.service.update(99_999_999L, true, AUTHOR));
+		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.update(99_999_999L, true, AUTHOR));
 		Task task = this.service.update(this.failedId, false, AUTHOR);
 		Assertions.assertEquals(this.failedId, task.getId());
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
