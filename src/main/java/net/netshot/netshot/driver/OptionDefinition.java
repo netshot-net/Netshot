@@ -23,12 +23,8 @@ import java.util.List;
 
 import org.graalvm.polyglot.Value;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * Definition, declared by a driver, of a per-device option: a
@@ -43,28 +39,20 @@ public final class OptionDefinition {
 	@Setter
 	private DeviceDriver driver;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String name;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String title;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private DriverValueType type;
 
 	/** Valid choices restricting a TEXT option's value; when set, the value must be one of these. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private List<String> choices;
 
@@ -74,9 +62,7 @@ public final class OptionDefinition {
 	 * "false", so it can be stored and returned as real JSON, matching how
 	 * {@link net.netshot.netshot.inventory.device.Device#getOptions()} persists values.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Object defaultValue;
 
