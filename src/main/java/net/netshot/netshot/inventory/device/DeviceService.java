@@ -21,6 +21,7 @@ package net.netshot.netshot.inventory.device;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -273,14 +274,14 @@ public class DeviceService {
 		try {
 			created = this.transactions.write(session -> {
 				DeviceValidation.validateAccesses(this.repository, session, driver, creation.accesses());
-				DeviceValidation.validateOptions(driver, creation.options());
+				Map<String, Object> options = DeviceValidation.validateOptions(driver, creation.options());
 				Device newDevice = new Device(driver.getName(), creation.ipAddress(), domain, creation.author());
 				if (creation.accesses() != null) {
 					resolveSpecificCredentials(session, newDevice, creation.accesses());
 					newDevice.replaceAccesses(creation.accesses());
 				}
-				if (creation.options() != null) {
-					newDevice.setOptions(creation.options());
+				if (options != null) {
+					newDevice.setOptions(options);
 				}
 				if (creation.comments() != null) {
 					newDevice.setComments(creation.comments());
@@ -385,8 +386,7 @@ public class DeviceService {
 		}
 		if (update.options() != null) {
 			DeviceDriver driver = this.driverRegistry.getDriverByName(device.getDriver());
-			DeviceValidation.validateOptions(driver, update.options());
-			device.setOptions(update.options());
+			device.setOptions(DeviceValidation.validateOptions(driver, update.options()));
 		}
 		if (update.comments() != null) {
 			device.setComments(update.comments());

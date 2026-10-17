@@ -1,5 +1,33 @@
 <?xml version="1.0"?>
-<RsErrorBean>
-  <errorCode>10</errorCode>
-  <errorMsg>Option 'fullBackup' should be a boolean.</errorMsg>
-</RsErrorBean>
+<TakeSnapshotTask type="TakeSnapshotTask">
+  <author>API Token [5: Test Token - level 1000]</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>&lt;now&gt;</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Initial snapshot after device creation</comments>
+  <creationDate>&lt;now&gt;</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver/>
+  <deviceId>6</deviceId>
+  <executionDate/>
+  <id>12</id>
+  <log/>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>&lt;now&gt;</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>SCHEDULED</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>10.1.9.20</target>
+  <taskDescription>Device snapshot</taskDescription>
+  <userInputValues/>
+</TakeSnapshotTask>

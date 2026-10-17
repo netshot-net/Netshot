@@ -353,6 +353,16 @@ class DeviceServiceTest extends WithDatabaseTest {
 	// ------------------------------------------------------------------
 
 	@Test
+	@DisplayName("A boolean option given as text (as XML gives it) is stored as a boolean, on creation and update")
+	void booleanOptionAsText() {
+		Device created = ((TakeSnapshotTask) this.service.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
+			"SkyhighSWG", null, Map.of("fullBackup", "true"), null, null, AUTHOR))).getDevice();
+		Assertions.assertEquals(Map.of("fullBackup", true), this.service.get(created.getId()).getOptions());
+		Device updated = this.service.update(created.getId(), new DeviceUpdate(null, null, null, null, null, Map.of("fullBackup", "false"), null));
+		Assertions.assertEquals(Map.of("fullBackup", false), updated.getOptions());
+	}
+
+	@Test
 	@DisplayName("update() leaves unchanged what the command leaves null")
 	void updateNullsAreUnchanged() {
 		DeviceAccess ssh = access("ssh");
