@@ -18,9 +18,7 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.List;
 
-import org.hibernate.Session;
 import org.quartz.JobKey;
 
 import com.fasterxml.jackson.annotation.JsonView;
@@ -30,14 +28,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.compliance.HardwareRule;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
@@ -65,90 +56,6 @@ public final class CheckComplianceTask extends Task implements DeviceBasedTask {
 	public CheckComplianceTask(Device device, String comments, String author) {
 		super(comments, device.getLastConfig() == null ? device.getMgmtAddress() : device.getName(), author);
 		this.device = device;
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		log.debug("Task {}. Starting check compliance task for device {}.", this.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			this.logger.info("The device doesn't exist, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			// Delete previous results
-			session
-				.createMutationQuery("delete from CheckResult c where c.key.device.id = :id")
-				.setParameter("id", this.device.getId())
-				.executeUpdate();
-			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			this.logger.info("Check compliance task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (this.device.getLastConfig() == null) {
-				log.info("Task {}. Unable to fetch the device with its last config... has it been captured at least once?",
-					this.getId());
-				throw new Exception("No last config for this device. Has it been captured at least once?");
-			}
-			List<Policy> policies = session
-				.createQuery("select distinct p from Policy p join p.targetGroups g "
-					+ "join g.cachedMemberships dm with dm.key.device.id = :id", Policy.class)
-				.setParameter("id", this.device.getId())
-				.list();
-
-			this.logger.info("Checking configuration compliance of device {} ({})...",
-				this.device.getName(), this.device.getId());
-			for (Policy policy : policies) {
-				Wiring.get().complianceChecker().check(policy, device, session, this.logger);
-			}
-			session.persist(this.device);
-			session.flush();
-			List<SoftwareRule> softwareRules = session
-				.createQuery("select sr from SoftwareRule sr where (sr.targetGroup is null) or "
-					+ "sr.targetGroup in (select g from DeviceGroup g join g.cachedMemberships dm "
-					+ "with dm.key.device.id = :id) order by sr.priority asc", SoftwareRule.class)
-				.setParameter("id", this.device.getId())
-				.list();
-			device.setSoftwareLevel(ConformanceLevel.UNKNOWN);
-			for (SoftwareRule rule : softwareRules) {
-				rule.check(device);
-				if (device.getSoftwareLevel() != ConformanceLevel.UNKNOWN) {
-					break;
-				}
-			}
-			session.persist(this.device);
-			List<HardwareRule> hardwareRules = session
-				.createQuery("select hr from HardwareRule hr", HardwareRule.class)
-				.list();
-			device.resetEoX();
-			for (HardwareRule rule : hardwareRules) {
-				rule.check(device);
-			}
-			session.persist(device);
-			session.getTransaction().commit();
-			this.status = Status.SUCCESS;
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while checking compliance.", this.getId(), e);
-			this.logger.error("Error while checking compliance: {}", e.getMessage());
-			this.status = Status.FAILURE;
-			return;
-		}
-		finally {
-			session.close();
-		}
-
-		log.debug("Task {}. Request to refresh all the groups for the device after compliance check.", this.getId());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
-
 	}
 
 	/*(non-Javadoc)

@@ -81,7 +81,6 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.vault.VaultManager;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
@@ -616,7 +615,7 @@ public class Netshot extends Thread {
 		Radius.loadConfig();
 		Tacacs.loadConfig();
 		Oidc.loadConfig();
-		TakeSnapshotTask.loadConfig();
+		Wiring.reloadTaskConfigs();
 		Wiring.reloadRuleRuntimeConfigs();
 		PythonFileSystem.loadConfig();
 		Ssh.loadConfig();

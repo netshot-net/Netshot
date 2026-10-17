@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.hibernate.Hibernate;
@@ -124,41 +123,6 @@ public final class RunDeviceGroupScriptTask extends Task
 		else {
 			Hibernate.initialize(this.getDeviceListMembers());
 		}
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		List<Device> devices = this.getTargetDevices();
-		if (this.getDeviceGroup() == null && devices.isEmpty()) {
-			this.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		log.debug("Task {}. {} device(s) to process.", this.getId(), devices.size());
-		String comment = this.getDeviceGroup() == null
-			? String.format("Started due to %d-device script list", devices.size())
-			: String.format("Started due to group %s script task", this.getDeviceGroup().getName());
-
-		DeviceDriver driver = DeviceDriver.getDriverByName(this.getDeviceDriver());
-		if (driver == null) {
-			log.error("Task {}. No such device driver {}.", this.getId(), this.getDeviceDriver());
-			this.logger.error("Unknown device driver.");
-			this.status = Status.FAILURE;
-			return;
-		}
-
-		List<Task> children = this.reloadExistingChildren();
-		if (children.isEmpty()) {
-			children = new ArrayList<>();
-			for (Device device : devices) {
-				children.add(this.buildChild(device, driver, comment));
-			}
-			this.preCreateChildren(children);
-		}
-		this.status = this.orchestrateChildren(children);
 	}
 
 	private RunDeviceScriptTask buildChild(Device device, DeviceDriver driver, String comment) {
