@@ -62,6 +62,7 @@ import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -102,8 +103,8 @@ class ComplianceServiceTest extends WithDatabaseTest {
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository);
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository());
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository());
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), DriverRegistry.shared());
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), DriverRegistry.shared());
 		this.groupId = this.transactions.write(session -> {
 			StaticDeviceGroup group = new StaticDeviceGroup("Group");
 			session.persist(group);
