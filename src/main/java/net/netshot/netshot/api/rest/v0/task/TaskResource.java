@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,7 +50,6 @@ import net.netshot.netshot.api.rest.NetshotNotAuthorizedException;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskFilter;
 import net.netshot.netshot.task.TaskService;
@@ -108,7 +106,6 @@ public class TaskResource {
 	@Path("/devices/{id}/tasks")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get device tasks",
 		description = "Returns the list of tasks of a given device (by ID). Tasks are returned sorted by status and significant date."
@@ -131,7 +128,6 @@ public class TaskResource {
 	@Path("/tasks/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a task.",
 		description = "Retrieves the status of a given task, by ID."
@@ -155,7 +151,6 @@ public class TaskResource {
 	@Path("/tasks/{id}/debuglog")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_OCTET_STREAM})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the debug log of a task",
 		description = "Retrieves the full debug log of a given task, by ID."
@@ -187,7 +182,6 @@ public class TaskResource {
 	@Path("/tasks")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the tasks",
 		description = "Returns the list of tasks. Limited to 100 if no specific limit is provided."
@@ -217,7 +211,6 @@ public class TaskResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a task",
 		description = "Edits a task, by ID. Set 'cancel' property to true to cancel the task."
@@ -240,7 +233,6 @@ public class TaskResource {
 	@Path("/tasks/summary")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get summary/overview of tasks",
 		description = "Retrieves global info about tasks."
@@ -266,7 +258,6 @@ public class TaskResource {
 	@Path("/tasks/stats")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get time-based statistics about completed tasks",
 		description = "Returns, for the given date range, the number of completed tasks (success, failure, cancelled) "
@@ -294,7 +285,6 @@ public class TaskResource {
 	@RolesAllowed(User.ROLE_OPERATOR)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a task",
 		description = "Creates a task and schedule it for execution."

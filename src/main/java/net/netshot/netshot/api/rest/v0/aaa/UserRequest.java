@@ -18,14 +18,12 @@
  */
 package net.netshot.netshot.api.rest.v0.aaa;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.credentials.HideSecretDeserializer;
 import net.netshot.netshot.credentials.HideSecretSerializer;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add or edit a user.
@@ -36,7 +34,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param level the authorization level
  * @param local true for a user authenticated by a local password
  */
-@JsonView(DefaultView.class)
 // Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
 // (there is no JAXB runtime), as it always did for this request.
 @XmlRootElement(name = "rsUser")

@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -44,7 +43,6 @@ import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskCreation;
 import net.netshot.netshot.task.type.CheckComplianceTask;
@@ -68,10 +66,8 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  */
 class TaskDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(TaskDtoTest.class);
@@ -168,11 +164,11 @@ class TaskDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(TaskDto dto, String message) throws Exception {
@@ -202,7 +198,7 @@ class TaskDtoTest {
 	void listRepresentation() throws Exception {
 		List<Task> tasks = this.allTasks();
 		List<TaskDto> dtos = tasks.stream().map(TaskMapper::toDto).toList();
-		this.contract.check("listRepresentation", ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class)
+		this.contract.check("listRepresentation", ApiContractGolden.Format.JSON, JSON.writer()
 			.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos));
 	}
 
@@ -222,7 +218,7 @@ class TaskDtoTest {
 	@Test
 	@DisplayName("An absent property of the request has its default, an explicit null does not")
 	void requestDefaults() throws Exception {
-		TaskRequest absent = JSON.readerWithView(RestApiView.class).forType(TaskRequest.class).readValue("{}");
+		TaskRequest absent = JSON.readerFor(TaskRequest.class).readValue("{}");
 		Assertions.assertEquals("", absent.getType());
 		Assertions.assertEquals(0L, absent.getGroup());
 		Assertions.assertEquals(0L, absent.getDevice());
@@ -239,7 +235,7 @@ class TaskDtoTest {
 		Assertions.assertEquals(Task.ScheduleMode.PARALLEL, absent.getScheduleMode());
 		Assertions.assertNull(absent.getDriver());
 
-		TaskRequest nulls = JSON.readerWithView(RestApiView.class).forType(TaskRequest.class)
+		TaskRequest nulls = JSON.readerFor(TaskRequest.class)
 			.readValue("{\"type\": null, \"group\": null, \"scheduleReference\": null, \"script\": null, \"schedulePriority\": null}");
 		Assertions.assertNull(nulls.getType());
 		Assertions.assertNull(nulls.getGroup());
@@ -251,7 +247,7 @@ class TaskDtoTest {
 	@Test
 	@DisplayName("The request is mapped to the command, component by component")
 	void requestToCommand() throws Exception {
-		TaskRequest request = JSON.readerWithView(RestApiView.class).forType(TaskRequest.class).readValue("""
+		TaskRequest request = JSON.readerFor(TaskRequest.class).readValue("""
 			{"type": "PurgeDatabaseTask", "device": 1, "group": 2, "deviceList": [3, 4], "scheduleMode": "SEQUENTIAL",
 			 "stopOnFailure": true, "domain": 5, "subnets": "10.0.0.0/24", "scheduleReference": 1700000000000,
 			 "scheduleType": "DAILY", "scheduleFactor": 2, "schedulePriority": 6, "comments": "c", "debugEnabled": true,

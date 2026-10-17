@@ -22,10 +22,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to test a compliance rule against a device: the properties of a rule (see
@@ -50,7 +48,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param normalize whether to normalize the text before searching (text rules)
  * @param device the ID of the device to check the rule against
  */
-@JsonView(DefaultView.class)
 // Transitional, see NewDeviceRequest
 @XmlRootElement(name = "rsRuleTest")
 public record RuleTestRequest(

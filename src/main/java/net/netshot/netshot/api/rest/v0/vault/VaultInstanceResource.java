@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.vault;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
@@ -86,7 +84,6 @@ public class VaultInstanceResource {
 	@Path("/vaultinstances")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the Vault instances",
 		description = "Returns the list of configured Vault instances, used to resolve Vault-backed device credential fields."
@@ -108,7 +105,6 @@ public class VaultInstanceResource {
 	@Path("/vaultinstances/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a Vault instance",
 		description = "Removes the given Vault instance, by ID."
@@ -137,7 +133,6 @@ public class VaultInstanceResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a Vault instance",
 		description = "Creates a Vault instance, which can then be used to resolve Vault-backed device credential fields."
@@ -164,7 +159,6 @@ public class VaultInstanceResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a Vault instance",
 		description = "Edits a Vault instance, by ID."

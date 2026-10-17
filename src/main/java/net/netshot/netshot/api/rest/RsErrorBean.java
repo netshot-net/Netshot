@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -27,7 +26,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * An error bean to be sent to the REST client.
@@ -39,14 +37,14 @@ public class RsErrorBean {
 
 	/** The error message. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String errorMsg;
 
 	/** The error code. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int errorCode;

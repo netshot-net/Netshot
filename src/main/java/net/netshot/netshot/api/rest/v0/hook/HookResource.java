@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.hook;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.hook.HookService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the hook definitions: list, add, edit and delete. (The payload a hook sends
@@ -85,7 +83,6 @@ public class HookResource {
 	@Path("/hooks")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the hooks",
 		description = "Returns the current list of hooks."
@@ -108,7 +105,6 @@ public class HookResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a hook",
 		description = "Creates a hook. Based on given criteria, Netshot will run the given action when specific events occur."
@@ -131,7 +127,6 @@ public class HookResource {
 	@Path("/hooks/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a hook",
 		description = "Removes the hook, by ID."
@@ -160,7 +155,6 @@ public class HookResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a hook",
 		description = "Edits a hook, by ID."

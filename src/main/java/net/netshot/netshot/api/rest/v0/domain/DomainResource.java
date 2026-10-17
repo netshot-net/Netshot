@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.domain;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.inventory.domain.DomainService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the device domains: list, add, edit and delete.
@@ -84,7 +82,6 @@ public class DomainResource {
 	@Path("/domains")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the device domains",
 		description = "Returns the list of device domains."
@@ -107,7 +104,6 @@ public class DomainResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a device domain",
 		description = "Creates a device domain."
@@ -133,7 +129,6 @@ public class DomainResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a device domain",
 		description = "Edits a device domain, by ID."
@@ -155,7 +150,6 @@ public class DomainResource {
 	@Path("/domains/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a device domain",
 		description = "Remove the given device domain, by ID."

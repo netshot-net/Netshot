@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.ws.rs.QueryParam;
@@ -26,7 +25,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /** Pagination default query params. */
 public class PaginationParams {
@@ -34,7 +32,7 @@ public class PaginationParams {
 	@Parameter(description = "Pagination offset for the first item to return")
 	@QueryParam("offset")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Integer offset;
@@ -43,7 +41,7 @@ public class PaginationParams {
 	@Parameter(description = "Maximum number of items to return")
 	@QueryParam("limit")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Integer limit;

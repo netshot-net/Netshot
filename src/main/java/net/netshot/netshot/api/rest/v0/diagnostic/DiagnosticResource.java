@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.diagnostic;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.diagnostic.DiagnosticService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the diagnostics and of the diagnostic results of the devices.
@@ -81,7 +79,6 @@ public class DiagnosticResource {
 	@Path("/diagnostics")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the diagnostics",
 		description = "Returns the list of diagnostics."
@@ -106,7 +103,6 @@ public class DiagnosticResource {
 	@Path("/diagnostics/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a diagnostic",
 		description = "Returns a specific diagnostic, by ID."
@@ -125,7 +121,6 @@ public class DiagnosticResource {
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a diagnostic.",
 		description = "Creates a diagnostic."
@@ -154,7 +149,6 @@ public class DiagnosticResource {
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a diagnostic",
 		description = "Creates a new diagnostic."
@@ -179,7 +173,6 @@ public class DiagnosticResource {
 	@Path("/diagnostics/{id}")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a diagnostic",
 		description = "Removes a given diagnostic, by ID."
@@ -211,7 +204,6 @@ public class DiagnosticResource {
 	@Path("/devices/{id}/diagnosticresults")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get diagnostic results",
 		description = "Returns the results of a given diagnostic, by ID."

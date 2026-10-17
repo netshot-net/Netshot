@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,7 +46,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.SoftwareRuleService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the software compliance rules: list, add, edit, delete and sort.
@@ -85,7 +83,6 @@ public class SoftwareRuleResource {
 	@Path("/softwarerules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the software compliance rules",
 		description = "Returns the list of software compliance rules."
@@ -108,7 +105,6 @@ public class SoftwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a software compliance rule",
 		description = "Creates a software compliance rule."
@@ -132,7 +128,6 @@ public class SoftwareRuleResource {
 	@Path("/softwarerules/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a software compliance rule",
 		description = "Removes a software compliance rule, by ID"
@@ -162,7 +157,6 @@ public class SoftwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a software compliance rule",
 		description = "Edits a software compliance rule."
@@ -188,7 +182,6 @@ public class SoftwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Sort a software compliance rule",
 		description = "Sorts a software compliance rule by moving it before another one."

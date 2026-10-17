@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.aaa;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A Netshot user. The password hashes are not part of the representation.
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param username the user name
  * @param level the authorization level
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "UiUser")
 public record UserDto(
 	long id,

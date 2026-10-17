@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.task;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -53,7 +51,6 @@ import net.netshot.netshot.task.Task;
  * @param scheduleMode the parallel vs sequential scheduling of the child tasks (group-based tasks only)
  * @param stopOnFailure whether to stop scheduling further child tasks after one fails (sequential mode only)
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightTask")
 public record TaskSummaryDto(
 	long id,

@@ -29,7 +29,6 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.glassfish.jersey.client.ClientConfig;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -44,7 +43,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.hook.WebHook;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
 
 /**
@@ -90,27 +88,21 @@ public class WebHookSender {
 			case POST_JSON:
 				mediaType = MediaType.APPLICATION_JSON_TYPE;
 				JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();
-				jsonProvider.setDefaultView(HookView.class);
 				jsonProvider.setMapper(JsonMapper.builder()
-					.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 					.build());
 				config.register(jsonProvider);
 				break;
 			case POST_XML:
 				mediaType = MediaType.APPLICATION_XML_TYPE;
 				JacksonXmlBindXMLProvider xmlProvider = new JacksonXmlBindXMLProvider();
-				xmlProvider.setDefaultView(HookView.class);
 				xmlProvider.setMapper(XmlMapper.builder()
-					.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 					.build());
 				config.register(xmlProvider);
 				break;
 			case POST_YAML:
 				mediaType = YAMLMediaTypes.APPLICATION_JACKSON_YAML_TYPE;
 				JacksonXmlBindYAMLProvider yamlProvider = new JacksonXmlBindYAMLProvider();
-				yamlProvider.setDefaultView(HookView.class);
 				yamlProvider.setMapper(YAMLMapper.builder()
-					.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 					.build());
 				config.register(yamlProvider);
 				break;

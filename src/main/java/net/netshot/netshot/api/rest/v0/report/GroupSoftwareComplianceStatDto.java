@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.report;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The software compliance of a device group.
@@ -33,7 +31,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param bronzeDeviceCount the number of devices at the bronze level
  * @param deviceCount the number of devices
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsGroupSoftwareComplianceStat")
 public record GroupSoftwareComplianceStatDto(
 	long groupId,

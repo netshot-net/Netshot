@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.script;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import net.netshot.netshot.driver.DriverValueType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The declaration of a user input of a command script.
@@ -35,7 +33,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param choices the valid choices restricting a text input, or null
  * @param defaultValue the default value, as a raw string
  */
-@JsonView(DefaultView.class)
 public record UserInputDefinitionDto(
 	String name,
 	DriverValueType type,

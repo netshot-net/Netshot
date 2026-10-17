@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A device family, as listed by the known device families.
@@ -29,7 +27,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param driver the name of the device driver
  * @param deviceFamily the family
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsDeviceFamily")
 public record DeviceFamilyDto(String driver, String deviceFamily) {
 }

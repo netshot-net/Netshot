@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.config;
 import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,7 +44,6 @@ import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.inventory.config.ConfigItem;
 import net.netshot.netshot.inventory.config.ConfigItemException;
 import net.netshot.netshot.inventory.config.ConfigService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the configurations: list the configurations of a device or the
@@ -83,7 +81,6 @@ public class ConfigResource {
 	@Path("/devices/{id}/configs")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get device configs",
 		description = "Returns the list of configurations of the given device, by ID."
@@ -107,7 +104,6 @@ public class ConfigResource {
 	@Path("/configs/{id}/{item}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_OCTET_STREAM})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a device configuration item",
 		description = "Retrieves a device configuration item, in plain text."
@@ -147,7 +143,6 @@ public class ConfigResource {
 	@Path("/configs/{id1}/vs/{id2}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the diff between two configuration objects",
 		description = "Retrieves the differences between two given device configuration objets, identified by full IDs."
@@ -178,7 +173,6 @@ public class ConfigResource {
 	@Path("/configs")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get configuration changes",
 		description = "Retrieves a list of configurations, based on given criteria."
