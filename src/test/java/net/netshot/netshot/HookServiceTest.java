@@ -247,13 +247,15 @@ class HookServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("update() without a set of triggers fails (an unexpected failure) and changes nothing")
+	@DisplayName("update() without a set of triggers removes all the triggers, as on creation")
 	void updateNullTriggers() {
 		WebHook created = (WebHook) this.service.create(this.valid("A"));
 		WebHook incoming = webHook("Changed " + created.getName(), "https://example.net/x", Action.POST_JSON);
 		incoming.setTriggers(null);
-		Assertions.assertThrows(NullPointerException.class, () -> this.service.update(created.getId(), incoming));
-		Assertions.assertEquals(created.getName(), this.stored(created.getId()).getName());
+		this.service.update(created.getId(), incoming);
+		WebHook reloaded = (WebHook) this.stored(created.getId());
+		Assertions.assertEquals("Changed " + created.getName(), reloaded.getName());
+		Assertions.assertEquals(Set.of(), items(reloaded));
 	}
 
 	@Test

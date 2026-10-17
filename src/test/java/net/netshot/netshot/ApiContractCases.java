@@ -666,6 +666,9 @@ final class ApiContractCases {
 			 "url": "https://example.net/renamed",
 			 "triggers": [{"type": "POST_TASK", "item": "CheckComplianceTask"}, {"type": "POST_TASK", "item": "RunDiagnosticsTask"}]}""",
 			"new.hook"));
+		c.write("PUT", "/hooks/{id}", "nulltriggers", c.path("/hooks/%d", "new.hook"), c.body("""
+			{"type": "Web", "id": %d, "name": "New hook renamed", "enabled": false, "action": "POST_JSON",
+			 "url": "https://example.net/renamed", "triggers": null}""", "new.hook"));
 		c.write("PUT", "/hooks/{id}", "unknown", () -> "/hooks/99999999", () -> """
 			{"type": "Web", "id": 99999999, "name": "Nope", "enabled": true, "action": "POST_JSON", "url": "https://example.net/x"}""");
 		c.write("DELETE", "/hooks/{id}", "deleted", c.path("/hooks/%d", "new.hook"), null);

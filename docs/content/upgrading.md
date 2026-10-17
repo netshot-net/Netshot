@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* REST API: webhooks: a relative target URL is now refused with a 400 error (`NETSHOT_INVALID_HOOK_WEB_URL`) instead of 500, and `"triggers": null` in `PUT /hooks/{id}` now removes all the triggers (as on creation) instead of failing with a 500 error.
 * REST API: an `id` posted with a new credential set (`POST /credentialsets`) is now ignored, as for the other resources; it used to make the request fail with a 500 error.
 * REST API: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty.
 * REST API: `POST /domains` and `PUT /domains/{id}` with a malformed `ipAddress` now answer 400 (`NETSHOT_MALFORMED_IP_ADDRESS`), and without `ipAddress` 400 (`NETSHOT_INVALID_IP_ADDRESS`), instead of 500.
