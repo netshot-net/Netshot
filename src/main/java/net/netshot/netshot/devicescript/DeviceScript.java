@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.task.engine.TaskContext;
@@ -47,9 +48,12 @@ import net.netshot.netshot.task.engine.TaskContext;
 @Slf4j
 public abstract class DeviceScript {
 
+	protected final transient DriverRegistry driverRegistry;
+
 	protected transient TaskContext taskContext;
 
-	protected DeviceScript(TaskContext taskContext) {
+	protected DeviceScript(DriverRegistry driverRegistry, TaskContext taskContext) {
+		this.driverRegistry = driverRegistry;
 		this.taskContext = taskContext;
 	}
 
@@ -63,7 +67,7 @@ public abstract class DeviceScript {
 
 	public void connectRun(Session session, Device device, Set<DeviceCredentialSet> oneTimeCredentialSets)
 		throws IOException, MissingDeviceDriverException, InvalidCredentialsException, ScriptException, MissingDeviceDriverException {
-		device.getDeviceDriver(); // fail fast if the driver is missing
+		this.driverRegistry.forDevice(device); // fail fast if the driver is missing
 
 		Set<DeviceCredentialSet> credentialSets = new HashSet<>();
 		if (oneTimeCredentialSets != null) {
@@ -75,7 +79,7 @@ public abstract class DeviceScript {
 		// override. Failure there isn't immediately fatal: an access with its
 		// own override address may still be usable, so it only surfaces as a
 		// warning, not an exception.
-		AccessManager accessManager = AccessManager.forDevice(session, device, this.taskContext, credentialSets);
+		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, session, device, this.taskContext, credentialSets);
 
 		try {
 			this.run(session, device, accessManager);

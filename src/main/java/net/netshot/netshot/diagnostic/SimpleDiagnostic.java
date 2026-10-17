@@ -23,11 +23,9 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
@@ -125,26 +123,6 @@ public class SimpleDiagnostic extends Diagnostic {
 		this.command = command;
 		this.modifierPattern = modifierPattern;
 		this.modifierReplacement = modifierReplacement;
-	}
-
-	/**
-	 * Gets the description of the device driver. To be sent along with the
-	 * diagnostic.
-	 * 
-	 * @return the description of the device driver
-	 */
-	@Transient
-	public String getDeviceDriverDescription() {
-		if ("".equals(deviceDriver)) {
-			return "";
-		}
-		try {
-			DeviceDriver d = DeviceDriver.getDriverByName(deviceDriver);
-			return d.getDescription();
-		}
-		catch (Exception e) {
-			return "Unknown driver";
-		}
 	}
 
 }

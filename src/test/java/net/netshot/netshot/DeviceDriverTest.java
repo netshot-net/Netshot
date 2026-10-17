@@ -107,7 +107,7 @@ public class DeviceDriverTest {
 	static void initNetshot() throws Exception {
 		Netshot.readConfig();
 		Ssh.loadConfig();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	/**
@@ -206,8 +206,8 @@ public class DeviceDriverTest {
 			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -272,9 +272,9 @@ public class DeviceDriverTest {
 					device.set("comments", "Tags: " + device.get("tags").join(","));
 				}
 				""";
-			UserDeviceScript script = new UserDeviceScript("CiscoIOS12", code, this.taskContext);
+			UserDeviceScript script = new UserDeviceScript(TestDrivers.registry(), "CiscoIOS12", code, this.taskContext);
 			script.setUserInputValues(new HashMap<>());
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = UserDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -546,8 +546,8 @@ public class DeviceDriverTest {
 			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -615,8 +615,8 @@ public class DeviceDriverTest {
 			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -671,8 +671,8 @@ public class DeviceDriverTest {
 			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -710,9 +710,9 @@ public class DeviceDriverTest {
 			snmpAccess.setAddress(container.getHost());
 			snmpAccess.setPort(port);
 			device.getAccesses().add(snmpAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
 
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(community));
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(community));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -751,8 +751,8 @@ public class DeviceDriverTest {
 			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -803,8 +803,8 @@ public class DeviceDriverTest {
 			sshAccess.setAddress(container.getHost());
 			sshAccess.setPort(container.getMappedPort(22));
 			device.getAccesses().add(sshAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(this.taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -1267,7 +1267,7 @@ public class DeviceDriverTest {
 				""";
 			DeviceDriver driver = new DeviceDriver(new StringReader(driverJs), "HttpDownloadTestDriver.js",
 				new Location(LocationType.EMBEDDED, "HttpDownloadTestDriver.js"));
-			DeviceDriver.getDrivers().put("HttpDownloadTestDriver", driver);
+			TestDrivers.registry().getDrivers().put("HttpDownloadTestDriver", driver);
 
 			TaskContext taskContext = new FakeTaskContext();
 			Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext);
@@ -1275,8 +1275,8 @@ public class DeviceDriverTest {
 			Session nullSession = null;
 			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 			Device device = new Device("HttpDownloadTestDriver", null, domain, "test");
-			SnapshotDeviceScript script = new SnapshotDeviceScript(taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, taskContext, null);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, taskContext, null);
 			accessManager.forceClientForTest(fakeHttp, credentials);
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
@@ -1338,7 +1338,7 @@ public class DeviceDriverTest {
 				""";
 			DeviceDriver driver = new DeviceDriver(new StringReader(driverJs), "HttpAuthOverrideTestDriver.js",
 				new Location(LocationType.EMBEDDED, "HttpAuthOverrideTestDriver.js"));
-			DeviceDriver.getDrivers().put("HttpAuthOverrideTestDriver", driver);
+			TestDrivers.registry().getDrivers().put("HttpAuthOverrideTestDriver", driver);
 
 			TaskContext taskContext = new FakeTaskContext();
 			// The apiKey value sent is the credential set's password ("pass") - see Http.applyAuth().
@@ -1350,8 +1350,8 @@ public class DeviceDriverTest {
 			httpAccess.setAddress("127.0.0.1");
 			httpAccess.setPort(this.port);
 			device.getAccesses().add(httpAccess);
-			SnapshotDeviceScript script = new SnapshotDeviceScript(taskContext);
-			AccessManager accessManager = new AccessManager(nullSession, device, null, taskContext, Set.of(credentials));
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, taskContext, Set.of(credentials));
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 				Device.class, AccessManager.class);
 			runMethod.setAccessible(true);
@@ -1615,16 +1615,16 @@ public class DeviceDriverTest {
 		/**
 		 * Registers a driver directly into {@link DeviceDriver}'s private static
 		 * registry (there's no public API for this - drivers are normally only
-		 * discovered from disk by {@link DeviceDriver#refreshDrivers()}), so that
-		 * {@link Device#getDeviceDriver()} can resolve it by name like any other
+		 * discovered from disk by {@link net.netshot.netshot.driver.DriverRegistry#refresh()}), so that
+		 * {@link net.netshot.netshot.driver.DriverRegistry#forDevice(Device)} can resolve it by name like any other
 		 * driver. Callers must remove it again with {@link #unregisterDriver}.
 		 */
 		private void registerDriver(DeviceDriver driver) throws Exception {
-			DeviceDriver.getDrivers().put(driver.getName(), driver);
+			TestDrivers.registry().getDrivers().put(driver.getName(), driver);
 		}
 
 		private void unregisterDriver(String name) throws Exception {
-			DeviceDriver.getDrivers().remove(name);
+			TestDrivers.registry().getDrivers().remove(name);
 		}
 
 		@Test
@@ -1640,7 +1640,7 @@ public class DeviceDriverTest {
 				Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 				Device device = new Device("OptionsTestDriver", null, domain, "test");
 
-				JsDeviceHelper helper = new JsDeviceHelper(device, null, null, new FakeTaskContext(), false);
+				JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), device, null, null, new FakeTaskContext(), false);
 				ProxyObject options = (ProxyObject) helper.getOptions();
 				Assertions.assertEquals(Boolean.TRUE, options.getMember("fullBackup"),
 					"Default Boolean option value should be a real boolean, not a string");
@@ -1666,9 +1666,9 @@ public class DeviceDriverTest {
 				Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 				Device device = new Device("OptionsTestDriver", null, domain, "test");
 				FakeTaskContext taskContext = new FakeTaskContext();
-				SnapshotDeviceScript script = new SnapshotDeviceScript(taskContext);
+				SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
 				Session nullSession = null;
-				AccessManager accessManager = new AccessManager(nullSession, device, null, taskContext, null);
+				AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, taskContext, null);
 				Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
 					Device.class, AccessManager.class);
 				runMethod.setAccessible(true);

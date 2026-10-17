@@ -131,7 +131,7 @@ public class HookPayloadTest extends HookSeededTest {
 			for (Format format : FORMATS) {
 				tests.add(DynamicTest.dynamicTest(task.getKey() + "." + format.extension, () -> {
 					BodyWriter writer = writerFor(format);
-					TaskPayload payload = Wiring.get().taskService().mapTask(task.getValue(), TaskPayloads::toPayload);
+					TaskPayload payload = Wiring.get().taskService().mapTask(task.getValue(), mapped -> TaskPayloads.toPayload(TestDrivers.registry(), mapped));
 					this.contract.checkCanonical(task.getKey(), format, this.canonical(format, writer.write(payload)));
 				}));
 			}
@@ -185,7 +185,7 @@ public class HookPayloadTest extends HookSeededTest {
 		String secrets = "zsecret1 zsecret2 zsecret3 zauthsecret zprivsecret zpassword zsuper zkey zpassphrase";
 		for (Format format : FORMATS) {
 			BodyWriter writer = writerFor(format);
-			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(task)));
+			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(TestDrivers.registry(), task)));
 			// What the entity used to write, with the secrets masked in it
 			this.contract.checkCanonical("devicesWithEveryKindOfCredentialSet", format, actual);
 			for (String secret : secrets.split(" ")) {

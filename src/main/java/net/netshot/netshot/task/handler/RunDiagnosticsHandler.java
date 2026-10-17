@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.devicescript.RunDiagnosticDeviceScript;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.platform.database.Database;
@@ -42,15 +43,19 @@ import net.netshot.netshot.task.type.RunDiagnosticsTask;
 @Slf4j
 public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 
+	private final DriverRegistry driverRegistry;
 	private final DiagnosticAdapters diagnosticAdapters;
 	private final TaskSubmitter taskSubmitter;
 
 	/**
 	 * Creates the handler.
+	 * @param driverRegistry the loaded device drivers
 	 * @param diagnosticAdapters the diagnostic adapters
 	 * @param taskSubmitter the task submitter
 	 */
-	public RunDiagnosticsHandler(DiagnosticAdapters diagnosticAdapters, TaskSubmitter taskSubmitter) {
+	public RunDiagnosticsHandler(DriverRegistry driverRegistry, DiagnosticAdapters diagnosticAdapters,
+		TaskSubmitter taskSubmitter) {
+		this.driverRegistry = driverRegistry;
 		this.diagnosticAdapters = diagnosticAdapters;
 		this.taskSubmitter = taskSubmitter;
 	}
@@ -93,7 +98,7 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 				.setParameter("enabled", true)
 				.list();
 			if (diagnostics.size() > 0) {
-				deviceScript = new RunDiagnosticDeviceScript(diagnostics, this.diagnosticAdapters, task.logger);
+				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, diagnostics, this.diagnosticAdapters, task.logger);
 				deviceScript.connectRun(session, device);
 				session.merge(device);
 				session.getTransaction().commit();

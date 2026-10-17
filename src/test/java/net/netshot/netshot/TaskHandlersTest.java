@@ -63,12 +63,12 @@ public class TaskHandlersTest {
 			new DiscoverDeviceTypeHandler(null, null),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(null, null),
-			new RunDeviceScriptHandler(null),
-			new RunDiagnosticsHandler(null, null),
+			new RunDeviceScriptHandler(null, null),
+			new RunDiagnosticsHandler(null, null, null),
 			new RunGroupDiagnosticsHandler(null),
 			new ScanSubnetsHandler(null),
 			new TakeGroupSnapshotHandler(null),
-			new TakeSnapshotHandler(null)));
+			new TakeSnapshotHandler(null, null)));
 	}
 
 	@Test

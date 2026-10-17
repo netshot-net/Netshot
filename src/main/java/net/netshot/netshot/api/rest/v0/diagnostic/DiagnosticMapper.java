@@ -35,6 +35,8 @@ import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * Maps the diagnostics and their results between the entities and their REST representation.
@@ -47,18 +49,31 @@ public final class DiagnosticMapper {
 		// Static helpers only
 	}
 
+	// The description of the driver of the diagnostic: empty for any driver, "Unknown driver" when it isn't loaded
+	private static String deviceDriverDescription(DriverRegistry driverRegistry, SimpleDiagnostic diagnostic) {
+		if ("".equals(diagnostic.getDeviceDriver())) {
+			return "";
+		}
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(diagnostic.getDeviceDriver());
+		if (deviceDriver == null) {
+			return "Unknown driver";
+		}
+		return deviceDriver.getDescription();
+	}
+
 	/**
 	 * Maps a diagnostic to its representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param diagnosticOrProxy the diagnostic (or a proxy of it), with its target group loaded
 	 * @return the DTO, of the kind of the diagnostic
 	 */
-	public static DiagnosticDto toDto(Diagnostic diagnosticOrProxy) {
+	public static DiagnosticDto toDto(DriverRegistry driverRegistry, Diagnostic diagnosticOrProxy) {
 		Diagnostic diagnostic = (Diagnostic) Hibernate.unproxy(diagnosticOrProxy);
 		DeviceGroupDto group = diagnostic.getTargetGroup() == null ? null : GroupMapper.toDto(diagnostic.getTargetGroup());
 		if (diagnostic instanceof SimpleDiagnostic simple) {
 			return new DiagnosticDto.Simple(simple.getCliMode(), simple.getCommand(), simple.getDeviceDriver(),
-				simple.getDeviceDriverDescription(), simple.isEnabled(), simple.getId(), simple.getModifierPattern(),
+				deviceDriverDescription(driverRegistry, simple), simple.isEnabled(), simple.getId(), simple.getModifierPattern(),
 				simple.getModifierReplacement(), simple.getName(), simple.getResultType(), group);
 		}
 		else if (diagnostic instanceof JavaScriptDiagnostic js) {
@@ -74,12 +89,13 @@ public final class DiagnosticMapper {
 	/**
 	 * Maps the diagnostics to their representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param diagnostics the diagnostics, with their target group loaded
 	 * @return the DTOs, in the same order
 	 */
-	public static List<DiagnosticDto> toDtos(List<Diagnostic> diagnostics) {
+	public static List<DiagnosticDto> toDtos(DriverRegistry driverRegistry, List<Diagnostic> diagnostics) {
 		List<DiagnosticDto> dtos = new ArrayList<>(diagnostics.size());
-		diagnostics.forEach(diagnostic -> dtos.add(toDto(diagnostic)));
+		diagnostics.forEach(diagnostic -> dtos.add(toDto(driverRegistry, diagnostic)));
 		return dtos;
 	}
 

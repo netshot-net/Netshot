@@ -37,6 +37,7 @@ import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -55,6 +56,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	};
 
 	private final PyRuleRuntime runtime;
+	private final DriverRegistry driverRegistry;
 
 	/** Is the script of the rule a Python-valid rule (once prepared, for the lifetime of the rule instance)? */
 	private final RuleStateCache<PythonRule, Boolean> validity = new RuleStateCache<>();
@@ -63,9 +65,11 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	 * Builds the evaluator.
 	 *
 	 * @param runtime the Python runtime of the rules
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public PythonRuleEvaluator(PyRuleRuntime runtime) {
+	public PythonRuleEvaluator(PyRuleRuntime runtime, DriverRegistry driverRegistry) {
 		this.runtime = runtime;
+		this.driverRegistry = driverRegistry;
 	}
 
 	@Override
@@ -146,7 +150,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 					checkResult = new CheckResult(rule, device, ResultOption.EXEMPTED);
 				}
 				else {
-					PyDeviceHelper deviceHelper = new PyDeviceHelper(device, session, taskContext, true);
+					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, device, session, taskContext, true);
 					Value result = runBeforeDeadline(executor,
 						() -> ctx.getBindings("python").getMember("_check").execute(deviceHelper), deadline);
 					checkResult = this.toCheckResult(rule, result, device, taskContext);

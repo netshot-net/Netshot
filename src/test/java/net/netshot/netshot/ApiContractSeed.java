@@ -55,7 +55,6 @@ import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -690,7 +689,7 @@ final class ApiContractSeed {
 			this.remember("task.diagnostics", diagnostics.getId());
 
 			RunDeviceScriptTask script = new RunDeviceScriptTask(router1, "function run(cli, device) {}",
-				DeviceDriver.getDriverByName("CiscoIOS12"), "Run script", "tester");
+				TestDrivers.registry().getDriverByName("CiscoIOS12"), "Run script", "tester");
 			this.taskData(session, script, Task.Status.SUCCESS, D2021 + 40000, "Script output");
 			this.remember("task.script", script.getId());
 
