@@ -219,8 +219,8 @@ public class ReportService {
 		Set<Long> deviceGroups) {
 		EndOfSupport milestone = EndOfSupport.fromCode(type);
 		if (milestone == null) {
-			log.error("Invalid requested EoX type.");
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the stats");
+			log.warn("Invalid requested EoX type.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, "Invalid type, expected eos or eol.");
 		}
 		Date eoxDate = new Date(date);
 		return this.read("Unable to get the devices.", session -> this.repository.findDevicesByEndOfSupport(session,
