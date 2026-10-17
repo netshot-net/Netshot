@@ -342,7 +342,7 @@ class ReportServiceTest extends WithDatabaseTest {
 			.map(d -> d.name()).collect(Collectors.toSet()));
 		NetshotException error = Assertions.assertThrows(NetshotException.class,
 			() -> this.service.getHardwareSupportDevices("other", 0, none(), none()));
-		Assertions.assertEquals(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, error.getErrorCode());
+		Assertions.assertEquals(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, error.getErrorCode());
 	}
 
 	@Test

@@ -282,6 +282,7 @@ final class ApiContractCases {
 			"/reports/groupconfignoncompliantdevices/%d?domain=%d&policy=%d", "group.dynamic", "domain.paris", "policy.security"));
 		c.get("/reports/hardwaresupportdevices/{type}/{date}", "eos", () -> "/reports/hardwaresupportdevices/eos/" + ApiContractSeed.D2040);
 		c.get("/reports/hardwaresupportdevices/{type}/{date}", "eol", () -> "/reports/hardwaresupportdevices/eol/" + (ApiContractSeed.D2040 + 365L * 24 * 3600 * 1000));
+		c.get("/reports/hardwaresupportdevices/{type}/{date}", "badtype", () -> "/reports/hardwaresupportdevices/eox/" + ApiContractSeed.D2040);
 		c.get("/reports/hardwaresupportdevices/{type}/{date}", "filtered", c.path(
 			"/reports/hardwaresupportdevices/eos/" + ApiContractSeed.D2040 + "?domain=%d&group=%d", "domain.paris", "group.dynamic"));
 		c.get("/reports/groupdevicesbysoftwarelevel/{id}/{level}", "gold", c.path("/reports/groupdevicesbysoftwarelevel/%d/GOLD", "group.dynamic"));
