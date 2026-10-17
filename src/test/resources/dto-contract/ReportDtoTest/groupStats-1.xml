@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <compliantDeviceCount>&lt;now&gt;</compliantDeviceCount>
+    <deviceCount>&lt;now&gt;</deviceCount>
+    <groupFolder>Production/Core</groupFolder>
+    <groupId>&lt;now&gt;</groupId>
+    <groupName>Core</groupName>
+  </item>
+  <item>
+    <compliantDeviceCount>&lt;now&gt;</compliantDeviceCount>
+    <deviceCount>&lt;now&gt;</deviceCount>
+    <groupFolder/>
+    <groupId>&lt;now&gt;</groupId>
+    <groupName>Empty</groupName>
+  </item>
+</ArrayList>

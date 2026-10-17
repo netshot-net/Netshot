@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<RsLightSoftwareLevelDevice>
+  <configCompliant>true</configCompliant>
+  <driver>CiscoIOS12</driver>
+  <eol>true</eol>
+  <eos>false</eos>
+  <family>Cisco</family>
+  <id>&lt;now&gt;</id>
+  <mgmtAddress>10.0.0.5</mgmtAddress>
+  <name>r5</name>
+  <networkClass>ROUTER</networkClass>
+  <softwareLevel>GOLD</softwareLevel>
+  <softwareVersion>16.1</softwareVersion>
+  <status>INPRODUCTION</status>
+</RsLightSoftwareLevelDevice>

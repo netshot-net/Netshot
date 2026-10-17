@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<JavaScriptRule type="JavaScriptRule">
+  <enabled>false</enabled>
+  <id>&lt;now&gt;</id>
+  <name>JS template</name>
+  <script>/*&#10; * Script template - to be customized.&#10; */&#10;function check(device) {&#10;    //const config = device.get(&quot;runningConfig&quot;);&#10;    //const name = device.get(&quot;name&quot;);&#10;    return CONFORMING;&#10;    //return NONCONFORMING;&#10;    //return NOTAPPLICABLE;&#10;}&#10;</script>
+</JavaScriptRule>

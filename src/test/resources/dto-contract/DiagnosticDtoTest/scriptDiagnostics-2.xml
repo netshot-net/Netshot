@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<JavaScriptDiagnostic type="JavaScriptDiagnostic">
+  <enabled>false</enabled>
+  <id>&lt;now&gt;</id>
+  <name>JS</name>
+  <resultType>NUMERIC</resultType>
+  <script/>
+  <targetGroup/>
+</JavaScriptDiagnostic>

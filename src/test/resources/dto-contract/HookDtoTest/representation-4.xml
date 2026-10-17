@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<WebHook type="Web">
+  <action/>
+  <enabled>true</enabled>
+  <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
+  <httpsCustomCaCertificate/>
+  <id>&lt;now&gt;</id>
+  <name>Bare</name>
+  <triggers/>
+  <url/>
+</WebHook>

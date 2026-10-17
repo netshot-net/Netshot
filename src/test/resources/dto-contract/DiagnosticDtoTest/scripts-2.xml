@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<DeviceJsScript>
+  <author>tester</author>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <folder>Folder</folder>
+  <id>&lt;now&gt;</id>
+  <name>Script</name>
+  <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
+  <script>function run() {}</script>
+  <userInputDefinitions/>
+</DeviceJsScript>

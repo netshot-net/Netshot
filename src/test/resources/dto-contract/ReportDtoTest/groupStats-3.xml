@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <bronzeDeviceCount>&lt;now&gt;</bronzeDeviceCount>
+    <deviceCount>&lt;now&gt;</deviceCount>
+    <goldDeviceCount>&lt;now&gt;</goldDeviceCount>
+    <groupId>&lt;now&gt;</groupId>
+    <groupName>Core</groupName>
+    <silverDeviceCount>&lt;now&gt;</silverDeviceCount>
+  </item>
+  <item>
+    <bronzeDeviceCount>&lt;now&gt;</bronzeDeviceCount>
+    <deviceCount>&lt;now&gt;</deviceCount>
+    <goldDeviceCount>&lt;now&gt;</goldDeviceCount>
+    <groupId>&lt;now&gt;</groupId>
+    <groupName>Empty</groupName>
+    <silverDeviceCount>&lt;now&gt;</silverDeviceCount>
+  </item>
+</ArrayList>

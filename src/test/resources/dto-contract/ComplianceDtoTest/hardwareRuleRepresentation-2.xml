@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<HardwareRule>
+  <deviceType/>
+  <driver/>
+  <endOfLife/>
+  <endOfSale/>
+  <family/>
+  <familyRegExp>true</familyRegExp>
+  <id>&lt;now&gt;</id>
+  <partNumber/>
+  <partNumberRegExp>false</partNumberRegExp>
+  <targetGroup/>
+</HardwareRule>

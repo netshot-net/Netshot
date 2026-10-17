@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<DeviceSshKeyAccount type="SSH Key">
+  <deviceSpecific>false</deviceSpecific>
+  <id>&lt;now&gt;</id>
+  <mgmtDomain/>
+  <name>n</name>
+  <password/>
+  <passwordVaultInstanceId/>
+  <passwordVaultPath/>
+  <privateKey/>
+  <privateKeyVaultInstanceId/>
+  <privateKeyVaultPath/>
+  <superPassword/>
+  <superPasswordVaultInstanceId/>
+  <superPasswordVaultPath/>
+  <username/>
+  <usernameVaultInstanceId/>
+  <usernameVaultPath/>
+</DeviceSshKeyAccount>

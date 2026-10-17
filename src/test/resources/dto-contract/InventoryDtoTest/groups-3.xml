@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <changeDate>1600000200000</changeDate>
+    <folder>Production</folder>
+    <hiddenFromReports>true</hiddenFromReports>
+    <id>&lt;now&gt;</id>
+    <name>Dynamic</name>
+    <query>[Name] contains &quot;r&quot;</query>
+  </item>
+  <item>
+    <changeDate>1600000300000</changeDate>
+    <folder/>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>&lt;now&gt;</id>
+    <name>Static</name>
+  </item>
+</ArrayList>

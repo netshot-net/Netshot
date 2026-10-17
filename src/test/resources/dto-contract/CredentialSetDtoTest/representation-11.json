@@ -1,0 +1,21 @@
+{
+  "authKey": "=",
+  "authKeyVaultInstanceId": "<now>",
+  "authKeyVaultPath": "netshot/v3/auth",
+  "authType": "SHA",
+  "community": "=",
+  "communityVaultInstanceId": "<now>",
+  "communityVaultPath": "netshot/v3/community",
+  "deviceSpecific": false,
+  "id": "<now>",
+  "mgmtDomain": null,
+  "name": "SNMP v3",
+  "privKey": "=",
+  "privKeyVaultInstanceId": "<now>",
+  "privKeyVaultPath": "netshot/v3/priv",
+  "privType": "AES128",
+  "type": "SNMP v3",
+  "username": "snmpuser",
+  "usernameVaultInstanceId": "<now>",
+  "usernameVaultPath": "netshot/v3/username"
+}

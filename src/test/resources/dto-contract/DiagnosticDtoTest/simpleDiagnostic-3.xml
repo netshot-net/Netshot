@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<SimpleDiagnostic type="SimpleDiagnostic">
+  <cliMode>enable</cliMode>
+  <command>show version</command>
+  <deviceDriver>NoSuchDriver</deviceDriver>
+  <deviceDriverDescription>Unknown driver</deviceDriverDescription>
+  <enabled>true</enabled>
+  <id>&lt;now&gt;</id>
+  <modifierPattern/>
+  <modifierReplacement>$1</modifierReplacement>
+  <name>Simple</name>
+  <resultType>LONGTEXT</resultType>
+  <targetGroup/>
+</SimpleDiagnostic>
