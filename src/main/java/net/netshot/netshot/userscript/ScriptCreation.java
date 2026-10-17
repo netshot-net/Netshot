@@ -18,10 +18,6 @@
  */
 package net.netshot.netshot.userscript;
 
-import java.util.Map;
-
-import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
-
 /**
  * The properties of a command script to create (or only to validate).
  *
@@ -30,14 +26,11 @@ import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
  * @param script the JavaScript code
  * @param author the name of the author (the user who creates the script)
  * @param folder the folder the script is stored in (may be null, as it was posted)
- * @param userInputDefinitions the input definitions posted along with the script, or null; when present they are
- *        kept as they are and the script is not evaluated to extract them
  */
 public record ScriptCreation(
 	String name,
 	String deviceDriver,
 	String script,
 	String author,
-	String folder,
-	Map<String, UserInputDefinition> userInputDefinitions) {
+	String folder) {
 }

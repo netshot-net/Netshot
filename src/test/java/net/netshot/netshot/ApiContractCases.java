@@ -723,6 +723,8 @@ final class ApiContractCases {
 			{"name": "", "deviceDriver": "CiscoIOS12", "script": "%s"}""".formatted(script));
 		c.write("POST", "/scripts", "syntaxerror", () -> "/scripts", () -> """
 			{"name": "Syntax error", "deviceDriver": "CiscoIOS12", "script": "function run( {"}""");
+		c.write("POST", "/scripts", "syntaxerror-definitions", () -> "/scripts", () -> """
+			{"name": "Syntax error", "deviceDriver": "CiscoIOS12", "script": "function run( {", "userInputDefinitions": {}}""");
 		c.write("DELETE", "/scripts/{id}", "deleted", c.path("/scripts/%d", "new.script"), null);
 		c.write("DELETE", "/scripts/{id}", "unknown", () -> "/scripts/99999999", null);
 	}
