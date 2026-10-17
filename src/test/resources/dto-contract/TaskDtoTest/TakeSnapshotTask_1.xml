@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<TakeSnapshotTask type="TakeSnapshotTask">
+  <author>author-1</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000001</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>&lt;now&gt;</childOrder>
+  <comments>Comments of 1</comments>
+  <creationDate>1500000000001</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceId>&lt;now&gt;</deviceId>
+  <executionDate>1550000000001</executionDate>
+  <id>&lt;now&gt;</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>&lt;now&gt;</parentTaskId>
+  <priority>&lt;now&gt;</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>&lt;now&gt;</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 1</script>
+  <status>SUCCESS</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>10.1.1.1</target>
+  <taskDescription>Device snapshot</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</TakeSnapshotTask>

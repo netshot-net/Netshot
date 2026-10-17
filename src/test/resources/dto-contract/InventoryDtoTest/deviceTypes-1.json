@@ -1,0 +1,225 @@
+[
+  {
+    "accessDefinitions": {
+      "ssh": {
+        "defaultPort": "<now>",
+        "description": null,
+        "group": "cli",
+        "name": "ssh",
+        "priority": "<now>",
+        "protocol": "SSH"
+      },
+      "telnet": {
+        "defaultPort": "<now>",
+        "description": null,
+        "group": "cli",
+        "name": "telnet",
+        "priority": "<now>",
+        "protocol": "TELNET"
+      }
+    },
+    "attributes": [
+      {
+        "checkable": true,
+        "comparable": false,
+        "level": "DEVICE",
+        "name": "configRegister",
+        "searchable": true,
+        "title": "IOS config register",
+        "type": "TEXT"
+      },
+      {
+        "checkable": true,
+        "comparable": false,
+        "level": "DEVICE",
+        "name": "configurationSaved",
+        "searchable": true,
+        "title": "Configuration saved",
+        "type": "BINARY"
+      },
+      {
+        "checkable": true,
+        "comparable": false,
+        "level": "DEVICE",
+        "name": "mainMemorySize",
+        "searchable": true,
+        "title": "Main memory size (MB)",
+        "type": "NUMERIC"
+      },
+      {
+        "checkable": true,
+        "comparable": true,
+        "level": "CONFIG",
+        "name": "iosImageFile",
+        "searchable": true,
+        "title": "IOS image file",
+        "type": "TEXT"
+      },
+      {
+        "checkable": true,
+        "comparable": true,
+        "level": "CONFIG",
+        "name": "iosVersion",
+        "searchable": true,
+        "title": "IOS version",
+        "type": "TEXT"
+      },
+      {
+        "checkable": true,
+        "comparable": true,
+        "level": "CONFIG",
+        "name": "runningConfig",
+        "searchable": true,
+        "title": "Running configuration",
+        "type": "LONGTEXT"
+      },
+      {
+        "checkable": true,
+        "comparable": true,
+        "level": "CONFIG",
+        "name": "sdwanRunningConfig",
+        "searchable": true,
+        "title": "SDWAN Running configuration",
+        "type": "LONGTEXT"
+      }
+    ],
+    "author": "Netshot Team",
+    "cliMainModes": [
+      "configure",
+      "enable"
+    ],
+    "description": "Cisco IOS and IOS-XE",
+    "location": {
+      "fileName": "<path>/Cisco_IOS.js",
+      "type": "EMBEDDED"
+    },
+    "name": "CiscoIOS12",
+    "options": { },
+    "priority": "<now>",
+    "protocols": [
+      "SSH",
+      "TELNET"
+    ],
+    "sourceHash": "<sourceHash>"
+  },
+  {
+    "accessDefinitions": {
+      "ssh": {
+        "defaultPort": "<now>",
+        "description": null,
+        "group": "cli",
+        "name": "ssh",
+        "priority": "<now>",
+        "protocol": "SSH"
+      }
+    },
+    "attributes": [
+      {
+        "checkable": false,
+        "comparable": false,
+        "level": "CONFIG",
+        "name": "backupArchive",
+        "searchable": false,
+        "title": "Backup Archive",
+        "type": "BINARYFILE"
+      },
+      {
+        "checkable": true,
+        "comparable": true,
+        "level": "CONFIG",
+        "name": "mwgVersion",
+        "searchable": true,
+        "title": "MWG Version",
+        "type": "TEXT"
+      }
+    ],
+    "author": "Netshot Team",
+    "cliMainModes": [
+      "bash"
+    ],
+    "description": "Skyhigh Secure Web Gateway",
+    "location": {
+      "fileName": "<path>/Skyhigh_SWG.js",
+      "type": "EMBEDDED"
+    },
+    "name": "SkyhighSWG",
+    "options": {
+      "fullBackup": {
+        "choices": null,
+        "defaultValue": true,
+        "name": "fullBackup",
+        "title": "Take full backup archive",
+        "type": "BOOLEAN"
+      }
+    },
+    "priority": "<now>",
+    "protocols": [
+      "SSH"
+    ],
+    "sourceHash": "<sourceHash>"
+  },
+  {
+    "accessDefinitions": {
+      "snmpv1": {
+        "defaultPort": "<now>",
+        "description": null,
+        "group": "snmp",
+        "name": "snmpv1",
+        "priority": "<now>",
+        "protocol": "SNMPV1"
+      },
+      "snmpv2c": {
+        "defaultPort": "<now>",
+        "description": null,
+        "group": "snmp",
+        "name": "snmpv2c",
+        "priority": "<now>",
+        "protocol": "SNMPV2C"
+      },
+      "snmpv3": {
+        "defaultPort": "<now>",
+        "description": null,
+        "group": "snmp",
+        "name": "snmpv3",
+        "priority": "<now>",
+        "protocol": "SNMPV3"
+      }
+    },
+    "attributes": [
+      {
+        "checkable": false,
+        "comparable": false,
+        "level": "DEVICE",
+        "name": "sysDescr",
+        "searchable": true,
+        "title": "SNMP sysDescr",
+        "type": "TEXT"
+      },
+      {
+        "checkable": false,
+        "comparable": false,
+        "level": "DEVICE",
+        "name": "sysObjectId",
+        "searchable": true,
+        "title": "SNMP sysObjectID",
+        "type": "TEXT"
+      }
+    ],
+    "author": "Netshot Team",
+    "cliMainModes": [ ],
+    "description": "Generic SNMP device",
+    "location": {
+      "fileName": "<path>/Generic_SNMP.js",
+      "type": "EMBEDDED"
+    },
+    "name": "GenericSNMP",
+    "options": { },
+    "priority": "<now>",
+    "protocols": [
+      "SNMPV1",
+      "SNMPV2C",
+      "SNMPV3"
+    ],
+    "sourceHash": "<sourceHash>"
+  }
+]

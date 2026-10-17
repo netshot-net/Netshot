@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<DeviceJsScript>
+  <author>tester</author>
+  <deviceDriver>NoSuchDriver</deviceDriver>
+  <folder/>
+  <id>&lt;now&gt;</id>
+  <name>Script</name>
+  <realDeviceType>Unknwon driver</realDeviceType>
+  <script/>
+  <userInputDefinitions>
+    <flag>
+      <defaultValue/>
+      <description/>
+      <label>Flag</label>
+      <name>flag</name>
+      <type>BOOLEAN</type>
+    </flag>
+    <hostname>
+      <choices>
+        <choices>a</choices>
+        <choices>b</choices>
+      </choices>
+      <defaultValue>a</defaultValue>
+      <description>The host</description>
+      <label>Hostname</label>
+      <name>hostname</name>
+      <type>TEXT</type>
+    </hostname>
+  </userInputDefinitions>
+</DeviceJsScript>

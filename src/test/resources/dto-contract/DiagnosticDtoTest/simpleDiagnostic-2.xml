@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<SimpleDiagnostic type="SimpleDiagnostic">
+  <cliMode>enable</cliMode>
+  <command>show version</command>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+  <enabled>true</enabled>
+  <id>&lt;now&gt;</id>
+  <modifierPattern>(.*)</modifierPattern>
+  <modifierReplacement>$1</modifierReplacement>
+  <name>Simple</name>
+  <resultType>TEXT</resultType>
+  <targetGroup type="StaticDeviceGroup">
+    <changeDate>1600000300000</changeDate>
+    <folder/>
+    <hiddenFromReports>true</hiddenFromReports>
+    <id>&lt;now&gt;</id>
+    <name>Static</name>
+  </targetGroup>
+</SimpleDiagnostic>

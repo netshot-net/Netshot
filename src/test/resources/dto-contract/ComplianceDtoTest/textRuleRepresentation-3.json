@@ -1,0 +1,16 @@
+{
+  "anyBlock": false,
+  "context": null,
+  "deviceDriver": "",
+  "deviceDriverDescription": "",
+  "enabled": false,
+  "field": null,
+  "id": "<now>",
+  "invert": false,
+  "matchAll": false,
+  "name": "Another",
+  "normalize": false,
+  "regExp": false,
+  "text": null,
+  "type": "TextRule"
+}

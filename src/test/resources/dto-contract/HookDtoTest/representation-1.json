@@ -1,0 +1,20 @@
+{
+  "action": "POST_YAML",
+  "enabled": true,
+  "httpsCaTrustMode": "CUSTOM_CA",
+  "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
+  "id": "<now>",
+  "name": "Full",
+  "triggers": [
+    {
+      "item": "CheckComplianceTask",
+      "type": "POST_TASK"
+    },
+    {
+      "item": "TakeSnapshotTask",
+      "type": "POST_TASK"
+    }
+  ],
+  "type": "Web",
+  "url": "https://user:pass@example.net/hook?token=abc"
+}

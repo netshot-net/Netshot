@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <configCompliant/>
+    <driver>CiscoIOS12</driver>
+    <eol/>
+    <eos/>
+    <family/>
+    <id>&lt;now&gt;</id>
+    <mgmtAddress>10.0.0.5</mgmtAddress>
+    <name>r5</name>
+    <networkClass/>
+    <softwareLevel/>
+    <softwareVersion>16.1</softwareVersion>
+    <status>DISABLED</status>
+  </item>
+</ArrayList>

@@ -1,0 +1,16 @@
+{
+  "enabled": false,
+  "id": "<now>",
+  "name": "JS",
+  "resultType": "NUMERIC",
+  "script": "function diagnose() {\n}",
+  "targetGroup": {
+    "changeDate": 1600000300000,
+    "folder": "",
+    "hiddenFromReports": true,
+    "id": "<now>",
+    "name": "Static",
+    "type": "StaticDeviceGroup"
+  },
+  "type": "JavaScriptDiagnostic"
+}

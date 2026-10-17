@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<List>
+  <item type="Web">
+    <action>POST_YAML</action>
+    <enabled>true</enabled>
+    <httpsCaTrustMode>CUSTOM_CA</httpsCaTrustMode>
+    <httpsCustomCaCertificate>-----BEGIN CERTIFICATE-----</httpsCustomCaCertificate>
+    <id>&lt;now&gt;</id>
+    <name>Full</name>
+    <triggers>
+      <triggers>
+        <item>CheckComplianceTask</item>
+        <type>POST_TASK</type>
+      </triggers>
+      <triggers>
+        <item>TakeSnapshotTask</item>
+        <type>POST_TASK</type>
+      </triggers>
+    </triggers>
+    <url>https://user:pass@example.net/hook?token=abc</url>
+  </item>
+  <item type="Web">
+    <action>POST_YAML</action>
+    <enabled>false</enabled>
+    <httpsCaTrustMode>CUSTOM_CA</httpsCaTrustMode>
+    <httpsCustomCaCertificate>-----BEGIN CERTIFICATE-----</httpsCustomCaCertificate>
+    <id>&lt;now&gt;</id>
+    <name>No trigger</name>
+    <triggers/>
+    <url>https://user:pass@example.net/hook?token=abc</url>
+  </item>
+</List>

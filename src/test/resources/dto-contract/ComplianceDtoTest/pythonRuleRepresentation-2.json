@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "id": "<now>",
+  "name": "Python template",
+  "script": "# Script template - to be customized\ndef check(device):\n  ## Grab some data:\n  #  config = device.get('running_config')\n  #  name = device.get('name')\n  ## Some additional checks here...\n  ## debug('device name = %s' % name)\n  return result_option.CONFORMING\n  # return {'result': result_option.NONCONFORMING, 'comment': 'Why it is not fine'}\n  # return result_option.NOTAPPLICABLE\n",
+  "type": "PythonRule"
+}

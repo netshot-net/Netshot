@@ -1,0 +1,15 @@
+{
+  "configCompliant": null,
+  "driver": "CiscoIOS12",
+  "eol": null,
+  "eos": null,
+  "family": null,
+  "id": "<now>",
+  "lastFailure": null,
+  "lastSuccess": null,
+  "mgmtAddress": "10.0.0.5",
+  "name": "r5",
+  "networkClass": null,
+  "softwareLevel": null,
+  "status": "DISABLED"
+}

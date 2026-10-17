@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<RsLightPolicyRuleDevice>
+  <checkDate/>
+  <configCompliant/>
+  <driver>CiscoIOS12</driver>
+  <eol/>
+  <eos/>
+  <family/>
+  <id>&lt;now&gt;</id>
+  <mgmtAddress>10.0.0.5</mgmtAddress>
+  <name>r5</name>
+  <networkClass/>
+  <policyId>&lt;now&gt;</policyId>
+  <policyName>Policy</policyName>
+  <result>NONCONFORMING</result>
+  <ruleId>&lt;now&gt;</ruleId>
+  <ruleName>Rule</ruleName>
+  <softwareLevel/>
+  <status>DISABLED</status>
+</RsLightPolicyRuleDevice>

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<DiscoverDeviceTypeTask type="DiscoverDeviceTypeTask">
+  <author>author-5</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000005</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>&lt;now&gt;</childOrder>
+  <comments>Comments of 5</comments>
+  <creationDate>1500000000005</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceAddress>10.9.9.9</deviceAddress>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceId>&lt;now&gt;</deviceId>
+  <discoveredDeviceTypeDescription>Cisco IOS and IOS-XE</discoveredDeviceTypeDescription>
+  <executionDate>1550000000005</executionDate>
+  <id>&lt;now&gt;</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>&lt;now&gt;</parentTaskId>
+  <priority>&lt;now&gt;</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>&lt;now&gt;</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 5</script>
+  <snapshotTaskId>&lt;now&gt;</snapshotTaskId>
+  <status>SUCCESS</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>10.9.9.9</target>
+  <taskDescription>Device autodiscovery</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</DiscoverDeviceTypeTask>

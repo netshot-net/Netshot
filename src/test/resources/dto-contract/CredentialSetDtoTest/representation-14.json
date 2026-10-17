@@ -1,0 +1,16 @@
+{
+  "deviceSpecific": false,
+  "id": "<now>",
+  "mgmtDomain": null,
+  "name": "Telnet",
+  "password": "=",
+  "passwordVaultInstanceId": null,
+  "passwordVaultPath": null,
+  "superPassword": "=",
+  "superPasswordVaultInstanceId": null,
+  "superPasswordVaultPath": null,
+  "type": "Telnet",
+  "username": "telnetuser",
+  "usernameVaultInstanceId": null,
+  "usernameVaultPath": null
+}

@@ -1,0 +1,19 @@
+{
+  "checkDate": null,
+  "configCompliant": null,
+  "driver": "CiscoIOS12",
+  "eol": null,
+  "eos": null,
+  "family": null,
+  "id": "<now>",
+  "mgmtAddress": "10.0.0.5",
+  "name": "r5",
+  "networkClass": null,
+  "policyId": "<now>",
+  "policyName": "Policy",
+  "result": "EXEMPTED",
+  "ruleId": "<now>",
+  "ruleName": "Rule",
+  "softwareLevel": null,
+  "status": "DISABLED"
+}

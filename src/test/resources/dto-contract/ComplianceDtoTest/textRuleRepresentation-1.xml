@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<TextRule type="TextRule">
+  <anyBlock>true</anyBlock>
+  <context>interface .*</context>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+  <enabled>true</enabled>
+  <field>runningConfig</field>
+  <id>&lt;now&gt;</id>
+  <invert>true</invert>
+  <matchAll>true</matchAll>
+  <name>Text rule</name>
+  <normalize>true</normalize>
+  <regExp>true</regExp>
+  <text>line1&#10;line2</text>
+</TextRule>

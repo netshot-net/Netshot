@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<RunDiagnosticsTask type="RunDiagnosticsTask">
+  <author>author-3</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000003</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>&lt;now&gt;</childOrder>
+  <comments>Comments of 3</comments>
+  <creationDate>1500000000003</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceId>&lt;now&gt;</deviceId>
+  <executionDate>1550000000003</executionDate>
+  <id>&lt;now&gt;</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>&lt;now&gt;</parentTaskId>
+  <priority>&lt;now&gt;</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>&lt;now&gt;</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 3</script>
+  <status>RUNNING</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>10.1.1.3</target>
+  <taskDescription>Device diagnostics</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</RunDiagnosticsTask>

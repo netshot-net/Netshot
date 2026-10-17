@@ -1,0 +1,14 @@
+[
+  {
+    "id": "<now>",
+    "level": "<now>",
+    "local": true,
+    "username": "alice"
+  },
+  {
+    "id": "<now>",
+    "level": "<now>",
+    "local": false,
+    "username": "radius-user"
+  }
+]

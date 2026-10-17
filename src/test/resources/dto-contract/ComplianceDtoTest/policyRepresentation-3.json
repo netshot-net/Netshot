@@ -1,0 +1,15 @@
+{
+  "id": "<now>",
+  "name": "Quirk",
+  "targetGroups": [
+    null,
+    {
+      "changeDate": 1600000300000,
+      "folder": "",
+      "hiddenFromReports": false,
+      "id": "<now>",
+      "name": "Static",
+      "type": "StaticDeviceGroup"
+    }
+  ]
+}

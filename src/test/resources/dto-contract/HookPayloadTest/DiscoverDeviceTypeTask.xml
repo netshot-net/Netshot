@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<DiscoverDeviceTypeTask type="DiscoverDeviceTypeTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1609502452000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Discover device</comments>
+  <creationDate>1609502450000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <device/>
+  <deviceAddress>10.9.9.9</deviceAddress>
+  <deviceDriver/>
+  <deviceId>0</deviceId>
+  <discoverResultDevice/>
+  <discoveredDeviceTypeDescription>Unknown</discoveredDeviceTypeDescription>
+  <dontCheckCompliance>false</dontCheckCompliance>
+  <dontRunDiagnostics>false</dontRunDiagnostics>
+  <executionDate/>
+  <id>6</id>
+  <log/>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1609502450000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <snapshotTaskId>0</snapshotTaskId>
+  <status>WAITING</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>10.9.9.9</target>
+  <taskDescription>Device autodiscovery</taskDescription>
+  <userInputValues/>
+</DiscoverDeviceTypeTask>

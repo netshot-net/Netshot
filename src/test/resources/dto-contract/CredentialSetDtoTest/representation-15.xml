@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<DeviceHttpAccount type="HTTP">
+  <deviceSpecific>false</deviceSpecific>
+  <id>&lt;now&gt;</id>
+  <mgmtDomain/>
+  <name>HTTP</name>
+  <password>=</password>
+  <passwordVaultInstanceId/>
+  <passwordVaultPath/>
+  <username>httpuser</username>
+  <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+  <usernameVaultPath>netshot/http/username</usernameVaultPath>
+</DeviceHttpAccount>

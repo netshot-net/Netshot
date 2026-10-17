@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<TextRule type="TextRule">
+  <anyBlock>false</anyBlock>
+  <context/>
+  <deviceDriver/>
+  <deviceDriverDescription/>
+  <enabled>false</enabled>
+  <field/>
+  <id>&lt;now&gt;</id>
+  <invert>false</invert>
+  <matchAll>false</matchAll>
+  <name>Another</name>
+  <normalize>false</normalize>
+  <regExp>false</regExp>
+  <text/>
+</TextRule>

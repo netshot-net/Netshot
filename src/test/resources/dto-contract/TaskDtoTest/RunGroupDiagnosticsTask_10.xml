@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<RunGroupDiagnosticsTask type="RunGroupDiagnosticsTask">
+  <author>author-10</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000010</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>&lt;now&gt;</childOrder>
+  <comments>Comments of 10</comments>
+  <creationDate>1500000000010</creationDate>
+  <debugEnabled>true</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>&lt;now&gt;</deviceGroupId>
+  <executionDate>1550000000010</executionDate>
+  <id>&lt;now&gt;</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>&lt;now&gt;</parentTaskId>
+  <priority>&lt;now&gt;</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>&lt;now&gt;</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 10</script>
+  <status>SUCCESS</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>Group 13</target>
+  <taskDescription>Group diagnostics</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</RunGroupDiagnosticsTask>

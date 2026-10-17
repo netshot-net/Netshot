@@ -1,0 +1,21 @@
+{
+  "authKey": null,
+  "authKeyVaultInstanceId": null,
+  "authKeyVaultPath": null,
+  "authType": null,
+  "community": null,
+  "communityVaultInstanceId": null,
+  "communityVaultPath": null,
+  "deviceSpecific": false,
+  "id": "<now>",
+  "mgmtDomain": null,
+  "name": "n",
+  "privKey": null,
+  "privKeyVaultInstanceId": null,
+  "privKeyVaultPath": null,
+  "privType": null,
+  "type": "SNMP v3",
+  "username": null,
+  "usernameVaultInstanceId": null,
+  "usernameVaultPath": null
+}

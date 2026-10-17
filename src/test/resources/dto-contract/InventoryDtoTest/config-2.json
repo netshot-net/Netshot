@@ -1,0 +1,36 @@
+[
+  {
+    "attributes": [
+      {
+        "assumption": true,
+        "name": "binary",
+        "type": "BINARY"
+      },
+      {
+        "checksum": "0123456789abcdef",
+        "fileSize": "<now>",
+        "name": "file",
+        "originalName": "backup.tar.gz",
+        "type": "BINARYFILE"
+      },
+      {
+        "name": "long",
+        "type": "LONGTEXT"
+      },
+      {
+        "name": "number",
+        "number": 12.5,
+        "type": "NUMERIC"
+      },
+      {
+        "name": "text",
+        "text": "some text",
+        "type": "TEXT"
+      }
+    ],
+    "author": "tester",
+    "changeDate": 1600000000000,
+    "customHash": "hash",
+    "id": "<now>"
+  }
+]

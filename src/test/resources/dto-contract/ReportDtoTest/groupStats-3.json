@@ -1,0 +1,18 @@
+[
+  {
+    "bronzeDeviceCount": "<now>",
+    "deviceCount": "<now>",
+    "goldDeviceCount": "<now>",
+    "groupId": "<now>",
+    "groupName": "Core",
+    "silverDeviceCount": "<now>"
+  },
+  {
+    "bronzeDeviceCount": "<now>",
+    "deviceCount": "<now>",
+    "goldDeviceCount": "<now>",
+    "groupId": "<now>",
+    "groupName": "Empty",
+    "silverDeviceCount": "<now>"
+  }
+]

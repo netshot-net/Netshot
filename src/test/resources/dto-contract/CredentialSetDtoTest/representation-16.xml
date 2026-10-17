@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<List>
+  <item type="SNMP v1">
+    <community>=</community>
+    <communityVaultInstanceId>&lt;now&gt;</communityVaultInstanceId>
+    <communityVaultPath>netshot/v1</communityVaultPath>
+    <deviceSpecific>false</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain/>
+    <name>SNMP v1</name>
+  </item>
+  <item type="SNMP v2">
+    <community>=</community>
+    <communityVaultInstanceId/>
+    <communityVaultPath/>
+    <deviceSpecific>true</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain>
+      <changeDate>1600000000000</changeDate>
+      <description>Paris data center</description>
+      <id>&lt;now&gt;</id>
+      <name>Paris DC</name>
+      <server4Address>10.255.0.1</server4Address>
+      <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
+    </mgmtDomain>
+    <name>SNMP v2</name>
+  </item>
+  <item type="SNMP v3">
+    <authKey>=</authKey>
+    <authKeyVaultInstanceId>&lt;now&gt;</authKeyVaultInstanceId>
+    <authKeyVaultPath>netshot/v3/auth</authKeyVaultPath>
+    <authType>SHA</authType>
+    <community>=</community>
+    <communityVaultInstanceId>&lt;now&gt;</communityVaultInstanceId>
+    <communityVaultPath>netshot/v3/community</communityVaultPath>
+    <deviceSpecific>false</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain/>
+    <name>SNMP v3</name>
+    <privKey>=</privKey>
+    <privKeyVaultInstanceId>&lt;now&gt;</privKeyVaultInstanceId>
+    <privKeyVaultPath>netshot/v3/priv</privKeyVaultPath>
+    <privType>AES128</privType>
+    <username>snmpuser</username>
+    <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+    <usernameVaultPath>netshot/v3/username</usernameVaultPath>
+  </item>
+  <item type="SSH">
+    <deviceSpecific>false</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain/>
+    <name>SSH</name>
+    <password>=</password>
+    <passwordVaultInstanceId/>
+    <passwordVaultPath/>
+    <superPassword>=</superPassword>
+    <superPasswordVaultInstanceId/>
+    <superPasswordVaultPath/>
+    <username>sshuser</username>
+    <usernameVaultInstanceId/>
+    <usernameVaultPath/>
+  </item>
+  <item type="SSH Key">
+    <deviceSpecific>false</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain>
+      <changeDate>1600000000000</changeDate>
+      <description>Paris data center</description>
+      <id>&lt;now&gt;</id>
+      <name>Paris DC</name>
+      <server4Address>10.255.0.1</server4Address>
+      <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
+    </mgmtDomain>
+    <name>SSH Key</name>
+    <password>=</password>
+    <passwordVaultInstanceId>&lt;now&gt;</passwordVaultInstanceId>
+    <passwordVaultPath>netshot/key/password</passwordVaultPath>
+    <privateKey>=</privateKey>
+    <privateKeyVaultInstanceId>&lt;now&gt;</privateKeyVaultInstanceId>
+    <privateKeyVaultPath>netshot/key/private</privateKeyVaultPath>
+    <superPassword>=</superPassword>
+    <superPasswordVaultInstanceId>&lt;now&gt;</superPasswordVaultInstanceId>
+    <superPasswordVaultPath>netshot/key/super</superPasswordVaultPath>
+    <username>keyuser</username>
+    <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+    <usernameVaultPath>netshot/key/username</usernameVaultPath>
+  </item>
+  <item type="Telnet">
+    <deviceSpecific>false</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain/>
+    <name>Telnet</name>
+    <password>=</password>
+    <passwordVaultInstanceId/>
+    <passwordVaultPath/>
+    <superPassword>=</superPassword>
+    <superPasswordVaultInstanceId/>
+    <superPasswordVaultPath/>
+    <username>telnetuser</username>
+    <usernameVaultInstanceId/>
+    <usernameVaultPath/>
+  </item>
+  <item type="HTTP">
+    <deviceSpecific>false</deviceSpecific>
+    <id>&lt;now&gt;</id>
+    <mgmtDomain/>
+    <name>HTTP</name>
+    <password>=</password>
+    <passwordVaultInstanceId/>
+    <passwordVaultPath/>
+    <username>httpuser</username>
+    <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+    <usernameVaultPath>netshot/http/username</usernameVaultPath>
+  </item>
+</List>

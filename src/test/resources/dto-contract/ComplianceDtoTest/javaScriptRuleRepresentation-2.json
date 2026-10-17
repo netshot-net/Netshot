@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "id": "<now>",
+  "name": "JS template",
+  "script": "/*\n * Script template - to be customized.\n */\nfunction check(device) {\n    //const config = device.get(\"runningConfig\");\n    //const name = device.get(\"name\");\n    return CONFORMING;\n    //return NONCONFORMING;\n    //return NOTAPPLICABLE;\n}\n",
+  "type": "JavaScriptRule"
+}

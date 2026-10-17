@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<SubList>
+  <item>
+    <attributes>
+      <attributes type="BINARY">
+        <assumption>true</assumption>
+        <name>binary</name>
+      </attributes>
+      <attributes type="BINARYFILE">
+        <checksum>0123456789abcdef</checksum>
+        <fileSize>&lt;now&gt;</fileSize>
+        <name>file</name>
+        <originalName>backup.tar.gz</originalName>
+      </attributes>
+      <attributes type="LONGTEXT">
+        <name>long</name>
+      </attributes>
+      <attributes type="NUMERIC">
+        <name>number</name>
+        <number>12.5</number>
+      </attributes>
+      <attributes type="TEXT">
+        <name>text</name>
+        <text>some text</text>
+      </attributes>
+    </attributes>
+    <author>tester</author>
+    <changeDate>1600000000000</changeDate>
+    <customHash>hash</customHash>
+    <id>&lt;now&gt;</id>
+  </item>
+</SubList>
