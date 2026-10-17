@@ -34,6 +34,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -200,7 +201,7 @@ public final class CheckGroupComplianceTask extends Task implements GroupBasedTa
 				while (scrolledDevices.next()) {
 					Device device = scrolledDevices.get();
 					this.logger.info("Checking configuration compliance of device {} ({})", device.getName(), device.getId());
-					policy.check(device, session, this.logger);
+					Wiring.get().complianceChecker().check(policy, device, session, this.logger);
 					session.persist(device);
 					session.flush();
 					session.evict(device);

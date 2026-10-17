@@ -36,10 +36,15 @@ import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.compliance.check.ComplianceChecker;
+import net.netshot.netshot.compliance.check.JsRuleRuntime;
+import net.netshot.netshot.compliance.check.PyRuleRuntime;
+import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
+import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.hook.HookRepository;
@@ -100,6 +105,10 @@ public final class Wiring {
 	private final RuleService ruleService;
 	private final SoftwareRuleService softwareRuleService;
 	private final HardwareRuleService hardwareRuleService;
+	private final JsRuleRuntime jsRuleRuntime;
+	private final PyRuleRuntime pyRuleRuntime;
+	private final RuleEvaluators ruleEvaluators;
+	private final ComplianceChecker complianceChecker;
 	// Tasks
 	private final TaskService taskService;
 	// Reports
@@ -119,6 +128,7 @@ public final class Wiring {
 	private final ServerInfoService serverInfoService;
 	// Diagnostics
 	private final DiagnosticService diagnosticService;
+	private final DiagnosticAdapters diagnosticAdapters;
 	// Scripts
 	private final ScriptService scriptService;
 	// Credentials
@@ -142,7 +152,11 @@ public final class Wiring {
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
-		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository);
+		this.jsRuleRuntime = new JsRuleRuntime();
+		this.pyRuleRuntime = new PyRuleRuntime();
+		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime);
+		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
+		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository, this.ruleEvaluators);
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), this.driverRegistry);
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), this.driverRegistry);
 		// Tasks
@@ -167,6 +181,7 @@ public final class Wiring {
 		this.serverInfoService = new ServerInfoService();
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
+		this.diagnosticAdapters = DiagnosticAdapters.standard();
 		// Scripts
 		this.scriptService = new ScriptService(this.transactions, new ScriptRepository(), this.driverRegistry);
 		// Credentials
@@ -210,6 +225,18 @@ public final class Wiring {
 			throw new IllegalStateException("The wiring has not been initialized");
 		}
 		return wiring;
+	}
+
+	/**
+	 * Reloads the configuration of the rule runtimes (JavaScript and Python), if the wiring
+	 * has been initialized. Their settings are also read when the wiring is built.
+	 */
+	public static void reloadRuleRuntimeConfigs() {
+		Wiring wiring = instance;
+		if (wiring != null) {
+			wiring.jsRuleRuntime.loadConfig();
+			wiring.pyRuleRuntime.loadConfig();
+		}
 	}
 
 	/**
@@ -274,6 +301,15 @@ public final class Wiring {
 	 */
 	public HardwareRuleService hardwareRuleService() {
 		return this.hardwareRuleService;
+	}
+
+	/**
+	 * Gets the checker of devices against the compliance policies.
+	 *
+	 * @return the compliance checker
+	 */
+	public ComplianceChecker complianceChecker() {
+		return this.complianceChecker;
 	}
 
 	/**
@@ -400,6 +436,15 @@ public final class Wiring {
 	 */
 	public DiagnosticService diagnosticService() {
 		return this.diagnosticService;
+	}
+
+	/**
+	 * Gets the adapters of the diagnostics to the device scripts running them.
+	 *
+	 * @return the diagnostic adapters
+	 */
+	public DiagnosticAdapters diagnosticAdapters() {
+		return this.diagnosticAdapters;
 	}
 
 	/**

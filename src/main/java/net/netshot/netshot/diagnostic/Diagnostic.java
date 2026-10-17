@@ -21,10 +21,7 @@ package net.netshot.netshot.diagnostic;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.script.ScriptException;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -39,7 +36,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlAttribute;
@@ -48,7 +44,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
@@ -142,31 +137,6 @@ public abstract class Diagnostic {
 		this.targetGroup = targetGroup;
 		this.resultType = resultType;
 	}
-
-	/**
-	 * Build a diagnostic result.
-	 * @param device the device
-	 * @param value the diagnostic result
-	 * @return the diagnostic result of the right type
-	 */
-	@Transient
-	public DiagnosticResult makeResult(Device device, Value value) {
-		switch (this.resultType) {
-			case LONGTEXT:
-				return new DiagnosticLongTextResult(device, this, value.asString());
-			case TEXT:
-				return new DiagnosticTextResult(device, this, value.asString());
-			case NUMERIC:
-				return new DiagnosticNumericResult(device, this, value.asDouble());
-			case BINARY:
-				return new DiagnosticBinaryResult(device, this, value.asBoolean());
-			default:
-				return null;
-		}
-	}
-
-	@Transient
-	public abstract Value getJsObject(Device device, Context context) throws ScriptException;
 
 	@Override
 	public int hashCode() {
