@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<RsErrorBean>
+  <errorCode>10</errorCode>
+  <errorMsg>Invalid request body: Cannot deserialize value of type `java.util.HashSet&lt;java.lang.Long&gt;` from String value (token `JsonToken.VALUE_STRING`)</errorMsg>
+</RsErrorBean>

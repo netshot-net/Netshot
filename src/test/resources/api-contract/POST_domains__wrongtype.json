@@ -1,0 +1,4 @@
+{
+  "errorCode": 10,
+  "errorMsg": "Invalid request body: Cannot deserialize value of type `java.lang.String` from Array value (token `JsonToken.START_ARRAY`)"
+}
