@@ -61,7 +61,7 @@ public abstract class DeviceCredentialSet {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		 @Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	protected long id;

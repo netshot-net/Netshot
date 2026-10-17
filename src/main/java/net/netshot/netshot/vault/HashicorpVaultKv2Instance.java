@@ -25,8 +25,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.credentials.HideSecretDeserializer;
-import net.netshot.netshot.credentials.HideSecretSerializer;
 import net.netshot.netshot.platform.database.StringEncryptorConverter;
 
 /**
