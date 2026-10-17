@@ -45,10 +45,6 @@ filter A1:F1
 column0 General,GENERAL
 [General,bold,GENERAL] 0='Device ID'{General,bold,GENERAL} | 1='Device Name'{General,bold,GENERAL} | 2='Policy'{General,bold,GENERAL} | 3='Rule'{General,bold,GENERAL} | 4='Check Date'{General,bold,GENERAL} | 5='Result'{General,bold,GENERAL}
 [-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
-[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
-[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='Hostname set'{General,GENERAL} | 4=date:1609502401000{yyyy-mm-dd hh:mm,LEFT} | 5='CONFORMING'{General,GENERAL}
-[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
-[-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
 [-] 0=1.0{General,GENERAL} | 1='router-paris-1'{General,GENERAL} | 2='Security baseline'{General,GENERAL} | 3='No telnet'{General,GENERAL} | 4=date:1609502400000{yyyy-mm-dd hh:mm,LEFT} | 5='NONCONFORMING'{General,GENERAL}
 ## Sheet Device Groups
 widths 2200 5000 8000 4000 6000 5000
