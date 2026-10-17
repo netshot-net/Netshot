@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.diagnostic;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
 
 /**
@@ -41,8 +40,6 @@ import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
  * @param modifierPattern the pattern to search in the result (simple diagnostic)
  * @param modifierReplacement the replacement of the pattern (simple diagnostic)
  */
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "rsDiagnostic")
 public record DiagnosticRequest(
 	long id,
 	@JsonDeserialize(using = EmptyWhenAbsentDeserializer.class) String name,
