@@ -63,6 +63,8 @@
 
 **Clustering**: when `netshot.cluster.id` is not set, the member ID generated from the MAC address now ends with the HTTP port (it previously always ended with `0000`). Each such member therefore joins the cluster under a new ID after the upgrade; the tasks assigned to its former ID are handled like those of a lost member. Set `netshot.cluster.id` to keep a stable ID.
 
+**Webhooks**: the YAML payload of a webhook now has the same content as the JSON one (it used to be the REST API representation of the task, without the embedded device and some other fields). Update the receivers which parse YAML payloads.
+
 ### Any version to 0.20+
 
 Java environment must be upgraded to GraalVM for Java 21. Check the [install guide](installation/linux.md) for version details.

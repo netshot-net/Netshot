@@ -167,6 +167,35 @@ public class TaskService {
 	}
 
 	/**
+	 * Prepares a task (like the task engine does before it runs it, see {@link Task#prepare(Session)})
+	 * and maps it to another representation, in a read transaction: the mapper can read what is
+	 * lazily loaded. The mapper must not keep the task.
+	 *
+	 * @param <R> the type of the result
+	 * @param id the task ID
+	 * @param mapper the function mapping the task
+	 * @return the result of the mapper
+	 * @throws NetshotException if the task doesn't exist or can't be read
+	 */
+	public <R> R mapTask(long id, Function<Task, R> mapper) {
+		try {
+			return this.transactions.read(session -> {
+				Task task = this.repository.find(session, id);
+				if (task == null) {
+					log.error("Unable to find the task {}.", id);
+					throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
+				}
+				task.prepare(session);
+				return mapper.apply(task);
+			});
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the task {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the task");
+		}
+	}
+
+	/**
 	 * Gets the debug log of a task.
 	 *
 	 * @param id the task ID

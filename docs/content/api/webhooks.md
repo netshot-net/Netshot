@@ -9,11 +9,11 @@ Web hooks are HTTP POST calls that can be automatically executed by Netshot when
     * After a device snapshot
     * After a JS script is executed on a device
     * After diagnostics are performed on a device
-* The content of the task can be posted in either XML (`application/xml`) or JSON (`application/json`).
+* The content of the task can be posted in XML (`application/xml`), JSON (`application/json`) or YAML (`application/yaml`). The three formats carry the same content.
 
 ## Creating, editing or deleting hooks
 
-Go to the _Admin_ tab, _Web Hooks_ section, and click the _Add..._ button. The dialog lets you name the hook, set the target URL, select the triggering event(s), and choose the payload format (JSON or XML).
+Go to the _Admin_ tab, _Web Hooks_ section, and click the _Add..._ button. The dialog lets you name the hook, set the target URL, select the triggering event(s), and choose the payload format (JSON, XML or YAML).
 
 ## Monitoring
 
