@@ -351,6 +351,12 @@ final class ApiContractCases {
 			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML)
 			.body("<domain><name>Nice DC</name><description>Nice</description><ipAddress>10.255.3.1</ipAddress></domain>")
 			.afterReply(reply -> c.rememberXml("new.domain.xml", reply, "id")));
+		c.write("POST", "/domains", "malformedjson", () -> "/domains", () -> "{\"name\": \"Broken\"");
+		c.write("POST", "/domains", "wrongtype", () -> "/domains", () -> """
+			{"name": ["Not", "a", "string"], "ipAddress": "10.255.2.9"}""");
+		c.add(ApiContractCase.builder("POST", "/domains").variant("malformed-xml").path("/domains")
+			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML)
+			.body("<domain><name>Broken</name>"));
 		c.write("POST", "/domains", "duplicate", () -> "/domains", () -> """
 			{"name": "Marseille DC", "description": "Duplicate", "ipAddress": "10.255.2.2"}""");
 		c.write("POST", "/domains", "blankname", () -> "/domains", () -> """
@@ -507,6 +513,9 @@ final class ApiContractCases {
 			{"name": "New policy", "targetGroups": [%d]}""", "group.static"), "new.policy", null);
 		c.write("POST", "/policies", "duplicate", () -> "/policies", () -> """
 			{"name": "New policy", "targetGroups": []}""");
+		c.add(ApiContractCase.builder("POST", "/policies").variant("xml-barelist").path("/policies")
+			.requestContentType(ApiContractCase.XML).accept(ApiContractCase.XML)
+			.body("<policy><name>Bare list policy</name><targetGroups>1</targetGroups><targetGroups>2</targetGroups></policy>"));
 		c.write("POST", "/policies", "blankname", () -> "/policies", () -> """
 			{"name": " ", "targetGroups": []}""");
 		c.write("PUT", "/policies/{id}", "updated", c.path("/policies/%d", "new.policy"), c.body("""

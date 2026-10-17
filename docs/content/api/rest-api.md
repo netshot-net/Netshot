@@ -82,6 +82,8 @@ curl -X POST -H "Content-Type: application/xml" -H "Accept: application/xml" \
   https://<server:port>/api/domains
 ```
 
+A request body which can't be read (malformed JSON or XML, or a value of the wrong type, such as a list sent without its wrapper element in XML) is refused with a 400 error, `NETSHOT_INVALID_REQUEST_PARAMETER` (code 10), whose message tells what could not be read.
+
 ## Diagnostic results
 
 Per-device diagnostic results include a `diagnosticId` field alongside the diagnostic's name and value, so a client can reliably associate a result with its diagnostic definition without matching on name.
