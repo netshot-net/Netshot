@@ -328,7 +328,7 @@ class CredentialSetServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("update() sets, clears and silently drops the domain")
+	@DisplayName("update() sets and clears the domain, and refuses an unknown domain without changing anything")
 	void updateDomain() {
 		DeviceSshAccount created = this.createSsh("u", "p", null);
 		DeviceSshAccount withDomain = new DeviceSshAccount("u", null, null, created.getName());
@@ -344,8 +344,8 @@ class CredentialSetServiceTest extends WithDatabaseTest {
 		Domain missing = new Domain("x", "", null, null);
 		missing.setId(99999999L);
 		unknownDomain.setMgmtDomain(missing);
-		this.service.update(created.getId(), unknownDomain);
-		Assertions.assertNull(this.stored(created.getId()).getMgmtDomain(), "an unknown domain is not an error: the restriction is dropped");
+		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN, () -> this.service.update(created.getId(), unknownDomain));
+		Assertions.assertEquals(this.domainId, this.stored(created.getId()).getMgmtDomain().getId(), "the domain is unchanged");
 	}
 
 	@Test

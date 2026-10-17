@@ -146,8 +146,12 @@ public class CredentialSetService {
 					existing.setMgmtDomain(null);
 				}
 				else {
-					// An unknown domain is not an error: the credential set is then not restricted anymore
-					existing.setMgmtDomain(this.repository.findDomain(session, incoming.getMgmtDomain().getId()));
+					Domain domain = this.repository.findDomain(session, incoming.getMgmtDomain().getId());
+					if (domain == null) {
+						log.error("Unknown domain {} for credential set {}.", incoming.getMgmtDomain().getId(), id);
+						throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "The domain doesn't exist.");
+					}
+					existing.setMgmtDomain(domain);
 				}
 				existing.setName(incoming.getName());
 				if (existing.getName() == null || "".equals(existing.getName().trim())) {
