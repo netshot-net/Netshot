@@ -73,8 +73,8 @@ public class XmlRequestTest extends WithDatabaseTest {
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
 		Database.update();
-		Wiring.init();
-		TaskManager.init();
+		Wiring.init(TestDrivers.registry());
+		TaskManager.init(Wiring.get().taskJobFactory());
 		try (Session session = Database.getSession()) {
 			session.beginTransaction();
 			session.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser").executeUpdate();
