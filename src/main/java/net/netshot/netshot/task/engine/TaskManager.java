@@ -46,6 +46,7 @@ import org.slf4j.MarkerFactory;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
@@ -159,6 +160,8 @@ public final class TaskManager {
 			params.put("org.quartz.scheduler.skipUpdateCheck", "true");
 			StdSchedulerFactory factory = new StdSchedulerFactory(params);
 			TaskManager.runnerScheduler = factory.getScheduler();
+			// The task jobs get their handlers from the wiring (Quartz is the one creating them)
+			TaskManager.runnerScheduler.setJobFactory(Wiring.get().taskJobFactory());
 			TaskManager.runnerScheduler.start();
 		}
 		catch (Exception e) {

@@ -34,7 +34,6 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.type.SqlTypes;
 import org.quartz.JobKey;
-import org.quartz.SchedulerException;
 import org.quartz.Trigger;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
@@ -73,7 +72,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -81,7 +79,6 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.engine.TaskContext;
-import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
@@ -293,7 +290,7 @@ public abstract class Task implements Cloneable {
 	/**
 	 * Pure decision logic for the sequential scheduling mode of group-based tasks
 	 * (TakeGroupSnapshotTask, RunDeviceGroupScriptTask, RunGroupDiagnosticsTask), extracted
-	 * out of the tasks' run() loop so it can be unit tested without Quartz/DB/real child
+	 * out of the child orchestration loop so it can be unit tested without Quartz/DB/real child
 	 * task execution.
 	 */
 	public static final class SequentialScheduling {
@@ -729,415 +726,6 @@ public abstract class Task implements Cloneable {
 	protected boolean cancelRequested;
 
 	/**
-	 * Looks up any child tasks already persisted for this parent, ordered by position among
-	 * siblings -- used to resume a group-based task's run() after it gets re-executed from
-	 * scratch (e.g. a Netshot restart mid-run picks the still-RUNNING parent back up via
-	 * {@code TaskManager.rescheduleAll()}/{@code reassignOrphanTasks()} and calls run() again).
-	 * Empty on a fresh (not-yet-started) run.
-	 *
-	 * @return the ordered list of already-persisted children, empty if none exist yet
-	 */
-	protected List<Task> reloadExistingChildren() {
-		Session session = Database.getSession(true);
-		List<Task> children;
-		try {
-			children = session
-				.createQuery("from Task t where t.parentTaskId = :id order by t.childOrder asc", Task.class)
-				.setParameter("id", this.id)
-				.list();
-		}
-		finally {
-			session.close();
-		}
-		if (!children.isEmpty()) {
-			this.logger.info("Resuming from {} previously pre-created child task(s) "
-				+ "(this run was interrupted, e.g. by a Netshot restart).", children.size());
-		}
-		return children;
-	}
-
-	/**
-	 * Pre-creates every child of this group-based task in a single transaction, all in
-	 * {@link Status#DELAYED} -- i.e. persisted (with their device/config already set, and
-	 * {@code parentTaskId}/{@code childOrder}/{@code priority} stamped by position in the given
-	 * list) but deliberately not yet scheduled. This makes the parent's total child count known
-	 * upfront (the frontend can show stable progress from the very start, since every child row
-	 * already exists), and means a crash before this method returns leaves no partial rows behind
-	 * (the whole batch is one transaction, so a fresh run() re-derives and re-persists it from
-	 * scratch next time, exactly as if this were the first attempt).
-	 *
-	 * <p>The actual scheduling/waiting is done afterwards, by {@link #orchestrateChildren(List)}.
-	 *
-	 * @param children the children to pre-create, in order (not yet persisted)
-	 */
-	protected void preCreateChildren(List<Task> children) {
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			int order = 0;
-			for (Task child : children) {
-				child.setParentTaskId(this.getId());
-				child.setChildOrder(order);
-				child.setPriority(this.getPriority());
-				child.setStatus(Status.DELAYED);
-				session.persist(child);
-				order++;
-			}
-			session.getTransaction().commit();
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
-		this.logger.info("Pre-created {} child task(s), in DELAYED status.", children.size());
-	}
-
-	/**
-	 * Promotes the given still-{@link Status#DELAYED} child (schedules it) and blocks, polling
-	 * the database every few seconds, until it reaches a terminal status.
-	 *
-	 * @param child the child task to promote (already persisted, in DELAYED status)
-	 * @return the terminal status the child task reached
-	 * @throws SchedulerException if the child task couldn't be scheduled
-	 * @throws InterruptedException if the polling wait is interrupted
-	 */
-	protected Status promoteChildAndWait(Task child) throws SchedulerException, InterruptedException {
-		TaskManager.addTask(child);
-		return this.pollChildUntilTerminal(child.getId());
-	}
-
-	/**
-	 * Bulk-cancels every child from the given position onward that's still {@link Status#DELAYED}
-	 * -- used once a failure has occurred with stop-on-failure enabled (or cancellation was
-	 * requested), so the remaining not-run devices still show up as CANCELLED rows in the child
-	 * task list rather than being silently left DELAYED forever.
-	 *
-	 * @param children the full ordered list of children (as returned by
-	 *        {@link #preCreateChildren(List)}/{@link #reloadExistingChildren()})
-	 * @param fromIndex the index (inclusive) to start cancelling from
-	 */
-	protected void cancelRemainingDelayedChildren(List<Task> children, int fromIndex) {
-		List<Long> ids = new ArrayList<>();
-		for (int i = fromIndex; i < children.size(); i++) {
-			if (children.get(i).getStatus() == Status.DELAYED) {
-				ids.add(children.get(i).getId());
-			}
-		}
-		if (ids.isEmpty()) {
-			return;
-		}
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			session.createMutationQuery(
-				"update Task t set t.status = :cancelled where t.id in :ids and t.status = :delayed")
-				.setParameter("cancelled", Status.CANCELLED)
-				.setParameter("delayed", Status.DELAYED)
-				.setParameter("ids", ids)
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
-		this.logger.info("Cancelled {} remaining child task(s) that hadn't started yet.", ids.size());
-	}
-
-	/**
-	 * Builds a short "device X (id Y)" fragment identifying the device a child task targets,
-	 * for log messages -- falling back to just the target string if the child isn't
-	 * device-based (shouldn't happen for the per-device children of a group-based task, but
-	 * keeps this safe to call generically).
-	 *
-	 * @param child the child task
-	 * @return a human-readable description of the device the child targets
-	 */
-	private static String describeChildDevice(Task child) {
-		Device device = child.getDevice();
-		if (device == null) {
-			return child.getTarget();
-		}
-		return String.format("%s (device #%d)", device.getName(), device.getId());
-	}
-
-	/**
-	 * Orchestrates the given pre-created children (from {@link #preCreateChildren(List)}, or
-	 * {@link #reloadExistingChildren()} when resuming an interrupted run) according to this
-	 * task's {@link #scheduleMode}, honoring stop-on-failure and cancellation, and returns the
-	 * parent's final status. Shared by every group-based task that spawns per-device children
-	 * (TakeGroupSnapshotTask, RunDeviceGroupScriptTask, RunGroupDiagnosticsTask), regardless of
-	 * whether this is a fresh run or a resumed one: a child already past DELAYED (still live, or
-	 * already terminal) is left alone or polled rather than re-promoted, so resuming after a
-	 * restart is just "start the same walk over" -- there's no separate resume-specific logic.
-	 *
-	 * @param children the full ordered list of this task's children
-	 * @return the final status this task should report
-	 */
-	protected Status orchestrateChildren(List<Task> children) {
-		if (this.getScheduleMode() == ScheduleMode.SEQUENTIAL) {
-			return this.orchestrateSequentialChildren(children);
-		}
-		return this.orchestrateParallelChildren(children);
-	}
-
-	/**
-	 * Marks a still-DELAYED child as FAILURE because it could not be scheduled (e.g. a
-	 * Quartz or persistence error while promoting it) -- used by parallel orchestration so
-	 * an unschedulable child is reported as a concrete failure instead of being left
-	 * forever in DELAYED status.
-	 *
-	 * @param child the child task that failed to schedule
-	 */
-	private void markChildAsSchedulingFailure(Task child) {
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			session.createMutationQuery(
-				"update Task t set t.status = :failure where t.id = :id and t.status = :delayed")
-				.setParameter("failure", Status.FAILURE)
-				.setParameter("delayed", Status.DELAYED)
-				.setParameter("id", child.getId())
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while marking child task {} as failed after a scheduling error.",
-				this.getId(), child.getId(), e);
-		}
-		finally {
-			session.close();
-		}
-		child.setStatus(Status.FAILURE);
-	}
-
-	/**
-	 * Schedules every still-DELAYED child at once (rather than one at a time), then blocks --
-	 * staying RUNNING -- until they've all reached a terminal status, polling the whole set
-	 * together on each interval instead of one child at a time (unlike sequential mode, which
-	 * only ever has one in flight). Cancellation stops scheduling any not-yet-promoted child
-	 * (the remainder is cancelled, same as sequential) and, once all promotion attempts are
-	 * done, stops *waiting* for the ones already running -- they keep going independently
-	 * (nothing under this task's control can stop an already-running child), the parent just
-	 * no longer blocks on them.
-	 *
-	 * <p>A child task actually failing (as opposed to failing to be scheduled in the first
-	 * place) does not make this task report FAILURE -- for a parallel group-based task, a
-	 * per-device failure is that device's own problem, not this task's; this task's job is
-	 * only to schedule the children. So the only thing that turns final status into FAILURE
-	 * here is a scheduling error (Quartz/persistence failure while promoting a child).
-	 *
-	 * @param children the full ordered list of this task's children
-	 * @return the final status this task should report
-	 */
-	private Status orchestrateParallelChildren(List<Task> children) {
-		this.logger.info("Orchestrating {} child task(s) in parallel mode.", children.size());
-		boolean cancelHonored = false;
-		boolean schedulingError = false;
-		for (int i = 0; i < children.size(); i++) {
-			Task child = children.get(i);
-			if (child.getStatus() != Status.DELAYED) {
-				continue;
-			}
-			if (this.isCancelRequestedFresh()) {
-				this.logger.info("Cancellation requested: not scheduling the remaining {} device(s).",
-					children.size() - i);
-				this.cancelRemainingDelayedChildren(children, i);
-				cancelHonored = true;
-				break;
-			}
-			this.logger.info("Scheduling child task {} for {}.", child.getId(), describeChildDevice(child));
-			try {
-				TaskManager.addTask(child);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while scheduling child task {} for {}.",
-					this.getId(), child.getId(), describeChildDevice(child), e);
-				this.logger.error("Error while scheduling child task {} for {}.",
-					child.getId(), describeChildDevice(child));
-				schedulingError = true;
-				this.markChildAsSchedulingFailure(child);
-			}
-		}
-
-		Map<Long, Task> pending = new HashMap<>();
-		int succeeded = 0;
-		int failed = 0;
-		for (Task child : children) {
-			if (isTerminalStatus(child.getStatus())) {
-				if (child.getStatus() == Status.FAILURE) {
-					failed++;
-				}
-				else if (child.getStatus() == Status.SUCCESS) {
-					succeeded++;
-				}
-			}
-			else if (child.getStatus() != Status.DELAYED) {
-				// Promoted above (or already running from before a restart) -- wait for it.
-				pending.put(child.getId(), child);
-			}
-			// A still-DELAYED child here was left un-promoted due to cancellation above, and
-			// already marked CANCELLED by cancelRemainingDelayedChildren -- nothing to wait for.
-		}
-
-		int intervalMs = Netshot.getConfig(
-			"netshot.tasks.sequentialpollintervalms", 3000, 500, 60000);
-		try {
-			while (!pending.isEmpty() && !cancelHonored) {
-				Thread.sleep(intervalMs);
-				if (this.isCancelRequestedFresh()) {
-					this.logger.info("Cancellation requested: no longer waiting for the {} still-running "
-						+ "device(s) (they will keep running to completion independently).", pending.size());
-					cancelHonored = true;
-					break;
-				}
-				Session session = Database.getSession(true);
-				try {
-					List<Object[]> rows = session
-						.createQuery("select t.id, t.status from Task t where t.id in :ids", Object[].class)
-						.setParameter("ids", pending.keySet())
-						.list();
-					for (Object[] row : rows) {
-						Status childStatus = (Status) row[1];
-						if (isTerminalStatus(childStatus)) {
-							Long childId = (Long) row[0];
-							Task child = pending.remove(childId);
-							if (childStatus == Status.FAILURE) {
-								failed++;
-								this.logger.warn("Child task {} for {} failed.", childId, describeChildDevice(child));
-							}
-							else if (childStatus == Status.SUCCESS) {
-								succeeded++;
-							}
-						}
-					}
-				}
-				finally {
-					session.close();
-				}
-			}
-		}
-		catch (InterruptedException e) {
-			log.error("Task {}. Interrupted while waiting for child tasks.", this.getId(), e);
-			this.logger.error("Interrupted while waiting for child tasks.");
-		}
-
-		Status finalStatus = schedulingError ? Status.FAILURE
-			: (cancelHonored ? Status.CANCELLED : Status.SUCCESS);
-		this.logger.info("Parallel scheduling finished: {} succeeded, {} failed, out of {} device(s). Final status: {}.",
-			succeeded, failed, children.size(), finalStatus);
-		return finalStatus;
-	}
-
-	private Status orchestrateSequentialChildren(List<Task> children) {
-		this.logger.info("Orchestrating {} child task(s) in sequential mode (stop on failure: {}).",
-			children.size(), this.isStopOnFailure());
-		boolean anyFailed = false;
-		boolean cancelHonored = false;
-		boolean schedulingError = false;
-		int succeeded = 0;
-		int failed = 0;
-		Long lastFailedChildId = null;
-		try {
-			for (int i = 0; i < children.size(); i++) {
-				Task child = children.get(i);
-				if (isTerminalStatus(child.getStatus())) {
-					if (child.getStatus() == Status.FAILURE) {
-						anyFailed = true;
-						failed++;
-						lastFailedChildId = child.getId();
-					}
-					else if (child.getStatus() == Status.SUCCESS) {
-						succeeded++;
-					}
-					continue;
-				}
-				boolean cancellationRequested = this.isCancelRequestedFresh();
-				SequentialScheduling.NextAction next =
-					SequentialScheduling.decideNextAction(anyFailed, this.isStopOnFailure(), cancellationRequested);
-				if (next == SequentialScheduling.NextAction.STOP) {
-					cancelHonored = cancelHonored || cancellationRequested;
-					if (cancellationRequested) {
-						this.logger.info("Cancellation requested: stopping sequential scheduling at device {}/{}.",
-							i + 1, children.size());
-					}
-					else {
-						this.logger.warn("Stopping sequential scheduling: child task {} failed and "
-							+ "stop-on-failure is enabled.", lastFailedChildId);
-					}
-					this.cancelRemainingDelayedChildren(children, i);
-					break;
-				}
-				Status childStatus;
-				if (child.getStatus() == Status.DELAYED) {
-					this.logger.info("Scheduling child task {} for {} (sequential mode, {}/{}).",
-						child.getId(), describeChildDevice(child), i + 1, children.size());
-					childStatus = this.promoteChildAndWait(child);
-				}
-				else {
-					this.logger.info("Resuming tracking of child task {} for {} (sequential mode, after restart).",
-						child.getId(), describeChildDevice(child));
-					childStatus = this.pollChildUntilTerminal(child.getId());
-				}
-				if (childStatus == Status.FAILURE) {
-					anyFailed = true;
-					failed++;
-					lastFailedChildId = child.getId();
-					this.logger.warn("Child task {} for {} failed.", child.getId(), describeChildDevice(child));
-				}
-				else if (childStatus == Status.SUCCESS) {
-					succeeded++;
-				}
-			}
-		}
-		catch (Exception e) {
-			log.error("Task {}. Error during sequential child scheduling.", this.getId(), e);
-			this.logger.error("Error during sequential scheduling: {}", e.getMessage());
-			schedulingError = true;
-		}
-		Status finalStatus = SequentialScheduling.decideFinalStatus(anyFailed, this.isStopOnFailure(), cancelHonored, schedulingError);
-		this.logger.info("Sequential scheduling finished: {} succeeded, {} failed, out of {} device(s). Final status: {}.",
-			succeeded, failed, children.size(), finalStatus);
-		return finalStatus;
-	}
-
-	/**
-	 * Polls the database every few seconds until the given task reaches a terminal
-	 * status (SUCCESS, FAILURE or CANCELLED).
-	 *
-	 * @param taskId the ID of the task to poll
-	 * @return the terminal status reached
-	 * @throws InterruptedException if the polling wait is interrupted
-	 */
-	protected Status pollChildUntilTerminal(long taskId) throws InterruptedException {
-		int intervalMs = Netshot.getConfig(
-			"netshot.tasks.sequentialpollintervalms", 3000, 500, 60000);
-		while (true) {
-			Thread.sleep(intervalMs);
-			Session session = Database.getSession(true);
-			try {
-				Status childStatus = session
-					.createQuery("select t.status from Task t where t.id = :id", Status.class)
-					.setParameter("id", taskId)
-					.uniqueResult();
-				if (childStatus == null || isTerminalStatus(childStatus)) {
-					return childStatus;
-				}
-			}
-			finally {
-				session.close();
-			}
-		}
-	}
-
-	/**
 	 * Checks whether cancellation of this (running, sequential-mode) task has been
 	 * requested, re-reading the flag directly from the database rather than relying on
 	 * this possibly-stale in-memory instance.
@@ -1157,15 +745,6 @@ public abstract class Task implements Cloneable {
 		finally {
 			session.close();
 		}
-	}
-
-	/**
-	 * Checks whether the given status is a terminal one.
-	 * @param status the status
-	 * @return true if the status is SUCCESS, FAILURE or CANCELLED
-	 */
-	protected static boolean isTerminalStatus(Status status) {
-		return status == Status.SUCCESS || status == Status.FAILURE || status == Status.CANCELLED;
 	}
 
 	/**
@@ -1476,11 +1055,6 @@ public abstract class Task implements Cloneable {
 			this.fullLogs = new StringBuffer();
 		}
 	}
-
-	/**
-	 * Run.
-	 */
-	public abstract void run();
 
 	/**
 	 * This can return a hash for the task to select a stable runner.

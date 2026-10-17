@@ -32,7 +32,6 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
