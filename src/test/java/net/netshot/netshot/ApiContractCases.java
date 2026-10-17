@@ -548,6 +548,9 @@ final class ApiContractCases {
 			{"type": "TextRule", "name": "Test", "policy": %d, "text": "hostname", "regExp": false, "invert": false,
 			 "matchAll": true, "anyBlock": false, "normalize": false, "context": "", "field": "runningConfig", "device": %d}""",
 			"policy.security", "device.router1"));
+		c.write("POST", "/rules/test", "text-defaults", () -> "/rules/test", c.body("""
+			{"type": "TextRule", "name": "Test", "policy": %d, "text": "hostname", "field": "runningConfig", "device": %d}""",
+			"policy.security", "device.router1"));
 		c.write("POST", "/rules/test", "js", () -> "/rules/test", c.body("""
 			{"type": "JavaScriptRule", "name": "Test", "policy": %d, "device": %d,
 			 "script": "function check(device) { return { result: CONFORMING, comment: 'tested' }; }"}""",
