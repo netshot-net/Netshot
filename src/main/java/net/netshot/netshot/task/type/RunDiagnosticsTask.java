@@ -30,6 +30,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.devicescript.RunDiagnosticDeviceScript;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.inventory.device.Device;
@@ -149,7 +150,7 @@ public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
 				.setParameter("enabled", true)
 				.list();
 			if (diagnostics.size() > 0) {
-				deviceScript = new RunDiagnosticDeviceScript(diagnostics, this.logger);
+				deviceScript = new RunDiagnosticDeviceScript(diagnostics, Wiring.get().diagnosticAdapters(), this.logger);
 				deviceScript.connectRun(session, device);
 				session.merge(device);
 				session.getTransaction().commit();

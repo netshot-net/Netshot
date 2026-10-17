@@ -39,6 +39,7 @@ import net.netshot.netshot.devicescript.helper.JsDiagnosticHelper;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
 import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
@@ -50,14 +51,19 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 	/** The diagnostics to execute. */
 	private List<Diagnostic> diagnostics;
 
+	/** The adapters of the diagnostics to this script. */
+	private DiagnosticAdapters adapters;
+
 	/**
 	 * Instantiates a diagnostic CLI script.
 	 * @param diagnostics = the list of diagnostics
+	 * @param adapters = the diagnostic adapters
 	 * @param logger = the task context
 	 */
-	public RunDiagnosticDeviceScript(List<Diagnostic> diagnostics, TaskContext logger) {
+	public RunDiagnosticDeviceScript(List<Diagnostic> diagnostics, DiagnosticAdapters adapters, TaskContext logger) {
 		super(logger);
 		this.diagnostics = diagnostics;
+		this.adapters = adapters;
 	}
 
 	@Override
@@ -78,7 +84,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 			Map<String, Object> jsDiagnostics = new HashMap<String, Object>();
 			for (Diagnostic diagnostic : this.diagnostics) {
 				try {
-					Value jsObject = diagnostic.getJsObject(device, context);
+					Value jsObject = this.adapters.toJsObject(diagnostic, device, context);
 					if (jsObject == null) {
 						continue;
 					}
@@ -90,7 +96,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 						diagnostic.getName(), e1.getMessage());
 				}
 			}
-			options.setDiagnosticHelper(new JsDiagnosticHelper(device, diagnostics, jsDiagnostics, this.taskContext));
+			options.setDiagnosticHelper(new JsDiagnosticHelper(device, diagnostics, this.adapters, jsDiagnostics, this.taskContext));
 
 			if (jsDiagnostics.size() > 0) {
 				context.getBindings("js")

@@ -58,6 +58,9 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.SoftwareRuleDefinition;
 import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.compliance.check.JsRuleRuntime;
+import net.netshot.netshot.compliance.check.PyRuleRuntime;
+import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
@@ -102,7 +105,8 @@ class ComplianceServiceTest extends WithDatabaseTest {
 		this.transactions = new Transactions();
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
-		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository);
+		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
+			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime()));
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), DriverRegistry.shared());
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), DriverRegistry.shared());
 		this.groupId = this.transactions.write(session -> {

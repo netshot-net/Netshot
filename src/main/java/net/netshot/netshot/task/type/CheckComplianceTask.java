@@ -30,6 +30,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.SoftwareRule;
@@ -105,7 +106,7 @@ public final class CheckComplianceTask extends Task implements DeviceBasedTask {
 			this.logger.info("Checking configuration compliance of device {} ({})...",
 				this.device.getName(), this.device.getId());
 			for (Policy policy : policies) {
-				policy.check(device, session, this.logger);
+				Wiring.get().complianceChecker().check(policy, device, session, this.logger);
 			}
 			session.persist(this.device);
 			session.flush();
