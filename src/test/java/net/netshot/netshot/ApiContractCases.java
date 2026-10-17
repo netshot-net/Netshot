@@ -380,6 +380,8 @@ final class ApiContractCases {
 		c.write("POST", "/credentialsets", "invaliddomain", () -> "/credentialsets", () -> """
 			{"type": "Telnet", "name": "Bad domain", "username": "other", "password": "other",
 			 "mgmtDomain": {"id": 99999999}}""");
+		c.write("POST", "/credentialsets", "withid", () -> "/credentialsets", () -> """
+			{"type": "Telnet", "id": 99999999, "name": "With ID", "username": "other", "password": "other"}""");
 		c.write("PUT", "/credentialsets/{id}", "updated", c.path("/credentialsets/%d", "new.cred"), c.body("""
 			{"type": "SSH", "id": %d, "name": "New SSH account renamed", "username": "newuser2", "password": "=",
 			 "superPassword": "changed-enable"}""", "new.cred"));
