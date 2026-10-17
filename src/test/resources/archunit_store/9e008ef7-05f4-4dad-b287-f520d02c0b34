@@ -10,6 +10,7 @@ Class <net.netshot.netshot.access.AccessManager$Resolution> (slice access) depen
 Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.credentials.DeviceCredentialSet> (slice credentials) which is part of a dependency cycle
 Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.driver.DeviceDriver$AccessDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.AccessManager> (slice access) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
@@ -39,15 +40,20 @@ Class <net.netshot.netshot.access.collector.Collector$Settings> (slice access) d
 Class <net.netshot.netshot.access.collector.Collector> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.Collector> (slice access) depends on <net.netshot.netshot.inventory.domain.Domain> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SnmpTrapReceiver> (slice access) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.access.collector.SnmpTrapReceiver> (slice access) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SnmpTrapReceiver> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
+Class <net.netshot.netshot.access.collector.SnmpTrapReceiver> (slice access) depends on <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SshServer> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
+Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.TftpServer$TftpTransfer> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.TftpServer$TftpTransfer> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.TftpServer> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.UploadTicket> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.task.engine.TaskLockManager> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.task.engine.TaskManager$Mode> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.task.engine.TaskManager> (slice task) which is part of a dependency cycle
@@ -82,6 +88,7 @@ Class <net.netshot.netshot.compliance.check.ComplianceChecker> (slice compliance
 Class <net.netshot.netshot.compliance.check.JavaScriptRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.JavaScriptRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.devicescript.helper.JsUtils> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.JavaScriptRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.devicescript.helper.ScriptToolbox> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.compliance.check.JavaScriptRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.JavaScriptRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.JavaScriptRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.JsRuleRuntime> (slice compliance) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
@@ -90,13 +97,16 @@ Class <net.netshot.netshot.compliance.check.PyRuleRuntime> (slice compliance) de
 Class <net.netshot.netshot.compliance.check.PyRuleRuntime> (slice compliance) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.PythonRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.PythonRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.devicescript.helper.ScriptToolbox> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.compliance.check.PythonRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.PythonRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.PythonRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.RuleEvaluator> (slice compliance) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.RuleEvaluator> (slice compliance) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
+Class <net.netshot.netshot.compliance.check.RuleEvaluators> (slice compliance) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.RuleEvaluators> (slice compliance) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.RuleEvaluators> (slice compliance) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.TextRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.compliance.check.TextRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.TextRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.compliance.check.TextRuleEvaluator> (slice compliance) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.credentials.CredentialSetRepository> (slice credentials) depends on <net.netshot.netshot.inventory.domain.Domain> (slice inventory) which is part of a dependency cycle
@@ -105,6 +115,7 @@ Class <net.netshot.netshot.credentials.DeviceCredentialSet> (slice credentials) 
 Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.AccessManager> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.InvalidCredentialsException> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.credentials.DeviceCredentialSet> (slice credentials) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device$MissingDeviceDriverException> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
@@ -113,6 +124,7 @@ Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice device
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.diagnostic.Diagnostic> (slice diagnostic) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.diagnostic.run.DiagnosticAdapters> (slice diagnostic) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device$MissingDeviceDriverException> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
@@ -121,6 +133,7 @@ Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescrip
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeLevel> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.config.Config> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.config.attribute.ConfigAttribute> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute> (slice inventory) which is part of a dependency cycle
@@ -131,6 +144,7 @@ Class <net.netshot.netshot.devicescript.UserDeviceScript$UserInputDefinition> (s
 Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.AccessManager> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.InvalidCredentialsException> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DriverValueType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device$MissingDeviceDriverException> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
@@ -175,6 +189,7 @@ Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescri
 Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.Config> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsConfigHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute> (slice inventory) which is part of a dependency cycle
@@ -192,6 +207,7 @@ Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescri
 Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.OptionDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.Config> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.JsDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.attribute.ConfigAttribute> (slice inventory) which is part of a dependency cycle
@@ -248,6 +264,7 @@ Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescri
 Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.Config> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.config.attribute.ConfigAttribute> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.helper.PyDeviceHelper> (slice devicescript) depends on <net.netshot.netshot.inventory.device.Device$MissingDeviceDriverException> (slice inventory) which is part of a dependency cycle
@@ -320,8 +337,11 @@ Class <net.netshot.netshot.driver.DriverConfigParser> (slice driver) depends on 
 Class <net.netshot.netshot.driver.DriverConfigParser> (slice driver) depends on <net.netshot.netshot.access.Ssh$SshInteractionInstruction> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.driver.DriverConfigParser> (slice driver) depends on <net.netshot.netshot.access.Telnet$TelnetConfig> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.driver.DriverConfigParser> (slice driver) depends on <net.netshot.netshot.devicescript.helper.JsUtils> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.driver.DriverRegistry> (slice driver) depends on <net.netshot.netshot.inventory.device.Device$MissingDeviceDriverException> (slice inventory) which is part of a dependency cycle
+Class <net.netshot.netshot.driver.DriverRegistry> (slice driver) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.config.ConfigService> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.config.ConfigService> (slice inventory) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.inventory.config.ConfigService> (slice inventory) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.Device$NetworkClass> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$EnumAttribute> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.Device$Status> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$EnumAttribute> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.Device> (slice inventory) depends on <net.netshot.netshot.access.DeviceAccess> (slice access) which is part of a dependency cycle
@@ -362,6 +382,7 @@ Class <net.netshot.netshot.inventory.search.Finder$AttributeExpression> (slice i
 Class <net.netshot.netshot.inventory.search.Finder$AttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$AttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$AttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.inventory.search.Finder$AttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$BinaryAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$BinaryAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$BinaryDiagnosticExpression> (slice inventory) depends on <net.netshot.netshot.diagnostic.Diagnostic> (slice diagnostic) which is part of a dependency cycle
@@ -374,6 +395,7 @@ Class <net.netshot.netshot.inventory.search.Finder$DateAttributeExpression> (sli
 Class <net.netshot.netshot.inventory.search.Finder$DiagnosticExpression> (slice inventory) depends on <net.netshot.netshot.diagnostic.Diagnostic> (slice diagnostic) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$DiagnosticExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$DriverExpression> (slice inventory) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
+Class <net.netshot.netshot.inventory.search.Finder$DriverExpression> (slice inventory) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$EnumAttributeExpression> (slice inventory) depends on <net.netshot.netshot.compliance.SoftwareRule$ConformanceLevel> (slice compliance) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$EnumAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeLevel> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$EnumAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
@@ -385,6 +407,7 @@ Class <net.netshot.netshot.inventory.search.Finder$TextAttributeExpression> (sli
 Class <net.netshot.netshot.inventory.search.Finder$TextAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeType> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$TextAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$TextDiagnosticExpression> (slice inventory) depends on <net.netshot.netshot.diagnostic.Diagnostic> (slice diagnostic) which is part of a dependency cycle
+Class <net.netshot.netshot.inventory.search.Finder> (slice inventory) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.SearchRepository> (slice inventory) depends on <net.netshot.netshot.compliance.CheckResult$ResultOption> (slice compliance) which is part of a dependency cycle
 Class <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) depends on <net.netshot.netshot.cluster.ClusterManager> (slice cluster) which is part of a dependency cycle
 Class <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) depends on <net.netshot.netshot.inventory.device.Device$Status> (slice inventory) which is part of a dependency cycle
@@ -462,12 +485,14 @@ Class <net.netshot.netshot.task.handler.RunDeviceGroupScriptHandler> (slice task
 Class <net.netshot.netshot.task.handler.RunDeviceGroupScriptHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDeviceGroupScriptHandler> (slice task) depends on <net.netshot.netshot.inventory.group.DeviceGroup> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDeviceScriptHandler> (slice task) depends on <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.task.handler.RunDeviceScriptHandler> (slice task) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDeviceScriptHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device$Status> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDeviceScriptHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDeviceScriptHandler> (slice task) depends on <net.netshot.netshot.inventory.group.DynamicDeviceGroup> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.diagnostic.Diagnostic> (slice diagnostic) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.diagnostic.run.DiagnosticAdapters> (slice diagnostic) which is part of a dependency cycle
+Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device$Status> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.RunDiagnosticsHandler> (slice task) depends on <net.netshot.netshot.inventory.group.DynamicDeviceGroup> (slice inventory) which is part of a dependency cycle
@@ -478,6 +503,7 @@ Class <net.netshot.netshot.task.handler.TakeGroupSnapshotHandler> (slice task) d
 Class <net.netshot.netshot.task.handler.TakeGroupSnapshotHandler> (slice task) depends on <net.netshot.netshot.inventory.group.DeviceGroup> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.inventory.config.Config> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device$Status> (slice inventory) which is part of a dependency cycle
@@ -514,6 +540,7 @@ Class <net.netshot.netshot.task.type.TakeSnapshotTask> (slice task) depends on <
 Class <net.netshot.netshot.userscript.DeviceJsScript$1> (slice userscript) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.devicescript.UserDeviceScript$UserInputDefinition> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) which is part of a dependency cycle
+Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.ScriptCreation> (slice userscript) depends on <net.netshot.netshot.devicescript.UserDeviceScript$UserInputDefinition> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.ScriptService> (slice userscript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
