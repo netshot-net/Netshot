@@ -280,4 +280,25 @@ class GroupServiceTest extends WithDatabaseTest {
 		Assertions.assertNotNull(this.transactions.read(session -> session.get(Device.class, this.routerA)));
 		Assertions.assertNotNull(this.transactions.read(session -> session.get(Device.class, this.routerB)));
 	}
+
+	// ------------------------------------------------------------------
+	// refresh of the groups of one device
+	// ------------------------------------------------------------------
+
+	@Test
+	@DisplayName("Refreshing the groups of one device keeps its static memberships and recomputes the dynamic ones (#413)")
+	void refreshGroupsOfOneDeviceKeepsStaticMemberships() {
+		DeviceGroup fixed = this.service.create(staticGroup(this.nextName(), this.routerA, this.routerB));
+		DeviceGroup matching = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-a\""));
+		DeviceGroup notMatching = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
+		// Stale membership, which the refresh must remove
+		this.transactions.run(session -> session
+			.createMutationQuery("insert into DeviceGroupMembership(key.device, key.group, position) "
+				+ "select d, g, 0 from Device d, DynamicDeviceGroup g where d.id = :device and g.id = :group")
+			.setParameter("device", this.routerA).setParameter("group", notMatching.getId()).executeUpdate());
+		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(this.routerA);
+		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.getId()));
+		Assertions.assertEquals(List.of(this.routerA), this.members(matching.getId()));
+		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.getId()));
+	}
 }
