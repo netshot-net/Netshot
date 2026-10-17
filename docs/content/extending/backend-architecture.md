@@ -275,6 +275,12 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 - **Polymorphic results.** `DiagnosticResultDto` is published under the `NUMERIC`/`TEXT`/`LONGTEXT`/`BINARY` type ids (the entity's `@JsonSubTypes`), whereas `DiagnosticDto` uses the simple class names; the long text value is not part of the representation.
 - **An unknown script is not an error.** `GET /scripts/{id}` answers 204 (the service returns `null`), `DELETE` answers 400 `NETSHOT_SCRIPT_NOT_FOUND`, and an unknown diagnostic group is silently ignored (the diagnostic is created without group).
 
+### Pitfalls met when moving the execution logic out of the entities
+
+- **Entities are equal by id, caches must be keyed by identity.** The compiled state of a rule (text patterns, validity of a script) used to live in transient fields, so it lasted as long as the instance. The evaluators keep it in `RuleStateCache`, a weak map keyed by the identity of the rule instance: a `WeakHashMap` would use `Rule.equals` (the id) and share a stale state between two instances of the same rule (another session, or after an edit). A cached value must not reference the rule, or it is never released.
+- **Evaluators and adapters are looked up by the real class.** A rule or a diagnostic can be a Hibernate proxy: the registries (`RuleEvaluators`, `DiagnosticAdapters`) unproxy it first, and refuse to be built when a type listed in `Rule.getRuleClasses()` / `Diagnostic.getDiagnosticClasses()` has no evaluator or adapter (`ComplianceCheckTest` and `DiagnosticAdaptersTest` check it against a scan of the classes).
+- **Runtimes read their settings when built.** `JsRuleRuntime` and `PyRuleRuntime` load `netshot.javascript.maxexecutiontime` / `netshot.python.maxexecutiontime` in their constructor (tests call `Netshot.loadModuleConfigs()` before `Wiring.init()`), and again on a configuration reload (`Wiring.reloadRuleRuntimeConfigs()`, called by `Netshot.loadModuleConfigs()`).
+
 ### Pitfalls met on the inventory slice
 
 - **The class of a list is part of the XML.** A query with a collection fetch and a page (`GET /devices/{id}/configs?limit=...`) is paginated in memory by Hibernate, which answers a sub list: XML publishes it as `<SubList>` instead of `<ArrayList>`. The mappers keep that (`ConfigMapper.toDtos`) by answering a sub list when the service result is not a plain `ArrayList`.
