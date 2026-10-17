@@ -216,13 +216,14 @@ public class ReportRepository {
 			+ "ccr.checkDate as checkDate, "
 			+ "ccr.result as result "
 			+ ") from Device d "
-			+ "left join d.groupMemberships gm join d.complianceCheckResults ccr join ccr.key.rule r join r.policy p "
+			+ "join d.complianceCheckResults ccr join ccr.key.rule r join r.policy p "
 			+ "where d.status = :enabled";
 		if (domains.size() > 0) {
 			hqlQuery += " and d.mgmtDomain.id in (:domainIds)";
 		}
 		if (groups.size() > 0) {
-			hqlQuery += " and gm.key.group.id in (:groupIds)";
+			// Subquery rather than a join, so that a device which is in several groups is listed once
+			hqlQuery += " and d.id in (select gd.id from Device gd join gd.groupMemberships gm where gm.key.group.id in (:groupIds))";
 		}
 		if (policies.size() > 0) {
 			hqlQuery += " and p.id in (:policyIds)";
