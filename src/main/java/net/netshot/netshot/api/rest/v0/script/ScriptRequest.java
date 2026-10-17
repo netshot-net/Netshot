@@ -18,35 +18,31 @@
  */
 package net.netshot.netshot.api.rest.v0.script;
 
-import java.util.Map;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
-import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 
 /**
  * The request to add (or only validate) a command script. It used to be the script entity itself,
  * hence its quirks, kept as they were: the {@code realDeviceType} of a script is refused as an
- * unknown property, the {@code id} and the {@code author} are overridden by the server, the {@code folder} is empty when
- * absent (null when explicitly null), and the {@code userInputDefinitions} are read as the engine
- * class declares them (which only succeeds for an empty map, null entries and bare text entries:
- * the class has no property-based creator).
+ * unknown property, the {@code id} and the {@code author} are overridden by the server, and the {@code folder} is empty when
+ * absent (null when explicitly null). The {@code userInputDefinitions} of a script (as returned by the
+ * API) are accepted and ignored: the server always extracts them from the script code.
  *
  * @param id not used
  * @param name the name
  * @param script the JavaScript code
  * @param deviceDriver the name of the device driver the script is written for
  * @param author the author, used only when the user cannot be determined
- * @param userInputDefinitions the input definitions, when posted
  * @param folder the folder
  */
+@JsonIgnoreProperties(value = "userInputDefinitions")
 public record ScriptRequest(
 	long id,
 	String name,
 	String script,
 	String deviceDriver,
 	String author,
-	Map<String, UserInputDefinition> userInputDefinitions,
 	@JsonDeserialize(using = EmptyWhenAbsentDeserializer.class) String folder) {
 }

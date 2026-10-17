@@ -4,4 +4,3 @@ deviceDriver=CiscoIOS12
 folder=
 name=n
 script=s
-userInputDefinitions=null
