@@ -18,11 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.compliance;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add or edit a software compliance rule. A property absent from the request
@@ -40,9 +37,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param partNumberRegExp whether the part number is a regular expression
  * @param level the conformance level granted to the devices matching the rule
  */
-@JsonView(DefaultView.class)
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "rsSoftwareRule")
 public record SoftwareRuleRequest(
 	long id,
 	Long group,

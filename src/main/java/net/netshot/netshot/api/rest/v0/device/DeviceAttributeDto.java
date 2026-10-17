@@ -20,16 +20,13 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * An attribute of a device (a value collected by the device driver), as nested in the
  * device representation. The {@code type} property tells the kind of value. The long text
  * values are not part of the device representation: only their name is.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = DeviceAttributeDto.Numeric.class, name = "NUMERIC"),
@@ -52,7 +49,6 @@ public sealed interface DeviceAttributeDto {
 	 * @param name the name
 	 * @param number the value
 	 */
-	@JsonView(DefaultView.class)
 	record Numeric(String name, Double number) implements DeviceAttributeDto {
 	}
 
@@ -62,7 +58,6 @@ public sealed interface DeviceAttributeDto {
 	 * @param name the name
 	 * @param text the value
 	 */
-	@JsonView(DefaultView.class)
 	record Text(String name, String text) implements DeviceAttributeDto {
 	}
 
@@ -71,7 +66,6 @@ public sealed interface DeviceAttributeDto {
 	 *
 	 * @param name the name
 	 */
-	@JsonView(DefaultView.class)
 	record LongText(String name) implements DeviceAttributeDto {
 	}
 
@@ -81,7 +75,6 @@ public sealed interface DeviceAttributeDto {
 	 * @param name the name
 	 * @param assumption the value
 	 */
-	@JsonView(DefaultView.class)
 	record Binary(String name, Boolean assumption) implements DeviceAttributeDto {
 	}
 }

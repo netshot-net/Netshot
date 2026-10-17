@@ -1,0 +1,21 @@
+[
+  {
+    "checkDate": 1600000000000,
+    "configCompliant": true,
+    "driver": "CiscoIOS12",
+    "eol": true,
+    "eos": false,
+    "family": "Cisco",
+    "id": 5,
+    "mgmtAddress": "10.0.0.5",
+    "name": "r5",
+    "networkClass": "ROUTER",
+    "policyId": 3,
+    "policyName": "P",
+    "result": "NONCONFORMING",
+    "ruleId": 4,
+    "ruleName": "R",
+    "softwareLevel": "GOLD",
+    "status": "INPRODUCTION"
+  }
+]

@@ -23,77 +23,59 @@ import java.util.Map;
 import org.hibernate.annotations.NaturalId;
 import org.slf4j.event.Level;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.task.engine.TaskContext;
 
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class DeviceJsScript {
 
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlAttribute, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
 
 	@Getter(onMethod = @__({
-		@NaturalId,
-		@XmlElement, @JsonView(DefaultView.class)
+		@NaturalId
 	}))
 	@Setter
 	private String name;
 
 	@Getter(onMethod = @__({
-		@Column(length = 10000000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 10000000)
 	}))
 	@Setter
 	private String script;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String deviceDriver;
 
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String author;
 
 	@Getter(onMethod = @__({
 		@NaturalId,
-		@Column(length = 1000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 1000)
 	}))
 	@Setter
 	private String folder = "";
 
 	@Getter(onMethod = @__({
-		@Transient,
-		@XmlElement, @JsonView(DefaultView.class)
+		@Transient
 	}))
+	@Setter
 	private Map<String, UserInputDefinition> userInputDefinitions;
 
 	protected DeviceJsScript() {
@@ -105,17 +87,6 @@ public class DeviceJsScript {
 		this.script = script;
 		this.deviceDriver = deviceDriver;
 		this.author = author;
-	}
-
-	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
-	public String getRealDeviceType() {
-		DeviceDriver driver = DeviceDriver.getDriverByName(this.deviceDriver);
-		if (driver == null) {
-			return "Unknwon driver";
-		}
-		return driver.getDescription();
 	}
 
 	/**
@@ -145,11 +116,12 @@ public class DeviceJsScript {
 	/**
 	 * Actually populate user input definitions by evaluating the script and extract Input variable.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @throws IllegalArgumentException if the script is invalid
 	 */
-	public void extractUserInputDefinitions() throws IllegalArgumentException {
+	public void extractUserInputDefinitions(DriverRegistry driverRegistry) throws IllegalArgumentException {
 		if (this.userInputDefinitions == null) {
-			final UserDeviceScript jsScript = new UserDeviceScript(this.deviceDriver, this.script, this.makeVoidLogger());
+			final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, this.deviceDriver, this.script, this.makeVoidLogger());
 			this.userInputDefinitions = jsScript.extractInputDefinitions();
 		}
 	}
@@ -157,11 +129,12 @@ public class DeviceJsScript {
 	/**
 	 * Validate passed user inputs against input definitions.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param userInputs the data to validate
 	 * @throws IllegalArgumentException if validation fails
 	 */
-	public void validateUserInputs(Map<String, String> userInputs) throws IllegalArgumentException {
-		final UserDeviceScript jsScript = new UserDeviceScript(this.deviceDriver, this.script, this.makeVoidLogger());
+	public void validateUserInputs(DriverRegistry driverRegistry, Map<String, String> userInputs) throws IllegalArgumentException {
+		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, this.deviceDriver, this.script, this.makeVoidLogger());
 		jsScript.setUserInputValues(userInputs);
 		jsScript.validateUserInputs();
 	}

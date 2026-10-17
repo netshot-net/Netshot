@@ -1,0 +1,46 @@
+[
+  {
+    "cliMode": "enable",
+    "command": "show",
+    "deviceDriver": "CiscoIOS12",
+    "deviceDriverDescription": "Cisco IOS and IOS-XE",
+    "enabled": true,
+    "id": 1,
+    "modifierPattern": null,
+    "modifierReplacement": null,
+    "name": "Simple",
+    "resultType": "TEXT",
+    "targetGroup": {
+      "changeDate": 1600000200000,
+      "folder": "Production",
+      "hiddenFromReports": false,
+      "id": 100,
+      "name": "Dynamic",
+      "query": "[Name] contains \"r\"",
+      "type": "DynamicDeviceGroup"
+    }
+  },
+  {
+    "enabled": true,
+    "id": 2,
+    "name": "Python",
+    "resultType": "BINARY",
+    "script": "x",
+    "targetGroup": null
+  },
+  {
+    "enabled": true,
+    "id": 3,
+    "name": "JS",
+    "resultType": "TEXT",
+    "script": "y",
+    "targetGroup": {
+      "changeDate": 1600000300000,
+      "folder": "",
+      "hiddenFromReports": true,
+      "id": 101,
+      "name": "Static",
+      "type": "StaticDeviceGroup"
+    }
+  }
+]

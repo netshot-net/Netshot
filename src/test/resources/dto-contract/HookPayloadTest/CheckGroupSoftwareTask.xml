@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<CheckGroupSoftwareTask type="CheckGroupSoftwareTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1641038412000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Group software</comments>
+  <creationDate>1641038410000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <device/>
+  <deviceDriver/>
+  <deviceGroupId>1</deviceGroupId>
+  <dontCheckCompliance>false</dontCheckCompliance>
+  <dontRunDiagnostics>false</dontRunDiagnostics>
+  <executionDate>1641038411000</executionDate>
+  <id>11</id>
+  <log>Software checked</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1641038410000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script/>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>Core routers</target>
+  <taskDescription>Group software compliance and hardware support check</taskDescription>
+  <userInputValues/>
+</CheckGroupSoftwareTask>

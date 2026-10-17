@@ -21,9 +21,11 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleDefinition;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * Maps the hardware compliance rules between the entities and their REST representation. All
@@ -37,15 +39,25 @@ public final class HardwareRuleMapper {
 		// Static helpers only
 	}
 
+	// The description of the driver of the rule, empty when there is no such driver
+	private static String deviceType(DriverRegistry driverRegistry, HardwareRule rule) {
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.getDriver());
+		if (deviceDriver == null) {
+			return "";
+		}
+		return deviceDriver.getDescription();
+	}
+
 	/**
 	 * Maps a hardware rule to its representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param rule the rule, with its target group loaded
 	 * @return the DTO
 	 */
-	public static HardwareRuleDto toDto(HardwareRule rule) {
+	public static HardwareRuleDto toDto(DriverRegistry driverRegistry, HardwareRule rule) {
 		return new HardwareRuleDto(
-			rule.getDeviceType(),
+			deviceType(driverRegistry, rule),
 			rule.getDriver(),
 			rule.getEndOfLife(),
 			rule.getEndOfSale(),
@@ -54,18 +66,19 @@ public final class HardwareRuleMapper {
 			rule.getId(),
 			rule.getPartNumber(),
 			rule.isPartNumberRegExp(),
-			rule.getTargetGroup() == null ? null : DeviceMapper.toDto(rule.getTargetGroup()));
+			rule.getTargetGroup() == null ? null : GroupMapper.toDto(rule.getTargetGroup()));
 	}
 
 	/**
 	 * Maps the hardware rules to their representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param rules the rules, with their target group loaded
 	 * @return the DTOs, in the same order
 	 */
-	public static List<HardwareRuleDto> toDtos(List<HardwareRule> rules) {
+	public static List<HardwareRuleDto> toDtos(DriverRegistry driverRegistry, List<HardwareRule> rules) {
 		List<HardwareRuleDto> dtos = new ArrayList<>(rules.size());
-		rules.forEach(rule -> dtos.add(toDto(rule)));
+		rules.forEach(rule -> dtos.add(toDto(driverRegistry, rule)));
 		return dtos;
 	}
 

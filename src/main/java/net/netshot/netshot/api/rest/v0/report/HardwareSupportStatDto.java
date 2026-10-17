@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.report;
 import java.io.IOException;
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -29,7 +28,6 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The number of devices reaching a hardware support milestone (end of sale or end of life) on a
@@ -46,7 +44,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param eoxDate the date of the milestone (may be null)
  * @param deviceCount the number of devices
  */
-@JsonView(DefaultView.class)
 public record HardwareSupportStatDto(
 	@JacksonXmlProperty(isAttribute = true) @JsonSerialize(using = HardwareSupportStatDto.TypeIdSerializer.class) String type,
 	Date eoxDate,

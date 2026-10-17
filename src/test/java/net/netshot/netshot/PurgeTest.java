@@ -15,6 +15,7 @@ import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import org.junit.jupiter.api.AfterEach;
@@ -44,7 +45,7 @@ public class PurgeTest extends WithDatabaseTest {
 	protected static void initNetshot() throws Exception {
 		Netshot.initConfig(PurgeTest.getNetshotConfig());
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		Thread.sleep(1000);
 	}
 
@@ -228,7 +229,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void taskPurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", PURGE_DAYS, 0, 0, 0, 0, (DeviceGroup) null);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -244,7 +245,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void perGroupTaskPurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", PURGE_DAYS, 0, 0, 0, 0, group1);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -262,7 +263,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void configPurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 0, 0, 0, (DeviceGroup) null);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -278,7 +279,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void perGroupConfigPurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 0, 0, 0, group1);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -296,7 +297,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void oversizedConfigPurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 2, 0, 0, (DeviceGroup) null);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -316,7 +317,7 @@ public class PurgeTest extends WithDatabaseTest {
 		final int PURGE_DAYS = 18;
 		final int KEEP_DAYS = 2; // Keep one config every two days
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 0, KEEP_DAYS, 0, (DeviceGroup) null);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -335,7 +336,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void modulePurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, PURGE_DAYS, (DeviceGroup) null);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
@@ -351,7 +352,7 @@ public class PurgeTest extends WithDatabaseTest {
 	public void perGroupModulePurgeTest() {
 		final int PURGE_DAYS = 18;
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, PURGE_DAYS, group1);
-		task.run();
+		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);

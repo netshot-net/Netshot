@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
+import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
 
@@ -1235,13 +1236,13 @@ public class ToolboxTest {
 
 		DriverContext() throws Exception {
 			Netshot.initConfig(new Properties());
-			DeviceDriver.refreshDrivers();
+			TestDrivers.reload();
 		}
 
 		@Test
 		@DisplayName("Toolbox available in driver context")
 		void driverToolbox() throws Exception {
-			DeviceDriver driver = DeviceDriver.getDriverByName("CiscoIOS12");
+			DeviceDriver driver = TestDrivers.registry().getDriverByName("CiscoIOS12");
 			try (Context context = driver.getContext()) {
 				driver.loadCode(context);
 				Value result = context.eval("js", "Toolbox.ConfigTree.parse('a\\n b').children[0].findValue(/^(b)$/)");
@@ -1252,7 +1253,7 @@ public class ToolboxTest {
 		@Test
 		@DisplayName("Toolbox module available to Python diagnostics")
 		void pythonDiagnosticToolbox() throws Exception {
-			DeviceDriver driver = DeviceDriver.getDriverByName("CiscoIOS12");
+			DeviceDriver driver = TestDrivers.registry().getDriverByName("CiscoIOS12");
 			PythonDiagnostic diagnostic = new PythonDiagnostic("Toolbox diagnostic", true, null, AttributeType.TEXT, ""
 				+ "from netshot.toolbox import ConfigTree\n"
 				+ "def diagnose(cli, device, diagnostic):\n"
@@ -1260,7 +1261,7 @@ public class ToolboxTest {
 				+ ".find_value(r'^set hostname \"(.*)\"', recursive=True)\n");
 			try (Context context = driver.getContext()) {
 				driver.loadCode(context);
-				Value diagnose = diagnostic.getJsObject(null, context);
+				Value diagnose = DiagnosticAdapters.standard().toJsObject(diagnostic, null, context);
 				Assertions.assertEquals("fw", diagnose.execute(null, null, null).asString());
 			}
 		}

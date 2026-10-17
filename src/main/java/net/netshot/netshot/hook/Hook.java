@@ -21,11 +21,6 @@ package net.netshot.netshot.hook;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,64 +31,41 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.OneToMany;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * Hook base class.
  */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({
-	@Type(value = WebHook.class, name = "Web")
-})
 public abstract class Hook {
 
 	/** Unique ID of the webhook. **/
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
 
 	/** Name of the webhook. */
 	@Getter(onMethod = @__({
-		@Column(unique = true),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(unique = true)
 	}))
 	@Setter
 	private String name;
 
 	/** Whether the hook is enabled. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean enabled = true;
 
 	/** List of associated triggers. */
 	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "hook", orphanRemoval = true, fetch = FetchType.EAGER, cascade = CascadeType.ALL),
-		@XmlElement, @JsonView(DefaultView.class)
+		@OneToMany(mappedBy = "hook", orphanRemoval = true, fetch = FetchType.EAGER, cascade = CascadeType.ALL)
 	}))
 	@Setter
 	private Set<HookTrigger> triggers = new HashSet<>();
-
-	/**
-	 * Execute the hook.
-	 * @param data Associated data (such a task)
-	 * @return the result of the execution
-	 */
-	public abstract String execute(Object data) throws Exception;
 
 	@Override
 	public String toString() {

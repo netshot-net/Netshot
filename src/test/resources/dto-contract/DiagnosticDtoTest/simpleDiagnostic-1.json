@@ -1,0 +1,22 @@
+{
+  "cliMode": "enable",
+  "command": "show version",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": true,
+  "id": 5,
+  "modifierPattern": "(.*)",
+  "modifierReplacement": "$1",
+  "name": "Simple",
+  "resultType": "TEXT",
+  "targetGroup": {
+    "changeDate": 1600000200000,
+    "folder": "Production",
+    "hiddenFromReports": false,
+    "id": 100,
+    "name": "Dynamic",
+    "query": "[Name] contains \"r\"",
+    "type": "DynamicDeviceGroup"
+  },
+  "type": "SimpleDiagnostic"
+}

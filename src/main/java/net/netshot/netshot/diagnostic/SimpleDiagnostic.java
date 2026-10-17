@@ -18,27 +18,15 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess.Export;
-import org.graalvm.polyglot.Value;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * This is a simple diagnostic: runs a CLI command in a CLI mode, and optionally
@@ -48,8 +36,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  */
 @Entity
 @OnDelete(action = OnDeleteAction.CASCADE)
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class SimpleDiagnostic extends Diagnostic {
 
 	/**
@@ -77,36 +63,28 @@ public class SimpleDiagnostic extends Diagnostic {
 	/**
 	 * The type of device this diagnostic applies to.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String deviceDriver;
 
 	/**
 	 * The CLI mode to run the command in.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String cliMode;
 
 	/**
 	 * The CLI command to run.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String command;
 
 	/**
 	 * The pattern to search for in the result string.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String modifierPattern;
 
@@ -114,9 +92,7 @@ public class SimpleDiagnostic extends Diagnostic {
 	 * The replacement string (to replace the modifierPattern with). Also supports
 	 * regular expression backreferences.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String modifierReplacement;
 
@@ -147,59 +123,6 @@ public class SimpleDiagnostic extends Diagnostic {
 		this.command = command;
 		this.modifierPattern = modifierPattern;
 		this.modifierReplacement = modifierReplacement;
-	}
-
-	/**
-	 * Gets the description of the device driver. To be sent along with the
-	 * diagnostic.
-	 * 
-	 * @return the description of the device driver
-	 */
-	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
-	public String getDeviceDriverDescription() {
-		if ("".equals(deviceDriver)) {
-			return "";
-		}
-		try {
-			DeviceDriver d = DeviceDriver.getDriverByName(deviceDriver);
-			return d.getDescription();
-		}
-		catch (Exception e) {
-			return "Unknown driver";
-		}
-	}
-
-
-	@Transient
-	@Override
-	public DiagnosticResult makeResult(Device device, Value value) {
-		String newValue = value.asString();
-		if (this.getModifierPattern() != null) {
-			newValue = newValue.replaceAll(this.getModifierPattern(), this.getModifierReplacement());
-		}
-		switch (this.resultType) {
-			case LONGTEXT:
-				return new DiagnosticLongTextResult(device, this, newValue);
-			case TEXT:
-				return new DiagnosticTextResult(device, this, newValue);
-			case NUMERIC:
-				return new DiagnosticNumericResult(device, this, Double.parseDouble(newValue));
-			case BINARY:
-				boolean booleanValue = !"".equals(newValue) && !"false".equals(newValue.toLowerCase()) && !"no".equals(newValue.toLowerCase());
-				return new DiagnosticBinaryResult(device, this, booleanValue);
-			default:
-				return null;
-		}
-	}
-
-	@Override
-	public Value getJsObject(Device device, Context context) {
-		if (!device.getDriver().equals(this.getDeviceDriver())) {
-			return null;
-		}
-		return Value.asValue(new JsSimpleDiagnostic(this.cliMode, this.command));
 	}
 
 }

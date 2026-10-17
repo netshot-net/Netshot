@@ -19,19 +19,17 @@
 package net.netshot.netshot.platform.rest;
 
 /**
- * Defines the serialization views for APIs.
+ * Defines the serialization views still in use: the ones of the cluster wire format (the messages exchanged
+ * between the nodes, which embed a {@link net.netshot.netshot.cluster.ClusterMember}). The API channels
+ * (REST and web hooks) do not use views.
  */
 public class RestViews {
 	// Default view
 	public static class DefaultView {
 	}
 
-	// REST API view
+	// Properties of the cluster members which are not part of the cluster wire format
 	public static class RestApiView extends DefaultView {
-	}
-
-	// View for hook objects
-	public static class HookView extends DefaultView {
 	}
 
 	// Clustering view

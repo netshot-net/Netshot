@@ -1,0 +1,19 @@
+{
+  "deviceSpecific": false,
+  "id": 0,
+  "mgmtDomain": null,
+  "name": "n",
+  "password": null,
+  "passwordVaultInstanceId": null,
+  "passwordVaultPath": null,
+  "privateKey": null,
+  "privateKeyVaultInstanceId": null,
+  "privateKeyVaultPath": null,
+  "superPassword": null,
+  "superPasswordVaultInstanceId": null,
+  "superPasswordVaultPath": null,
+  "type": "SSH Key",
+  "username": null,
+  "usernameVaultInstanceId": null,
+  "usernameVaultPath": null
+}

@@ -31,6 +31,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -81,6 +82,7 @@ public class AccessManager {
 		}
 	}
 
+	private final DriverRegistry driverRegistry;
 	private final Session session;
 	@Getter
 	private final Device device;
@@ -100,6 +102,7 @@ public class AccessManager {
 
 	/**
 	 * Instantiates a new access manager for one task attempt.
+	 * @param driverRegistry the loaded device drivers
 	 * @param session the Hibernate session (may be null, e.g. for ad-hoc/test runs)
 	 * @param device the device being accessed
 	 * @param address the resolved default network address (the device's management
@@ -108,8 +111,9 @@ public class AccessManager {
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 */
-	public AccessManager(Session session, Device device, NetworkAddress address, TaskContext taskContext,
+	public AccessManager(DriverRegistry driverRegistry, Session session, Device device, NetworkAddress address, TaskContext taskContext,
 			java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
+		this.driverRegistry = driverRegistry;
 		this.session = session;
 		this.device = device;
 		this.address = address;
@@ -123,13 +127,14 @@ public class AccessManager {
 	 * management address along the way - the one entry point production code
 	 * should use, so this resolve-and-cache step lives in one place common to
 	 * every caller instead of being repeated ad hoc.
+	 * @param driverRegistry the loaded device drivers
 	 * @param session the Hibernate session (may be null, e.g. for ad-hoc/test runs)
 	 * @param device the device being accessed
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 * @return the new access manager
 	 */
-	public static AccessManager forDevice(Session session, Device device, TaskContext taskContext,
+	public static AccessManager forDevice(DriverRegistry driverRegistry, Session session, Device device, TaskContext taskContext,
 			java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
 		device.refreshCachedIpAddress();
 		NetworkAddress address = null;
@@ -150,7 +155,7 @@ public class AccessManager {
 					device.getMgmtAddress(), device.getId(), e);
 			}
 		}
-		return new AccessManager(session, device, address, taskContext, oneTimeCredentialSets);
+		return new AccessManager(driverRegistry, session, device, address, taskContext, oneTimeCredentialSets);
 	}
 
 	/**
@@ -355,7 +360,7 @@ public class AccessManager {
 	 */
 	private void removeSiblingAccesses(AccessDefinition accessDef) {
 		try {
-			List<AccessDefinition> siblings = this.device.getDeviceDriver().getAccessDefinitionsByGroup(accessDef.getGroup());
+			List<AccessDefinition> siblings = this.driverRegistry.forDevice(this.device).getAccessDefinitionsByGroup(accessDef.getGroup());
 			for (AccessDefinition sibling : siblings) {
 				if (sibling.getName().equals(accessDef.getName())) {
 					continue;

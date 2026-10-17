@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<DeviceSnmpv3Community type="SNMP v3">
+  <authKey>=</authKey>
+  <authKeyVaultInstanceId/>
+  <authKeyVaultPath/>
+  <authType>SHA</authType>
+  <community>=</community>
+  <communityVaultInstanceId/>
+  <communityVaultPath/>
+  <deviceSpecific>false</deviceSpecific>
+  <id>3</id>
+  <mgmtDomain/>
+  <name>SNMP v3</name>
+  <privKey>=</privKey>
+  <privKeyVaultInstanceId/>
+  <privKeyVaultPath/>
+  <privType>AES128</privType>
+  <username>snmpuser</username>
+  <usernameVaultInstanceId/>
+  <usernameVaultPath/>
+</DeviceSnmpv3Community>

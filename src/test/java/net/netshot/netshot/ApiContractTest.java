@@ -44,7 +44,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.ApiContractCase.Reply;
 import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.api.rest.v0.RestService;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.engine.TaskManager;
@@ -93,17 +93,17 @@ public class ApiContractTest extends WithDatabaseTest {
 		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		net.netshot.netshot.driver.DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
-		TaskManager.init();
+		Wiring.init(TestDrivers.registry());
+		TaskManager.init(Wiring.get().taskJobFactory());
 		// Tasks must be stored but never run: keep the schedulers in standby, and drop
 		// any job left by another test class sharing the JVM.
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
 			scheduler.standby();
 			scheduler.clear();
 		}
-		RestService.init(Wiring.get().binder());
+		RestServer.init(Wiring.get().binder());
 		Thread.sleep(1000);
 		this.httpClient = HttpClient.newHttpClient();
 		this.seed = new ApiContractSeed(API_URL, this.httpClient);

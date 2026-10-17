@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<DeviceHttpAccount type="HTTP">
+  <deviceSpecific>false</deviceSpecific>
+  <id>7</id>
+  <mgmtDomain/>
+  <name>HTTP</name>
+  <password>=</password>
+  <passwordVaultInstanceId/>
+  <passwordVaultPath/>
+  <username>httpuser</username>
+  <usernameVaultInstanceId/>
+  <usernameVaultPath/>
+</DeviceHttpAccount>

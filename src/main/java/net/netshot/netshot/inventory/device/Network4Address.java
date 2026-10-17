@@ -25,24 +25,14 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
 
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.platform.database.InetAddressUserType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 import org.hibernate.annotations.Type;
 
@@ -50,8 +40,6 @@ import org.hibernate.annotations.Type;
  * An IPv4 address.
  */
 @Embeddable
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public final class Network4Address extends NetworkAddress {
 
 	/**
@@ -155,13 +143,6 @@ public final class Network4Address extends NetworkAddress {
 	 */
 	public static int prefixLengthToIntAddress(int length) {
 		return 0xFFFFFFFF << (32 - length);
-	}
-
-	public static class AddressOnlySerializer extends JsonSerializer<Network4Address> {
-		@Override
-		public void serialize(Network4Address value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-			gen.writeString(value.getIp());
-		}
 	}
 
 	public static class AddressOnlyDeserializer extends JsonDeserializer<Network4Address> {
@@ -327,7 +308,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getIP()
 	 */
-	@XmlAttribute
 	@Transient
 	@Override
 	public String getIp() {
@@ -350,7 +330,6 @@ public final class Network4Address extends NetworkAddress {
 	 * 
 	 * @return the prefix length
 	 */
-	@XmlAttribute
 	@Override
 	public int getPrefixLength() {
 		return prefixLength;
@@ -505,8 +484,6 @@ public final class Network4Address extends NetworkAddress {
 
 	private AddressUsage addressUsage = AddressUsage.PRIMARY;
 
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Override
 	public AddressUsage getAddressUsage() {
 		return addressUsage;

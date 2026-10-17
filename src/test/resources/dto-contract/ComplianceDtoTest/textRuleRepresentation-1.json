@@ -1,0 +1,16 @@
+{
+  "anyBlock": true,
+  "context": "interface .*",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": true,
+  "field": "runningConfig",
+  "id": 7,
+  "invert": true,
+  "matchAll": true,
+  "name": "Text rule",
+  "normalize": true,
+  "regExp": true,
+  "text": "line1\nline2",
+  "type": "TextRule"
+}

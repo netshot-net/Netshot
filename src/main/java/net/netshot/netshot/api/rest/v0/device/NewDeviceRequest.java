@@ -22,14 +22,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-
-import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add a device. A property absent from the request has its default value (see the
@@ -47,11 +43,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param comments the comments
  * @param tags the tags
  */
-@JsonView(DefaultView.class)
-// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
-// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
-// Without it, the XML body would get read by Jackson, which is a fix of the API to decide on.
-@XmlRootElement(name = "device")
 public record NewDeviceRequest(
 	@JsonDeserialize(using = NewDeviceRequest.AutoDiscoverDeserializer.class) Boolean autoDiscover,
 	long autoDiscoveryTask,

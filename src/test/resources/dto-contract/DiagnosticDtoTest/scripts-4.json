@@ -1,0 +1,30 @@
+{
+  "author": "tester",
+  "deviceDriver": "NoSuchDriver",
+  "folder": null,
+  "id": 3,
+  "name": "Script",
+  "realDeviceType": "Unknwon driver",
+  "script": null,
+  "userInputDefinitions": {
+    "flag": {
+      "choices": null,
+      "defaultValue": null,
+      "description": null,
+      "label": "Flag",
+      "name": "flag",
+      "type": "BOOLEAN"
+    },
+    "hostname": {
+      "choices": [
+        "a",
+        "b"
+      ],
+      "defaultValue": "a",
+      "description": "The host",
+      "label": "Hostname",
+      "name": "hostname",
+      "type": "TEXT"
+    }
+  }
+}

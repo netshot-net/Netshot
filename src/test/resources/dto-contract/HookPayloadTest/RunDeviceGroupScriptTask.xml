@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<RunDeviceGroupScriptTask type="RunDeviceGroupScriptTask">
+  <author>tester</author>
+  <cancelRequested>false</cancelRequested>
+  <changeDate>1641038432000</changeDate>
+  <checkCompliance>false</checkCompliance>
+  <childOrder>0</childOrder>
+  <comments>Group script</comments>
+  <creationDate>1641038430000</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <device/>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>1</deviceGroupId>
+  <dontCheckCompliance>false</dontCheckCompliance>
+  <dontRunDiagnostics>false</dontRunDiagnostics>
+  <executionDate>1641038431000</executionDate>
+  <id>13</id>
+  <log>Group script output</log>
+  <nextExecutionDate/>
+  <parentTaskId/>
+  <priority>5</priority>
+  <repeating>false</repeating>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
+  <runnerId/>
+  <scheduleFactor>1</scheduleFactor>
+  <scheduleMode>PARALLEL</scheduleMode>
+  <scheduleReference>1641038430000</scheduleReference>
+  <scheduleType>ASAP</scheduleType>
+  <script>function run(cli, device) {}</script>
+  <status>SUCCESS</status>
+  <stopOnFailure>false</stopOnFailure>
+  <target>Core routers</target>
+  <taskDescription>Group script execution</taskDescription>
+  <userInputValues/>
+</RunDeviceGroupScriptTask>

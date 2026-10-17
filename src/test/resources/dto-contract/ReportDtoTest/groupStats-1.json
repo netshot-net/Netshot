@@ -1,0 +1,16 @@
+[
+  {
+    "compliantDeviceCount": 2,
+    "deviceCount": 5,
+    "groupFolder": "Production/Core",
+    "groupId": 1,
+    "groupName": "Core"
+  },
+  {
+    "compliantDeviceCount": 0,
+    "deviceCount": 0,
+    "groupFolder": null,
+    "groupId": 2,
+    "groupName": "Empty"
+  }
+]

@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -64,7 +65,7 @@ import net.netshot.netshot.userscript.DeviceJsScript;
 /**
  * The task use cases: list, read, cancel, create, and the statistics.
  *
- * <p>Running the tasks is the job of the task engine ({@link Task#run()}), which this service
+ * <p>Running the tasks is the job of the task engine ({@link TaskHandlers}), which this service
  * only reaches through the {@link TaskSubmitter} and {@link TaskEngine} ports.</p>
  */
 @Slf4j
@@ -86,6 +87,7 @@ public class TaskService {
 	private final TaskRepository repository;
 	private final TaskSubmitter taskSubmitter;
 	private final TaskEngine taskEngine;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
@@ -94,12 +96,15 @@ public class TaskService {
 	 * @param repository the task queries
 	 * @param taskSubmitter how to hand a new task over to the task engine
 	 * @param taskEngine how to cancel tasks and to know the size of the task engine
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public TaskService(Transactions transactions, TaskRepository repository, TaskSubmitter taskSubmitter, TaskEngine taskEngine) {
+	public TaskService(Transactions transactions, TaskRepository repository, TaskSubmitter taskSubmitter, TaskEngine taskEngine,
+		DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
 		this.taskEngine = taskEngine;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -158,6 +163,35 @@ public class TaskService {
 		catch (HibernateException e) {
 			log.error("Unable to fetch the task {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task");
+		}
+	}
+
+	/**
+	 * Prepares a task (like the task engine does before it runs it, see {@link Task#prepare(Session)})
+	 * and maps it to another representation, in a read transaction: the mapper can read what is
+	 * lazily loaded. The mapper must not keep the task.
+	 *
+	 * @param <R> the type of the result
+	 * @param id the task ID
+	 * @param mapper the function mapping the task
+	 * @return the result of the mapper
+	 * @throws NetshotException if the task doesn't exist or can't be read
+	 */
+	public <R> R mapTask(long id, Function<Task, R> mapper) {
+		try {
+			return this.transactions.read(session -> {
+				Task task = this.repository.find(session, id);
+				if (task == null) {
+					log.error("Unable to find the task {}.", id);
+					throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
+				}
+				task.prepare(session);
+				return mapper.apply(task);
+			});
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the task {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the task");
 		}
 	}
 
@@ -651,7 +685,7 @@ public class TaskService {
 
 	// Checks the driver and the script of a script task, and gets the driver.
 	private DeviceDriver validateScript(TaskCreation c) {
-		DeviceDriver driver = DeviceDriver.getDriverByName(c.driver());
+		DeviceDriver driver = this.driverRegistry.getDriverByName(c.driver());
 		if (driver == null) {
 			log.error("Unknown device driver {}.", c.type());
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, "Unknown device driver.");
@@ -667,7 +701,7 @@ public class TaskService {
 	private void validateUserInputs(TaskCreation c) {
 		try {
 			DeviceJsScript jsScript = new DeviceJsScript("__toValidate", c.driver(), c.script(), c.author());
-			jsScript.validateUserInputs(c.userInputs());
+			jsScript.validateUserInputs(this.driverRegistry, c.userInputs());
 		}
 		catch (IllegalArgumentException e) {
 			log.warn("Invalid script.");

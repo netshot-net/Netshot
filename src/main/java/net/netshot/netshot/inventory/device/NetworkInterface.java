@@ -28,8 +28,6 @@ import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -38,29 +36,20 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A network interface is attached to a device, has a physical
  * address, and one or several IP addresses.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public final class NetworkInterface {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlAttribute, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
@@ -74,24 +63,20 @@ public final class NetworkInterface {
 	protected Device device;
 
 	/** The interface name. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String interfaceName;
 
 	/** The ip4 addresses. */
 	@Getter(onMethod = @__({
-		@ElementCollection, @Fetch(FetchMode.SUBSELECT),
-		@XmlElement, @JsonView(DefaultView.class)
+		@ElementCollection, @Fetch(FetchMode.SUBSELECT)
 	}))
 	@Setter
 	protected Set<Network4Address> ip4Addresses = new HashSet<>();
 
 	/** The ip6 addresses. */
 	@Getter(onMethod = @__({
-		@ElementCollection, @Fetch(FetchMode.SUBSELECT),
-		@XmlElement, @JsonView(DefaultView.class)
+		@ElementCollection, @Fetch(FetchMode.SUBSELECT)
 	}))
 	@Setter
 	protected Set<Network6Address> ip6Addresses = new HashSet<>();
@@ -104,37 +89,27 @@ public final class NetworkInterface {
 	protected PhysicalAddress physicalAddress = new PhysicalAddress(0);
 
 	/** The vrf instance. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String vrfInstance;
 
 	/** The virtual device. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String virtualDevice;
 
 	/** The description. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String description;
 
 	/** The enabled. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean enabled;
 
 	/** The level3. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean level3;
 
@@ -224,8 +199,6 @@ public final class NetworkInterface {
 	 *
 	 * @return the mac address
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getMacAddress() {
 		return this.physicalAddress.toString();

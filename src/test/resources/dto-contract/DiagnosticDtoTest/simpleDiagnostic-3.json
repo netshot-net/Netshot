@@ -1,0 +1,14 @@
+{
+  "cliMode": "enable",
+  "command": "show version",
+  "deviceDriver": "NoSuchDriver",
+  "deviceDriverDescription": "Unknown driver",
+  "enabled": true,
+  "id": 5,
+  "modifierPattern": null,
+  "modifierReplacement": "$1",
+  "name": "Simple",
+  "resultType": "LONGTEXT",
+  "targetGroup": null,
+  "type": "SimpleDiagnostic"
+}

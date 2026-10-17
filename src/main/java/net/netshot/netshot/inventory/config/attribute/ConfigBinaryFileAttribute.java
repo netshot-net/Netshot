@@ -24,19 +24,15 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Slf4j
 @Entity
@@ -110,23 +106,17 @@ public final class ConfigBinaryFileAttribute extends ConfigAttribute {
 	private String uid;
 
 	/** Original name of the file. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String originalName;
 
 	/** File size (in bytes). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private long fileSize;
 
 	/** File checksum (SHA256). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String checksum;
 

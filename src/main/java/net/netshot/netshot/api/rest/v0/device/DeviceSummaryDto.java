@@ -18,11 +18,9 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The summary representation of a device, as listed by the device list.
@@ -39,7 +37,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param softwareLevel the software conformance level
  * @param networkClass the network class
  */
-@JsonView(DefaultView.class)
 public record DeviceSummaryDto(
 	long id,
 	String name,

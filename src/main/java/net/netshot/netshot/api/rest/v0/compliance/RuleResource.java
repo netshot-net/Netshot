@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * The REST resource of the compliance rules (text and script rules): list, read, add, edit,
@@ -60,6 +59,7 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 public class RuleResource {
 
 	private final RuleService ruleService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -68,10 +68,12 @@ public class RuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param ruleService the rule use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public RuleResource(RuleService ruleService) {
+	public RuleResource(RuleService ruleService, DriverRegistry driverRegistry) {
 		this.ruleService = ruleService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -85,7 +87,6 @@ public class RuleResource {
 	@Path("/rules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance rules",
 		description = "Retrieves the list of compliance rules, across all policies, with minimal details."
@@ -108,7 +109,6 @@ public class RuleResource {
 	@Path("/policies/{id}/rules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance rules of a policy",
 		description = "Returns the rules owned by a given compliance policy."
@@ -118,7 +118,7 @@ public class RuleResource {
 		@BeanParam PaginationParams paginationParams,
 		@PathParam("id") @Parameter(description = "Policy ID") Long id) throws WebApplicationException {
 		log.debug("REST request, get rules for policy {}.", id);
-		return RuleMapper.toDtos(this.ruleService.listOfPolicy(id, paginationParams.toPage()));
+		return RuleMapper.toDtos(this.driverRegistry, this.ruleService.listOfPolicy(id, paginationParams.toPage()));
 	}
 
 	/**
@@ -133,7 +133,6 @@ public class RuleResource {
 	@Path("/policies/{pid}/rules/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a specific compliance rule of a specific policy",
 		description = "Returns the specific rule owned by a given compliance policy."
@@ -144,7 +143,7 @@ public class RuleResource {
 		@PathParam("id") @Parameter(description = "Rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, get rule {}, policy {}.", id, pid);
-		return RuleMapper.toDto(this.ruleService.getOfPolicy(pid, id));
+		return RuleMapper.toDto(this.driverRegistry, this.ruleService.getOfPolicy(pid, id));
 	}
 
 	/**
@@ -159,7 +158,6 @@ public class RuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a compliance rule",
 		description = "Creates a compliance rule. The associated policy must already exist."
@@ -167,7 +165,7 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public RuleDto addRule(RuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add rule.");
-		RuleDto rule = RuleMapper.toDto(this.ruleService.create(RuleMapper.toDefinition(rsRule)));
+		RuleDto rule = RuleMapper.toDto(this.driverRegistry, this.ruleService.create(RuleMapper.toDefinition(rsRule)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return rule;
 	}
@@ -185,7 +183,6 @@ public class RuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a compliance rule",
 		description = "Edits a compliance rule, by ID."
@@ -194,7 +191,7 @@ public class RuleResource {
 	public RuleDto setRule(@PathParam("id") @Parameter(description = "Rule ID") Long id, RuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit rule {}.", id);
-		return RuleMapper.toDto(this.ruleService.update(id, RuleMapper.toDefinition(rsRule)));
+		return RuleMapper.toDto(this.driverRegistry, this.ruleService.update(id, RuleMapper.toDefinition(rsRule)));
 	}
 
 	/**
@@ -207,7 +204,6 @@ public class RuleResource {
 	@Path("/rules/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a compliance rule",
 		description = "Removes a compliance rule, by ID."
@@ -236,7 +232,6 @@ public class RuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Test a compliance rule",
 		description = "Test a compliance rule against a given device, in dry run mode."
@@ -259,7 +254,6 @@ public class RuleResource {
 	@Path("/rule/{id}/exempteddevices")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the exempted devices of a compliance rule",
 		description = "Returns the list of devices which have an exemption against a given compliance rule, by ID."
@@ -283,7 +277,6 @@ public class RuleResource {
 	@Path("/devices/{id}/complianceresults")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance results for a device",
 		description = "Returns the compliance results for a give device, by ID."

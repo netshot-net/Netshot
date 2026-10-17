@@ -23,6 +23,8 @@ import java.util.List;
 
 import org.hibernate.Hibernate;
 
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.task.Task;
@@ -61,11 +63,12 @@ public final class TaskMapper {
 	/**
 	 * Maps a task to its full representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param task the task, detached
 	 * @return the DTO, of the subtype matching the type of the task
 	 * @throws IllegalArgumentException if the type of task has no representation
 	 */
-	public static TaskDto toDto(Task task) {
+	public static TaskDto toDto(DriverRegistry driverRegistry, Task task) {
 		Task concrete = (Task) Hibernate.unproxy(task);
 		TaskBaseDto base = toBaseDto(concrete);
 		if (concrete instanceof TakeSnapshotTask) {
@@ -83,7 +86,7 @@ public final class TaskMapper {
 		else if (concrete instanceof DiscoverDeviceTypeTask discover) {
 			Device resultDevice = discover.getDiscoverResultDevice();
 			return new TaskDto.DiscoverDeviceType(base, discover.getDeviceAddress(), resultDevice == null ? 0 : resultDevice.getId(),
-				discover.getDiscoveredDeviceTypeDescription(), discover.getSnapshotTaskId());
+				discoveredDeviceTypeDescription(driverRegistry, discover), discover.getSnapshotTaskId());
 		}
 		else if (concrete instanceof TakeGroupSnapshotTask snapshot) {
 			return new TaskDto.TakeGroupSnapshot(base, deviceGroupId(concrete), snapshot.getLimitToOutofdateDeviceHours());
@@ -108,6 +111,15 @@ public final class TaskMapper {
 			return new TaskDto.ScanSubnets(base);
 		}
 		throw new IllegalArgumentException("No representation for the task type " + concrete.getClass().getSimpleName());
+	}
+
+	// The description of the discovered device type, "Unknown" when there is no such driver
+	private static String discoveredDeviceTypeDescription(DriverRegistry driverRegistry, DiscoverDeviceTypeTask task) {
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(task.getDiscoveredDeviceType());
+		if (deviceDriver == null) {
+			return "Unknown";
+		}
+		return deviceDriver.getDescription();
 	}
 
 	private static TaskBaseDto toBaseDto(Task task) {

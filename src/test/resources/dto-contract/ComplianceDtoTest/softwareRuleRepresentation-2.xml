@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<SoftwareRule>
+  <deviceType/>
+  <driver/>
+  <family/>
+  <familyRegExp>false</familyRegExp>
+  <id>6</id>
+  <level>BRONZE</level>
+  <partNumber/>
+  <partNumberRegExp>false</partNumberRegExp>
+  <targetGroup/>
+  <version>1</version>
+  <versionRegExp>false</versionRegExp>
+</SoftwareRule>

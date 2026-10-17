@@ -1,0 +1,21 @@
+{
+  "deviceType": "Cisco IOS and IOS-XE",
+  "driver": "CiscoIOS12",
+  "family": "Cisco 2900",
+  "familyRegExp": true,
+  "id": 5,
+  "level": "SILVER",
+  "partNumber": "CISCO.*",
+  "partNumberRegExp": true,
+  "targetGroup": {
+    "changeDate": 1600000200000,
+    "folder": "Production",
+    "hiddenFromReports": true,
+    "id": 100,
+    "name": "Dynamic",
+    "query": "[Name] contains \"r\"",
+    "type": "DynamicDeviceGroup"
+  },
+  "version": "15\\..*",
+  "versionRegExp": true
+}

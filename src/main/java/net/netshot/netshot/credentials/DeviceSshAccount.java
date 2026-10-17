@@ -19,14 +19,12 @@
 package net.netshot.netshot.credentials;
 
 import jakarta.persistence.Entity;
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 
 /**
  * An SSH account.
  */
 @Entity
-@XmlRootElement()
 public class DeviceSshAccount extends DeviceCliAccount {
 
 	/**

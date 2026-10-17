@@ -19,14 +19,12 @@
 package net.netshot.netshot.credentials;
 
 import jakarta.persistence.Entity;
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 
 /**
  * A SNMPv1 community.
  */
 @Entity
-@XmlRootElement
 public class DeviceSnmpv1Community extends DeviceSnmpCommunity {
 
 	/**

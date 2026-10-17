@@ -29,11 +29,6 @@ import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,28 +41,15 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A group of devices.
  */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-@XmlAccessorType(XmlAccessType.NONE)
-@XmlRootElement()
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({
-	@Type(value = DynamicDeviceGroup.class, name = "DynamicDeviceGroup"),
-	@Type(value = StaticDeviceGroup.class, name = "StaticDeviceGroup"),
-})
 public abstract class DeviceGroup {
 
 	/** The cached devices, in user-defined order (for static groups). */
@@ -80,9 +62,7 @@ public abstract class DeviceGroup {
 	protected List<DeviceGroupMembership> cachedMemberships = new ArrayList<>();
 
 	/** The change date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected Date changeDate;
 
@@ -95,32 +75,27 @@ public abstract class DeviceGroup {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlAttribute, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	protected long id;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@NaturalId(mutable = true),
-		@XmlElement, @JsonView(DefaultView.class)
+		@NaturalId(mutable = true)
 	}))
 	@Setter
 	protected String name;
 
 	/** Folder containing the group. */
 	@Getter(onMethod = @__({
-		@Column(length = 1000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 1000)
 	}))
 	@Setter
 	protected String folder = "";
 
 	/** Whether the group should be hidden in reports. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean hiddenFromReports;
 

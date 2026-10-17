@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <deviceType>Cisco IOS and IOS-XE</deviceType>
+    <driver>CiscoIOS12</driver>
+    <family>Cisco 2900</family>
+    <familyRegExp>true</familyRegExp>
+    <id>5</id>
+    <level>SILVER</level>
+    <partNumber>CISCO.*</partNumber>
+    <partNumberRegExp>true</partNumberRegExp>
+    <targetGroup type="DynamicDeviceGroup">
+      <changeDate>1600000200000</changeDate>
+      <folder>Production</folder>
+      <hiddenFromReports>true</hiddenFromReports>
+      <id>100</id>
+      <name>Dynamic</name>
+      <query>[Name] contains &quot;r&quot;</query>
+    </targetGroup>
+    <version>15\..*</version>
+    <versionRegExp>true</versionRegExp>
+  </item>
+  <item>
+    <deviceType/>
+    <driver/>
+    <family/>
+    <familyRegExp>false</familyRegExp>
+    <id>6</id>
+    <level>BRONZE</level>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup/>
+    <version>1</version>
+    <versionRegExp>false</versionRegExp>
+  </item>
+  <item>
+    <deviceType/>
+    <driver>NoSuchDriver</driver>
+    <family/>
+    <familyRegExp>false</familyRegExp>
+    <id>7</id>
+    <level>GOLD</level>
+    <partNumber/>
+    <partNumberRegExp>false</partNumberRegExp>
+    <targetGroup type="StaticDeviceGroup">
+      <changeDate>1600000300000</changeDate>
+      <folder/>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>101</id>
+      <name>Static</name>
+    </targetGroup>
+    <version>1</version>
+    <versionRegExp>false</versionRegExp>
+  </item>
+</ArrayList>

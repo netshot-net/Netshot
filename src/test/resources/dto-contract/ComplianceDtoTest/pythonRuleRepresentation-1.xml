@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<PythonRule type="PythonRule">
+  <enabled>false</enabled>
+  <id>9</id>
+  <name>Python rule</name>
+  <script>def check(device):&#10;  return {'result': result_option.CONFORMING}</script>
+</PythonRule>

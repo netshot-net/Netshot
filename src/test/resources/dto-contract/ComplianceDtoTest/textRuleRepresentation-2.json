@@ -1,0 +1,16 @@
+{
+  "anyBlock": false,
+  "context": null,
+  "deviceDriver": "NoSuchDriver",
+  "deviceDriverDescription": "Unknown driver",
+  "enabled": false,
+  "field": null,
+  "id": 0,
+  "invert": false,
+  "matchAll": false,
+  "name": "Other",
+  "normalize": false,
+  "regExp": false,
+  "text": null,
+  "type": "TextRule"
+}

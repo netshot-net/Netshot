@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<DeviceSshAccount type="SSH">
+  <deviceSpecific>false</deviceSpecific>
+  <id>0</id>
+  <mgmtDomain/>
+  <name>n</name>
+  <password/>
+  <passwordVaultInstanceId/>
+  <passwordVaultPath/>
+  <superPassword/>
+  <superPasswordVaultInstanceId/>
+  <superPasswordVaultPath/>
+  <username/>
+  <usernameVaultInstanceId/>
+  <usernameVaultPath/>
+</DeviceSshAccount>

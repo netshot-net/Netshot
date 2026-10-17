@@ -18,22 +18,14 @@
  */
 package net.netshot.netshot.credentials;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.platform.database.StringEncryptorConverter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.vault.VaultInstance;
 import net.netshot.netshot.vault.VaultableSecret;
 
@@ -46,9 +38,6 @@ public abstract class DeviceSnmpCommunity extends DeviceCredentialSet {
 
 	/** The community. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = HideSecretSerializer.class),
-		@JsonDeserialize(using = HideSecretDeserializer.class),
 		@Convert(converter = StringEncryptorConverter.class)
 	}))
 	@Setter
@@ -67,14 +56,12 @@ public abstract class DeviceSnmpCommunity extends DeviceCredentialSet {
 	 * implicit default it computes anyway).
 	 */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@JsonIgnore
+		@ManyToOne
 	}))
 	@Setter
 	private VaultInstance communityVaultInstanceId;
 
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(name = "community_vault_path")
 	}))
 	@Setter
@@ -101,15 +88,11 @@ public abstract class DeviceSnmpCommunity extends DeviceCredentialSet {
 	}
 
 	/**
-	 * JSON/XML-facing accessor - named differently in Java than the internal
+	 * Accessor of the Vault instance ID, named differently in Java than the internal
 	 * {@link #getCommunityVaultInstanceId()} JPA getter (which returns the
-	 * entity, not the ID), but mapped to the same wire property name via
-	 * {@code @JsonProperty} so the API contract is unaffected.
+	 * entity, not the ID).
 	 * @return the Vault instance ID, or null if not Vault-backed
 	 */
-	@XmlElement(name = "communityVaultInstanceId")
-	@JsonView(DefaultView.class)
-	@JsonProperty("communityVaultInstanceId")
 	@Transient
 	public Long getResolvedCommunityVaultInstanceId() {
 		if (this.communityPendingVaultInstanceId != null) {
@@ -118,13 +101,12 @@ public abstract class DeviceSnmpCommunity extends DeviceCredentialSet {
 		return this.communityVaultInstanceId == null ? null : this.communityVaultInstanceId.getId();
 	}
 
-	@JsonProperty("communityVaultInstanceId")
 	public void setResolvedCommunityVaultInstanceId(Long vaultInstanceId) {
 		this.communityPendingVaultInstanceId = vaultInstanceId;
 	}
 
 	/**
-	 * Bundles the community's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped, not Jackson-visible.
+	 * Bundles the community's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
 	 * @return the bundled community secret
 	 */
 	@Transient

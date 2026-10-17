@@ -51,10 +51,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -83,47 +79,45 @@ public class Http implements Client {
 	 * Declarative HTTP authentication scheme for an access, inspired by
 	 * OpenAPI's {@code securitySchemes} object.
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static final class AuthScheme {
 		/** "http", "apiKey", "cookie", "oauth2" or "openIdConnect". */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String type;
 
 		/** For type "http": "basic" or "bearer". */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String scheme;
 
 		/** For type "apiKey": "header", "query" or "cookie". */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String in;
 
 		/** For type "apiKey": the header/query/cookie name. */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String name;
 
 		/** For type "cookie": the HTTP method used to log in ("POST" or "PUT"). */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String method;
 
 		/** For type "cookie": the login request path (relative to the access's base path). */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String path;
 
 		/** For type "cookie": the login request body, with {@code $$NetshotUsername$$}/
 		 * {@code $$NetshotPassword$$} placeholders substituted from the resolved credential. */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private Map<String, Object> data;
 
 		/** For type "cookie": "json" or "form" - how {@link #data} is encoded in the login request body. */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String contentType;
 
@@ -134,26 +128,24 @@ public class Http implements Client {
 	/**
 	 * Embedded class to represent HTTP-specific access configuration.
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static final class HttpConfig {
 		/** Default TCP port for this access, when not overridden on the device. */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private int defaultPort = DEFAULT_PORT;
 
 		/** Whether this access uses TLS ("https") or plain HTTP. */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private boolean tls = true;
 
 		/** Optional base path prepended to every request path. */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private String basePath;
 
 		/** Declared authentication scheme for this access (may be null = no auth). */
-		@Getter(onMethod = @__({ @XmlElement }))
+		@Getter
 		@Setter
 		private AuthScheme auth;
 

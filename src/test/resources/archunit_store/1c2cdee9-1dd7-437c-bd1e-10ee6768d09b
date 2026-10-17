@@ -1,0 +1,6 @@
+Method <net.netshot.netshot.inventory.group.DynamicDeviceGroup.refreshAllGroups()> calls method <net.netshot.netshot.platform.database.Database.getSession()> in (DynamicDeviceGroup.java:193)
+Method <net.netshot.netshot.inventory.group.DynamicDeviceGroup.refreshAllGroups()> calls method <net.netshot.netshot.platform.database.Database.rollbackSilently(org.hibernate.Session)> in (DynamicDeviceGroup.java:226)
+Method <net.netshot.netshot.inventory.group.DynamicDeviceGroup.refreshAllGroupsOfOneDevice(java.lang.Long)> calls method <net.netshot.netshot.platform.database.Database.getSession()> in (DynamicDeviceGroup.java:163)
+Method <net.netshot.netshot.inventory.group.DynamicDeviceGroup.refreshAllGroupsOfOneDevice(java.lang.Long)> calls method <net.netshot.netshot.platform.database.Database.rollbackSilently(org.hibernate.Session)> in (DynamicDeviceGroup.java:170)
+Method <net.netshot.netshot.task.Task.isCancelRequestedFresh()> calls method <net.netshot.netshot.platform.database.Database.getSession(boolean)> in (Task.java:645)
+Static Initializer <net.netshot.netshot.task.Task.<clinit>()> calls method <net.netshot.netshot.platform.database.Database.listClassesInPackage(java.lang.String)> in (Task.java:227)

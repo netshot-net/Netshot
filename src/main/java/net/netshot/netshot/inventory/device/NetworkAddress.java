@@ -23,22 +23,13 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * An IP address - abstract, can be either IPv4 or IPv6.
  */
 @Embeddable
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public abstract class NetworkAddress {
 
 	/**
@@ -124,13 +115,9 @@ public abstract class NetworkAddress {
 	 * @return the ip
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public abstract String getIp();
 
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public abstract int getPrefixLength();
 
 	@Transient

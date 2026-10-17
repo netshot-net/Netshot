@@ -18,24 +18,18 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.quartz.JobKey;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -98,8 +92,6 @@ public final class TakeGroupSnapshotTask extends Task
 	 * Only capture devices updated more than X hours ago.
 	 * @return the limit, in hours (-1 = no limit)
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getLimitToOutofdateDeviceHours() {
 		return this.getIntAttribute("limitToOutofdateDeviceHours", -1);
@@ -117,8 +109,6 @@ public final class TakeGroupSnapshotTask extends Task
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Group snapshot";
@@ -128,8 +118,6 @@ public final class TakeGroupSnapshotTask extends Task
 	 * Get the ID of the associate group.
 	 * @return the ID of the group
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getDeviceGroupId() {
 		if (this.getDeviceGroup() == null) {
@@ -150,46 +138,6 @@ public final class TakeGroupSnapshotTask extends Task
 		else {
 			Hibernate.initialize(this.getDeviceListMembers());
 		}
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		List<Device> allDevices = this.getTargetDevices();
-		if (this.getDeviceGroup() == null && allDevices.isEmpty()) {
-			this.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		String comment = this.getDeviceGroup() == null
-			? String.format("Started due to %d-device snapshot list", allDevices.size())
-			: String.format("Started due to group %s snapshot", this.getDeviceGroup().getName());
-
-		Calendar referenceDate = Calendar.getInstance();
-		referenceDate.add(Calendar.HOUR, -this.getLimitToOutofdateDeviceHours());
-		List<Device> devices = new ArrayList<>();
-		for (Device device : allDevices) {
-			if (referenceDate.getTime().before(device.getChangeDate())) {
-				this.logger.info("Ignoring device {} because it changed less than {} hours ago",
-					device.getName(), this.getLimitToOutofdateDeviceHours());
-				continue;
-			}
-			devices.add(device);
-		}
-		log.debug("Task {}. {} device(s) to process (out of {}).", this.getId(), devices.size(), allDevices.size());
-
-		List<Task> children = this.reloadExistingChildren();
-		if (children.isEmpty()) {
-			children = new ArrayList<>();
-			for (Device device : devices) {
-				children.add(new TakeSnapshotTask(device, comment, author, false,
-					this.isDontRunDiagnostics(), this.isDontCheckCompliance()));
-			}
-			this.preCreateChildren(children);
-		}
-		this.status = this.orchestrateChildren(children);
 	}
 
 	/*(non-Javadoc)
