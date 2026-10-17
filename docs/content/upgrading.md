@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* **Static groups (0.25.x)**: since 0.25.0, a device was removed from all its static groups each time its dynamic groups were refreshed, that is after a snapshot, a compliance check, diagnostics, a script run, a device type discovery, or a device creation or update through the API ([#413](https://github.com/netshot-net/Netshot/issues/413)). This is fixed, but the lost memberships can't be restored automatically: check your static groups after the upgrade, and add the missing devices again (or restore them from a database backup taken before the upgrade to 0.25).
 * XML request bodies (`Content-Type: application/xml`) used to be rejected with a 500 error on all `POST` and `PUT` endpoints, and are now accepted, with the same properties as the JSON bodies (the name of the root element is ignored). Clients which sent JSON are not affected. See [XML requests](api/rest-api.md#xml-requests).
 
 ### Any version to 0.25.1+
