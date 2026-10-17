@@ -79,7 +79,8 @@ public class ApiTokenService {
 	public ApiToken authenticate(String token) {
 		String hash = ApiToken.hashToken(token.trim());
 		try {
-			ApiToken apiToken = this.transactions.read(session -> this.repository.findByHash(session, hash));
+			// Read-write pool, as before: a token just created must work even with a lagging read database
+			ApiToken apiToken = this.transactions.write(session -> this.repository.findByHash(session, hash));
 			if (apiToken == null) {
 				AAA_LOG.warn("Invalid API token received.");
 			}
