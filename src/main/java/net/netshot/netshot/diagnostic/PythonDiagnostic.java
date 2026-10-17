@@ -18,11 +18,7 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import javax.script.ScriptException;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
-import org.graalvm.polyglot.Value;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -36,9 +32,7 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
@@ -83,19 +77,6 @@ public class PythonDiagnostic extends Diagnostic {
 		String script) {
 		super(name, enabled, targetGroup, resultType);
 		this.script = script;
-	}
-
-	@Override
-	public Value getJsObject(Device device, Context context) throws ScriptException {
-		Source diagSource = Source.newBuilder("python", this.getScript(),
-			"_diag%d.py".formatted(this.getId())).buildLiteral();
-		ScriptToolbox.loadPython(context);
-		context.eval(diagSource);
-		Value diagnose = context.getBindings("python").getMember("diagnose");
-		if (!diagnose.canExecute()) {
-			throw new ScriptException(String.format("Unable to find 'diagnose' function in '%s' Python diagnostic", this.getName()));
-		}
-		return diagnose;
 	}
 
 }
