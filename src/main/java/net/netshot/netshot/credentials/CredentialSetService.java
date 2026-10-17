@@ -104,6 +104,8 @@ public class CredentialSetService {
 					credentialSet.setMgmtDomain(domain);
 				}
 				credentialSet.setDeviceSpecific(false);
+				// The ID is assigned by the database: a posted one is ignored
+				credentialSet.setId(0);
 				CredentialSets.applyVaultableFields(session, credentialSet, credentialSet);
 				this.repository.add(session, credentialSet);
 				this.repository.refresh(session, credentialSet);
