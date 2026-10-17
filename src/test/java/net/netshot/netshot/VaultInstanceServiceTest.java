@@ -187,8 +187,8 @@ class VaultInstanceServiceTest extends WithDatabaseTest {
 		Assertions.assertEquals("secret", reloaded.getAppRoleSecretId(), "the secret which is not given is kept");
 		Assertions.assertEquals("jwt-secret", reloaded.getJwtClientSecret(), "the secret which is not given is kept");
 		Assertions.assertEquals("client", reloaded.getJwtClientId());
-		Assertions.assertEquals("approle", reloaded.getAppRoleMountPath(), "the mount paths are not edited (a known quirk)");
-		Assertions.assertEquals("jwt", reloaded.getJwtMountPath(), "the mount paths are not edited (a known quirk)");
+		Assertions.assertEquals("changed-approle", reloaded.getAppRoleMountPath());
+		Assertions.assertEquals("changed-jwt", reloaded.getJwtMountPath());
 		Assertions.assertEquals(List.of(created.getId()), this.notified.subList(notifications, this.notified.size()));
 
 		HashicorpVaultKv2Instance withSecrets = this.definition(incoming.getName());
