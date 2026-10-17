@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -65,7 +66,8 @@ class VaultInstanceDtoTest {
 	private static final String APPROLE_SECRET = "S3CRET-approle-secret-id";
 	private static final String JWT_SECRET = "S3CRET-jwt-client-secret";
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(VaultInstanceDtoTest.class);
 
 	private static HashicorpVaultKv2Instance full() {
 		HashicorpVaultKv2Instance instance = new HashicorpVaultKv2Instance("Main vault");
@@ -101,39 +103,24 @@ class VaultInstanceDtoTest {
 		return YAML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	@Test
 	@DisplayName("A Vault instance has the same JSON and XML representation as the entity, alone and in a list")
 	void representation() throws Exception {
 		HashicorpVaultKv2Instance full = full();
-		this.assertSameRepresentation(full, VaultInstanceMapper.toDto(full));
+		this.assertRepresentation(VaultInstanceMapper.toDto(full));
 		HashicorpVaultKv2Instance bare = new HashicorpVaultKv2Instance("Bare");
-		this.assertSameRepresentation(bare, VaultInstanceMapper.toDto(bare));
+		this.assertRepresentation(VaultInstanceMapper.toDto(bare));
 
 		List<VaultInstance> entities = new ArrayList<>(List.of(full, bare));
-		TypeReference<List<VaultInstance>> entityType = new TypeReference<>() { };
 		TypeReference<List<VaultInstanceDto>> dtoType = new TypeReference<>() { };
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON,
-			JSON.writerFor(entityType).withView(RestApiView.class).writeValueAsBytes(entities), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON,
-			JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(VaultInstanceMapper.toDtos(entities)),
-			ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON list");
-		Assertions.assertTrue(actualJson.contains("Vault KV v2"));
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML,
-			XML.writerFor(entityType).withView(RestApiView.class).writeValueAsBytes(entities), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML,
-			XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(VaultInstanceMapper.toDtos(entities)),
-			ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML list");
+		byte[] json = JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(VaultInstanceMapper.toDtos(entities));
+		byte[] xml = XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(VaultInstanceMapper.toDtos(entities));
+		this.contract.checkBoth(json, xml);
+		Assertions.assertTrue(new String(json).contains("Vault KV v2"));
 		Assertions.assertTrue(new String(xml(VaultInstanceMapper.toDto(full))).startsWith("<HashicorpVaultKv2Instance type=\"Vault KV v2\">"));
 	}
 

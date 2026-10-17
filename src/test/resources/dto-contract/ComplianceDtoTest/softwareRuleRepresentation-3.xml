@@ -5,7 +5,7 @@
     <driver>CiscoIOS12</driver>
     <family>Cisco 2900</family>
     <familyRegExp>true</familyRegExp>
-    <id>&lt;now&gt;</id>
+    <id>5</id>
     <level>SILVER</level>
     <partNumber>CISCO.*</partNumber>
     <partNumberRegExp>true</partNumberRegExp>
@@ -13,7 +13,7 @@
       <changeDate>1600000200000</changeDate>
       <folder>Production</folder>
       <hiddenFromReports>true</hiddenFromReports>
-      <id>&lt;now&gt;</id>
+      <id>100</id>
       <name>Dynamic</name>
       <query>[Name] contains &quot;r&quot;</query>
     </targetGroup>
@@ -25,12 +25,12 @@
     <driver/>
     <family/>
     <familyRegExp>false</familyRegExp>
-    <id>&lt;now&gt;</id>
+    <id>6</id>
     <level>BRONZE</level>
     <partNumber/>
     <partNumberRegExp>false</partNumberRegExp>
     <targetGroup/>
-    <version>&lt;now&gt;</version>
+    <version>1</version>
     <versionRegExp>false</versionRegExp>
   </item>
   <item>
@@ -38,7 +38,7 @@
     <driver>NoSuchDriver</driver>
     <family/>
     <familyRegExp>false</familyRegExp>
-    <id>&lt;now&gt;</id>
+    <id>7</id>
     <level>GOLD</level>
     <partNumber/>
     <partNumberRegExp>false</partNumberRegExp>
@@ -46,10 +46,10 @@
       <changeDate>1600000300000</changeDate>
       <folder/>
       <hiddenFromReports>false</hiddenFromReports>
-      <id>&lt;now&gt;</id>
+      <id>101</id>
       <name>Static</name>
     </targetGroup>
-    <version>&lt;now&gt;</version>
+    <version>1</version>
     <versionRegExp>false</versionRegExp>
   </item>
 </ArrayList>

@@ -5,14 +5,14 @@
   "endOfSale": 1600000000000,
   "family": "Cisco 2900",
   "familyRegExp": false,
-  "id": "<now>",
+  "id": 5,
   "partNumber": "CISCO29.*",
   "partNumberRegExp": true,
   "targetGroup": {
     "changeDate": 1600000300000,
     "folder": "",
     "hiddenFromReports": false,
-    "id": "<now>",
+    "id": 101,
     "name": "Static",
     "type": "StaticDeviceGroup"
   }

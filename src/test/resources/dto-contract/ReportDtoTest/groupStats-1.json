@@ -1,16 +1,16 @@
 [
   {
-    "compliantDeviceCount": "<now>",
-    "deviceCount": "<now>",
+    "compliantDeviceCount": 2,
+    "deviceCount": 5,
     "groupFolder": "Production/Core",
-    "groupId": "<now>",
+    "groupId": 1,
     "groupName": "Core"
   },
   {
-    "compliantDeviceCount": "<now>",
-    "deviceCount": "<now>",
+    "compliantDeviceCount": 0,
+    "deviceCount": 0,
     "groupFolder": null,
-    "groupId": "<now>",
+    "groupId": 2,
     "groupName": "Empty"
   }
 ]

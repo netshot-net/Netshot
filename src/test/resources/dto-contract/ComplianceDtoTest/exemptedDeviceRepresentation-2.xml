@@ -7,7 +7,7 @@
     <eos/>
     <expirationDate>1700000000000</expirationDate>
     <family>Cisco</family>
-    <id>&lt;now&gt;</id>
+    <id>1</id>
     <mgmtAddress>1.2.3.4</mgmtAddress>
     <name>r1</name>
     <networkClass>ROUTER</networkClass>

@@ -4,7 +4,7 @@
   "eol": true,
   "eos": false,
   "family": "Cisco",
-  "id": "<now>",
+  "id": 5,
   "lastFailure": 1700000000000,
   "lastSuccess": 1600000000000,
   "mgmtAddress": "10.0.0.5",

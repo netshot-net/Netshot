@@ -8,7 +8,7 @@
   <communityVaultInstanceId/>
   <communityVaultPath/>
   <deviceSpecific>false</deviceSpecific>
-  <id>&lt;now&gt;</id>
+  <id>3</id>
   <mgmtDomain/>
   <name>SNMP v3</name>
   <privKey>=</privKey>

@@ -5,7 +5,7 @@
   <deviceDriver>CiscoIOS12</deviceDriver>
   <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
   <enabled>true</enabled>
-  <id>&lt;now&gt;</id>
+  <id>5</id>
   <modifierPattern>(.*)</modifierPattern>
   <modifierReplacement>$1</modifierReplacement>
   <name>Simple</name>
@@ -14,7 +14,7 @@
     <changeDate>1600000200000</changeDate>
     <folder>Production</folder>
     <hiddenFromReports>false</hiddenFromReports>
-    <id>&lt;now&gt;</id>
+    <id>100</id>
     <name>Dynamic</name>
     <query>[Name] contains &quot;r&quot;</query>
   </targetGroup>

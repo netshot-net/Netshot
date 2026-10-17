@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <DeviceSshAccount type="SSH">
   <deviceSpecific>false</deviceSpecific>
-  <id>&lt;now&gt;</id>
+  <id>4</id>
   <mgmtDomain/>
   <name>SSH</name>
   <password>=</password>

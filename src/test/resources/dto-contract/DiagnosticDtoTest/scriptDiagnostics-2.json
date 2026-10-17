@@ -1,6 +1,6 @@
 {
   "enabled": false,
-  "id": "<now>",
+  "id": 6,
   "name": "JS",
   "resultType": "NUMERIC",
   "script": null,

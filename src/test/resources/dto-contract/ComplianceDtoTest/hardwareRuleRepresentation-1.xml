@@ -6,14 +6,14 @@
   <endOfSale>1600000000000</endOfSale>
   <family>Cisco 2900</family>
   <familyRegExp>false</familyRegExp>
-  <id>&lt;now&gt;</id>
+  <id>5</id>
   <partNumber>CISCO29.*</partNumber>
   <partNumberRegExp>true</partNumberRegExp>
   <targetGroup type="StaticDeviceGroup">
     <changeDate>1600000300000</changeDate>
     <folder/>
     <hiddenFromReports>false</hiddenFromReports>
-    <id>&lt;now&gt;</id>
+    <id>101</id>
     <name>Static</name>
   </targetGroup>
 </HardwareRule>

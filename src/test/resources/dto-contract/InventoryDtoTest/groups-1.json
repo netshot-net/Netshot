@@ -2,7 +2,7 @@
   "changeDate": 1600000200000,
   "folder": "Production",
   "hiddenFromReports": true,
-  "id": "<now>",
+  "id": 10,
   "name": "Dynamic",
   "query": "[Name] contains \"r\"",
   "type": "DynamicDeviceGroup"

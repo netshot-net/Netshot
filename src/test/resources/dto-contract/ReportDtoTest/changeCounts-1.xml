@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <ArrayList>
   <item>
-    <changeCount>&lt;now&gt;</changeCount>
+    <changeCount>3</changeCount>
     <changeDay>1600000000000</changeDay>
   </item>
   <item>
-    <changeCount>&lt;now&gt;</changeCount>
+    <changeCount>0</changeCount>
     <changeDay>1700000000000</changeDay>
   </item>
 </ArrayList>

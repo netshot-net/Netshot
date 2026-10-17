@@ -5,7 +5,7 @@
     <communityVaultInstanceId/>
     <communityVaultPath/>
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>1</id>
     <mgmtDomain/>
     <name>SNMP v1</name>
   </item>
@@ -14,11 +14,11 @@
     <communityVaultInstanceId/>
     <communityVaultPath/>
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>2</id>
     <mgmtDomain>
       <changeDate>1600000000000</changeDate>
       <description>Paris data center</description>
-      <id>&lt;now&gt;</id>
+      <id>1</id>
       <name>Paris DC</name>
       <server4Address>10.255.0.1</server4Address>
       <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
@@ -34,7 +34,7 @@
     <communityVaultInstanceId/>
     <communityVaultPath/>
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>3</id>
     <mgmtDomain/>
     <name>SNMP v3</name>
     <privKey>=</privKey>
@@ -47,7 +47,7 @@
   </item>
   <item type="SSH">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>4</id>
     <mgmtDomain/>
     <name>SSH</name>
     <password>=</password>
@@ -62,11 +62,11 @@
   </item>
   <item type="SSH Key">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>5</id>
     <mgmtDomain>
       <changeDate>1600000000000</changeDate>
       <description>Paris data center</description>
-      <id>&lt;now&gt;</id>
+      <id>1</id>
       <name>Paris DC</name>
       <server4Address>10.255.0.1</server4Address>
       <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
@@ -87,7 +87,7 @@
   </item>
   <item type="Telnet">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>6</id>
     <mgmtDomain/>
     <name>Telnet</name>
     <password>=</password>
@@ -102,7 +102,7 @@
   </item>
   <item type="HTTP">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>7</id>
     <mgmtDomain/>
     <name>HTTP</name>
     <password>=</password>
