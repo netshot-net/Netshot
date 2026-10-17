@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* REST API: an unknown ID now answers 404 on `GET /tasks/{id}` (`NETSHOT_TASK_NOT_FOUND`) and `GET /scripts/{id}` (`NETSHOT_SCRIPT_NOT_FOUND`), which used to answer 204 with an empty body, and on `PUT /tasks/{id}` (`NETSHOT_TASK_NOT_FOUND`), which used to answer 400 (`NETSHOT_INVALID_TASK`).
 * REST API: the `userInputDefinitions` posted with a script (`POST /scripts`) are now ignored, and the script is always evaluated to extract them. Posting them used to skip the evaluation, so a script with a syntax error could be saved; object entries (as returned by `GET /scripts`) were refused.
 * REST API: a target group which doesn't exist is now refused (400, `NETSHOT_INVALID_GROUP`) when creating or updating a policy, a software rule, a hardware rule or a diagnostic. It used to be silently dropped: the policy had one group less, and the rule or diagnostic applied to all the devices.
 * REST API: `POST /apitokens` now refuses a token value which is already registered (409, `NETSHOT_DUPLICATE_API_TOKEN`). A token value registered several times never authenticated anyone; if you have such duplicates, delete them and register the token again.
