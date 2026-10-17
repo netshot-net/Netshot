@@ -76,11 +76,12 @@ public class UserService {
 	}
 
 	/**
-	 * Creates a user. The password of a local user is not checked against the password policy.
+	 * Creates a user. The password of a local user must comply with the password policy.
 	 *
 	 * @param creation the user to create
 	 * @return the new user
-	 * @throws NetshotException if the name is empty, a local user has no password, the name is taken
+	 * @throws NetshotException if the name is empty, a local user has no password or one which doesn't
+	 *         comply with the password policy, the name is taken
 	 */
 	public UiUser create(UserCreation creation) {
 		String username = creation.username();
@@ -101,7 +102,21 @@ public class UserService {
 			password = "";
 		}
 
-		UiUser user = new UiUser(username, creation.local(), password);
+		UiUser user;
+		if (creation.local()) {
+			user = new UiUser(username, creation.level());
+			user.setLocal(true);
+			try {
+				user.setPassword(password, PasswordPolicy.getMainPolicy());
+			}
+			catch (PasswordPolicyException e) {
+				log.warn("New user password doesn't comply with password policy.", e);
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_PASSWORD, e.getMessage());
+			}
+		}
+		else {
+			user = new UiUser(username, false, password);
+		}
 		user.setLevel(creation.level());
 
 		try {
