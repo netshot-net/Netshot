@@ -45,6 +45,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.diagnostic.DiagnosticService;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * The REST resource of the diagnostics and of the diagnostic results of the devices.
@@ -54,6 +55,7 @@ import net.netshot.netshot.diagnostic.DiagnosticService;
 public class DiagnosticResource {
 
 	private final DiagnosticService diagnosticService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -62,10 +64,12 @@ public class DiagnosticResource {
 	 * Instantiates the resource.
 	 *
 	 * @param diagnosticService the diagnostic use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public DiagnosticResource(DiagnosticService diagnosticService) {
+	public DiagnosticResource(DiagnosticService diagnosticService, DriverRegistry driverRegistry) {
 		this.diagnosticService = diagnosticService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -89,7 +93,7 @@ public class DiagnosticResource {
 	)
 	public List<DiagnosticDto> getDiagnostics(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, get diagnotics.");
-		return DiagnosticMapper.toDtos(this.diagnosticService.list(paginationParams.toPage()));
+		return DiagnosticMapper.toDtos(this.driverRegistry, this.diagnosticService.list(paginationParams.toPage()));
 	}
 
 	/**
@@ -113,7 +117,7 @@ public class DiagnosticResource {
 	)
 	public DiagnosticDto getDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") Long id) throws WebApplicationException {
 		log.debug("REST request, get diagnotic.");
-		return DiagnosticMapper.toDto(this.diagnosticService.get(id));
+		return DiagnosticMapper.toDto(this.driverRegistry, this.diagnosticService.get(id));
 	}
 
 	@POST
@@ -131,7 +135,7 @@ public class DiagnosticResource {
 	)
 	public DiagnosticDto addDiagnostic(DiagnosticRequest rsDiagnostic) throws WebApplicationException {
 		log.debug("REST request, add diagnostic");
-		DiagnosticDto diagnostic = DiagnosticMapper.toDto(this.diagnosticService.create(DiagnosticMapper.toDefinition(rsDiagnostic)));
+		DiagnosticDto diagnostic = DiagnosticMapper.toDto(this.driverRegistry, this.diagnosticService.create(DiagnosticMapper.toDefinition(rsDiagnostic)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return diagnostic;
 	}
@@ -160,7 +164,7 @@ public class DiagnosticResource {
 	public DiagnosticDto setDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") Long id, DiagnosticRequest rsDiagnostic)
 		throws WebApplicationException {
 		log.debug("REST request, edit diagnostic {}.", id);
-		return DiagnosticMapper.toDto(this.diagnosticService.update(id, DiagnosticMapper.toDefinition(rsDiagnostic)));
+		return DiagnosticMapper.toDto(this.driverRegistry, this.diagnosticService.update(id, DiagnosticMapper.toDefinition(rsDiagnostic)));
 	}
 
 	/**

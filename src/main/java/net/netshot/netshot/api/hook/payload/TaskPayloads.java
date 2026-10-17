@@ -32,6 +32,9 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -71,13 +74,14 @@ public final class TaskPayloads {
 	/**
 	 * Maps a task to its payload.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param task the task, attached to an open session and prepared
 	 * @return the payload, of the subtype matching the type of the task
 	 * @throws IllegalArgumentException if the type of task has no payload
 	 */
-	public static TaskPayload toPayload(Task task) {
+	public static TaskPayload toPayload(DriverRegistry driverRegistry, Task task) {
 		Task concrete = (Task) Hibernate.unproxy(task);
-		TaskBasePayload base = toBasePayload(concrete);
+		TaskBasePayload base = toBasePayload(driverRegistry, concrete);
 		if (concrete instanceof TakeSnapshotTask snapshot) {
 			return new TaskPayload.TakeSnapshot(base, snapshot.isAutomatic(), deviceId(concrete));
 		}
@@ -93,7 +97,7 @@ public final class TaskPayloads {
 		else if (concrete instanceof DiscoverDeviceTypeTask discover) {
 			Device resultDevice = discover.getDiscoverResultDevice();
 			return new TaskPayload.DiscoverDeviceType(base, discover.getDeviceAddress(), resultDevice == null ? 0 : resultDevice.getId(),
-				toPayload(resultDevice), discover.getDiscoveredDeviceTypeDescription(), discover.getSnapshotTaskId());
+				toPayload(driverRegistry, resultDevice), discoveredDeviceTypeDescription(driverRegistry, discover), discover.getSnapshotTaskId());
 		}
 		else if (concrete instanceof TakeGroupSnapshotTask snapshot) {
 			return new TaskPayload.TakeGroupSnapshot(base, deviceGroupId(concrete), snapshot.getLimitToOutofdateDeviceHours());
@@ -120,7 +124,7 @@ public final class TaskPayloads {
 		throw new IllegalArgumentException("No webhook payload for the task type " + concrete.getClass().getSimpleName());
 	}
 
-	private static TaskBasePayload toBasePayload(Task task) {
+	private static TaskBasePayload toBasePayload(DriverRegistry driverRegistry, Task task) {
 		return new TaskBasePayload(
 			task.getAuthor(),
 			task.isCancelRequested(),
@@ -130,7 +134,7 @@ public final class TaskPayloads {
 			task.getComments(),
 			task.getCreationDate(),
 			task.isDebugEnabled(),
-			toPayload(task.getDevice()),
+			toPayload(driverRegistry, task.getDevice()),
 			task.getDeviceDriver(),
 			task.isDontCheckCompliance(),
 			task.isDontRunDiagnostics(),
@@ -168,7 +172,26 @@ public final class TaskPayloads {
 		return group == null ? 0 : group.getId();
 	}
 
-	private static DevicePayload toPayload(Device deviceOrProxy) {
+	// The description of the driver of the device
+	private static String realDeviceType(DriverRegistry driverRegistry, Device device) {
+		try {
+			return driverRegistry.forDevice(device).getDescription();
+		}
+		catch (MissingDeviceDriverException e) {
+			return "Unknown driver";
+		}
+	}
+
+	// The description of the discovered device type, "Unknown" when there is no such driver
+	private static String discoveredDeviceTypeDescription(DriverRegistry driverRegistry, DiscoverDeviceTypeTask task) {
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(task.getDiscoveredDeviceType());
+		if (deviceDriver == null) {
+			return "Unknown";
+		}
+		return deviceDriver.getDescription();
+	}
+
+	private static DevicePayload toPayload(DriverRegistry driverRegistry, Device deviceOrProxy) {
 		if (deviceOrProxy == null) {
 			return null;
 		}
@@ -199,7 +222,7 @@ public final class TaskPayloads {
 			device.getName(),
 			device.getNetworkClass(),
 			ownerGroups,
-			device.getRealDeviceType(),
+			realDeviceType(driverRegistry, device),
 			device.getSerialNumber(),
 			device.getSoftwareLevel(),
 			device.getSoftwareVersion(),

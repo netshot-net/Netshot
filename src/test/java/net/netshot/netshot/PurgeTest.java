@@ -45,7 +45,7 @@ public class PurgeTest extends WithDatabaseTest {
 	protected static void initNetshot() throws Exception {
 		Netshot.initConfig(PurgeTest.getNetshotConfig());
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		Thread.sleep(1000);
 	}
 

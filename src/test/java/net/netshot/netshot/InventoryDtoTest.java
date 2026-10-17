@@ -83,7 +83,7 @@ class InventoryDtoTest {
 	@BeforeAll
 	static void loadDrivers() throws Exception {
 		Netshot.initConfig(new Properties());
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	private static byte[] json(Object value) throws Exception {
@@ -185,7 +185,7 @@ class InventoryDtoTest {
 	@Test
 	@DisplayName("The device types have the same representation as the driver objects they replace")
 	void deviceTypes() throws Exception {
-		List<DeviceDriver> drivers = new ArrayList<>(DeviceDriver.getAllDrivers());
+		List<DeviceDriver> drivers = new ArrayList<>(TestDrivers.registry().getAllDrivers());
 		Assertions.assertFalse(drivers.isEmpty());
 		List<DeviceTypeDto> dtos = new ArrayList<>(DeviceCatalogMapper.toDeviceTypeDtos(drivers));
 		this.contract.checkBoth(json(dtos), xml(dtos), ApiContractGolden.Transform.DEVICE_TYPES);

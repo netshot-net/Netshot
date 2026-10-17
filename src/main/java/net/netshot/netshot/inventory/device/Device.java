@@ -67,7 +67,6 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -782,21 +781,6 @@ public class Device {
 		return groups;
 	}
 
-	@Transient
-	public DeviceDriver getDeviceDriver() throws MissingDeviceDriverException {
-		if (driver == null) {
-			String message = String.format("The device with ID %d has no associated driver.", id);
-			throw new MissingDeviceDriverException(message);
-		}
-		DeviceDriver deviceDriver = DeviceDriver.getDriverByName(driver);
-		if (deviceDriver == null) {
-			String message = String.format("Unable to locate the driver %s for device %d.", driver, id);
-			throw new MissingDeviceDriverException(message);
-		}
-		return deviceDriver;
-	}
-
-
 	/**
 	 * Get a network interface based on its name.
 	 * @param interfaceName = the name of the interface to look for
@@ -810,24 +794,6 @@ public class Device {
 			}
 		}
 		return null;
-	}
-
-
-	/**
-	 * Gets the device type - in a non static manner to include it with JAXB.
-	 * 
-	 * @return the device type
-	 */
-	@Transient
-	public String getRealDeviceType() {
-		DeviceDriver deviceDriver;
-		try {
-			deviceDriver = getDeviceDriver();
-			return deviceDriver.getDescription();
-		}
-		catch (MissingDeviceDriverException e) {
-			return "Unknown driver";
-		}
 	}
 
 

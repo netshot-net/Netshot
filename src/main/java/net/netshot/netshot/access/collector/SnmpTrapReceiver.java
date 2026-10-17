@@ -36,8 +36,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
 import org.snmp4j.CommandResponder;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.MessageDispatcherImpl;
@@ -91,9 +92,12 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 
 	/**
 	 * Initializes the trap receiver.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
-	public static void init() {
-		nsSnmpTrapReceiver = new SnmpTrapReceiver();
+	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
+		nsSnmpTrapReceiver = new SnmpTrapReceiver(driverRegistry, autoSnapshotScheduler);
 		nsSnmpTrapReceiver.loadConfig();
 	}
 
@@ -103,6 +107,12 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 	public static void reload() {
 		nsSnmpTrapReceiver.loadConfig();
 	}
+
+	/** The loaded device drivers. */
+	private final DriverRegistry driverRegistry;
+
+	/** The scheduler of the automatic snapshots. */
+	private final AutoSnapshotScheduler autoSnapshotScheduler;
 
 	/** The dispatcher. */
 	private MultiThreadedMessageDispatcher dispatcher;
@@ -136,8 +146,13 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 
 	/**
 	 * Instantiates a new snmp trap receiver.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
-	public SnmpTrapReceiver() {
+	public SnmpTrapReceiver(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
+		this.driverRegistry = driverRegistry;
+		this.autoSnapshotScheduler = autoSnapshotScheduler;
 	}
 
 	private void loadConfig() {
@@ -417,13 +432,13 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 							data.put("version", "Unknown");
 					}
 					List<String> matchingDrivers = new ArrayList<>();
-					for (DeviceDriver driver : DeviceDriver.getAllDrivers()) {
+					for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
 						if (driver.analyzeTrap(data, source)) {
 							matchingDrivers.add(driver.getName());
 						}
 					}
 					if (matchingDrivers.size() > 0) {
-						TakeSnapshotTask.scheduleSnapshotIfNeeded(matchingDrivers, source);
+						this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(matchingDrivers, source);
 					}
 				}
 				catch (Exception e) {
