@@ -19,7 +19,6 @@
 package net.netshot.netshot.api.rest.v0.aaa;
 
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * The request to add an API token.
@@ -29,8 +28,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * @param token the clear token value (32 alphanumeric characters)
  * @param level the authorization level
  */
-// Transitional: see UserRequest.
-@XmlRootElement(name = "rsApiToken")
 public record ApiTokenRequest(
 	long id,
 	String description,

@@ -41,6 +41,10 @@
 
 ## Specific update steps
 
+### Any version to the next release
+
+* XML request bodies (`Content-Type: application/xml`) used to be rejected with a 500 error on all `POST` and `PUT` endpoints, and are now accepted, with the same properties as the JSON bodies (the name of the root element is ignored). Clients which sent JSON are not affected. See [XML requests](api/rest-api.md#xml-requests).
+
 ### Any version to 0.25.1+
 
 **Container image**: the image no longer has built-in secrets (previous images had `netshot` as DB password and encryption password, and `Netsh01` as SNMP trap community). If you run the image without setting them yourself (the provided `compose.yaml` sets the passwords):

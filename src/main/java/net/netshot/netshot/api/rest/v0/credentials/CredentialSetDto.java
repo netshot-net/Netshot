@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.v0.domain.DomainDto;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
@@ -49,9 +48,6 @@ import net.netshot.netshot.credentials.HideSecretSerializer;
  * (the version and change date, the Vault bundles of the secrets) are ignored if present, like they
  * always were; any other unknown property is refused.</p>
  */
-// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
-// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
-@XmlRootElement(name = "credentialSet")
 @JsonIgnoreProperties({
 	"changeDate", "version", "usernameSecret", "passwordSecret", "superPasswordSecret", "privateKeySecret",
 	"communitySecret", "authKeySecret", "privKeySecret"
