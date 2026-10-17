@@ -18,7 +18,9 @@
  */
 package net.netshot.netshot.hook;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.hibernate.HibernateException;
 import org.slf4j.Logger;
@@ -137,6 +139,10 @@ public class HookService {
 	 */
 	public Hook update(long id, Hook incoming) {
 		incoming.setId(id);
+		if (incoming.getTriggers() == null) {
+			// No triggers (null) means none, as on creation
+			incoming.setTriggers(new HashSet<>());
+		}
 		if (incoming.getName() == null || "".equals(incoming.getName().trim())) {
 			log.error("Invalid hook name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
@@ -158,12 +164,13 @@ public class HookService {
 				}
 				hook.setEnabled(incoming.isEnabled());
 				hook.setName(incoming.getName());
-				for (HookTrigger trigger : incoming.getTriggers()) {
+				Set<HookTrigger> triggers = incoming.getTriggers();
+				for (HookTrigger trigger : triggers) {
 					trigger.setHook(hook);
 				}
 				// Ensure we keep the same HookTrigger object instances
-				hook.getTriggers().retainAll(incoming.getTriggers());
-				hook.getTriggers().addAll(incoming.getTriggers());
+				hook.getTriggers().retainAll(triggers);
+				hook.getTriggers().addAll(triggers);
 				if (incoming instanceof WebHook rsWebHook
 						&& hook instanceof WebHook webHook) {
 					webHook.setAction(rsWebHook.getAction());
