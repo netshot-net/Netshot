@@ -78,6 +78,21 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
+	@DisplayName("Authenticate: a known token gives its API token (value trimmed), an unknown one gives null")
+	void authenticate() {
+		String authToken = "Q1w2E3r4T5y6U7i8O9p0AaSsDdFfGgHh";
+		ApiToken created = this.service.create("Auth", authToken, 10);
+		ApiToken found = this.service.authenticate("  " + authToken + " ");
+		Assertions.assertNotNull(found);
+		Assertions.assertEquals(created.getId(), found.getId());
+		Assertions.assertEquals(10, found.getLevel());
+		Assertions.assertNull(this.service.authenticate("00000000000000000000000000000000"));
+		// A token value registered twice is ambiguous: the database error is logged and nobody is authenticated
+		this.service.create("Auth again", authToken, 10);
+		Assertions.assertNull(this.service.authenticate(authToken));
+	}
+
+	@Test
 	@DisplayName("Create: only the hash of the token is stored, the description is trimmed")
 	void create() {
 		ApiToken created = this.service.create("  Monitoring  ", TOKEN, 50);

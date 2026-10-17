@@ -56,6 +56,19 @@ public class ApiTokenRepository {
 	}
 
 	/**
+	 * Finds an API token by the hash of its value.
+	 *
+	 * @param session the session
+	 * @param hash the hash of the token value
+	 * @return the API token, or null if there is no such token
+	 */
+	public ApiToken findByHash(Session session, String hash) {
+		return session
+			.createQuery("from ApiToken t where t.hashedToken = :hash", ApiToken.class)
+			.setParameter("hash", hash).uniqueResult();
+	}
+
+	/**
 	 * Stores a new API token.
 	 *
 	 * @param session the session
