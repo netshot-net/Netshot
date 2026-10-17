@@ -25,8 +25,6 @@ import java.util.Objects;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -40,15 +38,10 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -72,8 +65,6 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  */
 @Entity
 @Table(name = "device_access")
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public final class DeviceAccess {
 
 	/**
@@ -150,16 +141,12 @@ public final class DeviceAccess {
 	private Key key = new Key();
 
 	/** Optional connection address override (IPv4/IPv6 literal or FQDN). Null = use the device's management address. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String address;
 
 	/** Optional TCP port override. Null = use the driver's/protocol's default port for this access. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private Integer port;
 
@@ -169,8 +156,7 @@ public final class DeviceAccess {
 	 * device) must never delete the referenced (shared) credential set.
 	 */
 	@Getter(onMethod = @__({
-		@ManyToOne,
-		@XmlElement, @JsonView(DefaultView.class)
+		@ManyToOne
 	}))
 	@Setter
 	private DeviceCredentialSet globalCredentialSet;
@@ -181,8 +167,7 @@ public final class DeviceAccess {
 	 * lifecycle exactly.
 	 */
 	@Getter(onMethod = @__({
-		@OneToOne(cascade = CascadeType.ALL, orphanRemoval = true),
-		@XmlElement, @JsonView(DefaultView.class)
+		@OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
 	}))
 	@Setter
 	private DeviceCredentialSet specificCredentialSet;
@@ -190,8 +175,7 @@ public final class DeviceAccess {
 	/** SSH host key verification mode (only meaningful for a SSH-protocol access). */
 	@Getter(onMethod = @__({
 		@Enumerated(EnumType.STRING),
-		@Column(name = "ssh_host_key_verification", nullable = false),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "ssh_host_key_verification", nullable = false)
 	}))
 	@Setter
 	private SshHostKeyVerification sshHostKeyVerification = SshHostKeyVerification.TRUST_ANY;
@@ -206,8 +190,7 @@ public final class DeviceAccess {
 	 * not-yet-seen algorithm is rejected rather than silently added.
 	 */
 	@Getter(onMethod = @__({
-		@Column(name = "ssh_trusted_host_keys", columnDefinition = "TEXT"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "ssh_trusted_host_keys", columnDefinition = "TEXT")
 	}))
 	@Setter
 	private String sshTrustedHostKeys;
@@ -215,8 +198,7 @@ public final class DeviceAccess {
 	/** When {@link #sshTrustedHostKeys} was last learned or edited (display only). */
 	@Getter(onMethod = @__({
 		@Temporal(TemporalType.TIMESTAMP),
-		@Column(name = "ssh_trusted_host_keys_since"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "ssh_trusted_host_keys_since")
 	}))
 	@Setter
 	private Date sshTrustedHostKeysSince;
@@ -224,8 +206,7 @@ public final class DeviceAccess {
 	/** HTTPS certificate CA trust mode (only meaningful for a HTTPS-protocol access). */
 	@Getter(onMethod = @__({
 		@Enumerated(EnumType.STRING),
-		@Column(name = "https_ca_trust_mode", nullable = false),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "https_ca_trust_mode", nullable = false)
 	}))
 	@Setter
 	private HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
@@ -236,8 +217,7 @@ public final class DeviceAccess {
 	 * {@link HttpsCaTrustMode#CUSTOM_CA}.
 	 */
 	@Getter(onMethod = @__({
-		@Column(name = "https_custom_ca_certificate", columnDefinition = "TEXT"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "https_custom_ca_certificate", columnDefinition = "TEXT")
 	}))
 	@Setter
 	private String httpsCustomCaCertificate;
@@ -272,8 +252,6 @@ public final class DeviceAccess {
 	 * @return the access name
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public String getAccessName() {
 		return this.key.getAccessName();
 	}
