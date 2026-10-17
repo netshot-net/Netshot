@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,8 +48,8 @@ import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -59,14 +58,14 @@ import net.netshot.netshot.task.Task;
  * <p>It only translates between HTTP and the {@link DeviceService}: it reads the request into a
  * command, calls the service, maps the result to a DTO, and chooses the status code. The class
  * is mounted on {@code /} with the full path on each method, because a narrower class-level
- * path would hide the other {@code /devices/...} methods which are still served by the legacy
- * {@code RestService}.</p>
+ * path would hide the other {@code /devices/...} methods which are served by the other resources.</p>
  */
 @Path("/")
 @Slf4j
 public class DeviceResource {
 
 	private final DeviceService deviceService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -78,10 +77,12 @@ public class DeviceResource {
 	 * Instantiates the resource.
 	 *
 	 * @param deviceService the device use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public DeviceResource(DeviceService deviceService) {
+	public DeviceResource(DeviceService deviceService, DriverRegistry driverRegistry) {
 		this.deviceService = deviceService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -97,7 +98,6 @@ public class DeviceResource {
 	@Path("/devices")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the devices",
 		description = "Retrieves the device list with minimal details."
@@ -122,7 +122,6 @@ public class DeviceResource {
 	@Path("/devices/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a device",
 		description = "Retrieve a device will all details."
@@ -131,7 +130,7 @@ public class DeviceResource {
 	public DeviceDto getDevice(@PathParam("id") @Parameter(description = "Device ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, device {}.", id);
-		return DeviceMapper.toDto(this.deviceService.get(id));
+		return DeviceMapper.toDto(this.driverRegistry, this.deviceService.get(id));
 	}
 
 	/**
@@ -146,7 +145,6 @@ public class DeviceResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a device",
 		description = "In auto discovery mode, this will create a 'discover device' task, and the device will be create if the discovery is successful."
@@ -158,7 +156,7 @@ public class DeviceResource {
 		User user = (User) this.securityContext.getUserPrincipal();
 		Task task = this.deviceService.create(DeviceMapper.toCreation(device, user.getUsername()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return TaskMapper.toDto(task);
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**
@@ -171,7 +169,6 @@ public class DeviceResource {
 	@Path("/devices/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a device",
 		description = "Remove the given device, by ID."
@@ -201,7 +198,6 @@ public class DeviceResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a device",
 		description = "Edits a device, by ID."
@@ -210,6 +206,6 @@ public class DeviceResource {
 	public DeviceDto setDevice(@PathParam("id") @Parameter(description = "Device ID") Long id, UpdateDeviceRequest rsDevice)
 		throws WebApplicationException {
 		log.debug("REST request, edit device {}.", id);
-		return DeviceMapper.toDto(this.deviceService.update(id, DeviceMapper.toUpdate(rsDevice)));
+		return DeviceMapper.toDto(this.driverRegistry, this.deviceService.update(id, DeviceMapper.toUpdate(rsDevice)));
 	}
 }

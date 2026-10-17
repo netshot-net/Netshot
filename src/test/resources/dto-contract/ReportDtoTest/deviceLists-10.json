@@ -1,0 +1,15 @@
+{
+  "configCompliant": true,
+  "driver": "CiscoIOS12",
+  "eol": true,
+  "eos": false,
+  "family": "Cisco",
+  "id": 5,
+  "lastFailure": 1700000000000,
+  "lastSuccess": 1600000000000,
+  "mgmtAddress": "10.0.0.5",
+  "name": "r5",
+  "networkClass": "ROUTER",
+  "softwareLevel": "GOLD",
+  "status": "INPRODUCTION"
+}

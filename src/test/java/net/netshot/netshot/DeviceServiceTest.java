@@ -43,7 +43,6 @@ import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
@@ -91,9 +90,9 @@ class DeviceServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
@@ -101,7 +100,7 @@ class DeviceServiceTest extends WithDatabaseTest {
 			}
 			this.submittedTasks.add(task);
 		};
-		this.service = new DeviceService(this.transactions, new DeviceRepository(), submitter);
+		this.service = new DeviceService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry());
 		this.domainId = this.transactions.write(session -> {
 			Domain domain = new Domain("Lab", "Test domain", null, null);
 			session.persist(domain);
@@ -430,7 +429,7 @@ class DeviceServiceTest extends WithDatabaseTest {
 
 	@Test
 	@DisplayName("get() reports an unknown device, and returns a device usable once the session is closed")
-	void get() {
+	void get() throws Exception {
 		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.get(99999999L));
 		DeviceAccess ssh = access("ssh");
 		ssh.setSpecificCredentialSet(new DeviceSshAccount("u", "p", "e", "n"));
@@ -445,7 +444,7 @@ class DeviceServiceTest extends WithDatabaseTest {
 		Assertions.assertTrue(device.isCompliant());
 		Assertions.assertEquals("u", ((DeviceSshAccount) device.getDeviceAccess("ssh").getSpecificCredentialSet()).getUsername());
 		Assertions.assertEquals(java.util.Set.of("t"), device.getTags());
-		Assertions.assertEquals("Cisco IOS and IOS-XE", device.getRealDeviceType());
+		Assertions.assertEquals("Cisco IOS and IOS-XE", TestDrivers.registry().forDevice(device).getDescription());
 	}
 
 	@Test

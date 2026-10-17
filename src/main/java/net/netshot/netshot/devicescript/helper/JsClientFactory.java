@@ -28,6 +28,7 @@ import net.netshot.netshot.access.Http.AuthScheme;
 import net.netshot.netshot.access.Ssh.SshConfig;
 import net.netshot.netshot.access.Telnet.TelnetConfig;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverConfigParser;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 
 /**
@@ -77,9 +78,9 @@ public class JsClientFactory {
 	@Export
 	public JsCliHelper createCli(List<String> accessNames, boolean autoTryCredentials, Value ssh, Value telnet) {
 		List<AccessDefinition> defs = this.driver.getAccessDefinitions(accessNames);
-		SshConfig sshConfigOverride = (ssh != null && ssh.hasMembers()) ? DeviceDriver.parseSshConfig(ssh) : null;
+		SshConfig sshConfigOverride = (ssh != null && ssh.hasMembers()) ? DriverConfigParser.parseSshConfig(ssh) : null;
 		TelnetConfig telnetConfigOverride = (telnet != null && telnet.hasMembers())
-			? DeviceDriver.parseTelnetConfig(telnet) : null;
+			? DriverConfigParser.parseTelnetConfig(telnet) : null;
 		return new JsCliHelper(this.accessManager, defs, autoTryCredentials, this.accessManager.getTaskContext(),
 			sshConfigOverride, telnetConfigOverride);
 	}
@@ -116,7 +117,7 @@ public class JsClientFactory {
 			}
 			Value authValue = http.getMember("auth");
 			if (authValue != null && authValue.hasMembers()) {
-				authOverride = DeviceDriver.parseHttpAuthScheme(authValue, "client.create() override");
+				authOverride = DriverConfigParser.parseHttpAuthScheme(authValue, "client.create() override");
 			}
 		}
 		return new JsHttpHelper(this.accessManager, defs, autoTryCredentials, basePath, authOverride,

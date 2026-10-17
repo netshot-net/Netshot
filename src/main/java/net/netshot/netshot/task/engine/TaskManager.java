@@ -125,8 +125,10 @@ public final class TaskManager {
 
 	/**
 	 * Initializes the task manager.
+	 *
+	 * @param taskJobFactory the factory of the jobs, which run the tasks through their handlers
 	 */
-	public static void init() {
+	public static void init(TaskJobFactory taskJobFactory) {
 		TaskManager.SETTINGS.load();
 		// Running device tasks hold a DB connection from the main pool, so the pool must be
 		// comfortably larger than the number of task threads
@@ -159,6 +161,8 @@ public final class TaskManager {
 			params.put("org.quartz.scheduler.skipUpdateCheck", "true");
 			StdSchedulerFactory factory = new StdSchedulerFactory(params);
 			TaskManager.runnerScheduler = factory.getScheduler();
+			// The task jobs get their handlers from the factory (Quartz is the one creating them)
+			TaskManager.runnerScheduler.setJobFactory(taskJobFactory);
 			TaskManager.runnerScheduler.start();
 		}
 		catch (Exception e) {

@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.aaa;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * An API token. Neither the token nor its hash is part of the representation: the value is
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param description the description
  * @param level the authorization level
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "ApiToken")
 public record ApiTokenDto(
 	long id,

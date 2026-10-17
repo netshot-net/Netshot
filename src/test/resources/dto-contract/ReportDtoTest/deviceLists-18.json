@@ -1,0 +1,21 @@
+[
+  {
+    "checkDate": 1600000000000,
+    "configCompliant": null,
+    "driver": "CiscoIOS12",
+    "eol": null,
+    "eos": null,
+    "family": null,
+    "id": 5,
+    "mgmtAddress": "10.0.0.5",
+    "name": "r5",
+    "networkClass": null,
+    "policyId": 3,
+    "policyName": "P",
+    "result": "NONCONFORMING",
+    "ruleId": 4,
+    "ruleName": "R",
+    "softwareLevel": null,
+    "status": "DISABLED"
+  }
+]

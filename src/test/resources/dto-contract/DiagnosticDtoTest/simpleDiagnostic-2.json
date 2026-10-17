@@ -1,0 +1,21 @@
+{
+  "cliMode": "enable",
+  "command": "show version",
+  "deviceDriver": "CiscoIOS12",
+  "deviceDriverDescription": "Cisco IOS and IOS-XE",
+  "enabled": true,
+  "id": 5,
+  "modifierPattern": "(.*)",
+  "modifierReplacement": "$1",
+  "name": "Simple",
+  "resultType": "TEXT",
+  "targetGroup": {
+    "changeDate": 1600000300000,
+    "folder": "",
+    "hiddenFromReports": true,
+    "id": 101,
+    "name": "Static",
+    "type": "StaticDeviceGroup"
+  },
+  "type": "SimpleDiagnostic"
+}

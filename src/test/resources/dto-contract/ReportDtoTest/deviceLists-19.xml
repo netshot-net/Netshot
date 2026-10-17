@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<RsLightSoftwareLevelDevice>
+  <configCompliant/>
+  <driver>CiscoIOS12</driver>
+  <eol/>
+  <eos/>
+  <family/>
+  <id>5</id>
+  <mgmtAddress>10.0.0.5</mgmtAddress>
+  <name>r5</name>
+  <networkClass/>
+  <softwareLevel/>
+  <softwareVersion/>
+  <status>DISABLED</status>
+</RsLightSoftwareLevelDevice>

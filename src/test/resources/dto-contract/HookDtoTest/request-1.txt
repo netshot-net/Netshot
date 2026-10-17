@@ -1,0 +1,9 @@
+WebHook
+action=POST_XML
+enabled=false
+httpsCaTrustMode=CUSTOM_CA
+httpsCustomCaCertificate=PEM
+id=5
+name=full
+triggers=[POST_TASK:A, POST_TASK:B]
+url=https://u

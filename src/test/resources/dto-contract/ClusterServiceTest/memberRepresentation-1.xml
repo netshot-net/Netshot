@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <appVersion>1.2.3</appVersion>
+    <clusteringVersion>3</clusteringVersion>
+    <driverHash>hash-a</driverHash>
+    <hostname>host-a</hostname>
+    <instanceId>&lt;instanceId&gt;</instanceId>
+    <jvmVersion>21.0.1</jvmVersion>
+    <lastSeenTime>1700000000000</lastSeenTime>
+    <lastStatusChangeTime>&lt;now&gt;</lastStatusChangeTime>
+    <local>true</local>
+    <masterPriority>10</masterPriority>
+    <runnerPriority>20</runnerPriority>
+    <runnerWeight>30</runnerWeight>
+    <status>MASTER</status>
+  </item>
+  <item>
+    <appVersion>1.2.3</appVersion>
+    <clusteringVersion>3</clusteringVersion>
+    <driverHash>hash-b</driverHash>
+    <hostname>host-b</hostname>
+    <instanceId>&lt;instanceId&gt;</instanceId>
+    <jvmVersion>21.0.1</jvmVersion>
+    <lastSeenTime>1700000000000</lastSeenTime>
+    <lastStatusChangeTime>&lt;now&gt;</lastStatusChangeTime>
+    <local>false</local>
+    <masterPriority>10</masterPriority>
+    <runnerPriority>20</runnerPriority>
+    <runnerWeight>30</runnerWeight>
+    <status>EXPIRED</status>
+  </item>
+</ArrayList>

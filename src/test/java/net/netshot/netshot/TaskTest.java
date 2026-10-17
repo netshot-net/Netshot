@@ -19,7 +19,6 @@
 package net.netshot.netshot;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -50,7 +49,9 @@ import net.netshot.netshot.task.Task.SequentialScheduling;
 import net.netshot.netshot.task.Task.SequentialScheduling.NextAction;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskDeviceListMember;
+import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJob;
+import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
 import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
@@ -87,10 +88,6 @@ public class TaskTest extends WithDatabaseTest {
 			@Override
 			public String getTaskDescription() {
 				return null;
-			}
-
-			@Override
-			public void run() {
 			}
 		};
 
@@ -292,7 +289,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 		}
 
 		@BeforeEach
@@ -426,20 +423,8 @@ public class TaskTest extends WithDatabaseTest {
 			}
 		}
 
-		/**
-		 * preCreateChildren/reloadExistingChildren/cancelRemainingDelayedChildren are protected --
-		 * they're only meant to be called by a group task's own run() loop -- and the concrete task
-		 * classes that use them are final, so they can't be exercised through an anonymous subclass
-		 * the way {@link TaskExecutionTimeTest} does. Reflection is the pragmatic way to whitebox-test
-		 * them directly against a real, persisted entity without loosening their visibility for
-		 * production callers.
-		 */
-		@SuppressWarnings("unchecked")
-		private <T> T invokeProtected(Task task, String methodName, Class<?>[] paramTypes, Object... args) throws Exception {
-			Method method = Task.class.getDeclaredMethod(methodName, paramTypes);
-			method.setAccessible(true);
-			return (T) method.invoke(task, args);
-		}
+		private final ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(child -> {
+		});
 
 		@Test
 		@DisplayName("preCreateChildren persists every child upfront, in order, all DELAYED")
@@ -453,7 +438,7 @@ public class TaskTest extends WithDatabaseTest {
 			List<Task> children = new ArrayList<>(List.of(
 				new TakeSnapshotTask(device1, "child", "tester", false, true, true),
 				new TakeSnapshotTask(device2, "child", "tester", false, true, true)));
-			this.invokeProtected(parent, "preCreateChildren", new Class<?>[] { List.class }, children);
+			this.orchestrator.preCreateChildren(parent, children);
 
 			Assertions.assertTrue(children.get(0).getId() != 0, "Pre-creation should assign a real id");
 			Assertions.assertTrue(children.get(1).getId() != 0, "Pre-creation should assign a real id");
@@ -483,13 +468,12 @@ public class TaskTest extends WithDatabaseTest {
 			List<Task> created = new ArrayList<>(List.of(
 				new TakeSnapshotTask(device1, "child", "tester", false, true, true),
 				new TakeSnapshotTask(device2, "child", "tester", false, true, true)));
-			this.invokeProtected(parent, "preCreateChildren", new Class<?>[] { List.class }, created);
+			this.orchestrator.preCreateChildren(parent, created);
 
 			// Simulate a Netshot restart: a fresh Task instance for the same id, no memory of `created`.
 			try (Session session = Database.getSession()) {
 				Task reloadedParent = session.get(Task.class, parent.getId());
-				List<Task> resumed = this.invokeProtected(
-					reloadedParent, "reloadExistingChildren", new Class<?>[0]);
+				List<Task> resumed = this.orchestrator.reloadExistingChildren(reloadedParent);
 				Assertions.assertEquals(2, resumed.size());
 				Assertions.assertEquals(created.get(0).getId(), resumed.get(0).getId());
 				Assertions.assertEquals(created.get(1).getId(), resumed.get(1).getId());
@@ -508,7 +492,7 @@ public class TaskTest extends WithDatabaseTest {
 			List<Task> children = new ArrayList<>(List.of(
 				new TakeSnapshotTask(device1, "child", "tester", false, true, true),
 				new TakeSnapshotTask(device2, "child", "tester", false, true, true)));
-			this.invokeProtected(parent, "preCreateChildren", new Class<?>[] { List.class }, children);
+			this.orchestrator.preCreateChildren(parent, children);
 
 			// Device 0 already completed (as orchestrateChildren would have observed by reaching
 			// out to the DB) -- its in-memory Status must reflect that, since cancelRemainingDelayedChildren
@@ -523,8 +507,7 @@ public class TaskTest extends WithDatabaseTest {
 			}
 			children.get(0).setStatus(Status.SUCCESS);
 
-			this.invokeProtected(parent, "cancelRemainingDelayedChildren",
-				new Class<?>[] { List.class, int.class }, children, 0);
+			this.orchestrator.cancelRemainingDelayedChildren(parent, children, 0);
 
 			try (Session session = Database.getSession()) {
 				Assertions.assertEquals(Status.SUCCESS,
@@ -594,7 +577,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 		}
 
 		@BeforeEach
@@ -684,7 +667,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 			ConfigBinaryFileAttribute.loadConfig();
 		}
 
@@ -758,7 +741,7 @@ public class TaskTest extends WithDatabaseTest {
 
 			PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, 0, (DeviceGroup) null);
 			task.setRemoveOrphanFiles(true);
-			task.run();
+			new PurgeDatabaseHandler().run(task);
 
 			Assertions.assertEquals(Status.SUCCESS, task.getStatus());
 			Assertions.assertTrue(Files.exists(attrAFinalPath), "The real, finalized attribute file must survive");
@@ -812,8 +795,8 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
-			TaskManager.init();
+			Wiring.init(TestDrivers.registry());
+			TaskManager.init(Wiring.get().taskJobFactory());
 		}
 
 		@AfterEach
@@ -944,8 +927,8 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.tasks.devicelock.pollintervalms", "500");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
-			TaskManager.init();
+			Wiring.init(TestDrivers.registry());
+			TaskManager.init(Wiring.get().taskJobFactory());
 			TaskLockManager.init(false);
 		}
 
@@ -1002,7 +985,7 @@ public class TaskTest extends WithDatabaseTest {
 		private Thread runInBackground(long id) {
 			Thread thread = new Thread(() -> {
 				try {
-					TaskJob.runTask(id);
+					Wiring.get().taskJobFactory().newTaskJob().runTask(id);
 				}
 				catch (JobExecutionException e) {
 					throw new RuntimeException(e);
@@ -1017,7 +1000,7 @@ public class TaskTest extends WithDatabaseTest {
 		@ResourceLock("DB")
 		void alreadyRunTaskIsSkipped() throws Exception {
 			long id = this.persistSnapshotTask(Status.SUCCESS, true);
-			TaskJob.runTask(id);
+			Wiring.get().taskJobFactory().newTaskJob().runTask(id);
 			Assertions.assertEquals(Status.SUCCESS, this.loadTask(id).getStatus());
 			Assertions.assertEquals(1, this.countSnapshotTasks(), "A skipped task must not be repeated");
 		}
@@ -1030,7 +1013,7 @@ public class TaskTest extends WithDatabaseTest {
 			TaskLockManager lockManager = TaskLockManager.get();
 			Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_TASK, id, OTHER_TASK_ID));
 			try {
-				TaskJob.runTask(id);
+				Wiring.get().taskJobFactory().newTaskJob().runTask(id);
 			}
 			finally {
 				lockManager.unlock(TaskLockManager.NS_TASK, id, OTHER_TASK_ID);
@@ -1047,7 +1030,7 @@ public class TaskTest extends WithDatabaseTest {
 			TaskLockManager lockManager = TaskLockManager.get();
 			Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_SNAPSHOT, device.getId(), OTHER_TASK_ID));
 			try {
-				TaskJob.runTask(id);
+				Wiring.get().taskJobFactory().newTaskJob().runTask(id);
 			}
 			finally {
 				lockManager.unlock(TaskLockManager.NS_SNAPSHOT, device.getId(), OTHER_TASK_ID);

@@ -35,7 +35,7 @@
 			</resource>
 			<resource>
 				<!-- WebUI production build (run `npm ci && npm run build` in src/main/resources/webui,
-				     or let the Docker build do it) injected at the location served by RestService's
+				     or let the Docker build do it) injected at the location served by RestServer's
 				     static handler -->
 				<directory>src/main/resources/webui/dist</directory>
 				<targetPath>www</targetPath>

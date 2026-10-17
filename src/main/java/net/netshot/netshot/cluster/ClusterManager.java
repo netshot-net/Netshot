@@ -51,14 +51,14 @@ import net.netshot.netshot.cluster.messages.HelloClusterMessage;
 import net.netshot.netshot.cluster.messages.LoadTasksMessage;
 import net.netshot.netshot.cluster.messages.ReloadDriversMessage;
 import net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage;
-import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.vault.VaultManager;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -97,6 +97,12 @@ public class ClusterManager extends Thread {
 	/** Cluster Manager static instance. */
 	private static ClusterManager nsClusterManager;
 
+	/** The loaded device drivers. */
+	private final DriverRegistry driverRegistry;
+
+	/** The scheduler of the automatic snapshots. */
+	private final AutoSnapshotScheduler autoSnapshotScheduler;
+
 	/** Whether a driver reload was just requested. */
 	private boolean driverReloadRequested;
 
@@ -114,15 +120,18 @@ public class ClusterManager extends Thread {
 
 	/**
 	 * Initializes the cluster manager.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
-	public static void init() {
+	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
 		if (!Netshot.getConfig("netshot.cluster.enabled", false)) {
 			log.info("High Availability is not enabled.");
 			return;
 		}
 
 		TaskManager.setMode(Mode.CLUSTER_MEMBER);
-		nsClusterManager = new ClusterManager();
+		nsClusterManager = new ClusterManager(driverRegistry, autoSnapshotScheduler);
 		nsClusterManager.start();
 		nsClusterManager.startPeriodicActions();
 	}
@@ -239,9 +248,14 @@ public class ClusterManager extends Thread {
 	private final Set<WorkerAction> pendingActions = ConcurrentHashMap.newKeySet();
 
 	/**
-	 * Default constructor.
+	 * Constructor.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
-	public ClusterManager() {
+	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
+		this.driverRegistry = driverRegistry;
+		this.autoSnapshotScheduler = autoSnapshotScheduler;
 		// Set thread name
 		this.setName("NetshotClusterManager");
 
@@ -305,7 +319,7 @@ public class ClusterManager extends Thread {
 		}
 
 		this.localMember = new ClusterMember(localId, Netshot.getHostname(), ClusterManager.CLUSTERING_VERSION,
-			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, DeviceDriver.getAllDriverHash());
+			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, this.driverRegistry.getAllDriverHash());
 		this.members.put(localId, this.localMember);
 	}
 
@@ -587,7 +601,7 @@ public class ClusterManager extends Thread {
 							else if (message instanceof ReloadDriversMessage) {
 								this.submitCoalesced(WorkerAction.RELOAD_DRIVERS, () -> {
 									try {
-										DeviceDriver.refreshDrivers();
+										this.driverRegistry.refresh();
 									}
 									catch (Exception e) {
 										log.error("Error while refreshing drivers", e);
@@ -613,7 +627,7 @@ public class ClusterManager extends Thread {
 									this.submit("AUTO_SNAPSHOT", () -> {
 										if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
 											for (long deviceId : deviceIds) {
-												TakeSnapshotTask.scheduleSnapshotIfNeeded(deviceId);
+												this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(deviceId);
 											}
 										}
 									});

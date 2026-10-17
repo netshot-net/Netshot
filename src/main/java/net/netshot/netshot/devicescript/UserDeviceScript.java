@@ -30,12 +30,6 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.hibernate.Session;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -48,10 +42,10 @@ import net.netshot.netshot.devicescript.helper.JsDeviceScriptOptions;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
 import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -65,44 +59,30 @@ public class UserDeviceScript extends DeviceScript {
 	/**
 	 * Definition of user input data.
 	 */
-	@XmlRootElement
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static class UserInputDefinition {
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String name;
 
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private DriverValueType type;
 
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String label;
 
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String description;
 
 		/** Valid choices restricting a TEXT input's value; when set, the value must be one of these. */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private List<String> choices;
 
 		/** Default value, as a raw string (e.g. "true"/"false" for BOOLEAN). */
-		@Getter(onMethod = @__({
-			@XmlElement, @JsonView(DefaultView.class)
-		}))
+		@Getter
 		@Setter
 		private String defaultValue;
 
@@ -134,12 +114,13 @@ public class UserDeviceScript extends DeviceScript {
 
 	/**
 	 * Instantiates a JS-based script.
+	 * @param driverRegistry = The loaded device drivers
 	 * @param driverName = The name of the driver
 	 * @param code = The JavaScript code
 	 * @param logger = The task context
 	 */
-	public UserDeviceScript(String driverName, String code, TaskContext logger) {
-		super(logger);
+	public UserDeviceScript(DriverRegistry driverRegistry, String driverName, String code, TaskContext logger) {
+		super(driverRegistry, logger);
 		this.driverName = driverName;
 		this.code = code;
 	}
@@ -147,7 +128,7 @@ public class UserDeviceScript extends DeviceScript {
 	@Override
 	protected void run(Session session, Device device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, UnsupportedOperationException, MissingDeviceDriverException {
-		DeviceDriver driver = device.getDeviceDriver();
+		DeviceDriver driver = this.driverRegistry.forDevice(device);
 		JsCliHelper jsCliHelper = new JsCliHelper(accessManager, driver.getDefaultCliAccessDefinitions(), true, this.taskContext);
 		JsSnmpHelper jsSnmpHelper = new JsSnmpHelper(accessManager, driver.getDefaultSnmpAccessDefinitions(), true, this.taskContext);
 		JsClientFactory clientFactory = new JsClientFactory(accessManager, driver);
@@ -157,7 +138,7 @@ public class UserDeviceScript extends DeviceScript {
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
 			clientFactory.setOptions(options);
-			options.setDeviceHelper(new JsDeviceHelper(device, jsCliHelper, null, this.taskContext, false));
+			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, null, this.taskContext, false));
 			options.setUserInputs(this.userInputValues);
 			context
 				.getBindings("js")
@@ -184,7 +165,7 @@ public class UserDeviceScript extends DeviceScript {
 	}
 
 	public void validateUserInputs() throws IllegalArgumentException {
-		final DeviceDriver driver = DeviceDriver.getDriverByName(this.driverName);
+		final DeviceDriver driver = this.driverRegistry.getDriverByName(this.driverName);
 		try (Context context = driver.getContext()) {
 			driver.loadCode(context);
 			context.eval("js", this.code);
@@ -208,7 +189,7 @@ public class UserDeviceScript extends DeviceScript {
 
 	public Map<String, UserInputDefinition> extractInputDefinitions() throws IllegalArgumentException {
 		final Map<String, UserInputDefinition> definitions = new HashMap<>();
-		final DeviceDriver driver = DeviceDriver.getDriverByName(this.driverName);
+		final DeviceDriver driver = this.driverRegistry.getDriverByName(this.driverName);
 		if (driver == null) {
 			return definitions;
 		}

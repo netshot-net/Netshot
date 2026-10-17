@@ -71,6 +71,31 @@ public class ApiTokenService {
 	}
 
 	/**
+	 * Authenticates a request: looks for the API token matching a token value.
+	 *
+	 * @param token the clear token value, as received
+	 * @return the API token, or null if the value is unknown or the database is not reachable
+	 */
+	public ApiToken authenticate(String token) {
+		String hash = ApiToken.hashToken(token.trim());
+		try {
+			// Read-write pool, as before: a token just created must work even with a lagging read database
+			ApiToken apiToken = this.transactions.write(session -> this.repository.findByHash(session, hash));
+			if (apiToken == null) {
+				AAA_LOG.warn("Invalid API token received.");
+			}
+			else {
+				AAA_LOG.info("Successful API token usage {}.", apiToken);
+			}
+			return apiToken;
+		}
+		catch (HibernateException e) {
+			log.error("Database error while looking for API token", e);
+			return null;
+		}
+	}
+
+	/**
 	 * Creates an API token. The same token value can be registered several times.
 	 *
 	 * @param description the description (a blank one is stored as empty)

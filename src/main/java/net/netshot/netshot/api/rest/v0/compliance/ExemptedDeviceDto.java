@@ -21,11 +21,9 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A device exempted from a rule: the summary of the device (its properties are at the same level
@@ -34,7 +32,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param device the device
  * @param expirationDate when the exemption expires, or null if it doesn't
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsLightExemptedDevice")
 public record ExemptedDeviceDto(@JsonUnwrapped DeviceSummaryDto device, Date expirationDate) {
 }

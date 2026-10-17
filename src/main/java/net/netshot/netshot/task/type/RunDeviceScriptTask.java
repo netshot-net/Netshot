@@ -18,25 +18,15 @@
  */
 package net.netshot.netshot.task.type;
 
-import org.hibernate.Session;
 import org.quartz.JobKey;
-
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.task.DebugLog;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.engine.TaskManager;
 
 /**
  * This task runs a JS script on a device.
@@ -69,104 +59,6 @@ public final class RunDeviceScriptTask extends Task implements DeviceBasedTask {
 		this.setDeviceDriver(driver.getName());
 	}
 
-	@Override
-	public void run() {
-		log.debug("Task {}. Starting script task for device {}.", this.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			this.logger.info("The device doesn't exist, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-
-		UserDeviceScript deviceScript = null;
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			this.logger.info("Run script task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (deviceDriver == null || !deviceDriver.equals(device.getDriver())) {
-				log.trace("Task {}. The script doesn't apply to the driver of the device.", this.getId());
-				this.logger.error("The script doesn't apply to the driver of the device.");
-				this.status = Status.CANCELLED;
-				return;
-			}
-			if (device.getStatus() != Device.Status.INPRODUCTION) {
-				log.trace("Task {}. Device not INPRODUCTION, stopping the run script task.", this.getId());
-				this.logger.warn("The device is not enabled (not in production).");
-				this.status = Status.CANCELLED;
-				return;
-			}
-
-			deviceScript = new UserDeviceScript(this.deviceDriver, this.script, this.logger);
-			deviceScript.setUserInputValues(this.userInputValues);
-			deviceScript.connectRun(session, device);
-
-			session.merge(device);
-			session.getTransaction().commit();
-			this.status = Status.SUCCESS;
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while running the script.", this.getId(), e);
-			this.logger.error("Error while running the script: {}", e.getMessage());
-
-			this.status = Status.FAILURE;
-			return;
-		}
-		finally {
-			try {
-				if (this.fullLogs != null) {
-					this.debugLog = new DebugLog(this.fullLogs.toString());
-				}
-			}
-			catch (Exception e1) {
-				log.error("Task {}. Error while saving the debug logs.", this.getId(), e1);
-			}
-			session.close();
-		}
-
-		// The script may have changed the device tags/comments
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
-
-		if (this.runSnapshot) {
-			try {
-				Task snapshotTask = new TakeSnapshotTask(device, "Snapshot after device script execution", "Auto",
-					false, !this.runDiagnostics, !this.checkCompliance);
-				snapshotTask.setPriority(this.getPriority());
-				snapshotTask.setParentTaskId(this.getId());
-				TaskManager.addTask(snapshotTask);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the snapshot task.", this.getId(), e);
-			}
-		}
-		else if (this.runDiagnostics) {
-			try {
-				Task diagTask = new RunDiagnosticsTask(device, "Run diagnostics after device script execution", "Auto", !this.checkCompliance);
-				diagTask.setPriority(this.getPriority());
-				diagTask.setParentTaskId(this.getId());
-				TaskManager.addTask(diagTask);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the diagnostic task.", this.getId(), e);
-			}
-		}
-		else if (this.checkCompliance) {
-			try {
-				Task checkTask = new CheckComplianceTask(device, "Check compliance after device script execution", "Auto");
-				checkTask.setPriority(this.getPriority());
-				checkTask.setParentTaskId(this.getId());
-				TaskManager.addTask(checkTask);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the check compliance task.", this.getId(), e);
-			}
-		}
-	}
-
 	/*(non-Javadoc)
 	 * @see net.netshot.netshot.task.Task#deviceLockPolicy()
 	 */
@@ -180,8 +72,6 @@ public final class RunDeviceScriptTask extends Task implements DeviceBasedTask {
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Device script execution";
@@ -192,8 +82,6 @@ public final class RunDeviceScriptTask extends Task implements DeviceBasedTask {
 	 * 
 	 * @return the ID of the device
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getDeviceId() {
 		if (this.device == null) {

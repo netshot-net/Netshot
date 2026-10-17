@@ -1,0 +1,10 @@
+{
+  "community": null,
+  "communityVaultInstanceId": null,
+  "communityVaultPath": null,
+  "deviceSpecific": false,
+  "id": 0,
+  "mgmtDomain": null,
+  "name": null,
+  "type": "SNMP v1"
+}

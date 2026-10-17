@@ -27,7 +27,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -51,8 +50,6 @@ import io.swagger.v3.oas.models.security.SecurityScheme.In;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import io.swagger.v3.oas.models.servers.Server;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.api.rest.v0.RestService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * Netshot Web application definition.
@@ -88,25 +85,19 @@ public class NetshotWebApplication extends ResourceConfig {
 
 		// JSON
 		JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();
-		jsonProvider.setDefaultView(RestApiView.class);
 		jsonProvider.setMapper(JsonMapper.builder()
-			.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 			.build());
 		register(jsonProvider);
 
 		// XML
 		JacksonXmlBindXMLProvider xmlProvider = new JacksonXmlBindXMLProvider();
-		xmlProvider.setDefaultView(RestApiView.class);
 		xmlProvider.setMapper(XmlMapper.builder()
-			.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 			.build());
 		register(xmlProvider);
 
 		// YAML
 		JacksonXmlBindYAMLProvider yamlProvider = new JacksonXmlBindYAMLProvider();
-		yamlProvider.setDefaultView(RestApiView.class);
 		yamlProvider.setMapper(YAMLMapper.builder()
-			.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 			.build());
 		register(yamlProvider);
 
@@ -119,13 +110,13 @@ public class NetshotWebApplication extends ResourceConfig {
 			.description("Network Infrastructure Configuration and Compliance Management Software")
 			.contact(new Contact().email("contact@netshot.net"))
 			.license(new License().name("GPLv3").url("https://www.gnu.org/licenses/gpl-3.0.txt")));
-		oas.servers(Arrays.asList(new Server().url(RestService.HTTP_API_PATH)));
+		oas.servers(Arrays.asList(new Server().url(RestServer.HTTP_API_PATH)));
 		oas.components(new Components()
 			.addSecuritySchemes("ApiTokenAuth", new SecurityScheme()
 				.name(ApiTokenAuthFilter.HTTP_API_TOKEN_HEADER)
 				.type(Type.APIKEY).in(In.HEADER))
 			.addSecuritySchemes("CookieAuth", new SecurityScheme()
-				.name(RestService.SESSION_COOKIE_NAME)
+				.name(RestServer.SESSION_COOKIE_NAME)
 				.type(Type.APIKEY).in(In.COOKIE)));
 		oas.addSecurityItem(new SecurityRequirement().addList("ApiTokenAuth"));
 		oas.addSecurityItem(new SecurityRequirement().addList("CookieAuth"));

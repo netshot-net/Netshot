@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<WebHook type="Web">
+  <action>POST_YAML</action>
+  <enabled>false</enabled>
+  <httpsCaTrustMode>CUSTOM_CA</httpsCaTrustMode>
+  <httpsCustomCaCertificate>-----BEGIN CERTIFICATE-----</httpsCustomCaCertificate>
+  <id>3</id>
+  <name>No trigger</name>
+  <triggers/>
+  <url>https://user:pass@example.net/hook?token=abc</url>
+</WebHook>

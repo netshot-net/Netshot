@@ -20,7 +20,7 @@ package net.netshot.netshot.task.type;
 
 /**
  * Marks a group-based task that schedules per-device child tasks and stays RUNNING for the
- * whole orchestration (via {@code Task#orchestrateChildren}), in either PARALLEL or SEQUENTIAL
+ * whole orchestration (via {@code ChildTaskOrchestrator#orchestrateChildren}), in either PARALLEL or SEQUENTIAL
  * mode -- as opposed to other group-based tasks (e.g. CheckGroupComplianceTask,
  * CheckGroupSoftwareTask) which act on the whole group directly, without spawning/tracking
  * per-device children this way. Used by the REST layer to decide whether a RUNNING task can

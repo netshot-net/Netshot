@@ -1,0 +1,30 @@
+[
+  {
+    "id": 3,
+    "name": "Policy",
+    "targetGroups": [
+      {
+        "changeDate": 1600000200000,
+        "folder": "Production",
+        "hiddenFromReports": true,
+        "id": 100,
+        "name": "Dynamic",
+        "query": "[Name] contains \"r\"",
+        "type": "DynamicDeviceGroup"
+      },
+      {
+        "changeDate": 1600000300000,
+        "folder": "",
+        "hiddenFromReports": false,
+        "id": 101,
+        "name": "Static",
+        "type": "StaticDeviceGroup"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Empty",
+    "targetGroups": [ ]
+  }
+]

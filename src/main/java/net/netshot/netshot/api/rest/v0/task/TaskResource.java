@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -50,8 +49,8 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.NetshotNotAuthorizedException;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskFilter;
 import net.netshot.netshot.task.TaskService;
@@ -61,14 +60,15 @@ import net.netshot.netshot.task.TaskService;
  * list of the tasks of a device.
  *
  * <p>It only translates between HTTP and the {@link TaskService}. The class is mounted on {@code /}
- * with the full path on each method, because a narrower class-level path would hide the other
- * methods of the legacy {@code RestService} sharing the prefix (for instance {@code /devices/...}).</p>
+ * with the full path on each method, because a narrower class-level path would hide the methods of
+ * the other resources sharing the prefix (for instance {@code /devices/...}).</p>
  */
 @Path("/")
 @Slf4j
 public class TaskResource {
 
 	private final TaskService taskService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -80,10 +80,12 @@ public class TaskResource {
 	 * Instantiates the resource.
 	 *
 	 * @param taskService the task use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public TaskResource(TaskService taskService) {
+	public TaskResource(TaskService taskService, DriverRegistry driverRegistry) {
 		this.taskService = taskService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	private String getUsername() {
@@ -108,7 +110,6 @@ public class TaskResource {
 	@Path("/devices/{id}/tasks")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get device tasks",
 		description = "Returns the list of tasks of a given device (by ID). Tasks are returned sorted by status and significant date."
@@ -131,7 +132,6 @@ public class TaskResource {
 	@Path("/tasks/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a task.",
 		description = "Retrieves the status of a given task, by ID."
@@ -141,7 +141,7 @@ public class TaskResource {
 		log.debug("REST request, get task {}", id);
 		// An unknown task has always been answered with an empty body (HTTP 204)
 		Task task = this.taskService.find(id);
-		return task == null ? null : TaskMapper.toDto(task);
+		return task == null ? null : TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**
@@ -155,7 +155,6 @@ public class TaskResource {
 	@Path("/tasks/{id}/debuglog")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Produces({MediaType.APPLICATION_OCTET_STREAM})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the debug log of a task",
 		description = "Retrieves the full debug log of a given task, by ID."
@@ -187,7 +186,6 @@ public class TaskResource {
 	@Path("/tasks")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the tasks",
 		description = "Returns the list of tasks. Limited to 100 if no specific limit is provided."
@@ -217,7 +215,6 @@ public class TaskResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a task",
 		description = "Edits a task, by ID. Set 'cancel' property to true to cancel the task."
@@ -226,7 +223,7 @@ public class TaskResource {
 	public TaskDto setTask(@PathParam("id") @Parameter(description = "Task ID") Long id, TaskRequest rsTask)
 		throws WebApplicationException {
 		log.debug("REST request, edit task {}.", id);
-		return TaskMapper.toDto(this.taskService.update(id, rsTask.isCancelled(), this.getUsername()));
+		return TaskMapper.toDto(this.driverRegistry, this.taskService.update(id, rsTask.isCancelled(), this.getUsername()));
 	}
 
 	/**
@@ -240,7 +237,6 @@ public class TaskResource {
 	@Path("/tasks/summary")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get summary/overview of tasks",
 		description = "Retrieves global info about tasks."
@@ -266,7 +262,6 @@ public class TaskResource {
 	@Path("/tasks/stats")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get time-based statistics about completed tasks",
 		description = "Returns, for the given date range, the number of completed tasks (success, failure, cancelled) "
@@ -294,7 +289,6 @@ public class TaskResource {
 	@RolesAllowed(User.ROLE_OPERATOR)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a task",
 		description = "Creates a task and schedule it for execution."
@@ -305,7 +299,7 @@ public class TaskResource {
 		this.checkPermission(rsTask.getType());
 		Task task = this.taskService.create(TaskMapper.toCreation(rsTask, this.getUsername()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return TaskMapper.toDto(task);
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	// Some task types need a role higher than the one required to create tasks
