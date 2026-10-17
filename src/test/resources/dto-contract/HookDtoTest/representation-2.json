@@ -3,7 +3,7 @@
   "enabled": false,
   "httpsCaTrustMode": "CUSTOM_CA",
   "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
-  "id": "<now>",
+  "id": 3,
   "name": "No trigger",
   "triggers": [ ],
   "type": "Web",

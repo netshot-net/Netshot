@@ -3,19 +3,19 @@
   <item>
     <accessDefinitions>
       <ssh>
-        <defaultPort>&lt;now&gt;</defaultPort>
+        <defaultPort>22</defaultPort>
         <description/>
         <group>cli</group>
         <name>ssh</name>
-        <priority>&lt;now&gt;</priority>
+        <priority>100</priority>
         <protocol>SSH</protocol>
       </ssh>
       <telnet>
-        <defaultPort>&lt;now&gt;</defaultPort>
+        <defaultPort>23</defaultPort>
         <description/>
         <group>cli</group>
         <name>telnet</name>
-        <priority>&lt;now&gt;</priority>
+        <priority>10</priority>
         <protocol>TELNET</protocol>
       </telnet>
     </accessDefinitions>
@@ -96,7 +96,7 @@
     </location>
     <name>CiscoIOS12</name>
     <options/>
-    <priority>&lt;now&gt;</priority>
+    <priority>65536</priority>
     <protocols>
       <protocols>SSH</protocols>
       <protocols>TELNET</protocols>
@@ -106,11 +106,11 @@
   <item>
     <accessDefinitions>
       <ssh>
-        <defaultPort>&lt;now&gt;</defaultPort>
+        <defaultPort>22</defaultPort>
         <description/>
         <group>cli</group>
         <name>ssh</name>
-        <priority>&lt;now&gt;</priority>
+        <priority>100</priority>
         <protocol>SSH</protocol>
       </ssh>
     </accessDefinitions>
@@ -152,7 +152,7 @@
         <type>BOOLEAN</type>
       </fullBackup>
     </options>
-    <priority>&lt;now&gt;</priority>
+    <priority>65536</priority>
     <protocols>
       <protocols>SSH</protocols>
     </protocols>
@@ -161,27 +161,27 @@
   <item>
     <accessDefinitions>
       <snmpv1>
-        <defaultPort>&lt;now&gt;</defaultPort>
+        <defaultPort>161</defaultPort>
         <description/>
         <group>snmp</group>
         <name>snmpv1</name>
-        <priority>&lt;now&gt;</priority>
+        <priority>20</priority>
         <protocol>SNMPV1</protocol>
       </snmpv1>
       <snmpv2c>
-        <defaultPort>&lt;now&gt;</defaultPort>
+        <defaultPort>161</defaultPort>
         <description/>
         <group>snmp</group>
         <name>snmpv2c</name>
-        <priority>&lt;now&gt;</priority>
+        <priority>22</priority>
         <protocol>SNMPV2C</protocol>
       </snmpv2c>
       <snmpv3>
-        <defaultPort>&lt;now&gt;</defaultPort>
+        <defaultPort>161</defaultPort>
         <description/>
         <group>snmp</group>
         <name>snmpv3</name>
-        <priority>&lt;now&gt;</priority>
+        <priority>80</priority>
         <protocol>SNMPV3</protocol>
       </snmpv3>
     </accessDefinitions>
@@ -214,7 +214,7 @@
     </location>
     <name>GenericSNMP</name>
     <options/>
-    <priority>&lt;now&gt;</priority>
+    <priority>1024</priority>
     <protocols>
       <protocols>SNMPV1</protocols>
       <protocols>SNMPV2C</protocols>

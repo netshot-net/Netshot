@@ -1,6 +1,6 @@
 {
   "enabled": false,
-  "id": "<now>",
+  "id": 6,
   "name": "JS",
   "resultType": "NUMERIC",
   "script": "function diagnose() {\n}",
@@ -8,7 +8,7 @@
     "changeDate": 1600000300000,
     "folder": "",
     "hiddenFromReports": true,
-    "id": "<now>",
+    "id": 101,
     "name": "Static",
     "type": "StaticDeviceGroup"
   },

@@ -4,7 +4,7 @@
   <enabled>false</enabled>
   <httpsCaTrustMode>CUSTOM_CA</httpsCaTrustMode>
   <httpsCustomCaCertificate>-----BEGIN CERTIFICATE-----</httpsCustomCaCertificate>
-  <id>&lt;now&gt;</id>
+  <id>3</id>
   <name>No trigger</name>
   <triggers/>
   <url>https://user:pass@example.net/hook?token=abc</url>

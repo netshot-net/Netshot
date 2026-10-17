@@ -6,7 +6,7 @@
   <deviceDriverDescription>Unknown driver</deviceDriverDescription>
   <enabled>false</enabled>
   <field/>
-  <id>&lt;now&gt;</id>
+  <id>0</id>
   <invert>false</invert>
   <matchAll>false</matchAll>
   <name>Other</name>

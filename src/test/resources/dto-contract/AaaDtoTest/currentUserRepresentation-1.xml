@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <UiUser>
-  <id>&lt;now&gt;</id>
-  <level>&lt;now&gt;</level>
+  <id>7</id>
+  <level>100</level>
   <local>true</local>
   <username>alice</username>
 </UiUser>

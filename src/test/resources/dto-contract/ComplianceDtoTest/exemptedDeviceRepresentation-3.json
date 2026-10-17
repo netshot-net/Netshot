@@ -5,7 +5,7 @@
   "eos": null,
   "expirationDate": null,
   "family": "Cisco",
-  "id": "<now>",
+  "id": 1,
   "mgmtAddress": "1.2.3.4",
   "name": "r1",
   "networkClass": "ROUTER",

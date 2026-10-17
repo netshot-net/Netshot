@@ -34,6 +34,7 @@ import java.util.TreeSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -65,7 +66,8 @@ class HookDtoTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(HookDtoTest.class);
 
 	private static HookTrigger trigger(String item) {
 		HookTrigger trigger = new HookTrigger();
@@ -99,13 +101,8 @@ class HookDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	@Test
@@ -118,7 +115,7 @@ class HookDtoTest {
 		WebHook bare = new WebHook();
 		bare.setName("Bare");
 		for (WebHook hook : List.of(full, none, nullTriggers, bare)) {
-			this.assertSameRepresentation(hook, HookMapper.toDto(hook));
+			this.assertRepresentation(HookMapper.toDto(hook));
 		}
 		// Make sure the check is meaningful
 		String text = new String(json(HookMapper.toDto(full)));
@@ -128,18 +125,10 @@ class HookDtoTest {
 		Assertions.assertTrue(new String(xml(HookMapper.toDto(full))).startsWith("<WebHook type=\"Web\">"));
 
 		List<Hook> entities = new ArrayList<>(List.of(full, none));
-		TypeReference<List<Hook>> entityType = new TypeReference<>() { };
 		TypeReference<List<HookDto>> dtoType = new TypeReference<>() { };
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON,
-			JSON.writerFor(entityType).withView(RestApiView.class).writeValueAsBytes(entities), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON,
-			JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(HookMapper.toDtos(entities)), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON list");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML,
-			XML.writerFor(entityType).withView(RestApiView.class).writeValueAsBytes(entities), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML,
-			XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(HookMapper.toDtos(entities)), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML list");
+		this.contract.checkBoth(
+			JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(HookMapper.toDtos(entities)),
+			XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(HookMapper.toDtos(entities)));
 		Assertions.assertEquals(ArrayList.class, HookMapper.toDtos(entities).getClass());
 	}
 

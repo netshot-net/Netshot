@@ -1,21 +1,21 @@
 <?xml version="1.0"?>
 <DeviceSnmpv3Community type="SNMP v3">
   <authKey>=</authKey>
-  <authKeyVaultInstanceId>&lt;now&gt;</authKeyVaultInstanceId>
+  <authKeyVaultInstanceId>12</authKeyVaultInstanceId>
   <authKeyVaultPath>netshot/v3/auth</authKeyVaultPath>
   <authType>SHA</authType>
   <community>=</community>
-  <communityVaultInstanceId>&lt;now&gt;</communityVaultInstanceId>
+  <communityVaultInstanceId>12</communityVaultInstanceId>
   <communityVaultPath>netshot/v3/community</communityVaultPath>
   <deviceSpecific>false</deviceSpecific>
-  <id>&lt;now&gt;</id>
+  <id>3</id>
   <mgmtDomain/>
   <name>SNMP v3</name>
   <privKey>=</privKey>
-  <privKeyVaultInstanceId>&lt;now&gt;</privKeyVaultInstanceId>
+  <privKeyVaultInstanceId>12</privKeyVaultInstanceId>
   <privKeyVaultPath>netshot/v3/priv</privKeyVaultPath>
   <privType>AES128</privType>
   <username>snmpuser</username>
-  <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+  <usernameVaultInstanceId>12</usernameVaultInstanceId>
   <usernameVaultPath>netshot/v3/username</usernameVaultPath>
 </DeviceSnmpv3Community>

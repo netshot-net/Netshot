@@ -6,14 +6,14 @@
   <eol/>
   <eos/>
   <family/>
-  <id>&lt;now&gt;</id>
+  <id>5</id>
   <mgmtAddress>10.0.0.5</mgmtAddress>
   <name>r5</name>
   <networkClass/>
-  <policyId>&lt;now&gt;</policyId>
+  <policyId>3</policyId>
   <policyName>Policy</policyName>
   <result>NONCONFORMING</result>
-  <ruleId>&lt;now&gt;</ruleId>
+  <ruleId>4</ruleId>
   <ruleName>Rule</ruleName>
   <softwareLevel/>
   <status>DISABLED</status>

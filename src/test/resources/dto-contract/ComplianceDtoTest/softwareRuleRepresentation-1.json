@@ -3,7 +3,7 @@
   "driver": "CiscoIOS12",
   "family": "Cisco 2900",
   "familyRegExp": true,
-  "id": "<now>",
+  "id": 5,
   "level": "SILVER",
   "partNumber": "CISCO.*",
   "partNumberRegExp": true,
@@ -11,7 +11,7 @@
     "changeDate": 1600000200000,
     "folder": "Production",
     "hiddenFromReports": true,
-    "id": "<now>",
+    "id": 100,
     "name": "Dynamic",
     "query": "[Name] contains \"r\"",
     "type": "DynamicDeviceGroup"

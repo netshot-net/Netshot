@@ -4,7 +4,7 @@
     <changeDate>1600000200000</changeDate>
     <folder>Production</folder>
     <hiddenFromReports>true</hiddenFromReports>
-    <id>&lt;now&gt;</id>
+    <id>10</id>
     <name>Dynamic</name>
     <query>[Name] contains &quot;r&quot;</query>
   </item>
@@ -12,7 +12,7 @@
     <changeDate>1600000300000</changeDate>
     <folder/>
     <hiddenFromReports>false</hiddenFromReports>
-    <id>&lt;now&gt;</id>
+    <id>11</id>
     <name>Static</name>
   </item>
 </ArrayList>

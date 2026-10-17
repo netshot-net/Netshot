@@ -4,7 +4,7 @@
     "communityVaultInstanceId": null,
     "communityVaultPath": null,
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 1,
     "mgmtDomain": null,
     "name": "SNMP v1",
     "type": "SNMP v1"
@@ -14,11 +14,11 @@
     "communityVaultInstanceId": null,
     "communityVaultPath": null,
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 2,
     "mgmtDomain": {
       "changeDate": 1600000000000,
       "description": "Paris data center",
-      "id": "<now>",
+      "id": 1,
       "name": "Paris DC",
       "server4Address": "10.255.0.1",
       "server6Address": "2001:db8:0:0:0:0:0:1"
@@ -35,7 +35,7 @@
     "communityVaultInstanceId": null,
     "communityVaultPath": null,
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 3,
     "mgmtDomain": null,
     "name": "SNMP v3",
     "privKey": "=",
@@ -49,7 +49,7 @@
   },
   {
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 4,
     "mgmtDomain": null,
     "name": "SSH",
     "password": "=",
@@ -65,11 +65,11 @@
   },
   {
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 5,
     "mgmtDomain": {
       "changeDate": 1600000000000,
       "description": "Paris data center",
-      "id": "<now>",
+      "id": 1,
       "name": "Paris DC",
       "server4Address": "10.255.0.1",
       "server6Address": "2001:db8:0:0:0:0:0:1"
@@ -91,7 +91,7 @@
   },
   {
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 6,
     "mgmtDomain": null,
     "name": "Telnet",
     "password": "=",
@@ -107,7 +107,7 @@
   },
   {
     "deviceSpecific": false,
-    "id": "<now>",
+    "id": 7,
     "mgmtDomain": null,
     "name": "HTTP",
     "password": "=",

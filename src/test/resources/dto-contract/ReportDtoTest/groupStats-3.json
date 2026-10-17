@@ -1,18 +1,18 @@
 [
   {
-    "bronzeDeviceCount": "<now>",
-    "deviceCount": "<now>",
-    "goldDeviceCount": "<now>",
-    "groupId": "<now>",
+    "bronzeDeviceCount": 3,
+    "deviceCount": 7,
+    "goldDeviceCount": 1,
+    "groupId": 1,
     "groupName": "Core",
-    "silverDeviceCount": "<now>"
+    "silverDeviceCount": 2
   },
   {
-    "bronzeDeviceCount": "<now>",
-    "deviceCount": "<now>",
-    "goldDeviceCount": "<now>",
-    "groupId": "<now>",
+    "bronzeDeviceCount": 0,
+    "deviceCount": 0,
+    "goldDeviceCount": 0,
+    "groupId": 2,
     "groupName": "Empty",
-    "silverDeviceCount": "<now>"
+    "silverDeviceCount": 0
   }
 ]

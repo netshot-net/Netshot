@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <JavaScriptDiagnostic type="JavaScriptDiagnostic">
   <enabled>false</enabled>
-  <id>&lt;now&gt;</id>
+  <id>6</id>
   <name>JS</name>
   <resultType>NUMERIC</resultType>
   <script/>

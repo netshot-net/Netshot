@@ -3,7 +3,7 @@
   "communityVaultInstanceId": null,
   "communityVaultPath": null,
   "deviceSpecific": false,
-  "id": "<now>",
+  "id": 0,
   "mgmtDomain": null,
   "name": null,
   "type": "SNMP v1"

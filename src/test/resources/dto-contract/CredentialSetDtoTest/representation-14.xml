@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <DeviceTelnetAccount type="Telnet">
   <deviceSpecific>false</deviceSpecific>
-  <id>&lt;now&gt;</id>
+  <id>6</id>
   <mgmtDomain/>
   <name>Telnet</name>
   <password>=</password>

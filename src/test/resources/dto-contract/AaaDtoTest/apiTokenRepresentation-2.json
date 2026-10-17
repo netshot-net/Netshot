@@ -1,12 +1,12 @@
 [
   {
     "description": "Monitoring",
-    "id": "<now>",
-    "level": "<now>"
+    "id": 3,
+    "level": 10
   },
   {
     "description": "",
-    "id": "<now>",
-    "level": "<now>"
+    "id": 0,
+    "level": 1000
   }
 ]

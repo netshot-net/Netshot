@@ -7,14 +7,14 @@
     <endOfSale>1600000000000</endOfSale>
     <family>Cisco 2900</family>
     <familyRegExp>false</familyRegExp>
-    <id>&lt;now&gt;</id>
+    <id>5</id>
     <partNumber>CISCO29.*</partNumber>
     <partNumberRegExp>true</partNumberRegExp>
     <targetGroup type="StaticDeviceGroup">
       <changeDate>1600000300000</changeDate>
       <folder/>
       <hiddenFromReports>false</hiddenFromReports>
-      <id>&lt;now&gt;</id>
+      <id>101</id>
       <name>Static</name>
     </targetGroup>
   </item>
@@ -25,7 +25,7 @@
     <endOfSale/>
     <family/>
     <familyRegExp>true</familyRegExp>
-    <id>&lt;now&gt;</id>
+    <id>6</id>
     <partNumber/>
     <partNumberRegExp>false</partNumberRegExp>
     <targetGroup/>
@@ -37,14 +37,14 @@
     <endOfSale/>
     <family/>
     <familyRegExp>false</familyRegExp>
-    <id>&lt;now&gt;</id>
+    <id>7</id>
     <partNumber/>
     <partNumberRegExp>false</partNumberRegExp>
     <targetGroup type="DynamicDeviceGroup">
       <changeDate>1600000200000</changeDate>
       <folder>Production</folder>
       <hiddenFromReports>true</hiddenFromReports>
-      <id>&lt;now&gt;</id>
+      <id>100</id>
       <name>Dynamic</name>
       <query>[Name] contains &quot;r&quot;</query>
     </targetGroup>

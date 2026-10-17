@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <JavaScriptDiagnostic type="JavaScriptDiagnostic">
   <enabled>false</enabled>
-  <id>&lt;now&gt;</id>
+  <id>6</id>
   <name>JS</name>
   <resultType>NUMERIC</resultType>
   <script>function diagnose() {&#10;}</script>
@@ -9,7 +9,7 @@
     <changeDate>1600000300000</changeDate>
     <folder/>
     <hiddenFromReports>true</hiddenFromReports>
-    <id>&lt;now&gt;</id>
+    <id>101</id>
     <name>Static</name>
   </targetGroup>
 </JavaScriptDiagnostic>

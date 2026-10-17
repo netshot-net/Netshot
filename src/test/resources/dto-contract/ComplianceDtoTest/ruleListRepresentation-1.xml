@@ -7,7 +7,7 @@
     <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
     <enabled>true</enabled>
     <field>runningConfig</field>
-    <id>&lt;now&gt;</id>
+    <id>7</id>
     <invert>true</invert>
     <matchAll>true</matchAll>
     <name>Text rule</name>
@@ -17,13 +17,13 @@
   </item>
   <item>
     <enabled>false</enabled>
-    <id>&lt;now&gt;</id>
+    <id>8</id>
     <name>JS rule</name>
     <script>/*&#10; * Script template - to be customized.&#10; */&#10;function check(device) {&#10;    //const config = device.get(&quot;runningConfig&quot;);&#10;    //const name = device.get(&quot;name&quot;);&#10;    return CONFORMING;&#10;    //return NONCONFORMING;&#10;    //return NOTAPPLICABLE;&#10;}&#10;</script>
   </item>
   <item>
     <enabled>false</enabled>
-    <id>&lt;now&gt;</id>
+    <id>9</id>
     <name>Python rule</name>
     <script># Script template - to be customized&#10;def check(device):&#10;  ## Grab some data:&#10;  #  config = device.get('running_config')&#10;  #  name = device.get('name')&#10;  ## Some additional checks here...&#10;  ## debug('device name = %s' % name)&#10;  return result_option.CONFORMING&#10;  # return {'result': result_option.NONCONFORMING, 'comment': 'Why it is not fine'}&#10;  # return result_option.NOTAPPLICABLE&#10;</script>
   </item>

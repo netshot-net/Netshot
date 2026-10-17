@@ -3,25 +3,25 @@
   <item>
     <description>Uplink</description>
     <enabled>true</enabled>
-    <id>&lt;now&gt;</id>
+    <id>3</id>
     <interfaceName>Gi0/0</interfaceName>
     <ip4Addresses>
       <ip4Addresses>
         <addressUsage>PRIMARY</addressUsage>
         <ip>10.0.0.1</ip>
-        <prefixLength>&lt;now&gt;</prefixLength>
+        <prefixLength>24</prefixLength>
       </ip4Addresses>
       <ip4Addresses>
         <addressUsage>SECONDARY</addressUsage>
         <ip>10.0.1.1</ip>
-        <prefixLength>&lt;now&gt;</prefixLength>
+        <prefixLength>24</prefixLength>
       </ip4Addresses>
     </ip4Addresses>
     <ip6Addresses>
       <ip6Addresses>
         <addressUsage>HSRP</addressUsage>
         <ip>2001:db8:0:0:0:0:0:1</ip>
-        <prefixLength>&lt;now&gt;</prefixLength>
+        <prefixLength>64</prefixLength>
       </ip6Addresses>
     </ip6Addresses>
     <level3>true</level3>
@@ -32,7 +32,7 @@
   <item>
     <description/>
     <enabled>false</enabled>
-    <id>&lt;now&gt;</id>
+    <id>4</id>
     <interfaceName/>
     <ip4Addresses/>
     <ip6Addresses/>

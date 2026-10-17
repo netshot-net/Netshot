@@ -1,6 +1,6 @@
 {
   "deviceSpecific": false,
-  "id": "<now>",
+  "id": 7,
   "mgmtDomain": null,
   "name": "HTTP",
   "password": "=",
@@ -8,6 +8,6 @@
   "passwordVaultPath": null,
   "type": "HTTP",
   "username": "httpuser",
-  "usernameVaultInstanceId": "<now>",
+  "usernameVaultInstanceId": 14,
   "usernameVaultPath": "netshot/http/username"
 }

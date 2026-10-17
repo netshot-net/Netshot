@@ -7,7 +7,7 @@
   <baseUrl/>
   <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
   <httpsCustomCaCertificate/>
-  <id>&lt;now&gt;</id>
+  <id>0</id>
   <jwtClientId/>
   <jwtClientSecret/>
   <jwtIdpTokenEndpoint/>

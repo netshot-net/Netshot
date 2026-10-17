@@ -4,7 +4,7 @@
   "eol": true,
   "eos": false,
   "family": "Cisco",
-  "id": "<now>",
+  "id": 5,
   "mgmtAddress": "10.0.0.5",
   "name": "r5",
   "networkClass": "ROUTER",

@@ -7,7 +7,7 @@
     },
     {
       "checksum": "0123456789abcdef",
-      "fileSize": "<now>",
+      "fileSize": 4096,
       "name": "file",
       "originalName": "backup.tar.gz",
       "type": "BINARYFILE"
@@ -30,5 +30,5 @@
   "author": "tester",
   "changeDate": 1600000000000,
   "customHash": "hash",
-  "id": "<now>"
+  "id": 7
 }

@@ -4,7 +4,7 @@
   "deviceDriver": "CiscoIOS12",
   "deviceDriverDescription": "Cisco IOS and IOS-XE",
   "enabled": true,
-  "id": "<now>",
+  "id": 5,
   "modifierPattern": "(.*)",
   "modifierReplacement": "$1",
   "name": "Simple",
@@ -13,7 +13,7 @@
     "changeDate": 1600000300000,
     "folder": "",
     "hiddenFromReports": true,
-    "id": "<now>",
+    "id": 101,
     "name": "Static",
     "type": "StaticDeviceGroup"
   },

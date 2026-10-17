@@ -4,7 +4,7 @@
   "deviceDriver": "CiscoIOS12",
   "deviceDriverDescription": "Cisco IOS and IOS-XE",
   "enabled": true,
-  "id": "<now>",
+  "id": 5,
   "modifierPattern": "(.*)",
   "modifierReplacement": "$1",
   "name": "Simple",
@@ -13,7 +13,7 @@
     "changeDate": 1600000200000,
     "folder": "Production",
     "hiddenFromReports": false,
-    "id": "<now>",
+    "id": 100,
     "name": "Dynamic",
     "query": "[Name] contains \"r\"",
     "type": "DynamicDeviceGroup"

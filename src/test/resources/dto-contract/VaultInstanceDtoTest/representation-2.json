@@ -6,7 +6,7 @@
   "baseUrl": null,
   "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
   "httpsCustomCaCertificate": null,
-  "id": "<now>",
+  "id": 0,
   "jwtClientId": null,
   "jwtClientSecret": null,
   "jwtIdpTokenEndpoint": null,

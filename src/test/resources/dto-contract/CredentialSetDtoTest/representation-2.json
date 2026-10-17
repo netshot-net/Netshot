@@ -3,11 +3,11 @@
   "communityVaultInstanceId": null,
   "communityVaultPath": null,
   "deviceSpecific": false,
-  "id": "<now>",
+  "id": 2,
   "mgmtDomain": {
     "changeDate": 1600000000000,
     "description": "Paris data center",
-    "id": "<now>",
+    "id": 1,
     "name": "Paris DC",
     "server4Address": "10.255.0.1",
     "server6Address": "2001:db8:0:0:0:0:0:1"

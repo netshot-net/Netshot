@@ -8,7 +8,7 @@
       </attributes>
       <attributes type="BINARYFILE">
         <checksum>0123456789abcdef</checksum>
-        <fileSize>&lt;now&gt;</fileSize>
+        <fileSize>4096</fileSize>
         <name>file</name>
         <originalName>backup.tar.gz</originalName>
       </attributes>
@@ -27,6 +27,6 @@
     <author>tester</author>
     <changeDate>1600000000000</changeDate>
     <customHash>hash</customHash>
-    <id>&lt;now&gt;</id>
+    <id>7</id>
   </item>
 </ArrayList>

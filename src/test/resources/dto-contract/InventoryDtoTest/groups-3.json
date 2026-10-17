@@ -3,7 +3,7 @@
     "changeDate": 1600000200000,
     "folder": "Production",
     "hiddenFromReports": true,
-    "id": "<now>",
+    "id": 10,
     "name": "Dynamic",
     "query": "[Name] contains \"r\""
   },
@@ -11,7 +11,7 @@
     "changeDate": 1600000300000,
     "folder": "",
     "hiddenFromReports": false,
-    "id": "<now>",
+    "id": 11,
     "name": "Static"
   }
 ]

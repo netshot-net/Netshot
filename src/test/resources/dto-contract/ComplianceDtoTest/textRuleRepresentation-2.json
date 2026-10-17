@@ -5,7 +5,7 @@
   "deviceDriverDescription": "Unknown driver",
   "enabled": false,
   "field": null,
-  "id": "<now>",
+  "id": 0,
   "invert": false,
   "matchAll": false,
   "name": "Other",

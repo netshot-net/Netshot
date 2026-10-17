@@ -2,10 +2,10 @@
 <List>
   <item type="SNMP v1">
     <community>=</community>
-    <communityVaultInstanceId>&lt;now&gt;</communityVaultInstanceId>
+    <communityVaultInstanceId>11</communityVaultInstanceId>
     <communityVaultPath>netshot/v1</communityVaultPath>
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>1</id>
     <mgmtDomain/>
     <name>SNMP v1</name>
   </item>
@@ -14,11 +14,11 @@
     <communityVaultInstanceId/>
     <communityVaultPath/>
     <deviceSpecific>true</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>2</id>
     <mgmtDomain>
       <changeDate>1600000000000</changeDate>
       <description>Paris data center</description>
-      <id>&lt;now&gt;</id>
+      <id>1</id>
       <name>Paris DC</name>
       <server4Address>10.255.0.1</server4Address>
       <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
@@ -27,27 +27,27 @@
   </item>
   <item type="SNMP v3">
     <authKey>=</authKey>
-    <authKeyVaultInstanceId>&lt;now&gt;</authKeyVaultInstanceId>
+    <authKeyVaultInstanceId>12</authKeyVaultInstanceId>
     <authKeyVaultPath>netshot/v3/auth</authKeyVaultPath>
     <authType>SHA</authType>
     <community>=</community>
-    <communityVaultInstanceId>&lt;now&gt;</communityVaultInstanceId>
+    <communityVaultInstanceId>12</communityVaultInstanceId>
     <communityVaultPath>netshot/v3/community</communityVaultPath>
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>3</id>
     <mgmtDomain/>
     <name>SNMP v3</name>
     <privKey>=</privKey>
-    <privKeyVaultInstanceId>&lt;now&gt;</privKeyVaultInstanceId>
+    <privKeyVaultInstanceId>12</privKeyVaultInstanceId>
     <privKeyVaultPath>netshot/v3/priv</privKeyVaultPath>
     <privType>AES128</privType>
     <username>snmpuser</username>
-    <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+    <usernameVaultInstanceId>12</usernameVaultInstanceId>
     <usernameVaultPath>netshot/v3/username</usernameVaultPath>
   </item>
   <item type="SSH">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>4</id>
     <mgmtDomain/>
     <name>SSH</name>
     <password>=</password>
@@ -62,32 +62,32 @@
   </item>
   <item type="SSH Key">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>5</id>
     <mgmtDomain>
       <changeDate>1600000000000</changeDate>
       <description>Paris data center</description>
-      <id>&lt;now&gt;</id>
+      <id>1</id>
       <name>Paris DC</name>
       <server4Address>10.255.0.1</server4Address>
       <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
     </mgmtDomain>
     <name>SSH Key</name>
     <password>=</password>
-    <passwordVaultInstanceId>&lt;now&gt;</passwordVaultInstanceId>
+    <passwordVaultInstanceId>13</passwordVaultInstanceId>
     <passwordVaultPath>netshot/key/password</passwordVaultPath>
     <privateKey>=</privateKey>
-    <privateKeyVaultInstanceId>&lt;now&gt;</privateKeyVaultInstanceId>
+    <privateKeyVaultInstanceId>13</privateKeyVaultInstanceId>
     <privateKeyVaultPath>netshot/key/private</privateKeyVaultPath>
     <superPassword>=</superPassword>
-    <superPasswordVaultInstanceId>&lt;now&gt;</superPasswordVaultInstanceId>
+    <superPasswordVaultInstanceId>13</superPasswordVaultInstanceId>
     <superPasswordVaultPath>netshot/key/super</superPasswordVaultPath>
     <username>keyuser</username>
-    <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+    <usernameVaultInstanceId>13</usernameVaultInstanceId>
     <usernameVaultPath>netshot/key/username</usernameVaultPath>
   </item>
   <item type="Telnet">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>6</id>
     <mgmtDomain/>
     <name>Telnet</name>
     <password>=</password>
@@ -102,14 +102,14 @@
   </item>
   <item type="HTTP">
     <deviceSpecific>false</deviceSpecific>
-    <id>&lt;now&gt;</id>
+    <id>7</id>
     <mgmtDomain/>
     <name>HTTP</name>
     <password>=</password>
     <passwordVaultInstanceId/>
     <passwordVaultPath/>
     <username>httpuser</username>
-    <usernameVaultInstanceId>&lt;now&gt;</usernameVaultInstanceId>
+    <usernameVaultInstanceId>14</usernameVaultInstanceId>
     <usernameVaultPath>netshot/http/username</usernameVaultPath>
   </item>
 </List>

@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -51,7 +52,8 @@ class ClusterServiceTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(ClusterServiceTest.class, System.currentTimeMillis());
 
 	private static ClusterMember member(String id, boolean local, MastershipStatus status) {
 		ClusterMember member = new ClusterMember(id, "host-" + id, 3, 10, 20, 30, "1.2.3", "21.0.1", "hash-" + id);
@@ -96,21 +98,12 @@ class ClusterServiceTest {
 	}
 
 	@Test
-	@DisplayName("A cluster member has the same JSON and XML representation as the entity")
+	@DisplayName("A cluster member is written as the cluster member class was")
 	void memberRepresentation() throws Exception {
 		List<ClusterMember> members = new ArrayList<>(List.of(member("a", true, MastershipStatus.MASTER), member("b", false, MastershipStatus.EXPIRED)));
-		Object expected = members;
 		Object actual = SystemMapper.toMemberDtos(members);
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class).writeValueAsBytes(expected),
-				ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class).writeValueAsBytes(actual),
-				ApiContractGolden.Transform.NONE, false));
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.XML, XML.writerWithView(RestApiView.class).writeValueAsBytes(expected),
-				ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.XML, XML.writerWithView(RestApiView.class).writeValueAsBytes(actual),
-				ApiContractGolden.Transform.NONE, false));
+		this.contract.checkBoth(JSON.writerWithView(RestApiView.class).writeValueAsBytes(actual),
+			XML.writerWithView(RestApiView.class).writeValueAsBytes(actual));
 		String json = new String(JSON.writerWithView(RestApiView.class).writeValueAsBytes(actual));
 		Assertions.assertTrue(json.contains("\"status\":\"MASTER\""), json);
 		Assertions.assertTrue(json.contains("\"local\":true"), json);

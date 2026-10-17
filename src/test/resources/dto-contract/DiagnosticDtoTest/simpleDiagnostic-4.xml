@@ -5,7 +5,7 @@
   <deviceDriver/>
   <deviceDriverDescription/>
   <enabled>true</enabled>
-  <id>&lt;now&gt;</id>
+  <id>5</id>
   <modifierPattern/>
   <modifierReplacement>$1</modifierReplacement>
   <name>Simple</name>

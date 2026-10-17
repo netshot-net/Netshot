@@ -46,6 +46,12 @@ final class DtoContract implements BeforeEachCallback {
 	/** Directory holding the expected files. */
 	static final Path DIR = Path.of("src", "test", "resources", "dto-contract");
 
+	/**
+	 * Start time far away from any value the tests hold: no number is taken for a timestamp generated
+	 * while the test runs (the window around the start time is the one of {@link ApiContractGolden}).
+	 */
+	private static final long NEVER = Long.MIN_VALUE / 4;
+
 	private final Path dir;
 	private final ApiContractGolden golden;
 	private final Map<String, Integer> counters = new HashMap<>();
@@ -56,14 +62,14 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param testClass the test class (its simple name is the directory name)
 	 */
 	DtoContract(Class<?> testClass) {
-		this(testClass, 0);
+		this(testClass, NEVER);
 	}
 
 	/**
 	 * Builds the store of a test class.
 	 * @param testClass the test class (its simple name is the directory name)
 	 * @param startTime the time the test started (epoch milliseconds), to turn the timestamps generated while
-	 * it runs into placeholders
+	 * it runs into placeholders (a test whose objects hold the current time)
 	 */
 	DtoContract(Class<?> testClass, long startTime) {
 		this.dir = DIR.resolve(testClass.getSimpleName());

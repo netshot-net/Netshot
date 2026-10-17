@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <ApiToken>
   <description>Monitoring</description>
-  <id>&lt;now&gt;</id>
-  <level>&lt;now&gt;</level>
+  <id>3</id>
+  <level>10</level>
 </ApiToken>

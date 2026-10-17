@@ -3,7 +3,7 @@
   "enabled": true,
   "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
   "httpsCustomCaCertificate": null,
-  "id": "<now>",
+  "id": 0,
   "name": "Bare",
   "triggers": [ ],
   "type": "Web",

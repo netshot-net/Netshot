@@ -1,0 +1,32 @@
+[
+  {
+    "appVersion": "1.2.3",
+    "clusteringVersion": 3,
+    "driverHash": "hash-a",
+    "hostname": "host-a",
+    "instanceId": "<instanceId>",
+    "jvmVersion": "21.0.1",
+    "lastSeenTime": 1700000000000,
+    "lastStatusChangeTime": "<now>",
+    "local": true,
+    "masterPriority": 10,
+    "runnerPriority": 20,
+    "runnerWeight": 30,
+    "status": "MASTER"
+  },
+  {
+    "appVersion": "1.2.3",
+    "clusteringVersion": 3,
+    "driverHash": "hash-b",
+    "hostname": "host-b",
+    "instanceId": "<instanceId>",
+    "jvmVersion": "21.0.1",
+    "lastSeenTime": 1700000000000,
+    "lastStatusChangeTime": "<now>",
+    "local": false,
+    "masterPriority": 10,
+    "runnerPriority": 20,
+    "runnerWeight": 30,
+    "status": "EXPIRED"
+  }
+]

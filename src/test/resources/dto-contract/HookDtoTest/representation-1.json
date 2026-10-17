@@ -3,7 +3,7 @@
   "enabled": true,
   "httpsCaTrustMode": "CUSTOM_CA",
   "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
-  "id": "<now>",
+  "id": 2,
   "name": "Full",
   "triggers": [
     {

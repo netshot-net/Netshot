@@ -6,7 +6,7 @@
     "deviceDriverDescription": "Cisco IOS and IOS-XE",
     "enabled": true,
     "field": "runningConfig",
-    "id": "<now>",
+    "id": 7,
     "invert": true,
     "matchAll": true,
     "name": "Text rule",
@@ -16,13 +16,13 @@
   },
   {
     "enabled": false,
-    "id": "<now>",
+    "id": 8,
     "name": "JS rule",
     "script": "/*\n * Script template - to be customized.\n */\nfunction check(device) {\n    //const config = device.get(\"runningConfig\");\n    //const name = device.get(\"name\");\n    return CONFORMING;\n    //return NONCONFORMING;\n    //return NOTAPPLICABLE;\n}\n"
   },
   {
     "enabled": false,
-    "id": "<now>",
+    "id": 9,
     "name": "Python rule",
     "script": "# Script template - to be customized\ndef check(device):\n  ## Grab some data:\n  #  config = device.get('running_config')\n  #  name = device.get('name')\n  ## Some additional checks here...\n  ## debug('device name = %s' % name)\n  return result_option.CONFORMING\n  # return {'result': result_option.NONCONFORMING, 'comment': 'Why it is not fine'}\n  # return result_option.NOTAPPLICABLE\n"
   }
