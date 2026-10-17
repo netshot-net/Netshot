@@ -542,5 +542,4 @@ Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends
 Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.devicescript.UserDeviceScript> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.DeviceJsScript> (slice userscript) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
-Class <net.netshot.netshot.userscript.ScriptCreation> (slice userscript) depends on <net.netshot.netshot.devicescript.UserDeviceScript$UserInputDefinition> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.userscript.ScriptService> (slice userscript) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle

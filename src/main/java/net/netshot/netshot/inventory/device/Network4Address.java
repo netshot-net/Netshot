@@ -18,17 +18,11 @@
  */
 package net.netshot.netshot.inventory.device;
 
-import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
-
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
 
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Transient;
@@ -143,14 +137,6 @@ public final class Network4Address extends NetworkAddress {
 	 */
 	public static int prefixLengthToIntAddress(int length) {
 		return 0xFFFFFFFF << (32 - length);
-	}
-
-	public static class AddressOnlyDeserializer extends JsonDeserializer<Network4Address> {
-		@Override
-		public Network4Address deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
-			String text = p.getText();
-			return new Network4Address(text);
-		}
 	}
 
 
