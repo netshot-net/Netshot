@@ -31,5 +31,6 @@
   "stopOnFailure": false,
   "target": "10.9.0.0/24",
   "taskDescription": "Subnet scan",
+  "type": "ScanSubnetsTask",
   "userInputValues": null
 }

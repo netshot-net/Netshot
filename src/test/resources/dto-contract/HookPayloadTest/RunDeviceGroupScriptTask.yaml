@@ -31,5 +31,6 @@
   "stopOnFailure": false,
   "target": "Core routers",
   "taskDescription": "Group script execution",
+  "type": "RunDeviceGroupScriptTask",
   "userInputValues": null
 }

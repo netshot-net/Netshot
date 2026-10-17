@@ -31,5 +31,6 @@
   "stopOnFailure": false,
   "target": "Core routers",
   "taskDescription": "Group software compliance and hardware support check",
+  "type": "CheckGroupSoftwareTask",
   "userInputValues": null
 }

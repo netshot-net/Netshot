@@ -31,6 +31,7 @@ import org.glassfish.jersey.client.ClientConfig;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.jakarta.rs.json.JacksonXmlBindJsonProvider;
 import com.fasterxml.jackson.jakarta.rs.xml.JacksonXmlBindXMLProvider;
@@ -102,8 +103,7 @@ public class WebHookSender {
 			case POST_YAML:
 				mediaType = YAMLMediaTypes.APPLICATION_JACKSON_YAML_TYPE;
 				JacksonXmlBindYAMLProvider yamlProvider = new JacksonXmlBindYAMLProvider();
-				yamlProvider.setMapper(YAMLMapper.builder()
-					.build());
+				yamlProvider.setMapper(yamlMapper());
 				config.register(yamlProvider);
 				break;
 			default:
@@ -131,5 +131,17 @@ public class WebHookSender {
 				Response response = client.target(targetUrl.toURI()).request().post(jakarta.ws.rs.client.Entity.entity(data, mediaType))) {
 			return String.format("HTTP response code %d", response.getStatus());
 		}
+	}
+
+	/**
+	 * Builds the mapper of the YAML payloads. The type id of a payload is written as a {@code type}
+	 * property, as in JSON, rather than as a YAML tag: some type ids ("SNMP v1") are not valid tags.
+	 *
+	 * @return the mapper
+	 */
+	public static YAMLMapper yamlMapper() {
+		return YAMLMapper.builder()
+			.disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+			.build();
 	}
 }

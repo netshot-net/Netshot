@@ -33,5 +33,6 @@
   "stopOnFailure": false,
   "target": "2 device(s)",
   "taskDescription": "Group snapshot",
+  "type": "TakeGroupSnapshotTask",
   "userInputValues": null
 }

@@ -25,7 +25,8 @@
           "deviceSpecific": true,
           "id": 9,
           "mgmtDomain": null,
-          "name": "DEVICESPECIFIC-<uuid>"
+          "name": "DEVICESPECIFIC-<uuid>",
+          "type": "SSH"
         },
         "sshHostKeyVerification": "TRUST_ANY",
         "sshTrustedHostKeys": null,
@@ -38,7 +39,8 @@
           "deviceSpecific": false,
           "id": 6,
           "mgmtDomain": null,
-          "name": "Telnet account"
+          "name": "Telnet account",
+          "type": "Telnet"
         },
         "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
         "httpsCustomCaCertificate": null,
@@ -75,7 +77,8 @@
         "hiddenFromReports": true,
         "id": 3,
         "name": "Everything",
-        "query": "[Name] contains \"\""
+        "query": "[Name] contains \"\"",
+        "type": "DynamicDeviceGroup"
       },
       {
         "changeDate": "<now>",
@@ -83,14 +86,16 @@
         "hiddenFromReports": false,
         "id": 2,
         "name": "All Cisco devices",
-        "query": "[Family] contains \"Cisco\""
+        "query": "[Family] contains \"Cisco\"",
+        "type": "DynamicDeviceGroup"
       },
       {
         "changeDate": "<now>",
         "folder": "Production/Core",
         "hiddenFromReports": false,
         "id": 1,
-        "name": "Core routers"
+        "name": "Core routers",
+        "type": "StaticDeviceGroup"
       }
     ],
     "realDeviceType": "Cisco IOS and IOS-XE",
@@ -126,5 +131,6 @@
   "stopOnFailure": false,
   "target": "10.1.1.1",
   "taskDescription": "Device autodiscovery",
+  "type": "DiscoverDeviceTypeTask",
   "userInputValues": null
 }
