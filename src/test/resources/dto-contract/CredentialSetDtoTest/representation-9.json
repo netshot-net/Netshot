@@ -1,0 +1,10 @@
+{
+  "community": "=",
+  "communityVaultInstanceId": "<now>",
+  "communityVaultPath": "netshot/v1",
+  "deviceSpecific": false,
+  "id": "<now>",
+  "mgmtDomain": null,
+  "name": "SNMP v1",
+  "type": "SNMP v1"
+}

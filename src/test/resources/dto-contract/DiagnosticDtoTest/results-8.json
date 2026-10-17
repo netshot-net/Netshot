@@ -1,0 +1,29 @@
+[
+  {
+    "creationDate": 1609502400000,
+    "diagnosticId": "<now>",
+    "diagnosticName": "Diag",
+    "lastCheckDate": 1609502400500,
+    "text": "some text"
+  },
+  {
+    "creationDate": 1609502400000,
+    "diagnosticId": "<now>",
+    "diagnosticName": "Diag",
+    "lastCheckDate": 1609502400500
+  },
+  {
+    "creationDate": 1609502400000,
+    "diagnosticId": "<now>",
+    "diagnosticName": "Diag",
+    "lastCheckDate": 1609502400500,
+    "number": 42.5
+  },
+  {
+    "assumption": true,
+    "creationDate": 1609502400000,
+    "diagnosticId": "<now>",
+    "diagnosticName": "Diag",
+    "lastCheckDate": 1609502400500
+  }
+]

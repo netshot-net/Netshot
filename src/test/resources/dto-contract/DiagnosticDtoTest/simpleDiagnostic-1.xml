@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<SimpleDiagnostic type="SimpleDiagnostic">
+  <cliMode>enable</cliMode>
+  <command>show version</command>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+  <enabled>true</enabled>
+  <id>&lt;now&gt;</id>
+  <modifierPattern>(.*)</modifierPattern>
+  <modifierReplacement>$1</modifierReplacement>
+  <name>Simple</name>
+  <resultType>TEXT</resultType>
+  <targetGroup type="DynamicDeviceGroup">
+    <changeDate>1600000200000</changeDate>
+    <folder>Production</folder>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>&lt;now&gt;</id>
+    <name>Dynamic</name>
+    <query>[Name] contains &quot;r&quot;</query>
+  </targetGroup>
+</SimpleDiagnostic>

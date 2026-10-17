@@ -1,0 +1,9 @@
+{
+  "changeDate": 1600000200000,
+  "folder": "Production",
+  "hiddenFromReports": true,
+  "id": "<now>",
+  "name": "Dynamic",
+  "query": "[Name] contains \"r\"",
+  "type": "DynamicDeviceGroup"
+}

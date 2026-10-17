@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <description>Monitoring</description>
+    <id>&lt;now&gt;</id>
+    <level>&lt;now&gt;</level>
+  </item>
+  <item>
+    <description/>
+    <id>&lt;now&gt;</id>
+    <level>&lt;now&gt;</level>
+  </item>
+</ArrayList>

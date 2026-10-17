@@ -1,0 +1,13 @@
+{
+  "deviceSpecific": false,
+  "id": "<now>",
+  "mgmtDomain": null,
+  "name": "HTTP",
+  "password": "=",
+  "passwordVaultInstanceId": null,
+  "passwordVaultPath": null,
+  "type": "HTTP",
+  "username": "httpuser",
+  "usernameVaultInstanceId": null,
+  "usernameVaultPath": null
+}

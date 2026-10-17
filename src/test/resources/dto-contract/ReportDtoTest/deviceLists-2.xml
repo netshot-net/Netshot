@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<RsLightPolicyRuleDevice>
+  <checkDate>1600000000000</checkDate>
+  <configCompliant>true</configCompliant>
+  <driver>CiscoIOS12</driver>
+  <eol>true</eol>
+  <eos>false</eos>
+  <family>Cisco</family>
+  <id>&lt;now&gt;</id>
+  <mgmtAddress>10.0.0.5</mgmtAddress>
+  <name>r5</name>
+  <networkClass>ROUTER</networkClass>
+  <policyId>&lt;now&gt;</policyId>
+  <policyName>Policy</policyName>
+  <result>EXEMPTED</result>
+  <ruleId>&lt;now&gt;</ruleId>
+  <ruleName>Rule</ruleName>
+  <softwareLevel>GOLD</softwareLevel>
+  <status>INPRODUCTION</status>
+</RsLightPolicyRuleDevice>

@@ -1,0 +1,10 @@
+{
+  "author": "tester",
+  "deviceDriver": "CiscoIOS12",
+  "folder": "Folder",
+  "id": "<now>",
+  "name": "Script",
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "script": "function run() {}",
+  "userInputDefinitions": { }
+}

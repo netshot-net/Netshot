@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<JavaScriptRule type="JavaScriptRule">
+  <enabled>true</enabled>
+  <id>&lt;now&gt;</id>
+  <name>JS rule</name>
+  <script>function check(device) {&#10;  return CONFORMING;&#10;}</script>
+</JavaScriptRule>

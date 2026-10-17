@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<DynamicDeviceGroup type="DynamicDeviceGroup">
+  <changeDate>1600000200000</changeDate>
+  <folder>Production</folder>
+  <hiddenFromReports>true</hiddenFromReports>
+  <id>&lt;now&gt;</id>
+  <name>Dynamic</name>
+  <query>[Name] contains &quot;r&quot;</query>
+</DynamicDeviceGroup>

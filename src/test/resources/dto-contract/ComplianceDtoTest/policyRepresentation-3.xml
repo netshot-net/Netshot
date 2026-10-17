@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<Policy>
+  <id>&lt;now&gt;</id>
+  <name>Quirk</name>
+  <targetGroups>
+    <targetGroups type="StaticDeviceGroup">
+      <changeDate>1600000300000</changeDate>
+      <folder/>
+      <hiddenFromReports>false</hiddenFromReports>
+      <id>&lt;now&gt;</id>
+      <name>Static</name>
+    </targetGroups>
+    <targetGroups/>
+  </targetGroups>
+</Policy>
