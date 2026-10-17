@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -70,7 +71,8 @@ class DiagnosticDtoTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(DiagnosticDtoTest.class);
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
@@ -89,13 +91,8 @@ class DiagnosticDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	private static DynamicDeviceGroup dynamicGroup() {
@@ -120,16 +117,16 @@ class DiagnosticDtoTest {
 		SimpleDiagnostic diagnostic = new SimpleDiagnostic("Simple", true, dynamicGroup(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(.*)", "$1");
 		diagnostic.setId(5);
-		this.assertSameRepresentation(diagnostic, DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
 		diagnostic.setTargetGroup(staticGroup());
-		this.assertSameRepresentation(diagnostic, DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
 		diagnostic.setTargetGroup(null);
 		diagnostic.setDeviceDriver("NoSuchDriver");
 		diagnostic.setModifierPattern(null);
 		diagnostic.setResultType(AttributeType.LONGTEXT);
-		this.assertSameRepresentation(diagnostic, DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
 		diagnostic.setDeviceDriver("");
-		this.assertSameRepresentation(diagnostic, DiagnosticMapper.toDto(diagnostic));
+		this.assertRepresentation(DiagnosticMapper.toDto(diagnostic));
 		String json = new String(json(DiagnosticMapper.toDto(diagnostic)));
 		Assertions.assertTrue(json.contains("\"type\":\"SimpleDiagnostic\""), json);
 		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(diagnostic))).startsWith("<SimpleDiagnostic type=\"SimpleDiagnostic\">"));
@@ -140,15 +137,15 @@ class DiagnosticDtoTest {
 	void scriptDiagnostics() throws Exception {
 		JavaScriptDiagnostic js = new JavaScriptDiagnostic("JS", false, staticGroup(), AttributeType.NUMERIC, "function diagnose() {\n}");
 		js.setId(6);
-		this.assertSameRepresentation(js, DiagnosticMapper.toDto(js));
+		this.assertRepresentation(DiagnosticMapper.toDto(js));
 		js.setTargetGroup(null);
 		js.setScript(null);
-		this.assertSameRepresentation(js, DiagnosticMapper.toDto(js));
+		this.assertRepresentation(DiagnosticMapper.toDto(js));
 		PythonDiagnostic python = new PythonDiagnostic("Python", true, dynamicGroup(), AttributeType.BINARY, "def diagnose():\n  pass");
 		python.setId(7);
-		this.assertSameRepresentation(python, DiagnosticMapper.toDto(python));
+		this.assertRepresentation(DiagnosticMapper.toDto(python));
 		python.setTargetGroup(null);
-		this.assertSameRepresentation(python, DiagnosticMapper.toDto(python));
+		this.assertRepresentation(DiagnosticMapper.toDto(python));
 		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(python))).contains("\"type\":\"PythonDiagnostic\""));
 		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(js))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
 	}
@@ -163,7 +160,7 @@ class DiagnosticDtoTest {
 		JavaScriptDiagnostic js = new JavaScriptDiagnostic("JS", true, staticGroup(), AttributeType.TEXT, "y");
 		js.setId(3);
 		List<Diagnostic> entities = new ArrayList<>(List.of(simple, python, js));
-		this.assertSameRepresentation(entities, new ArrayList<>(DiagnosticMapper.toDtos(entities)));
+		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(entities)));
 	}
 
 	private static void dates(DiagnosticResult result) {
@@ -193,10 +190,10 @@ class DiagnosticDtoTest {
 		noAssumption.setAssumption(null);
 		dates(noAssumption);
 		for (DiagnosticResult result : List.of(text, noText, longText, numeric, noNumber, binary, noAssumption)) {
-			this.assertSameRepresentation(result, DiagnosticMapper.toDto(result));
+			this.assertRepresentation(DiagnosticMapper.toDto(result));
 		}
 		List<DiagnosticResult> all = new ArrayList<>(List.of(text, longText, numeric, binary));
-		this.assertSameRepresentation(all, new ArrayList<>(DiagnosticMapper.toResultDtos(all)));
+		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toResultDtos(all)));
 		String json = new String(json(DiagnosticMapper.toDto(longText)));
 		Assertions.assertTrue(json.contains("\"type\":\"LONGTEXT\"") && json.contains("\"diagnosticId\":9") && !json.contains("longText"), json);
 	}
@@ -218,9 +215,9 @@ class DiagnosticDtoTest {
 	@DisplayName("A script has the same JSON and XML representation as the entity, with or without input definitions")
 	void scripts() throws Exception {
 		DeviceJsScript script = script();
-		this.assertSameRepresentation(script, ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(script));
 		definitions(script, new LinkedHashMap<>());
-		this.assertSameRepresentation(script, ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(script));
 		UserInputDefinition text = new UserInputDefinition("hostname");
 		text.setDescription("The host");
 		text.setChoices(List.of("a", "b"));
@@ -230,14 +227,14 @@ class DiagnosticDtoTest {
 		map.put("hostname", text);
 		map.put("flag", flag);
 		definitions(script, map);
-		this.assertSameRepresentation(script, ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(script));
 		script.setScript(null);
 		script.setDeviceDriver("NoSuchDriver");
 		script.setFolder(null);
-		this.assertSameRepresentation(script, ScriptMapper.toDto(script));
+		this.assertRepresentation(ScriptMapper.toDto(script));
 		DeviceJsScript other = script();
 		List<DeviceJsScript> list = new ArrayList<>(List.of(script, other));
-		this.assertSameRepresentation(list, new ArrayList<>(ScriptMapper.toDtos(list)));
+		this.assertRepresentation(new ArrayList<>(ScriptMapper.toDtos(list)));
 	}
 
 	private static DiagnosticRequest diagnosticRequest(String body) throws Exception {

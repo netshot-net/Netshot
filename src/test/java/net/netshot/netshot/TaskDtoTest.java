@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -72,7 +73,8 @@ class TaskDtoTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(TaskDtoTest.class);
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
@@ -173,15 +175,9 @@ class TaskDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSame(Object expected, Object actual, String message) throws Exception {
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(expected), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(actual), ApiContractGolden.Transform.NONE, false),
-			message + " (JSON)");
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(expected), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(actual), ApiContractGolden.Transform.NONE, false),
-			message + " (XML)");
+	private void assertRepresentation(TaskDto dto, String message) throws Exception {
+		this.contract.check(message, ApiContractGolden.Format.JSON, json(dto));
+		this.contract.check(message, ApiContractGolden.Format.XML, xml(dto));
 	}
 
 	@Test
@@ -190,7 +186,7 @@ class TaskDtoTest {
 		Set<Class<?>> covered = new java.util.HashSet<>();
 		for (Task task : this.allTasks()) {
 			TaskDto dto = TaskMapper.toDto(task);
-			this.assertSame(task, dto, task.getClass().getSimpleName() + " " + task.getId());
+			this.assertRepresentation(dto, task.getClass().getSimpleName() + " " + task.getId());
 			covered.add(task.getClass());
 			// Make sure the check is meaningful
 			String json = new String(json(dto));
@@ -206,11 +202,8 @@ class TaskDtoTest {
 	void listRepresentation() throws Exception {
 		List<Task> tasks = this.allTasks();
 		List<TaskDto> dtos = tasks.stream().map(TaskMapper::toDto).toList();
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class)
-				.forType(new TypeReference<List<Task>>() { }).writeValueAsBytes(tasks), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class)
-				.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos), ApiContractGolden.Transform.NONE, false));
+		this.contract.check("listRepresentation", ApiContractGolden.Format.JSON, JSON.writerWithView(RestApiView.class)
+			.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos));
 	}
 
 	@Test

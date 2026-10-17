@@ -1,0 +1,11 @@
+{
+  "action": "POST_YAML",
+  "enabled": true,
+  "httpsCaTrustMode": "CUSTOM_CA",
+  "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
+  "id": 4,
+  "name": "Null triggers",
+  "triggers": null,
+  "type": "Web",
+  "url": "https://user:pass@example.net/hook?token=abc"
+}

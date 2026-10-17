@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -63,18 +62,18 @@ import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.HookView;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 /**
- * Differential tests of the web hook payloads: the payload DTOs ({@link TaskPayload}) are written
- * exactly like the task entity with the hook view, which is what the web hooks used to post, for
- * each task type and each format. The expected side is the entity serialized with the hook view
- * by the same providers the web hook sender uses.
+ * Tests of the web hook payloads: the payload DTOs ({@link TaskPayload}) are written exactly like
+ * the task entity was with the hook view, which is what the web hooks used to post, for each task
+ * type and each format. The expected files were generated from the entity, and the payloads are
+ * written by the same providers the web hook sender uses.
  */
 public class HookPayloadTest extends HookSeededTest {
+
+	private final DtoContract contract = new DtoContract(HookPayloadTest.class, this.startTime);
 
 	@Override
 	protected String databaseName() {
@@ -129,22 +128,16 @@ public class HookPayloadTest extends HookSeededTest {
 
 	private static final Format[] FORMATS = { Format.JSON, Format.XML, Format.YAML };
 
-	/** Every task of the dataset (all the task types, and a few variants) is posted like its entity. */
+	/** Every task of the dataset (all the task types, and a few variants) is posted as the stored file says (what the task entity used to write). */
 	@TestFactory
-	List<DynamicTest> payloadsMatchTheEntities() {
+	List<DynamicTest> payloadsAreWrittenAsExpected() {
 		List<DynamicTest> tests = new ArrayList<>();
 		for (Map.Entry<String, Long> task : this.taskIds.entrySet()) {
 			for (Format format : FORMATS) {
 				tests.add(DynamicTest.dynamicTest(task.getKey() + "." + format.extension, () -> {
 					BodyWriter writer = writerFor(format);
-					byte[] expected;
-					try (Session session = Database.getSession()) {
-						Task entity = session.get(Task.class, task.getValue());
-						entity.prepare(session);
-						expected = writer.write(entity);
-					}
 					TaskPayload payload = Wiring.get().taskService().mapTask(task.getValue(), TaskPayloads::toPayload);
-					Assertions.assertEquals(this.canonical(format, expected), this.canonical(format, writer.write(payload)));
+					this.contract.checkCanonical(task.getKey(), format, this.canonical(format, writer.write(payload)));
 				}));
 			}
 		}
@@ -164,7 +157,7 @@ public class HookPayloadTest extends HookSeededTest {
 
 	/**
 	 * The device nested in a payload, with every kind of credential set (and the secrets they hold),
-	 * a management domain, and an end of life module: written like the entity, without the secrets.
+	 * a management domain, and an end of life module: written as the entity was, without the secrets.
 	 */
 	@Test
 	void devicesWithEveryKindOfCredentialSet() throws Exception {
@@ -198,9 +191,8 @@ public class HookPayloadTest extends HookSeededTest {
 		for (Format format : FORMATS) {
 			BodyWriter writer = writerFor(format);
 			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(task)));
-			// Same content as the entity, once the secrets are masked in it
-			String expected = this.canonical(format, writer.write(task));
-			Assertions.assertEquals(expected, actual, format.name());
+			// What the entity used to write, with the secrets masked in it
+			this.contract.checkCanonical("devicesWithEveryKindOfCredentialSet", format, actual);
 			for (String secret : secrets.split(" ")) {
 				Assertions.assertFalse(actual.contains(secret), "Secret " + secret + " in " + format);
 			}

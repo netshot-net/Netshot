@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -80,7 +81,8 @@ class InventoryDtoTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(InventoryDtoTest.class);
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
@@ -96,13 +98,8 @@ class InventoryDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false), "JSON");
-		Assertions.assertEquals(
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false),
-			this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false), "XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	@Test
@@ -116,11 +113,11 @@ class InventoryDtoTest {
 		StaticDeviceGroup fixed = new StaticDeviceGroup("Static");
 		fixed.setId(11);
 		fixed.setChangeDate(new Date(1_600_000_300_000L));
-		this.assertSameRepresentation(dynamic, GroupMapper.toDto(dynamic));
-		this.assertSameRepresentation(fixed, GroupMapper.toDto(fixed));
+		this.assertRepresentation(GroupMapper.toDto(dynamic));
+		this.assertRepresentation(GroupMapper.toDto(fixed));
 		List<DeviceGroup> entities = new ArrayList<>(List.of(dynamic, fixed));
 		List<DeviceGroupDto> dtos = new ArrayList<>(GroupMapper.toDtos(entities));
-		this.assertSameRepresentation(entities, dtos);
+		this.assertRepresentation(dtos);
 		Assertions.assertTrue(new String(xml(GroupMapper.toDto(fixed))).startsWith("<StaticDeviceGroup type=\"StaticDeviceGroup\">"));
 		Assertions.assertTrue(new String(xml(GroupMapper.toDto(dynamic))).startsWith("<DynamicDeviceGroup type=\"DynamicDeviceGroup\">"));
 	}
@@ -148,15 +145,15 @@ class InventoryDtoTest {
 	void config() throws Exception {
 		Config config = fullConfig();
 		ConfigDto dto = ConfigMapper.toDto(config);
-		this.assertSameRepresentation(config, dto);
+		this.assertRepresentation(dto);
 		String json = new String(json(dto));
 		Assertions.assertTrue(json.contains("\"type\":\"BINARYFILE\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"LONGTEXT\""), json);
 		Assertions.assertFalse(json.contains("some very long text"), "long texts are not part of the representation");
-		this.assertSameRepresentation(new ArrayList<>(List.of(config)), new ArrayList<>(ConfigMapper.toDtos(new ArrayList<>(List.of(config)))));
+		this.assertRepresentation(new ArrayList<>(ConfigMapper.toDtos(new ArrayList<>(List.of(config)))));
 
 		Config bare = new Config(config.getDevice());
-		this.assertSameRepresentation(bare, ConfigMapper.toDto(bare));
+		this.assertRepresentation(ConfigMapper.toDto(bare));
 	}
 
 	@Test
@@ -164,7 +161,7 @@ class InventoryDtoTest {
 	void configSubList() throws Exception {
 		List<Config> whole = new ArrayList<>(List.of(fullConfig(), fullConfig()));
 		List<Config> sub = whole.subList(0, 1);
-		this.assertSameRepresentation(sub, ConfigMapper.toDtos(sub));
+		this.assertRepresentation(ConfigMapper.toDtos(sub));
 		Assertions.assertTrue(new String(xml(ConfigMapper.toDtos(sub))).contains("SubList"));
 	}
 
@@ -185,7 +182,7 @@ class InventoryDtoTest {
 		bare.setId(4);
 		List<NetworkInterface> entities = new ArrayList<>(List.of(networkInterface, bare));
 		List<NetworkInterfaceDto> dtos = DeviceCatalogMapper.toInterfaceDtos(entities);
-		this.assertSameRepresentation(entities, dtos);
+		this.assertRepresentation(dtos);
 		Assertions.assertEquals(2, dtos.get(0).ip4Addresses().size());
 	}
 
@@ -195,7 +192,7 @@ class InventoryDtoTest {
 		List<DeviceDriver> drivers = new ArrayList<>(DeviceDriver.getAllDrivers());
 		Assertions.assertFalse(drivers.isEmpty());
 		List<DeviceTypeDto> dtos = new ArrayList<>(DeviceCatalogMapper.toDeviceTypeDtos(drivers));
-		this.assertSameRepresentation(drivers, dtos);
+		this.contract.checkBoth(json(dtos), xml(dtos), ApiContractGolden.Transform.DEVICE_TYPES);
 		Assertions.assertTrue(drivers.stream().anyMatch(d -> !d.getOptions().isEmpty()), "a driver with options is covered");
 	}
 

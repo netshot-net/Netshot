@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<SoftwareRule>
+  <deviceType>Cisco IOS and IOS-XE</deviceType>
+  <driver>CiscoIOS12</driver>
+  <family>Cisco 2900</family>
+  <familyRegExp>true</familyRegExp>
+  <id>5</id>
+  <level>SILVER</level>
+  <partNumber>CISCO.*</partNumber>
+  <partNumberRegExp>true</partNumberRegExp>
+  <targetGroup type="DynamicDeviceGroup">
+    <changeDate>1600000200000</changeDate>
+    <folder>Production</folder>
+    <hiddenFromReports>true</hiddenFromReports>
+    <id>100</id>
+    <name>Dynamic</name>
+    <query>[Name] contains &quot;r&quot;</query>
+  </targetGroup>
+  <version>15\..*</version>
+  <versionRegExp>true</versionRegExp>
+</SoftwareRule>

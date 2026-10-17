@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<DeviceTelnetAccount type="Telnet">
+  <deviceSpecific>false</deviceSpecific>
+  <id>6</id>
+  <mgmtDomain/>
+  <name>Telnet</name>
+  <password>=</password>
+  <passwordVaultInstanceId/>
+  <passwordVaultPath/>
+  <superPassword>=</superPassword>
+  <superPasswordVaultInstanceId/>
+  <superPasswordVaultPath/>
+  <username>telnetuser</username>
+  <usernameVaultInstanceId/>
+  <usernameVaultPath/>
+</DeviceTelnetAccount>

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<RunDeviceGroupScriptTask type="RunDeviceGroupScriptTask">
+  <author>author-11</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000011</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>11</childOrder>
+  <comments>Comments of 11</comments>
+  <creationDate>1500000000011</creationDate>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>14</deviceGroupId>
+  <executionDate>1550000000011</executionDate>
+  <id>11</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>111</parentTaskId>
+  <priority>7</priority>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>3</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 11</script>
+  <status>RUNNING</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>Group 14</target>
+  <taskDescription>Group script execution</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</RunDeviceGroupScriptTask>

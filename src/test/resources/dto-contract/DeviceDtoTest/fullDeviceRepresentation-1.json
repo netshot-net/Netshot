@@ -1,0 +1,316 @@
+{
+  "accesses": [
+    {
+      "accessName": "a1",
+      "address": null,
+      "globalCredentialSet": {
+        "community": "=",
+        "communityVaultInstanceId": 5,
+        "communityVaultPath": "path/community1",
+        "deviceSpecific": false,
+        "id": 1,
+        "mgmtDomain": null,
+        "name": "SNMP v1",
+        "type": "SNMP v1"
+      },
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "a2",
+      "address": null,
+      "globalCredentialSet": null,
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": {
+        "community": "=",
+        "communityVaultInstanceId": null,
+        "communityVaultPath": null,
+        "deviceSpecific": false,
+        "id": 2,
+        "mgmtDomain": {
+          "changeDate": 1600000000000,
+          "description": "Description of Paris DC",
+          "id": 1,
+          "name": "Paris DC",
+          "server4Address": "10.255.0.1",
+          "server6Address": "2001:db8:0:0:0:0:0:1"
+        },
+        "name": "SNMP v2",
+        "type": "SNMP v2"
+      },
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "a3",
+      "address": null,
+      "globalCredentialSet": {
+        "authKey": "=",
+        "authKeyVaultInstanceId": 7,
+        "authKeyVaultPath": "path/auth",
+        "authType": "HMAC192SHA256",
+        "community": null,
+        "communityVaultInstanceId": null,
+        "communityVaultPath": null,
+        "deviceSpecific": false,
+        "id": 3,
+        "mgmtDomain": {
+          "changeDate": 1600000000000,
+          "description": "Description of Paris DC",
+          "id": 1,
+          "name": "Paris DC",
+          "server4Address": "10.255.0.1",
+          "server6Address": "2001:db8:0:0:0:0:0:1"
+        },
+        "name": "SNMP v3",
+        "privKey": "=",
+        "privKeyVaultInstanceId": 8,
+        "privKeyVaultPath": "path/priv",
+        "privType": "AES256",
+        "type": "SNMP v3",
+        "username": "user",
+        "usernameVaultInstanceId": 6,
+        "usernameVaultPath": "path/user"
+      },
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "a4",
+      "address": null,
+      "globalCredentialSet": null,
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": {
+        "deviceSpecific": false,
+        "id": 4,
+        "mgmtDomain": null,
+        "name": "SSH",
+        "password": "=",
+        "passwordVaultInstanceId": 9,
+        "passwordVaultPath": "path/pass",
+        "superPassword": "=",
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "SSH",
+        "username": "sshuser",
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "a5",
+      "address": null,
+      "globalCredentialSet": {
+        "deviceSpecific": false,
+        "id": 5,
+        "mgmtDomain": {
+          "changeDate": 1600000000000,
+          "description": "Description of Paris DC",
+          "id": 1,
+          "name": "Paris DC",
+          "server4Address": "10.255.0.1",
+          "server6Address": "2001:db8:0:0:0:0:0:1"
+        },
+        "name": "SSH Key",
+        "password": "=",
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "privateKey": "=",
+        "privateKeyVaultInstanceId": 10,
+        "privateKeyVaultPath": "path/key",
+        "superPassword": "=",
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "SSH Key",
+        "username": "keyuser",
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "a6",
+      "address": null,
+      "globalCredentialSet": null,
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": {
+        "deviceSpecific": false,
+        "id": 6,
+        "mgmtDomain": null,
+        "name": "Telnet",
+        "password": "=",
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "superPassword": "=",
+        "superPasswordVaultInstanceId": null,
+        "superPasswordVaultPath": null,
+        "type": "Telnet",
+        "username": "telnetuser",
+        "usernameVaultInstanceId": null,
+        "usernameVaultPath": null
+      },
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "a7",
+      "address": null,
+      "globalCredentialSet": {
+        "deviceSpecific": true,
+        "id": 7,
+        "mgmtDomain": null,
+        "name": "HTTP",
+        "password": "=",
+        "passwordVaultInstanceId": null,
+        "passwordVaultPath": null,
+        "type": "HTTP",
+        "username": "httpuser",
+        "usernameVaultInstanceId": 11,
+        "usernameVaultPath": "path/http"
+      },
+      "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+      "httpsCustomCaCertificate": null,
+      "port": null,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_ANY",
+      "sshTrustedHostKeys": null,
+      "sshTrustedHostKeysSince": null
+    },
+    {
+      "accessName": "plain",
+      "address": "192.0.2.1",
+      "globalCredentialSet": null,
+      "httpsCaTrustMode": "CUSTOM_CA",
+      "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
+      "port": 8443,
+      "specificCredentialSet": null,
+      "sshHostKeyVerification": "TRUST_KNOWN",
+      "sshTrustedHostKeys": "ssh-ed25519 AAAA",
+      "sshTrustedHostKeysSince": 1600000400000
+    }
+  ],
+  "attributes": [
+    {
+      "assumption": true,
+      "name": "binary",
+      "type": "BINARY"
+    },
+    {
+      "name": "long",
+      "type": "LONGTEXT"
+    },
+    {
+      "name": "number",
+      "number": 12.5,
+      "type": "NUMERIC"
+    },
+    {
+      "name": "text",
+      "text": "some text",
+      "type": "TEXT"
+    }
+  ],
+  "cachedIpAddress": "10.1.1.1",
+  "changeDate": 1600000100000,
+  "comments": "Some comments",
+  "compliant": true,
+  "contact": "noc@example.net",
+  "createdDate": 1500000000000,
+  "creator": "seed",
+  "driver": "CiscoIOS12",
+  "endOfLife": true,
+  "endOfSale": false,
+  "eolDate": 1000000000000,
+  "eolModule": {
+    "firstSeenDate": 1400000000000,
+    "id": 10,
+    "lastSeenDate": 1410000000000,
+    "partNumber": "PN-EOL",
+    "removed": false,
+    "serialNumber": "SN-EOL",
+    "slot": "1"
+  },
+  "eosDate": 4000000000000,
+  "eosModule": {
+    "firstSeenDate": null,
+    "id": 11,
+    "lastSeenDate": null,
+    "partNumber": "PN-EOS",
+    "removed": true,
+    "serialNumber": "SN-EOS",
+    "slot": "2"
+  },
+  "family": "Cisco 2900",
+  "id": 42,
+  "location": "Paris",
+  "mgmtAddress": "10.1.1.1",
+  "mgmtDomain": {
+    "changeDate": 1600000000000,
+    "description": "Description of Paris DC",
+    "id": 1,
+    "name": "Paris DC",
+    "server4Address": "10.255.0.1",
+    "server6Address": "2001:db8:0:0:0:0:0:1"
+  },
+  "name": "router-1",
+  "networkClass": "ROUTER",
+  "options": {
+    "fullBackup": true,
+    "mode": "fast"
+  },
+  "ownerGroups": [
+    {
+      "changeDate": 1600000200000,
+      "folder": "Production",
+      "hiddenFromReports": true,
+      "id": 100,
+      "name": "Dynamic",
+      "query": "[Name] contains \"r\"",
+      "type": "DynamicDeviceGroup"
+    },
+    {
+      "changeDate": 1600000300000,
+      "folder": "",
+      "hiddenFromReports": false,
+      "id": 101,
+      "name": "Static",
+      "type": "StaticDeviceGroup"
+    }
+  ],
+  "realDeviceType": "Cisco IOS and IOS-XE",
+  "serialNumber": "SN1",
+  "softwareLevel": "GOLD",
+  "softwareVersion": "16.1",
+  "status": "PREPRODUCTION",
+  "tags": [
+    "core",
+    "production"
+  ]
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "changeDate": 1600000200000,
+    "folder": "Production",
+    "hiddenFromReports": true,
+    "id": 10,
+    "name": "Dynamic",
+    "query": "[Name] contains \"r\""
+  },
+  {
+    "changeDate": 1600000300000,
+    "folder": "",
+    "hiddenFromReports": false,
+    "id": 11,
+    "name": "Static"
+  }
+]

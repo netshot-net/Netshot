@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<PurgeDatabaseTask type="PurgeDatabaseTask">
+  <author>author-13</author>
+  <cancelRequested>true</cancelRequested>
+  <changeDate>1600000000013</changeDate>
+  <checkCompliance>true</checkCompliance>
+  <childOrder>13</childOrder>
+  <comments>Comments of 13</comments>
+  <configDays>-1</configDays>
+  <configKeepDays>0</configKeepDays>
+  <configSize>0</configSize>
+  <creationDate>1500000000013</creationDate>
+  <days>90</days>
+  <debugEnabled>false</debugEnabled>
+  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceGroupId>0</deviceGroupId>
+  <executionDate/>
+  <id>13</id>
+  <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
+  <moduleDays>-1</moduleDays>
+  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <parentTaskId>113</parentTaskId>
+  <priority>7</priority>
+  <removeOrphanFiles>false</removeOrphanFiles>
+  <repeating>true</repeating>
+  <runDiagnostics>true</runDiagnostics>
+  <runSnapshot>true</runSnapshot>
+  <runnerId>&lt;runnerId&gt;</runnerId>
+  <scheduleFactor>3</scheduleFactor>
+  <scheduleMode>SEQUENTIAL</scheduleMode>
+  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleType>WEEKLY</scheduleType>
+  <script>script of 13</script>
+  <status>NEW</status>
+  <stopOnFailure>true</stopOnFailure>
+  <target>Global</target>
+  <taskDescription>Database purge</taskDescription>
+  <userInputValues>
+    <input>value</input>
+  </userInputValues>
+</PurgeDatabaseTask>

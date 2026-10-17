@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -71,7 +72,8 @@ class CredentialSetDtoTest {
 	private static final YAMLMapper YAML = YAMLMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(CredentialSetDtoTest.class);
 
 	/** Every secret value used by the credential sets of this test. */
 	private static final List<String> SECRETS = new ArrayList<>();
@@ -153,30 +155,17 @@ class CredentialSetDtoTest {
 		return YAML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Object entity, Object dto) throws Exception {
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(entity), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(entity), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+	private void assertRepresentation(Object dto) throws Exception {
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
-	private void assertSameListRepresentation(List<DeviceCredentialSet> entities, List<CredentialSetDto> dtos) throws Exception {
-		TypeReference<List<DeviceCredentialSet>> entityType = new TypeReference<>() { };
+	private void assertListRepresentation(List<CredentialSetDto> dtos) throws Exception {
 		TypeReference<List<CredentialSetDto>> dtoType = new TypeReference<>() { };
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON,
-			JSON.writerFor(entityType).withView(RestApiView.class).writeValueAsBytes(entities), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON,
-			JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		Assertions.assertTrue(actualJson.contains("SNMP v3"), "the items have their type");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML,
-			XML.writerFor(entityType).withView(RestApiView.class).writeValueAsBytes(entities), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML,
-			XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
-		Assertions.assertTrue(actualXml.contains("type=\"SNMP v3\""), "the items have their type");
+		byte[] json = JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos);
+		byte[] xml = XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos);
+		this.contract.checkBoth(json, xml);
+		Assertions.assertTrue(new String(json).contains("SNMP v3"), "the items have their type");
+		Assertions.assertTrue(new String(xml).contains("type=\"SNMP v3\""), "the items have their type");
 	}
 
 	@Test
@@ -184,10 +173,10 @@ class CredentialSetDtoTest {
 	void representation() throws Exception {
 		for (List<DeviceCredentialSet> credentialSets : List.of(localCredentialSets(), vaultCredentialSets())) {
 			for (DeviceCredentialSet credentialSet : credentialSets) {
-				this.assertSameRepresentation(credentialSet, CredentialSetMapper.toDto(credentialSet));
+				this.assertRepresentation(CredentialSetMapper.toDto(credentialSet));
 			}
 			// The list endpoint answers an ArrayList, which XML publishes as such, with the type of its items
-			this.assertSameListRepresentation(new ArrayList<>(credentialSets), new ArrayList<>(CredentialSetMapper.toDtos(credentialSets)));
+			this.assertListRepresentation(new ArrayList<>(CredentialSetMapper.toDtos(credentialSets)));
 		}
 		// Make sure the check is meaningful
 		StringBuilder all = new StringBuilder();
@@ -207,7 +196,7 @@ class CredentialSetDtoTest {
 	void emptyRepresentation() throws Exception {
 		for (DeviceCredentialSet credentialSet : List.of(new DeviceSnmpv1Community(null, null), new DeviceSnmpv3Community(null, "n", null, null, null, null, null),
 			new DeviceSshAccount(null, null, null, "n"), new DeviceSshKeyAccount(null, null, null, null, "n"), new DeviceHttpAccount(null, null, "n"))) {
-			this.assertSameRepresentation(credentialSet, CredentialSetMapper.toDto(credentialSet));
+			this.assertRepresentation(CredentialSetMapper.toDto(credentialSet));
 		}
 	}
 
