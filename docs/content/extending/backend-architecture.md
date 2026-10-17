@@ -39,9 +39,9 @@ The REST API must stay byte-for-byte equivalent (JSON, XML, YAML) while it is re
 
 ## Dependency rules
 
-The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; JAX-RS server classes are used only by the REST layer; entities do not use `Session`, `Database`, `@JsonView` or JAXB annotations (the last two are at zero); and there is no cycle between top-level packages.
+The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; `api` does not use the `Session`; JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; entities, mapped superclasses and embeddables carry no `@JsonView` or JAXB annotation; entities do not use `Session` or `Database`; and there is no cycle between top-level packages.
 
-The rules are *frozen*: violations that existed when the rules were introduced are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. The store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
+Most rules are *strict*: any violation fails the build. Three rules still have violations, to be removed with the planned ORM change, and are *frozen*: entities using the `Session`, entities using `Database`, and the cycles between top-level packages (mostly due to the reverse collections of `Device`). Their existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
 
 ```bash
 ./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
