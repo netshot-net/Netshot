@@ -95,12 +95,8 @@ public class DomainService {
 		String description = definition.description().trim();
 		Domain domain;
 		try {
-			Network4Address v4Address = definition.server4Address();
+			Network4Address v4Address = parseServerAddress(definition.server4Address());
 			Network6Address v6Address = new Network6Address("::");
-			if (!v4Address.isNormalUnicast()) {
-				log.warn("User posted an invalid IP address.");
-				throw new NetshotException(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, "Invalid IP address");
-			}
 			domain = new Domain(name, description, v4Address, v6Address);
 		}
 		catch (UnknownHostException e) {
@@ -137,10 +133,13 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
 		}
 		String description = definition.description().trim();
-		Network4Address v4Address = definition.server4Address();
-		if (!v4Address.isNormalUnicast()) {
-			log.warn("User posted an invalid IP address");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, "Invalid IP address");
+		Network4Address v4Address;
+		try {
+			v4Address = parseServerAddress(definition.server4Address());
+		}
+		catch (UnknownHostException e) {
+			log.warn("User posted an invalid IP address.");
+			throw new NetshotException(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, "Malformed IP address");
 		}
 		Domain domain;
 		try {
@@ -198,5 +197,26 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the domain");
 		}
 		AAA_LOG.info("Domain of ID {} has been deleted.", id);
+	}
+
+	/**
+	 * Parses the IPv4 address of the server of a domain, which must be a normal unicast address.
+	 *
+	 * @param address the address, as posted
+	 * @return the address
+	 * @throws UnknownHostException if the address is malformed
+	 * @throws NetshotException if there is no address, or it isn't a normal unicast one
+	 */
+	private static Network4Address parseServerAddress(String address) throws UnknownHostException {
+		if (address == null) {
+			log.warn("User posted no IP address.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, "Invalid IP address");
+		}
+		Network4Address v4Address = new Network4Address(address);
+		if (!v4Address.isNormalUnicast()) {
+			log.warn("User posted an invalid IP address.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, "Invalid IP address");
+		}
+		return v4Address;
 	}
 }
