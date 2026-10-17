@@ -72,6 +72,13 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 		return exception;
 	}
 
+	private int tokenCounter;
+
+	/** A new valid token value, different from all the others of the class. */
+	private String newToken() {
+		return "Gen%029d".formatted(this.tokenCounter++);
+	}
+
 	private ApiToken reload(long id) {
 		return this.transactions.read(session -> this.repository.find(session, id));
 	}
@@ -86,9 +93,6 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 		Assertions.assertEquals(created.getId(), found.getId());
 		Assertions.assertEquals(10, found.getLevel());
 		Assertions.assertNull(this.service.authenticate("00000000000000000000000000000000"));
-		// A token value registered twice is ambiguous: the database error is logged and nobody is authenticated
-		this.service.create("Auth again", authToken, 10);
-		Assertions.assertNull(this.service.authenticate(authToken));
 	}
 
 	@Test
@@ -107,7 +111,7 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 	@DisplayName("Create: a missing or blank description is stored as empty")
 	void createBlankDescription() {
 		Assertions.assertEquals("", this.reload(this.service.create(null, OTHER_TOKEN, 10).getId()).getDescription());
-		Assertions.assertEquals("", this.reload(this.service.create("   ", OTHER_TOKEN, 10).getId()).getDescription());
+		Assertions.assertEquals("", this.reload(this.service.create("   ", this.newToken(), 10).getId()).getDescription());
 	}
 
 	@Test
@@ -122,20 +126,21 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("Known quirk: the same token can be registered several times, with any level")
-	void createDuplicateAndAnyLevel() {
-		ApiToken first = this.service.create("one", TOKEN, 10);
-		ApiToken second = this.service.create("two", TOKEN, -5);
-		Assertions.assertNotEquals(first.getId(), second.getId());
-		Assertions.assertEquals(first.getHashedToken(), second.getHashedToken());
-		Assertions.assertEquals(-5, this.reload(second.getId()).getLevel());
+	@DisplayName("Create: a token value already registered is refused, and nothing is stored")
+	void createDuplicate() {
+		String token = this.newToken();
+		ApiToken first = this.service.create("one", token, 10);
+		int before = this.service.list(Page.ALL).size();
+		assertError(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, () -> this.service.create("two", token, 1000));
+		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		Assertions.assertEquals(first.getId(), this.service.authenticate(token).getId());
 	}
 
 	@Test
 	@DisplayName("List: the tokens can be paged")
 	void list() {
 		for (int i = 0; i < 3; i++) {
-			this.service.create("list" + i, TOKEN, 10);
+			this.service.create("list" + i, this.newToken(), 10);
 		}
 		List<ApiToken> all = this.service.list(Page.ALL);
 		Assertions.assertTrue(all.size() >= 3);
@@ -145,7 +150,7 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 	@Test
 	@DisplayName("Delete: true when deleted, false when there is no such token")
 	void delete() {
-		ApiToken created = this.service.create("to delete", TOKEN, 10);
+		ApiToken created = this.service.create("to delete", this.newToken(), 10);
 		Assertions.assertTrue(this.service.delete(created.getId()));
 		Assertions.assertNull(this.reload(created.getId()));
 		Assertions.assertFalse(this.service.delete(created.getId()));

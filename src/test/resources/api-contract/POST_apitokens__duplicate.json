@@ -1,5 +1,4 @@
 {
-  "description": "Duplicate token",
-  "id": 7,
-  "level": 10
+  "errorCode": 208,
+  "errorMsg": "This token is already registered."
 }

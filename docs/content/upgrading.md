@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* REST API: `POST /apitokens` now refuses a token value which is already registered (409, `NETSHOT_DUPLICATE_API_TOKEN`). A token value registered several times never authenticated anyone; if you have such duplicates, delete them and register the token again.
 * Password policy: the `netshot.aaa.passwordpolicy.*` rules now also apply when an administrator creates a local user (`POST /users`, or the user dialog of the web UI); they used to apply only when a password was changed.
 * REST API: `PUT /credentialsets/{id}` with an unknown `mgmtDomain` is now refused (`NETSHOT_INVALID_DOMAIN`, as `POST /credentialsets` does), instead of silently removing the domain restriction of the credential set.
 * **Static groups (0.25.x)**: since 0.25.0, a device was removed from all its static groups each time its dynamic groups were refreshed, that is after a snapshot, a compliance check, diagnostics, a script run, a device type discovery, or a device creation or update through the API ([#413](https://github.com/netshot-net/Netshot/issues/413)). This is fixed, but the lost memberships can't be restored automatically: check your static groups after the upgrade, and add the missing devices again (or restore them from a database backup taken before the upgrade to 0.25).
