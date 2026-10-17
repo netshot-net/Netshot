@@ -131,7 +131,6 @@ public class ScriptService {
 		}
 		DeviceJsScript script = new DeviceJsScript(creation.name(), creation.deviceDriver(), creation.script(), creation.author());
 		script.setFolder(creation.folder());
-		script.setUserInputDefinitions(creation.userInputDefinitions());
 		try {
 			script.extractUserInputDefinitions(this.driverRegistry);
 		}

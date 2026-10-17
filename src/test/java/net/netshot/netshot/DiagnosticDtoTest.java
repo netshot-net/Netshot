@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -265,7 +264,7 @@ class DiagnosticDtoTest {
 	}
 
 	@Test
-	@DisplayName("A script request is read like the script entity it replaces, quirks included")
+	@DisplayName("A script request is read like the script entity it replaces, quirks included; posted input definitions are ignored")
 	void scriptRequest() throws Exception {
 		int index = 0;
 		for (String body : List.of(
@@ -286,15 +285,18 @@ class DiagnosticDtoTest {
 			read.put("deviceDriver", request.deviceDriver());
 			read.put("author", request.author());
 			read.put("folder", request.folder());
-			read.put("userInputDefinitions", request.userInputDefinitions() == null ? null : new TreeSet<>(request.userInputDefinitions().keySet()));
 			this.contract.checkText("script-request-" + index, DtoContract.render(request, read));
 		}
 		Assertions.assertEquals("", scriptRequest("{}").folder());
 		Assertions.assertNull(scriptRequest("{\"folder\": null}").folder());
+		// The input definitions of a script, as the API returns them, can be posted back: they are ignored
+		for (String body : List.of(
+			"{\"userInputDefinitions\": {\"a\": {\"name\": \"a\", \"type\": \"TEXT\"}}}",
+			"{\"userInputDefinitions\": []}")) {
+			Assertions.assertEquals(scriptRequest("{}"), scriptRequest(body), body);
+		}
 		// What the entity could not read, the request refuses as well
 		for (String body : List.of(
-			"{\"userInputDefinitions\": {\"a\": {\"name\": \"a\"}}}",
-			"{\"userInputDefinitions\": []}",
 			"{\"unknown\": 1}",
 			"{\"realDeviceType\": \"Cisco IOS\"}",
 			"{\"id\": \"x\"}")) {

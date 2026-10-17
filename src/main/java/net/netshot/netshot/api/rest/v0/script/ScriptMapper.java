@@ -91,6 +91,6 @@ public final class ScriptMapper {
 	 */
 	public static ScriptCreation toCreation(ScriptRequest request, String author) {
 		return new ScriptCreation(request.name(), request.deviceDriver(), request.script(),
-			author != null ? author : request.author(), request.folder(), request.userInputDefinitions());
+			author != null ? author : request.author(), request.folder());
 	}
 }

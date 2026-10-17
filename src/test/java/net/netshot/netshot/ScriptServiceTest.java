@@ -81,7 +81,7 @@ class ScriptServiceTest extends WithDatabaseTest {
 	}
 
 	private ScriptCreation creation(String name) {
-		return new ScriptCreation(name, "CiscoIOS12", SCRIPT, "tester", "Folder", null);
+		return new ScriptCreation(name, "CiscoIOS12", SCRIPT, "tester", "Folder");
 	}
 
 	private long count() {
@@ -110,7 +110,7 @@ class ScriptServiceTest extends WithDatabaseTest {
 	@Test
 	@DisplayName("create() keeps a null folder as posted")
 	void createNullFolder() {
-		DeviceJsScript script = this.service.create(new ScriptCreation(this.name("No folder"), "CiscoIOS12", SCRIPT, "tester", null, null));
+		DeviceJsScript script = this.service.create(new ScriptCreation(this.name("No folder"), "CiscoIOS12", SCRIPT, "tester", null));
 		Assertions.assertNull(script.getFolder());
 	}
 
@@ -130,17 +130,17 @@ class ScriptServiceTest extends WithDatabaseTest {
 	void createErrors() {
 		long before = this.count();
 		NetshotException driver = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation(null, "NoSuchDriver", null, "tester", "", null)));
+			() -> this.service.create(new ScriptCreation(null, "NoSuchDriver", null, "tester", "")));
 		Assertions.assertEquals("Invalid driver name.", driver.getMessage());
-		assertError(ErrorCode.NETSHOT_INVALID_SCRIPT, () -> this.service.create(new ScriptCreation(null, null, SCRIPT, "tester", "", null)));
+		assertError(ErrorCode.NETSHOT_INVALID_SCRIPT, () -> this.service.create(new ScriptCreation(null, null, SCRIPT, "tester", "")));
 		NetshotException blank = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation("  ", "CiscoIOS12", null, "tester", "", null)));
+			() -> this.service.create(new ScriptCreation("  ", "CiscoIOS12", null, "tester", "")));
 		Assertions.assertEquals("Invalid script name.", blank.getMessage());
 		NetshotException empty = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation(this.name("Empty"), "CiscoIOS12", null, "tester", "", null)));
+			() -> this.service.create(new ScriptCreation(this.name("Empty"), "CiscoIOS12", null, "tester", "")));
 		Assertions.assertEquals("The script content can't be empty.", empty.getMessage());
 		NetshotException syntax = assertError(ErrorCode.NETSHOT_INVALID_SCRIPT,
-			() -> this.service.create(new ScriptCreation(this.name("Syntax"), "CiscoIOS12", "function run( {", "tester", "", null)));
+			() -> this.service.create(new ScriptCreation(this.name("Syntax"), "CiscoIOS12", "function run( {", "tester", "")));
 		Assertions.assertTrue(syntax.getMessage().contains("SyntaxError"), syntax.getMessage());
 		Assertions.assertEquals(before, this.count(), "nothing was stored");
 	}
@@ -151,18 +151,7 @@ class ScriptServiceTest extends WithDatabaseTest {
 		String name = this.name("Duplicate");
 		this.service.create(this.creation(name));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_SCRIPT, () -> this.service.create(this.creation(name)));
-		this.service.create(new ScriptCreation(name, "CiscoIOS12", SCRIPT, "tester", "Other folder", null));
-	}
-
-	@Test
-	@DisplayName("create() keeps the input definitions posted along with the script, without evaluating it (known quirk)")
-	void createWithDefinitions() {
-		Map<String, UserInputDefinition> definitions = new HashMap<>();
-		definitions.put("posted", new UserInputDefinition("posted"));
-		DeviceJsScript script = this.service.create(
-			new ScriptCreation(this.name("Posted"), "CiscoIOS12", "function run( {", "tester", "", definitions));
-		Assertions.assertSame(definitions, script.getUserInputDefinitions());
-		Assertions.assertEquals("function run( {", this.service.get(script.getId()).getScript());
+		this.service.create(new ScriptCreation(name, "CiscoIOS12", SCRIPT, "tester", "Other folder"));
 	}
 
 	@Test

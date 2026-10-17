@@ -4,4 +4,3 @@ deviceDriver=null
 folder=12
 name=n
 script=null
-userInputDefinitions=null
