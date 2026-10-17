@@ -65,7 +65,7 @@ import net.netshot.netshot.userscript.DeviceJsScript;
 /**
  * The task use cases: list, read, cancel, create, and the statistics.
  *
- * <p>Running the tasks is the job of the task engine ({@link Task#run()}), which this service
+ * <p>Running the tasks is the job of the task engine ({@link TaskHandlers}), which this service
  * only reaches through the {@link TaskSubmitter} and {@link TaskEngine} ports.</p>
  */
 @Slf4j

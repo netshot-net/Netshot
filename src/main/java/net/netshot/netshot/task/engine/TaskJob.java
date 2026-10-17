@@ -29,12 +29,13 @@ import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.DeviceLockPolicy;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.task.type.DeviceBasedTask;
 
@@ -48,10 +49,19 @@ public class TaskJob implements Job {
 	/** The Constant NETSHOT_TASK. */
 	public static final String NETSHOT_TASK = "Netshot Task";
 
+	private final TaskHandlers handlers;
+
+	private final DomainEvents domainEvents;
+
 	/**
-	 * Instantiates a new task job.
+	 * Instantiates a new task job. Quartz builds the jobs through the {@link TaskJobFactory}.
+	 *
+	 * @param handlers the task handlers, by task type
+	 * @param domainEvents where the end of a task is published
 	 */
-	public TaskJob() {
+	public TaskJob(TaskHandlers handlers, DomainEvents domainEvents) {
+		this.handlers = handlers;
+		this.domainEvents = domainEvents;
 	}
 
 	/*(non-Javadoc)
@@ -65,7 +75,7 @@ public class TaskJob implements Job {
 			log.error("Invalid task, id is 0");
 			return;
 		}
-		TaskJob.runTask(id);
+		this.runTask(id);
 	}
 
 	/**
@@ -76,7 +86,7 @@ public class TaskJob implements Job {
 	 * @param id the task ID
 	 * @throws JobExecutionException in case of error
 	 */
-	public static void runTask(long id) throws JobExecutionException {
+	public void runTask(long id) throws JobExecutionException {
 		log.trace("The task id is {}.", id);
 
 		// The task lock prevents the same task from running twice at the same time,
@@ -93,7 +103,7 @@ public class TaskJob implements Job {
 			throw new JobExecutionException("Unable to lock the task.", e);
 		}
 		try {
-			TaskJob.executeLocked(id, lockManager);
+			this.executeLocked(id, lockManager);
 		}
 		finally {
 			// Released last, so that the task is seen as running until its result is saved
@@ -168,7 +178,7 @@ public class TaskJob implements Job {
 	 * @param lockManager the lock manager
 	 * @throws JobExecutionException in case of error
 	 */
-	private static void executeLocked(long id, TaskLockManager lockManager) throws JobExecutionException {
+	private void executeLocked(long id, TaskLockManager lockManager) throws JobExecutionException {
 		Task task = null;
 		Session session = Database.getSession();
 		try {
@@ -256,7 +266,7 @@ public class TaskJob implements Job {
 			if (runTask) {
 				log.warn("Running the task {} of type {}", id, task.getClass().getSimpleName());
 				try {
-					task.run();
+					this.handlers.run(task);
 				}
 				catch (Error e) {
 					log.error("Error while running the task {}.", id, e);
@@ -333,7 +343,7 @@ public class TaskJob implements Job {
 		}
 		// The listeners (such as the post-task hooks) are called here, in this thread
 		try {
-			Wiring.get().domainEvents().publish(new TaskFinished(id, task.getClass().getSimpleName()));
+			this.domainEvents.publish(new TaskFinished(id, task.getClass().getSimpleName()));
 		}
 		catch (Exception e) {
 			log.error("Error while processing hooks after task {}.", id, e);

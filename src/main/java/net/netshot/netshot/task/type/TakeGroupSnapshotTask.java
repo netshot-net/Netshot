@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import org.hibernate.Hibernate;
@@ -150,46 +148,6 @@ public final class TakeGroupSnapshotTask extends Task
 		else {
 			Hibernate.initialize(this.getDeviceListMembers());
 		}
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#run()
-	 */
-	@Override
-	public void run() {
-		List<Device> allDevices = this.getTargetDevices();
-		if (this.getDeviceGroup() == null && allDevices.isEmpty()) {
-			this.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		String comment = this.getDeviceGroup() == null
-			? String.format("Started due to %d-device snapshot list", allDevices.size())
-			: String.format("Started due to group %s snapshot", this.getDeviceGroup().getName());
-
-		Calendar referenceDate = Calendar.getInstance();
-		referenceDate.add(Calendar.HOUR, -this.getLimitToOutofdateDeviceHours());
-		List<Device> devices = new ArrayList<>();
-		for (Device device : allDevices) {
-			if (referenceDate.getTime().before(device.getChangeDate())) {
-				this.logger.info("Ignoring device {} because it changed less than {} hours ago",
-					device.getName(), this.getLimitToOutofdateDeviceHours());
-				continue;
-			}
-			devices.add(device);
-		}
-		log.debug("Task {}. {} device(s) to process (out of {}).", this.getId(), devices.size(), allDevices.size());
-
-		List<Task> children = this.reloadExistingChildren();
-		if (children.isEmpty()) {
-			children = new ArrayList<>();
-			for (Device device : devices) {
-				children.add(new TakeSnapshotTask(device, comment, author, false,
-					this.isDontRunDiagnostics(), this.isDontCheckCompliance()));
-			}
-			this.preCreateChildren(children);
-		}
-		this.status = this.orchestrateChildren(children);
 	}
 
 	/*(non-Javadoc)
