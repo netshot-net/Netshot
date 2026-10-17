@@ -69,6 +69,19 @@ public class ApiTokenRepository {
 	}
 
 	/**
+	 * Tells whether an API token with the given hash already exists.
+	 *
+	 * @param session the session
+	 * @param hash the hash of the token value
+	 * @return true if at least one API token has this hash
+	 */
+	public boolean existsByHash(Session session, String hash) {
+		return session
+			.createQuery("select count(t) from ApiToken t where t.hashedToken = :hash", Long.class)
+			.setParameter("hash", hash).uniqueResult() > 0;
+	}
+
+	/**
 	 * Stores a new API token.
 	 *
 	 * @param session the session

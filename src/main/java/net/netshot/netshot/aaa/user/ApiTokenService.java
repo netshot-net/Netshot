@@ -96,13 +96,13 @@ public class ApiTokenService {
 	}
 
 	/**
-	 * Creates an API token. The same token value can be registered several times.
+	 * Creates an API token. A token value can be registered only once (it identifies the token).
 	 *
 	 * @param description the description (a blank one is stored as empty)
 	 * @param token the clear token value (32 alphanumeric characters)
 	 * @param level the authorization level
 	 * @return the new API token
-	 * @throws NetshotException if the token has an invalid format
+	 * @throws NetshotException if the token has an invalid format, or is already registered
 	 */
 	public ApiToken create(String description, String token, int level) {
 		if (description == null || description.trim().isEmpty()) {
@@ -118,7 +118,13 @@ public class ApiTokenService {
 		ApiToken apiToken = new ApiToken(description, token, level);
 
 		try {
-			this.transactions.run(session -> this.repository.persist(session, apiToken));
+			this.transactions.run(session -> {
+				if (this.repository.existsByHash(session, apiToken.getHashedToken())) {
+					log.warn("The passed token is already registered");
+					throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, "This token is already registered.");
+				}
+				this.repository.persist(session, apiToken);
+			});
 		}
 		catch (HibernateException e) {
 			log.error("Error while saving the new API token.", e);
