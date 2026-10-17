@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.hibernate.Hibernate;
@@ -39,6 +40,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
  * Maps the devices between the entities (or the projections) of the inventory and their REST
@@ -72,12 +74,16 @@ public final class DeviceMapper {
 	 * @return the DTO
 	 */
 	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device) {
+		// The collections of the device are sets: they are listed in a stable order
 		List<DeviceAccessDto> accesses = new ArrayList<>();
-		device.getAccesses().forEach(access -> accesses.add(DeviceAccessMapper.toDto(access)));
+		device.getAccesses().stream().sorted(Comparator.comparing(DeviceAccess::getAccessName, Comparator.nullsFirst(Comparator.naturalOrder())))
+			.forEach(access -> accesses.add(DeviceAccessMapper.toDto(access)));
 		List<DeviceAttributeDto> attributes = new ArrayList<>();
-		device.getAttributes().forEach(attribute -> attributes.add(toDto(attribute)));
+		device.getAttributes().stream().sorted(Comparator.comparing(DeviceAttribute::getName, Comparator.nullsFirst(Comparator.naturalOrder())))
+			.forEach(attribute -> attributes.add(toDto(attribute)));
 		List<DeviceGroupDto> ownerGroups = new ArrayList<>();
-		device.getOwnerGroups().forEach(group -> ownerGroups.add(GroupMapper.toDto(group)));
+		device.getOwnerGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::getId))
+			.forEach(group -> ownerGroups.add(GroupMapper.toDto(group)));
 		return new DeviceDto(
 			accesses,
 			attributes,
@@ -109,7 +115,7 @@ public final class DeviceMapper {
 			device.getSoftwareLevel(),
 			device.getSoftwareVersion(),
 			device.getStatus(),
-			new ArrayList<>(device.getTags()));
+			device.getTags().stream().sorted().toList());
 	}
 
 	/**

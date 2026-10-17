@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.hook.payload;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.hibernate.Hibernate;
@@ -196,10 +197,13 @@ public final class TaskPayloads {
 			return null;
 		}
 		Device device = (Device) Hibernate.unproxy(deviceOrProxy);
+		// The collections of the device are sets: they are listed in a stable order
 		List<DeviceAccessPayload> accesses = new ArrayList<>();
-		device.getAccesses().forEach(access -> accesses.add(toPayload(access)));
+		device.getAccesses().stream().sorted(Comparator.comparing(DeviceAccess::getAccessName, Comparator.nullsFirst(Comparator.naturalOrder())))
+			.forEach(access -> accesses.add(toPayload(access)));
 		List<DeviceGroupPayload> ownerGroups = new ArrayList<>();
-		device.getOwnerGroups().forEach(group -> ownerGroups.add(toPayload(group)));
+		device.getOwnerGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::getId))
+			.forEach(group -> ownerGroups.add(toPayload(group)));
 		return new DevicePayload(
 			accesses,
 			device.getCachedIpAddressAsString(),
@@ -227,7 +231,7 @@ public final class TaskPayloads {
 			device.getSoftwareLevel(),
 			device.getSoftwareVersion(),
 			device.getStatus(),
-			new ArrayList<>(device.getTags()));
+			device.getTags().stream().sorted().toList());
 	}
 
 	private static ModulePayload toPayload(Module moduleOrProxy) {

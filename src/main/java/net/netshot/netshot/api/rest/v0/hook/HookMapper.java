@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v0.hook;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,10 +52,12 @@ public final class HookMapper {
 		if (unproxied instanceof WebHook webHook) {
 			List<HookTriggerDto> triggers = null;
 			if (webHook.getTriggers() != null) {
-				triggers = new ArrayList<>(webHook.getTriggers().size());
-				for (HookTrigger trigger : webHook.getTriggers()) {
-					triggers.add(new HookTriggerDto(trigger.getType(), trigger.getItem()));
-				}
+				// The triggers are a set: they are listed by type, then item
+				triggers = new ArrayList<>(webHook.getTriggers().stream()
+					.sorted(Comparator.comparing(HookTrigger::getType, Comparator.nullsFirst(Comparator.naturalOrder()))
+						.thenComparing(HookTrigger::getItem, Comparator.nullsFirst(Comparator.naturalOrder())))
+					.map(trigger -> new HookTriggerDto(trigger.getType(), trigger.getItem()))
+					.toList());
 			}
 			return new HookDto.Web(webHook.getId(), webHook.getName(), webHook.isEnabled(), triggers, webHook.getAction(),
 				webHook.getUrl(), webHook.getHttpsCaTrustMode(), webHook.getHttpsCustomCaCertificate());
