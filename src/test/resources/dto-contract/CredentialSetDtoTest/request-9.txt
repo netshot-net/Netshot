@@ -1,0 +1,15 @@
+DeviceHttpAccount
+changeDate=null
+deviceSpecific=false
+id=0
+mgmtDomain=null
+name=a
+password=p
+passwordVaultInstanceId=null
+passwordVaultPath=null
+resolvedPasswordVaultInstanceId=null
+resolvedUsernameVaultInstanceId=5
+username=u
+usernameVaultInstanceId=null
+usernameVaultPath=u
+version=0
