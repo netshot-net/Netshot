@@ -92,7 +92,8 @@ public class LoginService {
 					username = remoteUser.getUsername();
 				}
 			}
-			catch (MalformedURLException e) {
+			catch (MalformedURLException | IllegalArgumentException e) {
+				// IllegalArgumentException: invalid URI syntax, or a relative URI
 				log.error("Error while extracting client request URL", e);
 			}
 		}
