@@ -154,8 +154,8 @@ class HookServiceTest extends WithDatabaseTest {
 		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.create(webHook(this.nextName(), null, Action.POST_JSON)));
 		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.create(webHook(this.nextName(), "ftp://example.net", Action.POST_JSON)));
 		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB, () -> this.service.create(webHook(this.nextName(), "http://example.net", null)));
-		// A relative URI is not a malformed URL but an unexpected failure (as it has always been)
-		Assertions.assertThrows(IllegalArgumentException.class, () -> this.service.create(webHook(this.nextName(), "relative", Action.POST_JSON)));
+		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.create(webHook(this.nextName(), "relative", Action.POST_JSON)));
+		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.create(webHook(this.nextName(), "/path/only", Action.POST_JSON)));
 		WebHook customCa = webHook(this.nextName(), "https://example.net", Action.POST_JSON);
 		customCa.setHttpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA);
 		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.create(customCa));
