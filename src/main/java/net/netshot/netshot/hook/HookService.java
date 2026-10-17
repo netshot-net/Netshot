@@ -76,6 +76,24 @@ public class HookService {
 	}
 
 	/**
+	 * Lists the enabled hooks having a given trigger.
+	 *
+	 * @param type the type of trigger
+	 * @param item the item the trigger has to match (for a post-task trigger, the simple name of the task class)
+	 * @return the hooks, detached, with their triggers
+	 * @throws NetshotException if the hooks can't be read
+	 */
+	public List<Hook> findEnabled(HookTrigger.TriggerType type, String item) {
+		try {
+			return this.transactions.read(session -> this.repository.findEnabledByTrigger(session, type, item));
+		}
+		catch (HibernateException e) {
+			log.error("Unable to fetch the hooks.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hooks");
+		}
+	}
+
+	/**
 	 * Adds a hook.
 	 *
 	 * @param hook the hook to add (it becomes the persistent one)
