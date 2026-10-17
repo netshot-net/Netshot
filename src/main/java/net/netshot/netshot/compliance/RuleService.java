@@ -351,13 +351,24 @@ public class RuleService {
 					TextRule txRule = new TextRule("TEST", null);
 					txRule.setDeviceDriver(definition.driver());
 					txRule.setField(definition.field());
-					txRule.setInvert(definition.invert());
 					txRule.setContext(definition.context());
-					txRule.setRegExp(definition.regExp());
 					txRule.setText(definition.text());
-					txRule.setAnyBlock(definition.anyBlock());
-					txRule.setMatchAll(definition.matchAll());
-					txRule.setNormalize(definition.normalize());
+					// As on creation, an option which is not given keeps the default value of the rule
+					if (definition.invert() != null) {
+						txRule.setInvert(definition.invert());
+					}
+					if (definition.regExp() != null) {
+						txRule.setRegExp(definition.regExp());
+					}
+					if (definition.anyBlock() != null) {
+						txRule.setAnyBlock(definition.anyBlock());
+					}
+					if (definition.matchAll() != null) {
+						txRule.setMatchAll(definition.matchAll());
+					}
+					if (definition.normalize() != null) {
+						txRule.setNormalize(definition.normalize());
+					}
 					rule = txRule;
 				}
 				else if (JAVASCRIPT_RULE.equals(definition.type())) {
@@ -400,8 +411,8 @@ public class RuleService {
 			throw e;
 		}
 		catch (Exception e) {
-			log.error("Unable to retrieve the device {}.", deviceId, e);
-			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the device.");
+			log.error("Unable to test the rule on the device {}.", deviceId, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to test the rule on the device.");
 		}
 	}
 
