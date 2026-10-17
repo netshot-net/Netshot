@@ -38,12 +38,6 @@ import org.quartz.Trigger;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -65,10 +59,6 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -76,8 +66,6 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
@@ -104,23 +92,6 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 	@Index(name = "creationDateIndex", columnList = "creationDate"),
 	@Index(name = "statusIndex", columnList = "status"),
 	@Index(name = "executionDateIndex", columnList = "executionDate")
-})
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
-@JsonTypeInfo(use = JsonTypeInfo.Id.SIMPLE_NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({
-	@Type(CheckComplianceTask.class),
-	@Type(CheckGroupComplianceTask.class),
-	@Type(CheckGroupSoftwareTask.class),
-	@Type(DiscoverDeviceTypeTask.class),
-	@Type(PurgeDatabaseTask.class),
-	@Type(RunDeviceGroupScriptTask.class),
-	@Type(RunDeviceScriptTask.class),
-	@Type(RunDiagnosticsTask.class),
-	@Type(RunGroupDiagnosticsTask.class),
-	@Type(ScanSubnetsTask.class),
-	@Type(TakeGroupSnapshotTask.class),
-	@Type(TakeSnapshotTask.class),
 })
 @Slf4j
 public abstract class Task implements Cloneable {
@@ -359,37 +330,27 @@ public abstract class Task implements Cloneable {
 	}
 
 	/** The author. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String author = "";
 
 	/** The change date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected Date changeDate;
 
 	/** The comments. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String comments = "";
 
 	/** The creation date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected Date creationDate = new Date();
 
 	/** Debug enabled. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	protected boolean debugEnabled = false;
 
 	/** The debug log. */
@@ -401,16 +362,13 @@ public abstract class Task implements Cloneable {
 	protected DebugLog debugLog;
 
 	/** The execution date. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected Date executionDate;
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	protected long id;
@@ -456,37 +414,28 @@ public abstract class Task implements Cloneable {
 	};
 
 	/** The schedule reference. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected Date scheduleReference = new Date();
 
 	/** The schedule type. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected ScheduleType scheduleType = ScheduleType.ASAP;
 
 	/** The factor (to multiply type). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected int scheduleFactor = 1;
 
 	/** The status. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected Status status = Status.NEW;
 
 	/** The target. */
 	@Getter(onMethod = @__({
-		@Column(length = 10000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 10000)
 	}))
 	@Setter
 	protected String target = "None";
@@ -499,16 +448,12 @@ public abstract class Task implements Cloneable {
 	private int version;
 
 	/** Runner ID (clustering mode). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String runnerId;
 
 	/** Task priority. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private int priority = Trigger.DEFAULT_PRIORITY;
 
@@ -517,8 +462,7 @@ public abstract class Task implements Cloneable {
 	 */
 	@Getter(onMethod = @__({
 		@ManyToOne(fetch = FetchType.LAZY),
-		@OnDelete(action = OnDeleteAction.SET_NULL),
-		@XmlElement, @JsonView(HookView.class)
+		@OnDelete(action = OnDeleteAction.SET_NULL)
 	}))
 	@Setter
 	protected Device device;
@@ -544,60 +488,46 @@ public abstract class Task implements Cloneable {
 	protected Domain domain;
 
 	/** Compatible device driver (script tasks). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected String deviceDriver;
 
 	/** The JS script to execute (script tasks). */
 	@Getter(onMethod = @__({
-		@Column(length = 10000000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 10000000)
 	}))
 	@Setter
 	protected String script;
 
 	/** Variable values for the script (script tasks). */
 	@Getter(onMethod = @__({
-		@JdbcTypeCode(SqlTypes.JSON),
-		@XmlElement, @JsonView(DefaultView.class)
+		@JdbcTypeCode(SqlTypes.JSON)
 	}))
 	@Setter
 	protected Map<String, String> userInputValues;
 
 	/** Automatically run a snapshot after successful script execution (script tasks). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean runSnapshot;
 
 	/** Automatically run diagnostics after successful script execution (script tasks). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean runDiagnostics;
 
 	/** Automatically check compliance after successful script execution (script tasks). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean checkCompliance;
 
 	/** Do not automatically start a run diagnostics task (snapshot tasks). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(HookView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean dontRunDiagnostics;
 
 	/** Do not automatically start a check compliance task (snapshot/diagnostics tasks). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(HookView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean dontCheckCompliance;
 
@@ -668,7 +598,6 @@ public abstract class Task implements Cloneable {
 	 * @return the ordered list of target devices, empty if neither source is set
 	 */
 	@Transient
-	@JsonIgnore
 	public List<Device> getTargetDevices() {
 		if (this.deviceGroup != null) {
 			return new ArrayList<>(this.deviceGroup.getCachedDevices());
@@ -687,30 +616,23 @@ public abstract class Task implements Cloneable {
 	 * on that row.
 	 */
 	@Getter(onMethod = @__({
-		@Column(name = "parent_task_id"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "parent_task_id")
 	}))
 	@Setter
 	protected Long parentTaskId;
 
 	/** Position of this task among its siblings, when it has a parent task. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected int childOrder;
 
 	/** Parallel vs sequential scheduling of child tasks (group-based tasks only). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected ScheduleMode scheduleMode = ScheduleMode.PARALLEL;
 
 	/** Whether to stop scheduling further child tasks after one fails (sequential mode only). */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean stopOnFailure;
 
@@ -719,9 +641,7 @@ public abstract class Task implements Cloneable {
 	 * tasks spend their whole execution in RUNNING, so the normal SCHEDULED-only cancel
 	 * path doesn't apply) -- polled by the sequential scheduling loop between child tasks.
 	 */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	protected boolean cancelRequested;
 
@@ -920,8 +840,6 @@ public abstract class Task implements Cloneable {
 	 * @return the next execution date
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public Date getNextExecutionDate() {
 
 		int factor = this.scheduleFactor;
@@ -975,8 +893,6 @@ public abstract class Task implements Cloneable {
 	 *
 	 * @return the task description
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public abstract String getTaskDescription();
 
@@ -997,8 +913,6 @@ public abstract class Task implements Cloneable {
 	 * @return true, if is repeating
 	 */
 	@Transient
-	@XmlElement
-	@JsonView(DefaultView.class)
 	public boolean isRepeating() {
 		switch (this.scheduleType) {
 			case ASAP:
@@ -1154,8 +1068,6 @@ public abstract class Task implements Cloneable {
 	 *
 	 * @return the logs
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Column(name = "log", length = 10000000)
 	public String getLog() {
 		return logs.toString();

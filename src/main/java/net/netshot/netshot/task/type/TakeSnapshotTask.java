@@ -24,18 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.quartz.JobKey;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskLockManager;
 
@@ -79,8 +74,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	 * Whether this is an automatic snapshot (as opposed to user/API requested).
 	 * @return true if automatic
 	 */
-	@XmlElement
-	@JsonView(HookView.class)
 	@Transient
 	public boolean isAutomatic() {
 		return this.getBooleanAttribute("automatic", false);
@@ -133,8 +126,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Device snapshot";
@@ -145,8 +136,6 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	 * 
 	 * @return the ID of the device
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	protected long getDeviceId() {
 		if (this.device == null) {

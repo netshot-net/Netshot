@@ -24,16 +24,12 @@ import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.quartz.JobKey;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -80,8 +76,6 @@ public final class CheckGroupSoftwareTask extends Task implements GroupBasedTask
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Group software compliance and hardware support check";
@@ -91,8 +85,6 @@ public final class CheckGroupSoftwareTask extends Task implements GroupBasedTask
 	 * Get the ID of the associate group.
 	 * @return the ID of the group
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getDeviceGroupId() {
 		if (this.getDeviceGroup() == null) {

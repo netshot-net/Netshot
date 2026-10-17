@@ -18,23 +18,16 @@
  */
 package net.netshot.netshot.vault;
 
-import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.credentials.HideSecretDeserializer;
 import net.netshot.netshot.credentials.HideSecretSerializer;
 import net.netshot.netshot.platform.database.StringEncryptorConverter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A HashiCorp Vault instance, using the KV v2 secrets engine.
@@ -44,7 +37,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * grant, then exchanged with Vault's JWT auth method).
  */
 @Entity
-@XmlRootElement
 public class HashicorpVaultKv2Instance extends VaultInstance {
 
 	public enum AuthMethod {
@@ -54,8 +46,7 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 
 	/** The KV v2 secrets engine mount path (e.g. "secret"). */
 	@Getter(onMethod = @__({
-		@Column(name = "kv_mount_path"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "kv_mount_path")
 	}))
 	@Setter
 	private String kvMountPath = "secret";
@@ -63,8 +54,7 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 	/** The authentication method used to log in to this Vault instance. */
 	@Getter(onMethod = @__({
 		@Enumerated(EnumType.STRING),
-		@Column(name = "auth_method", nullable = false),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "auth_method", nullable = false)
 	}))
 	@Setter
 	private AuthMethod authMethod;
@@ -75,16 +65,14 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 	 * as when multiple AppRole mounts serve different consumers).
 	 */
 	@Getter(onMethod = @__({
-		@Column(name = "app_role_mount_path"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "app_role_mount_path")
 	}))
 	@Setter
 	private String appRoleMountPath = "approle";
 
 	/** AppRole role_id (used when {@link #authMethod} is {@link AuthMethod#APPROLE}). */
 	@Getter(onMethod = @__({
-		@Column(name = "app_role_id"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "app_role_id")
 	}))
 	@Setter
 	private String appRoleId;
@@ -92,9 +80,6 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 	/** AppRole secret_id (used when {@link #authMethod} is {@link AuthMethod#APPROLE}). */
 	@Getter(onMethod = @__({
 		@Column(name = "app_role_secret_id"),
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = HideSecretSerializer.class),
-		@JsonDeserialize(using = HideSecretDeserializer.class),
 		@Convert(converter = StringEncryptorConverter.class)
 	}))
 	@Setter
@@ -106,24 +91,21 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 	 * per-tenant mount).
 	 */
 	@Getter(onMethod = @__({
-		@Column(name = "jwt_mount_path"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "jwt_mount_path")
 	}))
 	@Setter
 	private String jwtMountPath = "jwt";
 
 	/** External IdP token endpoint URL (used when {@link #authMethod} is {@link AuthMethod#JWT}). */
 	@Getter(onMethod = @__({
-		@Column(name = "jwt_idp_token_endpoint"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "jwt_idp_token_endpoint")
 	}))
 	@Setter
 	private String jwtIdpTokenEndpoint;
 
 	/** OAuth2 client ID used to obtain the JWT from the external IdP. */
 	@Getter(onMethod = @__({
-		@Column(name = "jwt_client_id"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "jwt_client_id")
 	}))
 	@Setter
 	private String jwtClientId;
@@ -131,9 +113,6 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 	/** OAuth2 client secret used to obtain the JWT from the external IdP. */
 	@Getter(onMethod = @__({
 		@Column(name = "jwt_client_secret"),
-		@XmlElement, @JsonView(DefaultView.class),
-		@JsonSerialize(using = HideSecretSerializer.class),
-		@JsonDeserialize(using = HideSecretDeserializer.class),
 		@Convert(converter = StringEncryptorConverter.class)
 	}))
 	@Setter
@@ -141,16 +120,14 @@ public class HashicorpVaultKv2Instance extends VaultInstance {
 
 	/** Vault-side role name to present when logging in via the JWT auth method. */
 	@Getter(onMethod = @__({
-		@Column(name = "jwt_vault_role"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "jwt_vault_role")
 	}))
 	@Setter
 	private String jwtVaultRole;
 
 	/** Optional OAuth2 scope to request from the external IdP. */
 	@Getter(onMethod = @__({
-		@Column(name = "jwt_scope"),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(name = "jwt_scope")
 	}))
 	@Setter
 	private String jwtScope;

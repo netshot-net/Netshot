@@ -29,12 +29,9 @@ import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +39,6 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A dynamic group of devices is defined by search criteria.
@@ -54,8 +50,7 @@ public class DynamicDeviceGroup extends DeviceGroup {
 
 	/** The query. */
 	@Getter(onMethod = @__({
-		@Column(length = 1000),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 1000)
 	}))
 	@Setter
 	private String query = "[Name] is \"example\"";

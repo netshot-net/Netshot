@@ -24,16 +24,12 @@ import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.quartz.JobKey;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -101,8 +97,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * Remove tasks older than this number of days.
 	 * @return the number of days
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getDays() {
 		return this.getIntAttribute("days", 0);
@@ -116,8 +110,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * Remove configs older than this number of days.
 	 * @return the number of days
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getConfigDays() {
 		return this.getIntAttribute("configDays", -1);
@@ -131,8 +123,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * Remove configs bigger than this size (KB).
 	 * @return the size
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getConfigSize() {
 		return this.getIntAttribute("configSize", 0);
@@ -146,8 +136,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * Keep one config every this number of days.
 	 * @return the number of days
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getConfigKeepDays() {
 		return this.getIntAttribute("configKeepDays", 0);
@@ -161,8 +149,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * Remove modules removed more than this number of days ago.
 	 * @return the number of days
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getModuleDays() {
 		return this.getIntAttribute("moduleDays", -1);
@@ -177,8 +163,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * corresponding database record) from the binary attribute storage folder.
 	 * @return true if orphan files should be removed
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public boolean isRemoveOrphanFiles() {
 		return this.getBooleanAttribute("removeOrphanFiles", false);
@@ -192,8 +176,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Database purge";
@@ -203,8 +185,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 	 * Get the ID of the associated group, if the purge is limited to one.
 	 * @return the ID of the group, or 0
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getDeviceGroupId() {
 		if (this.getDeviceGroup() == null) {

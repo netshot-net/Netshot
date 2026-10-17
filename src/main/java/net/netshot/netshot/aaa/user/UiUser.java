@@ -27,8 +27,6 @@ import java.util.Map;
 
 import org.hibernate.annotations.NaturalId;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,10 +34,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,14 +42,11 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The User class represents a Netshot user.
  */
 @Entity(name = "\"user\"")
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 @Table(indexes = {
 	@Index(name = "usernameIndex", columnList = "username")
 })
@@ -112,16 +103,13 @@ public class UiUser implements User {
 	/** The id. */
 	@Getter(onMethod = @__({
 		@Id,
-		@GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlElement, @JsonView(DefaultView.class)
+		@GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
 
 	/** The local. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private boolean local;
 
@@ -142,16 +130,13 @@ public class UiUser implements User {
 
 	/** The username. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@NaturalId(mutable = true)
 	}))
 	@Setter
 	private String username;
 
 	/** The level. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
-	}))
+	@Getter
 	@Setter
 	private int level = User.LEVEL_ADMIN;
 
