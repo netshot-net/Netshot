@@ -149,10 +149,12 @@ public class VaultInstanceService {
 						&& incoming instanceof HashicorpVaultKv2Instance rsHcInstance) {
 					hcInstance.setKvMountPath(rsHcInstance.getKvMountPath());
 					hcInstance.setAuthMethod(rsHcInstance.getAuthMethod());
+					hcInstance.setAppRoleMountPath(rsHcInstance.getAppRoleMountPath());
 					hcInstance.setAppRoleId(rsHcInstance.getAppRoleId());
 					if (rsHcInstance.getAppRoleSecretId() != null) {
 						hcInstance.setAppRoleSecretId(rsHcInstance.getAppRoleSecretId());
 					}
+					hcInstance.setJwtMountPath(rsHcInstance.getJwtMountPath());
 					hcInstance.setJwtIdpTokenEndpoint(rsHcInstance.getJwtIdpTokenEndpoint());
 					hcInstance.setJwtClientId(rsHcInstance.getJwtClientId());
 					if (rsHcInstance.getJwtClientSecret() != null) {
