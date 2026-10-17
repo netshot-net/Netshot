@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.aaa;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add an API token.
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param token the clear token value (32 alphanumeric characters)
  * @param level the authorization level
  */
-@JsonView(DefaultView.class)
 // Transitional: see UserRequest.
 @XmlRootElement(name = "rsApiToken")
 public record ApiTokenRequest(

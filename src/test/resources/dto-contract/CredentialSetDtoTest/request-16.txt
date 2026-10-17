@@ -1,0 +1,19 @@
+DeviceSshAccount
+changeDate=null
+deviceSpecific=false
+id=0
+mgmtDomain={description=d, id=2, name=n}
+name=a
+password=null
+passwordVaultInstanceId=null
+passwordVaultPath=null
+resolvedPasswordVaultInstanceId=null
+resolvedSuperPasswordVaultInstanceId=null
+resolvedUsernameVaultInstanceId=null
+superPassword=null
+superPasswordVaultInstanceId=null
+superPasswordVaultPath=null
+username=null
+usernameVaultInstanceId=null
+usernameVaultPath=null
+version=0

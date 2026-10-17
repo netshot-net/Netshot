@@ -25,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -56,7 +57,6 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.userscript.DeviceJsScript;
 
 /**
@@ -66,10 +66,8 @@ import net.netshot.netshot.userscript.DeviceJsScript;
  */
 class DiagnosticDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(DiagnosticDtoTest.class);
@@ -84,11 +82,11 @@ class DiagnosticDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -238,7 +236,7 @@ class DiagnosticDtoTest {
 	}
 
 	private static DiagnosticRequest diagnosticRequest(String body) throws Exception {
-		return JSON.readerFor(DiagnosticRequest.class).withView(RestApiView.class).readValue(body);
+		return JSON.readerFor(DiagnosticRequest.class).readValue(body);
 	}
 
 	@Test
@@ -264,16 +262,13 @@ class DiagnosticDtoTest {
 	}
 
 	private static ScriptRequest scriptRequest(String body) throws Exception {
-		return JSON.readerFor(ScriptRequest.class).withView(RestApiView.class).readValue(body);
-	}
-
-	private static DeviceJsScript legacyScriptRequest(String body) throws Exception {
-		return JSON.readerFor(DeviceJsScript.class).withView(RestApiView.class).readValue(body);
+		return JSON.readerFor(ScriptRequest.class).readValue(body);
 	}
 
 	@Test
 	@DisplayName("A script request is read like the script entity it replaces, quirks included")
 	void scriptRequest() throws Exception {
+		int index = 0;
 		for (String body : List.of(
 			"{}",
 			"{\"name\": \"n\", \"deviceDriver\": \"CiscoIOS12\", \"script\": \"s\"}",
@@ -284,17 +279,16 @@ class DiagnosticDtoTest {
 			"{\"userInputDefinitions\": {}}",
 			"{\"userInputDefinitions\": {\"a\": null}}",
 			"{\"userInputDefinitions\": {\"a\": \"x\"}}")) {
-			DeviceJsScript legacy = legacyScriptRequest(body);
+			index++;
 			ScriptRequest request = scriptRequest(body);
-			Assertions.assertEquals(legacy.getName(), request.name(), body);
-			Assertions.assertEquals(legacy.getScript(), request.script(), body);
-			Assertions.assertEquals(legacy.getDeviceDriver(), request.deviceDriver(), body);
-			Assertions.assertEquals(legacy.getAuthor(), request.author(), body);
-			Assertions.assertEquals(legacy.getFolder(), request.folder(), body);
-			Assertions.assertEquals(legacy.getUserInputDefinitions() == null, request.userInputDefinitions() == null, body);
-			if (legacy.getUserInputDefinitions() != null) {
-				Assertions.assertEquals(legacy.getUserInputDefinitions().keySet(), request.userInputDefinitions().keySet(), body);
-			}
+			Map<String, Object> read = new TreeMap<>();
+			read.put("name", request.name());
+			read.put("script", request.script());
+			read.put("deviceDriver", request.deviceDriver());
+			read.put("author", request.author());
+			read.put("folder", request.folder());
+			read.put("userInputDefinitions", request.userInputDefinitions() == null ? null : new TreeSet<>(request.userInputDefinitions().keySet()));
+			this.contract.checkText("script-request-" + index, DtoContract.render(request, read));
 		}
 		Assertions.assertEquals("", scriptRequest("{}").folder());
 		Assertions.assertNull(scriptRequest("{\"folder\": null}").folder());
@@ -305,7 +299,6 @@ class DiagnosticDtoTest {
 			"{\"unknown\": 1}",
 			"{\"realDeviceType\": \"Cisco IOS\"}",
 			"{\"id\": \"x\"}")) {
-			Assertions.assertThrows(JsonMappingException.class, () -> legacyScriptRequest(body), "legacy " + body);
 			Assertions.assertThrows(JsonMappingException.class, () -> scriptRequest(body), body);
 		}
 		Assertions.assertEquals("x", ScriptMapper.toCreation(scriptRequest("{\"author\": \"x\"}"), null).author(), "posted author kept");

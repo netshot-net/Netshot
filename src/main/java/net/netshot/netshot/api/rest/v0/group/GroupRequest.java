@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.group;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
@@ -29,7 +28,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add or edit a device group.
@@ -47,49 +45,49 @@ public class GroupRequest {
 
 	/** The id (not used). */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private long id = -1;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String name;
 
 	/** The type: StaticDeviceGroup or DynamicDeviceGroup (only used when adding a group). */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String type;
 
 	/** The IDs of the devices of a static group. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private List<Long> staticDevices = new ArrayList<>();
 
 	/** The query of a dynamic group. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String query;
 
 	/** The folder. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String folder = "";
 
 	/** Hide the group in reports. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean hiddenFromReports;

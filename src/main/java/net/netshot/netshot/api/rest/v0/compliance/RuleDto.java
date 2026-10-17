@@ -20,16 +20,13 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A compliance rule, with the properties of its kind. The {@code type} property tells the kind
  * (the simple class name of the rule).
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = RuleDto.Text.class, name = "TextRule"),
@@ -76,7 +73,6 @@ public sealed interface RuleDto {
 	 * @param regExp whether the text is a regular expression
 	 * @param text the text to look for
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "TextRule")
 	record Text(
 		boolean anyBlock,
@@ -102,7 +98,6 @@ public sealed interface RuleDto {
 	 * @param name the name
 	 * @param script the script
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "JavaScriptRule")
 	record JavaScript(boolean enabled, long id, String name, String script) implements RuleDto {
 	}
@@ -115,7 +110,6 @@ public sealed interface RuleDto {
 	 * @param name the name
 	 * @param script the script
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "PythonRule")
 	record Python(boolean enabled, long id, String name, String script) implements RuleDto {
 	}

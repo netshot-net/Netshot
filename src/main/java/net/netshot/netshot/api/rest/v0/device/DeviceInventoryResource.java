@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,7 +47,6 @@ import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the other device endpoints: the interfaces and the modules of a device,
@@ -100,7 +98,6 @@ public class DeviceInventoryResource {
 	@Path("/devices/{id}/interfaces")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get device interfaces",
 		description = "Returns the list of interfaces of a given device (by ID)."
@@ -126,7 +123,6 @@ public class DeviceInventoryResource {
 	@Path("/devices/{id}/modules")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get device modules",
 		description = "Returns the list of hardware modules of a given device, by ID."
@@ -153,7 +149,6 @@ public class DeviceInventoryResource {
 	@RolesAllowed(User.ROLE_READONLY)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Search for devices",
 		description = "Find devices using a string-based query."
@@ -176,7 +171,6 @@ public class DeviceInventoryResource {
 	@Path("/devicetypes")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the device types",
 		description = "Returns the list of device types (drivers)."
@@ -203,7 +197,6 @@ public class DeviceInventoryResource {
 	@Path("/devicefamilies")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the existing device families",
 		description = "Returns the list of device families (driver specific) currenly known in the database."
@@ -225,7 +218,6 @@ public class DeviceInventoryResource {
 	@Path("/partnumbers")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the known part numbers",
 		description = "Returns the list of all known part numbers currently existing in the module table."
@@ -247,7 +239,6 @@ public class DeviceInventoryResource {
 	@Path("/devicetags")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the existing device tags",
 		description = "Returns the list of distinct tags currently attached to at least one device, with the number of devices for each."
@@ -269,7 +260,6 @@ public class DeviceInventoryResource {
 	@Path("/softwareversions")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the known software versions",
 		description = "Returns the list of all known software versions currently existing in the device table."

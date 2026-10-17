@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.report;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The number of configuration changes of a day.
@@ -31,7 +29,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param changeCount the number of changes
  * @param changeDay the start of the day
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsConfigChangeNumberByDateStat")
 public record ConfigChangeCountDto(long changeCount, Date changeDay) {
 }

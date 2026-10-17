@@ -20,8 +20,6 @@ package net.netshot.netshot.aaa.user;
 
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,18 +27,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 @Table(indexes = {
 	@Index(name = "hashedTokenIndex", columnList = "hashedToken")
 })
@@ -68,8 +59,7 @@ public final class ApiToken implements User {
 	/** The id. */
 	@Getter(onMethod = @__({
 		@Id,
-		@GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlElement, @JsonView(DefaultView.class)
+		@GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
@@ -80,16 +70,12 @@ public final class ApiToken implements User {
 	private String hashedToken;
 
 	/** The description. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private String description;
 
 	/** The level. */
-	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
-	}))
+	@Getter
 	@Setter
 	private int level = User.LEVEL_ADMIN;
 

@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A device tag, as listed by the known device tags.
@@ -29,7 +27,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param name the tag
  * @param deviceCount the number of devices having this tag
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsDeviceTag")
 public record DeviceTagDto(String name, long deviceCount) {
 }

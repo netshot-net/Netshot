@@ -20,18 +20,15 @@ package net.netshot.netshot.api.rest.v0.diagnostic;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The representation of a diagnostic, of one of the three kinds. The {@code type} property (an
  * attribute in XML) is the name of the kind.
  */
-@JsonView(DefaultView.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = DiagnosticDto.Simple.class, name = "SimpleDiagnostic"),
@@ -69,7 +66,6 @@ public sealed interface DiagnosticDto {
 	 * @param resultType the type of result
 	 * @param targetGroup the group of devices the diagnostic applies to, or null
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "SimpleDiagnostic")
 	record Simple(
 		String cliMode,
@@ -95,7 +91,6 @@ public sealed interface DiagnosticDto {
 	 * @param script the script
 	 * @param targetGroup the group of devices the diagnostic applies to, or null
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "JavaScriptDiagnostic")
 	record JavaScript(
 		boolean enabled,
@@ -116,7 +111,6 @@ public sealed interface DiagnosticDto {
 	 * @param script the script
 	 * @param targetGroup the group of devices the diagnostic applies to, or null
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "PythonDiagnostic")
 	record Python(
 		boolean enabled,

@@ -18,21 +18,16 @@
  */
 package net.netshot.netshot.compliance.rules;
 
-
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A JavaScriptRule is a Javascript-coded script that will check the device
@@ -46,7 +41,6 @@ public class JavaScriptRule extends Rule {
 
 	/** The script. */
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class),
 		@Column(length = 10000000)
 	}))
 	@Setter

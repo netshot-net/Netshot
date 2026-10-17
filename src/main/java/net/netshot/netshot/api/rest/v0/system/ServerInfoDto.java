@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.system;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * General information about the server.
@@ -29,7 +27,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param serverVersion the server version
  * @param maxIdleTimeout the user max idle time (in seconds)
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsServerInfo")
 public record ServerInfoDto(
 	String serverVersion,

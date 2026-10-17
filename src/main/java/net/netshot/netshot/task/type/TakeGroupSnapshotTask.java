@@ -24,16 +24,12 @@ import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.quartz.JobKey;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -96,8 +92,6 @@ public final class TakeGroupSnapshotTask extends Task
 	 * Only capture devices updated more than X hours ago.
 	 * @return the limit, in hours (-1 = no limit)
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public int getLimitToOutofdateDeviceHours() {
 		return this.getIntAttribute("limitToOutofdateDeviceHours", -1);
@@ -115,8 +109,6 @@ public final class TakeGroupSnapshotTask extends Task
 	 * @see net.netshot.netshot.task.Task#getTaskDescription()
 	 */
 	@Override
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public String getTaskDescription() {
 		return "Group snapshot";
@@ -126,8 +118,6 @@ public final class TakeGroupSnapshotTask extends Task
 	 * Get the ID of the associate group.
 	 * @return the ID of the group
 	 */
-	@XmlElement
-	@JsonView(DefaultView.class)
 	@Transient
 	public long getDeviceGroupId() {
 		if (this.getDeviceGroup() == null) {

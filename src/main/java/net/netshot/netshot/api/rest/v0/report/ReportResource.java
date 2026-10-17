@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -54,7 +53,6 @@ import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
 import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.report.ReportExportSelection;
 import net.netshot.netshot.report.ReportService;
 
@@ -95,7 +93,6 @@ public class ReportResource {
 	@Path("/reports/last7dayschangesbyday")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the number of configuration changes for the last 7 days",
 		description = "Returns the number of device configuration changes per day, for the last 7 days."
@@ -120,7 +117,6 @@ public class ReportResource {
 	@Path("/reports/groupconfigcompliancestats")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the compliance status of a device group",
 		description = "Returns the compliance status of a given device group, by ID."
@@ -149,7 +145,6 @@ public class ReportResource {
 	@Path("/reports/hardwaresupportstats")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the global hardware support status",
 		description = "Returns the global hardware support status, i.e. a list of End-of-Life and End-of-Sale dates with the corresponding device count; "
@@ -176,7 +171,6 @@ public class ReportResource {
 	@Path("/reports/groupsoftwarecompliancestats")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the global software compliance status",
 		description = "Returns the software compliance status of devices, optionally filtered by a list of device domains."
@@ -204,7 +198,6 @@ public class ReportResource {
 	@Path("/reports/configcompliancedevicestatuses")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the configuration compliance status of devices",
 		description = "Returns the configuration compliance status of devices; optionally filtered by domain, group, policy or compliance level."
@@ -235,7 +228,6 @@ public class ReportResource {
 	@Path("/reports/groupconfignoncompliantdevices/{id}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the non compliant devices of a group",
 		description = "Returns the list of non-compliance devices part of a given group, optionally filtered by domains and policies"
@@ -266,7 +258,6 @@ public class ReportResource {
 	@Path("/reports/hardwaresupportdevices/{type}/{date}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the End-of-Life or End-of-Sale devices matching a date.",
 		description = "Returns the list of devices getting End-of-Life (type 'eol') or End-of-Sale (type 'eos') at the given date (or never if 'date' is not given); "
@@ -296,7 +287,6 @@ public class ReportResource {
 	@Path("/reports/groupdevicesbysoftwarelevel/{id}/{level}")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the devices of a group based on software compliance level",
 		description = "Returns the list of devices of a given group by ID, and matching the given software compliance level."
@@ -323,7 +313,6 @@ public class ReportResource {
 	@Path("/reports/accessfailuredevices")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the devices without successful snapshot over a given period",
 		description = "Returns the list of devices which didn't have a successful snapshot over the given number of days, optionally "
@@ -360,7 +349,6 @@ public class ReportResource {
 	@Path("/reports/export")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Export data",
 		description = "Exports data as Excel datasheet. The devices can be filtered by groups or domains. "

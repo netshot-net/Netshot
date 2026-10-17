@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.task;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -32,7 +30,6 @@ import net.netshot.netshot.task.Task;
  * @param countByStatus the number of tasks of every status
  * @param threadCount the number of threads of the task engine
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsTaskSummary")
 public record TaskOverviewDto(Map<Task.Status, Long> countByStatus, int threadCount) {
 }

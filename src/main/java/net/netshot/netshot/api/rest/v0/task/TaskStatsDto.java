@@ -22,10 +22,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -35,7 +33,6 @@ import net.netshot.netshot.task.Task;
  * @param statusCounts the number of completed tasks by status, over the whole range
  * @param typeCounts the number of completed tasks by task type, over the whole range
  */
-@JsonView(DefaultView.class)
 @JacksonXmlRootElement(localName = "RsTaskStats")
 public record TaskStatsDto(List<Bin> bins, Map<Task.Status, Long> statusCounts, Map<String, Long> typeCounts) {
 
@@ -46,7 +43,6 @@ public record TaskStatsDto(List<Bin> bins, Map<Task.Status, Long> statusCounts, 
 	 * @param to the end of the bucket
 	 * @param countByStatus the number of completed tasks by status in the bucket
 	 */
-	@JsonView(DefaultView.class)
 	@JacksonXmlRootElement(localName = "RsTaskStatsBin")
 	public record Bin(Date from, Date to, Map<Task.Status, Long> countByStatus) {
 	}

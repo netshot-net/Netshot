@@ -21,7 +21,6 @@ package net.netshot.netshot.api.rest.v0.script;
 import java.security.Principal;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,7 +47,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import net.netshot.netshot.userscript.ScriptService;
 
@@ -82,7 +80,6 @@ public class ScriptResource {
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add/validate a command script",
 		description = "Create a command script (script to be later run over devices)."
@@ -108,7 +105,6 @@ public class ScriptResource {
 	@Path("/scripts/{id}")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a script",
 		description = "Removes a given script, by ID."
@@ -125,7 +121,6 @@ public class ScriptResource {
 	@Path("/scripts/{id}")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get a command script",
 		description = "Returns a given command script, by ID."
@@ -147,7 +142,6 @@ public class ScriptResource {
 	@Path("/scripts")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get command scripts",
 		description = "Returns the list of command scripts."

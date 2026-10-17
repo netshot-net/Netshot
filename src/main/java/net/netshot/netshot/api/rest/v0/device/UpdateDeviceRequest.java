@@ -21,11 +21,9 @@ package net.netshot.netshot.api.rest.v0.device;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to edit a device. A property absent from the request (or null) leaves the
@@ -40,7 +38,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param options the new values of the driver options
  * @param tags the new tags (replacing all the existing ones)
  */
-@JsonView(DefaultView.class)
 // Transitional, see NewDeviceRequest
 @XmlRootElement(name = "device")
 public record UpdateDeviceRequest(

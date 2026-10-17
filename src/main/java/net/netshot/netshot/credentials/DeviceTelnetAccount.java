@@ -19,14 +19,12 @@
 package net.netshot.netshot.credentials;
 
 import jakarta.persistence.Entity;
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 
 /**
  * A Telnet account.
  */
 @Entity
-@XmlRootElement()
 public class DeviceTelnetAccount extends DeviceCliAccount {
 
 	/**
