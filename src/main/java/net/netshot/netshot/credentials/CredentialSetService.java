@@ -189,7 +189,9 @@ public class CredentialSetService {
 			}
 			if (cliAccount instanceof DeviceSshKeyAccount sshKeyAccount
 					&& rsCliAccount instanceof DeviceSshKeyAccount rsSshKeyAccount) {
-				sshKeyAccount.setPrivateKey(rsSshKeyAccount.getPrivateKey());
+				if (rsSshKeyAccount.getPrivateKey() != null) {
+					sshKeyAccount.setPrivateKey(rsSshKeyAccount.getPrivateKey());
+				}
 			}
 		}
 		else if (existing instanceof DeviceSnmpv3Community snmp3
