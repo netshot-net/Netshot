@@ -26,12 +26,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -58,6 +61,7 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
+import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceUpdate;
@@ -89,7 +93,8 @@ class DeviceDtoTest {
 	private static final XmlMapper XML = XmlMapper.builder()
 		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
 
-	private final ApiContractGolden golden = new ApiContractGolden(0);
+	@RegisterExtension
+	private final DtoContract contract = new DtoContract(DeviceDtoTest.class, System.currentTimeMillis());
 
 	private static Domain domain(long id, String name) throws Exception {
 		Domain domain = new Domain(name, "Description of " + name, new Network4Address("10.255.0.1"), new Network6Address("2001:db8::1"));
@@ -202,6 +207,12 @@ class DeviceDtoTest {
 		device.getAccesses().add(access);
 	}
 
+	@BeforeAll
+	static void loadDrivers() throws Exception {
+		Netshot.initConfig(new Properties());
+		DeviceDriver.refreshDrivers();
+	}
+
 	private static byte[] json(Object value) throws Exception {
 		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
@@ -210,21 +221,16 @@ class DeviceDtoTest {
 		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
 	}
 
-	private void assertSameRepresentation(Device device) throws Exception {
+	private void assertRepresentation(Device device) throws Exception {
 		DeviceDto dto = DeviceMapper.toDto(device);
-		String expectedJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(device), ApiContractGolden.Transform.NONE, false);
-		String actualJson = this.golden.canonicalize(ApiContractGolden.Format.JSON, json(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedJson, actualJson, "JSON");
-		String expectedXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(device), ApiContractGolden.Transform.NONE, false);
-		String actualXml = this.golden.canonicalize(ApiContractGolden.Format.XML, xml(dto), ApiContractGolden.Transform.NONE, false);
-		Assertions.assertEquals(expectedXml, actualXml, "XML");
+		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
 	@Test
 	@DisplayName("A full device has the same JSON and XML representation as the entity (all kinds of credentials, attributes, groups)")
 	void fullDeviceRepresentation() throws Exception {
 		Device device = fullDevice();
-		this.assertSameRepresentation(device);
+		this.assertRepresentation(device);
 		// Make sure the check is meaningful
 		String json = new String(json(DeviceMapper.toDto(device)));
 		Assertions.assertTrue(json.contains("\"type\":\"SNMP v3\""), json);
@@ -241,7 +247,7 @@ class DeviceDtoTest {
 	void bareDeviceRepresentation() throws Exception {
 		Device device = new Device("CiscoIOS12", "10.1.1.2", null, "seed");
 		device.setId(43);
-		this.assertSameRepresentation(device);
+		this.assertRepresentation(device);
 	}
 
 	// ------------------------------------------------------------------

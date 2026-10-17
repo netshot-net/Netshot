@@ -1,7 +1,7 @@
 {
-  "compliantDeviceCount": "<now>",
-  "deviceCount": "<now>",
+  "compliantDeviceCount": 2,
+  "deviceCount": 5,
   "groupFolder": "Production/Core",
-  "groupId": "<now>",
+  "groupId": 1,
   "groupName": "Core"
 }

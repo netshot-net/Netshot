@@ -6,7 +6,7 @@
   "baseUrl": "https://vault.example.net:8200",
   "httpsCaTrustMode": "CUSTOM_CA",
   "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
-  "id": "<now>",
+  "id": 3,
   "jwtClientId": "netshot",
   "jwtClientSecret": "=",
   "jwtIdpTokenEndpoint": "https://idp.example.net/token",

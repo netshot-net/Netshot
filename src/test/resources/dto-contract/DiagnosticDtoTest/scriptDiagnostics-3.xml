@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <PythonDiagnostic type="PythonDiagnostic">
   <enabled>true</enabled>
-  <id>&lt;now&gt;</id>
+  <id>7</id>
   <name>Python</name>
   <resultType>BINARY</resultType>
   <script>def diagnose():&#10;  pass</script>
@@ -9,7 +9,7 @@
     <changeDate>1600000200000</changeDate>
     <folder>Production</folder>
     <hiddenFromReports>false</hiddenFromReports>
-    <id>&lt;now&gt;</id>
+    <id>100</id>
     <name>Dynamic</name>
     <query>[Name] contains &quot;r&quot;</query>
   </targetGroup>

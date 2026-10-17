@@ -1,8 +1,8 @@
 {
-  "bronzeDeviceCount": "<now>",
-  "deviceCount": "<now>",
-  "goldDeviceCount": "<now>",
-  "groupId": "<now>",
+  "bronzeDeviceCount": 3,
+  "deviceCount": 7,
+  "goldDeviceCount": 1,
+  "groupId": 1,
   "groupName": "Core",
-  "silverDeviceCount": "<now>"
+  "silverDeviceCount": 2
 }

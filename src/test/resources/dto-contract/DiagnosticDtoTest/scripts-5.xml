@@ -4,7 +4,7 @@
     <author>tester</author>
     <deviceDriver>NoSuchDriver</deviceDriver>
     <folder/>
-    <id>&lt;now&gt;</id>
+    <id>3</id>
     <name>Script</name>
     <realDeviceType>Unknwon driver</realDeviceType>
     <script/>
@@ -33,7 +33,7 @@
     <author>tester</author>
     <deviceDriver>CiscoIOS12</deviceDriver>
     <folder>Folder</folder>
-    <id>&lt;now&gt;</id>
+    <id>3</id>
     <name>Script</name>
     <realDeviceType>Cisco IOS and IOS-XE</realDeviceType>
     <script>function run() {}</script>

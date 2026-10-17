@@ -4,7 +4,7 @@
   <communityVaultInstanceId/>
   <communityVaultPath/>
   <deviceSpecific>false</deviceSpecific>
-  <id>&lt;now&gt;</id>
+  <id>1</id>
   <mgmtDomain/>
   <name>SNMP v1</name>
 </DeviceSnmpv1Community>

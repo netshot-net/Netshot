@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "id": "<now>",
+  "id": 7,
   "name": "Python",
   "resultType": "BINARY",
   "script": "def diagnose():\n  pass",

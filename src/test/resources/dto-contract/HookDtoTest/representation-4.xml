@@ -4,7 +4,7 @@
   <enabled>true</enabled>
   <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
   <httpsCustomCaCertificate/>
-  <id>&lt;now&gt;</id>
+  <id>0</id>
   <name>Bare</name>
   <triggers/>
   <url/>

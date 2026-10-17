@@ -5,7 +5,7 @@
   "deviceDriverDescription": "Cisco IOS and IOS-XE",
   "enabled": true,
   "field": "runningConfig",
-  "id": "<now>",
+  "id": 7,
   "invert": true,
   "matchAll": true,
   "name": "Text rule",

@@ -4,11 +4,11 @@
   <communityVaultInstanceId/>
   <communityVaultPath/>
   <deviceSpecific>false</deviceSpecific>
-  <id>&lt;now&gt;</id>
+  <id>2</id>
   <mgmtDomain>
     <changeDate>1600000000000</changeDate>
     <description>Paris data center</description>
-    <id>&lt;now&gt;</id>
+    <id>1</id>
     <name>Paris DC</name>
     <server4Address>10.255.0.1</server4Address>
     <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
