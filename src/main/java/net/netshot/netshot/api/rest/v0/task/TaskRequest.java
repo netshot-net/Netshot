@@ -22,12 +22,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.task.Task;
@@ -40,7 +38,6 @@ import net.netshot.netshot.task.Task;
  * value must give the three outcomes they always gave (a default value, {@code null} or zero, the value).
  * A bean with initialized fields does that for free.</p>
  */
-@XmlRootElement(name = "task")
 @XmlAccessorType(XmlAccessType.NONE)
 public class TaskRequest {
 
