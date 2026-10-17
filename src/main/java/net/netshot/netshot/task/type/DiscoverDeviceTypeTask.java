@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -45,11 +43,7 @@ import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.credentials.DeviceSnmpCommunity;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -218,24 +212,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 	}
 
 	/**
-	 * Gets the discovered device type description.
-	 * 
-	 * @return the discovered device type description
-	 */
-	@Transient
-	public String getDiscoveredDeviceTypeDescription() {
-		String description = "Unknown";
-		DeviceDriver driver = DeviceDriver.getDriverByName(this.getDiscoveredDeviceType());
-		if (driver == null) {
-			log.debug("No driver named {}.", this.getDiscoveredDeviceType());
-		}
-		else {
-			description = driver.getDescription();
-		}
-		return description;
-	}
-
-	/**
 	 * Adds the credential set.
 	 * 
 	 * @param credentialSet
@@ -245,99 +221,6 @@ public final class DiscoverDeviceTypeTask extends Task implements DomainBasedTas
 		credentialSets.add(credentialSet);
 	}
 
-
-	private boolean snmpDiscover(Snmp poller) {
-		log.debug("Task {}. Trying SNMP discovery.", this.getId());
-		String sysObjectId;
-		String sysDesc;
-		try {
-			sysDesc = poller.getAsString("1.3.6.1.2.1.1.1.0");
-			sysObjectId = poller.getAsString("1.3.6.1.2.1.1.2.0");
-			this.logger.debug("Got sysDesc = {}", sysDesc);
-			this.logger.debug("Got sysObjectID = {}", sysObjectId);
-			log.trace("Got sysDesc '{}' and sysObjectID '{}'.", sysDesc,
-				sysObjectId);
-
-			// Iterates over possible device classes
-			for (DeviceDriver driver : DeviceDriver.getAllDrivers()) {
-				if (driver.snmpAutoDiscover(this, sysObjectId, sysDesc, this.logger)) {
-					log.trace("The driver {} did accept the OID.", driver.getName());
-					this.setDiscoveredDeviceType(driver.getName());
-					return true;
-				}
-			}
-		}
-		catch (IOException e) {
-			log.warn("Error while polling the device via SNMP.", e);
-			this.logger.error("Error while polling the device via SNMP.");
-		}
-		finally {
-			try {
-				poller.stop();
-			}
-			catch (IOException e) {
-			}
-		}
-		log.debug("No driver has accepted the OID.");
-		return false;
-	}
-
-	private boolean snmpv1Discover(DeviceSnmpCommunity community) {
-		log.trace("Task {}. SNMPv1 discovery with credential set {}.",
-			this.getId(), community.getName());
-		this.logger.trace("Trying SNMPv1 discovery (credentials {})", community.getName());
-		try {
-			Snmp poller = new Snmp(this.resolvedAddress, community);
-			return snmpDiscover(poller);
-		}
-		catch (UnknownHostException e) {
-			log.warn("Task {}. SNMPv1 unknown host error.", this.getId(), e);
-			this.logger.warn("SNMPv1 unknown host error: {}", e.getMessage());
-		}
-		catch (Exception e) {
-			log.error("Task {}. SNMPv1 error while polling the device.", this.getId(), e);
-			this.logger.warn("Error while SNMPv1 polling the device: {}", e.getMessage());
-		}
-		return false;
-	}
-
-	private boolean snmpv2cDiscover(DeviceSnmpCommunity community) {
-		log.trace("Task {}. SNMPv2c discovery with credential set {}.",
-			this.getId(), community.getName());
-		this.logger.trace("Trying SNMPv2c discovery (credential set {})", community.getName());
-		try {
-			Snmp poller = new Snmp(this.resolvedAddress, community);
-			return snmpDiscover(poller);
-		}
-		catch (UnknownHostException e) {
-			log.warn("Task {}. SNMPv2 unknown host error.", this.getId(), e);
-			this.logger.warn("SNMPv2 unknown host error: {}", e.getMessage());
-		}
-		catch (Exception e) {
-			log.error("Task {}. SNMPv2 error while polling the device.", this.getId(), e);
-			this.logger.warn("Error while SNMPv2 polling the device: {}", e.getMessage());
-		}
-		return false;
-	}
-
-	private boolean snmpv3Discover(DeviceSnmpv3Community cred) {
-		log.trace("Task {}. SNMPv3 discovery with credential set {}.",
-			this.getId(), cred.getName());
-		this.logger.trace("Trying SNMPv3 discovery (credentials {})", cred.getName());
-		try {
-			Snmp poller = new Snmp(this.resolvedAddress, cred);
-			return snmpDiscover(poller);
-		}
-		catch (UnknownHostException e) {
-			log.warn("Task {}. SNMPv3 unknown host error.", this.getId(), e);
-			this.logger.warn("SNMPv3 unknown host error: {}", e.getMessage());
-		}
-		catch (Exception e) {
-			log.error("Task {}. SNMPv3 error while polling the device.", this.getId(), e);
-			this.logger.warn("Error while SNMPv3 polling the device: {}", e.getMessage());
-		}
-		return false;
-	}
 
 	/*
 	 * (non-Javadoc)

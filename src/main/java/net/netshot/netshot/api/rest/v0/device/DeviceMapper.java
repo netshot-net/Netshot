@@ -27,6 +27,8 @@ import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
+import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceSummary;
@@ -52,13 +54,24 @@ public final class DeviceMapper {
 		// Static helpers only
 	}
 
+	// The description of the driver of the device
+	private static String realDeviceType(DriverRegistry driverRegistry, Device device) {
+		try {
+			return driverRegistry.forDevice(device).getDescription();
+		}
+		catch (MissingDeviceDriverException e) {
+			return "Unknown driver";
+		}
+	}
+
 	/**
 	 * Maps a device to its full representation.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param device the device, loaded with the fetch plan of {@code DeviceRepository.findWithDetails}
 	 * @return the DTO
 	 */
-	public static DeviceDto toDto(Device device) {
+	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device) {
 		List<DeviceAccessDto> accesses = new ArrayList<>();
 		device.getAccesses().forEach(access -> accesses.add(DeviceAccessMapper.toDto(access)));
 		List<DeviceAttributeDto> attributes = new ArrayList<>();
@@ -91,7 +104,7 @@ public final class DeviceMapper {
 			device.getNetworkClass(),
 			device.getOptions(),
 			ownerGroups,
-			device.getRealDeviceType(),
+			realDeviceType(driverRegistry, device),
 			device.getSerialNumber(),
 			device.getSoftwareLevel(),
 			device.getSoftwareVersion(),

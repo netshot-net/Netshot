@@ -60,7 +60,6 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceUpdate;
@@ -206,7 +205,7 @@ class DeviceDtoTest {
 	@BeforeAll
 	static void loadDrivers() throws Exception {
 		Netshot.initConfig(new Properties());
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	private static byte[] json(Object value) throws Exception {
@@ -218,7 +217,7 @@ class DeviceDtoTest {
 	}
 
 	private void assertRepresentation(Device device) throws Exception {
-		DeviceDto dto = DeviceMapper.toDto(device);
+		DeviceDto dto = DeviceMapper.toDto(TestDrivers.registry(), device);
 		this.contract.checkBoth(json(dto), xml(dto));
 	}
 
@@ -228,14 +227,14 @@ class DeviceDtoTest {
 		Device device = fullDevice();
 		this.assertRepresentation(device);
 		// Make sure the check is meaningful
-		String json = new String(json(DeviceMapper.toDto(device)));
+		String json = new String(json(DeviceMapper.toDto(TestDrivers.registry(), device)));
 		Assertions.assertTrue(json.contains("\"type\":\"SNMP v3\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"SSH Key\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"LONGTEXT\""), json);
 		Assertions.assertTrue(json.contains("\"type\":\"DynamicDeviceGroup\""), json);
 		Assertions.assertTrue(json.contains("\"endOfLife\":true"), json);
 		Assertions.assertTrue(json.contains("\"password\":\"=\""), json);
-		Assertions.assertTrue(new String(xml(DeviceMapper.toDto(device))).startsWith("<Device>"));
+		Assertions.assertTrue(new String(xml(DeviceMapper.toDto(TestDrivers.registry(), device))).startsWith("<Device>"));
 	}
 
 	@Test

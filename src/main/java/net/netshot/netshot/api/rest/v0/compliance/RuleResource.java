@@ -45,6 +45,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * The REST resource of the compliance rules (text and script rules): list, read, add, edit,
@@ -58,6 +59,7 @@ import net.netshot.netshot.compliance.RuleService;
 public class RuleResource {
 
 	private final RuleService ruleService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -66,10 +68,12 @@ public class RuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param ruleService the rule use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public RuleResource(RuleService ruleService) {
+	public RuleResource(RuleService ruleService, DriverRegistry driverRegistry) {
 		this.ruleService = ruleService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -114,7 +118,7 @@ public class RuleResource {
 		@BeanParam PaginationParams paginationParams,
 		@PathParam("id") @Parameter(description = "Policy ID") Long id) throws WebApplicationException {
 		log.debug("REST request, get rules for policy {}.", id);
-		return RuleMapper.toDtos(this.ruleService.listOfPolicy(id, paginationParams.toPage()));
+		return RuleMapper.toDtos(this.driverRegistry, this.ruleService.listOfPolicy(id, paginationParams.toPage()));
 	}
 
 	/**
@@ -139,7 +143,7 @@ public class RuleResource {
 		@PathParam("id") @Parameter(description = "Rule ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, get rule {}, policy {}.", id, pid);
-		return RuleMapper.toDto(this.ruleService.getOfPolicy(pid, id));
+		return RuleMapper.toDto(this.driverRegistry, this.ruleService.getOfPolicy(pid, id));
 	}
 
 	/**
@@ -161,7 +165,7 @@ public class RuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public RuleDto addRule(RuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add rule.");
-		RuleDto rule = RuleMapper.toDto(this.ruleService.create(RuleMapper.toDefinition(rsRule)));
+		RuleDto rule = RuleMapper.toDto(this.driverRegistry, this.ruleService.create(RuleMapper.toDefinition(rsRule)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return rule;
 	}
@@ -187,7 +191,7 @@ public class RuleResource {
 	public RuleDto setRule(@PathParam("id") @Parameter(description = "Rule ID") Long id, RuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit rule {}.", id);
-		return RuleMapper.toDto(this.ruleService.update(id, RuleMapper.toDefinition(rsRule)));
+		return RuleMapper.toDto(this.driverRegistry, this.ruleService.update(id, RuleMapper.toDefinition(rsRule)));
 	}
 
 	/**

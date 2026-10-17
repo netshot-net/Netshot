@@ -41,7 +41,6 @@ import org.quartz.impl.SchedulerRepository;
 import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -92,10 +91,10 @@ public abstract class HookSeededTest extends WithDatabaseTest {
 		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
-		TaskManager.init();
+		Wiring.init(TestDrivers.registry());
+		TaskManager.init(Wiring.get().taskJobFactory());
 		// Tasks must be stored but never run
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
 			scheduler.standby();
@@ -151,7 +150,7 @@ public abstract class HookSeededTest extends WithDatabaseTest {
 			this.taskIds.put("RunGroupDiagnosticsTask", groupDiagnostics.getId());
 
 			RunDeviceGroupScriptTask groupScript = new RunDeviceGroupScriptTask(group, "function run(cli, device) {}",
-				DeviceDriver.getDriverByName("CiscoIOS12"), "Group script", "tester");
+				TestDrivers.registry().getDriverByName("CiscoIOS12"), "Group script", "tester");
 			this.taskData(session, groupScript, Task.Status.SUCCESS, created + 20000, "Group script output");
 			this.taskIds.put("RunDeviceGroupScriptTask", groupScript.getId());
 

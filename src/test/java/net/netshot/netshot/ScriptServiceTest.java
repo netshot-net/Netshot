@@ -33,8 +33,6 @@ import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -65,11 +63,11 @@ class ScriptServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
-		this.service = new ScriptService(this.transactions, new ScriptRepository(), DriverRegistry.shared());
+		this.service = new ScriptService(this.transactions, new ScriptRepository(), TestDrivers.registry());
 	}
 
 	private String name(String prefix) {
@@ -103,7 +101,7 @@ class ScriptServiceTest extends WithDatabaseTest {
 		Assertions.assertEquals(SCRIPT, script.getScript());
 		Assertions.assertNotNull(script.getUserInputDefinitions(), "the definitions are extracted on creation");
 		Assertions.assertTrue(script.getUserInputDefinitions().isEmpty());
-		Assertions.assertEquals("Cisco IOS and IOS-XE", script.getRealDeviceType());
+		Assertions.assertEquals("Cisco IOS and IOS-XE", TestDrivers.registry().getDriverByName(script.getDeviceDriver()).getDescription());
 		DeviceJsScript read = this.service.get(script.getId());
 		Assertions.assertEquals(name, read.getName());
 		Assertions.assertNull(read.getUserInputDefinitions(), "the definitions are never stored: known quirk, null once read back");

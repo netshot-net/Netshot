@@ -40,7 +40,6 @@ import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.aaa.user.UserUpdate;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -74,9 +73,9 @@ class UserServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.aaa.passwordpolicy.maxduration", "30");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new UserService(this.transactions, this.repository);
 	}

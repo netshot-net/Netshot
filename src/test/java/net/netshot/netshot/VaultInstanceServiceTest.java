@@ -32,7 +32,6 @@ import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -68,9 +67,9 @@ class VaultInstanceServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
 			this.notified::add,

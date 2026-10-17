@@ -19,6 +19,8 @@
 package net.netshot.netshot.task;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.hibernate.Session;
 
@@ -61,6 +63,12 @@ public class AutoSnapshotScheduler {
 		}
 	}
 
+	/**
+	 * The devices with an automatic snapshot queued. One set for the whole process: the task lifecycle
+	 * (scheduling, cancellation, end of the snapshot) marks and clears it whichever scheduler asked for the task.
+	 */
+	private static final Set<Long> SCHEDULED_AUTO_SNAPSHOTS = ConcurrentHashMap.newKeySet();
+
 	private final Settings settings = new Settings();
 	private final TaskSubmitter taskSubmitter;
 
@@ -71,6 +79,25 @@ public class AutoSnapshotScheduler {
 	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter) {
 		this.taskSubmitter = taskSubmitter;
 		this.loadConfig();
+	}
+
+	/**
+	 * Clear scheduled auto snapshot.
+	 *
+	 * @param deviceId the device
+	 */
+	public static void clearScheduledAutoSnapshot(Long deviceId) {
+		SCHEDULED_AUTO_SNAPSHOTS.remove(deviceId);
+	}
+
+	/**
+	 * Check whether an automatic snapshot is queued for the given device, and mark it as queued if not.
+	 *
+	 * @param deviceId the device
+	 * @return true if no snapshot was queued for the device (it is now)
+	 */
+	public static boolean checkAutoSnapshot(Long deviceId) {
+		return SCHEDULED_AUTO_SNAPSHOTS.add(deviceId);
 	}
 
 	/**
@@ -163,7 +190,7 @@ public class AutoSnapshotScheduler {
 	}
 
 	private boolean scheduleSnapshotIfNeeded(Device device) {
-		if (!TakeSnapshotTask.checkAutoSnapshot(device.getId())) {
+		if (!checkAutoSnapshot(device.getId())) {
 			log.debug("A snapshot task is already scheduled.");
 			return true;
 		}

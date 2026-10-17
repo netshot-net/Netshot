@@ -41,7 +41,6 @@ import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -72,9 +71,9 @@ class DiagnosticServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository());
 		this.groupId = this.transactions.write(session -> {
@@ -159,7 +158,7 @@ class DiagnosticServiceTest extends WithDatabaseTest {
 		Assertions.assertEquals("show clock", simpleDiagnostic.getCommand());
 		Assertions.assertEquals("(.*)", simpleDiagnostic.getModifierPattern());
 		Assertions.assertEquals("$1", simpleDiagnostic.getModifierReplacement());
-		Assertions.assertEquals("Cisco IOS and IOS-XE", simpleDiagnostic.getDeviceDriverDescription());
+		Assertions.assertEquals("Cisco IOS and IOS-XE", TestDrivers.registry().getDriverByName(simpleDiagnostic.getDeviceDriver()).getDescription());
 
 		Diagnostic read = this.service.get(simple.getId());
 		Assertions.assertEquals(this.otherGroupId, read.getTargetGroup().getId(), "the group is loaded by get()");

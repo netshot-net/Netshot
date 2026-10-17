@@ -34,7 +34,6 @@ import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 import org.junit.jupiter.api.Assertions;
@@ -58,8 +57,8 @@ public class ComplianceRuleTest {
 		PythonFileSystem.loadConfig();
 		jsRuntime = new JsRuleRuntime();
 		pyRuntime = new PyRuleRuntime();
-		evaluators = RuleEvaluators.standard(jsRuntime, pyRuntime);
-		DeviceDriver.refreshDrivers();
+		evaluators = RuleEvaluators.standard(jsRuntime, pyRuntime, TestDrivers.registry());
+		TestDrivers.reload();
 	}
 
 	@Nested

@@ -51,6 +51,7 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Network4Address;
@@ -64,6 +65,21 @@ import net.netshot.netshot.platform.database.Database;
  */
 @Slf4j
 public class Finder {
+
+	/**
+	 * The loaded device drivers, which the expressions on the drivers and their attributes are parsed against.
+	 * Transitional static state: the expressions are parsed by static methods, and finders are also created by entities.
+	 */
+	private static volatile DriverRegistry driverRegistry;
+
+	/**
+	 * Sets the loaded device drivers to parse the queries against.
+	 *
+	 * @param driverRegistry the registry
+	 */
+	public static void setDriverRegistry(DriverRegistry driverRegistry) {
+		Finder.driverRegistry = driverRegistry;
+	}
 
 	/**
 	 * The Enum TokenType.
@@ -1241,7 +1257,7 @@ public class Finder {
 		public String buildDriverCases() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("case d.driver ");
-			for (DeviceDriver driver : DeviceDriver.getAllDrivers()) {
+			for (DeviceDriver driver : Finder.driverRegistry.getAllDrivers()) {
 				sb.append("when '").append(driver.getName()).append("' then '")
 					.append(driver.getDescription()).append("' ");
 			}
@@ -2303,7 +2319,7 @@ public class Finder {
 
 		protected static AttributeDefinition getDriverAttributeDefinition(
 				Token itemToken, List<AttributeType> possibleTypes) throws FinderParseException {
-			DeviceDriver driver = DeviceDriver.getDriverByDescription(itemToken.key1);
+			DeviceDriver driver = Finder.driverRegistry.getDriverByDescription(itemToken.key1);
 			if (driver == null) {
 				throw new FinderParseException(
 					"Parsing error at character %d, unknown driver '%s'."

@@ -31,6 +31,7 @@ import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
@@ -63,6 +64,7 @@ final class WiringBinder extends AbstractBinder {
 	@Override
 	protected void configure() {
 		this.bind(this.wiring.transactions()).to(Transactions.class);
+		this.bind(this.wiring.driverRegistry()).to(DriverRegistry.class);
 		this.bind(this.wiring.deviceService()).to(DeviceService.class);
 		// Compliance
 		this.bind(this.wiring.policyService()).to(PolicyService.class);

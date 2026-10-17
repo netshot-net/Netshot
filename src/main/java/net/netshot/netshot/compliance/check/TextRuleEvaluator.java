@@ -29,6 +29,7 @@ import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -48,6 +49,17 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 	}
 
 	private final RuleStateCache<TextRule, Prepared> prepared = new RuleStateCache<>();
+
+	private final DriverRegistry driverRegistry;
+
+	/**
+	 * Builds the evaluator.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 */
+	public TextRuleEvaluator(DriverRegistry driverRegistry) {
+		this.driverRegistry = driverRegistry;
+	}
 
 	@Override
 	public Class<TextRule> ruleType() {
@@ -153,7 +165,7 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 		boolean matchAll = rule.isMatchAll();
 		Pattern pattern = compiled.pattern();
 		try {
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(device, null, session, taskContext, true);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, session, taskContext, true);
 			String content = deviceHelper.get(field).toString();
 			content = content.replace("\r", "");
 			if (rule.isNormalize()) {

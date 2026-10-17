@@ -37,7 +37,6 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.api.rest.v0.task.TaskRequest;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -75,7 +74,7 @@ class TaskDtoTest {
 	@BeforeAll
 	static void loadDrivers() throws Exception {
 		Netshot.initConfig(new java.util.Properties());
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 	}
 
 	private static Domain domain() throws Exception {
@@ -132,7 +131,7 @@ class TaskDtoTest {
 		tasks.add(filled(new TakeSnapshotTask(device(1), "snap", "tester", false, true, true), 1, Task.Status.SUCCESS));
 		tasks.add(filled(new CheckComplianceTask(device(2), "check", "tester"), 2, Task.Status.FAILURE));
 		tasks.add(filled(new RunDiagnosticsTask(device(3), "diag", "tester", true), 3, Task.Status.RUNNING));
-		tasks.add(filled(new RunDeviceScriptTask(device(4), "script", DeviceDriver.getDriverByName("CiscoIOS12"), "script", "tester"),
+		tasks.add(filled(new RunDeviceScriptTask(device(4), "script", TestDrivers.registry().getDriverByName("CiscoIOS12"), "script", "tester"),
 			4, Task.Status.SCHEDULED));
 		DiscoverDeviceTypeTask discover = new DiscoverDeviceTypeTask("10.9.9.9", domain(), "discover", "tester");
 		discover.setDiscoveredDeviceType("CiscoIOS12");
@@ -181,7 +180,7 @@ class TaskDtoTest {
 	void everyTypeRepresentation() throws Exception {
 		Set<Class<?>> covered = new java.util.HashSet<>();
 		for (Task task : this.allTasks()) {
-			TaskDto dto = TaskMapper.toDto(task);
+			TaskDto dto = TaskMapper.toDto(TestDrivers.registry(), task);
 			this.assertRepresentation(dto, task.getClass().getSimpleName() + " " + task.getId());
 			covered.add(task.getClass());
 			// Make sure the check is meaningful
@@ -197,7 +196,7 @@ class TaskDtoTest {
 	@DisplayName("A list of tasks keeps the type of each one")
 	void listRepresentation() throws Exception {
 		List<Task> tasks = this.allTasks();
-		List<TaskDto> dtos = tasks.stream().map(TaskMapper::toDto).toList();
+		List<TaskDto> dtos = tasks.stream().map(task -> TaskMapper.toDto(TestDrivers.registry(), task)).toList();
 		this.contract.check("listRepresentation", ApiContractGolden.Format.JSON, JSON.writer()
 			.forType(new TypeReference<List<TaskDto>>() { }).writeValueAsBytes(dtos));
 	}
@@ -205,10 +204,10 @@ class TaskDtoTest {
 	@Test
 	@DisplayName("The device and group IDs are the ones of the target, 0 for none")
 	void targets() throws Exception {
-		Assertions.assertEquals(1L, ((TaskDto.TakeSnapshot) TaskMapper.toDto(this.allTasks().get(0))).deviceId());
-		Assertions.assertEquals(0L, ((TaskDto.RunDeviceGroupScript) TaskMapper.toDto(this.allTasks().get(17))).deviceGroupId());
-		Assertions.assertEquals(0L, ((TaskDto.TakeGroupSnapshot) TaskMapper.toDto(this.allTasks().get(15))).deviceGroupId());
-		Assertions.assertEquals(15L, ((TaskDto.PurgeDatabase) TaskMapper.toDto(this.allTasks().get(11))).deviceGroupId());
+		Assertions.assertEquals(1L, ((TaskDto.TakeSnapshot) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(0))).deviceId());
+		Assertions.assertEquals(0L, ((TaskDto.RunDeviceGroupScript) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(17))).deviceGroupId());
+		Assertions.assertEquals(0L, ((TaskDto.TakeGroupSnapshot) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(15))).deviceGroupId());
+		Assertions.assertEquals(15L, ((TaskDto.PurgeDatabase) TaskMapper.toDto(TestDrivers.registry(), this.allTasks().get(11))).deviceGroupId());
 	}
 
 	// ------------------------------------------------------------------

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
 import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
 
@@ -59,7 +60,7 @@ public class SnapshotDumpTest {
 	private void dump(String deviceName) {
 		Device device = FakeDeviceFactory.getFakeCiscoIosDevice();
 		device.setName(deviceName);
-		new SnapshotDeviceScript(new FakeTaskContext()).dumpConfig(device, new Config(device));
+		new SnapshotDeviceScript(TestDrivers.registry(), new FakeTaskContext()).dumpConfig(device, new Config(device));
 	}
 
 	@Test
