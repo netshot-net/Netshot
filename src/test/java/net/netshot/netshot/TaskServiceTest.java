@@ -36,6 +36,7 @@ import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -125,7 +126,7 @@ class TaskServiceTest extends WithDatabaseTest {
 				return 7;
 			}
 		};
-		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine);
+		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, DriverRegistry.shared());
 		this.domainId = this.transactions.write(session -> {
 			Domain domain = new Domain("Lab", "Test domain", null, null);
 			session.persist(domain);

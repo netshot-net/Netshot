@@ -34,6 +34,7 @@ import org.junit.jupiter.api.function.Executable;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -68,7 +69,7 @@ class ScriptServiceTest extends WithDatabaseTest {
 		Database.update();
 		Wiring.init();
 		this.transactions = new Transactions();
-		this.service = new ScriptService(this.transactions, new ScriptRepository());
+		this.service = new ScriptService(this.transactions, new ScriptRepository(), DriverRegistry.shared());
 	}
 
 	private String name(String prefix) {

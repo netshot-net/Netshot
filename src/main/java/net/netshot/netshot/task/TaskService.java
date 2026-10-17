@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -86,6 +87,7 @@ public class TaskService {
 	private final TaskRepository repository;
 	private final TaskSubmitter taskSubmitter;
 	private final TaskEngine taskEngine;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
@@ -94,12 +96,15 @@ public class TaskService {
 	 * @param repository the task queries
 	 * @param taskSubmitter how to hand a new task over to the task engine
 	 * @param taskEngine how to cancel tasks and to know the size of the task engine
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public TaskService(Transactions transactions, TaskRepository repository, TaskSubmitter taskSubmitter, TaskEngine taskEngine) {
+	public TaskService(Transactions transactions, TaskRepository repository, TaskSubmitter taskSubmitter, TaskEngine taskEngine,
+		DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
 		this.taskEngine = taskEngine;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -651,7 +656,7 @@ public class TaskService {
 
 	// Checks the driver and the script of a script task, and gets the driver.
 	private DeviceDriver validateScript(TaskCreation c) {
-		DeviceDriver driver = DeviceDriver.getDriverByName(c.driver());
+		DeviceDriver driver = this.driverRegistry.getDriverByName(c.driver());
 		if (driver == null) {
 			log.error("Unknown device driver {}.", c.type());
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, "Unknown device driver.");

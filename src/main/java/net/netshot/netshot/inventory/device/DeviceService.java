@@ -34,6 +34,7 @@ import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.CredentialSets;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device.Status;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
@@ -86,6 +87,7 @@ public class DeviceService {
 	private final Transactions transactions;
 	private final DeviceRepository repository;
 	private final TaskSubmitter taskSubmitter;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
@@ -93,11 +95,14 @@ public class DeviceService {
 	 * @param transactions the transaction support
 	 * @param repository the device repository
 	 * @param taskSubmitter how to hand a new task over to the task engine
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public DeviceService(Transactions transactions, DeviceRepository repository, TaskSubmitter taskSubmitter) {
+	public DeviceService(Transactions transactions, DeviceRepository repository, TaskSubmitter taskSubmitter,
+		DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -259,7 +264,7 @@ public class DeviceService {
 	}
 
 	private Task createDeviceAndSnapshotTask(DeviceCreation creation, Domain domain) {
-		DeviceDriver driver = DeviceDriver.getDriverByName(creation.deviceType());
+		DeviceDriver driver = this.driverRegistry.getDriverByName(creation.deviceType());
 		if (driver == null) {
 			log.warn("Invalid posted device driver.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE_DRIVER, "Invalid device type.");
@@ -373,13 +378,13 @@ public class DeviceService {
 			device.refreshCachedIpAddress();
 		}
 		if (update.accesses() != null) {
-			DeviceDriver driver = DeviceDriver.getDriverByName(device.getDriver());
+			DeviceDriver driver = this.driverRegistry.getDriverByName(device.getDriver());
 			DeviceValidation.validateAccesses(this.repository, session, driver, update.accesses());
 			resolveSpecificCredentials(session, device, update.accesses());
 			device.replaceAccesses(update.accesses());
 		}
 		if (update.options() != null) {
-			DeviceDriver driver = DeviceDriver.getDriverByName(device.getDriver());
+			DeviceDriver driver = this.driverRegistry.getDriverByName(device.getDriver());
 			DeviceValidation.validateOptions(driver, update.options());
 			device.setOptions(update.options());
 		}
