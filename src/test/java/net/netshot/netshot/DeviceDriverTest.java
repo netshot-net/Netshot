@@ -1619,18 +1619,12 @@ public class DeviceDriverTest {
 		 * {@link Device#getDeviceDriver()} can resolve it by name like any other
 		 * driver. Callers must remove it again with {@link #unregisterDriver}.
 		 */
-		@SuppressWarnings("unchecked")
 		private void registerDriver(DeviceDriver driver) throws Exception {
-			java.lang.reflect.Field field = DeviceDriver.class.getDeclaredField("drivers");
-			field.setAccessible(true);
-			((Map<String, DeviceDriver>) field.get(null)).put(driver.getName(), driver);
+			DeviceDriver.getDrivers().put(driver.getName(), driver);
 		}
 
-		@SuppressWarnings("unchecked")
 		private void unregisterDriver(String name) throws Exception {
-			java.lang.reflect.Field field = DeviceDriver.class.getDeclaredField("drivers");
-			field.setAccessible(true);
-			((Map<String, DeviceDriver>) field.get(null)).remove(name);
+			DeviceDriver.getDrivers().remove(name);
 		}
 
 		@Test

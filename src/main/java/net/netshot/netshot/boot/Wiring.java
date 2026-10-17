@@ -41,6 +41,7 @@ import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.hook.HookRepository;
 import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.inventory.config.ConfigRepository;
@@ -90,6 +91,8 @@ public final class Wiring {
 	private static volatile Wiring instance;
 
 	private final Transactions transactions;
+	// Drivers
+	private final DriverRegistry driverRegistry;
 	// Device
 	private final DeviceService deviceService;
 	// Compliance
@@ -131,23 +134,26 @@ public final class Wiring {
 	 */
 	private Wiring() {
 		this.transactions = new Transactions();
+		// Drivers
+		this.driverRegistry = DriverRegistry.shared();
 		// Device
 		DeviceRepository deviceRepository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, TaskManager::addTask);
+		this.deviceService = new DeviceService(this.transactions, deviceRepository, TaskManager::addTask, this.driverRegistry);
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository);
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository());
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository());
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), this.driverRegistry);
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), this.driverRegistry);
 		// Tasks
 		TaskRepository taskRepository = new TaskRepository();
-		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine());
+		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine(),
+			this.driverRegistry);
 		// Reports
 		this.reportService = new ReportService(this.transactions, new ReportRepository());
 		// Inventory
 		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
-		this.deviceDriverService = new DeviceDriverService();
+		this.deviceDriverService = new DeviceDriverService(this.driverRegistry);
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
 		this.groupService = new GroupService(this.transactions, new GroupRepository());
 		this.searchService = new SearchService(this.transactions, new SearchRepository());
@@ -162,7 +168,7 @@ public final class Wiring {
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
 		// Scripts
-		this.scriptService = new ScriptService(this.transactions, new ScriptRepository());
+		this.scriptService = new ScriptService(this.transactions, new ScriptRepository(), this.driverRegistry);
 		// Credentials
 		this.credentialSetService = new CredentialSetService(this.transactions, new CredentialSetRepository());
 		// Vault
@@ -286,6 +292,15 @@ public final class Wiring {
 	 */
 	public DeviceCatalogService deviceCatalogService() {
 		return this.deviceCatalogService;
+	}
+
+	/**
+	 * Gets the registry of the loaded device drivers.
+	 *
+	 * @return the driver registry
+	 */
+	public DriverRegistry driverRegistry() {
+		return this.driverRegistry;
 	}
 
 	/**

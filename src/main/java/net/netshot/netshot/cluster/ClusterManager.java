@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;
@@ -51,7 +52,6 @@ import net.netshot.netshot.cluster.messages.HelloClusterMessage;
 import net.netshot.netshot.cluster.messages.LoadTasksMessage;
 import net.netshot.netshot.cluster.messages.ReloadDriversMessage;
 import net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
@@ -305,7 +305,7 @@ public class ClusterManager extends Thread {
 		}
 
 		this.localMember = new ClusterMember(localId, Netshot.getHostname(), ClusterManager.CLUSTERING_VERSION,
-			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, DeviceDriver.getAllDriverHash());
+			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, Wiring.get().driverRegistry().getAllDriverHash());
 		this.members.put(localId, this.localMember);
 	}
 
@@ -587,7 +587,7 @@ public class ClusterManager extends Thread {
 							else if (message instanceof ReloadDriversMessage) {
 								this.submitCoalesced(WorkerAction.RELOAD_DRIVERS, () -> {
 									try {
-										DeviceDriver.refreshDrivers();
+										Wiring.get().driverRegistry().refresh();
 									}
 									catch (Exception e) {
 										log.error("Error while refreshing drivers", e);
