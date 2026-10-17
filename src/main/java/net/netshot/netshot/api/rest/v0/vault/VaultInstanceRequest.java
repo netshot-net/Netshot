@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.credentials.HideSecretDeserializer;
@@ -42,9 +41,6 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
  * {@code null}, which a bean with initialized fields does for free. The properties of the
  * entity which were never part of the representation (version, change date) are ignored.</p>
  */
-// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
-// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
-@XmlRootElement(name = "vaultInstance")
 @XmlAccessorType(XmlAccessType.NONE)
 @JsonIgnoreProperties({"changeDate", "version"})
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")

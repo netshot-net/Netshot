@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.Network4Address;
@@ -36,9 +35,6 @@ import net.netshot.netshot.inventory.device.Network4Address;
  * must keep giving different outcomes (the default value, or {@code null}, which the
  * service then fails on), which a bean with initialized fields does for free.</p>
  */
-// Transitional: with @XmlRootElement, Jersey reads a XML body through its JAXB provider, which fails
-// (there is no JAXB runtime), as it always did for this request (see the API contract goldens).
-@XmlRootElement
 @XmlAccessorType(XmlAccessType.NONE)
 public class DomainRequest {
 

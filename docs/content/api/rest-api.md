@@ -65,6 +65,23 @@ Devices carry free-form `comments` and `tags` (an array of strings, see [Device 
 
 A tag can't be blank and is limited to 255 characters (surrounding whitespace is trimmed); an invalid tag is rejected with a 400 error.
 
+## XML requests
+
+Request bodies can be sent as XML (`Content-Type: application/xml`) as well as JSON, on every `POST` and `PUT` endpoint. The XML shape mirrors the XML responses of the API, which are the JSON properties as child elements:
+
+- The name of the root element is not significant: `<device>`, `<domain>` or anything else is accepted.
+- A list is a wrapper element holding one child element of the same name per item, e.g. `<tags><tags>core</tags><tags>edge</tags></tags>`.
+- The `type` discriminator of the polymorphic bodies (credential sets...) is an attribute of the root element, e.g. `<credentialSet type="SSH">`.
+- Absent elements take the same default values as absent JSON properties.
+- The values of free-form maps (such as the driver `options` when adding a device) are read as strings in XML, so options which have to be booleans or numbers can't be set that way: use JSON for these requests.
+
+```bash
+curl -X POST -H "Content-Type: application/xml" -H "Accept: application/xml" \
+  -H "X-Netshot-API-Token: <token>" \
+  -d '<domain><name>Paris DC</name><description>Paris data center</description><ipAddress>10.255.0.1</ipAddress></domain>' \
+  https://<server:port>/api/domains
+```
+
 ## Diagnostic results
 
 Per-device diagnostic results include a `diagnosticId` field alongside the diagnostic's name and value, so a client can reliably associate a result with its diagnostic definition without matching on name.

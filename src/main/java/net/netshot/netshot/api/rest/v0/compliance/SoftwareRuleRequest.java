@@ -19,7 +19,6 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 
 /**
@@ -38,8 +37,6 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
  * @param partNumberRegExp whether the part number is a regular expression
  * @param level the conformance level granted to the devices matching the rule
  */
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "rsSoftwareRule")
 public record SoftwareRuleRequest(
 	long id,
 	Long group,
