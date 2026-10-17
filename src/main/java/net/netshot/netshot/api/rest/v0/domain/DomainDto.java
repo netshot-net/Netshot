@@ -20,9 +20,7 @@ package net.netshot.netshot.api.rest.v0.domain;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A management domain, as nested in the device representations.
@@ -34,7 +32,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param server4Address the IPv4 address of the domain server
  * @param server6Address the IPv6 address of the domain server
  */
-@JsonView(DefaultView.class)
 public record DomainDto(
 	long id,
 	Date changeDate,

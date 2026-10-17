@@ -21,13 +21,11 @@ package net.netshot.netshot.api.rest.v0.script;
 import java.util.Map;
 
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * The request to add (or only validate) a command script. It used to be the script entity itself,
@@ -45,7 +43,6 @@ import net.netshot.netshot.platform.rest.RestViews.DefaultView;
  * @param userInputDefinitions the input definitions, when posted
  * @param folder the folder
  */
-@JsonView(DefaultView.class)
 // Transitional, see NewDeviceRequest
 @XmlRootElement(name = "deviceJsScript")
 public record ScriptRequest(

@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v0.credentials;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,7 +45,6 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.credentials.CredentialSetService;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * The REST resource of the global credential sets: list, add, edit and delete.
@@ -85,7 +83,6 @@ public class CredentialSetResource {
 	@Path("/credentialsets")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get the global credential sets",
 		description = "Returns the list of global credential sets (SSH, SNMP, etc. accounts) for authentication against the devices."
@@ -107,7 +104,6 @@ public class CredentialSetResource {
 	@Path("/credentialsets/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Remove a credential set",
 		description = "Removes the given credential set, by ID."
@@ -136,7 +132,6 @@ public class CredentialSetResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Add a credential set",
 		description = "Creates a credential set, which then can be used to authenticate against the devices."
@@ -163,7 +158,6 @@ public class CredentialSetResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Update a credential set",
 		description = "Edits a credential set, by ID."

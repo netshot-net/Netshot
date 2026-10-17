@@ -20,9 +20,7 @@ package net.netshot.netshot.api.hook.payload;
 
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 
 /**
  * A hardware module of a device, as nested in the webhook payloads (the module responsible for
@@ -36,7 +34,6 @@ import net.netshot.netshot.platform.rest.RestViews.HookView;
  * @param lastSeenDate when the module was last seen
  * @param removed whether the module was removed
  */
-@JsonView(HookView.class)
 public record ModulePayload(
 	long id,
 	String slot,

@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v0.system;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,7 +29,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.system.ServerInfoService;
 
 /**
@@ -57,7 +55,6 @@ public class ServerInfoResource {
 	@Path("/serverinfo")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-	@JsonView(RestApiView.class)
 	@Operation(
 		summary = "Get Netshot server info.",
 		description = "Retrieves some general info about Netshot server."

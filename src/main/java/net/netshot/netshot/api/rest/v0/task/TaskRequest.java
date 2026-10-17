@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonView;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlAccessType;
@@ -31,7 +30,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -49,7 +47,7 @@ public class TaskRequest {
 	/** The id. */
 	@Schema(description = "Task unique ID")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private long id;
@@ -57,7 +55,7 @@ public class TaskRequest {
 	/** The cancelled status. */
 	@Schema(description = "Set to cancel the task")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean cancelled;
@@ -65,7 +63,7 @@ public class TaskRequest {
 	/** The type. */
 	@Schema(description = "Type of task")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String type = "";
@@ -73,7 +71,7 @@ public class TaskRequest {
 	/** The group. */
 	@Schema(description = "The group ID for group-based task")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Long group = 0L;
@@ -81,7 +79,7 @@ public class TaskRequest {
 	/** The one-time, ordered device list, as an alternative to a device group. */
 	@Schema(description = "The ordered list of device IDs for a one-time device list, as an alternative to a group")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private List<Long> deviceList;
@@ -89,7 +87,7 @@ public class TaskRequest {
 	/** Parallel vs sequential scheduling of child tasks (group-based tasks only). */
 	@Schema(description = "Parallel vs sequential scheduling of the per-device child tasks (group-based tasks only)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Task.ScheduleMode scheduleMode = Task.ScheduleMode.PARALLEL;
@@ -97,7 +95,7 @@ public class TaskRequest {
 	/** Whether to stop scheduling further child tasks after one fails (sequential mode only). */
 	@Schema(description = "Whether to stop scheduling further child tasks after one fails (sequential mode only)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean stopOnFailure;
@@ -105,7 +103,7 @@ public class TaskRequest {
 	/** The device. */
 	@Schema(description = "The device ID for device-based task")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Long device = 0L;
@@ -113,7 +111,7 @@ public class TaskRequest {
 	/** The domain. */
 	@Schema(description = "The domain ID when applicable")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Long domain = 0L;
@@ -121,7 +119,7 @@ public class TaskRequest {
 	/** The subnets. */
 	@Schema(description = "Subnets to scan (comma, space or new line separated)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String subnets = "";
@@ -129,7 +127,7 @@ public class TaskRequest {
 	/** The schedule reference. */
 	@Schema(description = "Scheduling reference date for scheduled task")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Date scheduleReference = new Date();
@@ -137,7 +135,7 @@ public class TaskRequest {
 	/** The schedule type. */
 	@Schema(description = "Scheduling mode (ASAP, once, recurring...)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Task.ScheduleType scheduleType = Task.ScheduleType.ASAP;
@@ -145,7 +143,7 @@ public class TaskRequest {
 	/** The schedule factor. */
 	@Schema(description = "Scheduling factor for recurring task")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int scheduleFactor = 1;
@@ -153,7 +151,7 @@ public class TaskRequest {
 	/** The task priority. */
 	@Schema(description = "Priority for this task, from 1 to 9 (5 is default, more is better)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int schedulePriority = 5;
@@ -161,84 +159,84 @@ public class TaskRequest {
 	/** The comments. */
 	@Schema(description = "Task comment")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String comments = "";
 
 	@Schema(description = "Ignore devices that had a successful snapshot in the last given hours")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int limitToOutofdateDeviceHours = -1;
 
 	@Schema(description = "Purge tasks older than this number of days")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int daysToPurge = 90;
 
 	@Schema(description = "Purge configurations older than this number of days")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int configDaysToPurge = -1;
 
 	@Schema(description = "Purge configurations bigger than this size (KB)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int configSizeToPurge;
 
 	@Schema(description = "When purging old configurations, keep a configuration every n days")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int configKeepDays;
 
 	@Schema(description = "Purge removed hardware modules older than this number of days")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private int moduleDaysToPurge = -1;
 
 	@Schema(description = "Remove orphan binary attribute files (no matching database record)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean removeOrphanFiles = false;
 
 	@Schema(description = "The script to execute")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String script = "";
 
 	@Schema(description = "The device driver to use")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private String driver;
 
 	@Schema(description = "The user inputs for the script")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private Map<String, String> userInputs;
 
 	@Schema(description = "Enable task debugging")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean debugEnabled;
@@ -246,7 +244,7 @@ public class TaskRequest {
 	/** Disable automatic diagnostic task (applies to snapshot tasks). */
 	@Schema(description = "Disable automatic diagnostic task (applies to snapshot tasks)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean dontRunDiagnostics;
@@ -254,7 +252,7 @@ public class TaskRequest {
 	/** Disable automatic check compliance task (applies to snapshot and diagnostic tasks).  */
 	@Schema(description = "Disable automatic check compliance task (applies to snapshot and diagnostic tasks)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean dontCheckCompliance;
@@ -262,7 +260,7 @@ public class TaskRequest {
 	/** Automatically run a snapshot after successful script execution (applies to script tasks). */
 	@Schema(description = "Automatically run a snapshot after successful script execution (applies to script tasks)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean runSnapshot;
@@ -270,7 +268,7 @@ public class TaskRequest {
 	/** Automatically run diagnostics after successful script execution (applies to script tasks). */
 	@Schema(description = "Automatically run diagnostics after successful script execution (applies to script tasks)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean runDiagnostics;
@@ -278,7 +276,7 @@ public class TaskRequest {
 	/** Automatically check compliance after successful script execution (applies to script tasks). */
 	@Schema(description = "Automatically check compliance after successful script execution (applies to script tasks)")
 	@Getter(onMethod = @__({
-		@XmlElement, @JsonView(DefaultView.class)
+		@XmlElement
 	}))
 	@Setter
 	private boolean checkCompliance;

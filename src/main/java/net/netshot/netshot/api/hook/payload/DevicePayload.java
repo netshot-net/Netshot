@@ -21,12 +21,10 @@ package net.netshot.netshot.api.hook.payload;
 import java.util.Date;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.HookView;
 
 /**
  * A device, as nested in the webhook payloads of the tasks (the target of a device task, or the
@@ -62,7 +60,6 @@ import net.netshot.netshot.platform.rest.RestViews.HookView;
  * @param tags the tags
  */
 @JacksonXmlRootElement(localName = "Device")
-@JsonView(HookView.class)
 public record DevicePayload(
 	List<DeviceAccessPayload> accesses,
 	String cachedIpAddress,

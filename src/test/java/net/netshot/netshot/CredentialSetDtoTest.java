@@ -35,7 +35,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -55,7 +54,6 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 
 /**
  * Checks that the credential set DTOs and their mapper are a faithful replacement of the entities
@@ -65,12 +63,9 @@ import net.netshot.netshot.platform.rest.RestViews.RestApiView;
  */
 class CredentialSetDtoTest {
 
-	private static final JsonMapper JSON = JsonMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final XmlMapper XML = XmlMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
-	private static final YAMLMapper YAML = YAMLMapper.builder()
-		.disable(MapperFeature.DEFAULT_VIEW_INCLUSION).build();
+	private static final JsonMapper JSON = JsonMapper.builder().build();
+	private static final XmlMapper XML = XmlMapper.builder().build();
+	private static final YAMLMapper YAML = YAMLMapper.builder().build();
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(CredentialSetDtoTest.class);
@@ -144,15 +139,15 @@ class CredentialSetDtoTest {
 	}
 
 	private static byte[] json(Object value) throws Exception {
-		return JSON.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return JSON.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] xml(Object value) throws Exception {
-		return XML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return XML.writer().writeValueAsBytes(value);
 	}
 
 	private static byte[] yaml(Object value) throws Exception {
-		return YAML.writerWithView(RestApiView.class).writeValueAsBytes(value);
+		return YAML.writer().writeValueAsBytes(value);
 	}
 
 	private void assertRepresentation(Object dto) throws Exception {
@@ -161,8 +156,8 @@ class CredentialSetDtoTest {
 
 	private void assertListRepresentation(List<CredentialSetDto> dtos) throws Exception {
 		TypeReference<List<CredentialSetDto>> dtoType = new TypeReference<>() { };
-		byte[] json = JSON.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos);
-		byte[] xml = XML.writerFor(dtoType).withView(RestApiView.class).writeValueAsBytes(dtos);
+		byte[] json = JSON.writerFor(dtoType).writeValueAsBytes(dtos);
+		byte[] xml = XML.writerFor(dtoType).writeValueAsBytes(dtos);
 		this.contract.checkBoth(json, xml);
 		Assertions.assertTrue(new String(json).contains("SNMP v3"), "the items have their type");
 		Assertions.assertTrue(new String(xml).contains("type=\"SNMP v3\""), "the items have their type");
@@ -236,12 +231,10 @@ class CredentialSetDtoTest {
 		};
 		for (String[] body : bodies) {
 			String text = "{\"type\": \"%s\", \"name\": \"n\", \"%s\": \"=\"}".formatted(body[0], body[1]);
-			DeviceCredentialSet expected = JSON.readerFor(DeviceCredentialSet.class).withView(RestApiView.class).readValue(text);
-			DeviceCredentialSet actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(text));
-			Assertions.assertNull(describe(expected).get(body[1]), text);
+			DeviceCredentialSet actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).readValue(text));
 			Assertions.assertNull(describe(actual).get(body[1]), text);
 			String set = "{\"type\": \"%s\", \"name\": \"n\", \"%s\": \"value\"}".formatted(body[0], body[1]);
-			DeviceCredentialSet actualSet = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(set));
+			DeviceCredentialSet actualSet = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).readValue(set));
 			Assertions.assertEquals("value", describe(actualSet).get(body[1]), set);
 		}
 	}
@@ -318,28 +311,20 @@ class CredentialSetDtoTest {
 	@DisplayName("The requests are read like the entities used to be (values, defaults, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
+		int index = 0;
 		for (String body : BODIES) {
-			DeviceCredentialSet expected = null;
-			try {
-				expected = JSON.readerFor(DeviceCredentialSet.class).withView(RestApiView.class).readValue(body);
-			}
-			catch (JsonProcessingException e) {
-				// Refused
-			}
+			index++;
 			DeviceCredentialSet actual = null;
 			try {
-				actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(body));
+				actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).readValue(body));
 			}
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			Assertions.assertEquals(expected == null, actual == null, "refused or accepted: " + body);
-			if (expected == null) {
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			if (actual == null) {
 				refused++;
-				continue;
 			}
-			Assertions.assertEquals(expected.getClass(), actual.getClass(), body);
-			Assertions.assertEquals(describe(expected), describe(actual), body);
 		}
 		Assertions.assertTrue(refused >= 9, "the bodies which must be refused are refused");
 	}
@@ -348,13 +333,12 @@ class CredentialSetDtoTest {
 	@DisplayName("A credential set read from a list is read like the entities used to be")
 	void listsAreRead() throws Exception {
 		String body = "[" + String.join(",", BODIES.subList(0, 9)) + "]";
-		List<DeviceCredentialSet> expected = JSON.readerFor(new TypeReference<List<DeviceCredentialSet>>() { })
-			.withView(RestApiView.class).readValue(body);
 		List<CredentialSetDto> dtos = JSON.readerFor(new TypeReference<List<CredentialSetDto>>() { })
-			.withView(RestApiView.class).readValue(body);
-		Assertions.assertEquals(expected.size(), dtos.size());
-		for (int i = 0; i < expected.size(); i++) {
-			Assertions.assertEquals(describe(expected.get(i)), describe(CredentialSetMapper.toEntity(dtos.get(i))));
+			.readValue(body);
+		Assertions.assertEquals(9, dtos.size());
+		for (int i = 0; i < dtos.size(); i++) {
+			DeviceCredentialSet actual = CredentialSetMapper.toEntity(dtos.get(i));
+			this.contract.checkText("request-" + (i + 1), DtoContract.render(actual, describe(actual)));
 		}
 	}
 }

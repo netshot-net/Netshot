@@ -83,9 +83,6 @@ import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -270,8 +267,6 @@ public class Ssh extends Cli {
 	/**
 	 * Instruction for SSH user interactive authentication mode.
 	 */
-	@XmlRootElement()
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static final class SshInteractionInstruction {
 		@Getter
 		private Pattern promptPattern;
@@ -312,8 +307,6 @@ public class Ssh extends Cli {
 	/**
 	 * Embedded class to represent SSH-specific configuration.
 	 */
-	@XmlRootElement()
-	@XmlAccessorType(XmlAccessType.NONE)
 	public static final class SshConfig {
 
 		/** Key exchange algorithms allowed for the session. */
