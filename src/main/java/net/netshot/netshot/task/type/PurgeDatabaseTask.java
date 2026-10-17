@@ -181,18 +181,6 @@ public final class PurgeDatabaseTask extends Task implements GroupBasedTask, Dev
 		return "Database purge";
 	}
 
-	/**
-	 * Get the ID of the associated group, if the purge is limited to one.
-	 * @return the ID of the group, or 0
-	 */
-	@Transient
-	public long getDeviceGroupId() {
-		if (this.getDeviceGroup() == null) {
-			return 0;
-		}
-		return this.getDeviceGroup().getId();
-	}
-
 	/*(non-Javadoc)
 	 * @see net.netshot.netshot.task.Task#prepare()
 	 */
