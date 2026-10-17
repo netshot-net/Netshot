@@ -19,7 +19,6 @@
 package net.netshot.netshot.task.engine;
 
 import java.sql.SQLException;
-import java.util.List;
 
 import org.hibernate.Session;
 import org.hibernate.query.MutationQuery;
@@ -30,13 +29,13 @@ import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.hook.Hook;
-import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.DeviceLockPolicy;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.task.type.DeviceBasedTask;
 
 /**
@@ -324,22 +323,6 @@ public class TaskJob implements Job {
 			// Re-initialize the lazy associations (e.g. device group/list) the task's clone()
 			// will need for repeatTask() below, since that runs after this session is closed.
 			task.prepare(session);
-			List<Hook> hooks = session
-				.createQuery("select h from Hook h join h.triggers t where t.type = :postTask and t.item = :taskName and h.enabled", Hook.class)
-				.setParameter("postTask", HookTrigger.TriggerType.POST_TASK)
-				.setParameter("taskName", task.getClass().getSimpleName())
-				.list();
-
-			for (Hook hook : hooks) {
-				log.trace("Executing post-task hook {}", hook.getName());
-				try {
-					String result = hook.execute(task);
-					log.info("Result of post-task hook '{}' after task {} is: {}", hook.getName(), task.getId(), result);
-				}
-				catch (Exception e) {
-					log.warn("Error while executing hook {} after task {}", hook.getName(), task.getId(), e);
-				}
-			}
 		}
 		catch (Exception e) {
 			log.error("Error while processing hooks after task {}.", id, e);
@@ -347,6 +330,13 @@ public class TaskJob implements Job {
 		}
 		finally {
 			session.close();
+		}
+		// The listeners (such as the post-task hooks) are called here, in this thread
+		try {
+			Wiring.get().domainEvents().publish(new TaskFinished(id, task.getClass().getSimpleName()));
+		}
+		catch (Exception e) {
+			log.error("Error while processing hooks after task {}.", id, e);
 		}
 
 		if (repeat) {

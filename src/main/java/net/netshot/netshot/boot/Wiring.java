@@ -26,6 +26,8 @@ import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.api.hook.HookDispatcher;
+import net.netshot.netshot.api.hook.WebHookSender;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.compliance.HardwareRuleRepository;
@@ -56,6 +58,7 @@ import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
@@ -124,6 +127,8 @@ public final class Wiring {
 	private final VaultInstanceService vaultInstanceService;
 	// Hooks
 	private final HookService hookService;
+	// Events
+	private final DomainEvents domainEvents;
 
 	/**
 	 * Builds the objects of the application. Each feature adds its own block
@@ -174,6 +179,9 @@ public final class Wiring {
 			VaultManager::testConnection);
 		// Hooks
 		this.hookService = new HookService(this.transactions, new HookRepository());
+		// Events
+		this.domainEvents = new DomainEvents();
+		new HookDispatcher(this.hookService, this.taskService, new WebHookSender()).register(this.domainEvents);
 	}
 
 	/**
@@ -430,5 +438,14 @@ public final class Wiring {
 	 */
 	public HookService hookService() {
 		return this.hookService;
+	}
+
+	/**
+	 * Gets the domain events, to publish them from the code which cannot receive them by injection.
+	 *
+	 * @return the domain events
+	 */
+	public DomainEvents domainEvents() {
+		return this.domainEvents;
 	}
 }

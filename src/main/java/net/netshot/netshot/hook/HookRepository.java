@@ -46,6 +46,22 @@ public class HookRepository {
 	}
 
 	/**
+	 * Lists the enabled hooks having a given trigger.
+	 *
+	 * @param session the session
+	 * @param type the type of trigger
+	 * @param item the item the trigger has to match (for a post-task trigger, the simple name of the task class)
+	 * @return the hooks
+	 */
+	public List<Hook> findEnabledByTrigger(Session session, HookTrigger.TriggerType type, String item) {
+		return session
+			.createQuery("select h from Hook h join h.triggers t where t.type = :type and t.item = :item and h.enabled", Hook.class)
+			.setParameter("type", type)
+			.setParameter("item", item)
+			.list();
+	}
+
+	/**
 	 * Finds a hook.
 	 *
 	 * @param session the session

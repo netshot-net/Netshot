@@ -88,13 +88,6 @@ public abstract class Hook {
 	@Setter
 	private Set<HookTrigger> triggers = new HashSet<>();
 
-	/**
-	 * Execute the hook.
-	 * @param data Associated data (such a task)
-	 * @return the result of the execution
-	 */
-	public abstract String execute(Object data) throws Exception;
-
 	@Override
 	public String toString() {
 		return "Hook [id=" + id + ", name=" + name + "]";

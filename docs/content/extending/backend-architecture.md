@@ -15,11 +15,12 @@ boot/              composition root (Wiring), persistent model (EntityModel)
 platform/          technical building blocks; depends on no feature
 ├── database/      Hibernate set-up, Database, Transactions, Liquibase migrators
 ├── error/         ErrorCode, NetshotException
+├── event/         DomainEvents: synchronous in-process publish/subscribe
 ├── crypto/ tls/ rest/
 api/               API channels: how the outside world talks to the core
 ├── rest/          web server (RestServer), Jersey application, filters, exception mapper, shared REST bits
 │   └── v0/        the current (legacy, unversioned) REST API, served on /api
-├── hook/          (later) webhook payloads, mappers and HTTP sender
+├── hook/          webhook channel: HookDispatcher (reacts to domain events), WebHookSender (HTTP), payload/ (payload DTOs and mapper)
 └── grpc/          (later)
 inventory/ driver/ access/ credentials/ vault/ devicescript/ userscript/
 compliance/ diagnostic/ task/ report/ hook/ aaa/ cluster/ system/ tools/
@@ -126,12 +127,17 @@ DTOs are the types written to and read from the wire by an API channel: Java rec
 - A DTO is mapped from a *detached* entity or a projection by a mapper in the same package (`DeviceMapper`, `DeviceAccessMapper`: final classes of static functions). The mapper only touches what the fetch plan of the service loaded: a `LazyInitializationException` means the plan is incomplete, not that the mapper should open a session. Use `Hibernate.unproxy()` before an `instanceof` on an association, as it can hold a proxy.
 - Entity simple class names are part of the contract (HQL entity names, `JsonTypeInfo.Id.SIMPLE_NAME` on `Task`, `Rule` and `Diagnostic`, default discriminators): do not rename entities.
 
-Webhook payloads serialize the `Task` entities (including `Device`) with `HookView`, through the providers configured in `WebHook`. As long as they do, the JSON/XML annotations stay on the entities involved.
+Webhook payloads are the DTOs of `api.hook.payload` (a sealed `TaskPayload` family, one record per task type, with the device, groups and credential sets it embeds), written with `HookView` by the providers of `WebHookSender`. They hold the same properties as the `Task` entity did with `HookView`; the JSON/XML annotations stay on the entities for now (`HookPayloadTest` compares both). The payload never holds a secret: the CLI/HTTP credential sets only carry their common properties, and the other secrets are written as `=`.
+
+### Domain events
+
+`platform.event.DomainEvents` is a synchronous, in-process publish/subscribe: `publish(event)` calls the listeners of the event type, in subscription order, in the publisher's thread; an exception thrown by a listener is logged and does not stop the others nor reach the publisher. A feature publishes an event of its own package (`task.event.TaskFinished(taskId, taskType)`, published by `TaskJob` once the result is saved, before the next occurrence is scheduled); a channel subscribes to it in `Wiring` (`HookDispatcher` runs the enabled `POST_TASK` hooks of the task type). Code created by Quartz reaches the publisher through `Wiring.get().domainEvents()` (transitional). A listener loads what it needs itself, through services: `TaskService.mapTask(id, mapper)` loads and prepares the task in a read transaction and applies the mapper inside it, so an `api` class maps the entity without touching a `Session`.
 
 ## Safety nets
 
 - `ApiContractTest`: golden files of every REST endpoint (`src/test/resources/api-contract/`), with `ApiContractCoverageTest` failing when a resource method has no case. A diff means the change broke the API. Regenerate with `-Dnetshot.contract.update=true` only for a deliberate API change.
-- `WebHookContractTest`: golden files of the webhook payloads (`src/test/resources/hook-contract/`), regenerated with `-Dnetshot.hook.contract.update=true`.
+- `WebHookContractTest`: golden files of the webhook payloads (`src/test/resources/hook-contract/`), regenerated with `-Dnetshot.hook.contract.update=true`. It goes through the whole path: `TaskFinished` published, `HookDispatcher`, the payload mapper and the HTTP sender, against a local receiver.
+- `HookPayloadTest`: for each task type (and the credential set kinds the goldens don't reach), the payload DTO is written exactly like the task entity with `HookView`, in JSON, XML and YAML.
 - `DtoSerializationProbeTest`: the serialization facts above.
 - `DeviceDtoTest`: for the device slice, the representation of a device made of every kind of attribute, credential set and group is the same through the entities and through the DTOs (JSON and XML), and the requests are read like the former classes did. The contract goldens only cover the kinds of objects the seed data holds: do the same kind of differential test for the types the goldens don't reach.
 - `DeviceServiceTest`: the use cases against a real database (error codes, update semantics, side effects), with a recording `TaskSubmitter`.
