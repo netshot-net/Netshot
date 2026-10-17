@@ -1,0 +1,4 @@
+{
+  "errorCode": 10,
+  "errorMsg": "Invalid type, expected eos or eol."
+}

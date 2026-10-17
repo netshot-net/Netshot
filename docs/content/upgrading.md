@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* REST API: `GET /reports/hardwaresupportdevices/{type}/{date}` with a type other than `eos` or `eol` now answers 400 (`NETSHOT_INVALID_REQUEST_PARAMETER`) instead of a database access error (500).
 * REST API: webhooks: a relative target URL is now refused with a 400 error (`NETSHOT_INVALID_HOOK_WEB_URL`) instead of 500, and `"triggers": null` in `PUT /hooks/{id}` now removes all the triggers (as on creation) instead of failing with a 500 error.
 * REST API: an `id` posted with a new credential set (`POST /credentialsets`) is now ignored, as for the other resources; it used to make the request fail with a 500 error.
 * REST API: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty.
