@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<RsGroupSoftwareComplianceStat>
+  <bronzeDeviceCount>3</bronzeDeviceCount>
+  <deviceCount>7</deviceCount>
+  <goldDeviceCount>1</goldDeviceCount>
+  <groupId>1</groupId>
+  <groupName>Core</groupName>
+  <silverDeviceCount>2</silverDeviceCount>
+</RsGroupSoftwareComplianceStat>

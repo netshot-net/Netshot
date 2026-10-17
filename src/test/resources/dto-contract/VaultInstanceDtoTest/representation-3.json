@@ -1,0 +1,42 @@
+[
+  {
+    "appRoleId": "role-1234",
+    "appRoleMountPath": "approle-2",
+    "appRoleSecretId": "=",
+    "authMethod": "JWT",
+    "baseUrl": "https://vault.example.net:8200",
+    "httpsCaTrustMode": "CUSTOM_CA",
+    "httpsCustomCaCertificate": "-----BEGIN CERTIFICATE-----",
+    "id": 3,
+    "jwtClientId": "netshot",
+    "jwtClientSecret": "=",
+    "jwtIdpTokenEndpoint": "https://idp.example.net/token",
+    "jwtMountPath": "jwt-2",
+    "jwtScope": "vault",
+    "jwtVaultRole": "netshot-role",
+    "kvMountPath": "kv",
+    "name": "Main vault",
+    "namespace": "netshot",
+    "type": "Vault KV v2"
+  },
+  {
+    "appRoleId": null,
+    "appRoleMountPath": "approle",
+    "appRoleSecretId": null,
+    "authMethod": null,
+    "baseUrl": null,
+    "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+    "httpsCustomCaCertificate": null,
+    "id": 0,
+    "jwtClientId": null,
+    "jwtClientSecret": null,
+    "jwtIdpTokenEndpoint": null,
+    "jwtMountPath": "jwt",
+    "jwtScope": null,
+    "jwtVaultRole": null,
+    "kvMountPath": "secret",
+    "name": "Bare",
+    "namespace": null,
+    "type": "Vault KV v2"
+  }
+]

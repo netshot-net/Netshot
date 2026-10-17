@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ArrayList>
+  <item>
+    <checkDate>1600000000000</checkDate>
+    <configCompliant>true</configCompliant>
+    <driver>CiscoIOS12</driver>
+    <eol>true</eol>
+    <eos>false</eos>
+    <family>Cisco</family>
+    <id>5</id>
+    <mgmtAddress>10.0.0.5</mgmtAddress>
+    <name>r5</name>
+    <networkClass>ROUTER</networkClass>
+    <policyId>3</policyId>
+    <policyName>P</policyName>
+    <result>NONCONFORMING</result>
+    <ruleId>4</ruleId>
+    <ruleName>R</ruleName>
+    <softwareLevel>GOLD</softwareLevel>
+    <status>INPRODUCTION</status>
+  </item>
+</ArrayList>

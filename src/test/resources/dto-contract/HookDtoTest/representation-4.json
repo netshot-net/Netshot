@@ -1,0 +1,11 @@
+{
+  "action": null,
+  "enabled": true,
+  "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
+  "httpsCustomCaCertificate": null,
+  "id": 0,
+  "name": "Bare",
+  "triggers": [ ],
+  "type": "Web",
+  "url": null
+}

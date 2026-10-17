@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<PythonDiagnostic type="PythonDiagnostic">
+  <enabled>true</enabled>
+  <id>7</id>
+  <name>Python</name>
+  <resultType>BINARY</resultType>
+  <script>def diagnose():&#10;  pass</script>
+  <targetGroup/>
+</PythonDiagnostic>

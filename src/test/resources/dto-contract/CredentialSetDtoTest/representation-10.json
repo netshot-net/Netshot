@@ -1,0 +1,17 @@
+{
+  "community": "=",
+  "communityVaultInstanceId": null,
+  "communityVaultPath": null,
+  "deviceSpecific": true,
+  "id": 2,
+  "mgmtDomain": {
+    "changeDate": 1600000000000,
+    "description": "Paris data center",
+    "id": 1,
+    "name": "Paris DC",
+    "server4Address": "10.255.0.1",
+    "server6Address": "2001:db8:0:0:0:0:0:1"
+  },
+  "name": "SNMP v2",
+  "type": "SNMP v2"
+}
