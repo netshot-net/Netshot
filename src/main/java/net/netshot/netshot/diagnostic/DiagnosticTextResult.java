@@ -20,25 +20,20 @@ package net.netshot.netshot.diagnostic;
 
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
-import jakarta.xml.bind.annotation.XmlElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 @Entity
 @DiscriminatorValue("S")
 public class DiagnosticTextResult extends DiagnosticResult {
 
 	@Getter(onMethod = @__({
-		@Column(length = 524288),
-		@XmlElement, @JsonView(DefaultView.class)
+		@Column(length = 524288)
 	}))
 	@Setter
 	private String text;

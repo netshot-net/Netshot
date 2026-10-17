@@ -25,8 +25,6 @@ import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import com.fasterxml.jackson.annotation.JsonView;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -34,36 +32,26 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlAttribute;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 
 /**
  * A policy is a set of rules, applied to a group of devices.
  */
 @Entity
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.NONE)
 public class Policy {
 
 	/** The id. */
 	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY),
-		@XmlAttribute, @JsonView(DefaultView.class)
+		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
 	}))
 	@Setter
 	private long id;
 
 	/** The name. */
 	@Getter(onMethod = @__({
-		@NaturalId(mutable = true),
-		@XmlElement, @JsonView(DefaultView.class)
+		@NaturalId(mutable = true)
 	}))
 	@Setter
 	private String name;
@@ -78,7 +66,6 @@ public class Policy {
 	/** The target group. */
 	@Getter(onMethod = @__({
 		@ManyToMany(),
-		@XmlElement, @JsonView(DefaultView.class),
 		@OnDelete(action = OnDeleteAction.CASCADE)
 	}))
 	@Setter
