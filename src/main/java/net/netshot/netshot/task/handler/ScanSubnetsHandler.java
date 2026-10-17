@@ -30,7 +30,6 @@ import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;

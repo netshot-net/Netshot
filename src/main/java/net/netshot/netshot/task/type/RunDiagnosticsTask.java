@@ -18,9 +18,7 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.List;
 
-import org.hibernate.Session;
 import org.quartz.JobKey;
 
 import com.fasterxml.jackson.annotation.JsonView;
@@ -30,17 +28,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.devicescript.RunDiagnosticDeviceScript;
-import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
-import net.netshot.netshot.task.DebugLog;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskLockManager;
-import net.netshot.netshot.task.engine.TaskManager;
 
 /**
  * This task runs the diagnostics (if any is defined) on the specified device.
@@ -117,89 +108,6 @@ public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
 		RunDiagnosticsTask task = (RunDiagnosticsTask) super.clone();
 		task.setDevice(this.device);
 		return task;
-	}
-
-	@Override
-	public void run() {
-		log.debug("Task {}. Starting diagnostic task for device {}.", this.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			this.logger.info("The device doesn't exist, the task will be cancelled.");
-			this.status = Status.CANCELLED;
-			return;
-		}
-		Session session = Database.getSession();
-		RunDiagnosticDeviceScript deviceScript = null;
-		try {
-			session.beginTransaction();
-			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			this.logger.trace("Run diagnostic task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (device.getStatus() != Device.Status.INPRODUCTION) {
-				log.trace("Task {}. Device not INPRODUCTION, stopping the diagnostic task.", this.getId());
-				this.logger.warn("The device is not enabled (not in production).");
-				this.status = Status.CANCELLED;
-				return;
-			}
-			List<Diagnostic> diagnostics = session.createQuery(
-				"select dg from Diagnostic dg join fetch dg.targetGroup tg where dg.enabled = :enabled and "
-					+ "tg in (select gm.key.group from DeviceGroupMembership gm where gm.key.device = :device)",
-				Diagnostic.class)
-				.setParameter("device", device)
-				.setParameter("enabled", true)
-				.list();
-			if (diagnostics.size() > 0) {
-				deviceScript = new RunDiagnosticDeviceScript(diagnostics, Wiring.get().diagnosticAdapters(), this.logger);
-				deviceScript.connectRun(session, device);
-				session.merge(device);
-				session.getTransaction().commit();
-			}
-			else {
-				this.logger.info("No diagnostic was found that apply to this device.");
-			}
-			this.status = Status.SUCCESS;
-
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while executing the diagnostics.", this.getId(), e);
-			String message = e.getMessage();
-			if (e.getCause() != null && e.getCause().getCause() != null) {
-				// Add SQL error if possible
-				message += " / " + e.getCause().getCause().getMessage();
-			}
-			this.logger.error("Error while executing the diagnostics: {}", message);
-			this.status = Status.FAILURE;
-			return;
-		}
-		finally {
-			try {
-				if (this.fullLogs != null) {
-					this.debugLog = new DebugLog(this.fullLogs.toString());
-				}
-			}
-			catch (Exception e1) {
-				log.error("Task {}. Error while saving the debug logs.", this.getId(), e1);
-			}
-			session.close();
-		}
-
-		log.debug("Task {}. Request to refresh all the groups for the device after the diagnostics.", this.getId());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
-
-		if (!this.dontCheckCompliance) {
-			try {
-				Task checkTask = new CheckComplianceTask(device, "Check compliance after device diagnostics", "Auto");
-				checkTask.setPriority(this.getPriority());
-				checkTask.setParentTaskId(this.getId());
-				TaskManager.addTask(checkTask);
-			}
-			catch (Exception e) {
-				log.error("Task {}. Error while registering the new task.", this.getId(), e);
-			}
-		}
-
 	}
 
 	/*

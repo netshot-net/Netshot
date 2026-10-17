@@ -73,6 +73,7 @@ public class ChildTaskOrchestrator {
 	 * {@code TaskManager.rescheduleAll()}/{@code reassignOrphanTasks()} and calls run() again).
 	 * Empty on a fresh (not-yet-started) run.
 	 *
+	 * @param parent the parent task
 	 * @return the ordered list of already-persisted children, empty if none exist yet
 	 */
 	public List<Task> reloadExistingChildren(Task parent) {
@@ -107,6 +108,7 @@ public class ChildTaskOrchestrator {
 	 * <p>The actual scheduling/waiting is done afterwards, by {@link #orchestrateChildren(List)}.
 	 *
 	 * @param children the children to pre-create, in order (not yet persisted)
+	 * @param parent the parent task
 	 */
 	public void preCreateChildren(Task parent, List<Task> children) {
 		Session session = Database.getSession();
@@ -156,6 +158,7 @@ public class ChildTaskOrchestrator {
 	 * @param children the full ordered list of children (as returned by
 	 *        {@link #preCreateChildren(List)}/{@link #reloadExistingChildren()})
 	 * @param fromIndex the index (inclusive) to start cancelling from
+	 * @param parent the parent task
 	 */
 	public void cancelRemainingDelayedChildren(Task parent, List<Task> children, int fromIndex) {
 		List<Long> ids = new ArrayList<>();
@@ -216,6 +219,7 @@ public class ChildTaskOrchestrator {
 	 * restart is just "start the same walk over" -- there's no separate resume-specific logic.
 	 *
 	 * @param children the full ordered list of this task's children
+	 * @param parent the parent task
 	 * @return the final status this task should report
 	 */
 	public Status orchestrateChildren(Task parent, List<Task> children) {
@@ -232,6 +236,7 @@ public class ChildTaskOrchestrator {
 	 * forever in DELAYED status.
 	 *
 	 * @param child the child task that failed to schedule
+	 * @param parent the parent task
 	 */
 	private void markChildAsSchedulingFailure(Task parent, Task child) {
 		Session session = Database.getSession();
@@ -273,6 +278,7 @@ public class ChildTaskOrchestrator {
 	 * here is a scheduling error (Quartz/persistence failure while promoting a child).
 	 *
 	 * @param children the full ordered list of this task's children
+	 * @param parent the parent task
 	 * @return the final status this task should report
 	 */
 	private Status orchestrateParallelChildren(Task parent, List<Task> children) {
