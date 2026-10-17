@@ -55,7 +55,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.rest.RestViews.DefaultView;
 import net.netshot.netshot.platform.rest.RestViews.HookView;
-import net.netshot.netshot.platform.rest.RestViews.RestApiView;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
 
@@ -203,7 +202,7 @@ public class WebHook extends Hook {
 			case POST_YAML:
 				mediaType = YAMLMediaTypes.APPLICATION_JACKSON_YAML_TYPE;
 				JacksonXmlBindYAMLProvider yamlProvider = new JacksonXmlBindYAMLProvider();
-				yamlProvider.setDefaultView(RestApiView.class);
+				yamlProvider.setDefaultView(HookView.class);
 				yamlProvider.setMapper(YAMLMapper.builder()
 					.disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
 					.build());
