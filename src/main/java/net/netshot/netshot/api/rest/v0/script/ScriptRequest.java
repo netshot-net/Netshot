@@ -20,10 +20,8 @@ package net.netshot.netshot.api.rest.v0.script;
 
 import java.util.Map;
 
-
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 
@@ -43,8 +41,6 @@ import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
  * @param userInputDefinitions the input definitions, when posted
  * @param folder the folder
  */
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "deviceJsScript")
 public record ScriptRequest(
 	long id,
 	String name,

@@ -21,10 +21,6 @@ package net.netshot.netshot.api.rest.v0.device;
 import java.util.List;
 import java.util.Map;
 
-
-import jakarta.xml.bind.annotation.XmlRootElement;
-
-
 /**
  * The request to edit a device. A property absent from the request (or null) leaves the
  * corresponding attribute of the device unchanged.
@@ -38,8 +34,6 @@ import jakarta.xml.bind.annotation.XmlRootElement;
  * @param options the new values of the driver options
  * @param tags the new tags (replacing all the existing ones)
  */
-// Transitional, see NewDeviceRequest
-@XmlRootElement(name = "device")
 public record UpdateDeviceRequest(
 	long id,
 	Boolean enabled,
