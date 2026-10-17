@@ -134,10 +134,14 @@ class UserServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("Known quirk: the password policy is not applied when an administrator creates a user")
-	void createIgnoresPolicy() throws Exception {
-		UiUser user = this.create(this.nextName(), true, "x", User.LEVEL_READONLY);
-		assertPassword(this.reload(user.getId()), "x");
+	@DisplayName("The password policy is applied when an administrator creates a local user, not for a remote user")
+	void createAppliesPolicy() throws Exception {
+		String name = this.nextName();
+		assertError(ErrorCode.NETSHOT_INVALID_PASSWORD, () -> this.create(name, true, "x", User.LEVEL_READONLY));
+		// Nothing was stored: the name is still free
+		UiUser user = this.create(name, true, PASSWORD, User.LEVEL_READONLY);
+		assertPassword(this.reload(user.getId()), PASSWORD);
+		this.create(this.nextName(), false, "x", User.LEVEL_READONLY);
 	}
 
 	@Test
