@@ -39,11 +39,11 @@ public final class ScriptMapper {
 		// Static helpers only
 	}
 
-	// The description of the driver of the script (the typo of the unknown case is part of the API output)
+	// The description of the driver of the script
 	private static String realDeviceType(DriverRegistry driverRegistry, DeviceJsScript script) {
 		DeviceDriver deviceDriver = driverRegistry.getDriverByName(script.getDeviceDriver());
 		if (deviceDriver == null) {
-			return "Unknwon driver";
+			return "Unknown driver";
 		}
 		return deviceDriver.getDescription();
 	}
