@@ -85,7 +85,8 @@ public class WebHook extends Hook {
 			}
 			return pUrl;
 		}
-		catch (URISyntaxException e) {
+		catch (URISyntaxException | IllegalArgumentException e) {
+			// IllegalArgumentException: a relative URI, which can't be turned into a URL
 			throw new MalformedURLException("Invalid URL");
 		}
 	}

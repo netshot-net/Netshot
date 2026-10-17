@@ -657,6 +657,8 @@ final class ApiContractCases {
 			{"type": "Web", "name": "", "enabled": true, "action": "POST_JSON", "url": "https://example.net/new"}""");
 		c.write("POST", "/hooks", "badurl", () -> "/hooks", () -> """
 			{"type": "Web", "name": "Bad URL", "enabled": true, "action": "POST_JSON", "url": "not a url"}""");
+		c.write("POST", "/hooks", "relativeurl", () -> "/hooks", () -> """
+			{"type": "Web", "name": "Relative URL", "enabled": true, "action": "POST_JSON", "url": "relative/path"}""");
 		c.write("POST", "/hooks", "noaction", () -> "/hooks", () -> """
 			{"type": "Web", "name": "No action", "enabled": true, "url": "https://example.net/new"}""");
 		c.write("PUT", "/hooks/{id}", "updated", c.path("/hooks/%d", "new.hook"), c.body("""
