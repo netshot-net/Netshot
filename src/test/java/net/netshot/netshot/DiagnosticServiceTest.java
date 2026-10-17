@@ -212,15 +212,14 @@ class DiagnosticServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("create() refuses a duplicate name, and accepts a group which doesn't exist (known quirk: no group)")
+	@DisplayName("create() refuses a duplicate name, and a group which doesn't exist")
 	void createDuplicateAndUnknownGroup() {
 		String name = this.name("Duplicate");
 		this.service.create(js(name, -1, "x"));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, () -> this.service.create(python(name, -1, "x")));
-		// The lookup of an unknown group returns null (Session.get): the diagnostic is created without group
-		Diagnostic unknownGroup = this.service.create(js(this.name("Unknown group"), 99999999L, "x"));
-		Assertions.assertNull(unknownGroup.getTargetGroup());
-		Assertions.assertNull(this.service.get(unknownGroup.getId()).getTargetGroup());
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.service.create(js(this.name("Unknown group"), 99999999L, "x")));
+		Diagnostic created = this.service.create(js(this.name("Known group"), -1, "x"));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.service.update(created.getId(), js(created.getName(), 99999999L, "x")));
 	}
 
 	@Test

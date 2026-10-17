@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.hibernate.HibernateException;
 import org.hibernate.ObjectNotFoundException;
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +97,7 @@ public class PolicyService {
 			policy = this.transactions.write(session -> {
 				Set<DeviceGroup> groups = new HashSet<>();
 				for (Long groupId : definition.targetGroupIds()) {
-					groups.add(this.repository.findGroup(session, groupId));
+					groups.add(this.requireGroup(session, groupId));
 				}
 				Policy newPolicy = new Policy(name, groups);
 				session.persist(newPolicy);
@@ -152,7 +153,7 @@ public class PolicyService {
 				}
 				existing.getTargetGroups().clear();
 				for (Long groupId : definition.targetGroupIds()) {
-					existing.getTargetGroups().add(this.repository.findGroup(session, groupId));
+					existing.getTargetGroups().add(this.requireGroup(session, groupId));
 				}
 				session.merge(existing);
 				return existing;
@@ -200,5 +201,14 @@ public class PolicyService {
 			log.error("Unable to delete the policy {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the policy");
 		}
+	}
+
+	private DeviceGroup requireGroup(Session session, long groupId) {
+		DeviceGroup group = this.repository.findGroup(session, groupId);
+		if (group == null) {
+			log.error("Unable to find the group {}.", groupId);
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
+		}
+		return group;
 	}
 }

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -248,14 +249,16 @@ class ComplianceServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("Policy create() with a group which doesn't exist: known quirk, the group is silently ignored")
+	@DisplayName("Policy create() and update() refuse a group which doesn't exist, and change nothing")
 	void policyUnknownGroup() {
-		// The lookup of an unknown group returns null (Session.get), the null is put in the set of groups and
-		// ignored by the database. The returned policy holds the null, as it did before the migration.
-		Policy policy = this.createPolicy(this.name("Unknown group"), 99999999L);
-		Assertions.assertTrue(policy.getTargetGroups().contains(null));
+		String name = this.name("Unknown group");
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.createPolicy(name, 99999999L));
+		Assertions.assertTrue(this.policyService.list(Page.ALL).stream().noneMatch(p -> p.getName().equals(name)));
+		Policy policy = this.createPolicy(name, this.groupId);
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP,
+			() -> this.policyService.update(policy.getId(), new PolicyDefinition(name, Set.of(this.groupId, 99999999L))));
 		Policy listed = this.policyService.list(Page.ALL).stream().filter(p -> p.getId() == policy.getId()).findFirst().orElseThrow();
-		Assertions.assertTrue(listed.getTargetGroups().isEmpty());
+		Assertions.assertEquals(Set.of(this.groupId), listed.getTargetGroups().stream().map(g -> g.getId()).collect(Collectors.toSet()));
 	}
 
 	// ------------------------------------------------------------------
@@ -451,7 +454,7 @@ class ComplianceServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("Software rule create() takes the lowest priority; unknown driver and unknown group are silently ignored (known bug)")
+	@DisplayName("Software rule create() takes the lowest priority; an unknown driver is ignored, an unknown group refused")
 	void softwareCreate() {
 		SoftwareRule rule = this.softwareRuleService.create(software(this.groupId, "CiscoIOS12", "1.0"));
 		Assertions.assertEquals(this.groupId, rule.getTargetGroup().getId());
@@ -460,9 +463,7 @@ class ComplianceServiceTest extends WithDatabaseTest {
 		SoftwareRule anything = this.softwareRuleService.create(software(null, "NoSuchDriver", "2.0"));
 		Assertions.assertNull(anything.getTargetGroup());
 		Assertions.assertNull(anything.getDriver());
-		// Known bug, kept: a group which doesn't exist is accepted (taken for "all the devices")
-		SoftwareRule unknownGroup = this.softwareRuleService.create(software(99999999L, "", "3.0"));
-		Assertions.assertNull(unknownGroup.getTargetGroup());
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.softwareRuleService.create(software(99999999L, "", "3.0")));
 		List<SoftwareRule> rules = this.softwareRuleService.list(Page.ALL);
 		Assertions.assertEquals(Double.MAX_VALUE, rule.getPriority(), "the lowest priority, until the rules are sorted");
 		SoftwareRule listed = rules.stream().filter(r -> r.getId() == rule.getId()).findFirst().orElseThrow();
@@ -549,11 +550,14 @@ class ComplianceServiceTest extends WithDatabaseTest {
 		HardwareRule listed = this.hardwareRuleService.list().stream().filter(r -> r.getId() == rule.getId()).findFirst().orElseThrow();
 		Assertions.assertEquals("Group", listed.getTargetGroup().getName(), "the group is loaded by the list");
 
-		// Known bug, kept: a group which doesn't exist is accepted
-		HardwareRule unknownGroup = this.hardwareRuleService.create(
-			new HardwareRuleDefinition(99999999L, "NoSuchDriver", "", false, "x", false, null, null));
-		Assertions.assertNull(unknownGroup.getTargetGroup());
-		Assertions.assertNull(unknownGroup.getDriver());
+		// A group which doesn't exist is refused; an unknown driver is still taken for "any driver"
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.hardwareRuleService.create(
+			new HardwareRuleDefinition(99999999L, "", "", false, "x", false, null, null)));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP, () -> this.hardwareRuleService.update(rule.getId(),
+			new HardwareRuleDefinition(99999999L, "", "", false, "x", false, null, null)));
+		HardwareRule unknownDriver = this.hardwareRuleService.create(
+			new HardwareRuleDefinition(null, "NoSuchDriver", "", false, "x", false, null, null));
+		Assertions.assertNull(unknownDriver.getDriver());
 
 		HardwareRule updated = this.hardwareRuleService.update(rule.getId(),
 			new HardwareRuleDefinition(null, "", "", true, "other", false, null, life));

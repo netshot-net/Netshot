@@ -43,6 +43,7 @@
 
 ### Any version to the next release
 
+* REST API: a target group which doesn't exist is now refused (400, `NETSHOT_INVALID_GROUP`) when creating or updating a policy, a software rule, a hardware rule or a diagnostic. It used to be silently dropped: the policy had one group less, and the rule or diagnostic applied to all the devices.
 * REST API: `POST /apitokens` now refuses a token value which is already registered (409, `NETSHOT_DUPLICATE_API_TOKEN`). A token value registered several times never authenticated anyone; if you have such duplicates, delete them and register the token again.
 * Password policy: the `netshot.aaa.passwordpolicy.*` rules now also apply when an administrator creates a local user (`POST /users`, or the user dialog of the web UI); they used to apply only when a password was changed.
 * REST API: `PUT /credentialsets/{id}` with an unknown `mgmtDomain` is now refused (`NETSHOT_INVALID_DOMAIN`, as `POST /credentialsets` does), instead of silently removing the domain restriction of the credential set.
