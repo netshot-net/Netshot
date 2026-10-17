@@ -1,4 +1,0 @@
-Method <net.netshot.netshot.api.rest.ApiTokenAuthFilter.filter(jakarta.ws.rs.container.ContainerRequestContext)> calls method <org.hibernate.Session.close()> in (ApiTokenAuthFilter.java:80)
-Method <net.netshot.netshot.api.rest.ApiTokenAuthFilter.filter(jakarta.ws.rs.container.ContainerRequestContext)> calls method <org.hibernate.Session.close()> in (ApiTokenAuthFilter.java:80)
-Method <net.netshot.netshot.api.rest.ApiTokenAuthFilter.filter(jakarta.ws.rs.container.ContainerRequestContext)> calls method <org.hibernate.Session.close()> in (ApiTokenAuthFilter.java:80)
-Method <net.netshot.netshot.api.rest.ApiTokenAuthFilter.filter(jakarta.ws.rs.container.ContainerRequestContext)> calls method <org.hibernate.Session.createQuery(java.lang.String, java.lang.Class)> in (ApiTokenAuthFilter.java:66)
