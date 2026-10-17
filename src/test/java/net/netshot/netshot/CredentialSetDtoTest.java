@@ -236,9 +236,7 @@ class CredentialSetDtoTest {
 		};
 		for (String[] body : bodies) {
 			String text = "{\"type\": \"%s\", \"name\": \"n\", \"%s\": \"=\"}".formatted(body[0], body[1]);
-			DeviceCredentialSet expected = JSON.readerFor(DeviceCredentialSet.class).withView(RestApiView.class).readValue(text);
 			DeviceCredentialSet actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(text));
-			Assertions.assertNull(describe(expected).get(body[1]), text);
 			Assertions.assertNull(describe(actual).get(body[1]), text);
 			String set = "{\"type\": \"%s\", \"name\": \"n\", \"%s\": \"value\"}".formatted(body[0], body[1]);
 			DeviceCredentialSet actualSet = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(set));
@@ -318,14 +316,9 @@ class CredentialSetDtoTest {
 	@DisplayName("The requests are read like the entities used to be (values, defaults, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
+		int index = 0;
 		for (String body : BODIES) {
-			DeviceCredentialSet expected = null;
-			try {
-				expected = JSON.readerFor(DeviceCredentialSet.class).withView(RestApiView.class).readValue(body);
-			}
-			catch (JsonProcessingException e) {
-				// Refused
-			}
+			index++;
 			DeviceCredentialSet actual = null;
 			try {
 				actual = CredentialSetMapper.toEntity(JSON.readerFor(CredentialSetDto.class).withView(RestApiView.class).readValue(body));
@@ -333,13 +326,10 @@ class CredentialSetDtoTest {
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			Assertions.assertEquals(expected == null, actual == null, "refused or accepted: " + body);
-			if (expected == null) {
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			if (actual == null) {
 				refused++;
-				continue;
 			}
-			Assertions.assertEquals(expected.getClass(), actual.getClass(), body);
-			Assertions.assertEquals(describe(expected), describe(actual), body);
 		}
 		Assertions.assertTrue(refused >= 9, "the bodies which must be refused are refused");
 	}
@@ -348,13 +338,12 @@ class CredentialSetDtoTest {
 	@DisplayName("A credential set read from a list is read like the entities used to be")
 	void listsAreRead() throws Exception {
 		String body = "[" + String.join(",", BODIES.subList(0, 9)) + "]";
-		List<DeviceCredentialSet> expected = JSON.readerFor(new TypeReference<List<DeviceCredentialSet>>() { })
-			.withView(RestApiView.class).readValue(body);
 		List<CredentialSetDto> dtos = JSON.readerFor(new TypeReference<List<CredentialSetDto>>() { })
 			.withView(RestApiView.class).readValue(body);
-		Assertions.assertEquals(expected.size(), dtos.size());
-		for (int i = 0; i < expected.size(); i++) {
-			Assertions.assertEquals(describe(expected.get(i)), describe(CredentialSetMapper.toEntity(dtos.get(i))));
+		Assertions.assertEquals(9, dtos.size());
+		for (int i = 0; i < dtos.size(); i++) {
+			DeviceCredentialSet actual = CredentialSetMapper.toEntity(dtos.get(i));
+			this.contract.checkText("request-" + (i + 1), DtoContract.render(actual, describe(actual)));
 		}
 	}
 }

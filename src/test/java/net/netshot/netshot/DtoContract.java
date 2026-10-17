@@ -19,8 +19,11 @@
 package net.netshot.netshot;
 
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -149,5 +152,55 @@ final class DtoContract implements BeforeEachCallback {
 			Assertions.fail("The " + format + " written for " + this.dir.getFileName() + "/" + fileName + " changed:\n"
 				+ ApiContractGolden.diff(expected, actual, fileName));
 		}
+	}
+
+	/**
+	 * Checks a text, for example the description of the object a request is read into.
+	 * @param name the case name (the extension is {@code txt})
+	 * @param actual the text
+	 */
+	void checkText(String name, String actual) {
+		String fileName = name.replaceAll("[^A-Za-z0-9._-]+", "_") + ".txt";
+		if (isUpdateMode()) {
+			ApiContractGolden.writeGolden(this.dir, fileName, actual);
+			return;
+		}
+		String expected = ApiContractGolden.readGolden(this.dir, fileName);
+		Assertions.assertNotNull(expected, "No expected file " + this.dir.resolve(fileName)
+			+ " (run with -D" + UPDATE_PROPERTY + "=true to create it)");
+		Assertions.assertEquals(expected, actual, "The text of " + this.dir.getFileName() + "/" + fileName + " changed");
+	}
+
+	/**
+	 * Renders the description of an object (its class and its sorted properties), one property per line.
+	 * Dates are masked, as they are generated while the test runs.
+	 * @param bean the object, or null for a request which is refused
+	 * @param description the properties of the object
+	 * @return the text
+	 */
+	static String render(Object bean, Map<String, Object> description) {
+		if (bean == null) {
+			return "REFUSED\n";
+		}
+		StringBuilder text = new StringBuilder(bean.getClass().getSimpleName()).append('\n');
+		new TreeMap<>(description).forEach((key, value) -> text.append(key).append('=').append(renderValue(value)).append('\n'));
+		return text.toString();
+	}
+
+	private static String renderValue(Object value) {
+		if (value instanceof Date) {
+			return "<date>";
+		}
+		if (value instanceof Map<?, ?> map) {
+			StringBuilder text = new StringBuilder("{");
+			new TreeMap<>(map).forEach((key, item) -> text.append(text.length() > 1 ? ", " : "").append(key).append('=').append(renderValue(item)));
+			return text.append('}').toString();
+		}
+		if (value instanceof Collection<?> collection) {
+			StringBuilder text = new StringBuilder("[");
+			collection.forEach(item -> text.append(text.length() > 1 ? ", " : "").append(renderValue(item)));
+			return text.append(']').toString();
+		}
+		return String.valueOf(value);
 	}
 }

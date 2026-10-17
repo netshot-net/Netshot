@@ -1,0 +1,12 @@
+DeviceAccess
+accessName=a5
+address=null
+device=null
+globalCredentialSet=null
+httpsCaTrustMode=SYSTEM_TRUSTSTORE
+httpsCustomCaCertificate=null
+port=null
+specificCredentialSet={changeDate=null, deviceSpecific=false, id=0, mgmtDomain=null, name=n5, password=null, passwordVaultInstanceId=null, passwordVaultPath=null, privateKey=key5, privateKeyVaultInstanceId=null, privateKeyVaultPath=pk5, resolvedPasswordVaultInstanceId=null, resolvedPrivateKeyVaultInstanceId=12, resolvedSuperPasswordVaultInstanceId=null, resolvedUsernameVaultInstanceId=null, superPassword=s5, superPasswordVaultInstanceId=null, superPasswordVaultPath=null, username=u5, usernameVaultInstanceId=null, usernameVaultPath=null, version=0}
+sshHostKeyVerification=TRUST_ANY
+sshTrustedHostKeys=null
+sshTrustedHostKeysSince=null

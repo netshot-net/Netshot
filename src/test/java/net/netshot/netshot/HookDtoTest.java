@@ -215,14 +215,9 @@ class HookDtoTest {
 	@DisplayName("The requests are read like the entities used to be (values, defaults, triggers, ignored and refused properties)")
 	void requestsAreReadLikeTheEntity() throws Exception {
 		int refused = 0;
+		int index = 0;
 		for (String body : BODIES) {
-			Hook expected = null;
-			try {
-				expected = JSON.readerFor(Hook.class).withView(RestApiView.class).readValue(body);
-			}
-			catch (JsonProcessingException e) {
-				// Refused
-			}
+			index++;
 			Hook actual = null;
 			try {
 				actual = HookMapper.toEntity(JSON.readerFor(HookRequest.class).withView(RestApiView.class).readValue(body));
@@ -230,13 +225,10 @@ class HookDtoTest {
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			Assertions.assertEquals(expected == null, actual == null, "refused or accepted: " + body);
-			if (expected == null) {
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			if (actual == null) {
 				refused++;
-				continue;
 			}
-			Assertions.assertEquals(expected.getClass(), actual.getClass(), body);
-			Assertions.assertEquals(describe(expected), describe(actual), body);
 		}
 		Assertions.assertTrue(refused >= 8, "the bodies which must be refused are refused");
 	}

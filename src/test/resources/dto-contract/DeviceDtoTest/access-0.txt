@@ -1,0 +1,12 @@
+DeviceAccess
+accessName=plain
+address=192.0.2.1
+device=null
+globalCredentialSet={changeDate=null, deviceSpecific=false, id=4, mgmtDomain=null, name=null, password=null, passwordVaultInstanceId=null, passwordVaultPath=null, resolvedPasswordVaultInstanceId=null, resolvedSuperPasswordVaultInstanceId=null, resolvedUsernameVaultInstanceId=null, superPassword=null, superPasswordVaultInstanceId=null, superPasswordVaultPath=null, username=null, usernameVaultInstanceId=null, usernameVaultPath=null, version=0}
+httpsCaTrustMode=CUSTOM_CA
+httpsCustomCaCertificate=PEM
+port=8443
+specificCredentialSet=null
+sshHostKeyVerification=TRUST_KNOWN
+sshTrustedHostKeys=ssh-ed25519 AAAA
+sshTrustedHostKeysSince=null

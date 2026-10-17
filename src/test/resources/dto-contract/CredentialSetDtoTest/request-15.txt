@@ -1,0 +1,11 @@
+DeviceSnmpv1Community
+changeDate=null
+community=null
+communityVaultInstanceId=null
+communityVaultPath=null
+deviceSpecific=false
+id=0
+mgmtDomain=null
+name=a
+resolvedCommunityVaultInstanceId=null
+version=0

@@ -304,19 +304,14 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("The accesses of a request are read like the entities used to be")
 	void accessesRequestIsReadLikeTheEntity() throws Exception {
-		List<DeviceAccess> expected = JSON.readerFor(new TypeReference<List<DeviceAccess>>() { })
-			.withView(RestApiView.class).readValue(ACCESSES);
 		List<DeviceAccessDto> dtos = JSON.readerFor(new TypeReference<List<DeviceAccessDto>>() { })
 			.withView(RestApiView.class).readValue(ACCESSES);
-		Assertions.assertEquals(expected.size(), dtos.size());
-		for (int i = 0; i < expected.size(); i++) {
+		for (int i = 0; i < dtos.size(); i++) {
 			DeviceAccess actual = DeviceAccessMapper.toEntity(dtos.get(i));
-			Map<String, Object> expectedDescription = describe(expected.get(i));
 			Map<String, Object> actualDescription = describe(actual);
 			// Only the id and the name of the domain are kept
-			expectedDescription.values().forEach(DeviceDtoTest::keepIdentityOfDomains);
 			actualDescription.values().forEach(DeviceDtoTest::keepIdentityOfDomains);
-			Assertions.assertEquals(expectedDescription, actualDescription, "access " + expected.get(i).getAccessName());
+			this.contract.checkText("access-" + i, DtoContract.render(actual, actualDescription));
 		}
 		// Make sure the check is meaningful
 		Assertions.assertEquals("p4", ((DeviceSshAccount) dtos.stream().map(DeviceAccessMapper::toEntity)

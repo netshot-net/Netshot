@@ -1,0 +1,9 @@
+WebHook
+action=POST_JSON
+enabled=false
+httpsCaTrustMode=SYSTEM_TRUSTSTORE
+httpsCustomCaCertificate=null
+id=0
+name=n
+triggers=[]
+url=https://example.net/h

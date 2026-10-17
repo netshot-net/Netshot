@@ -1,0 +1,12 @@
+DeviceAccess
+accessName=a6
+address=null
+device=null
+globalCredentialSet=null
+httpsCaTrustMode=SYSTEM_TRUSTSTORE
+httpsCustomCaCertificate=null
+port=null
+specificCredentialSet={changeDate=null, deviceSpecific=false, id=0, mgmtDomain=null, name=n6, password=p6, passwordVaultInstanceId=null, passwordVaultPath=null, resolvedPasswordVaultInstanceId=null, resolvedSuperPasswordVaultInstanceId=null, resolvedUsernameVaultInstanceId=null, superPassword=s6, superPasswordVaultInstanceId=null, superPasswordVaultPath=null, username=u6, usernameVaultInstanceId=null, usernameVaultPath=null, version=0}
+sshHostKeyVerification=TRUST_ANY
+sshTrustedHostKeys=null
+sshTrustedHostKeysSince=null
