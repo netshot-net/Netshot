@@ -55,6 +55,7 @@ import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -260,6 +261,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		
 	}
 
+	private final DriverRegistry driverRegistry;
 	private final Device device;
 	private Config config;
 	private Config lastConfig;
@@ -269,8 +271,9 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	/** Upload tickets of this config helper context. */
 	private Map<Long, ConfigUploadTicket> uploadTickets = new HashMap<>();
 
-	public JsConfigHelper(Device device, Config config, Config lastConfig,
+	public JsConfigHelper(DriverRegistry driverRegistry, Device device, Config config, Config lastConfig,
 		JsCliHelper defaultCliHelper, TaskContext taskContext) {
+		this.driverRegistry = driverRegistry;
 		this.device = device;
 		this.config = config;
 		this.lastConfig = lastConfig;
@@ -298,7 +301,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 				taskContext.trace("Setting config author to '{}'.", value.asString());
 			}
 			else {
-				DeviceDriver driver = device.getDeviceDriver();
+				DeviceDriver driver = this.driverRegistry.forDevice(this.device);
 				for (AttributeDefinition attribute : driver.getAttributes()) {
 					if (attribute.getLevel().equals(AttributeLevel.CONFIG) && attribute.getName().equals(key)) {
 						switch (attribute.getType()) {
@@ -582,7 +585,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 *         or no store file name could be derived
 	 */
 	ConfigBinaryFileAttribute prepareBinaryFileDownload(String key, String storeFileName, String fallbackRemoteName) throws Exception {
-		DeviceDriver driver = this.device.getDeviceDriver();
+		DeviceDriver driver = this.driverRegistry.forDevice(this.device);
 		AttributeDefinition attribute = driver.getAttributeDefinition(AttributeLevel.CONFIG, key);
 		if (attribute == null) {
 			log.warn("Error during snapshot, requested attribute key '{}' doesn't exist.", key);
@@ -627,7 +630,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			throw new IllegalArgumentException("Invalid download method");
 		}
 
-		DeviceDriver driver = this.device.getDeviceDriver();
+		DeviceDriver driver = this.driverRegistry.forDevice(this.device);
 		AttributeDefinition attribute = driver.getAttributeDefinition(AttributeLevel.CONFIG, key);
 		if (attribute == null) {
 			log.warn("Error during snapshot, requested attribute key '{}' doesn't exist.", key);
@@ -821,7 +824,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			throw new IllegalArgumentException("No such file in upload ticket");
 		}
 
-		DeviceDriver driver = this.device.getDeviceDriver();
+		DeviceDriver driver = this.driverRegistry.forDevice(this.device);
 		AttributeDefinition attribute = driver.getAttributeDefinition(AttributeLevel.CONFIG, key);
 		if (attribute == null) {
 			log.warn("Error during snapshot, requested attribute key '{}' doesn't exist.", key);

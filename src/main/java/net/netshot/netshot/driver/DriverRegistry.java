@@ -24,18 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+
 /**
  * The registry of the loaded device drivers: lookups by name or description, and the global hash of
  * the drivers. The drivers are read by a {@link DriverLoader} on {@link #refresh()}.
  */
 public class DriverRegistry {
-
-	/**
-	 * The process-wide registry behind the deprecated static lookups of {@link DeviceDriver}.
-	 * Transitional: the wiring uses it too, so that code which cannot be injected (entities,
-	 * tests which load the drivers before the wiring exists) and injected code see the same drivers.
-	 */
-	private static final DriverRegistry SHARED = new DriverRegistry(new DriverLoader());
 
 	private final DriverLoader loader;
 
@@ -52,15 +48,6 @@ public class DriverRegistry {
 	 */
 	public DriverRegistry(DriverLoader loader) {
 		this.loader = loader;
-	}
-
-	/**
-	 * Gets the process-wide registry (transitional, see {@link #SHARED}).
-	 *
-	 * @return the registry
-	 */
-	public static DriverRegistry shared() {
-		return SHARED;
 	}
 
 	/**
@@ -86,6 +73,26 @@ public class DriverRegistry {
 			return null;
 		}
 		return this.drivers.get(name);
+	}
+
+	/**
+	 * Gets the driver of a device.
+	 *
+	 * @param device the device
+	 * @return the driver of the device
+	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
+	 */
+	public DeviceDriver forDevice(Device device) throws MissingDeviceDriverException {
+		if (device.getDriver() == null) {
+			String message = String.format("The device with ID %d has no associated driver.", device.getId());
+			throw new MissingDeviceDriverException(message);
+		}
+		DeviceDriver deviceDriver = this.getDriverByName(device.getDriver());
+		if (deviceDriver == null) {
+			String message = String.format("Unable to locate the driver %s for device %d.", device.getDriver(), device.getId());
+			throw new MissingDeviceDriverException(message);
+		}
+		return deviceDriver;
 	}
 
 	/**

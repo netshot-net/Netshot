@@ -46,6 +46,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * The REST resource of the software compliance rules: list, add, edit, delete and sort.
@@ -58,6 +59,7 @@ import net.netshot.netshot.compliance.SoftwareRuleService;
 public class SoftwareRuleResource {
 
 	private final SoftwareRuleService softwareRuleService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -66,10 +68,12 @@ public class SoftwareRuleResource {
 	 * Instantiates the resource.
 	 *
 	 * @param softwareRuleService the software rule use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public SoftwareRuleResource(SoftwareRuleService softwareRuleService) {
+	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, DriverRegistry driverRegistry) {
 		this.softwareRuleService = softwareRuleService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -90,7 +94,7 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public List<SoftwareRuleDto> getSoftwareRules(@BeanParam PaginationParams paginationParams) throws WebApplicationException {
 		log.debug("REST request, software rules.");
-		return SoftwareRuleMapper.toDtos(this.softwareRuleService.list(paginationParams.toPage()));
+		return SoftwareRuleMapper.toDtos(this.driverRegistry, this.softwareRuleService.list(paginationParams.toPage()));
 	}
 
 	/**
@@ -112,7 +116,7 @@ public class SoftwareRuleResource {
 	@Tag(name = "Compliance", description = "Configuration, software, hardware compliance")
 	public SoftwareRuleDto addSoftwareRule(SoftwareRuleRequest rsRule) throws WebApplicationException {
 		log.debug("REST request, add software rule.");
-		SoftwareRuleDto rule = SoftwareRuleMapper.toDto(
+		SoftwareRuleDto rule = SoftwareRuleMapper.toDto(this.driverRegistry, 
 			this.softwareRuleService.create(SoftwareRuleMapper.toDefinition(rsRule)));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return rule;
@@ -167,7 +171,7 @@ public class SoftwareRuleResource {
 		SoftwareRuleRequest rsRule)
 		throws WebApplicationException {
 		log.debug("REST request, edit software rule {}.", id);
-		return SoftwareRuleMapper.toDto(this.softwareRuleService.update(id, SoftwareRuleMapper.toDefinition(rsRule)));
+		return SoftwareRuleMapper.toDto(this.driverRegistry, this.softwareRuleService.update(id, SoftwareRuleMapper.toDefinition(rsRule)));
 	}
 
 	/**

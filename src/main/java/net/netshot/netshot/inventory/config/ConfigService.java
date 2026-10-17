@@ -36,6 +36,7 @@ import com.github.difflib.patch.Patch;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.ConfigItemException.Reason;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -57,16 +58,19 @@ public class ConfigService {
 
 	private final Transactions transactions;
 	private final ConfigRepository repository;
+	private final DriverRegistry driverRegistry;
 
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the configuration repository
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public ConfigService(Transactions transactions, ConfigRepository repository) {
+	public ConfigService(Transactions transactions, ConfigRepository repository, DriverRegistry driverRegistry) {
 		this.transactions = transactions;
 		this.repository = repository;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -217,8 +221,8 @@ public class ConfigService {
 				DeviceDriver driver1;
 				DeviceDriver driver2;
 				try {
-					driver1 = config1.getDevice().getDeviceDriver();
-					driver2 = config2.getDevice().getDeviceDriver();
+					driver1 = this.driverRegistry.forDevice(config1.getDevice());
+					driver2 = this.driverRegistry.forDevice(config2.getDevice());
 				}
 				catch (MissingDeviceDriverException e) {
 					log.error("Missing driver.");

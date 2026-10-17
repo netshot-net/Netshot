@@ -1236,13 +1236,13 @@ public class ToolboxTest {
 
 		DriverContext() throws Exception {
 			Netshot.initConfig(new Properties());
-			DeviceDriver.refreshDrivers();
+			TestDrivers.reload();
 		}
 
 		@Test
 		@DisplayName("Toolbox available in driver context")
 		void driverToolbox() throws Exception {
-			DeviceDriver driver = DeviceDriver.getDriverByName("CiscoIOS12");
+			DeviceDriver driver = TestDrivers.registry().getDriverByName("CiscoIOS12");
 			try (Context context = driver.getContext()) {
 				driver.loadCode(context);
 				Value result = context.eval("js", "Toolbox.ConfigTree.parse('a\\n b').children[0].findValue(/^(b)$/)");
@@ -1253,7 +1253,7 @@ public class ToolboxTest {
 		@Test
 		@DisplayName("Toolbox module available to Python diagnostics")
 		void pythonDiagnosticToolbox() throws Exception {
-			DeviceDriver driver = DeviceDriver.getDriverByName("CiscoIOS12");
+			DeviceDriver driver = TestDrivers.registry().getDriverByName("CiscoIOS12");
 			PythonDiagnostic diagnostic = new PythonDiagnostic("Toolbox diagnostic", true, null, AttributeType.TEXT, ""
 				+ "from netshot.toolbox import ConfigTree\n"
 				+ "def diagnose(cli, device, diagnostic):\n"

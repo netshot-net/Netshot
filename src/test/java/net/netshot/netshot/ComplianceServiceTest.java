@@ -64,8 +64,6 @@ import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -99,16 +97,16 @@ class ComplianceServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
-			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime()));
-		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), DriverRegistry.shared());
-		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), DriverRegistry.shared());
+			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry()));
+		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry());
+		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry());
 		this.groupId = this.transactions.write(session -> {
 			StaticDeviceGroup group = new StaticDeviceGroup("Group");
 			session.persist(group);

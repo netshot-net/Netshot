@@ -701,7 +701,7 @@ public class TaskService {
 	private void validateUserInputs(TaskCreation c) {
 		try {
 			DeviceJsScript jsScript = new DeviceJsScript("__toValidate", c.driver(), c.script(), c.author());
-			jsScript.validateUserInputs(c.userInputs());
+			jsScript.validateUserInputs(this.driverRegistry, c.userInputs());
 		}
 		catch (IllegalArgumentException e) {
 			log.warn("Invalid script.");

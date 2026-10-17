@@ -33,7 +33,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
-import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.task.engine.TaskContext;
 
 @Entity
@@ -89,15 +89,6 @@ public class DeviceJsScript {
 		this.author = author;
 	}
 
-	@Transient
-	public String getRealDeviceType() {
-		DeviceDriver driver = DeviceDriver.getDriverByName(this.deviceDriver);
-		if (driver == null) {
-			return "Unknwon driver";
-		}
-		return driver.getDescription();
-	}
-
 	/**
 	 * Create a task context which does nothing.
 	 *
@@ -125,11 +116,12 @@ public class DeviceJsScript {
 	/**
 	 * Actually populate user input definitions by evaluating the script and extract Input variable.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @throws IllegalArgumentException if the script is invalid
 	 */
-	public void extractUserInputDefinitions() throws IllegalArgumentException {
+	public void extractUserInputDefinitions(DriverRegistry driverRegistry) throws IllegalArgumentException {
 		if (this.userInputDefinitions == null) {
-			final UserDeviceScript jsScript = new UserDeviceScript(this.deviceDriver, this.script, this.makeVoidLogger());
+			final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, this.deviceDriver, this.script, this.makeVoidLogger());
 			this.userInputDefinitions = jsScript.extractInputDefinitions();
 		}
 	}
@@ -137,11 +129,12 @@ public class DeviceJsScript {
 	/**
 	 * Validate passed user inputs against input definitions.
 	 *
+	 * @param driverRegistry the loaded device drivers
 	 * @param userInputs the data to validate
 	 * @throws IllegalArgumentException if validation fails
 	 */
-	public void validateUserInputs(Map<String, String> userInputs) throws IllegalArgumentException {
-		final UserDeviceScript jsScript = new UserDeviceScript(this.deviceDriver, this.script, this.makeVoidLogger());
+	public void validateUserInputs(DriverRegistry driverRegistry, Map<String, String> userInputs) throws IllegalArgumentException {
+		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, this.deviceDriver, this.script, this.makeVoidLogger());
 		jsScript.setUserInputValues(userInputs);
 		jsScript.validateUserInputs();
 	}

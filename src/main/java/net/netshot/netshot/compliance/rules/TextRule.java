@@ -23,12 +23,10 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.driver.DeviceDriver;
 
 @Entity
 @OnDelete(action = OnDeleteAction.CASCADE)
@@ -85,20 +83,6 @@ public class TextRule extends Rule {
 		this.text = text;
 		if (this.text != null) {
 			this.text = this.text.replace("\r", "");
-		}
-	}
-
-	@Transient
-	public String getDeviceDriverDescription() {
-		if ("".equals(deviceDriver)) {
-			return "";
-		}
-		try {
-			DeviceDriver d = DeviceDriver.getDriverByName(deviceDriver);
-			return d.getDescription();
-		}
-		catch (Exception e) {
-			return "Unknown driver";
 		}
 	}
 

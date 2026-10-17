@@ -697,16 +697,16 @@ public class Netshot extends Thread {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Wiring.init();
+			Wiring wiring = Wiring.init();
 
 			Netshot.loadModuleConfigs();
 
 			log.info("Loading the device drivers.");
-			Wiring.get().driverRegistry().refresh();
+			wiring.driverRegistry().refresh();
 			log.info("Starting the Syslog server.");
-			SyslogServer.init();
+			SyslogServer.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
 			log.info("Starting the SNMP v1/v2c/v3 trap receiver.");
-			SnmpTrapReceiver.init();
+			SnmpTrapReceiver.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
 			log.info("Starting the SSH/SCP/SFTP server.");
 			SshServer.init();
 			//log.info("Starting the TFTP server.");
@@ -716,19 +716,19 @@ public class Netshot extends Thread {
 			TaskLockManager.init(Netshot.getConfig("netshot.cluster.enabled", false));
 
 			log.info("Starting the clustering manager.");
-			ClusterManager.init();
+			ClusterManager.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
 
 			log.info("Starting the Vault token refresh daemon.");
 			VaultManager.init();
 
 			log.info("Initializing the task manager.");
-			TaskManager.init();
+			TaskManager.init(wiring.taskJobFactory());
 			log.info("Scheduling the existing tasks.");
 			TaskManager.rescheduleAll();
 			log.info("Cancelling orphaned delayed tasks.");
 			TaskManager.cancelOrphanedDelayedTasks();
 			log.info("Starting the REST service.");
-			RestServer.init(Wiring.get().binder());
+			RestServer.init(wiring.binder());
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {

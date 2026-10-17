@@ -48,6 +48,7 @@ import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
 import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.task.Task;
 
@@ -64,6 +65,7 @@ import net.netshot.netshot.task.Task;
 public class DeviceResource {
 
 	private final DeviceService deviceService;
+	private final DriverRegistry driverRegistry;
 
 	@Context
 	private HttpServletRequest request;
@@ -75,10 +77,12 @@ public class DeviceResource {
 	 * Instantiates the resource.
 	 *
 	 * @param deviceService the device use cases
+	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public DeviceResource(DeviceService deviceService) {
+	public DeviceResource(DeviceService deviceService, DriverRegistry driverRegistry) {
 		this.deviceService = deviceService;
+		this.driverRegistry = driverRegistry;
 	}
 
 	/**
@@ -126,7 +130,7 @@ public class DeviceResource {
 	public DeviceDto getDevice(@PathParam("id") @Parameter(description = "Device ID") Long id)
 		throws WebApplicationException {
 		log.debug("REST request, device {}.", id);
-		return DeviceMapper.toDto(this.deviceService.get(id));
+		return DeviceMapper.toDto(this.driverRegistry, this.deviceService.get(id));
 	}
 
 	/**
@@ -152,7 +156,7 @@ public class DeviceResource {
 		User user = (User) this.securityContext.getUserPrincipal();
 		Task task = this.deviceService.create(DeviceMapper.toCreation(device, user.getUsername()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
-		return TaskMapper.toDto(task);
+		return TaskMapper.toDto(this.driverRegistry, task);
 	}
 
 	/**
@@ -202,6 +206,6 @@ public class DeviceResource {
 	public DeviceDto setDevice(@PathParam("id") @Parameter(description = "Device ID") Long id, UpdateDeviceRequest rsDevice)
 		throws WebApplicationException {
 		log.debug("REST request, edit device {}.", id);
-		return DeviceMapper.toDto(this.deviceService.update(id, DeviceMapper.toUpdate(rsDevice)));
+		return DeviceMapper.toDto(this.driverRegistry, this.deviceService.update(id, DeviceMapper.toUpdate(rsDevice)));
 	}
 }

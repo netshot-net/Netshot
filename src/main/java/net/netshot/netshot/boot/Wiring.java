@@ -50,6 +50,7 @@ import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DeviceDriverService;
+import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.hook.HookRepository;
 import net.netshot.netshot.hook.HookService;
@@ -62,6 +63,7 @@ import net.netshot.netshot.inventory.domain.DomainRepository;
 import net.netshot.netshot.inventory.domain.DomainService;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Database;
@@ -111,7 +113,7 @@ import net.netshot.netshot.vault.VaultManager;
  * injection: {@link #binder()} is handed to the web application, which registers
  * it into Jersey. Code which is
  * not created by an injection container (Quartz jobs, cluster code, entities)
- * can only reach them through {@link #get()}.</p>
+ * gets what it needs from the entry point ({@code Netshot.main}) or from the handlers.</p>
  */
 public final class Wiring {
 
@@ -169,11 +171,14 @@ public final class Wiring {
 	/**
 	 * Builds the objects of the application. Each feature adds its own block
 	 * (repositories, then services).
+	 *
+	 * @param driverRegistry the registry of the device drivers
 	 */
-	private Wiring() {
+	private Wiring(DriverRegistry driverRegistry) {
 		this.transactions = new Transactions();
 		// Drivers
-		this.driverRegistry = DriverRegistry.shared();
+		this.driverRegistry = driverRegistry;
+		Finder.setDriverRegistry(driverRegistry);
 		// Device
 		DeviceRepository deviceRepository = new DeviceRepository();
 		this.deviceService = new DeviceService(this.transactions, deviceRepository, TaskManager::addTask, this.driverRegistry);
@@ -182,7 +187,7 @@ public final class Wiring {
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.jsRuleRuntime = new JsRuleRuntime();
 		this.pyRuleRuntime = new PyRuleRuntime();
-		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime);
+		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry);
 		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository, this.ruleEvaluators);
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), this.driverRegistry);
@@ -192,14 +197,14 @@ public final class Wiring {
 		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine(),
 			this.driverRegistry);
 		// Reports
-		this.reportService = new ReportService(this.transactions, new ReportRepository());
+		this.reportService = new ReportService(this.transactions, new ReportRepository(), this.driverRegistry);
 		// Inventory
 		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
 		this.deviceDriverService = new DeviceDriverService(this.driverRegistry);
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
 		this.groupService = new GroupService(this.transactions, new GroupRepository());
 		this.searchService = new SearchService(this.transactions, new SearchRepository());
-		this.configService = new ConfigService(this.transactions, new ConfigRepository());
+		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
 		// AAA and system
 		UserRepository userRepository = new UserRepository();
 		this.userService = new UserService(this.transactions, userRepository);
@@ -225,7 +230,7 @@ public final class Wiring {
 		this.hookService = new HookService(this.transactions, new HookRepository());
 		// Events
 		this.domainEvents = new DomainEvents();
-		new HookDispatcher(this.hookService, this.taskService, new WebHookSender()).register(this.domainEvents);
+		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
 		TaskSubmitter taskSubmitter = TaskManager::addTask;
 		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(TaskManager::addTask);
@@ -237,12 +242,12 @@ public final class Wiring {
 			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(taskSubmitter),
-			new RunDiagnosticsHandler(this.diagnosticAdapters, taskSubmitter),
+			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter),
+			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter),
 			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
 			new ScanSubnetsHandler(childTaskOrchestrator),
 			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(taskSubmitter)));
+			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents);
 	}
 
@@ -252,8 +257,18 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring init() {
+		return init(new DriverRegistry(new DriverLoader()));
+	}
+
+	/**
+	 * Initializes the database access and builds the wiring around an existing registry of drivers.
+	 *
+	 * @param driverRegistry the registry of the device drivers (loaded or not)
+	 * @return the new wiring
+	 */
+	public static synchronized Wiring init(DriverRegistry driverRegistry) {
 		Database.init(EntityModel.build());
-		instance = new Wiring();
+		instance = new Wiring(driverRegistry);
 		return instance;
 	}
 
@@ -261,9 +276,8 @@ public final class Wiring {
 	 * Gets the wiring, for the code which cannot receive its dependencies by injection.
 	 *
 	 * <p><b>Transitional:</b> a static lookup is a service locator, which hides the dependencies
-	 * of its callers. It only exists for the code not yet created by an injection
-	 * container (Quartz jobs, cluster code), and is meant to disappear as such code gets
-	 * its dependencies explicitly. Do not use it from new code which can be injected.</p>
+	 * of its callers. Nothing in the main code uses it any more; it remains for the tests.
+	 * Do not use it from new code.</p>
 	 *
 	 * @return the wiring
 	 * @throws IllegalStateException if {@link #init()} has not been called yet

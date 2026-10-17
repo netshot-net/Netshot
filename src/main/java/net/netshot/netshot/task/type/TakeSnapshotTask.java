@@ -18,19 +18,14 @@
  */
 package net.netshot.netshot.task.type;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.quartz.JobKey;
 
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskLockManager;
 
@@ -41,28 +36,6 @@ import net.netshot.netshot.task.engine.TaskLockManager;
 @DiscriminatorValue("TakeSnapshotTask")
 @Slf4j
 public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
-
-	/** The scheduled automatic snapshots. */
-	private static Set<Long> scheduledAutoSnapshots = ConcurrentHashMap.newKeySet();
-
-	/**
-	 * Clear scheduled auto snapshot.
-	 *
-	 * @param deviceId the device
-	 */
-	public static void clearScheduledAutoSnapshot(Long deviceId) {
-		scheduledAutoSnapshots.remove(deviceId);
-	}
-
-	/**
-	 * Check whether an automatic snapshot is queued for the given device.
-	 *
-	 * @param deviceId the device
-	 * @return true, if successful
-	 */
-	public static boolean checkAutoSnapshot(Long deviceId) {
-		return scheduledAutoSnapshots.add(deviceId);
-	}
 
 	/**
 	 * Instantiates a new take snapshot task.
@@ -154,38 +127,13 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 		return task;
 	}
 
-	/**
-	 * Schedules an automatic snapshot of the device with the given address, if needed.
-	 *
-	 * @param drivers the names of the drivers requesting a snapshot
-	 * @param address the address of the device
-	 * @return true if the request was handled
-	 * @deprecated use {@link net.netshot.netshot.task.AutoSnapshotScheduler}; kept for the callers which can't be injected
-	 */
-	@Deprecated
-	public static boolean scheduleSnapshotIfNeeded(List<String> drivers, Network4Address address) {
-		return Wiring.get().autoSnapshotScheduler().scheduleSnapshotIfNeeded(drivers, address);
-	}
-
-	/**
-	 * Schedules an automatic snapshot of the given device, if needed.
-	 *
-	 * @param deviceId the device ID
-	 * @return true if the request was handled
-	 * @deprecated use {@link net.netshot.netshot.task.AutoSnapshotScheduler}; kept for the callers which can't be injected
-	 */
-	@Deprecated
-	public static boolean scheduleSnapshotIfNeeded(long deviceId) {
-		return Wiring.get().autoSnapshotScheduler().scheduleSnapshotIfNeeded(deviceId);
-	}
-
 	/*(non-Javadoc)
 	 * @see net.netshot.netshot.task.Task#onSchedule()
 	 */
 	@Override
 	public void onSchedule() {
 		if (this.isAutomatic()) {
-			checkAutoSnapshot(this.getDevice().getId());
+			AutoSnapshotScheduler.checkAutoSnapshot(this.getDevice().getId());
 		}
 	}
 
@@ -194,7 +142,7 @@ public final class TakeSnapshotTask extends Task implements DeviceBasedTask {
 	 */
 	@Override
 	public void onCancel() {
-		clearScheduledAutoSnapshot(this.device.getId());
+		AutoSnapshotScheduler.clearScheduledAutoSnapshot(this.device.getId());
 	}
 
 	/*

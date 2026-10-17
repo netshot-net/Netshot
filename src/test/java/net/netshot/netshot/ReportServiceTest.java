@@ -52,7 +52,6 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
@@ -116,11 +115,11 @@ class ReportServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
-		this.service = new ReportService(this.transactions, new ReportRepository());
+		this.service = new ReportService(this.transactions, new ReportRepository(), TestDrivers.registry());
 		this.seed();
 	}
 
@@ -179,7 +178,7 @@ class ReportServiceTest extends WithDatabaseTest {
 		});
 		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
-			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime()));
+			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry()));
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).getId();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).getId();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).getId();

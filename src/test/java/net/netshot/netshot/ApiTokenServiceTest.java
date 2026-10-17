@@ -33,7 +33,6 @@ import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -60,9 +59,9 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new ApiTokenService(this.transactions, this.repository);
 	}

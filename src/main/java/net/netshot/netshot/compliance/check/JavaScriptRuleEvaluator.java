@@ -37,6 +37,7 @@ import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -55,6 +56,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	};
 
 	private final JsRuleRuntime runtime;
+	private final DriverRegistry driverRegistry;
 
 	/** Is the script of the rule a JS-valid rule (once prepared, for the lifetime of the rule instance)? */
 	private final RuleStateCache<JavaScriptRule, Boolean> validity = new RuleStateCache<>();
@@ -63,9 +65,11 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	 * Builds the evaluator.
 	 *
 	 * @param runtime the JavaScript runtime of the rules
+	 * @param driverRegistry the loaded device drivers
 	 */
-	public JavaScriptRuleEvaluator(JsRuleRuntime runtime) {
+	public JavaScriptRuleEvaluator(JsRuleRuntime runtime, DriverRegistry driverRegistry) {
 		this.runtime = runtime;
+		this.driverRegistry = driverRegistry;
 	}
 
 	@Override
@@ -139,7 +143,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 				if (device.isExempted(rule)) {
 					return new CheckResult(rule, device, ResultOption.EXEMPTED);
 				}
-				JsDeviceHelper deviceHelper = new JsDeviceHelper(device, null, session, taskContext, true);
+				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, session, taskContext, true);
 				result = runBeforeDeadline(executor,
 					() -> context.getBindings("js").getMember("_check").execute(deviceHelper), deadline);
 			}

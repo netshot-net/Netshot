@@ -98,10 +98,10 @@ public class ReportExportTest extends WithDatabaseTest {
 		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		net.netshot.netshot.driver.DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
-		TaskManager.init();
+		Wiring.init(TestDrivers.registry());
+		TaskManager.init(Wiring.get().taskJobFactory());
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
 			scheduler.standby();
 			scheduler.clear();

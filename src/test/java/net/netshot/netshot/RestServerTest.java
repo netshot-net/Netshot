@@ -142,8 +142,8 @@ public class RestServerTest extends WithDatabaseTest {
 		Netshot.initConfig(getNetshotConfig());
 		Netshot.loadModuleConfigs();
 		Database.update();
-		Wiring.init();
-		TaskManager.init();
+		Wiring.init(TestDrivers.registry());
+		TaskManager.init(Wiring.get().taskJobFactory());
 		RestServer.init(Wiring.get().binder());
 		Thread.sleep(1000);
 	}
@@ -1600,7 +1600,7 @@ public class RestServerTest extends WithDatabaseTest {
 		}
 
 		private DeviceDriver getTestDriver() {
-			return DeviceDriver.getDriverByName("CiscoIOS12");
+			return TestDrivers.registry().getDriverByName("CiscoIOS12");
 		}
 
 		private void assertDevicesEqual(Device d1, Device d2, DeviceField... ignoredFields) {
@@ -1618,7 +1618,7 @@ public class RestServerTest extends WithDatabaseTest {
 
 		@BeforeAll
 		static void loadDrivers() throws Exception {
-			DeviceDriver.refreshDrivers();
+			TestDrivers.reload();
 		}
 
 		@AfterEach
@@ -1638,7 +1638,7 @@ public class RestServerTest extends WithDatabaseTest {
 		@Test
 		@DisplayName("List device types")
 		void listDeviceTypes() throws Exception {
-			List<DeviceDriver> drivers = DeviceDriver.getAllDrivers();
+			List<DeviceDriver> drivers = TestDrivers.registry().getAllDrivers();
 			HttpResponse<JsonNode> response = apiClient.get("/devicetypes");
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
@@ -1795,7 +1795,7 @@ public class RestServerTest extends WithDatabaseTest {
 					.put("cachedIpAddress", device1.getMgmtAddress())
 					.put("status", device1.getStatus().toString())
 					.put("driver", device1.getDriver())
-					.put("realDeviceType", device1.getDeviceDriver().getDescription())
+					.put("realDeviceType", TestDrivers.registry().forDevice(device1).getDescription())
 					.put("serialNumber", device1.getSerialNumber())
 					.put("softwareVersion", device1.getSoftwareVersion())
 					.put("softwareLevel", device1.getSoftwareLevel().toString())
@@ -2508,7 +2508,7 @@ public class RestServerTest extends WithDatabaseTest {
 
 		@BeforeAll
 		static void loadDrivers() throws Exception {
-			DeviceDriver.refreshDrivers();
+			TestDrivers.reload();
 		}
 
 		@AfterEach
@@ -2587,11 +2587,11 @@ public class RestServerTest extends WithDatabaseTest {
 
 		@BeforeAll
 		static void loadDrivers() throws Exception {
-			DeviceDriver.refreshDrivers();
+			TestDrivers.reload();
 		}
 
 		private DeviceDriver getTestDriver() {
-			return DeviceDriver.getDriverByName("CiscoIOS12");
+			return TestDrivers.registry().getDriverByName("CiscoIOS12");
 		}
 
 		@AfterEach

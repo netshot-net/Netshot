@@ -289,7 +289,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 		}
 
 		@BeforeEach
@@ -577,7 +577,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 		}
 
 		@BeforeEach
@@ -667,7 +667,7 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
+			Wiring.init(TestDrivers.registry());
 			ConfigBinaryFileAttribute.loadConfig();
 		}
 
@@ -795,8 +795,8 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.level", "WARN");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
-			TaskManager.init();
+			Wiring.init(TestDrivers.registry());
+			TaskManager.init(Wiring.get().taskJobFactory());
 		}
 
 		@AfterEach
@@ -927,8 +927,8 @@ public class TaskTest extends WithDatabaseTest {
 			config.setProperty("netshot.tasks.devicelock.pollintervalms", "500");
 			Netshot.initConfig(config);
 			Database.update();
-			Wiring.init();
-			TaskManager.init();
+			Wiring.init(TestDrivers.registry());
+			TaskManager.init(Wiring.get().taskJobFactory());
 			TaskLockManager.init(false);
 		}
 

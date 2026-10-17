@@ -31,7 +31,6 @@ import org.junit.jupiter.api.function.Executable;
 
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -61,9 +60,9 @@ class DomainServiceTest extends WithDatabaseTest {
 		config.setProperty("netshot.log.level", "WARN");
 		Netshot.initConfig(config);
 		Netshot.loadModuleConfigs();
-		DeviceDriver.refreshDrivers();
+		TestDrivers.reload();
 		Database.update();
-		Wiring.init();
+		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new DomainService(this.transactions, new DomainRepository());
 	}
