@@ -43,8 +43,10 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 /**
  * Architecture rules encoding the TARGET layering (see the layering refactor plan).
  *
- * <p>Every rule is frozen with FreezingArchRule: violations existing when the store was generated are recorded
- * in src/test/resources/archunit_store and tolerated; only NEW violations fail the build.</p>
+ * <p>Most rules are strict. The three rules which still have violations to remove with the planned ORM change
+ * (entities using the Session or Database, cycles between feature slices) are frozen with FreezingArchRule:
+ * violations existing when the store was generated are recorded in src/test/resources/archunit_store and
+ * tolerated; only NEW violations fail the build.</p>
  *
  * <p>Regenerating the store after a planned package move (violation descriptions contain class names, so a
  * rename makes old entries stale and the moved ones "new"): delete src/test/resources/archunit_store and run
@@ -76,43 +78,43 @@ public class ArchitectureTest {
 	// ---------------------------------------------------------------------
 
 	@ArchTest
-	static final ArchRule platformDoesNotDependOnFeatures = freeze(
+	static final ArchRule platformDoesNotDependOnFeatures = 
 		noClasses().that().resideInAPackage(ROOT + "platform..")
 			.should().dependOnClassesThat().resideInAnyPackage(FEATURES)
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	@ArchTest
-	static final ArchRule onlyBootDependsOnApi = freeze(
+	static final ArchRule onlyBootDependsOnApi = 
 		noClasses().that().resideOutsideOfPackages(ROOT + "boot..", ROOT + "api..")
 			.and().doNotHaveFullyQualifiedName(ROOT + "Netshot")
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api..")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	/** The composition root hands the services to the API channels, which therefore never reach back to it. */
 	@ArchTest
-	static final ArchRule apiDoesNotDependOnBoot = freeze(
+	static final ArchRule apiDoesNotDependOnBoot = 
 		noClasses().that().resideInAPackage(ROOT + "api..")
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "boot..")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	/** API channels are independent: each owns its DTOs, and they only share services and entities. */
 	@ArchTest
-	static final ArchRule restChannelDoesNotDependOnHookChannel = freeze(
+	static final ArchRule restChannelDoesNotDependOnHookChannel = 
 		noClasses().that().resideInAPackage(ROOT + "api.rest..")
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api.hook..")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	@ArchTest
-	static final ArchRule hookChannelDoesNotDependOnRestChannel = freeze(
+	static final ArchRule hookChannelDoesNotDependOnRestChannel = 
 		noClasses().that().resideInAPackage(ROOT + "api.hook..")
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api.rest..")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	@ArchTest
-	static final ArchRule apiDoesNotUseSession = freeze(
+	static final ArchRule apiDoesNotUseSession = 
 		noClasses().that().resideInAPackage(ROOT + "api..")
 			.should().dependOnClassesThat().haveFullyQualifiedName("org.hibernate.Session")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	// ---------------------------------------------------------------------
 	// Rules independent of package names (entities, JAX-RS, cycles)
@@ -126,16 +128,20 @@ public class ArchitectureTest {
 			.allowEmptyShould(true));
 
 	@ArchTest
-	static final ArchRule entitiesDoNotUseJsonView = freeze(
+	static final ArchRule entitiesDoNotUseJsonView = 
 		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
+			.or().areAnnotatedWith("jakarta.persistence.MappedSuperclass")
+			.or().areAnnotatedWith("jakarta.persistence.Embeddable")
 			.should().dependOnClassesThat().haveFullyQualifiedName("com.fasterxml.jackson.annotation.JsonView")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	@ArchTest
-	static final ArchRule entitiesDoNotUseJaxb = freeze(
+	static final ArchRule entitiesDoNotUseJaxb = 
 		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
+			.or().areAnnotatedWith("jakarta.persistence.MappedSuperclass")
+			.or().areAnnotatedWith("jakarta.persistence.Embeddable")
 			.should().dependOnClassesThat().resideInAPackage("jakarta.xml.bind.annotation..")
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	@ArchTest
 	static final ArchRule entitiesDoNotUseDatabase = freeze(
@@ -149,7 +155,7 @@ public class ArchitectureTest {
 	 * {@code core} types (Response, MediaType, Form...) and the ProcessingException the client throws.
 	 */
 	@ArchTest
-	static final ArchRule jaxRsServerApiOnlyInRestLayer = freeze(
+	static final ArchRule jaxRsServerApiOnlyInRestLayer = 
 		noClasses().that().resideOutsideOfPackages(ROOT + "api..", ROOT + "platform.rest..")
 			.should().dependOnClassesThat(
 				DescribedPredicate.and(
@@ -157,17 +163,17 @@ public class ArchitectureTest {
 					DescribedPredicate.not(JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.client..")),
 					DescribedPredicate.not(JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.core..")),
 					DescribedPredicate.not(JavaClass.Predicates.equivalentTo(jakarta.ws.rs.ProcessingException.class))))
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	@ArchTest
-	static final ArchRule jaxRsClientApiOnlyForOutgoingCalls = freeze(
+	static final ArchRule jaxRsClientApiOnlyForOutgoingCalls = 
 		noClasses().that().resideOutsideOfPackages(CLIENT_USERS)
 			.should().dependOnClassesThat(
 				DescribedPredicate.or(
 					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.client.."),
 					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.core.."),
 					JavaClass.Predicates.equivalentTo(jakarta.ws.rs.ProcessingException.class)))
-			.allowEmptyShould(true));
+			.allowEmptyShould(true);
 
 	/**
 	 * No cycles between top-level slices (net.netshot.netshot.(*)..). ArchUnit's own slices().beFreeOfCycles()
