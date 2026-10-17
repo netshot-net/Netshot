@@ -204,13 +204,13 @@ class CredentialSetServiceTest extends WithDatabaseTest {
 	}
 
 	@Test
-	@DisplayName("create() refuses a credential set which already has an ID (an unexpected failure, not a Netshot error)")
+	@DisplayName("create() ignores the ID of the given credential set: the database assigns one")
 	void createWithId() {
 		DeviceSshAccount ssh = new DeviceSshAccount("u", "p", null, this.nextName());
-		ssh.setId(77);
-		int before = this.service.list(Page.ALL).size();
-		Assertions.assertThrows(RuntimeException.class, () -> this.service.create(ssh));
-		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
+		ssh.setId(77_777_777L);
+		DeviceCredentialSet created = this.service.create(ssh);
+		Assertions.assertNotEquals(77_777_777L, created.getId());
+		Assertions.assertEquals(ssh.getName(), this.stored(created.getId()).getName());
 	}
 
 	@Test
