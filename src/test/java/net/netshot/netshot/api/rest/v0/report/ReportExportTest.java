@@ -121,6 +121,7 @@ public class ReportExportTest extends WithDatabaseTest {
 
 	@AfterAll
 	void shutdown() throws Exception {
+		RestServer.shutdown();
 		TimeZone.setDefault(this.previousTimeZone);
 		if (this.binaryFolder != null) {
 			try (Stream<Path> files = Files.walk(this.binaryFolder)) {
