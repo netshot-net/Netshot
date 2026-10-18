@@ -41,13 +41,13 @@ import net.netshot.netshot.ApiContractGolden.Format;
  * class registers an instance with {@code @RegisterExtension}: the cases checked without an explicit name
  * are named {@code <test method>-<n>}, {@code n} counting the checks of the method.</p>
  */
-final class DtoContract implements BeforeEachCallback {
+public final class DtoContract implements BeforeEachCallback {
 
 	/** System property, set to true to rewrite the expected files. */
-	static final String UPDATE_PROPERTY = "netshot.dto.contract.update";
+	public static final String UPDATE_PROPERTY = "netshot.dto.contract.update";
 
 	/** Directory holding the expected files. */
-	static final Path DIR = Path.of("src", "test", "resources", "dto-contract");
+	public static final Path DIR = Path.of("src", "test", "resources", "dto-contract");
 
 	/**
 	 * Start time far away from any value the tests hold: no number is taken for a timestamp generated
@@ -64,7 +64,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * Builds the store of a test class.
 	 * @param testClass the test class (its simple name is the directory name)
 	 */
-	DtoContract(Class<?> testClass) {
+	public DtoContract(Class<?> testClass) {
 		this(testClass, NEVER);
 	}
 
@@ -74,12 +74,12 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param startTime the time the test started (epoch milliseconds), to turn the timestamps generated while
 	 * it runs into placeholders (a test whose objects hold the current time)
 	 */
-	DtoContract(Class<?> testClass, long startTime) {
+	public DtoContract(Class<?> testClass, long startTime) {
 		this.dir = DIR.resolve(testClass.getSimpleName());
 		this.golden = new ApiContractGolden(startTime);
 	}
 
-	static boolean isUpdateMode() {
+	public static boolean isUpdateMode() {
 		return Boolean.parseBoolean(System.getProperty(UPDATE_PROPERTY, "false"));
 	}
 
@@ -94,7 +94,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param json what the DTO writes in JSON
 	 * @param xml what the DTO writes in XML
 	 */
-	void checkBoth(byte[] json, byte[] xml) {
+	public void checkBoth(byte[] json, byte[] xml) {
 		this.checkBoth(json, xml, ApiContractGolden.Transform.NONE);
 	}
 
@@ -105,7 +105,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param xml what the DTO writes in XML
 	 * @param transform the projection to apply to the bodies before they are compared
 	 */
-	void checkBoth(byte[] json, byte[] xml, ApiContractGolden.Transform transform) {
+	public void checkBoth(byte[] json, byte[] xml, ApiContractGolden.Transform transform) {
 		int count = this.counters.merge(this.method, 1, Integer::sum);
 		String name = this.method + "-" + count;
 		this.check(name, Format.JSON, json, transform);
@@ -118,7 +118,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param format the format of the body
 	 * @param body the body written by the DTO
 	 */
-	void check(String name, Format format, byte[] body) {
+	public void check(String name, Format format, byte[] body) {
 		this.check(name, format, body, ApiContractGolden.Transform.NONE);
 	}
 
@@ -129,7 +129,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param body the body written by the DTO
 	 * @param transform the projection to apply to the body before it is compared
 	 */
-	void check(String name, Format format, byte[] body, ApiContractGolden.Transform transform) {
+	public void check(String name, Format format, byte[] body, ApiContractGolden.Transform transform) {
 		this.checkCanonical(name, format, this.golden.canonicalize(format, body, transform, false));
 	}
 
@@ -139,7 +139,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param format the format of the body
 	 * @param actual the canonical text
 	 */
-	void checkCanonical(String name, Format format, String actual) {
+	public void checkCanonical(String name, Format format, String actual) {
 		String fileName = name.replaceAll("[^A-Za-z0-9._-]+", "_") + "." + format.extension;
 		if (isUpdateMode()) {
 			ApiContractGolden.writeGolden(this.dir, fileName, actual);
@@ -159,7 +159,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param name the case name (the extension is {@code txt})
 	 * @param actual the text
 	 */
-	void checkText(String name, String actual) {
+	public void checkText(String name, String actual) {
 		String fileName = name.replaceAll("[^A-Za-z0-9._-]+", "_") + ".txt";
 		if (isUpdateMode()) {
 			ApiContractGolden.writeGolden(this.dir, fileName, actual);
@@ -178,7 +178,7 @@ final class DtoContract implements BeforeEachCallback {
 	 * @param description the properties of the object
 	 * @return the text
 	 */
-	static String render(Object bean, Map<String, Object> description) {
+	public static String render(Object bean, Map<String, Object> description) {
 		if (bean == null) {
 			return "REFUSED\n";
 		}
