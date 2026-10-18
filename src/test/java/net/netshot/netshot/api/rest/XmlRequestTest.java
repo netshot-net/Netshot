@@ -92,6 +92,7 @@ public class XmlRequestTest extends WithDatabaseTest {
 
 	@AfterAll
 	void shutdownSchedulers() throws Exception {
+		RestServer.shutdown();
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
 			scheduler.clear();
 			// Other test classes may rely on a running scheduler.

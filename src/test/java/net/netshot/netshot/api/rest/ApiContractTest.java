@@ -120,6 +120,7 @@ public class ApiContractTest extends WithDatabaseTest {
 
 	@AfterAll
 	void shutdownSchedulers() throws Exception {
+		RestServer.shutdown();
 		TimeZone.setDefault(this.previousTimeZone);
 		if (this.binaryFolder != null) {
 			try (Stream<Path> files = Files.walk(this.binaryFolder)) {
