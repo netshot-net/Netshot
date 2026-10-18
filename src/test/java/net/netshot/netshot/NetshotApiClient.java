@@ -157,7 +157,7 @@ public class NetshotApiClient {
 		};
 	}
 
-	protected ObjectMapper getObjectMapper() {
+	public ObjectMapper getObjectMapper() {
 		if (this.objectMapper == null) {
 			if (this.mediaType.equals(MediaType.APPLICATION_XML_TYPE)) {
 				this.objectMapper = new XmlMapper();
@@ -175,7 +175,7 @@ public class NetshotApiClient {
 		this.objectMapper = null;
 	}
 
-	protected void login() throws IOException, InterruptedException {
+	public void login() throws IOException, InterruptedException {
 		HttpRequest.Builder builder = HttpRequest.newBuilder();
 		builder.version(HttpClient.Version.HTTP_1_1);
 		builder.uri(URI.create(this.apiUrl + "/user"));
@@ -220,7 +220,7 @@ public class NetshotApiClient {
 		this.addSessionCookie(cookie);
 	}
 
-	protected void logout() throws IOException, InterruptedException {
+	public void logout() throws IOException, InterruptedException {
 		if (this.getSessionCookie() == null) {
 			return;
 		}
