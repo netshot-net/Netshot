@@ -95,28 +95,28 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  * normalizer masks), and entities with children are persisted child by child
  * rather than through a cascade over an unordered set.</p>
  */
-final class ApiContractSeed {
+public final class ApiContractSeed {
 
-	static final String ADMIN_TOKEN = "hLXg3ABu1qWJPle3Z3Z22X0aLkx5T354";
-	static final String READONLY_TOKEN = "mwAPEe0mQlBvKuUYYS5MiFsmnVRWZpca";
-	static final String OPERATOR_TOKEN = "vMLKSPWMq9hFRtKkhXbvHhveXEn3Y4BZ";
-	static final String READWRITE_TOKEN = "rCSrr3S3PGsLmi54HFw6a3PbZClpCivk";
-	static final String EXECUTE_TOKEN = "PXlJ4r8VvTObn6hyknI1lwOoxEPJjCDO";
+	public static final String ADMIN_TOKEN = "hLXg3ABu1qWJPle3Z3Z22X0aLkx5T354";
+	public static final String READONLY_TOKEN = "mwAPEe0mQlBvKuUYYS5MiFsmnVRWZpca";
+	public static final String OPERATOR_TOKEN = "vMLKSPWMq9hFRtKkhXbvHhveXEn3Y4BZ";
+	public static final String READWRITE_TOKEN = "rCSrr3S3PGsLmi54HFw6a3PbZClpCivk";
+	public static final String EXECUTE_TOKEN = "PXlJ4r8VvTObn6hyknI1lwOoxEPJjCDO";
 
 	/** Password of the seeded local users. */
-	static final String USER_PASSWORD = "Str0ng!Passw0rd#1";
+	public static final String USER_PASSWORD = "Str0ng!Passw0rd#1";
 
 	/** Fixed dates (milliseconds since 1970). */
-	static final long D2020 = 1577880000000L; // 2020-01-01T12:00:00Z
-	static final long D2021 = 1609502400000L; // 2021-01-01T12:00:00Z
-	static final long D2022 = 1641038400000L; // 2022-01-01T12:00:00Z
-	static final long D2040 = 2208988800000L; // 2040-01-01T00:00:00Z
+	public static final long D2020 = 1577880000000L; // 2020-01-01T12:00:00Z
+	public static final long D2021 = 1609502400000L; // 2021-01-01T12:00:00Z
+	public static final long D2022 = 1641038400000L; // 2022-01-01T12:00:00Z
+	public static final long D2040 = 2208988800000L; // 2040-01-01T00:00:00Z
 
 	private final String apiUrl;
 	private final HttpClient httpClient;
 	private final Map<String, Long> ids = new HashMap<>();
 
-	ApiContractSeed(String apiUrl, HttpClient httpClient) {
+	public ApiContractSeed(String apiUrl, HttpClient httpClient) {
 		this.apiUrl = apiUrl;
 		this.httpClient = httpClient;
 	}
@@ -126,7 +126,7 @@ final class ApiContractSeed {
 	 * @param name the seed name of the object
 	 * @return its ID
 	 */
-	long id(String name) {
+	public long id(String name) {
 		Long id = this.ids.get(name);
 		if (id == null) {
 			throw new IllegalStateException("Unknown seeded object " + name);
@@ -134,7 +134,7 @@ final class ApiContractSeed {
 		return id;
 	}
 
-	void remember(String name, long id) {
+	public void remember(String name, long id) {
 		this.ids.put(name, id);
 	}
 
@@ -145,7 +145,7 @@ final class ApiContractSeed {
 	 * @param body the JSON body (or null)
 	 * @return the response body
 	 */
-	JsonNode call(String method, String path, String body) {
+	public JsonNode call(String method, String path, String body) {
 		try {
 			HttpRequest.Builder request = HttpRequest.newBuilder()
 				.version(HttpClient.Version.HTTP_1_1)
@@ -180,7 +180,7 @@ final class ApiContractSeed {
 		this.remember(name, created.get("id").asLong());
 	}
 
-	void seed() throws Exception {
+	public void seed() throws Exception {
 		this.seedAuth();
 		this.seedDomains();
 		this.seedVault();

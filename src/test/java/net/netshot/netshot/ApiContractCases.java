@@ -34,7 +34,7 @@ import net.netshot.netshot.ApiContractGolden.Transform;
  * <p>Building the catalogue does not touch the database: paths and bodies
  * are suppliers resolved when the case runs.</p>
  */
-final class ApiContractCases {
+public final class ApiContractCases {
 
 	private ApiContractCases() {
 	}
@@ -144,7 +144,7 @@ final class ApiContractCases {
 		}
 	}
 
-	static List<ApiContractCase> all(ApiContractSeed seed) {
+	public static List<ApiContractCase> all(ApiContractSeed seed) {
 		Catalogue c = new Catalogue(seed);
 		reads(c);
 		writes(c);
