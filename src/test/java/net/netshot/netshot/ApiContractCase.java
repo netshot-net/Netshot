@@ -41,17 +41,17 @@ import net.netshot.netshot.ApiContractGolden.Transform;
  * seeded (or once a previous case created something). Building the case list
  * itself does not need a database, which is what the coverage guard relies on.</p>
  */
-final class ApiContractCase {
+public final class ApiContractCase {
 
-	static final String JSON = "application/json";
-	static final String XML = "application/xml";
-	static final String YAML = "application/yaml";
-	static final String TEXT = "text/plain";
-	static final String OCTET = "application/octet-stream";
-	static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+	public static final String JSON = "application/json";
+	public static final String XML = "application/xml";
+	public static final String YAML = "application/yaml";
+	public static final String TEXT = "text/plain";
+	public static final String OCTET = "application/octet-stream";
+	public static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 	/** A raw HTTP response. */
-	record Reply(int status, String contentType, String contentDisposition, byte[] body) {
+	public record Reply(int status, String contentType, String contentDisposition, byte[] body) {
 		long xmlLong(String element) {
 			java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("<" + element + ">(\\d+)</" + element + ">")
 				.matcher(new String(this.body, StandardCharsets.UTF_8));
@@ -66,23 +66,23 @@ final class ApiContractCase {
 		}
 	}
 
-	final String method;
+	public final String method;
 	/** The path template as declared in the JAX-RS annotations, e.g. /devices/{id}. */
-	final String template;
+	public final String template;
 	/** Optional name of the variant (query parameters, payload kind...). */
-	final String variant;
-	final String accept;
-	final Supplier<String> path;
-	final Supplier<String> body;
-	final String requestContentType;
+	public final String variant;
+	public final String accept;
+	public final Supplier<String> path;
+	public final Supplier<String> body;
+	public final String requestContentType;
 	/** API token to use (null: the administrator token). */
-	final String token;
+	public final String token;
 	/** Called with the reply, to capture IDs for the next cases. */
-	final Consumer<Reply> afterReply;
+	public final Consumer<Reply> afterReply;
 	/** Projection applied to the response. */
-	final Transform transform;
+	public final Transform transform;
 	/** Whether the items of the root list have no defined order. */
-	final boolean sortRoot;
+	public final boolean sortRoot;
 
 	private ApiContractCase(Builder builder) {
 		this.method = builder.method;
@@ -98,11 +98,11 @@ final class ApiContractCase {
 		this.sortRoot = builder.sortRoot;
 	}
 
-	static Builder builder(String method, String template) {
+	public static Builder builder(String method, String template) {
 		return new Builder(method, template);
 	}
 
-	Format format() {
+	public Format format() {
 		switch (this.accept) {
 			case XML:
 				return Format.XML;
@@ -124,7 +124,7 @@ final class ApiContractCase {
 	 * or {@code GET_devices__details.xml}.
 	 * @return the file name
 	 */
-	String fileName() {
+	public String fileName() {
 		String base = this.template.replaceAll("^/+", "")
 			.replaceAll("\\{([A-Za-z0-9]+)(:[^}]*)?\\}", "$1")
 			.replace('/', '_');
@@ -138,14 +138,14 @@ final class ApiContractCase {
 	 * @param template the path template
 	 * @return the normalized template
 	 */
-	static String normalizeTemplate(String template) {
+	public static String normalizeTemplate(String template) {
 		String normalized = ("/" + template).replaceAll("/+", "/")
 			.replaceAll("\\{[^}]*\\}", "{}");
 		return normalized.length() > 1 && normalized.endsWith("/")
 			? normalized.substring(0, normalized.length() - 1) : normalized;
 	}
 
-	String key() {
+	public String key() {
 		return this.method + " " + normalizeTemplate(this.template);
 	}
 
@@ -158,7 +158,7 @@ final class ApiContractCase {
 	 * @throws IOException on I/O error
 	 * @throws InterruptedException if interrupted
 	 */
-	Reply send(HttpClient client, String apiUrl, String adminToken) throws IOException, InterruptedException {
+	public Reply send(HttpClient client, String apiUrl, String adminToken) throws IOException, InterruptedException {
 		HttpRequest.Builder request = HttpRequest.newBuilder()
 			.version(HttpClient.Version.HTTP_1_1)
 			.uri(URI.create(apiUrl + this.path.get()))
@@ -186,7 +186,7 @@ final class ApiContractCase {
 	}
 
 	/** Case builder. */
-	static final class Builder {
+	public static final class Builder {
 		private final String method;
 		private final String template;
 		private String variant;
