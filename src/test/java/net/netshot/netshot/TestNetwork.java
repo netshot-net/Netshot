@@ -26,7 +26,7 @@ import java.net.ServerSocket;
 /**
  * Network helpers for the tests starting the embedded HTTP server.
  */
-final class TestNetwork {
+public final class TestNetwork {
 
 	private TestNetwork() {
 	}
@@ -36,7 +36,7 @@ final class TestNetwork {
 	 * don't compete for a fixed port.
 	 * @return a TCP port which was free when checked
 	 */
-	static int freePort() {
+	public static int freePort() {
 		try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
 			socket.setReuseAddress(true);
 			return socket.getLocalPort();
@@ -50,7 +50,7 @@ final class TestNetwork {
 	 * Builds the URL of the REST API served on a free local port.
 	 * @return the API URL
 	 */
-	static String freeLocalApiUrl() {
+	public static String freeLocalApiUrl() {
 		return "http://localhost:" + freePort() + "/api";
 	}
 }

@@ -78,7 +78,7 @@ public abstract class HookSeededTest extends WithDatabaseTest {
 	protected abstract String databaseName();
 
 	@BeforeAll
-	void bootAndSeed() throws Exception {
+	public void bootAndSeed() throws Exception {
 		this.previousTimeZone = TimeZone.getDefault();
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		Properties config = getFreshDatabaseConfig(this.databaseName());
@@ -108,7 +108,8 @@ public abstract class HookSeededTest extends WithDatabaseTest {
 	}
 
 	@AfterAll
-	void shutdown() throws Exception {
+	public void shutdown() throws Exception {
+		RestServer.shutdown();
 		TimeZone.setDefault(this.previousTimeZone);
 		if (this.binaryFolder != null) {
 			try (Stream<Path> files = Files.walk(this.binaryFolder)) {

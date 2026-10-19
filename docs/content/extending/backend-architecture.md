@@ -149,6 +149,15 @@ A `Task` entity holds the data of a task (target, schedule, status, log, result 
 - `DatabaseMigrationTest`: schema upgrades.
 - `ArchitectureTest`: the dependency rules.
 
+### Test layout
+
+A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.rules.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the shared helpers and the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`):
+
+- base classes: `WithDatabaseTest` (database configuration of a schema), `WithRestServerTest` (starts Netshot and the REST server on a free port for the class, stops it afterwards, gives each test an admin `apiClient`), `WithDeviceSimulatorTest` (configuration, drivers and device simulator containers, `dev/device-simulator`), `HookSeededTest`;
+- utilities: `TestConfig.init` (replaces the configuration, as `Netshot.initConfig` is not public), `TestDrivers`, `TestNetwork` (free ports), the `Fake*` doubles, `NetshotApiClient`, and the contract helpers (`ApiContract*`, `DtoContract`).
+
+`TestLayoutTest` fails when a test class is left in the root package, or when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class).
+
 ## Wiring
 
 `boot.Wiring` is the composition root. `Wiring.init()` initializes the database access (with the persistent model from `boot.EntityModel`) and builds the long-lived objects: `Transactions`, then each repository and service (today `DeviceRepository` and `DeviceService`), in dependency order. `Netshot.main` calls it right after the schema update; tests needing a database call the same method.
@@ -206,7 +215,7 @@ In `boot.Wiring.init()` build the repository and the service (a `new` chain, dep
 
 ### 6. Service tests
 
-Write `<Entity>ServiceTest` extending `WithDatabaseTest` (see `DeviceServiceTest`: own schema, `Netshot.initConfig`, `TestDrivers.reload()` (the drivers), `Database.update()`, `Wiring.init(TestDrivers.registry())`, a recording `TaskSubmitter`). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, the side effects, and that what the service returns can be read without a session. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
+Write `<Entity>ServiceTest` in the package of the service, extending `WithDatabaseTest` (see `inventory.device.DeviceServiceTest`: own schema, `TestConfig.init`, `TestDrivers.reload()` (the drivers), `Database.update()`, `Wiring.init(TestDrivers.registry())`, a recording `TaskSubmitter`). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, the side effects, and that what the service returns can be read without a session. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
 
 ### 7. DTOs and mapper
 
@@ -234,7 +243,7 @@ Entities carry no `@JsonView`, JAXB or Jackson annotation: do not add any. If a 
 
 ### 11. Run the checks
 
-`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `apiDoesNotUseSession` entries of the old code disappear and the store only shrinks for this rule. The `noCyclesBetweenFeatureSlices` rule, on the other hand, gets one entry per dependency of each new class of the feature on the other slices of the entity model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices form one big cycle through the entities, so any class of the entity model that uses another one is counted, until the entities are decoupled. Refreeze and check that the other rules neither grow nor get a new entry:
+`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `API_DOES_NOT_USE_SESSION` entries of the old code disappear and the store only shrinks for this rule. The `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule, on the other hand, gets one entry per dependency of each new class of the feature on the other slices of the entity model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices form one big cycle through the entities, so any class of the entity model that uses another one is counted, until the entities are decoupled. Refreeze and check that the other rules neither grow nor get a new entry:
 
 ```bash
 ./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true

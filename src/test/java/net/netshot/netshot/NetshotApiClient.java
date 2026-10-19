@@ -56,6 +56,8 @@ public class NetshotApiClient {
 	 * Simple exception to catch unexpected response and attach it.
 	 */
 	public static class WrongApiResponseException extends IOException {
+		private static final long serialVersionUID = 1L;
+
 		@Getter
 		private HttpResponse<?> response;
 
@@ -122,15 +124,15 @@ public class NetshotApiClient {
 		this.password = password;
 	}
 
-	public void setLogin(String username, String password) {
-		this.username = username;
-		this.password = password;
+	public void setLogin(String loginUsername, String loginPassword) {
+		this.username = loginUsername;
+		this.password = loginPassword;
 		this.apiToken = null;
 	}
 
-	public void setOidcCodeLogin(String authorizationCode, String redirectUri) {
-		this.authorizationCode = authorizationCode;
-		this.redirectUri = redirectUri;
+	public void setOidcCodeLogin(String newAuthorizationCode, String newRedirectUri) {
+		this.authorizationCode = newAuthorizationCode;
+		this.redirectUri = newRedirectUri;
 		this.apiToken = null;
 	}
 
@@ -146,8 +148,7 @@ public class NetshotApiClient {
 				HttpResponse.BodySubscriber<String> upstream = HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8);
 				return HttpResponse.BodySubscribers.mapping(upstream, (String body) -> {
 					try {
-						ObjectMapper objectMapper = getObjectMapper();
-						return objectMapper.readTree(body);
+						return getObjectMapper().readTree(body);
 					}
 					catch (IOException e) {
 						throw new UncheckedIOException(e);
@@ -157,7 +158,7 @@ public class NetshotApiClient {
 		};
 	}
 
-	protected ObjectMapper getObjectMapper() {
+	public ObjectMapper getObjectMapper() {
 		if (this.objectMapper == null) {
 			if (this.mediaType.equals(MediaType.APPLICATION_XML_TYPE)) {
 				this.objectMapper = new XmlMapper();
@@ -175,7 +176,7 @@ public class NetshotApiClient {
 		this.objectMapper = null;
 	}
 
-	protected void login() throws IOException, InterruptedException {
+	public void login() throws IOException, InterruptedException {
 		HttpRequest.Builder builder = HttpRequest.newBuilder();
 		builder.version(HttpClient.Version.HTTP_1_1);
 		builder.uri(URI.create(this.apiUrl + "/user"));
@@ -220,7 +221,7 @@ public class NetshotApiClient {
 		this.addSessionCookie(cookie);
 	}
 
-	protected void logout() throws IOException, InterruptedException {
+	public void logout() throws IOException, InterruptedException {
 		if (this.getSessionCookie() == null) {
 			return;
 		}
