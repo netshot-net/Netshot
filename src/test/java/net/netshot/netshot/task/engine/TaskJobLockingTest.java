@@ -23,7 +23,6 @@ import java.util.Date;
 import org.hibernate.Session;
 import org.quartz.JobExecutionException;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -63,7 +62,6 @@ public class TaskJobLockingTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Netshot.readConfig();
 		TaskManager.init(Wiring.get().taskJobFactory());
 		TaskLockManager.init(false);
 	}

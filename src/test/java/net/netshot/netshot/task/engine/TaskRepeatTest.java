@@ -22,7 +22,6 @@ import java.util.Date;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -73,7 +72,6 @@ public class TaskRepeatTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Netshot.readConfig();
 		TaskManager.init(Wiring.get().taskJobFactory());
 	}
 
