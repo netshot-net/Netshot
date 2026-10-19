@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot;
+package net.netshot.netshot.testing.contract;
 
 import java.io.IOException;
 import java.net.URI;
@@ -29,8 +29,8 @@ import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.ApiContractGolden.Transform;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Transform;
 
 /**
  * One API contract case: a request and the name of the golden file its

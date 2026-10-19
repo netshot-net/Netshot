@@ -23,8 +23,8 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 import jakarta.ws.rs.core.UriBuilder;
-import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 
 /**
  * The REST server of an {@link ApiTest} or {@link ContractTest} class, which the test methods (including

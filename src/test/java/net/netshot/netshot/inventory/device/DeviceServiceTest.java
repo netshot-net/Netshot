@@ -36,7 +36,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
@@ -57,6 +56,7 @@ import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDatabase;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the device use cases, against a real database and a recording task submitter.

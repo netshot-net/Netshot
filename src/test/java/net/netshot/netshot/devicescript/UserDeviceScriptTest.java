@@ -22,12 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;

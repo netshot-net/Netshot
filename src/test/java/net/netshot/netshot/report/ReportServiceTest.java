@@ -36,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.PolicyDefinition;
@@ -63,6 +62,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the report use cases (statistics, device lists, export), against a real database.

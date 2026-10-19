@@ -37,8 +37,6 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
-import net.netshot.netshot.testing.DatabaseTest;
-import net.netshot.netshot.testing.TestDatabase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,6 +44,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDatabase;
 
 /**
  * Tests for {@link PurgeDatabaseTask}'s "remove orphan binary files"

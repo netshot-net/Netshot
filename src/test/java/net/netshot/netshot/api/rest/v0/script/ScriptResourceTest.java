@@ -28,12 +28,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.NetshotApiClient;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 import net.netshot.netshot.userscript.DeviceJsScript;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;

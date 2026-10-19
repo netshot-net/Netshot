@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.FakeQuery;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
@@ -55,6 +53,8 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.fake.FakeQuery;
 
 import org.hibernate.Session;
 import org.hibernate.query.Query;

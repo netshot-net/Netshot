@@ -14,7 +14,7 @@ responsible for.
 ## Repo layout
 
 - `src/main/java/net/netshot/netshot/` — core server (Java)
-- `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5), in the package of the code they test; test kind annotations and their extensions in `testing`, the other shared helpers in the root package (see "Test layout" in [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md))
+- `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5), in the package of the code they test; shared helpers (test kind annotations, fakes, API client, contract helpers) in `testing` (see "Test layout" in [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md))
 - `src/main/resources/drivers/` — device drivers (JavaScript, one file per platform)
 - `src/main/resources/webui/` — React + TypeScript web UI (own `package.json`)
 - `docs/content/` — user/admin/developer documentation source (Markdown), built with [Zensical](docs/content/index.md); `docs/` itself also holds the Zensical/uv tooling (`docs/pyproject.toml`, `docs/uv.lock`) — keep it that way, content must stay under `docs/content/` and out of `docs/` directly, or the build breaks (Zensical copies everything under `docs_dir` verbatim, and a stray `docs/.venv` silently kills the theme asset build)

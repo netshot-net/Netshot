@@ -39,10 +39,10 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
-import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.DtoContract;
+import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultInstance;
 

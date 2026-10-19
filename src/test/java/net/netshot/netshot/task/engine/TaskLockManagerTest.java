@@ -38,7 +38,6 @@ import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDatabase;
 
-
 /**
  * Tests for {@link TaskLockManager}, in local (in-memory) and distributed (PostgreSQL advisory
  * locks) modes. Two distributed managers with their own DB connections simulate two cluster members.

@@ -24,8 +24,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.AccessManager.Resolution;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -37,6 +35,8 @@ import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;

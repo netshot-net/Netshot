@@ -48,9 +48,9 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.ApiContractSeed;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.contract.ApiContractSeed;
 
 /**
  * The XLSX export ({@code GET /reports/export}) with the combinations of options the
