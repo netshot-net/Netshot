@@ -30,7 +30,7 @@ import org.hibernate.Session;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.WithRestServerTest;
+import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
@@ -38,15 +38,26 @@ import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.ApiTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ApiTest
 @DisplayName("Compliance tests")
 @ResourceLock("DB")
-public class ComplianceResourceTest extends WithRestServerTest {
+public class ComplianceResourceTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
 
 	@AfterEach
 	void cleanUpData() {

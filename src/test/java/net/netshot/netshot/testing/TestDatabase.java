@@ -33,6 +33,8 @@ public final class TestDatabase {
 
 	private final Path binaryFolder;
 
+	private Properties netshotConfig;
+
 	/**
 	 * Creates the database of a test class.
 	 *
@@ -62,6 +64,30 @@ public final class TestDatabase {
 	 */
 	public Path binaryFolder() {
 		return this.binaryFolder;
+	}
+
+	/**
+	 * Gets a copy of the Netshot configuration set for the test class, to change some properties and set
+	 * it again ({@code TestConfig.init}).
+	 *
+	 * @return a copy of the configuration
+	 */
+	public Properties netshotConfig() {
+		if (this.netshotConfig == null) {
+			throw new IllegalStateException("No configuration was set for the class (Boot.MANUAL)");
+		}
+		Properties copy = new Properties();
+		copy.putAll(this.netshotConfig);
+		return copy;
+	}
+
+	/**
+	 * Records the Netshot configuration set for the test class.
+	 *
+	 * @param config the configuration
+	 */
+	void setNetshotConfig(Properties config) {
+		this.netshotConfig = config;
 	}
 
 	/**

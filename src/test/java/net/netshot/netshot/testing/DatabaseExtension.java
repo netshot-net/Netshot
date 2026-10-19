@@ -59,7 +59,8 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		SharedPostgres postgres = SharedPostgres.get(context);
 		String schema = schemaName(testClass);
 		Path binaryFolder = Files.createTempDirectory("netshot-" + schema + "-");
-		context.getStore(Kinds.NAMESPACE).put(TestDatabase.class, new TestDatabase(postgres, schema, binaryFolder));
+		TestDatabase database = new TestDatabase(postgres, schema, binaryFolder);
+		context.getStore(Kinds.NAMESPACE).put(TestDatabase.class, database);
 
 		Boot boot = Kinds.usesRestServer(testClass) ? Boot.WIRED
 			: AnnotationSupport.findAnnotation(testClass, DatabaseTest.class).map(DatabaseTest::boot).orElse(Boot.WIRED);
@@ -74,7 +75,9 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 			base.setProperty("netshot.http.baseurl", server.baseUrl());
 			context.getStore(Kinds.NAMESPACE).put(TestServer.class, server);
 		}
-		TestConfig.init(Kinds.config(testClass, base));
+		Properties config = Kinds.config(testClass, base);
+		database.setNetshotConfig(config);
+		TestConfig.init(config);
 		Netshot.loadModuleConfigs();
 		TestDrivers.reload();
 		Database.update();

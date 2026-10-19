@@ -28,17 +28,29 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.WithRestServerTest;
+import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestServer;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ApiTest
 @DisplayName("API token management API Tests")
-public class ApiTokenResourceTest extends WithRestServerTest {
+public class ApiTokenResourceTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
 
 	@Test
 	@DisplayName("List tokens")
@@ -49,8 +61,8 @@ public class ApiTokenResourceTest extends WithRestServerTest {
 		Assertions.assertEquals(
 			Response.Status.OK.getStatusCode(), response.statusCode(),
 			"Not getting 200 response for token list");
-		Assertions.assertEquals(API_TOKENS.size(), response.body().size(),
-			"User list doesn't have as many elements as API_TOKENS");
+		Assertions.assertEquals(TestServer.API_TOKENS.size(), response.body().size(),
+			"User list doesn't have as many elements as TestServer.API_TOKENS");
 	}
 
 
@@ -103,7 +115,7 @@ public class ApiTokenResourceTest extends WithRestServerTest {
 		Assertions.assertEquals(
 			Response.Status.OK.getStatusCode(), listResponse.statusCode(),
 			"Not getting 200 response for token listing");
-		Assertions.assertEquals(API_TOKENS.size(), listResponse.body().size(),
+		Assertions.assertEquals(TestServer.API_TOKENS.size(), listResponse.body().size(),
 			"User list doesn't have the right number of elements");
 	}
 }
