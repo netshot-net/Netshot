@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.userscript;
 
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -29,23 +28,20 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Tests of the command script use cases, against a real database: validation (driver, name,
  * content, evaluation of the script), duplicates, listing without the content, deletion.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class ScriptServiceTest extends WithDatabaseTest {
+class ScriptServiceTest {
 
 	private static final String SCRIPT = "function run(cli, device) {\n  cli.command('show clock');\n}";
 
@@ -55,14 +51,6 @@ class ScriptServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("scriptservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new ScriptService(this.transactions, new ScriptRepository(), TestDrivers.registry());
 	}

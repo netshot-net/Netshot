@@ -23,7 +23,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hibernate.Session;
@@ -37,12 +36,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -60,12 +55,15 @@ import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDatabase;
 
 /**
  * Tests of the device use cases, against a real database and a recording task submitter.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class DeviceServiceTest extends WithDatabaseTest {
+class DeviceServiceTest {
 
 	private static final String AUTHOR = "tester";
 
@@ -80,17 +78,8 @@ class DeviceServiceTest extends WithDatabaseTest {
 	private long sshAccountId;
 
 	@BeforeAll
-	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("deviceservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		this.binaryFolder = Files.createTempDirectory("netshot-device-service-");
-		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
+	void initDb(TestDatabase database) throws Exception {
+		this.binaryFolder = database.binaryFolder();
 		this.transactions = new Transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {

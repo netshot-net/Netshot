@@ -19,16 +19,12 @@
 package net.netshot.netshot.task.engine;
 
 import java.util.Date;
-import java.util.Properties;
 
 import org.hibernate.Session;
 import org.quartz.JobExecutionException;
 
 import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -37,6 +33,8 @@ import net.netshot.netshot.task.Task.ScheduleType;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,9 +50,11 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
  * repetition of recurring tasks in each case. The target device is disabled, so that the
  * snapshot task itself ends immediately (cancelled) without connecting to anything.
  */
+@DatabaseTest
+@TestProperty(name = "netshot.tasks.devicelock.pollintervalms", value = "500")
 @DisplayName("Task execution with task/device locks (TaskJob, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class TaskJobLockingTest extends WithDatabaseTest {
+public class TaskJobLockingTest {
 
 	private static final long OTHER_TASK_ID = 999999L;
 
@@ -64,13 +64,6 @@ public class TaskJobLockingTest extends WithDatabaseTest {
 	@BeforeAll
 	void initDb() throws Exception {
 		Netshot.readConfig();
-		Properties config = getDatabaseConfig("tasktest_joblock");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		config.setProperty("netshot.tasks.devicelock.pollintervalms", "500");
-		TestConfig.init(config);
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		TaskManager.init(Wiring.get().taskJobFactory());
 		TaskLockManager.init(false);
 	}

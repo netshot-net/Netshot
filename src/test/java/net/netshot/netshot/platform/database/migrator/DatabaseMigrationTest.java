@@ -26,6 +26,7 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -44,10 +45,12 @@ import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDatabase;
 
 /**
  * Tests for the Liquibase {@code CustomSqlChange} data migrators under
@@ -61,7 +64,25 @@ import net.netshot.netshot.platform.database.Database;
  * in the legacy pre-migration shape, resumes the migration to completion,
  * and checks the result.
  */
-public class DatabaseMigrationTest extends WithDatabaseTest {
+@DatabaseTest(boot = Boot.MANUAL)
+public class DatabaseMigrationTest {
+
+	private TestDatabase database;
+
+	@BeforeEach
+	void setDatabase(TestDatabase testDatabase) {
+		this.database = testDatabase;
+	}
+
+	/**
+	 * Builds the database configuration of a schema which starts empty.
+	 *
+	 * @param schemaName the schema
+	 * @return the configuration
+	 */
+	private Properties getFreshDatabaseConfig(String schemaName) {
+		return this.database.freshConfig(schemaName);
+	}
 
 	private static void assertInetColumn(Statement statement, String query, String expectedAddress)
 			throws SQLException {

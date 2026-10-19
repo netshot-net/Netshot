@@ -18,38 +18,24 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.hibernate.Session;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.testing.DatabaseTest;
 
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class TransactionsTest extends WithDatabaseTest {
+public class TransactionsTest {
 
 	private final Transactions transactions = new Transactions();
-
-	@BeforeAll
-	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("transactionstest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-	}
 
 	private long countDomains(String name) {
 		try (Session session = Database.getSession()) {

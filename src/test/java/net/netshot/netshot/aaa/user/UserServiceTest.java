@@ -20,7 +20,6 @@ package net.netshot.netshot.aaa.user;
 
 import java.util.Calendar;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -31,25 +30,26 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestProperty;
 
 /**
  * Tests of the user use cases (administration and change of the own password), against a real
  * database. The password policy is: at least 8 characters including 1 digit, 2 previous passwords
  * remembered, 30 days of validity.
  */
+@DatabaseTest
+@TestProperty(name = "netshot.aaa.passwordpolicy.mintotalchars", value = "8")
+@TestProperty(name = "netshot.aaa.passwordpolicy.minnumericalchars", value = "1")
+@TestProperty(name = "netshot.aaa.passwordpolicy.maxhistory", value = "2")
+@TestProperty(name = "netshot.aaa.passwordpolicy.maxduration", value = "30")
 @TestInstance(Lifecycle.PER_CLASS)
-class UserServiceTest extends WithDatabaseTest {
+class UserServiceTest {
 
 	private static final String ADMIN = "the-admin";
 	private static final String PASSWORD = "Passw0rd-one";
@@ -61,18 +61,6 @@ class UserServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("userservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		config.setProperty("netshot.aaa.passwordpolicy.mintotalchars", "8");
-		config.setProperty("netshot.aaa.passwordpolicy.minnumericalchars", "1");
-		config.setProperty("netshot.aaa.passwordpolicy.maxhistory", "2");
-		config.setProperty("netshot.aaa.passwordpolicy.maxduration", "30");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new UserService(this.transactions, this.repository);
 	}
