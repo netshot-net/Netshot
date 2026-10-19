@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
@@ -34,7 +33,6 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,11 +49,6 @@ public class DeviceListAndParentChildTest {
 	Domain domain;
 	Device device1;
 	Device device2;
-
-	@BeforeAll
-	void initDb() throws Exception {
-		Netshot.readConfig();
-	}
 
 	@BeforeEach
 	void createData() {
