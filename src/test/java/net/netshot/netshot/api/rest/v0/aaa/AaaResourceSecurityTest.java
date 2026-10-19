@@ -36,11 +36,13 @@ import jakarta.ws.rs.Path;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v0.system.ClusterResource;
 import net.netshot.netshot.api.rest.v0.system.ServerInfoResource;
+import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Pins the access control of the authentication, user, API token and system endpoints: the role
  * required by each method (as it was on the former {@code RestService}), and the paths they answer.
  */
+@UnitTest
 class AaaResourceSecurityTest {
 
 	private static void collect(Map<String, String> into, Class<?> resource) {

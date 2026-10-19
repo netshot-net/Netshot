@@ -41,10 +41,12 @@ import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.testing.ScriptEngineTest;
 
 /**
  * Tests of the registry of the diagnostic adapters.
  */
+@ScriptEngineTest
 public class DiagnosticAdaptersTest {
 
 	@SuppressWarnings("unchecked")
