@@ -18,20 +18,12 @@
  */
 package net.netshot.netshot.api.rest;
 
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.stream.Stream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.TimeZone;
 import java.util.TreeMap;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
@@ -41,23 +33,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.ApiContractCase.Reply;
 import net.netshot.netshot.ApiContractCase;
 import net.netshot.netshot.ApiContractCases;
 import net.netshot.netshot.ApiContractGolden.Format;
 import net.netshot.netshot.ApiContractGolden;
 import net.netshot.netshot.ApiContractSeed;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.TestNetwork;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.engine.TaskManager;
-import org.quartz.Scheduler;
-import org.quartz.impl.SchedulerRepository;
+import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.TestServer;
 
 /**
  * Golden file contract tests of the REST API: the wire format (JSON, XML,
@@ -72,66 +55,24 @@ import org.quartz.impl.SchedulerRepository;
  * {@code -Dnetshot.contract.update=true} to (re)write the golden files instead of
  * asserting.</p>
  */
+@ContractTest
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ApiContractTest extends WithDatabaseTest {
+public class ApiContractTest {
 
-	private static final String API_URL = TestNetwork.freeLocalApiUrl();
-
+	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();
-	private TimeZone previousTimeZone;
-	private Path binaryFolder;
 	private HttpClient httpClient;
 	private ApiContractSeed seed;
 	/** Statuses recorded (update mode) or to check, by golden file name. */
 	private final Map<String, String> recordedStatuses = new TreeMap<>();
 
 	@BeforeAll
-	void bootAndSeed() throws Exception {
-		// Some outputs (e.g. download file names) format dates in the JVM time zone
-		this.previousTimeZone = TimeZone.getDefault();
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		Properties config = getFreshDatabaseConfig("apicontracttest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "INFO");
-		config.setProperty("netshot.http.ssl.enabled", "false");
-		URI uri = UriBuilder.fromUri(API_URL).replacePath("/").build();
-		config.setProperty("netshot.http.baseurl", uri.toString());
-		this.binaryFolder = Files.createTempDirectory("netshot-contract-");
-		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-		TaskManager.init(Wiring.get().taskJobFactory());
-		// Tasks must be stored but never run: keep the schedulers in standby, and drop
-		// any job left by another test class sharing the JVM.
-		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-			scheduler.standby();
-			scheduler.clear();
-		}
-		RestServer.init(Wiring.get().binder());
-		Thread.sleep(1000);
+	void bootAndSeed(TestServer server) throws Exception {
+		this.apiUrl = server.apiUrl();
 		this.httpClient = HttpClient.newHttpClient();
-		this.seed = new ApiContractSeed(API_URL, this.httpClient);
+		this.seed = new ApiContractSeed(this.apiUrl, this.httpClient);
 		this.seed.seed();
-	}
-
-	@AfterAll
-	void shutdownSchedulers() throws Exception {
-		RestServer.shutdown();
-		TimeZone.setDefault(this.previousTimeZone);
-		if (this.binaryFolder != null) {
-			try (Stream<Path> files = Files.walk(this.binaryFolder)) {
-				files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
-			}
-		}
-		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-			scheduler.clear();
-			// Other test classes may rely on a running scheduler.
-			scheduler.start();
-		}
 	}
 
 	@TestFactory
@@ -144,7 +85,7 @@ public class ApiContractTest extends WithDatabaseTest {
 		for (ApiContractCase contractCase : cases) {
 			String fileName = contractCase.fileName();
 			tests.add(DynamicTest.dynamicTest(fileName, () -> {
-				Reply reply = contractCase.send(this.httpClient, API_URL, ApiContractSeed.ADMIN_TOKEN);
+				Reply reply = contractCase.send(this.httpClient, this.apiUrl, ApiContractSeed.ADMIN_TOKEN);
 				String status = reply.status() + ";" + contentTypeBase(reply.contentType());
 				Format format = contractCase.format();
 				String actual = golden.canonicalize(format, reply.body(), contractCase.transform, contractCase.sortRoot);
