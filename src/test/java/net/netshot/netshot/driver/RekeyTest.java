@@ -19,10 +19,8 @@
 package net.netshot.netshot.driver;
 
 import java.lang.reflect.Field;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.hibernate.Session;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.Level;
@@ -40,7 +38,6 @@ import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.Ssh;
-import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.task.engine.TaskContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;

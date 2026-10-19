@@ -36,7 +36,6 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.ApiContractGolden;
 import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.api.rest.v0.config.ConfigDiffDto;

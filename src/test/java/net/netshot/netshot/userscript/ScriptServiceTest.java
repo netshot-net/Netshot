@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.userscript;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,7 +34,6 @@ import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;

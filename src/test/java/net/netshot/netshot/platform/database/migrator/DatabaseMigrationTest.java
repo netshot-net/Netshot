@@ -43,7 +43,6 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.inventory.device.Network4Address;
