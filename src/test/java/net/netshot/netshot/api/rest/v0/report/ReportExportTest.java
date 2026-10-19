@@ -31,11 +31,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -44,27 +41,16 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.quartz.Scheduler;
-import org.quartz.impl.SchedulerRepository;
 
-import jakarta.ws.rs.core.UriBuilder;
 import net.netshot.netshot.ApiContractSeed;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.TestNetwork;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.TestServer;
 
 /**
  * The XLSX export ({@code GET /reports/export}) with the combinations of options the
@@ -74,64 +60,27 @@ import net.netshot.netshot.task.engine.TaskManager;
  * produced by the former {@code RestService} implementation. Run with
  * {@code -Dnetshot.report.export.update=true} to (re)write them.
  */
+@ContractTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class ReportExportTest extends WithDatabaseTest {
+public class ReportExportTest {
 
-	private static final String API_URL = TestNetwork.freeLocalApiUrl();
 	private static final Path FIXTURES = Path.of("src", "test", "resources", "report-export");
 	private static final String UPDATE_PROPERTY = "netshot.report.export.update";
 	private static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 	/** Sheets whose row order is not defined by the queries. */
 	private static final Set<String> UNORDERED_SHEETS = Set.of("Interfaces", "Configuration Compliance", "Device Groups", "Group Memberships");
 
+	private String apiUrl;
 	private final long startTime = System.currentTimeMillis();
-	private TimeZone previousTimeZone;
-	private Path binaryFolder;
 	private HttpClient httpClient;
 	private ApiContractSeed seed;
 
 	@BeforeAll
-	void bootAndSeed() throws Exception {
-		this.previousTimeZone = TimeZone.getDefault();
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		Properties config = getFreshDatabaseConfig("reportexporttest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "INFO");
-		config.setProperty("netshot.http.ssl.enabled", "false");
-		URI uri = UriBuilder.fromUri(API_URL).replacePath("/").build();
-		config.setProperty("netshot.http.baseurl", uri.toString());
-		this.binaryFolder = Files.createTempDirectory("netshot-export-");
-		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-		TaskManager.init(Wiring.get().taskJobFactory());
-		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-			scheduler.standby();
-			scheduler.clear();
-		}
-		RestServer.init(Wiring.get().binder());
-		Thread.sleep(1000);
+	void bootAndSeed(TestServer server) throws Exception {
+		this.apiUrl = server.apiUrl();
 		this.httpClient = HttpClient.newHttpClient();
-		this.seed = new ApiContractSeed(API_URL, this.httpClient);
+		this.seed = new ApiContractSeed(this.apiUrl, this.httpClient);
 		this.seed.seed();
-	}
-
-	@AfterAll
-	void shutdown() throws Exception {
-		RestServer.shutdown();
-		TimeZone.setDefault(this.previousTimeZone);
-		if (this.binaryFolder != null) {
-			try (Stream<Path> files = Files.walk(this.binaryFolder)) {
-				files.sorted(Comparator.reverseOrder()).forEach(path -> path.toFile().delete());
-			}
-		}
-		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-			scheduler.clear();
-			scheduler.start();
-		}
 	}
 
 	@TestFactory
@@ -157,7 +106,7 @@ public class ReportExportTest extends WithDatabaseTest {
 			tests.add(DynamicTest.dynamicTest(variant.getKey(), () -> {
 				HttpResponse<byte[]> response = this.httpClient.send(HttpRequest.newBuilder()
 					.version(HttpClient.Version.HTTP_1_1)
-					.uri(URI.create(API_URL + "/reports/export" + variant.getValue().get()))
+					.uri(URI.create(this.apiUrl + "/reports/export" + variant.getValue().get()))
 					.header("Accept", XLSX)
 					.header("X-Netshot-API-Token", ApiContractSeed.ADMIN_TOKEN)
 					.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
