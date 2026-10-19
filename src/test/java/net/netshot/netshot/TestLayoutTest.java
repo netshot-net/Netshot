@@ -57,8 +57,8 @@ import net.netshot.netshot.testing.UnitTest;
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
  * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
  * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
- * simple name of the class), and each test class has one kind, which the unit and script engine tests
- * respect (they run without Docker).
+ * simple name of the class), and each test class has a kind (several only among the kinds needing Docker),
+ * which the unit and script engine tests respect (they run without Docker).
  */
 @UnitTest
 @DisplayName("Layout of the tests")
@@ -149,20 +149,22 @@ public class TestLayoutTest {
 	}
 
 	@Test
-	@DisplayName("Each test class has exactly one kind annotation")
-	void oneKindPerClass() {
+	@DisplayName("Each test class has a kind, the fast kinds alone")
+	void kindOfEachClass() {
 		Map<String, List<String>> wrong = new TreeMap<>();
 		for (JavaClass testClass : testClasses) {
 			List<String> kinds = KINDS.stream()
 				.filter(testClass::isAnnotatedWith)
 				.map(Class::getSimpleName)
 				.toList();
-			if (kinds.size() != 1) {
+			boolean fast = FAST_KINDS.stream().anyMatch(testClass::isAnnotatedWith);
+			if (kinds.isEmpty() || fast && kinds.size() > 1) {
 				wrong.put(testClass.getName(), kinds);
 			}
 		}
 		Assertions.assertEquals(Map.of(), wrong,
-			"Test classes to annotate with exactly one of " + KINDS.stream().map(Class::getSimpleName).toList());
+			"Test classes to annotate with one of %s (several only among the Docker ones, such as @DatabaseTest and @SimulatorTest)"
+				.formatted(KINDS.stream().map(Class::getSimpleName).toList()));
 	}
 
 	@Test

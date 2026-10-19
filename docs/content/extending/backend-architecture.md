@@ -155,7 +155,7 @@ A test lives in the package of the code it tests: `inventory.device.DeviceServic
 
 #### Kinds of tests
 
-Each test class carries exactly one annotation of `net.netshot.netshot.testing` giving its kind. The annotation is a JUnit tag (to select the tests to run) and the extensions setting up what the kind needs, so a test class extends nothing:
+Each test class carries an annotation of `net.netshot.netshot.testing` giving its kind. The annotation is a JUnit tag (to select the tests to run) and the extensions setting up what the kind needs, so a test class extends nothing:
 
 | Annotation | Tag | Uses | Set up before the class |
 |---|---|---|---|
@@ -166,7 +166,7 @@ Each test class carries exactly one annotation of `net.netshot.netshot.testing` 
 | `@ContractTest` | `contract` | golden files (`src/test/resources`) | as `@ApiTest`, but the tasks are never run (schedulers in standby), the time zone is UTC and no token is managed |
 | `@SimulatorTest` | `simulator` | the device simulator containers (`dev/device-simulator`) | as `@ScriptEngineTest`; the containers are static `@Container` fields built by `DeviceSimulators` |
 
-Add configuration properties with `@TestProperty(name = ..., value = ...)` (repeatable). The test methods, including `@BeforeAll` and `@BeforeEach`, receive what the kind provides as parameters: `TestDatabase` (schema, binary folder, a copy of the configuration of the class, configurations of other schemas), `TestServer` (API URL, client for a permission level, `UNKNOWN_ID`) and an admin `NetshotApiClient`. Only the class carrying the annotation is set up: a `@Nested` class needing its own schema carries `@DatabaseTest` too (see `vault.VaultTest`).
+Add configuration properties with `@TestProperty(name = ..., value = ...)` (repeatable). The test methods, including `@BeforeAll` and `@BeforeEach`, receive what the kind provides as parameters: `TestDatabase` (schema, binary folder, a copy of the configuration of the class, configurations of other schemas), `TestServer` (API URL, client for a permission level, `UNKNOWN_ID`) and an admin `NetshotApiClient`. The kinds needing Docker can be combined: a task handler test running against a device simulator is `@DatabaseTest` and `@SimulatorTest`. Only the class carrying the annotation is set up: a `@Nested` class needing its own schema carries `@DatabaseTest` too (see `vault.VaultTest`).
 
 The kinds decide where a test can run: the unit and script engine tests need no Docker, `./mvnw test -Pfast` runs them only (`-Pdocker` runs the others, `-Dgroups=db` a single kind).
 
@@ -178,7 +178,7 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 - `testing.contract`: the golden file helpers (`ApiContractSeed`, `ApiContractCases`, `ApiContractGolden`, `DtoContract`);
 - `TestConfig.init` (replaces the configuration) stays in the root package, as it calls the protected `Netshot.initConfig`.
 
-`TestLayoutTest` fails when a test class or a helper (other than `TestConfig`) is left in the root package, when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class), when a test class has no kind or several, and when a unit or script engine test uses the database, the REST server, the wiring or a container (it would fail without Docker).
+`TestLayoutTest` fails when a test class or a helper (other than `TestConfig`) is left in the root package, when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class), when a test class has no kind, or a unit or script engine kind with another one, and when a unit or script engine test uses the database, the REST server, the wiring or a container (it would fail without Docker).
 
 ## Wiring
 
