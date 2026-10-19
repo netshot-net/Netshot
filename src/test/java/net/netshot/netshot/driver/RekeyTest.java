@@ -28,7 +28,6 @@ import ch.qos.logback.classic.Logger;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.common.session.SessionListener;
-import org.apache.sshd.common.session.SessionListener.Event;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -62,7 +61,7 @@ import org.junit.jupiter.api.Test;
  * naturally cross a byte-based rekey threshold (impractical against the real OpenSSH-backed
  * simulator's constrained CLI, which only ever offers a tiny driver-emulation shell). Instead
  * they use a deliberately tiny (but not absurdly so - see below) global rekey <em>data</em>
- * limit and observe how many {@link Event#KeyEstablished} session events fire: 1 means only
+ * limit and observe how many {@link SessionListener.Event#KeyEstablished} session events fire: 1 means only
  * the initial key exchange happened, 2+ means at least one rekey was also triggered.
  * <p>
  * A tiny <em>time</em>-based limit was tried first and discarded: at 1ms, the limit is crossed
@@ -163,7 +162,7 @@ public class RekeyTest extends WithDeviceSimulatorTest {
 
 	/**
 	 * Connects (auth only, no shell channel needed) and counts how many
-	 * {@link Event#KeyEstablished} events fire on the shared {@code Ssh.client} for the
+	 * {@link SessionListener.Event#KeyEstablished} events fire on the shared {@code Ssh.client} for the
 	 * duration of the connection. {@code Ssh.client} has no public accessor, so it's reached
 	 * the same way this test class already reaches {@code SnapshotDeviceScript#run}: reflection.
 	 */

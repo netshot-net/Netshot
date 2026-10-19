@@ -121,13 +121,13 @@ public abstract class WithRestServerTest extends WithDatabaseTest {
 	protected NetshotApiClient apiClient;
 
 	@BeforeEach
-	void createToken() throws URISyntaxException {
+	void createApiClient() throws URISyntaxException {
 		createApiTokens();
 		this.apiClient = new NetshotApiClient(apiUrl, API_TOKENS.get(UiUser.LEVEL_ADMIN));
 	}
 
 	@AfterEach
-	void flushTokens() {
+	void flushApiTokens() {
 		try (Session session = Database.getSession()) {
 			session.beginTransaction();
 			session
