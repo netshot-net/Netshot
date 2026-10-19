@@ -21,7 +21,6 @@ package net.netshot.netshot.inventory.config;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -49,7 +48,6 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
-import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestDrivers;
 
 /**
@@ -73,11 +71,9 @@ class ConfigServiceTest {
 	private long third;
 	private long otherConfig;
 	private long snmpConfig;
-	private Path binaryFolder;
 
 	@BeforeAll
-	void initDb(TestDatabase database) throws Exception {
-		this.binaryFolder = database.binaryFolder();
+	void initDb() throws Exception {
 		this.transactions = new Transactions();
 		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
 		this.transactions.run(session -> {
