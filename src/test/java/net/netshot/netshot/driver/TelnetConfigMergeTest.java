@@ -22,7 +22,6 @@ import java.lang.reflect.Field;
 
 import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.WithDeviceSimulatorTest;
-import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.access.Telnet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
