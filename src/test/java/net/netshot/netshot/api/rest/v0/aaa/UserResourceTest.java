@@ -29,17 +29,28 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.WithRestServerTest;
+import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.ApiTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ApiTest
 @DisplayName("User management API Tests")
-public class UserResourceTest extends WithRestServerTest {
+public class UserResourceTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
 
 	@AfterEach
 	void cleanUpData() {

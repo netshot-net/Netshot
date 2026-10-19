@@ -28,20 +28,32 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.WithRestServerTest;
+import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ApiTest
 @DisplayName("Webhook API Tests")
-public class HookResourceTest extends WithRestServerTest {
+public class HookResourceTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
 
 	// A real, parseable self-signed certificate (reused from DeviceDriverTest) -
 	// only ever used here to exercise the CUSTOM_CA PEM-parsing validation, its
@@ -283,7 +295,7 @@ public class HookResourceTest extends WithRestServerTest {
 
 		{
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/hooks/%d".formatted(UNKNOWN_ID), data);
+				"/hooks/%d".formatted(TestServer.UNKNOWN_ID), data);
 			Assertions.assertEquals(
 				Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 				"Not getting 400 response for an unknown webhook update");
@@ -315,7 +327,7 @@ public class HookResourceTest extends WithRestServerTest {
 
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
-				"/hooks/%d".formatted(UNKNOWN_ID));
+				"/hooks/%d".formatted(TestServer.UNKNOWN_ID));
 			Assertions.assertEquals(
 				Response.Status.NOT_FOUND.getStatusCode(), response.statusCode(),
 				"Not getting 404 response for unknown webhook deletion");
