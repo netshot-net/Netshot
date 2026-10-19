@@ -57,7 +57,7 @@ public class PaloAltoPANOSDriverTest extends WithDeviceSimulatorTest {
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> container = buildSshDeviceSimulator("Palo-Alto_PAN-OS");
+	private static final GenericContainer<?> CONTAINER = buildSshDeviceSimulator("Palo-Alto_PAN-OS");
 
 	@Test
 	@DisplayName("Palo Alto PAN-OS Snapshot")
@@ -68,8 +68,8 @@ public class PaloAltoPANOSDriverTest extends WithDeviceSimulatorTest {
 		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 		Device device = new Device("PaloAltoPANOS", null, domain, "test");
 		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(container.getHost());
-		sshAccess.setPort(container.getMappedPort(22));
+		sshAccess.setAddress(CONTAINER.getHost());
+		sshAccess.setPort(CONTAINER.getMappedPort(22));
 		device.getAccesses().add(sshAccess);
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));

@@ -160,6 +160,7 @@
 				<configuration>
 					<consoleOutput>true</consoleOutput>
 					<configLocation>${project.basedir}/checkstyle.xml</configLocation>
+					<includeTestSourceDirectory>true</includeTestSourceDirectory>
 				</configuration>
 			</plugin>
 		</plugins>

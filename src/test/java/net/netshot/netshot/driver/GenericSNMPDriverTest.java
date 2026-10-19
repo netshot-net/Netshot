@@ -52,19 +52,19 @@ public class GenericSNMPDriverTest extends WithDeviceSimulatorTest {
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> container = buildSnmpDeviceSimulator("myhost");
+	private static final GenericContainer<?> CONTAINER = buildSnmpDeviceSimulator("myhost");
 
 	@Test
-	@DisplayName("GenericSNMP Snapshot (real snmpd container)")
+	@DisplayName("GenericSNMP Snapshot (real snmpd CONTAINER)")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		DeviceSnmpv2cCommunity community = new DeviceSnmpv2cCommunity("public", "community1");
-		int port = getMappedUdpPort(container, 161);
+		int port = getMappedUdpPort(CONTAINER, 161);
 		Session nullSession = null;
 		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 		Device device = new Device("GenericSNMP", null, domain, "test");
 		DeviceAccess snmpAccess = new DeviceAccess(device, "snmpv2c");
-		snmpAccess.setAddress(container.getHost());
+		snmpAccess.setAddress(CONTAINER.getHost());
 		snmpAccess.setPort(port);
 		device.getAccesses().add(snmpAccess);
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);

@@ -48,7 +48,7 @@ These mirror what CI (`.github/workflows/build.yml`) enforces. **Always run the 
 
 ## Conventions
 
-- **License header**: every Java source file must start with the GPL header in `.license-header`; checkstyle enforces this (`Header` module) on `src/main/java` only (test sources are not checked) — copy it verbatim into new files, tests included.
+- **License header**: every Java source file must start with the GPL header in `.license-header`; checkstyle enforces this (`Header` module) on `src/main/java` and `src/test/java` — copy it verbatim into new files, tests included.
 - **Java style**: tabs for indentation, max line length 200 (see `checkstyle.xml`).
 - **Web UI style**: Prettier config in `src/main/resources/webui/.prettierrc.json` (2-space indent, no semicolons, double quotes, 100 print width). Follow existing component/hook patterns under `src/main/resources/webui/src/features/`.
 - **i18n**: `src/main/resources/webui/src/i18n/en.json` and `fr.json` are kept in sync — when adding/changing a UI string, update both.

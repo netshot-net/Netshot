@@ -79,7 +79,7 @@ public class RekeyTest extends WithDeviceSimulatorTest {
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> container = buildSshDeviceSimulator("Cisco_IOS");
+	private static final GenericContainer<?> CONTAINER = buildSshDeviceSimulator("Cisco_IOS");
 
 	/** 2000 bytes: small enough to trigger reliably right after connecting, but - as found
 	 *  while writing this test - NOT so small that the rekey lands *during* the auth exchange
@@ -165,6 +165,8 @@ public class RekeyTest extends WithDeviceSimulatorTest {
 	 * {@link SessionListener.Event#KeyEstablished} events fire on the shared {@code Ssh.client} for the
 	 * duration of the connection. {@code Ssh.client} has no public accessor, so it's reached
 	 * the same way this test class already reaches {@code SnapshotDeviceScript#run}: reflection.
+	 * @param ssh the SSH access to connect with
+	 * @return the number of KeyEstablished events
 	 */
 	private static int connectAndCountKeyEstablishedEvents(Ssh ssh) throws Exception {
 		Field clientField = Ssh.class.getDeclaredField("client");
@@ -201,7 +203,7 @@ public class RekeyTest extends WithDeviceSimulatorTest {
 	@Test
 	@DisplayName("Tiny global rekey data limit alone forces a rekey (sanity check)")
 	void globalTinyLimitForcesRekey() throws Exception {
-		Ssh ssh = new Ssh(container.getHost(), container.getMappedPort(22), "admin", "admin", this.taskContext);
+		Ssh ssh = new Ssh(CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
 		int keyEstablishedCount = connectAndCountKeyEstablishedEvents(ssh);
 		Assertions.assertTrue(keyEstablishedCount >= 2,
 			"Expected at least one rekey (2+ KeyEstablished events) with the "
@@ -213,7 +215,7 @@ public class RekeyTest extends WithDeviceSimulatorTest {
 	@Test
 	@DisplayName("Driver-level rekey.dataLimit=0 override should disable the forced rekey")
 	void driverOverrideShouldDisableRekey() throws Exception {
-		Ssh ssh = new Ssh(container.getHost(), container.getMappedPort(22), "admin", "admin", this.taskContext);
+		Ssh ssh = new Ssh(CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
 		// Exactly what DeviceDriver.java does for a driver's `CLI.ssh.config.rekey.dataLimit: 0`
 		// (see Citrix_NetscalerSDX.js): only this one field is set, everything else stays
 		// unset/null so applySshConfig() leaves it alone.

@@ -197,6 +197,7 @@ public class OptionsBlockTest extends WithDeviceSimulatorTest {
 	 * discovered from disk by {@link net.netshot.netshot.driver.DriverRegistry#refresh()}), so that
 	 * {@link net.netshot.netshot.driver.DriverRegistry#forDevice(Device)} can resolve it by name like any other
 	 * driver. Callers must remove it again with {@link #unregisterDriver}.
+	 * @param driver the driver to register
 	 */
 	private void registerDriver(DeviceDriver driver) throws Exception {
 		TestDrivers.registry().getDrivers().put(driver.getName(), driver);

@@ -118,7 +118,10 @@ public class HookPayloadTest extends HookSeededTest {
 
 	private static final Format[] FORMATS = { Format.JSON, Format.XML, Format.YAML };
 
-	/** Every task of the dataset (all the task types, and a few variants) is posted as the stored file says (what the task entity used to write). */
+	/**
+	 * Every task of the dataset (all the task types, and a few variants) is posted as the stored file says (what the task entity used to write).
+	 * @return one test per task
+	 */
 	@TestFactory
 	List<DynamicTest> payloadsAreWrittenAsExpected() {
 		List<DynamicTest> tests = new ArrayList<>();

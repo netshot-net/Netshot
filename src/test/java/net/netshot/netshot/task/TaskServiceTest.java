@@ -537,8 +537,8 @@ class TaskServiceTest extends WithDatabaseTest {
 			return this;
 		}
 
-		CreationBuilder schedule(Task.ScheduleType type, Date reference, int factor) {
-			this.scheduleType = type;
+		CreationBuilder schedule(Task.ScheduleType scheduleKind, Date reference, int factor) {
+			this.scheduleType = scheduleKind;
 			this.scheduleReference = reference;
 			this.scheduleFactor = factor;
 			return this;

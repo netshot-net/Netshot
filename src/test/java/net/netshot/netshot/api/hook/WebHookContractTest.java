@@ -72,7 +72,12 @@ public class WebHookContractTest extends HookSeededTest {
 		FORMATS.put(WebHook.Action.POST_YAML, Format.YAML);
 	}
 
-	/** A request got by the receiver. */
+	/**
+	 * A request got by the receiver.
+	 * @param path the request path
+	 * @param contentType the Content-Type header
+	 * @param body the raw body
+	 */
 	private record Received(String path, String contentType, byte[] body) {
 	}
 
@@ -126,6 +131,8 @@ public class WebHookContractTest extends HookSeededTest {
 
 	/**
 	 * Announces that a task has finished, as {@code TaskJob} does.
+	 * @param caseName the name of the case, which gives the task type
+	 * @param taskId the ID of the finished task
 	 * @return the canonical payload posted by each hook, by format
 	 */
 	private Map<Format, String> payloads(String caseName, long taskId) {

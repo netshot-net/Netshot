@@ -97,7 +97,14 @@ class TaskDtoTest {
 		return group;
 	}
 
-	/** Gives every property shared by the tasks a distinctive value. */
+	/**
+	 * Gives every property shared by the tasks a distinctive value.
+	 * @param <T> the type of the task
+	 * @param task the task to fill
+	 * @param id the ID to give
+	 * @param status the status to give
+	 * @return the given task
+	 */
 	private static <T extends Task> T filled(T task, long id, Task.Status status) {
 		task.setId(id);
 		task.setAuthor("author-" + id);

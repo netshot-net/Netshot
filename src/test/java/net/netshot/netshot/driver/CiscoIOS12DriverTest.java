@@ -60,7 +60,7 @@ public class CiscoIOS12DriverTest extends WithDeviceSimulatorTest {
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> container = buildSshDeviceSimulator("Cisco_IOS");
+	private static final GenericContainer<?> CONTAINER = buildSshDeviceSimulator("Cisco_IOS");
 
 	@Test
 	@DisplayName("CiscoIOS12 Snapshot")
@@ -71,8 +71,8 @@ public class CiscoIOS12DriverTest extends WithDeviceSimulatorTest {
 		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 		Device device = new Device("CiscoIOS12", null, domain, "test");
 		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(container.getHost());
-		sshAccess.setPort(container.getMappedPort(22));
+		sshAccess.setAddress(CONTAINER.getHost());
+		sshAccess.setPort(CONTAINER.getMappedPort(22));
 		device.getAccesses().add(sshAccess);
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
@@ -127,8 +127,8 @@ public class CiscoIOS12DriverTest extends WithDeviceSimulatorTest {
 		device.addTag("old");
 		device.addTag("kept");
 		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(container.getHost());
-		sshAccess.setPort(container.getMappedPort(22));
+		sshAccess.setAddress(CONTAINER.getHost());
+		sshAccess.setPort(CONTAINER.getMappedPort(22));
 		device.getAccesses().add(sshAccess);
 		String code = """
 			function run(cli, device, config) {

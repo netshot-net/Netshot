@@ -75,7 +75,10 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 
 	private int tokenCounter;
 
-	/** A new valid token value, different from all the others of the class. */
+	/**
+	 * A new valid token value, different from all the others of the class.
+	 * @return the token value
+	 */
 	private String newToken() {
 		return "Gen%029d".formatted(this.tokenCounter++);
 	}

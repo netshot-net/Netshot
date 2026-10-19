@@ -42,7 +42,10 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 @DisplayName("Task handlers")
 public class TaskHandlersTest {
 
-	/** All the handlers; they only keep their collaborators, so none is needed to build them. */
+	/**
+	 * All the handlers; they only keep their collaborators, so none is needed to build them.
+	 * @return the handlers
+	 */
 	private static List<TaskHandler<?>> allHandlers() {
 		return new ArrayList<>(List.of(
 			new CheckComplianceHandler(null),

@@ -95,6 +95,7 @@ public class DeviceListAndParentChildTest extends WithDatabaseTest {
 	 * Mimics TaskManager's persistence of a new task, without needing the Quartz
 	 * scheduler to be initialized. Task.deviceListMembers is cascade=ALL, so
 	 * persisting the task alone is enough to persist its device list too.
+	 * @param task the task to persist
 	 */
 	private void persist(Task task) {
 		try (Session session = Database.getSession()) {

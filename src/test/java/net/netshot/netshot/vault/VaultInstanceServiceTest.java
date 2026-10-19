@@ -266,11 +266,11 @@ class VaultInstanceServiceTest extends WithDatabaseTest {
 		candidate.setAppRoleSecretId(null);
 		candidate.setJwtClientSecret(null);
 		this.service.testConnection(created.getId(), candidate);
-		HashicorpVaultKv2Instance tested = this.tested.get(0);
-		Assertions.assertNotSame(candidate, tested);
-		Assertions.assertEquals("https://elsewhere.example.net", tested.getBaseUrl());
-		Assertions.assertEquals("secret", tested.getAppRoleSecretId());
-		Assertions.assertEquals("jwt-secret", tested.getJwtClientSecret());
+		HashicorpVaultKv2Instance testedInstance = this.tested.get(0);
+		Assertions.assertNotSame(candidate, testedInstance);
+		Assertions.assertEquals("https://elsewhere.example.net", testedInstance.getBaseUrl());
+		Assertions.assertEquals("secret", testedInstance.getAppRoleSecretId());
+		Assertions.assertEquals("jwt-secret", testedInstance.getJwtClientSecret());
 
 		HashicorpVaultKv2Instance withSecret = this.definition("Candidate");
 		withSecret.setAppRoleSecretId("given");

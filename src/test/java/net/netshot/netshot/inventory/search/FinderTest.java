@@ -312,6 +312,7 @@ public class FinderTest extends WithDatabaseTest {
 	 * @param expectedFormattedQuery = the expected formatted query (nsQuery if false)
 	 * @param expectedHql = the expected HQL
 	 * @param expectedParameters = the expected query parameters
+	 * @param expectedDeviceNames the names of the devices the query should match
 	 * @throws Exception
 	 */
 	private void assertFinder(String nsQuery, String expectedFormattedQuery,
@@ -547,7 +548,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryByIp() throws Exception {
 		assertFinder("[IP] is 10.0.2.1",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni left join ni.ip4Addresses ip4 where d.cachedIpAddress = :var_ip or ip4.address = :var_ip)",
+			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni left join ni.ip4Addresses ip4"
+			+ " where d.cachedIpAddress = :var_ip or ip4.address = :var_ip)",
 			Map.of("var_ip", InetAddress.getByName("10.0.2.1")),
 			List.of("router00002"));
 	}
@@ -557,7 +559,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryByIpRange() throws Exception {
 		assertFinder("[IP] in 10.0.0.0/22",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni left join ni.ip4Addresses ip4 where net_contains(d.cachedIpAddress, :var_cidr) or net_contains(ip4.address, :var_cidr))",
+			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni left join ni.ip4Addresses ip4"
+			+ " where net_contains(d.cachedIpAddress, :var_cidr) or net_contains(ip4.address, :var_cidr))",
 			Map.of("var_cidr", "10.0.0.0/22"),
 			List.of("router00000", "router00001", "router00002", "router00003"));
 	}
@@ -601,7 +604,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryByModuleText() throws Exception {
 		assertFinder("[Module] containsnocase \"csn11\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.modules m where m.removed is not true and (lower(m.serialNumber) like :var or lower(m.partNumber) like :var))",
+			" from Device d where d.id in (select d.id from Device d left join d.modules m"
+			+ " where m.removed is not true and (lower(m.serialNumber) like :var or lower(m.partNumber) like :var))",
 			Map.of("var", "%csn11%"),
 			List.of("router00011"));
 	}
@@ -662,7 +666,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryByIosImageFile() throws Exception {
 		assertFinder("[Cisco IOS and IOS-XE > IOS image file] is \"ciscoios-advanced-16.1.6.bin\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d, Config c join c.attributes var_ca with var_ca.name = :var_name where d.driver = :var_driver and d.lastConfig = c and (var_ca.text like :var))",
+			" from Device d where d.id in (select d.id from Device d, Config c join c.attributes var_ca with var_ca.name = :var_name"
+			+ " where d.driver = :var_driver and d.lastConfig = c and (var_ca.text like :var))",
 			Map.of(
 				"var", "ciscoios-advanced-16.1.6.bin",
 				"var_name", "iosImageFile",
@@ -690,7 +695,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryByConfigurationSaved2() throws Exception {
 		assertFinder("not ([Cisco IOS and IOS-XE > Configuration saved] is true)",
 			null,
-			" from Device d where not (d.id in (select d.id from Device d join d.attributes var_0_da with var_0_da.name = :var_0_name where d.driver = :var_0_driver and (var_0_da.assumption = :var_0)))",
+			" from Device d where not (d.id in (select d.id from Device d join d.attributes var_0_da with var_0_da.name = :var_0_name"
+			+ " where d.driver = :var_0_driver and (var_0_da.assumption = :var_0)))",
 			Map.of(
 				"var_0", true,
 				"var_0_name", "configurationSaved",
@@ -954,7 +960,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryCombinedDiagnosticAndStatus() throws Exception {
 		assertFinder("[DIAGNOSTIC > CPU Usage] GREATERTHAN 70 AND [STATUS] IS \"INPRODUCTION\"",
 			"([Diagnostic > CPU Usage] greaterthan 70) and ([Status] is INPRODUCTION)",
-			" from Device d where (d.id in (select d.id from Device d join d.diagnosticResults var_0_dr where var_0_dr.diagnostic = :var_0_diagnostic and (var_0_dr.number > :var_0))) and (d.status = :var_1)",
+			" from Device d where (d.id in (select d.id from Device d join d.diagnosticResults var_0_dr"
+			+ " where var_0_dr.diagnostic = :var_0_diagnostic and (var_0_dr.number > :var_0))) and (d.status = :var_1)",
 			Map.of(
 				"var_0_diagnostic", testDiagnostics.get(AttributeType.NUMERIC),  // CPU Usage
 				"var_0", 70.0,
@@ -1060,7 +1067,8 @@ public class FinderTest extends WithDatabaseTest {
 	void queryCombinedComplianceAndStatus() throws Exception {
 		assertFinder("[RULE > Security Policy > Password Check] IS \"CONFORMING\" AND [STATUS] IS \"INPRODUCTION\"",
 			"([Rule > Security Policy > Password Check] is CONFORMING) and ([Status] is INPRODUCTION)",
-			" from Device d where (d.id in (select d.id from Device d join d.complianceCheckResults var_0_cr where var_0_cr.key.rule = :var_0_rule and var_0_cr.result = :var_0)) and (d.status = :var_1)",
+			" from Device d where (d.id in (select d.id from Device d join d.complianceCheckResults var_0_cr"
+			+ " where var_0_cr.key.rule = :var_0_rule and var_0_cr.result = :var_0)) and (d.status = :var_1)",
 			Map.of(
 				"var_0_rule", testRules.get("Security Policy/Password Check"),
 				"var_0", CheckResult.ResultOption.CONFORMING,

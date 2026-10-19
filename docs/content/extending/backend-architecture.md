@@ -243,7 +243,7 @@ Entities carry no `@JsonView`, JAXB or Jackson annotation: do not add any. If a 
 
 ### 11. Run the checks
 
-`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `apiDoesNotUseSession` entries of the old code disappear and the store only shrinks for this rule. The `noCyclesBetweenFeatureSlices` rule, on the other hand, gets one entry per dependency of each new class of the feature on the other slices of the entity model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices form one big cycle through the entities, so any class of the entity model that uses another one is counted, until the entities are decoupled. Refreeze and check that the other rules neither grow nor get a new entry:
+`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `API_DOES_NOT_USE_SESSION` entries of the old code disappear and the store only shrinks for this rule. The `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule, on the other hand, gets one entry per dependency of each new class of the feature on the other slices of the entity model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices form one big cycle through the entities, so any class of the entity model that uses another one is counted, until the entities are decoupled. Refreeze and check that the other rules neither grow nor get a new entry:
 
 ```bash
 ./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
