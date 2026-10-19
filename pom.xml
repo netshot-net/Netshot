@@ -567,5 +567,22 @@
 			<url>https://maven.repository.redhat.com/ga/</url>
 		</repository>
 	</repositories>
+	<profiles>
+		<!-- Kinds of tests (JUnit tags of the net.netshot.netshot.testing annotations) -->
+		<profile>
+			<!-- Tests which need no Docker: unit and script engine (component) tests -->
+			<id>fast</id>
+			<properties>
+				<excludedGroups>db,api,contract,simulator</excludedGroups>
+			</properties>
+		</profile>
+		<profile>
+			<!-- Tests which need Docker: database, REST API, contract and device simulator tests -->
+			<id>docker</id>
+			<properties>
+				<groups>db,api,contract,simulator</groups>
+			</properties>
+		</profile>
+	</profiles>
 	<url>https://www.netshot.net</url>
 </project>
