@@ -36,6 +36,8 @@ import net.netshot.netshot.Netshot;
  */
 public class CustomConnectionProvider extends AbstractMultiTenantConnectionProvider<TenantIdentifier> implements Stoppable {
 
+	private static final long serialVersionUID = 1L;
+
 	/** Map of ConnectionProvider objects (read-only and read-write). */
 	private final Map<TenantIdentifier, ConnectionProvider> providerMap = new HashMap<>();
 

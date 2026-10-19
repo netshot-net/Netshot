@@ -85,6 +85,22 @@ public final class RestServer extends Thread {
 		instance.start();
 	}
 
+	/**
+	 * Stops the server started by {@link #init(AbstractBinder)}, if any, and waits for it to be stopped
+	 * (so the port is free again when this returns).
+	 *
+	 * @throws InterruptedException if interrupted while waiting for the server to stop
+	 */
+	public static void shutdown() throws InterruptedException {
+		RestServer server = instance;
+		if (server == null) {
+			return;
+		}
+		instance = null;
+		server.interrupt();
+		server.join();
+	}
+
 	private URI httpBaseUri;
 	private boolean httpUseSsl;
 	private String httpSslKeystoreFile;
@@ -212,10 +228,20 @@ public final class RestServer extends Thread {
 			Undertow server = builder.build();
 			server.start();
 
-			synchronized (this) {
-				while (true) {
-					this.wait();
+			try {
+				synchronized (this) {
+					while (true) {
+						this.wait();
+					}
 				}
+			}
+			catch (InterruptedException e) {
+				// Stop requested by shutdown()
+				log.info("Stopping the Web/REST service.");
+				server.stop();
+				manager.stop();
+				manager.undeploy();
+				Servlets.defaultContainer().removeDeployment(servletBuilder);
 			}
 		}
 		catch (Exception e) {

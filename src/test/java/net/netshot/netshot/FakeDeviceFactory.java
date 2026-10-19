@@ -49,7 +49,7 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 
-public class FakeDeviceFactory {
+public final class FakeDeviceFactory {
 
 	public static Device getFakeCiscoIosDevice() {
 		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
@@ -73,8 +73,8 @@ public class FakeDeviceFactory {
 			+ "enable secret $6$aaa\n"
 			+ "!\n"
 			+ "ip cef\n"
-			+ "ipv6 unicast-routing\f\n" + // \f to test normalization
-			"!\n"
+			+ "ipv6 unicast-routing\f\n" // \f to test normalization
+			+ "!\n"
 			+ "interface GigabitEthernet0/0\n"
 			+ " description Description of Gi0/0\n"
 			+ " ip address 10.0.0.1 255.255.255.0\n"

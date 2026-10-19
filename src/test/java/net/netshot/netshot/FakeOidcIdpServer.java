@@ -1,3 +1,21 @@
+/**
+ * Copyright 2013-2025 Netshot
+ * 
+ * This file is part of Netshot project.
+ * 
+ * Netshot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Netshot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package net.netshot.netshot;
 
 import java.io.ByteArrayInputStream;
@@ -47,7 +65,7 @@ import org.slf4j.LoggerFactory;
 
 public class FakeOidcIdpServer {
 
-	private static final Logger logger = LoggerFactory.getLogger(FakeOidcIdpServer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FakeOidcIdpServer.class);
 
 	public static class User {
 		private String username;
@@ -139,10 +157,10 @@ public class FakeOidcIdpServer {
 		this(DEFAULT_BASE_URI);
 	}
 
-	public void registerClient(String clientId, String clientSecret, URI redirectUri) {
-		this.clientId = clientId;
-		this.clientSecret = clientSecret;
-		this.redirectUri = redirectUri;
+	public void registerClient(String newClientId, String newClientSecret, URI newRedirectUri) {
+		this.clientId = newClientId;
+		this.clientSecret = newClientSecret;
+		this.redirectUri = newRedirectUri;
 	}
 
 	public void addAuthorizatioCode(String code, String username, String role) {
@@ -302,7 +320,7 @@ public class FakeOidcIdpServer {
 					exchange.setReasonPhrase("Unauthorized");
 				}
 				catch (Exception e) {
-					logger.warn("Rejecting OIDC token request with a 400", e);
+					LOGGER.warn("Rejecting OIDC token request with a 400", e);
 					exchange.setStatusCode(StatusCodes.BAD_REQUEST);
 					exchange.setReasonPhrase("Bad request");
 				}
