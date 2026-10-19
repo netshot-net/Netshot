@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -48,7 +48,12 @@ public final class ApiContractCases {
 			this.seed = seed;
 		}
 
-		/** Path with seeded IDs: "%s" are replaced by the IDs of the given seeded objects. */
+		/**
+		 * Path with seeded IDs: "%s" are replaced by the IDs of the given seeded objects.
+		 * @param format the path, with a %s per seeded ID
+		 * @param args the names of the seeded objects (or literal values)
+		 * @return the path, resolved when the case runs
+		 */
 		Supplier<String> path(String format, Object... args) {
 			return () -> {
 				Object[] values = new Object[args.length];
@@ -59,7 +64,12 @@ public final class ApiContractCases {
 			};
 		}
 
-		/** Adds a read case in JSON and XML. */
+		/**
+		 * Adds a read case in JSON and XML.
+		 * @param template the path template of the endpoint
+		 * @param variant the variant of the case, or null for the main one
+		 * @param path the actual path
+		 */
 		void get(String template, String variant, Supplier<String> path) {
 			this.getJson(template, variant, path);
 			this.getXml(template, variant, path);
@@ -69,7 +79,10 @@ public final class ApiContractCases {
 			this.get(template, null, () -> template);
 		}
 
-		/** Adds a read case in JSON and XML, for a list which the server returns in no defined order. */
+		/**
+		 * Adds a read case in JSON and XML, for a list which the server returns in no defined order.
+		 * @param template the path of the endpoint
+		 */
 		void getUnordered(String template) {
 			this.add(ApiContractCase.builder("GET", template).path(template).accept(ApiContractCase.JSON).sortRoot());
 			this.add(ApiContractCase.builder("GET", template).path(template).accept(ApiContractCase.XML).sortRoot());
@@ -91,7 +104,13 @@ public final class ApiContractCases {
 			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).accept(ApiContractCase.YAML));
 		}
 
-		/** Adds a read case with a specific token and Accept type. */
+		/**
+		 * Adds a read case with a specific token and Accept type.
+		 * @param template the path template of the endpoint
+		 * @param variant the variant of the case, or null for the main one
+		 * @param path the actual path
+		 * @param token the API token to use
+		 */
 		void getAs(String template, String variant, Supplier<String> path, String token) {
 			this.add(ApiContractCase.builder("GET", template).variant(variant).path(path).token(token));
 		}
@@ -100,12 +119,21 @@ public final class ApiContractCases {
 			this.cases.add(builder.build());
 		}
 
-		/** Consumer remembering the "id" of a created object. */
+		/**
+		 * Consumer remembering the "id" of a created object.
+		 * @param name the name to remember the ID under
+		 * @return the consumer of the reply
+		 */
 		Consumer<Reply> remember(String name) {
 			return reply -> this.rememberFrom(name, reply, "id");
 		}
 
-		/** Remembers a numeric field of the reply, if present (a failed call leaves it unknown). */
+		/**
+		 * Remembers a numeric field of the reply, if present (a failed call leaves it unknown).
+		 * @param name the name to remember the value under
+		 * @param reply the reply
+		 * @param field the JSON field holding the value
+		 */
 		void rememberFrom(String name, Reply reply, String field) {
 			if (reply.status() >= 200 && reply.status() < 300) {
 				this.seed.remember(name, reply.json().get(field).asLong());
@@ -118,7 +146,14 @@ public final class ApiContractCases {
 			}
 		}
 
-		/** Adds a write case (JSON in, JSON out). */
+		/**
+		 * Adds a write case (JSON in, JSON out).
+		 * @param method the HTTP method
+		 * @param template the path template of the endpoint
+		 * @param variant the variant of the case, or null for the main one
+		 * @param path the actual path
+		 * @param body the JSON request body
+		 */
 		void write(String method, String template, String variant, Supplier<String> path, Supplier<String> body) {
 			this.writeAs(method, template, variant, path, body, null, null);
 		}
@@ -138,7 +173,12 @@ public final class ApiContractCases {
 			this.add(builder);
 		}
 
-		/** Body with seeded IDs: "%d" are replaced by the IDs of the given seeded objects. */
+		/**
+		 * Body with seeded IDs: "%d" are replaced by the IDs of the given seeded objects.
+		 * @param format the body, with a %d per seeded ID
+		 * @param args the names of the seeded objects (or literal values)
+		 * @return the body, resolved when the case runs
+		 */
 		Supplier<String> body(String format, Object... args) {
 			return this.path(format, args);
 		}

@@ -248,14 +248,14 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Task purge test")
 	@ResourceLock("DB")
 	public void taskPurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", PURGE_DAYS, 0, 0, 0, 0, (DeviceGroup) null);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", purgeDays, 0, 0, 0, 0, (DeviceGroup) null);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
 			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * PURGE_DAYS);
+			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * purgeDays);
 			this.assertModuleCount(session, DEVICES * 4);
 		}
 	}
@@ -264,8 +264,8 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Per-group task purge test")
 	@ResourceLock("DB")
 	public void perGroupTaskPurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", PURGE_DAYS, 0, 0, 0, 0, group1);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", purgeDays, 0, 0, 0, 0, group1);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
@@ -273,7 +273,7 @@ public class PurgeTest extends WithDatabaseTest {
 			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertTaskCount(session,
 				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * PURGE_DAYS);
+					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
 			this.assertModuleCount(session, DEVICES * 4);
 		}
 	}
@@ -282,13 +282,13 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Config purge test")
 	@ResourceLock("DB")
 	public void configPurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 0, 0, 0, (DeviceGroup) null);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, 0, 0, (DeviceGroup) null);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * PURGE_DAYS);
+			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * purgeDays);
 			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertModuleCount(session, DEVICES * 4);
 		}
@@ -298,15 +298,15 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Per-group config purge test")
 	@ResourceLock("DB")
 	public void perGroupConfigPurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 0, 0, 0, group1);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, 0, 0, group1);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
 			this.assertConfigCount(session,
 				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * PURGE_DAYS);
+					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
 			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertModuleCount(session, DEVICES * 4);
 		}
@@ -316,8 +316,8 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Oversized config purge test")
 	@ResourceLock("DB")
 	public void oversizedConfigPurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 2, 0, 0, (DeviceGroup) null);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 2, 0, 0, (DeviceGroup) null);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
@@ -325,7 +325,7 @@ public class PurgeTest extends WithDatabaseTest {
 			// Only device #1 has configs bigger than 2KB
 			this.assertConfigCount(session,
 				(DEVICES - DEVICES_WITH_BIG_CONFIG) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_WITH_BIG_CONFIG * CONFIGS_PER_DAY * PURGE_DAYS);
+					+ DEVICES_WITH_BIG_CONFIG * CONFIGS_PER_DAY * purgeDays);
 			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertModuleCount(session, DEVICES * 4);
 		}
@@ -335,17 +335,17 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Sparse config purge test")
 	@ResourceLock("DB")
 	public void sparseConfigPurgeTest() {
-		final int PURGE_DAYS = 18;
-		final int KEEP_DAYS = 2; // Keep one config every two days
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, PURGE_DAYS, 0, KEEP_DAYS, 0, (DeviceGroup) null);
+		final int purgeDays = 18;
+		final int keepDays = 2; // Keep one config every two days
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, keepDays, 0, (DeviceGroup) null);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
 			// Only device #1 has configs bigger than 2KB
 			this.assertConfigCount(session,
-				DEVICES * CONFIGS_PER_DAY * PURGE_DAYS +     // All configs during PURGE_DAYS
-					DEVICES * (DAYS - PURGE_DAYS) / KEEP_DAYS);  // One config per device every two days for the rest of time
+				DEVICES * CONFIGS_PER_DAY * purgeDays     // All configs during purgeDays
+					+ DEVICES * (DAYS - purgeDays) / keepDays);  // One config per device every two days for the rest of time
 			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertModuleCount(session, DEVICES * 4);
 		}
@@ -355,8 +355,8 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Module purge test")
 	@ResourceLock("DB")
 	public void modulePurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, PURGE_DAYS, (DeviceGroup) null);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, purgeDays, (DeviceGroup) null);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {
@@ -371,8 +371,8 @@ public class PurgeTest extends WithDatabaseTest {
 	@DisplayName("Per-group module purge test")
 	@ResourceLock("DB")
 	public void perGroupModulePurgeTest() {
-		final int PURGE_DAYS = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, PURGE_DAYS, group1);
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, purgeDays, group1);
 		new PurgeDatabaseHandler().run(task);
 
 		try (Session session = Database.getSession()) {

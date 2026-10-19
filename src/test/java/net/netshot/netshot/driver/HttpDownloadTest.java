@@ -72,7 +72,10 @@ public class HttpDownloadTest extends WithDeviceSimulatorTest {
 	private HttpServer fakeServer;
 	private int port;
 
-	/** All 256 possible byte values, including sequences that are not valid UTF-8 - proves byte-exact transfer. */
+	/**
+	 * All 256 possible byte values, including sequences that are not valid UTF-8 - proves byte-exact transfer.
+	 * @return the 256 bytes
+	 */
 	private byte[] binaryPayload() {
 		byte[] data = new byte[256];
 		for (int i = 0; i < 256; i++) {

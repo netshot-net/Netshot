@@ -45,12 +45,12 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 public class ScriptResourceTest extends WithRestServerTest {
 
 	private final String testScriptContent =
-		"function run(cli, device) {\n" +
-		"   cli.macro(\"configure\");\n" +
-		"   cli.command(\"no ip domain-lookup\")\n" +
-		"   cli.macro(\"end\");\n" +
-		"   cli.macro(\"save\");\n" +
-		"}";
+		"function run(cli, device) {\n"
+		+ "   cli.macro(\"configure\");\n"
+		+ "   cli.command(\"no ip domain-lookup\")\n"
+		+ "   cli.macro(\"end\");\n"
+		+ "   cli.macro(\"save\");\n"
+		+ "}";
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {

@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -50,7 +50,13 @@ public final class ApiContractCase {
 	public static final String OCTET = "application/octet-stream";
 	public static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-	/** A raw HTTP response. */
+	/**
+	 * A raw HTTP response.
+	 * @param status the HTTP status code
+	 * @param contentType the Content-Type header, if any
+	 * @param contentDisposition the Content-Disposition header, if any
+	 * @param body the raw body
+	 */
 	public record Reply(int status, String contentType, String contentDisposition, byte[] body) {
 		long xmlLong(String element) {
 			java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("<" + element + ">(\\d+)</" + element + ">")

@@ -64,7 +64,7 @@ public class DeviceResourceTest extends WithRestServerTest {
 	private String testDomainName = "Domain 1";
 	private Domain testDomain;
 
-	private static enum DeviceField {
+	private enum DeviceField {
 		CONTACT(Device::getContact),
 		CREATED_DATE(Device::getCreatedDate),
 		CREATOR(Device::getCreator),
@@ -84,7 +84,7 @@ public class DeviceResourceTest extends WithRestServerTest {
 
 		private Function<Device, ?> getter;
 
-		private DeviceField(Function<Device, ?> getter) {
+		DeviceField(Function<Device, ?> getter) {
 			this.getter = getter;
 		}
 	}

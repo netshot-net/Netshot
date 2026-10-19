@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -174,7 +174,12 @@ public final class ApiContractSeed {
 		}
 	}
 
-	/** POSTs an object and remembers its ID. */
+	/**
+	 * POSTs an object and remembers its ID.
+	 * @param name the name to remember the ID under
+	 * @param path the API path to post to
+	 * @param body the JSON body
+	 */
 	private void create(String name, String path, String body) {
 		JsonNode created = this.call("POST", path, body);
 		this.remember(name, created.get("id").asLong());
@@ -458,7 +463,10 @@ public final class ApiContractSeed {
 		}
 	}
 
-	/** Creates the content of the seeded binary file attributes. */
+	/**
+	 * Creates the content of the seeded binary file attributes.
+	 * @param device the device holding the attributes
+	 */
 	private void writeBinaryFiles(Device device) {
 		Path folder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
 		for (Config config : device.getConfigs()) {

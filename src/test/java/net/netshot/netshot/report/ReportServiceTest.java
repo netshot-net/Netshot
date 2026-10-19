@@ -402,7 +402,7 @@ class ReportServiceTest extends WithDatabaseTest {
 	// ------------------------------------------------------------------
 
 	/** Records the calls it receives. */
-	private static class RecordingSink implements ReportExportSink {
+	private static final class RecordingSink implements ReportExportSink {
 
 		final List<String> events = new ArrayList<>();
 		final List<ExportedDevice> devices = new ArrayList<>();
@@ -537,7 +537,11 @@ class ReportServiceTest extends WithDatabaseTest {
 		Assertions.assertNull(titles.get("no definition for this one"));
 	}
 
-	/** Collapses the repeated rows of the events, keeping the order of the sections. */
+	/**
+	 * Collapses the repeated rows of the events, keeping the order of the sections.
+	 * @param events the recorded events
+	 * @return the sections, in order
+	 */
 	private List<String> sections(List<String> events) {
 		List<String> sections = new ArrayList<>();
 		for (String event : events) {

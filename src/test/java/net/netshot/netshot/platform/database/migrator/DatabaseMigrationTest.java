@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -121,7 +121,7 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 
 	@Nested
 	@DisplayName("0.25.0_24 - NetworkAddressMigrator (legacy int/bigint IP columns to native inet)")
-	class Changeset_0_25_0_24_NetworkAddressMigratorTest {
+	class NetworkAddressMigratorTest {
 
 		private Properties getNetshotConfig() {
 			// Fresh (dropped and recreated) schema: this test drives the schema
@@ -212,6 +212,11 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 	 * Asserts a single {@code device_access} row's pin columns. Pass {@code null}
 	 * for {@code expectedGlobalCredId}/{@code expectedSpecificCredId} to assert
 	 * that column is NULL.
+	 * @param statement the statement to query with
+	 * @param deviceId the ID of the device
+	 * @param accessName the name of the access
+	 * @param expectedGlobalCredId the expected ID of the global credential set
+	 * @param expectedSpecificCredId the expected ID of the specific credential set
 	 */
 	private static void assertDeviceAccess(Statement statement, long deviceId, String accessName,
 			Long expectedGlobalCredId, Long expectedSpecificCredId) throws SQLException {
@@ -227,7 +232,12 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 		}
 	}
 
-	/** Asserts no {@code device_access} row exists for the given (device, accessName). */
+	/**
+	 * Asserts no {@code device_access} row exists for the given (device, accessName).
+	 * @param statement the statement to query with
+	 * @param deviceId the ID of the device
+	 * @param accessName the name of the access
+	 */
 	private static void assertNoDeviceAccess(Statement statement, long deviceId, String accessName) throws SQLException {
 		try (var rows = statement.executeQuery(
 				"select 1 from device_access where device = %d and access_name = '%s'".formatted(deviceId, accessName))) {
@@ -236,7 +246,14 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 		}
 	}
 
-	/** Asserts a single {@code device_access} row's port/address columns (pass {@code null} to assert NULL). */
+	/**
+	 * Asserts a single {@code device_access} row's port/address columns (pass {@code null} to assert NULL).
+	 * @param statement the statement to query with
+	 * @param deviceId the ID of the device
+	 * @param accessName the name of the access
+	 * @param expectedPort the expected port
+	 * @param expectedAddress the expected address
+	 */
 	private static void assertDeviceAccessPortAddress(Statement statement, long deviceId, String accessName,
 			Integer expectedPort, String expectedAddress) throws SQLException {
 		try (var rows = statement.executeQuery(
@@ -253,7 +270,7 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 
 	@Nested
 	@DisplayName("0.25.0_30 - migrate legacy ssh_port/telnet_port/connect_address into per-access device_access rows")
-	class Changeset_0_25_0_30_PortAddressMigrationTest {
+	class PortAddressMigrationTest {
 
 		private Properties getNetshotConfig() {
 			Properties config = getFreshDatabaseConfig("portaddressmigrationtest");
@@ -310,7 +327,7 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 
 	@Nested
 	@DisplayName("0.25.0_32 - migrate device-wide SNMP/SSH/Telnet credentials into per-access device_access rows")
-	class Changeset_0_25_0_32_DeviceAccessMigrationTest {
+	class DeviceAccessMigrationTest {
 
 		private Properties getNetshotConfig() {
 			Properties config = getFreshDatabaseConfig("deviceaccessmigrationtest");
