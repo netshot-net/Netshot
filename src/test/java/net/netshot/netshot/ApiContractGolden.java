@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -250,13 +249,13 @@ public final class ApiContractGolden {
 	private static void dropSchemas(JsonNode node) {
 		if (node instanceof ObjectNode object) {
 			if (object.has("content") && object.get("content") instanceof ObjectNode content) {
-				content.fields().forEachRemaining(entry -> {
+				content.properties().forEach(entry -> {
 					if (entry.getValue() instanceof ObjectNode mediaType) {
 						mediaType.remove("schema");
 					}
 				});
 			}
-			object.fields().forEachRemaining(entry -> dropSchemas(entry.getValue()));
+			object.properties().forEach(entry -> dropSchemas(entry.getValue()));
 		}
 		else if (node instanceof ArrayNode array) {
 			array.forEach(ApiContractGolden::dropSchemas);
@@ -284,9 +283,7 @@ public final class ApiContractGolden {
 		if (node.isObject()) {
 			ObjectNode copy = JsonNodeFactory.instance.objectNode();
 			Map<String, JsonNode> fields = new TreeMap<>();
-			Iterator<Map.Entry<String, JsonNode>> it = node.fields();
-			while (it.hasNext()) {
-				Map.Entry<String, JsonNode> entry = it.next();
+			for (Map.Entry<String, JsonNode> entry : node.properties()) {
 				fields.put(entry.getKey(), this.normalizeJson(entry.getKey(), entry.getValue()));
 			}
 			fields.forEach(copy::set);

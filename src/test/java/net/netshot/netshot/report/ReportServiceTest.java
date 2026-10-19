@@ -223,10 +223,6 @@ class ReportServiceTest extends WithDatabaseTest {
 		return new HashSet<>();
 	}
 
-	private static Set<Long> deviceIds(List<? extends Object> devices, java.util.function.Function<Object, Long> id) {
-		return devices.stream().map(id).collect(Collectors.toSet());
-	}
-
 	// ------------------------------------------------------------------
 	// statistics
 	// ------------------------------------------------------------------
