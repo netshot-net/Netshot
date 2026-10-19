@@ -21,14 +21,15 @@ package net.netshot.netshot.driver;
 import java.lang.reflect.Field;
 
 import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.Telnet;
+import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@UnitTest
 @DisplayName("Telnet config merge test")
-public class TelnetConfigMergeTest extends WithDeviceSimulatorTest {
+public class TelnetConfigMergeTest {
 
 	/**
 	 * Reads a private {@link Telnet.TelnetConfig} field via reflection - mirrors how

@@ -35,6 +35,7 @@ import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserCreation;
 import net.netshot.netshot.aaa.user.UserUpdate;
+import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Checks that the user and API token DTOs are a faithful replacement of the entities the REST API
@@ -42,6 +43,7 @@ import net.netshot.netshot.aaa.user.UserUpdate;
  * value or hash) is part of any output, and that the requests are read like the former request
  * classes were.
  */
+@UnitTest
 class AaaDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

@@ -25,7 +25,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.testing.UnitTest;
 
+@UnitTest
 public class RuleStateCacheTest {
 
 	@Test

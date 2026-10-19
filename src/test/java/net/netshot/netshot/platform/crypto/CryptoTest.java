@@ -28,6 +28,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import net.netshot.netshot.testing.UnitTest;
+
+@UnitTest
 @DisplayName("Encryption and hashing basic tests")
 public class CryptoTest {
 

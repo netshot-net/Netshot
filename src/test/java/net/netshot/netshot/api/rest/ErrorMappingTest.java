@@ -26,7 +26,9 @@ import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.NetshotBadRequestException;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.UnitTest;
 
+@UnitTest
 public class ErrorMappingTest {
 
 	private final NetshotExceptionMapper mapper = new NetshotExceptionMapper();

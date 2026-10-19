@@ -22,10 +22,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -36,7 +34,6 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.ApiContractGolden;
 import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.api.rest.v0.config.ConfigDiffDto;
 import net.netshot.netshot.api.rest.v0.config.ConfigDto;
@@ -69,6 +66,7 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.testing.ScriptEngineTest;
 
 /**
  * Checks that the inventory DTOs (groups, configurations, interfaces, device types...) and their
@@ -76,6 +74,7 @@ import net.netshot.netshot.inventory.group.StaticDeviceGroup;
  * XML with the same view), including the kinds of objects the API contract seed doesn't hold, and
  * that the requests are read like the former request classes were.
  */
+@ScriptEngineTest
 class InventoryDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -83,12 +82,6 @@ class InventoryDtoTest {
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(InventoryDtoTest.class);
-
-	@BeforeAll
-	static void loadDrivers() throws Exception {
-		TestConfig.init(new Properties());
-		TestDrivers.reload();
-	}
 
 	private static byte[] json(Object value) throws Exception {
 		return JSON.writer().writeValueAsBytes(value);

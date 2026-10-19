@@ -24,6 +24,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import com.tngtech.archunit.junit.ArchTag;
+
 import org.junit.jupiter.api.Tag;
 
 /**
@@ -36,5 +38,7 @@ import org.junit.jupiter.api.Tag;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Tag("unit")
+// The ArchUnit test engine (ArchitectureTest) ignores the JUnit Jupiter tags
+@ArchTag("unit")
 public @interface UnitTest {
 }

@@ -43,12 +43,14 @@ import net.netshot.netshot.report.HardwareSupportCount;
 import net.netshot.netshot.report.HardwareSupportStats;
 import net.netshot.netshot.report.PolicyRuleDevice;
 import net.netshot.netshot.report.SoftwareLevelDevice;
+import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Checks that the report DTOs are written as the REST API always wrote the former response classes
  * (the expected files hold what those classes wrote): in JSON and XML, single and in lists,
  * including the values the seed data of the contract tests don't hold (null dates and flags).
  */
+@UnitTest
 class ReportDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
