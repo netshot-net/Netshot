@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+	"-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+	"https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+	<!-- The tab indentation regexp can't tell code from the content of text blocks, which these tests use for
+	     device configurations and JSON payloads (where the leading spaces are part of the data). -->
+	<suppress checks="RegexpSinglelineJava"
+		files="src[\\/]test[\\/]java[\\/]net[\\/]netshot[\\/]netshot[\\/](ApiContractCases|ApiContractSeed|api[\\/]rest[\\/]v0[\\/]\w+[\\/]\w+DtoTest|devicescript[\\/]helper[\\/]ToolboxTest|vault[\\/]VaultTest)\.java$" />
+</suppressions>

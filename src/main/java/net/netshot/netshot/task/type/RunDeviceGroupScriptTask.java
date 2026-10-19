@@ -117,15 +117,6 @@ public final class RunDeviceGroupScriptTask extends Task
 		}
 	}
 
-	private RunDeviceScriptTask buildChild(Device device, DeviceDriver driver, String comment) {
-		RunDeviceScriptTask child = new RunDeviceScriptTask(device, this.getScript(), driver, comment, author);
-		child.setUserInputValues(this.getUserInputValues());
-		child.setRunSnapshot(this.isRunSnapshot());
-		child.setRunDiagnostics(this.isRunDiagnostics());
-		child.setCheckCompliance(this.isCheckCompliance());
-		return child;
-	}
-
 	/*(non-Javadoc)
 	 * @see net.netshot.netshot.task.Task#clone()
 	 */

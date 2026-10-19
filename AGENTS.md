@@ -14,7 +14,7 @@ responsible for.
 ## Repo layout
 
 - `src/main/java/net/netshot/netshot/` — core server (Java)
-- `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5)
+- `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5), in the package of the code they test; shared helpers and base classes in the root package (see "Test layout" in [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md))
 - `src/main/resources/drivers/` — device drivers (JavaScript, one file per platform)
 - `src/main/resources/webui/` — React + TypeScript web UI (own `package.json`)
 - `docs/content/` — user/admin/developer documentation source (Markdown), built with [Zensical](docs/content/index.md); `docs/` itself also holds the Zensical/uv tooling (`docs/pyproject.toml`, `docs/uv.lock`) — keep it that way, content must stay under `docs/content/` and out of `docs/` directly, or the build breaks (Zensical copies everything under `docs_dir` verbatim, and a stray `docs/.venv` silently kills the theme asset build)
@@ -39,7 +39,7 @@ These mirror what CI (`.github/workflows/build.yml`) enforces. **Always run the 
 
 - Changed any Java code (`src/main/java`, `src/test/java`) → run **both**:
   - `./mvnw checkstyle:check` (style — config in `checkstyle.xml`; also catches a missing/incorrect license header)
-  - `./mvnw test` (Java tests). Some tests (e.g. `DeviceDriverTest`) spin up Testcontainers-based device simulators, so **Docker must be running and reachable** (the CI job mounts `/var/run/docker.sock`).
+  - `./mvnw test` (Java tests). Some tests (the `driver.*DriverTest` classes and the others extending `WithDeviceSimulatorTest`) spin up Testcontainers-based device simulators, so **Docker must be running and reachable** (the CI job mounts `/var/run/docker.sock`).
 - Changed any web UI code (`src/main/resources/webui/src`) → run **both**, from `src/main/resources/webui`:
   - `npm run lint` (eslint) — on the full project this can OOM the default Node heap; if it does, `export NODE_OPTIONS="--max-old-space-size=4096"` first, and prefer the default "stylish" formatter over `-f json` for full-project runs.
   - `npm run tsx` (TypeScript type-check, no emit) — if Chakra UI theme tokens/recipes changed, regenerate typings first with `npm run chakra:typegen` and commit the resulting diff under `src/`, or the CI type-check diverges from what's committed.
@@ -48,11 +48,11 @@ These mirror what CI (`.github/workflows/build.yml`) enforces. **Always run the 
 
 ## Conventions
 
-- **License header**: every Java source file must start with the GPL header in `.license-header`; checkstyle enforces this (`Header` module) — copy it verbatim into new files.
+- **License header**: every Java source file must start with the GPL header in `.license-header`; checkstyle enforces this (`Header` module) on `src/main/java` and `src/test/java` — copy it verbatim into new files, tests included.
 - **Java style**: tabs for indentation, max line length 200 (see `checkstyle.xml`).
 - **Web UI style**: Prettier config in `src/main/resources/webui/.prettierrc.json` (2-space indent, no semicolons, double quotes, 100 print width). Follow existing component/hook patterns under `src/main/resources/webui/src/features/`.
 - **i18n**: `src/main/resources/webui/src/i18n/en.json` and `fr.json` are kept in sync — when adding/changing a UI string, update both.
-- **Device drivers**: are plain JavaScript files under `src/main/resources/drivers/`, one per platform, loaded (and reloadable) by the core server. See [docs/content/extending/writing-a-driver.md](docs/content/extending/writing-a-driver.md) before writing or modifying one, and [docs/content/user-guide/device-drivers.md](docs/content/user-guide/device-drivers.md) for the runtime concept. Driver behavior is exercised via `DeviceDriverTest` against the simulators in `dev/device-simulator/`. **Whenever you modify a driver file, bump its `Info.version` string** (e.g. `"4.2"` → `"4.3"`) in the same change.
+- **Device drivers**: are plain JavaScript files under `src/main/resources/drivers/`, one per platform, loaded (and reloadable) by the core server. See [docs/content/extending/writing-a-driver.md](docs/content/extending/writing-a-driver.md) before writing or modifying one, and [docs/content/user-guide/device-drivers.md](docs/content/user-guide/device-drivers.md) for the runtime concept. Driver behavior is exercised by the `driver.*DriverTest` classes (one per simulated driver, base `WithDeviceSimulatorTest`) against the simulators in `dev/device-simulator/`. **Whenever you modify a driver file, bump its `Info.version` string** (e.g. `"4.2"` → `"4.3"`) in the same change.
 - **Backend layering**: read [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md) before touching the server-side structure — packages and API channels, dependency rules (`ArchitectureTest`), transactions (`Transactions`), errors (`NetshotException`/`ErrorCode`), DTO conventions, wiring (`boot.Wiring`) and the checklist for adding or changing a REST endpoint.
 - **REST API**: the web UI talks to the core exclusively through the resources of `net.netshot.netshot.api.rest.v0` (one package per feature, served by `net.netshot.netshot.api.rest.RestServer`); keep them the single source of truth for the API surface (see [docs/content/api/rest-api.md](docs/content/api/rest-api.md)).
 - **Documentation**: update the relevant page(s) under `docs/content/` in the same change whenever behavior users/admins/integrators rely on changes — new or changed config options (`docs/content/configuration-reference.md`), REST endpoints (`docs/content/api/rest-api.md`), webhooks (`docs/content/api/webhooks.md`), driver-writing conventions (`docs/content/extending/writing-a-driver.md`), install/upgrade steps (`docs/content/installation/`, `docs/content/upgrading.md`), or user-facing features (`docs/content/user-guide/`). Don't leave docs stale for the sake of a smaller diff.
