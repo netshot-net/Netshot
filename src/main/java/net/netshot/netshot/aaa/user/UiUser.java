@@ -74,6 +74,8 @@ public class UiUser implements User {
 	 * Exception to be thrown in case of password check failure.
 	 */
 	public static class WrongPasswordException extends Exception {
+		private static final long serialVersionUID = 1L;
+
 		public WrongPasswordException(String message) {
 			super(message);
 		}

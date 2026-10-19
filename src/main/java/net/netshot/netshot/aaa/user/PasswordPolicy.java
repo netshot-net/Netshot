@@ -36,6 +36,8 @@ public class PasswordPolicy {
 	 * Exception to be thrown in case of password policy check failure.
 	 */
 	public static class PasswordPolicyException extends Exception {
+		private static final long serialVersionUID = 1L;
+
 		public PasswordPolicyException(String message) {
 			super(message);
 		}
