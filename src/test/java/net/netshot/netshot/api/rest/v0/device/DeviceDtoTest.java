@@ -42,7 +42,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;

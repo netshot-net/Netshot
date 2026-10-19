@@ -37,7 +37,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
 
 import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult;

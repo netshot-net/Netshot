@@ -35,7 +35,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.task.Task;
 
 /**
  * Tests for {@link TaskLockManager}, in local (in-memory) and distributed (PostgreSQL advisory

@@ -26,7 +26,6 @@ import org.hibernate.Session;
 
 import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.Ssh;
