@@ -30,12 +30,12 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserCreation;
 import net.netshot.netshot.aaa.user.UserUpdate;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the user and API token DTOs are a faithful replacement of the entities the REST API

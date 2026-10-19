@@ -35,8 +35,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.api.rest.v0.script.ScriptMapper;
 import net.netshot.netshot.api.rest.v0.script.ScriptRequest;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
@@ -54,6 +52,8 @@ import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.contract.DtoContract;
 import net.netshot.netshot.userscript.DeviceJsScript;
 
 /**

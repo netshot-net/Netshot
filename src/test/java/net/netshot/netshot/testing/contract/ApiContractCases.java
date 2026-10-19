@@ -16,16 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot;
+package net.netshot.netshot.testing.contract;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import net.netshot.netshot.ApiContractCase.Builder;
-import net.netshot.netshot.ApiContractCase.Reply;
-import net.netshot.netshot.ApiContractGolden.Transform;
+import net.netshot.netshot.testing.contract.ApiContractCase.Builder;
+import net.netshot.netshot.testing.contract.ApiContractCase.Reply;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Transform;
 
 /**
  * The catalogue of API contract cases: reads first (they do not change the

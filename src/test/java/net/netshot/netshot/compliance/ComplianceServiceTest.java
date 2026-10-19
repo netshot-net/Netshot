@@ -34,7 +34,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
@@ -51,6 +50,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the compliance use cases (policies, rules, software and hardware rules), against a

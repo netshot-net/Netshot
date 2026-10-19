@@ -22,7 +22,6 @@ import java.util.Calendar;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
@@ -35,6 +34,7 @@ import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;

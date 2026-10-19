@@ -31,13 +31,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.TestInstance;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.ApiContractGolden;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
@@ -46,6 +44,8 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
 
 /**
  * Golden file tests of the web hook payloads: the body posted for each task type that can trigger

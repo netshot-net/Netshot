@@ -30,7 +30,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
@@ -44,6 +43,7 @@ import net.netshot.netshot.report.HardwareSupportStats;
 import net.netshot.netshot.report.PolicyRuleDevice;
 import net.netshot.netshot.report.SoftwareLevelDevice;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the report DTOs are written as the REST API always wrote the former response classes

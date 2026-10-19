@@ -28,14 +28,14 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.hibernate.Session;
 
 import jakarta.ws.rs.core.MediaType;
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.NetshotApiClient;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;

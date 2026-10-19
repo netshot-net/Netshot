@@ -33,9 +33,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.ApiContractGolden;
-import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -56,6 +53,9 @@ import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the task DTOs and their mapper are a faithful replacement of the {@code Task}

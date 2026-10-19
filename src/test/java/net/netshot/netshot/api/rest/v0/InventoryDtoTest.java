@@ -32,9 +32,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.ApiContractGolden;
-import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.api.rest.v0.config.ConfigDiffDto;
 import net.netshot.netshot.api.rest.v0.config.ConfigDto;
 import net.netshot.netshot.api.rest.v0.config.ConfigMapper;
@@ -67,6 +64,9 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the inventory DTOs (groups, configurations, interfaces, device types...) and their

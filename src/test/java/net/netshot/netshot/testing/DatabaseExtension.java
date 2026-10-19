@@ -36,8 +36,6 @@ import org.junit.platform.commons.support.AnnotationSupport;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.TestNetwork;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.DatabaseTest.Boot;

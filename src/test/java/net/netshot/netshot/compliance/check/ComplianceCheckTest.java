@@ -34,15 +34,15 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 /**
  * Tests of the compliance check components: the registry of the rule evaluators

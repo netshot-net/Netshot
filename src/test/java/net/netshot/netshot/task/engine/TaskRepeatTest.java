@@ -30,7 +30,6 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task.ScheduleType;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
-import net.netshot.netshot.testing.DatabaseTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +37,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Regression tests for {@link TaskManager#repeatTask(Task)} not being able to
