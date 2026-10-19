@@ -151,12 +151,30 @@ A `Task` entity holds the data of a task (target, schedule, status, log, result 
 
 ### Test layout
 
-A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.rules.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the shared helpers and the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`):
+A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.rules.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`, `TestLayoutTest`) and the shared helpers not moved yet.
 
-- base classes: `WithDatabaseTest` (database configuration of a schema), `WithRestServerTest` (starts Netshot and the REST server on a free port for the class, stops it afterwards, gives each test an admin `apiClient`), `WithDeviceSimulatorTest` (configuration, drivers and device simulator containers, `dev/device-simulator`), `HookSeededTest`;
-- utilities: `TestConfig.init` (replaces the configuration, as `Netshot.initConfig` is not public), `TestDrivers`, `TestNetwork` (free ports), the `Fake*` doubles, `NetshotApiClient`, and the contract helpers (`ApiContract*`, `DtoContract`).
+#### Kinds of tests
 
-`TestLayoutTest` fails when a test class is left in the root package, or when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class).
+Each test class carries exactly one annotation of `net.netshot.netshot.testing` giving its kind. The annotation is a JUnit tag (to select the tests to run) and the extensions setting up what the kind needs, so a test class extends nothing:
+
+| Annotation | Tag | Uses | Set up before the class |
+|---|---|---|---|
+| `@UnitTest` | `unit` | the JVM only (the architecture and layout tests too) | nothing |
+| `@ScriptEngineTest` | `component` | the script engines, the drivers, servers on the loopback interface | empty configuration (plus the `@TestProperty` values), module configurations, drivers |
+| `@DatabaseTest` | `db` | PostgreSQL | a schema named after the class (always empty) in a container shared by the run, the configuration pointing at it with a temporary binary snapshot folder, then `Database.update()` and `Wiring.init(...)` (see `boot`: `MIGRATED` stops after the update, `MANUAL` sets up nothing, for the tests driving the schema themselves) |
+| `@ApiTest` | `api` | the REST API over HTTP | as `@DatabaseTest`, plus the task manager and the REST server on a free port; the API tokens of `TestServer.API_TOKENS` replace the users around each test |
+| `@ContractTest` | `contract` | golden files (`src/test/resources`) | as `@ApiTest`, but the tasks are never run (schedulers in standby), the time zone is UTC and no token is managed |
+| `@SimulatorTest` | `simulator` | the device simulator containers (`dev/device-simulator`) | as `@ScriptEngineTest`; the containers are static `@Container` fields built by `DeviceSimulators` |
+
+Add configuration properties with `@TestProperty(name = ..., value = ...)` (repeatable). The test methods, including `@BeforeAll` and `@BeforeEach`, receive what the kind provides as parameters: `TestDatabase` (schema, binary folder, a copy of the configuration of the class, configurations of other schemas), `TestServer` (API URL, client for a permission level, `UNKNOWN_ID`) and an admin `NetshotApiClient`. Only the class carrying the annotation is set up: a `@Nested` class needing its own schema carries `@DatabaseTest` too (see `vault.VaultTest`).
+
+The kinds decide where a test can run: the unit and script engine tests need no Docker, `./mvnw test -Pfast` runs them only (`-Pdocker` runs the others, `-Dgroups=db` a single kind).
+
+#### Helpers
+
+The helpers still in the root package: `TestConfig.init` (replaces the configuration, as `Netshot.initConfig` is not public), `TestDrivers`, `TestNetwork` (free ports), the `Fake*` doubles, `NetshotApiClient`, and the contract helpers (`ApiContract*`, `DtoContract`).
+
+`TestLayoutTest` fails when a test class is left in the root package, when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class), when a test class has no kind or several, and when a unit or script engine test uses the database, the REST server, the wiring or a container (it would fail without Docker).
 
 ## Wiring
 
@@ -215,7 +233,7 @@ In `boot.Wiring.init()` build the repository and the service (a `new` chain, dep
 
 ### 6. Service tests
 
-Write `<Entity>ServiceTest` in the package of the service, extending `WithDatabaseTest` (see `inventory.device.DeviceServiceTest`: own schema, `TestConfig.init`, `TestDrivers.reload()` (the drivers), `Database.update()`, `Wiring.init(TestDrivers.registry())`, a recording `TaskSubmitter`). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, the side effects, and that what the service returns can be read without a session. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
+Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own schema, migrated and wired by the extension, the service built in `@BeforeAll` with `new Transactions()`, its repository and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, the side effects, and that what the service returns can be read without a session. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
 
 ### 7. DTOs and mapper
 
