@@ -35,7 +35,9 @@ import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.testing.ScriptEngineTest;
 
+@ScriptEngineTest
 @DisplayName("Snapshot configuration dump")
 public class SnapshotDumpTest {
 

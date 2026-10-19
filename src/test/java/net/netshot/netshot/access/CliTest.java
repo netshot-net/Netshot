@@ -28,7 +28,9 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.UnitTest;
 
+@UnitTest
 public class CliTest {
 
 	/**

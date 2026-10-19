@@ -38,11 +38,13 @@ import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.ClusterService.MasterStatus;
 import net.netshot.netshot.system.ServerInfo;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Tests of the cluster and server information use cases and of their representation (the
  * contract tests only cover a server without clustering, hence without any member).
  */
+@UnitTest
 class ClusterServiceTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

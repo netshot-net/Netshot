@@ -42,6 +42,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
+import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultInstance;
 
@@ -50,6 +51,7 @@ import net.netshot.netshot.vault.VaultInstance;
  * the REST API used to read and write: same representation in JSON and XML, no secret ever written,
  * requests read like they used to be (defaults for absent properties, {@code =} for unchanged secrets).
  */
+@UnitTest
 class VaultInstanceDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

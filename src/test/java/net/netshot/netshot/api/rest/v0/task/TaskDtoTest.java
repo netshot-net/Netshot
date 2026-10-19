@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -36,7 +35,6 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.ApiContractGolden;
 import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
@@ -57,6 +55,7 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.ScriptEngineTest;
 
 /**
  * Checks that the task DTOs and their mapper are a faithful replacement of the {@code Task}
@@ -64,6 +63,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  * in-memory task is the same, in JSON and XML, as the one of the entity with the same view.
  * The creation request is read like it always was.
  */
+@ScriptEngineTest
 class TaskDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -71,12 +71,6 @@ class TaskDtoTest {
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(TaskDtoTest.class);
-
-	@BeforeAll
-	static void loadDrivers() throws Exception {
-		TestConfig.init(new java.util.Properties());
-		TestDrivers.reload();
-	}
 
 	private static Domain domain() throws Exception {
 		Domain domain = new Domain("Paris DC", "Description", new Network4Address("10.255.0.1"), null);

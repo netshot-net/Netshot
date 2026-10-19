@@ -24,11 +24,9 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -38,7 +36,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.api.rest.v0.script.ScriptMapper;
 import net.netshot.netshot.api.rest.v0.script.ScriptRequest;
@@ -56,6 +53,7 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.userscript.DeviceJsScript;
 
 /**
@@ -63,6 +61,7 @@ import net.netshot.netshot.userscript.DeviceJsScript;
  * the entities the REST API used to write (every kind of diagnostic and of result, in JSON and
  * XML), and that the requests are read like the former request classes did.
  */
+@ScriptEngineTest
 class DiagnosticDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -70,15 +69,6 @@ class DiagnosticDtoTest {
 
 	@RegisterExtension
 	private final DtoContract contract = new DtoContract(DiagnosticDtoTest.class);
-
-	@BeforeAll
-	static void loadDrivers() throws Exception {
-		Properties config = new Properties();
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		TestDrivers.reload();
-	}
 
 	private static byte[] json(Object value) throws Exception {
 		return JSON.writer().writeValueAsBytes(value);

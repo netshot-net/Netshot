@@ -18,21 +18,25 @@
  */
 package net.netshot.netshot.task.engine;
 
-import net.netshot.netshot.Netshot;
+import java.util.Properties;
+
+import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.task.Task.SequentialScheduling.NextAction;
 import net.netshot.netshot.task.Task.SequentialScheduling;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@UnitTest
 @DisplayName("Sequential group-task scheduling decisions")
 public class SequentialDecisionTest {
 
 	@BeforeAll
 	static void initNetshot() {
-		Netshot.readConfig();
+		TestConfig.init(new Properties());
 	}
 
 	@Test

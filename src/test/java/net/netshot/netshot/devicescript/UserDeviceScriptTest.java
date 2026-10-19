@@ -23,15 +23,13 @@ import java.util.List;
 import java.util.Map;
 
 import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.ScriptEngineTest;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -42,14 +40,8 @@ import org.junit.jupiter.api.Test;
  * {@code validateRunScript}/{@code validateUserInputs}, called via
  * {@link UserDeviceScript}).
  */
+@ScriptEngineTest
 public class UserDeviceScriptTest {
-
-	@BeforeAll
-	static void initNetshot() throws Exception {
-		Netshot.readConfig();
-		Ssh.loadConfig();
-		TestDrivers.reload();
-	}
 
 	/** Any already-loaded driver works here - the script's JS context is borrowed from it, not executed against a real device. */
 	private static final String DRIVER_NAME = "CiscoIOS12";

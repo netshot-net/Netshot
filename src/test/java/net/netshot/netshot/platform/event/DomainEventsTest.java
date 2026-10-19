@@ -24,10 +24,13 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.testing.UnitTest;
+
 
 /**
  * Tests of the domain events publisher.
  */
+@UnitTest
 class DomainEventsTest {
 
 	private record First(String name) {

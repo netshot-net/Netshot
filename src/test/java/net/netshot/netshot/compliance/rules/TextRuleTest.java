@@ -18,28 +18,25 @@
  */
 package net.netshot.netshot.compliance.rules;
 
-import java.util.Properties;
-
 import org.hibernate.Session;
 
 import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
-import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.ScriptEngineTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@ScriptEngineTest
 @DisplayName("Simple Text Rule")
 public class TextRuleTest {
 
@@ -47,11 +44,7 @@ public class TextRuleTest {
 
 	@BeforeAll
 	static void initNetshot() throws Exception {
-		TestConfig.init(new Properties());
-		Ssh.loadConfig();
-		PythonFileSystem.loadConfig();
 		evaluators = RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry());
-		TestDrivers.reload();
 	}
 
 	Policy policy = new Policy("Fake policy", null);

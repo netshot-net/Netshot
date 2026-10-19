@@ -33,11 +33,14 @@ import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
+import net.netshot.netshot.testing.UnitTest;
+
 /**
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
  * holds the shared helpers and the tests of the whole application), and the simple names of the test
  * classes are unique (the expected files of DtoContract are stored under the simple name of the class).
  */
+@UnitTest
 @DisplayName("Layout of the tests")
 public class TestLayoutTest {
 

@@ -23,13 +23,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,14 +39,14 @@ import org.junit.jupiter.api.Test;
  * lifecycle: filenames before/after the owning config is "persisted"
  * (simulated here via setId(), without a real database).
  */
+@UnitTest
 @DisplayName("ConfigBinaryFileAttribute storage lifecycle test")
-public class ConfigBinaryFileAttributeStorageTest extends WithDeviceSimulatorTest {
+public class ConfigBinaryFileAttributeStorageTest {
 
 	@BeforeEach
 	void setUp() throws IOException {
 		Path storagePath = Files.createTempDirectory("netshot-test-binary-storage-");
 		Properties props = new Properties();
-		props.putAll(Netshot.getConfig());
 		props.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 		TestConfig.init(props);
 		ConfigBinaryFileAttribute.loadConfig();

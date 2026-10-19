@@ -30,7 +30,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.UnitTest;
 
+@UnitTest
 @DisplayName("Secret configuration items")
 public class NetshotConfigTest {
 

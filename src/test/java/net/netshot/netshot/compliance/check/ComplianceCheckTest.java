@@ -22,7 +22,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import org.hibernate.Hibernate;
@@ -37,26 +36,25 @@ import com.tngtech.archunit.core.importer.ImportOption;
 
 import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.testing.ScriptEngineTest;
 
 /**
  * Tests of the compliance check components: the registry of the rule evaluators
  * and the checker looping over the rules of a policy.
  */
+@ScriptEngineTest
 public class ComplianceCheckTest {
 
 	private static RuleEvaluators evaluators;
 
 	@BeforeAll
 	static void init() throws Exception {
-		TestConfig.init(new Properties());
-		TestDrivers.reload();
 		evaluators = RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry());
 	}
 
