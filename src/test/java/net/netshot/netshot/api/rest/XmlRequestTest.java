@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -126,7 +126,12 @@ public class XmlRequestTest extends WithDatabaseTest {
 		return this.call(method, path, "application/xml", body);
 	}
 
-	/** Finds an element, by name, in the list the path returns. */
+	/**
+	 * Finds an element, by name, in the list the path returns.
+	 * @param path the API path returning the list
+	 * @param name the name to find
+	 * @return the element
+	 */
 	private JsonNode byName(String path, String name) throws Exception {
 		for (JsonNode node : this.json("GET", path, null)) {
 			if (name.equals(node.path("name").asText())) {
@@ -136,7 +141,11 @@ public class XmlRequestTest extends WithDatabaseTest {
 		throw new AssertionError("No element named %s in %s".formatted(name, path));
 	}
 
-	/** Copy of the node without the properties which differ between two creations. */
+	/**
+	 * Copy of the node without the properties which differ between two creations.
+	 * @param node the node
+	 * @return the normalized copy
+	 */
 	private static JsonNode normalized(JsonNode node) {
 		ObjectNode copy = node.deepCopy();
 		copy.remove("id");

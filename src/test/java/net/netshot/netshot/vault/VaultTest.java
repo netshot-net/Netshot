@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -127,9 +127,12 @@ public class VaultTest extends WithDatabaseTest {
 			""";
 
 		@Container
-		private static final VaultContainer<?> vaultContainer = buildVaultContainer();
+		private static final VaultContainer<?> VAULT_CONTAINER = buildVaultContainer();
 
-		/** Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class. */
+		/**
+		 * Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class.
+		 * @return the container
+		 */
 		@SuppressWarnings("resource")
 		private static VaultContainer<?> buildVaultContainer() {
 			return new VaultContainer<>(DockerImageName.parse("hashicorp/vault:2.0.4"))
@@ -160,7 +163,7 @@ public class VaultTest extends WithDatabaseTest {
 			Wiring.init(TestDrivers.registry());
 
 			HashicorpVaultKv2Instance vaultInstance = new HashicorpVaultKv2Instance("test-vault");
-			vaultInstance.setBaseUrl(vaultContainer.getHttpHostAddress());
+			vaultInstance.setBaseUrl(VAULT_CONTAINER.getHttpHostAddress());
 			vaultInstance.setKvMountPath("secret");
 			vaultInstance.setAuthMethod(AuthMethod.APPROLE);
 			vaultInstance.setAppRoleId(ROLE_ID);
@@ -193,7 +196,10 @@ public class VaultTest extends WithDatabaseTest {
 			accountId = account.getId();
 		}
 
-		/** Reloads the test account in a fresh session, so its Vault references come from the DB, not from the object still held by {@code @BeforeAll}. */
+		/**
+		 * Reloads the test account in a fresh session, so its Vault references come from the DB, not from the object still held by {@code @BeforeAll}.
+		 * @return the reloaded account
+		 */
 		private DeviceSshAccount reloadAccount() {
 			try (Session session = Database.getSession(true)) {
 				return session.get(DeviceSshAccount.class, accountId);
@@ -235,7 +241,7 @@ public class VaultTest extends WithDatabaseTest {
 		@DisplayName("Resolution fails fast with wrong AppRole credentials")
 		void resolutionFailsForWrongCredentials() {
 			HashicorpVaultKv2Instance wrongInstance = new HashicorpVaultKv2Instance("test-vault-bad-creds");
-			wrongInstance.setBaseUrl(vaultContainer.getHttpHostAddress());
+			wrongInstance.setBaseUrl(VAULT_CONTAINER.getHttpHostAddress());
 			wrongInstance.setKvMountPath("secret");
 			wrongInstance.setAuthMethod(AuthMethod.APPROLE);
 			wrongInstance.setAppRoleId(ROLE_ID);

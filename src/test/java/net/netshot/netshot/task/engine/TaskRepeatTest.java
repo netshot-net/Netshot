@@ -98,6 +98,7 @@ public class TaskRepeatTest extends WithDatabaseTest {
 	/**
 	 * Persists a recurring, unrestricted (no device group, no device list)
 	 * purge task and returns its ID.
+	 * @return the ID of the task
 	 */
 	private long persistRecurringPurgeTask() {
 		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 1, 0, 0, 0, 0, (DeviceGroup) null);
@@ -113,6 +114,7 @@ public class TaskRepeatTest extends WithDatabaseTest {
 	/**
 	 * Persists a recurring purge task restricted to a (real, persisted) device
 	 * group and returns its ID.
+	 * @return the ID of the task
 	 */
 	private long persistRecurringPerGroupPurgeTask() {
 		try (Session session = Database.getSession()) {

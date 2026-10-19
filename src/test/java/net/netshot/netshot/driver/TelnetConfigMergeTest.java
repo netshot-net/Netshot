@@ -35,6 +35,9 @@ public class TelnetConfigMergeTest extends WithDeviceSimulatorTest {
 	 * {@link RekeyTest} already reaches into {@code Ssh}'s own private state, since
 	 * {@code TelnetConfig} deliberately exposes no public getters (same minimalism as
 	 * {@link Ssh.SshConfig}).
+	 * @param config the Telnet configuration
+	 * @param fieldName the name of the field
+	 * @return the value of the field
 	 */
 	private Object getTelnetConfigField(Telnet.TelnetConfig config, String fieldName) throws Exception {
 		Field field = Telnet.TelnetConfig.class.getDeclaredField(fieldName);

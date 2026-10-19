@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -283,7 +283,11 @@ class DeviceDtoTest {
 		  "usernameVaultInstanceId": 13, "usernameVaultPath": "pu7", "passwordVaultInstanceId": 14, "passwordVaultPath": "pp7"}}
 		]""";
 
-	/** The simple properties of an object, and the ones of the credential sets and domains it refers to. */
+	/**
+	 * The simple properties of an object, and the ones of the credential sets and domains it refers to.
+	 * @param bean the object
+	 * @return the property values, by property path
+	 */
 	private static Map<String, Object> describe(Object bean) throws IntrospectionException, ReflectiveOperationException {
 		Map<String, Object> description = new TreeMap<>();
 		for (PropertyDescriptor property : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {

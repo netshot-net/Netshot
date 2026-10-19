@@ -1,18 +1,18 @@
 /**
  * Copyright 2013-2025 Netshot
- *
+ * 
  * This file is part of Netshot project.
- *
+ * 
  * Netshot is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * 
  * Netshot is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -245,7 +245,10 @@ public final class ApiContractGolden {
 		}
 	}
 
-	/** Removes the schema of every request/response body. */
+	/**
+	 * Removes the schema of every request/response body.
+	 * @param node the OpenAPI node to clean up
+	 */
 	private static void dropSchemas(JsonNode node) {
 		if (node instanceof ObjectNode object) {
 			if (object.has("content") && object.get("content") instanceof ObjectNode content) {
@@ -278,7 +281,12 @@ public final class ApiContractGolden {
 		return JSON.writer(printer).writeValueAsString(normalized) + "\n";
 	}
 
-	/** Normalizes the volatile values and sorts the object keys. */
+	/**
+	 * Normalizes the volatile values and sorts the object keys.
+	 * @param key the key of the node in its parent object, or null
+	 * @param node the node
+	 * @return the normalized copy
+	 */
 	private JsonNode normalizeJson(String key, JsonNode node) {
 		if (node.isObject()) {
 			ObjectNode copy = JsonNodeFactory.instance.objectNode();
@@ -313,14 +321,22 @@ public final class ApiContractGolden {
 		return node;
 	}
 
-	/** Normalizes the volatile parts of a string value. */
+	/**
+	 * Normalizes the volatile parts of a string value.
+	 * @param value the value
+	 * @return the normalized value
+	 */
 	public static String normalizeString(String value) {
 		String normalized = SPECIFIC_NAME.matcher(value).replaceAll("DEVICESPECIFIC-<uuid>");
 		normalized = ISO_TIMESTAMP.matcher(normalized).replaceAll("<iso-timestamp>");
 		return CONNECT_ERROR.matcher(normalized).replaceAll("$1: <os-message>");
 	}
 
-	/** Normalizes the volatile parts of a response header value. */
+	/**
+	 * Normalizes the volatile parts of a response header value.
+	 * @param value the header value
+	 * @return the normalized value
+	 */
 	public static String normalizeHeader(String value) {
 		return FILE_TIMESTAMP.matcher(value).replaceAll("<timestamp>");
 	}

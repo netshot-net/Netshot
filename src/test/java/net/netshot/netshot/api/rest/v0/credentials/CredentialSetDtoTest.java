@@ -85,7 +85,10 @@ class CredentialSetDtoTest {
 		return domain;
 	}
 
-	/** One credential set of each kind, with every field filled, secrets included. */
+	/**
+	 * One credential set of each kind, with every field filled, secrets included.
+	 * @return the credential sets
+	 */
 	private static List<DeviceCredentialSet> localCredentialSets() throws Exception {
 		SECRETS.clear();
 		DeviceSnmpv1Community v1 = new DeviceSnmpv1Community(secret("v1-community"), "SNMP v1");
@@ -106,7 +109,10 @@ class CredentialSetDtoTest {
 		return all;
 	}
 
-	/** The same kinds, with the fields held by a Vault instance. */
+	/**
+	 * The same kinds, with the fields held by a Vault instance.
+	 * @return the credential sets
+	 */
 	private static List<DeviceCredentialSet> vaultCredentialSets() throws Exception {
 		List<DeviceCredentialSet> all = localCredentialSets();
 		DeviceSnmpv1Community v1 = (DeviceSnmpv1Community) all.get(0);

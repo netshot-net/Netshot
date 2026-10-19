@@ -124,15 +124,15 @@ public class NetshotApiClient {
 		this.password = password;
 	}
 
-	public void setLogin(String username, String password) {
-		this.username = username;
-		this.password = password;
+	public void setLogin(String loginUsername, String loginPassword) {
+		this.username = loginUsername;
+		this.password = loginPassword;
 		this.apiToken = null;
 	}
 
-	public void setOidcCodeLogin(String authorizationCode, String redirectUri) {
-		this.authorizationCode = authorizationCode;
-		this.redirectUri = redirectUri;
+	public void setOidcCodeLogin(String newAuthorizationCode, String newRedirectUri) {
+		this.authorizationCode = newAuthorizationCode;
+		this.redirectUri = newRedirectUri;
 		this.apiToken = null;
 	}
 
@@ -148,8 +148,7 @@ public class NetshotApiClient {
 				HttpResponse.BodySubscriber<String> upstream = HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8);
 				return HttpResponse.BodySubscribers.mapping(upstream, (String body) -> {
 					try {
-						ObjectMapper objectMapper = getObjectMapper();
-						return objectMapper.readTree(body);
+						return getObjectMapper().readTree(body);
 					}
 					catch (IOException e) {
 						throw new UncheckedIOException(e);

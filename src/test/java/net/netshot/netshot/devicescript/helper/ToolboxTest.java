@@ -654,7 +654,11 @@ public class ToolboxTest {
 			this.op = op;
 		}
 
-		/** Run the query on the first node (searched recursively) matching the regex. */
+		/**
+		 * Run the query on the first node (searched recursively) matching the regex.
+		 * @param nodeRegex the regex matching the node
+		 * @return this case
+		 */
 		ToolboxCase on(String nodeRegex) {
 			this.on.add(nodeRegex);
 			return this;
@@ -675,7 +679,10 @@ public class ToolboxTest {
 			return this;
 		}
 
-		/** Parse with the indented option. */
+		/**
+		 * Parse with the indented option.
+		 * @return this case
+		 */
 		ToolboxCase indented() {
 			this.indented = true;
 			return this;
@@ -696,7 +703,10 @@ public class ToolboxTest {
 			return this;
 		}
 
-		/** Whether the case only applies to the JavaScript implementation (legacy findSections helper). */
+		/**
+		 * Whether the case only applies to the JavaScript implementation (legacy findSections helper).
+		 * @return true if only the JavaScript implementation supports the case
+		 */
 		boolean isJsOnly() {
 			return "findSections".equals(this.op);
 		}
@@ -852,7 +862,8 @@ public class ToolboxTest {
 					  43:4 edit "branch-cert" [next]
 					    44:8 set password ENC fakefakefake
 					    45:8 set comments "Multi-line certificate"
-					    46:8 set certificate "-----BEGIN CERTIFICATE-----\\nMIIBszCCAVmgAwIBAgIUFAKEFAKEFAKEFAKEFAKEFAKEFAKEwCgYIKoZIzj0EAwIw\\nFAKEFAKEFAKE\\n-----END CERTIFICATE-----"
+					    46:8 set certificate "-----BEGIN CERTIFICATE-----\\nMIIBszCCAVmgAwIBAgIUFAKEFAKEFAKEFAKEFAKEFAKEFAKEwCgYIKoZIzj0EAwIw\
+					\\nFAKEFAKEFAKE\\n-----END CERTIFICATE-----"
 					52:0 config firewall policy [end]
 					  53:4 edit 1 [next]
 					    54:8 set name "LAN to WAN"

@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 
 public class FakeOidcIdpServer {
 
-	private static final Logger logger = LoggerFactory.getLogger(FakeOidcIdpServer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FakeOidcIdpServer.class);
 
 	public static class User {
 		private String username;
@@ -157,10 +157,10 @@ public class FakeOidcIdpServer {
 		this(DEFAULT_BASE_URI);
 	}
 
-	public void registerClient(String clientId, String clientSecret, URI redirectUri) {
-		this.clientId = clientId;
-		this.clientSecret = clientSecret;
-		this.redirectUri = redirectUri;
+	public void registerClient(String newClientId, String newClientSecret, URI newRedirectUri) {
+		this.clientId = newClientId;
+		this.clientSecret = newClientSecret;
+		this.redirectUri = newRedirectUri;
 	}
 
 	public void addAuthorizatioCode(String code, String username, String role) {
@@ -320,7 +320,7 @@ public class FakeOidcIdpServer {
 					exchange.setReasonPhrase("Unauthorized");
 				}
 				catch (Exception e) {
-					logger.warn("Rejecting OIDC token request with a 400", e);
+					LOGGER.warn("Rejecting OIDC token request with a 400", e);
 					exchange.setStatusCode(StatusCodes.BAD_REQUEST);
 					exchange.setReasonPhrase("Bad request");
 				}

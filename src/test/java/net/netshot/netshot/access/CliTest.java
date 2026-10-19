@@ -36,7 +36,7 @@ public class CliTest {
 	 */
 	private static class FakeCli extends Cli {
 
-		public FakeCli(TaskContext taskContext) {
+		FakeCli(TaskContext taskContext) {
 			super(null, taskContext);
 		}
 
@@ -142,7 +142,7 @@ public class CliTest {
 	void testControlCharacters() throws Exception {
 		StringBuilder sb = new StringBuilder();
 		sb.append('A');
-		sb.append((char)0x01);
+		sb.append((char) 0x01);
 		sb.append('B');
 		String input1 = sb.toString();
 		String result1 = cleanUpOutput(input1);
