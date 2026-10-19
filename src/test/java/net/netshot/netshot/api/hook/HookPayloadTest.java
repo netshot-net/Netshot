@@ -27,9 +27,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -43,7 +46,6 @@ import jakarta.ws.rs.core.MultivaluedHashMap;
 import net.netshot.netshot.ApiContractGolden.Format;
 import net.netshot.netshot.ApiContractGolden;
 import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.HookSeededTest;
 import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.hook.payload.TaskPayload;
@@ -63,6 +65,8 @@ import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.TestServer;
 
 /**
  * Tests of the web hook payloads: the payload DTOs ({@link TaskPayload}) are written exactly like
@@ -70,13 +74,21 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  * type and each format. The expected files were generated from the entity, and the payloads are
  * written by the same providers the web hook sender uses.
  */
-public class HookPayloadTest extends HookSeededTest {
+@ContractTest
+@TestInstance(Lifecycle.PER_CLASS)
+public class HookPayloadTest {
+
+	/** When the test started (the dates near it are normalized in the outputs). */
+	private final long startTime = System.currentTimeMillis();
+
+	/** Task IDs by case name. */
+	private Map<String, Long> taskIds;
 
 	private final DtoContract contract = new DtoContract(HookPayloadTest.class, this.startTime);
 
-	@Override
-	protected String databaseName() {
-		return "hookpayloadtest";
+	@BeforeAll
+	void seed(TestServer server) throws Exception {
+		this.taskIds = HookTaskSeed.seed(server.apiUrl());
 	}
 
 	/** Writes an object like the web hook sender does. */
@@ -140,7 +152,7 @@ public class HookPayloadTest extends HookSeededTest {
 	/** Every concrete type of task has a payload (the sealed family follows the task types). */
 	@Test
 	void everyTaskTypeHasAPayload() {
-		List<String> covered = this.taskIds.keySet().stream().map(HookSeededTest::taskType).distinct().sorted().toList();
+		List<String> covered = this.taskIds.keySet().stream().map(HookTaskSeed::taskType).distinct().sorted().toList();
 		List<String> payloads = new ArrayList<>();
 		for (Class<?> payload : TaskPayload.class.getPermittedSubclasses()) {
 			payloads.add(payload.getSimpleName() + "Task");
