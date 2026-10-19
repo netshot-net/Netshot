@@ -22,7 +22,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Assertions;
@@ -34,29 +33,29 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserCreation;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestProperty;
 
 /**
  * Tests of the authentication of the users who log in (local password, expired password, remote
  * methods), against a real database and a fake set of remote authentication methods. The HTTP
  * session handling is the resource's: it is covered by the end-to-end tests of {@code RestServerTest}.
  */
+@DatabaseTest
+@TestProperty(name = "netshot.aaa.passwordpolicy.mintotalchars", value = "8")
+@TestProperty(name = "netshot.aaa.passwordpolicy.minnumericalchars", value = "1")
+@TestProperty(name = "netshot.aaa.passwordpolicy.maxduration", value = "30")
 @TestInstance(Lifecycle.PER_CLASS)
-class LoginServiceTest extends WithDatabaseTest {
+class LoginServiceTest {
 
 	private static final String PASSWORD = "Passw0rd-one";
 	private static final String ADDRESS = "192.0.2.10";
@@ -103,17 +102,6 @@ class LoginServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("loginservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		config.setProperty("netshot.aaa.passwordpolicy.mintotalchars", "8");
-		config.setProperty("netshot.aaa.passwordpolicy.minnumericalchars", "1");
-		config.setProperty("netshot.aaa.passwordpolicy.maxduration", "30");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.users = new UserService(this.transactions, this.repository);
 		this.service = new LoginService(this.transactions, this.repository, this.remote);

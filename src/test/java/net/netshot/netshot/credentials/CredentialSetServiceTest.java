@@ -20,7 +20,6 @@ package net.netshot.netshot.credentials;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Properties;
 
 import org.hibernate.Session;
 import org.hibernate.exception.ConstraintViolationException;
@@ -32,31 +31,27 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
+import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 
 /**
  * Tests of the credential set use cases, against a real database: error codes and their order,
  * the semantics of the secrets left out (kept), the Vault references, the deletion rules.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class CredentialSetServiceTest extends WithDatabaseTest {
+class CredentialSetServiceTest {
 
 	private Transactions transactions;
 	private CredentialSetService service;
@@ -66,14 +61,6 @@ class CredentialSetServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("credentialsetservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new CredentialSetService(this.transactions, new CredentialSetRepository());
 		Domain domain = new Domain("Credentials domain", "d", new Network4Address("10.255.0.1"), new Network6Address("::"));

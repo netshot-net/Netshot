@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
@@ -35,14 +34,10 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -54,12 +49,14 @@ import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Tests of the task use cases, against a real database, a recording task submitter and a fake task engine.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class TaskServiceTest extends WithDatabaseTest {
+class TaskServiceTest {
 
 	private static final String AUTHOR = "tester";
 	private static final String SCRIPT = "function run(cli, device) {}";
@@ -80,13 +77,6 @@ class TaskServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("taskservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
 		net.netshot.netshot.boot.Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		TaskSubmitter submitter = task -> {
