@@ -19,6 +19,7 @@
 package net.netshot.netshot.task.handler;
 
 import java.util.Calendar;
+import java.util.List;
 
 import org.hibernate.Session;
 
@@ -363,6 +364,85 @@ public class PurgeTest {
 
 		try (Session session = Database.getSession()) {
 			this.assertDeviceCount(session, DEVICES);
+			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
+			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
+			this.assertModuleCount(session,
+				(DEVICES - DEVICES_IN_GROUP1) * 4
+					+ DEVICES_IN_GROUP1 * 3);
+		}
+	}
+
+	/**
+	 * Gets the devices of group1, as the device list of a task.
+	 *
+	 * @return the devices
+	 */
+	private List<Device> group1Devices() {
+		try (Session session = Database.getSession()) {
+			return session
+				.createSelectionQuery("select d from Device d join d.groupMemberships gm where gm.key.group = :group", Device.class)
+				.setParameter("group", group1)
+				.list();
+		}
+	}
+
+	@Test
+	@DisplayName("Per-device-list task purge test")
+	@ResourceLock("DB")
+	public void perDeviceListTaskPurgeTest() {
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", purgeDays, 0, 0, 0, 0, this.group1Devices());
+		new PurgeDatabaseHandler().run(task);
+
+		try (Session session = Database.getSession()) {
+			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
+			this.assertTaskCount(session,
+				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
+					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
+			this.assertModuleCount(session, DEVICES * 4);
+		}
+	}
+
+	@Test
+	@DisplayName("Per-device-list config purge test")
+	@ResourceLock("DB")
+	public void perDeviceListConfigPurgeTest() {
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, 0, 0, this.group1Devices());
+		new PurgeDatabaseHandler().run(task);
+
+		try (Session session = Database.getSession()) {
+			this.assertConfigCount(session,
+				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
+					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
+			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
+			this.assertModuleCount(session, DEVICES * 4);
+		}
+	}
+
+	@Test
+	@DisplayName("Per-device-list oversized config purge test")
+	@ResourceLock("DB")
+	public void perDeviceListOversizedConfigPurgeTest() {
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 2, 0, 0, this.group1Devices());
+		new PurgeDatabaseHandler().run(task);
+
+		try (Session session = Database.getSession()) {
+			// The devices with big configs are the last ones, out of group1: nothing is purged
+			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
+		}
+	}
+
+	@Test
+	@DisplayName("Per-device-list module purge test")
+	@ResourceLock("DB")
+	public void perDeviceListModulePurgeTest() {
+		final int purgeDays = 18;
+		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, purgeDays, this.group1Devices());
+		new PurgeDatabaseHandler().run(task);
+
+		try (Session session = Database.getSession()) {
 			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
 			this.assertModuleCount(session,
