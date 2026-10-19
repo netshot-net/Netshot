@@ -31,13 +31,13 @@ import org.apache.sshd.common.session.SessionListener;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.DeviceSimulators;
+import net.netshot.netshot.testing.SimulatorTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,14 +72,14 @@ import org.junit.jupiter.api.Test;
  * completes, it takes another full threshold's worth of fresh traffic to trigger the next one,
  * and a bare authenticated connection with no channel/commands never generates that much more.
  */
+@SimulatorTest
 @DisplayName("SSH rekey behavior")
-@Testcontainers
-public class RekeyTest extends WithDeviceSimulatorTest {
+public class RekeyTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> CONTAINER = buildSshDeviceSimulator("Cisco_IOS");
+	private static final GenericContainer<?> CONTAINER = DeviceSimulators.ssh("Cisco_IOS");
 
 	/** 2000 bytes: small enough to trigger reliably right after connecting, but - as found
 	 *  while writing this test - NOT so small that the rekey lands *during* the auth exchange

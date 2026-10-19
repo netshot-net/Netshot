@@ -27,11 +27,9 @@ import org.hibernate.Session;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
@@ -41,25 +39,27 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.DeviceSimulators;
+import net.netshot.netshot.testing.SimulatorTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SimulatorTest
 @DisplayName("GenericSNMP driver test")
-@Testcontainers
-public class GenericSNMPDriverTest extends WithDeviceSimulatorTest {
+public class GenericSNMPDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> CONTAINER = buildSnmpDeviceSimulator("myhost");
+	private static final GenericContainer<?> CONTAINER = DeviceSimulators.snmp("myhost");
 
 	@Test
 	@DisplayName("GenericSNMP Snapshot (real snmpd CONTAINER)")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		DeviceSnmpv2cCommunity community = new DeviceSnmpv2cCommunity("public", "community1");
-		int port = getMappedUdpPort(CONTAINER, 161);
+		int port = DeviceSimulators.mappedUdpPort(CONTAINER, 161);
 		Session nullSession = null;
 		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
 		Device device = new Device("GenericSNMP", null, domain, "test");

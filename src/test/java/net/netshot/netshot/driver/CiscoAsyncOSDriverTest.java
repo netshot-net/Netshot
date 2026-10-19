@@ -27,11 +27,9 @@ import org.hibernate.Session;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -40,18 +38,20 @@ import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.DeviceSimulators;
+import net.netshot.netshot.testing.SimulatorTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SimulatorTest
 @DisplayName("Cisco AsyncOS driver test")
-@Testcontainers
-public class CiscoAsyncOSDriverTest extends WithDeviceSimulatorTest {
+public class CiscoAsyncOSDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> CONTAINER = buildSshDeviceSimulator("Cisco_AsyncOS");
+	private static final GenericContainer<?> CONTAINER = DeviceSimulators.ssh("Cisco_AsyncOS");
 
 	@Test
 	@DisplayName("Cisco AsyncOS Snapshot")
