@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
@@ -37,11 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.PolicyDefinition;
@@ -61,19 +56,20 @@ import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Tests of the report use cases (statistics, device lists, export), against a real database.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class ReportServiceTest extends WithDatabaseTest {
+class ReportServiceTest {
 
 	private static final long DAY = 24L * 3600 * 1000;
 	/** 2040-01-01T00:00:00Z. */
@@ -101,14 +97,6 @@ class ReportServiceTest extends WithDatabaseTest {
 	void initDb() throws Exception {
 		this.previousTimeZone = TimeZone.getDefault();
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		Properties config = getFreshDatabaseConfig("reportservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new ReportService(this.transactions, new ReportRepository(), TestDrivers.registry());
 		this.seed();

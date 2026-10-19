@@ -19,7 +19,6 @@
 package net.netshot.netshot.aaa.user;
 
 import java.util.List;
-import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,22 +28,18 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Tests of the API token use cases, against a real database.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class ApiTokenServiceTest extends WithDatabaseTest {
+class ApiTokenServiceTest {
 
 	private static final String TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz012345";
 	private static final String OTHER_TOKEN = "ZyXwVuTsRqPoNmLkJiHgFeDcBa987654";
@@ -55,14 +50,6 @@ class ApiTokenServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("apitokenservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new ApiTokenService(this.transactions, this.repository);
 	}

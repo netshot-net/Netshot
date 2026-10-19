@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -35,11 +34,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
@@ -51,18 +46,19 @@ import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Tests of the compliance use cases (policies, rules, software and hardware rules), against a
  * real database.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class ComplianceServiceTest extends WithDatabaseTest {
+class ComplianceServiceTest {
 
 	private final AtomicInteger counter = new AtomicInteger();
 	private PolicyService policyService;
@@ -76,14 +72,6 @@ class ComplianceServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("complianceservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);

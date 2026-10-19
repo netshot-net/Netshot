@@ -18,33 +18,21 @@
  */
 package net.netshot.netshot.boot;
 
-import java.util.Properties;
-
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.api.rest.NetshotWebApplication;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.DatabaseTest;
 
+@DatabaseTest(boot = Boot.MIGRATED)
 @TestInstance(Lifecycle.PER_CLASS)
-public class WiringTest extends WithDatabaseTest {
-
-	@BeforeAll
-	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("wiringtest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Database.update();
-	}
+public class WiringTest {
 
 	@Test
 	@DisplayName("Wiring.init() builds the wiring, available through Wiring.get()")
