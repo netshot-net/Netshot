@@ -34,7 +34,6 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 
-
 @ScriptEngineTest
 @DisplayName("Driver registry")
 public class DriverRegistryTest {

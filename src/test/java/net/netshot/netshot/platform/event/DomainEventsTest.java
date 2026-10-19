@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.testing.UnitTest;
 
-
 /**
  * Tests of the domain events publisher.
  */

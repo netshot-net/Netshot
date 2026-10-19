@@ -26,7 +26,6 @@ import org.junit.platform.commons.support.AnnotationSupport;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
 
 /**
  * Extension of {@link ScriptEngineTest} and {@link SimulatorTest}: before the annotated class, sets an

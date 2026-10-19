@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot;
+package net.netshot.netshot.testing.contract;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -84,6 +84,7 @@ import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Deterministic dataset used by the API contract tests.

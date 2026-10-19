@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.task;
 
-import java.util.Properties;
-
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.testing.UnitTest;
@@ -27,6 +25,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.Properties;
 
 @UnitTest
 @DisplayName("Task.Status persisted value (StatusConverter)")

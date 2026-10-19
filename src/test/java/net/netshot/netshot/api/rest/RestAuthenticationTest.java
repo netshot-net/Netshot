@@ -38,9 +38,6 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.FakeOidcIdpServer;
-import net.netshot.netshot.NetshotApiClient;
-import net.netshot.netshot.NetshotApiClient.WrongApiResponseException;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.ApiToken;
@@ -49,21 +46,24 @@ import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.error.ErrorCode;
-import net.netshot.netshot.testing.ApiTest;
-import net.netshot.netshot.testing.TestDatabase;
-import net.netshot.netshot.testing.TestProperty;
-import net.netshot.netshot.testing.TestServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDatabase;
+import net.netshot.netshot.testing.TestProperty;
+import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
+import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
+import org.junit.jupiter.api.BeforeEach;
 
 @ApiTest
 // Very low value for session expiration testing

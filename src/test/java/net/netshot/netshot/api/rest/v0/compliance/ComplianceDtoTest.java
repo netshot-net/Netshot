@@ -34,8 +34,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.ExemptedDevice;
 import net.netshot.netshot.compliance.HardwareRule;
@@ -58,6 +56,8 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the compliance DTOs and their mappers are a faithful replacement of the entities

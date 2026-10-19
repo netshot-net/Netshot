@@ -26,8 +26,6 @@ import java.util.Map;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.ApiContractSeed;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -38,6 +36,8 @@ import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.contract.ApiContractSeed;
 
 /**
  * The dataset of the web hook tests ({@code @ContractTest} classes, whose tasks are stored but never

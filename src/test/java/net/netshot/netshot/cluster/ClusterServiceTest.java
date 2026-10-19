@@ -29,7 +29,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.api.rest.v0.system.MasterStatusDto;
@@ -39,6 +38,7 @@ import net.netshot.netshot.cluster.ClusterService.MasterStatus;
 import net.netshot.netshot.system.ServerInfo;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Tests of the cluster and server information use cases and of their representation (the

@@ -25,6 +25,12 @@ import java.net.URI;
 import java.util.Map;
 
 import org.hibernate.Session;
+import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.api.rest.RestServer;
+import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -36,12 +42,6 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.quartz.Scheduler;
 import org.quartz.impl.SchedulerRepository;
 
-import net.netshot.netshot.NetshotApiClient;
-import net.netshot.netshot.aaa.user.ApiToken;
-import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.engine.TaskManager;
 
 /**
  * Extension of {@link ApiTest} and {@link ContractTest}, registered after {@link DatabaseExtension}: before

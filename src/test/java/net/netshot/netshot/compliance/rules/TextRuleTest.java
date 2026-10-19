@@ -20,9 +20,6 @@ package net.netshot.netshot.compliance.rules;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
@@ -31,6 +28,9 @@ import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

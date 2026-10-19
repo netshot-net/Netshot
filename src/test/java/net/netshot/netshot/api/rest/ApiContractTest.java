@@ -33,14 +33,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import net.netshot.netshot.ApiContractCase.Reply;
-import net.netshot.netshot.ApiContractCase;
-import net.netshot.netshot.ApiContractCases;
-import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.ApiContractGolden;
-import net.netshot.netshot.ApiContractSeed;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.contract.ApiContractCase.Reply;
+import net.netshot.netshot.testing.contract.ApiContractCase;
+import net.netshot.netshot.testing.contract.ApiContractCases;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.ApiContractSeed;
 
 /**
  * Golden file contract tests of the REST API: the wire format (JSON, XML,

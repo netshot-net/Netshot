@@ -29,7 +29,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -42,6 +41,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the device sub-resources (interfaces, modules), the device search, the reference

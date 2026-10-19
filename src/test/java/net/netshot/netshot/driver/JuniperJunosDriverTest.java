@@ -28,8 +28,6 @@ import org.hibernate.Session;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -43,6 +41,8 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

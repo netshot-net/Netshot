@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeDeviceFactory;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -33,7 +32,6 @@ import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskDeviceListMember;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
-import net.netshot.netshot.testing.DatabaseTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -42,6 +40,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
 @DisplayName("Group task device list / parent-child tracking (DB-backed)")

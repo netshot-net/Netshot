@@ -31,8 +31,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.TestInstance;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -43,10 +43,6 @@ import com.fasterxml.jackson.jakarta.rs.yaml.YAMLMediaTypes;
 
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedHashMap;
-import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.ApiContractGolden;
-import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.hook.payload.TaskPayload;
 import net.netshot.netshot.api.hook.payload.TaskPayloads;
@@ -66,7 +62,11 @@ import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Tests of the web hook payloads: the payload DTOs ({@link TaskPayload}) are written exactly like

@@ -55,8 +55,10 @@ import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
- * holds the shared helpers and the tests of the whole application), and the simple names of the test
- * classes are unique (the expected files of DtoContract are stored under the simple name of the class).
+ * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
+ * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
+ * simple name of the class), and each test class has one kind, which the unit and script engine tests
+ * respect (they run without Docker).
  */
 @UnitTest
 @DisplayName("Layout of the tests")
@@ -66,6 +68,9 @@ public class TestLayoutTest {
 
 	/** Tests allowed in the root package, as they cover the whole application. */
 	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "NetshotConfigTest", "TestLayoutTest");
+
+	/** Helpers allowed in the root package: TestConfig calls the protected Netshot.initConfig. */
+	private static final Set<String> ROOT_HELPERS = Set.of("TestConfig");
 
 	/** The annotations giving the kind of a test class (see the {@code testing} package). */
 	private static final List<Class<? extends Annotation>> KINDS = List.of(
@@ -115,6 +120,20 @@ public class TestLayoutTest {
 			.toList();
 		Assertions.assertEquals(List.of(), misplaced,
 			"Test classes to move to the package of the code they test");
+	}
+
+	@Test
+	@DisplayName("The shared helpers are in the testing package")
+	void helpersInTestingPackage() {
+		List<String> misplaced = importedClasses.stream()
+			.filter(JavaClass::isTopLevelClass)
+			.filter(c -> c.getPackageName().equals(ROOT))
+			.map(JavaClass::getSimpleName)
+			.filter(name -> !ROOT_TESTS.contains(name) && !ROOT_HELPERS.contains(name))
+			.sorted()
+			.toList();
+		Assertions.assertEquals(List.of(), misplaced,
+			"Helpers to move to net.netshot.netshot.testing (or one of its packages)");
 	}
 
 	@Test

@@ -151,7 +151,7 @@ A `Task` entity holds the data of a task (target, schedule, status, log, result 
 
 ### Test layout
 
-A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.rules.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`, `TestLayoutTest`) and the shared helpers not moved yet.
+A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.rules.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`, `TestLayoutTest`); the shared helpers are in `net.netshot.netshot.testing`.
 
 #### Kinds of tests
 
@@ -172,9 +172,13 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 
 #### Helpers
 
-The helpers still in the root package: `TestConfig.init` (replaces the configuration, as `Netshot.initConfig` is not public), `TestDrivers`, `TestNetwork` (free ports), the `Fake*` doubles, `NetshotApiClient`, and the contract helpers (`ApiContract*`, `DtoContract`).
+- `testing`: the kind annotations and their extensions, `TestDrivers` (the drivers of the resource folder, loaded once), `TestNetwork` (free ports), `DeviceSimulators`;
+- `testing.fake`: the test doubles (`FakeDeviceFactory`, `FakeTaskContext`, `FakeQuery`, `FakeOidcIdpServer`);
+- `testing.api`: `NetshotApiClient` (REST client of the tests) and `NetshotBadRequestException` (the former exception, as a reference);
+- `testing.contract`: the golden file helpers (`ApiContractSeed`, `ApiContractCases`, `ApiContractGolden`, `DtoContract`);
+- `TestConfig.init` (replaces the configuration) stays in the root package, as it calls the protected `Netshot.initConfig`.
 
-`TestLayoutTest` fails when a test class is left in the root package, when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class), when a test class has no kind or several, and when a unit or script engine test uses the database, the REST server, the wiring or a container (it would fail without Docker).
+`TestLayoutTest` fails when a test class or a helper (other than `TestConfig`) is left in the root package, when two test classes share a simple name (the expected files of `DtoContract` are stored under the simple name of the class), when a test class has no kind or several, and when a unit or script engine test uses the database, the REST server, the wiring or a container (it would fail without Docker).
 
 ## Wiring
 

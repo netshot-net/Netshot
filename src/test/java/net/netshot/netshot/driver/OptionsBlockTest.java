@@ -26,8 +26,6 @@ import java.util.Map;
 import org.graalvm.polyglot.proxy.ProxyObject;
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
@@ -36,6 +34,8 @@ import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

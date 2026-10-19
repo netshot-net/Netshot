@@ -29,12 +29,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

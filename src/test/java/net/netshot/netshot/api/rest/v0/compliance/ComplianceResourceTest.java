@@ -30,7 +30,6 @@ import org.hibernate.Session;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.NetshotApiClient;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
@@ -39,6 +38,7 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
