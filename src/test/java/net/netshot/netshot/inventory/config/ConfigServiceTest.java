@@ -71,8 +71,6 @@ class ConfigServiceTest extends WithDatabaseTest {
 	private long domainId;
 	private long groupId;
 	private long router;
-	private long other;
-	private long snmp;
 	private long first;
 	private long second;
 	private long third;
@@ -101,9 +99,7 @@ class ConfigServiceTest extends WithDatabaseTest {
 			Device routerDevice = device(session, "CiscoIOS12", "router-a", "10.40.0.1", domain);
 			this.router = routerDevice.getId();
 			Device otherDevice = device(session, "CiscoIOS12", "router-b", "10.40.0.2", null);
-			this.other = otherDevice.getId();
 			Device snmpDevice = device(session, "GenericSNMP", "snmp-c", "10.40.0.3", domain);
-			this.snmp = snmpDevice.getId();
 			this.first = addConfig(session, routerDevice, D2020, "tester", "hostname a\n!\ninterface Gi0/0\n ip address 10.0.0.1\n!\nend\n", false).getId();
 			this.second = addConfig(session, routerDevice, D2021, "tester", "hostname a\n!\ninterface Gi0/0\n ip address 10.0.0.1\n shutdown\n!\nend\n", true).getId();
 			this.third = addConfig(session, routerDevice, D2022, "snapshot", "hostname a\n!\nend\n", true).getId();

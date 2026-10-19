@@ -56,6 +56,8 @@ public class NetshotApiClient {
 	 * Simple exception to catch unexpected response and attach it.
 	 */
 	public static class WrongApiResponseException extends IOException {
+		private static final long serialVersionUID = 1L;
+
 		@Getter
 		private HttpResponse<?> response;
 
