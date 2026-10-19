@@ -55,7 +55,6 @@ import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
-import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestDrivers;
 
 /**
@@ -72,14 +71,12 @@ class DeviceServiceTest {
 	private SchedulerException schedulerFailure;
 	private DeviceService service;
 	private Transactions transactions;
-	private Path binaryFolder;
 	private long domainId;
 	private long otherDomainId;
 	private long sshAccountId;
 
 	@BeforeAll
-	void initDb(TestDatabase database) throws Exception {
-		this.binaryFolder = database.binaryFolder();
+	void initDb() throws Exception {
 		this.transactions = new Transactions();
 		TaskSubmitter submitter = task -> {
 			if (this.schedulerFailure != null) {
