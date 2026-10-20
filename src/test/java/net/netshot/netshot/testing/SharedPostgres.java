@@ -28,11 +28,16 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.platform.database.Database;
+
 /**
  * The PostgreSQL container shared by the whole test run, mirroring the static-singleton design of
  * {@link net.netshot.netshot.platform.database.Database}: started the first time a test class needs it,
  * kept in the root store of the JUnit extension context, and stopped when that store is closed at the end
- * of the run. Each test class works in its own schema.
+ * of the run. Each booted test class works in its own database, cloned from a template database migrated
+ * once per run (a clone takes a few tens of milliseconds, a migration about a second); the tests driving
+ * the schema themselves ({@link DatabaseTest.Boot#MANUAL}) work in schemas of the main database.
  */
 final class SharedPostgres implements AutoCloseable {
 
@@ -49,7 +54,12 @@ final class SharedPostgres implements AutoCloseable {
 			.computeIfAbsent(SharedPostgres.class, key -> new SharedPostgres(), SharedPostgres.class);
 	}
 
+	/** Database migrated once per run, which the database of each test class is a copy of. */
+	private static final String TEMPLATE_DATABASE = "netshot_template";
+
 	private final PostgreSQLContainer container;
+
+	private boolean templateMigrated;
 
 	@SuppressWarnings("resource")
 	private SharedPostgres() {
@@ -69,7 +79,7 @@ final class SharedPostgres implements AutoCloseable {
 	 */
 	Properties config(String schemaName) {
 		this.execute("CREATE SCHEMA IF NOT EXISTS \"%s\"".formatted(schemaName));
-		return this.buildConfig(schemaName);
+		return this.buildConfig(this.container.getDatabaseName(), schemaName);
 	}
 
 	/**
@@ -82,7 +92,33 @@ final class SharedPostgres implements AutoCloseable {
 	Properties freshConfig(String schemaName) {
 		this.execute("DROP SCHEMA IF EXISTS \"%s\" CASCADE".formatted(schemaName));
 		this.execute("CREATE SCHEMA \"%s\"".formatted(schemaName));
-		return this.buildConfig(schemaName);
+		return this.buildConfig(this.container.getDatabaseName(), schemaName);
+	}
+
+	/**
+	 * Builds a Netshot configuration pointing at a database of its own, a copy of the migrated template
+	 * (migrated first if it is the first copy of the run). A database left by a previous run within the
+	 * same live container is dropped first, so that the copy always starts as the template.
+	 *
+	 * @param databaseName the database
+	 * @return the database properties of the Netshot configuration
+	 * @throws Exception if the template cannot be migrated
+	 */
+	Properties cloneConfig(String databaseName) throws Exception {
+		if (!this.templateMigrated) {
+			this.execute("DROP DATABASE IF EXISTS \"%s\"".formatted(TEMPLATE_DATABASE));
+			this.execute("CREATE DATABASE \"%s\"".formatted(TEMPLATE_DATABASE));
+			Properties config = this.buildConfig(TEMPLATE_DATABASE, "public");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "WARN");
+			TestConfig.init(config);
+			// Plain connection, closed after the update: nothing stays connected to the template
+			Database.update();
+			this.templateMigrated = true;
+		}
+		this.execute("DROP DATABASE IF EXISTS \"%s\"".formatted(databaseName));
+		this.execute("CREATE DATABASE \"%s\" TEMPLATE \"%s\" STRATEGY FILE_COPY".formatted(databaseName, TEMPLATE_DATABASE));
+		return this.buildConfig(databaseName, "public");
 	}
 
 	private void execute(String sql) {
@@ -96,11 +132,11 @@ final class SharedPostgres implements AutoCloseable {
 		}
 	}
 
-	private Properties buildConfig(String schemaName) {
+	private Properties buildConfig(String databaseName, String schemaName) {
 		Properties config = new Properties();
 		config.setProperty("netshot.db.driver_class", "org.postgresql.Driver");
 		config.setProperty("netshot.db.url", "jdbc:postgresql://%s:%d/%s?currentSchema=%s".formatted(
-			this.container.getHost(), this.container.getFirstMappedPort(), this.container.getDatabaseName(), schemaName));
+			this.container.getHost(), this.container.getFirstMappedPort(), databaseName, schemaName));
 		config.setProperty("netshot.db.username", this.container.getUsername());
 		config.setProperty("netshot.db.password", this.container.getPassword());
 		return config;

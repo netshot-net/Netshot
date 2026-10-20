@@ -29,14 +29,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Kind of test: uses a PostgreSQL database. A single PostgreSQL container is shared by the whole test run;
- * before the annotated class, {@link DatabaseExtension} creates an empty schema named after the class
- * (lower case simple name, with the enclosing class names for a nested class), sets a Netshot
- * configuration pointing at it (plus a temporary folder for the binary snapshot files and the
+ * before the annotated class, {@link DatabaseExtension} creates a database named after the class (lower
+ * case simple name, with the enclosing class names for a nested class) as a copy of a template database
+ * migrated once per run (so the class starts with the full, empty schema), sets a Netshot configuration
+ * pointing at it (plus a temporary folder for the binary snapshot files and the
  * {@link TestProperty} values), loads the module configurations and the drivers, then boots Netshot as far
  * as {@link #boot()} says.
  *
  * <p>Only the class carrying the annotation is booted: a {@code @Nested} class sharing the fixture of its
- * enclosing class needs nothing, one needing its own schema carries the annotation too. The test methods
+ * enclosing class needs nothing, one needing its own database carries the annotation too. The test methods
  * can receive the {@link TestDatabase} as a parameter.</p>
  *
  * <p>Tagged {@code db}: needs Docker.</p>
@@ -52,9 +53,12 @@ public @interface DatabaseTest {
 	 * How far Netshot is booted before the test class.
 	 */
 	enum Boot {
-		/** Nothing is set up: the test gets schema configurations from the {@link TestDatabase} itself. */
+		/**
+		 * Nothing is set up: the test gets configurations of schemas of the main database from the
+		 * {@link TestDatabase} itself, and migrates them as it needs (as {@code DatabaseMigrationTest} does).
+		 */
 		MANUAL,
-		/** The configuration points at the empty schema, which is migrated ({@code Database.update()}). */
+		/** The configuration points at the database of the class, already migrated (copied from the template). */
 		MIGRATED,
 		/** As {@link #MIGRATED}, plus the wiring ({@code Wiring.init}) with the test drivers. */
 		WIRED
