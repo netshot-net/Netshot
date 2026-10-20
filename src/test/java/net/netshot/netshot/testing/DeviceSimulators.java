@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot;
+package net.netshot.netshot.testing;
 
 import java.nio.file.Paths;
 
@@ -28,20 +28,14 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 
-import net.netshot.netshot.access.Ssh;
-import org.junit.jupiter.api.BeforeAll;
-
 /**
- * Base of the tests which run the drivers against the device simulator containers (dev/device-simulator):
- * loads the configuration and the drivers, and builds the simulator containers.
+ * Builders of the simulated device containers ({@code dev/device-simulator}) of the {@link SimulatorTest}
+ * classes.
  */
-public abstract class WithDeviceSimulatorTest {
+public final class DeviceSimulators {
 
-	@BeforeAll
-	static void initDriverTestConfig() throws Exception {
-		Netshot.readConfig();
-		Ssh.loadConfig();
-		TestDrivers.reload();
+	private DeviceSimulators() {
+		// Static helpers only
 	}
 
 	/**
@@ -58,21 +52,21 @@ public abstract class WithDeviceSimulatorTest {
 	 * so this is built at most once no matter how many test classes
 	 * start a container from it.
 	 */
-	protected static final ImageFromDockerfile DEVICE_SIMULATOR_IMAGE = new ImageFromDockerfile("netshot-test/device-simulator")
+	public static final ImageFromDockerfile DEVICE_SIMULATOR_IMAGE = new ImageFromDockerfile("netshot-test/device-simulator")
 		.withDockerfile(Paths.get("dev", "device-simulator", "Dockerfile"));
 
 	/**
 	 * Builds (but does not start) a real-OpenSSH-backed simulated CLI device
 	 * container emulating the given driver. Assign the result to a
-	 * {@code @Container}-annotated field so the {@code @Testcontainers}
-	 * extension starts/stops it around the enclosing test class.
+	 * static {@code @Container} field of a {@link SimulatorTest} class, which
+	 * starts and stops it around the class.
 	 * @param driverName the driver to emulate: case sensitive, matching the
 	 *        corresponding {@code .js} filename (without extension) under
 	 *        {@code src/main/resources/drivers/}, e.g. {@code "Cisco_IOS"}
 	 * @return the not-yet-started container
 	 */
 	@SuppressWarnings("resource")
-	protected static GenericContainer<?> buildSshDeviceSimulator(String driverName) {
+	public static GenericContainer<?> ssh(String driverName) {
 		return new GenericContainer<>(DEVICE_SIMULATOR_IMAGE)
 			.withEnv("NETSHOT_SIMULATOR_DRIVER", driverName)
 			.withExposedPorts(22)
@@ -84,13 +78,13 @@ public abstract class WithDeviceSimulatorTest {
 	 * mode ({@code Generic_SNMP}, UDP port 161), with the given container
 	 * hostname (net-snmp reports the container's own hostname as sysName, so
 	 * this is how tests control the expected value). Assign the result to a
-	 * {@code @Container}-annotated field so the {@code @Testcontainers}
-	 * extension starts/stops it around the enclosing test class.
+	 * static {@code @Container} field of a {@link SimulatorTest} class, which
+	 * starts and stops it around the class.
 	 * @param hostname the hostname to give the container (used as SNMP sysName)
 	 * @return the not-yet-started container
 	 */
 	@SuppressWarnings("resource")
-	protected static GenericContainer<?> buildSnmpDeviceSimulator(String hostname) {
+	public static GenericContainer<?> snmp(String hostname) {
 		return new GenericContainer<>(DEVICE_SIMULATOR_IMAGE)
 			.withEnv("NETSHOT_SIMULATOR_DRIVER", "Generic_SNMP")
 			.withCreateContainerCmdModifier(cmd -> {
@@ -113,10 +107,9 @@ public abstract class WithDeviceSimulatorTest {
 	 * @param containerPort the UDP port as exposed by the container
 	 * @return the host port it was published to
 	 */
-	protected static int getMappedUdpPort(GenericContainer<?> container, int containerPort) {
+	public static int mappedUdpPort(GenericContainer<?> container, int containerPort) {
 		Ports.Binding[] bindings = container.getContainerInfo().getNetworkSettings()
 			.getPorts().getBindings().get(new ExposedPort(containerPort, InternetProtocol.UDP));
 		return Integer.parseInt(bindings[0].getHostPortSpec());
 	}
-
 }

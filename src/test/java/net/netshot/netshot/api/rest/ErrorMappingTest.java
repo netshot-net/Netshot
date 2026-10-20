@@ -17,16 +17,17 @@
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
 package net.netshot.netshot.api.rest;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.NetshotBadRequestException;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.api.NetshotBadRequestException;
 
+@UnitTest
 public class ErrorMappingTest {
 
 	private final NetshotExceptionMapper mapper = new NetshotExceptionMapper();

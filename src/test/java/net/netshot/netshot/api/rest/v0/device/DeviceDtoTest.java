@@ -26,12 +26,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -41,9 +39,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
@@ -72,6 +67,9 @@ import net.netshot.netshot.inventory.group.DeviceGroupMembership;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the device DTOs and their mapper are a faithful replacement of the entities
@@ -80,6 +78,7 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * one of the entity with the same view; the requests are read like they used to be.
  * (The API contract tests only cover the kinds the seed data holds.)
  */
+@ScriptEngineTest
 class DeviceDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -197,12 +196,6 @@ class DeviceDtoTest {
 			access.setSpecificCredentialSet(credentialSet);
 		}
 		device.getAccesses().add(access);
-	}
-
-	@BeforeAll
-	static void loadDrivers() throws Exception {
-		TestConfig.init(new Properties());
-		TestDrivers.reload();
 	}
 
 	private static byte[] json(Object value) throws Exception {

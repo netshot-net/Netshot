@@ -24,11 +24,13 @@ import java.util.List;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.testing.UnitTest;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@UnitTest
 @DisplayName("Device access replace test")
 public class DeviceAccessReplaceTest {
 

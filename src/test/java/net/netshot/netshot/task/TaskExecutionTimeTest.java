@@ -19,22 +19,25 @@
 package net.netshot.netshot.task;
 
 import java.util.Calendar;
+import java.util.Properties;
 
 import org.quartz.JobKey;
 
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.task.Task.ScheduleType;
+import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@UnitTest
 @DisplayName("Next execution time of tasks")
 public class TaskExecutionTimeTest {
 
 	@BeforeAll
 	static void initNetshot() {
-		Netshot.readConfig();
+		TestConfig.init(new Properties());
 	}
 
 	Task task = new Task() {

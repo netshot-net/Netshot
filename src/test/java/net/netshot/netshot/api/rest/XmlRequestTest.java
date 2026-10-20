@@ -23,86 +23,46 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 
-import org.hibernate.Session;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.quartz.Scheduler;
-import org.quartz.impl.SchedulerRepository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import jakarta.ws.rs.core.UriBuilder;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.TestNetwork;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestServer;
 
 /**
  * Checks that the request bodies are accepted in XML as well as in JSON: what gets stored from
  * an XML request must be what gets stored from the equivalent JSON request. The root element of
  * the XML request is not significant.
  */
+@ApiTest
 @TestInstance(Lifecycle.PER_CLASS)
-public class XmlRequestTest extends WithDatabaseTest {
+public class XmlRequestTest {
 
-	private static final String API_URL = TestNetwork.freeLocalApiUrl();
-	private static final String TOKEN = "hLXg3ABu1qWJPle3Z3Z22X0aLkx5T354";
+	private static final String TOKEN = TestServer.API_TOKENS.get(UiUser.LEVEL_ADMIN);
+	private String apiUrl;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private HttpClient client;
 
 	@BeforeAll
-	void boot() throws Exception {
-		Properties config = getFreshDatabaseConfig("xmlrequesttest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "INFO");
-		config.setProperty("netshot.http.ssl.enabled", "false");
-		URI uri = UriBuilder.fromUri(API_URL).replacePath("/").build();
-		config.setProperty("netshot.http.baseurl", uri.toString());
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-		TaskManager.init(Wiring.get().taskJobFactory());
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser").executeUpdate();
-			session.persist(new ApiToken("XML test token", TOKEN, UiUser.LEVEL_ADMIN));
-			session.getTransaction().commit();
-		}
-		RestServer.init(Wiring.get().binder());
-		Thread.sleep(1000);
+	void boot(TestServer server) {
+		this.apiUrl = server.apiUrl();
 		this.client = HttpClient.newHttpClient();
-	}
-
-	@AfterAll
-	void shutdownSchedulers() throws Exception {
-		RestServer.shutdown();
-		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-			scheduler.clear();
-			// Other test classes may rely on a running scheduler.
-			scheduler.start();
-		}
 	}
 
 	private JsonNode call(String method, String path, String contentType, String body) throws Exception {
 		HttpRequest.Builder request = HttpRequest.newBuilder()
-			.uri(URI.create(API_URL + path))
+			.uri(URI.create(this.apiUrl + path))
 			.header("Accept", "application/json")
 			.header("X-Netshot-API-Token", TOKEN);
 		if (body == null) {

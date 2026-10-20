@@ -27,11 +27,7 @@ import org.hibernate.Session;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -46,18 +42,22 @@ import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.DeviceSimulators;
+import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SimulatorTest
 @DisplayName("ZPENodeGrid driver test")
-@Testcontainers
-public class ZPENodeGridDriverTest extends WithDeviceSimulatorTest {
+public class ZPENodeGridDriverTest {
 
 	TaskContext taskContext = new FakeTaskContext();
 
 	@Container
-	private static final GenericContainer<?> CONTAINER = buildSshDeviceSimulator("ZPE_NodeGrid");
+	private static final GenericContainer<?> CONTAINER = DeviceSimulators.ssh("ZPE_NodeGrid");
 
 	@Test
 	@DisplayName("ZPENodeGrid Snapshot")

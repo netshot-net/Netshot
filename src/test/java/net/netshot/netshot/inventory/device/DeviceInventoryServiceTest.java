@@ -19,7 +19,6 @@
 package net.netshot.netshot.inventory.device;
 
 import java.util.List;
-import java.util.Properties;
 
 import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
@@ -30,30 +29,27 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchResult;
 import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.TaskSubmitter;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the device sub-resources (interfaces, modules), the device search, the reference
  * lists and the device types, against a real database.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class DeviceInventoryServiceTest extends WithDatabaseTest {
+class DeviceInventoryServiceTest {
 
 	private Transactions transactions;
 	private DeviceService deviceService;
@@ -64,14 +60,6 @@ class DeviceInventoryServiceTest extends WithDatabaseTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("deviceinventoryservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		DeviceRepository repository = new DeviceRepository();
 		TaskSubmitter noTask = task -> { };

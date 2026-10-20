@@ -35,10 +35,12 @@ import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
+import net.netshot.netshot.testing.UnitTest;
 
 /**
  * Tests of the task handler registry and of the handlers which can be checked without a database.
  */
+@UnitTest
 @DisplayName("Task handlers")
 public class TaskHandlersTest {
 

@@ -26,9 +26,6 @@ import java.util.Map;
 import org.graalvm.polyglot.proxy.ProxyObject;
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
@@ -36,6 +33,9 @@ import net.netshot.netshot.driver.DeviceDriver.Location;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,8 +45,9 @@ import org.junit.jupiter.api.Test;
  * user-configurable settings a driver declares (as opposed to the
  * driver-collected {@code Config}/{@code Device} attributes).
  */
+@ScriptEngineTest
 @DisplayName("Options block test")
-public class OptionsBlockTest extends WithDeviceSimulatorTest {
+public class OptionsBlockTest {
 
 	private static final String OPTIONS_DRIVER_JS = """
 		var Info = {

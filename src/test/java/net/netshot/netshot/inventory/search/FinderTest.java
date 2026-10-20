@@ -31,15 +31,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.FakeQuery;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
@@ -60,6 +52,9 @@ import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.fake.FakeQuery;
 
 import org.hibernate.Session;
 import org.hibernate.query.Query;
@@ -68,8 +63,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@DatabaseTest
 @DisplayName("Device finder test")
-public class FinderTest extends WithDatabaseTest {
+public class FinderTest {
 
 	// Test data accessible to all tests
 	protected static List<Domain> testDomains = new ArrayList<>();
@@ -77,14 +73,6 @@ public class FinderTest extends WithDatabaseTest {
 	protected static Map<AttributeType, Diagnostic> testDiagnostics = new HashMap<>();
 	protected static List<Policy> testPolicies = new ArrayList<>();
 	protected static Map<String, Rule> testRules = new HashMap<>();
-
-	protected static Properties getNetshotConfig() {
-		Properties config = getDatabaseConfig("devicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "INFO");
-		return config;
-	}
-
 
 	protected static void createDevices() throws IOException, InterruptedException, GeneralSecurityException {
 		try (Session session = Database.getSession()) {
@@ -298,11 +286,6 @@ public class FinderTest extends WithDatabaseTest {
 
 	@BeforeAll
 	protected static void init() throws Exception {
-		TestConfig.init(FinderTest.getNetshotConfig());
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		FinderTest.createDevices();
 	}
 

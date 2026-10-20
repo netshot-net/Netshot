@@ -35,9 +35,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithRestServerTest;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
@@ -50,16 +47,31 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ApiTest
 @DisplayName("Device tests")
 @ResourceLock("DB")
-public class DeviceResourceTest extends WithRestServerTest {
+public class DeviceResourceTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
 
 	private String testDomainName = "Domain 1";
 	private Domain testDomain;
@@ -278,7 +290,7 @@ public class DeviceResourceTest extends WithRestServerTest {
 			session.getTransaction().commit();
 		}
 		{
-			HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(UNKNOWN_ID));
+			HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(TestServer.UNKNOWN_ID));
 			Assertions.assertEquals(
 				Response.Status.NOT_FOUND.getStatusCode(), response.statusCode(),
 				"Not getting 404 response for nonexistent device");
@@ -348,7 +360,7 @@ public class DeviceResourceTest extends WithRestServerTest {
 			.put("deviceType", device1.getDriver());
 		{
 			HttpResponse<JsonNode> response = apiClient.post("/devices",
-				data.deepCopy().put("domainId", UNKNOWN_ID));
+				data.deepCopy().put("domainId", TestServer.UNKNOWN_ID));
 			Assertions.assertEquals(
 				Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 				"Not getting 400 response for invalid domain");
@@ -523,7 +535,7 @@ public class DeviceResourceTest extends WithRestServerTest {
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
-				"/devices/%d".formatted(UNKNOWN_ID));
+				"/devices/%d".formatted(TestServer.UNKNOWN_ID));
 			Assertions.assertEquals(
 				Response.Status.NOT_FOUND.getStatusCode(), response.statusCode(),
 				"Not getting 404 response for unknown device deletion");
@@ -678,7 +690,7 @@ public class DeviceResourceTest extends WithRestServerTest {
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("enabled", false);
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/devices/%d".formatted(UNKNOWN_ID), editData);
+				"/devices/%d".formatted(TestServer.UNKNOWN_ID), editData);
 			Assertions.assertEquals(
 				Response.Status.NOT_FOUND.getStatusCode(), response.statusCode(),
 				"Not getting 404 response for unknown edited device");
