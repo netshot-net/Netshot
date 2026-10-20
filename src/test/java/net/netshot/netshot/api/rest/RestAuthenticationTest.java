@@ -38,10 +38,7 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.FakeOidcIdpServer;
-import net.netshot.netshot.NetshotApiClient.WrongApiResponseException;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.WithRestServerTest;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
@@ -59,8 +56,44 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDatabase;
+import net.netshot.netshot.testing.TestProperty;
+import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
+import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
+import org.junit.jupiter.api.BeforeEach;
 
-public class RestAuthenticationTest extends WithRestServerTest {
+@ApiTest
+// Very low value for session expiration testing
+@TestProperty(name = "netshot.aaa.maxidletime", value = "10")
+public class RestAuthenticationTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
+
+	/** The database of the class, whose configuration some tests change. */
+	private static TestDatabase database;
+
+	@BeforeAll
+	static void keepDatabase(TestDatabase testDatabase) {
+		database = testDatabase;
+	}
+
+	/**
+	 * Gets a copy of the configuration of the class.
+	 *
+	 * @return the configuration
+	 */
+	private static Properties getNetshotConfig() {
+		return database.netshotConfig();
+	}
 
 	@Nested
 	@DisplayName("Authentication Tests")
@@ -115,7 +148,7 @@ public class RestAuthenticationTest extends WithRestServerTest {
 		@Test
 		@DisplayName("Missing privilege")
 		void notAdminToken() throws IOException, InterruptedException {
-			apiClient.setApiToken(API_TOKENS.get(UiUser.LEVEL_EXECUTEREADWRITE));
+			apiClient.setApiToken(TestServer.API_TOKENS.get(UiUser.LEVEL_EXECUTEREADWRITE));
 			HttpResponse<JsonNode> response = apiClient.get("/apitokens");
 			Assertions.assertEquals(Response.Status.FORBIDDEN.getStatusCode(), response.statusCode(),
 				"Not getting 403 response while missing privileges");

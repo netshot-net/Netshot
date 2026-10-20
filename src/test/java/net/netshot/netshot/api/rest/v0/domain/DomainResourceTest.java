@@ -29,18 +29,30 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.WithRestServerTest;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ApiTest
 @DisplayName("Domain API Tests")
-public class DomainResourceTest extends WithRestServerTest {
+public class DomainResourceTest {
+
+	/** API client of the current test, authenticated with the admin token. */
+	private NetshotApiClient apiClient;
+
+	@BeforeEach
+	void createApiClient(NetshotApiClient client) {
+		this.apiClient = client;
+	}
 
 	@AfterEach
 	void cleanUpData() {
@@ -191,7 +203,7 @@ public class DomainResourceTest extends WithRestServerTest {
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
-				"/domains/%d".formatted(UNKNOWN_ID));
+				"/domains/%d".formatted(TestServer.UNKNOWN_ID));
 			Assertions.assertEquals(
 				Response.Status.NOT_FOUND.getStatusCode(), response.statusCode(),
 				"Not getting 404 response for unknown domain deletion");
@@ -247,7 +259,7 @@ public class DomainResourceTest extends WithRestServerTest {
 			.put("ipAddress", targetDomain.getServer4Address().getIp());
 		{
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/domains/%d".formatted(UNKNOWN_ID), data);
+				"/domains/%d".formatted(TestServer.UNKNOWN_ID), data);
 			Assertions.assertEquals(
 				Response.Status.NOT_FOUND.getStatusCode(), response.statusCode(),
 				"Not getting 404 response for unknown domain update");

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot;
+package net.netshot.netshot.testing.contract;
 
 import java.nio.file.Path;
 import java.util.Collection;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import net.netshot.netshot.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
 
 /**
  * Expected files of the DTO tests: what a DTO writes (JSON, XML or YAML, in the canonical form of

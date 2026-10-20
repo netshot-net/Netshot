@@ -18,9 +18,12 @@
  */
 package net.netshot.netshot;
 
+import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Assertions;
@@ -28,16 +31,36 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
+import net.netshot.netshot.api.rest.RestServer;
+import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.engine.TaskManager;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.DeviceSimulators;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestDatabase;
+import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.UnitTest;
+
 /**
  * Rules on the layout of the tests: a test lives in the package of the code it tests (the root package only
- * holds the shared helpers and the tests of the whole application), and the simple names of the test
- * classes are unique (the expected files of DtoContract are stored under the simple name of the class).
+ * holds the tests of the whole application and TestConfig, the shared helpers are in the testing package),
+ * the simple names of the test classes are unique (the expected files of DtoContract are stored under the
+ * simple name of the class), and each test class has one kind, which the unit and script engine tests
+ * respect (they run without Docker).
  */
+@UnitTest
 @DisplayName("Layout of the tests")
 public class TestLayoutTest {
 
@@ -46,13 +69,38 @@ public class TestLayoutTest {
 	/** Tests allowed in the root package, as they cover the whole application. */
 	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "NetshotConfigTest", "TestLayoutTest");
 
+	/** Helpers allowed in the root package: TestConfig calls the protected Netshot.initConfig. */
+	private static final Set<String> ROOT_HELPERS = Set.of("TestConfig");
+
+	/** The annotations giving the kind of a test class (see the {@code testing} package). */
+	private static final List<Class<? extends Annotation>> KINDS = List.of(
+		UnitTest.class, ScriptEngineTest.class, DatabaseTest.class, ApiTest.class, ContractTest.class, SimulatorTest.class);
+
+	/** The kinds of tests run by the {@code fast} Maven profile, without Docker. */
+	private static final List<Class<? extends Annotation>> FAST_KINDS = List.of(UnitTest.class, ScriptEngineTest.class);
+
+	/** The classes the tests of the fast kinds must not call: they would need a database, a server or a container. */
+	private static final Set<String> SLOW_CLASSES = Set.of(
+		Transactions.class.getName(), Wiring.class.getName(), TaskManager.class.getName(), RestServer.class.getName(),
+		TestDatabase.class.getName(), TestServer.class.getName(), DeviceSimulators.class.getName());
+
+	/** The methods of {@link Database} which need a database (the others only read the configuration). */
+	private static final Set<String> DATABASE_METHODS = Set.of(
+		"update", "init", "getSession", "getSystemSession", "getStalessSession", "getConnection");
+
+	/** The package of the containers, which the tests of the fast kinds must not use. */
+	private static final String CONTAINER_PACKAGE = "org.testcontainers";
+
+	private static JavaClasses importedClasses;
+
 	private static List<JavaClass> testClasses;
 
 	@BeforeAll
 	static void importTests() {
-		testClasses = new ClassFileImporter()
+		importedClasses = new ClassFileImporter()
 			.withImportOption(new ImportOption.OnlyIncludeTests())
-			.importPackages(ROOT)
+			.importPackages(ROOT);
+		testClasses = importedClasses
 			.stream()
 			.filter(JavaClass::isTopLevelClass)
 			.filter(c -> c.getSimpleName().endsWith("Test"))
@@ -75,6 +123,20 @@ public class TestLayoutTest {
 	}
 
 	@Test
+	@DisplayName("The shared helpers are in the testing package")
+	void helpersInTestingPackage() {
+		List<String> misplaced = importedClasses.stream()
+			.filter(JavaClass::isTopLevelClass)
+			.filter(c -> c.getPackageName().equals(ROOT))
+			.map(JavaClass::getSimpleName)
+			.filter(name -> !ROOT_TESTS.contains(name) && !ROOT_HELPERS.contains(name))
+			.sorted()
+			.toList();
+		Assertions.assertEquals(List.of(), misplaced,
+			"Helpers to move to net.netshot.netshot.testing (or one of its packages)");
+	}
+
+	@Test
 	@DisplayName("The simple names of the test classes are unique")
 	void uniqueSimpleNames() {
 		Map<String, List<String>> duplicates = testClasses.stream()
@@ -84,5 +146,67 @@ public class TestLayoutTest {
 			.filter(e -> e.getValue().size() > 1)
 			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 		Assertions.assertEquals(Map.of(), duplicates, "Test classes sharing a simple name");
+	}
+
+	@Test
+	@DisplayName("Each test class has exactly one kind annotation")
+	void oneKindPerClass() {
+		Map<String, List<String>> wrong = new TreeMap<>();
+		for (JavaClass testClass : testClasses) {
+			List<String> kinds = KINDS.stream()
+				.filter(testClass::isAnnotatedWith)
+				.map(Class::getSimpleName)
+				.toList();
+			if (kinds.size() != 1) {
+				wrong.put(testClass.getName(), kinds);
+			}
+		}
+		Assertions.assertEquals(Map.of(), wrong,
+			"Test classes to annotate with exactly one of " + KINDS.stream().map(Class::getSimpleName).toList());
+	}
+
+	@Test
+	@DisplayName("The unit and script engine tests use no database, server nor container")
+	void fastTestsUseNoInfrastructure() {
+		List<String> violations = importedClasses.stream()
+			.filter(c -> FAST_KINDS.stream().anyMatch(topLevel(c)::isAnnotatedWith))
+			.flatMap(c -> c.getAccessesFromSelf().stream())
+			.filter(TestLayoutTest::isSlow)
+			.map(a -> "%s -> %s.%s".formatted(topLevel(a.getOriginOwner()).getSimpleName(), a.getTargetOwner().getName(), a.getName()))
+			.distinct()
+			.sorted()
+			.toList();
+		Assertions.assertEquals(List.of(), violations,
+			"@UnitTest/@ScriptEngineTest classes needing a database, a server or a container: give them the kind they need");
+	}
+
+	/**
+	 * Tells whether an access (call, field access, construction) needs a database, a server or a container.
+	 *
+	 * @param access the access
+	 * @return true if the tests of the fast kinds must not make it
+	 */
+	private static boolean isSlow(JavaAccess<?> access) {
+		JavaClass owner = access.getTargetOwner();
+		if (owner.getName().equals(Database.class.getName())) {
+			return DATABASE_METHODS.contains(access.getName());
+		}
+		return SLOW_CLASSES.contains(owner.getName()) || owner.getPackageName().startsWith(CONTAINER_PACKAGE);
+	}
+
+	/**
+	 * Gets the top-level class enclosing a class (or the class itself).
+	 *
+	 * @param javaClass the class
+	 * @return the top-level class
+	 */
+	private static JavaClass topLevel(JavaClass javaClass) {
+		JavaClass current = javaClass;
+		Optional<JavaClass> enclosing = current.getEnclosingClass();
+		while (enclosing.isPresent()) {
+			current = enclosing.get();
+			enclosing = current.getEnclosingClass();
+		}
+		return current;
 	}
 }

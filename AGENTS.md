@@ -14,7 +14,7 @@ responsible for.
 ## Repo layout
 
 - `src/main/java/net/netshot/netshot/` — core server (Java)
-- `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5), in the package of the code they test; shared helpers and base classes in the root package (see "Test layout" in [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md))
+- `src/test/java/net/netshot/netshot/` — core server tests (JUnit 5), in the package of the code they test; shared helpers (test kind annotations, fakes, API client, contract helpers) in `testing` (see "Test layout" in [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md))
 - `src/main/resources/drivers/` — device drivers (JavaScript, one file per platform)
 - `src/main/resources/webui/` — React + TypeScript web UI (own `package.json`)
 - `docs/content/` — user/admin/developer documentation source (Markdown), built with [Zensical](docs/content/index.md); `docs/` itself also holds the Zensical/uv tooling (`docs/pyproject.toml`, `docs/uv.lock`) — keep it that way, content must stay under `docs/content/` and out of `docs/` directly, or the build breaks (Zensical copies everything under `docs_dir` verbatim, and a stray `docs/.venv` silently kills the theme asset build)
@@ -39,7 +39,8 @@ These mirror what CI (`.github/workflows/build.yml`) enforces. **Always run the 
 
 - Changed any Java code (`src/main/java`, `src/test/java`) → run **both**:
   - `./mvnw checkstyle:check` (style — config in `checkstyle.xml`; also catches a missing/incorrect license header)
-  - `./mvnw test` (Java tests). Some tests (the `driver.*DriverTest` classes and the others extending `WithDeviceSimulatorTest`) spin up Testcontainers-based device simulators, so **Docker must be running and reachable** (the CI job mounts `/var/run/docker.sock`).
+  - `./mvnw test` (Java tests). The database, REST API, contract and device simulator tests (`@DatabaseTest`, `@ApiTest`, `@ContractTest`, `@SimulatorTest`) start Testcontainers-based PostgreSQL and device simulator containers, so **Docker must be running and reachable** (the CI job mounts `/var/run/docker.sock`). For a quick loop while working, `./mvnw test -Pfast` runs only the unit and script engine tests (no Docker); still run the full `./mvnw test` before calling a change done.
+  - Every new test class needs exactly one kind annotation from `net.netshot.netshot.testing` (`TestLayoutTest` enforces it) — see "Test layout" in [docs/content/extending/backend-architecture.md](docs/content/extending/backend-architecture.md).
 - Changed any web UI code (`src/main/resources/webui/src`) → run **both**, from `src/main/resources/webui`:
   - `npm run lint` (eslint) — on the full project this can OOM the default Node heap; if it does, `export NODE_OPTIONS="--max-old-space-size=4096"` first, and prefer the default "stylish" formatter over `-f json` for full-project runs.
   - `npm run tsx` (TypeScript type-check, no emit) — if Chakra UI theme tokens/recipes changed, regenerate typings first with `npm run chakra:typegen` and commit the resulting diff under `src/`, or the CI type-check diverges from what's committed.

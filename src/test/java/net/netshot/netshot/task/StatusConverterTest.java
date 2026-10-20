@@ -18,19 +18,23 @@
  */
 package net.netshot.netshot.task;
 
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Properties;
+
+@UnitTest
 @DisplayName("Task.Status persisted value (StatusConverter)")
 public class StatusConverterTest {
 
 	@BeforeAll
 	static void initNetshot() {
-		Netshot.readConfig();
+		TestConfig.init(new Properties());
 	}
 
 	private final Status.StatusConverter converter = new Status.StatusConverter();

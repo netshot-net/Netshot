@@ -34,14 +34,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.WithDatabaseTest;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDatabase;
 
 /**
  * Tests for {@link TaskLockManager}, in local (in-memory) and distributed (PostgreSQL advisory
  * locks) modes. Two distributed managers with their own DB connections simulate two cluster members.
  */
+@DatabaseTest(boot = Boot.MANUAL)
 @DisplayName("Task and device locks (TaskLockManager)")
-public class TaskLockManagerTest extends WithDatabaseTest {
+public class TaskLockManagerTest {
 
 	private String url;
 	private String username;
@@ -53,8 +56,8 @@ public class TaskLockManagerTest extends WithDatabaseTest {
 	private final List<TaskLockManager> managers = new ArrayList<>();
 
 	@BeforeEach
-	void initDb() {
-		Properties config = getDatabaseConfig("tasklocktest");
+	void initDb(TestDatabase database) {
+		Properties config = database.config("tasklocktest");
 		this.url = config.getProperty("netshot.db.url");
 		this.username = config.getProperty("netshot.db.username");
 		this.password = config.getProperty("netshot.db.password");

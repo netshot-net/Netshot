@@ -19,14 +19,9 @@
 package net.netshot.netshot.task.engine;
 
 import java.util.Date;
-import java.util.Properties;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -41,6 +36,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import net.netshot.netshot.testing.DatabaseTest;
 
 /**
  * Regression tests for {@link TaskManager#repeatTask(Task)} not being able to
@@ -69,19 +65,13 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
  * {@code clone()} would still blow up on one of those.
  * </ul>
  */
+@DatabaseTest
 @DisplayName("Recurring task rescheduling after execution (TaskManager.repeatTask, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class TaskRepeatTest extends WithDatabaseTest {
+public class TaskRepeatTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Netshot.readConfig();
-		Properties config = getDatabaseConfig("tasktest_repeat");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		TaskManager.init(Wiring.get().taskJobFactory());
 	}
 

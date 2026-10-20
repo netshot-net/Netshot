@@ -41,13 +41,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger.TriggerType;
 import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.WebHook.Action;
 import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the hook DTOs and their mapper are a faithful replacement of the entities the REST
@@ -55,6 +56,7 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * it is, the hooks have no secret of their own), requests read like they used to be (defaults for
  * absent properties, absent or null triggers).
  */
+@UnitTest
 class HookDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

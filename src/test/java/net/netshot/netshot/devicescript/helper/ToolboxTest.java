@@ -42,11 +42,12 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the script toolbox (toolbox.js and toolbox.py).
@@ -54,6 +55,7 @@ import net.netshot.netshot.driver.DeviceDriver;
  * harnesses), and must return the same results - the expected ones when given.
  * The findSections cases (legacy helper, JavaScript only) only run on the JavaScript side.
  */
+@ScriptEngineTest
 public class ToolboxTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
