@@ -29,7 +29,7 @@ public final class TestDatabase {
 
 	private final SharedPostgres postgres;
 
-	private final String schema;
+	private final String name;
 
 	private final Path binaryFolder;
 
@@ -39,22 +39,23 @@ public final class TestDatabase {
 	 * Creates the database of a test class.
 	 *
 	 * @param postgres the shared container
-	 * @param schema the schema of the class
+	 * @param name the name of the database of the class
 	 * @param binaryFolder the folder of the binary snapshot files of the class
 	 */
-	TestDatabase(SharedPostgres postgres, String schema, Path binaryFolder) {
+	TestDatabase(SharedPostgres postgres, String name, Path binaryFolder) {
 		this.postgres = postgres;
-		this.schema = schema;
+		this.name = name;
 		this.binaryFolder = binaryFolder;
 	}
 
 	/**
-	 * Gets the schema of the test class.
+	 * Gets the name of the database of the test class (a copy of the migrated template, see
+	 * {@link DatabaseTest}).
 	 *
-	 * @return the name of the schema
+	 * @return the name of the database
 	 */
-	public String schema() {
-		return this.schema;
+	public String name() {
+		return this.name;
 	}
 
 	/**
@@ -91,8 +92,8 @@ public final class TestDatabase {
 	}
 
 	/**
-	 * Builds the database properties of a Netshot configuration pointing at another schema (for the tests
-	 * with {@link DatabaseTest.Boot#MANUAL}), creating the schema if it does not exist.
+	 * Builds the database properties of a Netshot configuration pointing at a schema of the main database
+	 * (for the tests with {@link DatabaseTest.Boot#MANUAL}), creating the schema if it does not exist.
 	 *
 	 * @param schemaName the schema
 	 * @return the properties
@@ -102,8 +103,8 @@ public final class TestDatabase {
 	}
 
 	/**
-	 * Builds the database properties of a Netshot configuration pointing at another schema (for the tests
-	 * with {@link DatabaseTest.Boot#MANUAL}), dropping the schema first so that it starts empty.
+	 * Builds the database properties of a Netshot configuration pointing at a schema of the main database
+	 * (for the tests with {@link DatabaseTest.Boot#MANUAL}), dropping the schema first so that it starts empty.
 	 *
 	 * @param schemaName the schema
 	 * @return the properties
