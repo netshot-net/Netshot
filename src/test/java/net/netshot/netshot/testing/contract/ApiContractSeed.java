@@ -89,7 +89,7 @@ import net.netshot.netshot.testing.TestDrivers;
 /**
  * Deterministic dataset used by the API contract tests.
  *
- * <p>Rules for determinism: a fresh schema is used, objects are created one
+ * <p>Rules for determinism: a fresh database is used, objects are created one
  * after the other in a fixed order (IDs are database identity values, so they
  * come out the same on every run), every object whose date is exposed by the API
  * gets a fixed date (in 2020-2022 or 2040, far away from the "now" window the

@@ -37,12 +37,12 @@ import org.junit.platform.commons.support.AnnotationSupport;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
 
 /**
  * Extension of {@link DatabaseTest}, {@link ApiTest} and {@link ContractTest}: before the annotated class,
- * creates its empty schema in the shared PostgreSQL container and boots Netshot on it (see
+ * creates its database in the shared PostgreSQL container (a copy of the migrated template) and boots
+ * Netshot on it (see
  * {@link DatabaseTest}); after it, deletes the folder of the binary snapshot files. Resolves the
  * {@link TestDatabase} parameters.
  */
@@ -55,9 +55,9 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 			return;
 		}
 		SharedPostgres postgres = SharedPostgres.get(context);
-		String schema = schemaName(testClass);
-		Path binaryFolder = Files.createTempDirectory("netshot-" + schema + "-");
-		TestDatabase database = new TestDatabase(postgres, schema, binaryFolder);
+		String name = databaseName(testClass);
+		Path binaryFolder = Files.createTempDirectory("netshot-" + name + "-");
+		TestDatabase database = new TestDatabase(postgres, name, binaryFolder);
 		context.getStore(Kinds.NAMESPACE).put(TestDatabase.class, database);
 
 		Boot boot = Kinds.usesRestServer(testClass) ? Boot.WIRED
@@ -65,7 +65,7 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		if (boot == Boot.MANUAL) {
 			return;
 		}
-		Properties base = postgres.freshConfig(schema);
+		Properties base = postgres.cloneConfig(name);
 		base.setProperty("netshot.snapshots.binary.path", binaryFolder.toString());
 		if (Kinds.usesRestServer(testClass)) {
 			TestServer server = new TestServer(TestNetwork.freeLocalApiUrl());
@@ -78,7 +78,6 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		TestConfig.init(config);
 		Netshot.loadModuleConfigs();
 		TestDrivers.reload();
-		Database.update();
 		if (boot == Boot.WIRED) {
 			Wiring.init(TestDrivers.registry());
 		}
@@ -112,13 +111,13 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 	}
 
 	/**
-	 * Gets the name of the schema of a test class: its name without the package, in lower case, the names
+	 * Gets the name of the database of a test class: its name without the package, in lower case, the names
 	 * of the nested classes separated by underscores. Unique since the simple names of the test classes are.
 	 *
 	 * @param testClass the test class
-	 * @return the name of the schema
+	 * @return the name of the database
 	 */
-	static String schemaName(Class<?> testClass) {
+	static String databaseName(Class<?> testClass) {
 		String name = testClass.getName().substring(testClass.getPackageName().length() + 1);
 		return name.replace('$', '_').toLowerCase(Locale.ROOT);
 	}
