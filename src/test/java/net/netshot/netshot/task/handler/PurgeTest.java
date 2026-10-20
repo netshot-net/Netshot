@@ -19,15 +19,9 @@
 package net.netshot.netshot.task.handler;
 
 import java.util.Calendar;
-import java.util.Properties;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
@@ -39,6 +33,8 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -47,7 +43,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
-public class PurgeTest extends WithDatabaseTest {
+@DatabaseTest
+public class PurgeTest {
 	static final int DEVICES = 10;
 	static final int CONFIGS_PER_DAY = 4;
 	static final int DAYS = 30;
@@ -55,18 +52,8 @@ public class PurgeTest extends WithDatabaseTest {
 	static final int DEVICES_IN_GROUP1 = 3;
 	static final int DEVICES_WITH_BIG_CONFIG = 2;
 
-	protected static Properties getNetshotConfig() {
-		Properties config = getDatabaseConfig("purgetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "INFO");
-		return config;
-	}
-
 	@BeforeAll
 	protected static void initNetshot() throws Exception {
-		TestConfig.init(PurgeTest.getNetshotConfig());
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		Thread.sleep(1000);
 	}
 
@@ -224,7 +211,6 @@ public class PurgeTest extends WithDatabaseTest {
 				.getSingleResultOrNull(),
 			"Unexpected number of module entries");
 	}
-
 
 	@Test
 	@DisplayName("Initial count test")

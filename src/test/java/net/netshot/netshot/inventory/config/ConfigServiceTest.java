@@ -21,11 +21,9 @@ package net.netshot.netshot.inventory.config;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
 import org.hibernate.Session;
@@ -37,11 +35,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
@@ -50,17 +43,19 @@ import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
 
 /**
  * Tests of the configuration use cases, against a real database.
  */
+@DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
-class ConfigServiceTest extends WithDatabaseTest {
+class ConfigServiceTest {
 
 	private static final long D2020 = 1_577_880_000_000L;
 	private static final long D2021 = 1_609_502_400_000L;
@@ -76,20 +71,9 @@ class ConfigServiceTest extends WithDatabaseTest {
 	private long third;
 	private long otherConfig;
 	private long snmpConfig;
-	private Path binaryFolder;
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Properties config = getFreshDatabaseConfig("configservicetest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		this.binaryFolder = Files.createTempDirectory("netshot-config-service-");
-		config.setProperty("netshot.snapshots.binary.path", this.binaryFolder.toString());
-		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
-		TestDrivers.reload();
-		Database.update();
-		Wiring.init(TestDrivers.registry());
 		this.transactions = new Transactions();
 		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
 		this.transactions.run(session -> {

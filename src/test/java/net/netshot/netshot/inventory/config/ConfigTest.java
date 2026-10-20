@@ -24,6 +24,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.testing.UnitTest;
+
+@UnitTest
 @DisplayName("Device config tests")
 public class ConfigTest {
 

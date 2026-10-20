@@ -31,18 +31,21 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.TestInstance;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.ApiContractGolden.Format;
-import net.netshot.netshot.ApiContractGolden;
-import net.netshot.netshot.HookSeededTest;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.task.event.TaskFinished;
+import net.netshot.netshot.testing.ContractTest;
+import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
 
 /**
  * Golden file tests of the web hook payloads: the body posted for each task type that can trigger
@@ -50,13 +53,15 @@ import net.netshot.netshot.task.event.TaskFinished;
  * Golden files are stored under {@code src/test/resources/hook-contract/} and must not change when
  * the implementation is refactored.
  *
- * <p>The dataset is the one of {@link HookSeededTest}. A real web hook of each format, pointing
+ * <p>The dataset is the one of {@link HookTaskSeed}. A real web hook of each format, pointing
  * at a local HTTP receiver, is triggered by each task type; the task is then announced the way
  * {@code TaskJob} does ({@link TaskFinished}), and the body each hook posted is normalized like
  * the REST API contract responses. Run with {@code -Dnetshot.hook.contract.update=true} to
  * (re)write the golden files.</p>
  */
-public class WebHookContractTest extends HookSeededTest {
+@ContractTest
+@TestInstance(Lifecycle.PER_CLASS)
+public class WebHookContractTest {
 
 	/** System property, set to true to rewrite the golden files. */
 	static final String UPDATE_PROPERTY = "netshot.hook.contract.update";
@@ -81,16 +86,18 @@ public class WebHookContractTest extends HookSeededTest {
 	private record Received(String path, String contentType, byte[] body) {
 	}
 
+	/** When the test started (the dates near it are normalized in the outputs). */
+	private final long startTime = System.currentTimeMillis();
+
+	/** Task IDs by case name. */
+	private Map<String, Long> taskIds;
+
 	private HttpServer receiver;
 	private final List<Received> received = new ArrayList<>();
 
-	@Override
-	protected String databaseName() {
-		return "webhookcontracttest";
-	}
-
 	@BeforeAll
-	void startReceiver() throws Exception {
+	void seedAndStartReceiver(TestServer server) throws Exception {
+		this.taskIds = HookTaskSeed.seed(server.apiUrl());
 		this.receiver = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
 		this.receiver.createContext("/", exchange -> {
 			Received request = new Received(exchange.getRequestURI().getPath(),
@@ -112,7 +119,7 @@ public class WebHookContractTest extends HookSeededTest {
 			hook.setName("test-" + action);
 			hook.setAction(action);
 			hook.setUrl("http://127.0.0.1:" + this.receiver.getAddress().getPort() + "/" + action);
-			for (String type : this.taskIds.keySet().stream().map(HookSeededTest::taskType).distinct().toList()) {
+			for (String type : this.taskIds.keySet().stream().map(HookTaskSeed::taskType).distinct().toList()) {
 				HookTrigger trigger = new HookTrigger();
 				trigger.setType(HookTrigger.TriggerType.POST_TASK);
 				trigger.setItem(type);
@@ -139,7 +146,7 @@ public class WebHookContractTest extends HookSeededTest {
 		synchronized (this.received) {
 			this.received.clear();
 		}
-		Wiring.get().domainEvents().publish(new TaskFinished(taskId, taskType(caseName)));
+		Wiring.get().domainEvents().publish(new TaskFinished(taskId, HookTaskSeed.taskType(caseName)));
 		Map<Format, String> payloads = new LinkedHashMap<>();
 		synchronized (this.received) {
 			Assertions.assertEquals(FORMATS.size(), this.received.size(), "Number of hook requests for " + caseName);

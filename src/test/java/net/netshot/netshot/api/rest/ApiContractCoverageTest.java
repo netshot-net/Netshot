@@ -44,10 +44,11 @@ import org.junit.jupiter.api.Test;
 
 import jakarta.ws.rs.HttpMethod;
 
-import net.netshot.netshot.ApiContractCase;
-import net.netshot.netshot.ApiContractCases;
-import net.netshot.netshot.ApiContractGolden;
-import net.netshot.netshot.ApiContractSeed;
+import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.ApiContractCase;
+import net.netshot.netshot.testing.contract.ApiContractCases;
+import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.ApiContractSeed;
 
 /**
  * Guard for the API contract tests: every JAX-RS resource method of the
@@ -62,6 +63,7 @@ import net.netshot.netshot.ApiContractSeed;
  *
  * <p>This test does not need any database or server.</p>
  */
+@UnitTest
 public class ApiContractCoverageTest {
 
 	/**

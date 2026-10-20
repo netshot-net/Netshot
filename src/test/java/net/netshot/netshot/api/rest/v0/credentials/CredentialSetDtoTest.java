@@ -39,7 +39,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import net.netshot.netshot.DtoContract;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -53,6 +52,8 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
  * Checks that the credential set DTOs and their mapper are a faithful replacement of the entities
@@ -60,6 +61,7 @@ import net.netshot.netshot.inventory.domain.Domain;
  * the same, in JSON and XML, as the one of the entity with the same view; no secret ever appears in
  * it; the requests are read like they used to be.
  */
+@UnitTest
 class CredentialSetDtoTest {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();

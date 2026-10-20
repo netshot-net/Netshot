@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.vault;
 
-import java.util.Properties;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hibernate.Session;
@@ -34,16 +32,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
+@DatabaseTest(boot = Boot.MANUAL)
 @Testcontainers
-public class VaultTest extends WithDatabaseTest {
+public class VaultTest {
 
 	@Nested
 	@DisplayName("Vault key path test")
@@ -108,6 +105,7 @@ public class VaultTest extends WithDatabaseTest {
 	 * every device connection (SSH/HTTP/SNMP) makes to obtain a Vault-backed
 	 * credential field.
 	 */
+	@DatabaseTest
 	@Nested
 	@DisplayName("Vault-backed secret resolution (real Vault container)")
 	class SecretResolutionTest {
@@ -154,14 +152,6 @@ public class VaultTest extends WithDatabaseTest {
 
 		@BeforeAll
 		static void initDatabaseAndVaultInstance() throws Exception {
-			Properties config = getFreshDatabaseConfig("vaultresolutiontest");
-			config.setProperty("netshot.log.file", "CONSOLE");
-			config.setProperty("netshot.log.level", "INFO");
-			TestConfig.init(config);
-			VaultManager.loadConfig();
-			Database.update();
-			Wiring.init(TestDrivers.registry());
-
 			HashicorpVaultKv2Instance vaultInstance = new HashicorpVaultKv2Instance("test-vault");
 			vaultInstance.setBaseUrl(VAULT_CONTAINER.getHttpHostAddress());
 			vaultInstance.setKvMountPath("secret");

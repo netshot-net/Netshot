@@ -22,15 +22,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.netshot.netshot.FakeTaskContext;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
 import net.netshot.netshot.access.AccessManager.Resolution;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
@@ -40,10 +34,12 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -52,19 +48,9 @@ import org.junit.jupiter.api.Test;
  * credential-set fallback engine that replaced the triplicated SSH/Telnet/SNMP
  * loops previously duplicated in {@code DeviceScript.connectRun}.
  */
+@DatabaseTest
 @DisplayName("AccessManager tests")
-public class AccessManagerTest extends WithDatabaseTest {
-
-	@BeforeAll
-	protected static void init() throws Exception {
-		Properties config = getDatabaseConfig("accessmanagertest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "INFO");
-		TestConfig.init(config);
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-		TestDrivers.reload();
-	}
+public class AccessManagerTest {
 
 	/** A minimal fake {@link Client} whose connect() behavior is scripted by the test. */
 	private final class FakeClient implements Client {

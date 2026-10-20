@@ -24,24 +24,24 @@ import java.util.concurrent.TimeUnit;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
-import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+@ScriptEngineTest
 @DisplayName("Python Rule")
 public class PyRuleTest {
 
@@ -50,12 +50,8 @@ public class PyRuleTest {
 
 	@BeforeAll
 	static void initNetshot() throws Exception {
-		TestConfig.init(new Properties());
-		Ssh.loadConfig();
-		PythonFileSystem.loadConfig();
 		pyRuntime = new PyRuleRuntime();
 		evaluators = RuleEvaluators.standard(new JsRuleRuntime(), pyRuntime, TestDrivers.registry());
-		TestDrivers.reload();
 	}
 
 	Policy policy = new Policy("Fake policy", null);

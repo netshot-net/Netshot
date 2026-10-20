@@ -29,13 +29,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
+@ScriptEngineTest
 @DisplayName("Snapshot configuration dump")
 public class SnapshotDumpTest {
 

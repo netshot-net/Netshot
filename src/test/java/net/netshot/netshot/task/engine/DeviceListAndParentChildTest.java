@@ -20,16 +20,9 @@ package net.netshot.netshot.task.engine;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.FakeDeviceFactory;
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
@@ -40,31 +33,22 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
+@DatabaseTest
 @DisplayName("Group task device list / parent-child tracking (DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class DeviceListAndParentChildTest extends WithDatabaseTest {
+public class DeviceListAndParentChildTest {
 
 	Domain domain;
 	Device device1;
 	Device device2;
-
-	@BeforeAll
-	void initDb() throws Exception {
-		Netshot.readConfig();
-		Properties config = getDatabaseConfig("tasktest");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		TestConfig.init(config);
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-	}
 
 	@BeforeEach
 	void createData() {

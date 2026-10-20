@@ -40,6 +40,8 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
+import net.netshot.netshot.testing.UnitTest;
+
 /**
  * Architecture rules encoding the TARGET layering (see the layering refactor plan).
  *
@@ -55,6 +57,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
  * (rewrites the stored violations of rules that already have a store file) with
  * "./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true".</p>
  */
+@UnitTest
 @AnalyzeClasses(packages = "net.netshot.netshot", importOptions = ImportOption.DoNotIncludeTests.class)
 public final class ArchitectureTest {
 

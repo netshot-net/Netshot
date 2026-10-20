@@ -36,11 +36,12 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.access.Http.AuthScheme;
 import net.netshot.netshot.access.Http.HttpConfig;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 /**
  * Unit tests for {@link Http}, in particular the per-access-declared
@@ -49,6 +50,7 @@ import net.netshot.netshot.credentials.DeviceHttpAccount;
  * framework needed, and no TLS involved since {@code tls=false} is used
  * throughout (trust/certificate behavior is out of scope for Phase 1 tests).
  */
+@ScriptEngineTest
 public class HttpTest {
 
 	private HttpServer server;

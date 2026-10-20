@@ -24,16 +24,10 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Properties;
 import java.util.UUID;
 
 import org.hibernate.Session;
 
-import net.netshot.netshot.Netshot;
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDatabaseTest;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
@@ -50,6 +44,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDatabase;
 
 /**
  * Tests for {@link PurgeDatabaseTask}'s "remove orphan binary files"
@@ -58,24 +54,16 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
  * never touching a file that does - even one still sitting at its
  * pending (not-yet-finalized) name.
  */
+@DatabaseTest
 @DisplayName("Remove orphan binary files (PurgeDatabaseTask, DB-backed)")
 @TestInstance(Lifecycle.PER_CLASS)
-public class OrphanBinaryFilePurgeTest extends WithDatabaseTest {
+public class OrphanBinaryFilePurgeTest {
 
 	Path storagePath;
 
 	@BeforeAll
-	void initDb() throws Exception {
-		Netshot.readConfig();
-		storagePath = Files.createTempDirectory("netshot-test-orphan-purge-");
-		Properties config = getDatabaseConfig("tasktest_orphanpurge");
-		config.setProperty("netshot.log.file", "CONSOLE");
-		config.setProperty("netshot.log.level", "WARN");
-		config.setProperty("netshot.snapshots.binary.path", storagePath.toString());
-		TestConfig.init(config);
-		Database.update();
-		Wiring.init(TestDrivers.registry());
-		ConfigBinaryFileAttribute.loadConfig();
+	void initDb(TestDatabase database) throws Exception {
+		storagePath = database.binaryFolder();
 	}
 
 	@AfterEach

@@ -35,11 +35,8 @@ import org.hibernate.Session;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.FakeTaskContext;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.TestDrivers;
-import net.netshot.netshot.WithDeviceSimulatorTest;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.Http;
@@ -52,6 +49,9 @@ import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,8 +66,9 @@ import org.junit.jupiter.api.Test;
  * such as a backup archive (see {@link net.netshot.netshot.access.Http}
  * and {@link net.netshot.netshot.devicescript.helper.JsHttpHelper}).
  */
+@ScriptEngineTest
 @DisplayName("HTTP client binary download test")
-public class HttpDownloadTest extends WithDeviceSimulatorTest {
+public class HttpDownloadTest {
 
 	private HttpServer fakeServer;
 	private int port;
