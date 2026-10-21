@@ -98,7 +98,7 @@ public class ScriptResource {
 		log.debug("REST request, add device script.");
 		// The user is the author; if it cannot be determined, the posted author is kept
 		Principal principal = this.securityContext.getUserPrincipal();
-		String author = principal instanceof User user ? user.getUsername() : null;
+		String author = principal instanceof User user ? user.username() : null;
 		if (validateOnly) {
 			return ScriptMapper.toDto(this.driverRegistry, this.scriptService.validate(ScriptMapper.toCreation(rsScript, author)));
 		}

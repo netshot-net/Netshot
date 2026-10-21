@@ -180,7 +180,7 @@ public final class Tacacs {
 					AAA_LOG.info(MarkerFactory.getMarker("AAA"),
 						"The user {} passed TACACS+ authentication (with permission level {}).",
 						username, level);
-					UiUser user = new UiUser(username, level);
+					UiUser user = UiUser.remote(username, level);
 					return user;
 				}
 				else {

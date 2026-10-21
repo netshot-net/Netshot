@@ -154,7 +154,7 @@ public class DeviceResource {
 	public TaskDto addDevice(NewDeviceRequest device) throws WebApplicationException {
 		log.debug("REST request, new device.");
 		User user = (User) this.securityContext.getUserPrincipal();
-		Task task = this.deviceService.create(DeviceMapper.toCreation(device, user.getUsername()));
+		Task task = this.deviceService.create(DeviceMapper.toCreation(device, user.username()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return TaskMapper.toDto(this.driverRegistry, task);
 	}
