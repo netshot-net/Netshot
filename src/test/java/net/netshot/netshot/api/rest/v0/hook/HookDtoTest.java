@@ -18,12 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.hook;
 
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,27 +62,16 @@ class HookDtoTest {
 	private final DtoContract contract = new DtoContract(HookDtoTest.class);
 
 	private static HookTrigger trigger(String item) {
-		HookTrigger trigger = new HookTrigger();
-		trigger.setType(TriggerType.POST_TASK);
-		trigger.setItem(item);
-		return trigger;
+		return new HookTrigger(TriggerType.POST_TASK, item);
 	}
 
 	private static WebHook webHook(long id, String name, String... items) {
-		WebHook hook = new WebHook();
-		hook.setId(id);
-		hook.setName(name);
-		hook.setEnabled(id % 2 == 0);
-		hook.setAction(Action.POST_YAML);
-		hook.setUrl("https://user:pass@example.net/hook?token=abc");
-		hook.setHttpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA);
-		hook.setHttpsCustomCaCertificate("-----BEGIN CERTIFICATE-----");
 		Set<HookTrigger> triggers = new HashSet<>();
 		for (String item : items) {
 			triggers.add(trigger(item));
 		}
-		hook.setTriggers(triggers);
-		return hook;
+		return new WebHook(id, name, id % 2 == 0, triggers, Action.POST_YAML, "https://user:pass@example.net/hook?token=abc",
+			HttpsCaTrustMode.CUSTOM_CA, "-----BEGIN CERTIFICATE-----");
 	}
 
 	private static byte[] json(Object value) throws Exception {
@@ -106,10 +91,9 @@ class HookDtoTest {
 	void representation() throws Exception {
 		WebHook full = webHook(2, "Full", "TakeSnapshotTask", "CheckComplianceTask");
 		WebHook none = webHook(3, "No trigger");
-		WebHook nullTriggers = webHook(4, "Null triggers");
-		nullTriggers.setTriggers(null);
-		WebHook bare = new WebHook();
-		bare.setName("Bare");
+		WebHook nullTriggers = webHook(4, "Null triggers").withTriggers(null);
+		// What the former entity had by default
+		WebHook bare = new WebHook(0, "Bare", true, new HashSet<>(), null, null, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null);
 		for (WebHook hook : List.of(full, none, nullTriggers, bare)) {
 			this.assertRepresentation(HookMapper.toDto(hook));
 		}
@@ -145,30 +129,21 @@ class HookDtoTest {
 	// Requests
 	// ------------------------------------------------------------------
 
-	private static Map<String, Object> describe(Object bean) throws IntrospectionException, ReflectiveOperationException {
+	private static Map<String, Object> describe(Record hook) throws ReflectiveOperationException {
+		// The components of the record are the properties of the former entity
 		Map<String, Object> description = new TreeMap<>();
-		for (PropertyDescriptor property : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
-			if (property.getReadMethod() == null || "class".equals(property.getName())) {
-				continue;
-			}
-			Object value;
-			try {
-				value = property.getReadMethod().invoke(bean);
-			}
-			catch (InvocationTargetException e) {
-				continue;
-			}
-			if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean
-					|| value instanceof Enum || value instanceof Date) {
-				description.put(property.getName(), value);
-			}
-			else if (value instanceof Set<?> set) {
+		for (RecordComponent component : hook.getClass().getRecordComponents()) {
+			Object value = component.getAccessor().invoke(hook);
+			if (value instanceof Set<?> set) {
 				// The triggers (null if the set is null, a null element is described as such)
 				Set<String> triggers = new TreeSet<>();
 				for (Object element : set) {
-					triggers.add(element instanceof HookTrigger t ? t.getType() + ":" + t.getItem() : String.valueOf(element));
+					triggers.add(element instanceof HookTrigger t ? t.type() + ":" + t.item() : String.valueOf(element));
 				}
-				description.put(property.getName(), triggers);
+				description.put(component.getName(), triggers);
+			}
+			else {
+				description.put(component.getName(), value);
 			}
 		}
 		return description;
@@ -221,7 +196,7 @@ class HookDtoTest {
 			catch (JsonProcessingException e) {
 				// Refused
 			}
-			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe(actual)));
+			this.contract.checkText("request-" + index, DtoContract.render(actual, actual == null ? null : describe((Record) actual)));
 			if (actual == null) {
 				refused++;
 			}
@@ -234,15 +209,15 @@ class HookDtoTest {
 	void requestDefaults() throws Exception {
 		WebHook minimal = (WebHook) HookMapper.toEntity(
 			JSON.readerFor(HookRequest.class).readValue("{\"type\": \"Web\", \"name\": \"n\"}"));
-		Assertions.assertTrue(minimal.isEnabled());
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.getHttpsCaTrustMode());
-		Assertions.assertNotNull(minimal.getTriggers());
-		Assertions.assertTrue(minimal.getTriggers().isEmpty());
+		Assertions.assertTrue(minimal.enabled());
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.httpsCaTrustMode());
+		Assertions.assertNotNull(minimal.triggers());
+		Assertions.assertTrue(minimal.triggers().isEmpty());
 		WebHook nullTriggers = (WebHook) HookMapper.toEntity(JSON.readerFor(HookRequest.class)
 			.readValue("{\"type\": \"Web\", \"name\": \"n\", \"triggers\": null}"));
-		Assertions.assertNull(nullTriggers.getTriggers());
+		Assertions.assertNull(nullTriggers.triggers());
 		WebHook triggers = (WebHook) HookMapper.toEntity(JSON.readerFor(HookRequest.class).readValue(BODIES.get(0)));
-		Assertions.assertEquals(2, triggers.getTriggers().size());
-		Assertions.assertEquals(5L, triggers.getId());
+		Assertions.assertEquals(2, triggers.triggers().size());
+		Assertions.assertEquals(5L, triggers.id());
 	}
 }

@@ -21,15 +21,15 @@ public class HookTriggerRecord extends UpdatableRecordImpl<HookTriggerRecord> {
     /**
      * Setter for <code>hook_trigger.type</code>.
      */
-    public void setType(Integer value) {
+    public void setType(String value) {
         set(0, value);
     }
 
     /**
      * Getter for <code>hook_trigger.type</code>.
      */
-    public Integer getType() {
-        return (Integer) get(0);
+    public String getType() {
+        return (String) get(0);
     }
 
     /**
@@ -65,7 +65,7 @@ public class HookTriggerRecord extends UpdatableRecordImpl<HookTriggerRecord> {
     // -------------------------------------------------------------------------
 
     @Override
-    public Record3<Integer, String, Long> key() {
+    public Record3<String, String, Long> key() {
         return (Record3) super.key();
     }
 
@@ -83,7 +83,7 @@ public class HookTriggerRecord extends UpdatableRecordImpl<HookTriggerRecord> {
     /**
      * Create a detached, initialised HookTriggerRecord
      */
-    public HookTriggerRecord(Integer type, String item, Long hook) {
+    public HookTriggerRecord(String type, String item, Long hook) {
         super(HookTrigger.HOOK_TRIGGER);
 
         setType(type);

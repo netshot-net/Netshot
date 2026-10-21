@@ -21,9 +21,11 @@ package net.netshot.netshot.api.hook;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterAll;
@@ -41,6 +43,7 @@ import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
@@ -112,20 +115,15 @@ public class WebHookContractTest {
 
 		// Only the hooks of this test: the hooks of the seed point to the outside
 		for (Hook hook : Wiring.get().hookService().list(Page.ALL)) {
-			Wiring.get().hookService().delete(hook.getId());
+			Wiring.get().hookService().delete(hook.id());
 		}
 		for (WebHook.Action action : FORMATS.keySet()) {
-			WebHook hook = new WebHook();
-			hook.setName("test-" + action);
-			hook.setAction(action);
-			hook.setUrl("http://127.0.0.1:" + this.receiver.getAddress().getPort() + "/" + action);
+			Set<HookTrigger> triggers = new HashSet<>();
 			for (String type : this.taskIds.keySet().stream().map(HookTaskSeed::taskType).distinct().toList()) {
-				HookTrigger trigger = new HookTrigger();
-				trigger.setType(HookTrigger.TriggerType.POST_TASK);
-				trigger.setItem(type);
-				hook.getTriggers().add(trigger);
+				triggers.add(new HookTrigger(HookTrigger.TriggerType.POST_TASK, type));
 			}
-			Wiring.get().hookService().create(hook);
+			Wiring.get().hookService().create(new WebHook(0, "test-" + action, true, triggers, action,
+				"http://127.0.0.1:" + this.receiver.getAddress().getPort() + "/" + action, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null));
 		}
 	}
 

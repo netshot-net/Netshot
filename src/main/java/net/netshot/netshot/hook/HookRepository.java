@@ -18,99 +18,169 @@
  */
 package net.netshot.netshot.hook;
 
-import java.util.List;
+import static net.netshot.netshot.platform.database.schema.Tables.HOOK;
+import static net.netshot.netshot.platform.database.schema.Tables.HOOK_TRIGGER;
+import static org.jooq.impl.DSL.multiset;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.selectOne;
 
-import org.hibernate.Session;
-import org.hibernate.query.Query;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.SelectLimitStep;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
- * The queries on hooks. The {@link Session} is always the first parameter: the caller
- * (the service) owns the session and the transaction.
+ * The queries on hooks. The jOOQ context is always the first parameter: the caller
+ * (the service) owns the transaction.
  */
 public class HookRepository {
 
-	/**
-	 * Lists the hooks, in the order of the database.
-	 *
-	 * @param session the session
-	 * @param page the window on the result
-	 * @return the hooks, with their triggers loaded (a page window is then applied in memory by
-	 *         Hibernate, which answers a sub list of the result)
-	 */
-	public List<Hook> findAll(Session session, Page page) {
-		Query<Hook> query = session.createQuery("select distinct h from Hook h left join fetch h.triggers", Hook.class);
-		page.apply(query);
-		return query.list();
+	/** The type of a Web hook in the hook table. */
+	static final String WEB = "WEB";
+
+	/** The triggers of the hook of the current row. */
+	private static final Field<Set<HookTrigger>> TRIGGERS = multiset(
+		select(HOOK_TRIGGER.TYPE, HOOK_TRIGGER.ITEM).from(HOOK_TRIGGER).where(HOOK_TRIGGER.HOOK.eq(HOOK.ID)))
+		.convertFrom(r -> (Set<HookTrigger>) new HashSet<>(r.map(t -> new HookTrigger(HookTrigger.TriggerType.valueOf(t.value1()), t.value2()))))
+		.as("triggers");
+
+	private static SelectLimitStep<Record> query(DSLContext dsl, Condition condition) {
+		return dsl.select(HOOK.fields()).select(TRIGGERS).from(HOOK).where(condition).orderBy(HOOK.ID);
+	}
+
+	private static Hook toHook(Record r) {
+		String type = r.get(HOOK.TYPE);
+		if (WEB.equals(type)) {
+			return new WebHook(r.get(HOOK.ID), r.get(HOOK.NAME), r.get(HOOK.ENABLED), r.get(TRIGGERS),
+				r.get(HOOK.ACTION) == null ? null : WebHook.Action.valueOf(r.get(HOOK.ACTION)),
+				r.get(HOOK.URL),
+				HttpsCaTrustMode.valueOf(r.get(HOOK.HTTPS_CA_TRUST_MODE)),
+				r.get(HOOK.HTTPS_CUSTOM_CA_CERTIFICATE));
+		}
+		throw new IllegalStateException("Unknown type of hook '%s'".formatted(type));
 	}
 
 	/**
-	 * Lists the enabled hooks having a given trigger.
+	 * Lists the hooks with their triggers, ordered by ID.
 	 *
-	 * @param session the session
-	 * @param type the type of trigger
-	 * @param item the item the trigger has to match (for a post-task trigger, the simple name of the task class)
+	 * @param dsl the jOOQ context
+	 * @param page the window on the result
 	 * @return the hooks
 	 */
-	public List<Hook> findEnabledByTrigger(Session session, HookTrigger.TriggerType type, String item) {
-		return session
-			.createQuery("select h from Hook h join h.triggers t where t.type = :type and t.item = :item and h.enabled", Hook.class)
-			.setParameter("type", type)
-			.setParameter("item", item)
-			.list();
+	public List<Hook> findAll(DSLContext dsl, Page page) {
+		List<Hook> hooks = page.apply(query(dsl, DSL.noCondition())).fetch(HookRepository::toHook);
+		if (page.isRestricted()) {
+			// Quirk kept: the former (Hibernate) query paginated in memory and answered a sub list,
+			// which XML publishes as <SubList> instead of <ArrayList>
+			return hooks.subList(0, hooks.size());
+		}
+		return hooks;
 	}
 
 	/**
-	 * Finds a hook.
+	 * Lists the enabled hooks with a given trigger.
 	 *
-	 * @param session the session
-	 * @param id the hook ID
+	 * @param dsl the jOOQ context
+	 * @param type the type of trigger
+	 * @param item the item of the trigger
+	 * @return the hooks
+	 */
+	public List<Hook> findEnabledByTrigger(DSLContext dsl, HookTrigger.TriggerType type, String item) {
+		return query(dsl, HOOK.ENABLED.isTrue().andExists(selectOne().from(HOOK_TRIGGER)
+				.where(HOOK_TRIGGER.HOOK.eq(HOOK.ID), HOOK_TRIGGER.TYPE.eq(type.name()), HOOK_TRIGGER.ITEM.eq(item))))
+			.fetch(HookRepository::toHook);
+	}
+
+	/**
+	 * Gets a hook.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID of the hook
 	 * @return the hook, or null if there is no such hook
 	 */
-	public Hook find(Session session, long id) {
-		return session.get(Hook.class, id);
+	public Hook find(DSLContext dsl, long id) {
+		return query(dsl, HOOK.ID.eq(id)).fetchOne(HookRepository::toHook);
 	}
 
 	/**
-	 * Finds a hook of a given kind.
+	 * Stores a new hook and its triggers.
 	 *
-	 * @param session the session
-	 * @param type the class of hook
-	 * @param id the hook ID
-	 * @return the hook, or null if there is none of this ID and kind
+	 * @param dsl the jOOQ context
+	 * @param hook the hook (its ID is ignored)
+	 * @return the ID of the new hook
 	 */
-	public Hook find(Session session, Class<? extends Hook> type, long id) {
-		return session.get(type, id);
+	public long add(DSLContext dsl, Hook hook) {
+		long id = switch (hook) {
+			case WebHook web -> dsl.insertInto(HOOK)
+				.set(HOOK.TYPE, WEB)
+				.set(HOOK.NAME, web.name())
+				.set(HOOK.ENABLED, web.enabled())
+				.set(HOOK.ACTION, web.action() == null ? null : web.action().name())
+				.set(HOOK.URL, web.url())
+				.set(HOOK.HTTPS_CA_TRUST_MODE, web.httpsCaTrustMode().name())
+				.set(HOOK.HTTPS_CUSTOM_CA_CERTIFICATE, web.httpsCustomCaCertificate())
+				.returning(HOOK.ID)
+				.fetchOne(HOOK.ID);
+		};
+		insertTriggers(dsl, id, hook.triggers());
+		return id;
 	}
 
 	/**
-	 * Stores a new hook.
+	 * Saves an existing hook and replaces its triggers.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param hook the hook
+	 * @return false if there is no such hook (of the same type)
 	 */
-	public void add(Session session, Hook hook) {
-		session.persist(hook);
+	public boolean save(DSLContext dsl, Hook hook) {
+		int updated = switch (hook) {
+			case WebHook web -> dsl.update(HOOK)
+				.set(HOOK.NAME, web.name())
+				.set(HOOK.ENABLED, web.enabled())
+				.set(HOOK.ACTION, web.action() == null ? null : web.action().name())
+				.set(HOOK.URL, web.url())
+				.set(HOOK.HTTPS_CA_TRUST_MODE, web.httpsCaTrustMode().name())
+				.set(HOOK.HTTPS_CUSTOM_CA_CERTIFICATE, web.httpsCustomCaCertificate())
+				.where(HOOK.ID.eq(web.id()), HOOK.TYPE.eq(WEB))
+				.execute();
+		};
+		if (updated == 0) {
+			return false;
+		}
+		dsl.deleteFrom(HOOK_TRIGGER).where(HOOK_TRIGGER.HOOK.eq(hook.id())).execute();
+		insertTriggers(dsl, hook.id(), hook.triggers());
+		return true;
+	}
+
+	private static void insertTriggers(DSLContext dsl, long hookId, Set<HookTrigger> triggers) {
+		if (triggers == null || triggers.isEmpty()) {
+			return;
+		}
+		var insert = dsl.insertInto(HOOK_TRIGGER, HOOK_TRIGGER.HOOK, HOOK_TRIGGER.TYPE, HOOK_TRIGGER.ITEM);
+		for (HookTrigger trigger : triggers) {
+			insert = insert.values(hookId, trigger.type() == null ? null : trigger.type().name(), trigger.item());
+		}
+		insert.execute();
 	}
 
 	/**
-	 * Saves the changes of a hook.
+	 * Deletes a hook (and its triggers).
 	 *
-	 * @param session the session
-	 * @param hook the hook
+	 * @param dsl the jOOQ context
+	 * @param id the ID of the hook
+	 * @return false if there is no such hook
 	 */
-	public void save(Session session, Hook hook) {
-		session.merge(hook);
-	}
-
-	/**
-	 * Removes a hook.
-	 *
-	 * @param session the session
-	 * @param hook the hook
-	 */
-	public void remove(Session session, Hook hook) {
-		session.remove(hook);
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(HOOK).where(HOOK.ID.eq(id)).execute() > 0;
 	}
 }

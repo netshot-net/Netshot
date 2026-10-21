@@ -10,7 +10,7 @@ import java.util.List;
 
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
-import net.netshot.netshot.platform.database.schema.tables.WebHook.WebHookPath;
+import net.netshot.netshot.platform.database.schema.tables.Hook.HookPath;
 import net.netshot.netshot.platform.database.schema.tables.records.HookTriggerRecord;
 
 import org.jooq.Condition;
@@ -60,7 +60,7 @@ public class HookTrigger extends TableImpl<HookTriggerRecord> {
     /**
      * The column <code>hook_trigger.type</code>.
      */
-    public final TableField<HookTriggerRecord, Integer> TYPE = createField(DSL.name("type"), SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<HookTriggerRecord, String> TYPE = createField(DSL.name("type"), SQLDataType.VARCHAR(16).nullable(false), this, "");
 
     /**
      * The column <code>hook_trigger.item</code>.
@@ -149,16 +149,16 @@ public class HookTrigger extends TableImpl<HookTriggerRecord> {
         return Arrays.asList(Keys.HOOK_TRIGGER__FK_HOOK_TRIGGER_HOOK);
     }
 
-    private transient WebHookPath _webHook;
+    private transient HookPath _hook;
 
     /**
-     * Get the implicit join path to the <code>web_hook</code> table.
+     * Get the implicit join path to the <code>hook</code> table.
      */
-    public WebHookPath webHook() {
-        if (_webHook == null)
-            _webHook = new WebHookPath(this, Keys.HOOK_TRIGGER__FK_HOOK_TRIGGER_HOOK, null);
+    public HookPath hook() {
+        if (_hook == null)
+            _hook = new HookPath(this, Keys.HOOK_TRIGGER__FK_HOOK_TRIGGER_HOOK, null);
 
-        return _webHook;
+        return _hook;
     }
 
     @Override

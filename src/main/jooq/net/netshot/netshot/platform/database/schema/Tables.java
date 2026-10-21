@@ -49,7 +49,6 @@ import net.netshot.netshot.platform.database.schema.tables.TaskDeviceListMembers
 import net.netshot.netshot.platform.database.schema.tables.TextRule;
 import net.netshot.netshot.platform.database.schema.tables.User;
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance;
-import net.netshot.netshot.platform.database.schema.tables.WebHook;
 
 
 /**
@@ -282,9 +281,4 @@ public class Tables {
      * The table <code>vault_instance</code>.
      */
     public static final VaultInstance VAULT_INSTANCE = VaultInstance.VAULT_INSTANCE;
-
-    /**
-     * The table <code>web_hook</code>.
-     */
-    public static final WebHook WEB_HOOK = WebHook.WEB_HOOK;
 }

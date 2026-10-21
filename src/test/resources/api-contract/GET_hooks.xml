@@ -1,16 +1,6 @@
 <?xml version="1.0"?>
 <ArrayList>
   <item type="Web">
-    <action>POST_XML</action>
-    <enabled>false</enabled>
-    <httpsCaTrustMode>TRUST_ANY</httpsCaTrustMode>
-    <httpsCustomCaCertificate/>
-    <id>2</id>
-    <name>Disabled XML hook</name>
-    <triggers/>
-    <url>http://example.net/callback2</url>
-  </item>
-  <item type="Web">
     <action>POST_JSON</action>
     <enabled>true</enabled>
     <httpsCaTrustMode>SYSTEM_TRUSTSTORE</httpsCaTrustMode>
@@ -28,5 +18,15 @@
       </triggers>
     </triggers>
     <url>https://example.net/callback1</url>
+  </item>
+  <item type="Web">
+    <action>POST_XML</action>
+    <enabled>false</enabled>
+    <httpsCaTrustMode>TRUST_ANY</httpsCaTrustMode>
+    <httpsCustomCaCertificate/>
+    <id>2</id>
+    <name>Disabled XML hook</name>
+    <triggers/>
+    <url>http://example.net/callback2</url>
   </item>
 </ArrayList>

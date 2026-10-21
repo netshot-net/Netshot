@@ -2200,4 +2200,33 @@
 			constraintName="fk_device_last_config" onDelete="SET NULL" onUpdate="NO ACTION"
 			referencedColumnNames="id" referencedTableName="config" validate="true"/>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_3">
+		<!-- Hooks: one table, with the type of hook (JOINED inheritance hook + web_hook before), and the enumerations
+			(web hook action, trigger type) stored by name instead of ordinal. -->
+		<sql splitStatements="false">
+			ALTER TABLE hook
+				ADD COLUMN type varchar(16),
+				ADD COLUMN action varchar(16),
+				ADD COLUMN url varchar(255),
+				ADD COLUMN https_ca_trust_mode varchar(255),
+				ADD COLUMN https_custom_ca_certificate text;
+			UPDATE hook h SET
+				type = 'WEB',
+				action = CASE w.action WHEN 0 THEN 'POST_XML' WHEN 1 THEN 'POST_JSON' WHEN 2 THEN 'POST_YAML' END,
+				url = w.url,
+				https_ca_trust_mode = w.https_ca_trust_mode,
+				https_custom_ca_certificate = w.https_custom_ca_certificate
+				FROM web_hook w WHERE w.id = h.id;
+			-- A hook without a web_hook row could not be loaded (Hook is abstract)
+			DELETE FROM hook WHERE type IS NULL;
+			ALTER TABLE hook
+				ALTER COLUMN type SET NOT NULL,
+				ADD CONSTRAINT ck_hook_type CHECK (type IN ('WEB')),
+				ADD CONSTRAINT ck_hook_web_https_ca_trust_mode CHECK (type &lt;&gt; 'WEB' OR https_ca_trust_mode IS NOT NULL);
+			ALTER TABLE hook_trigger DROP CONSTRAINT fk_hook_trigger_hook;
+			ALTER TABLE hook_trigger ADD CONSTRAINT fk_hook_trigger_hook FOREIGN KEY (hook) REFERENCES hook (id) ON DELETE CASCADE;
+			ALTER TABLE hook_trigger ALTER COLUMN type TYPE varchar(16) USING CASE type WHEN 0 THEN 'POST_TASK' END;
+			DROP TABLE web_hook;
+		</sql>
+	</changeSet>
 </databaseChangeLog>

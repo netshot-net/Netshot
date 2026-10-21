@@ -19,6 +19,9 @@
 package net.netshot.netshot.platform.database;
 
 import org.hibernate.query.Query;
+import org.jooq.Record;
+import org.jooq.Select;
+import org.jooq.SelectLimitStep;
 
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -64,5 +67,31 @@ public record Page(Integer offset, Integer limit) {
 		if (this.limit != null) {
 			query.setMaxResults(this.limit);
 		}
+	}
+
+	/**
+	 * Applies the window to a jOOQ query.
+	 *
+	 * @param <R> the type of the records
+	 * @param query the query (ordered, for the window to be defined)
+	 * @return the query with the window
+	 */
+	public <R extends Record> Select<R> apply(SelectLimitStep<R> query) {
+		if (this.limit != null) {
+			return this.offset != null ? query.limit(this.offset, this.limit) : query.limit(this.limit);
+		}
+		if (this.offset != null) {
+			return query.offset(this.offset);
+		}
+		return query;
+	}
+
+	/**
+	 * Tells whether the window restricts the result.
+	 *
+	 * @return true if an offset or a limit is set
+	 */
+	public boolean isRestricted() {
+		return this.offset != null || this.limit != null;
 	}
 }

@@ -20,9 +20,8 @@ package net.netshot.netshot.hook;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +35,8 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * The use cases of the hooks: list, add, edit and delete.
  *
- * <p>The inputs of {@link #create} and {@link #update} are <em>transient</em> hooks holding what the
- * client sent (the API mapper builds them). The hooks it returns are detached, with their triggers
- * loaded.</p>
+ * <p>The inputs of {@link #create} and {@link #update} hold what the client sent (the API mapper
+ * builds them).</p>
  */
 @Slf4j
 public class HookService {
@@ -61,17 +59,16 @@ public class HookService {
 	}
 
 	/**
-	 * Lists the hooks.
+	 * Lists the hooks, with their triggers.
 	 *
 	 * @param page the window on the result
-	 * @return the hooks, with their triggers
-	 * @throws NetshotException if the hooks can't be read
+	 * @return the hooks
 	 */
 	public List<Hook> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findAll(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the hooks.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hooks");
 		}
@@ -81,116 +78,102 @@ public class HookService {
 	 * Lists the enabled hooks having a given trigger.
 	 *
 	 * @param type the type of trigger
-	 * @param item the item the trigger has to match (for a post-task trigger, the simple name of the task class)
-	 * @return the hooks, detached, with their triggers
-	 * @throws NetshotException if the hooks can't be read
+	 * @param item the item of the trigger
+	 * @return the hooks
 	 */
 	public List<Hook> findEnabled(HookTrigger.TriggerType type, String item) {
 		try {
-			return this.transactions.read(session -> this.repository.findEnabledByTrigger(session, type, item));
+			return this.transactions.readDsl(dsl -> this.repository.findEnabledByTrigger(dsl, type, item));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the hooks.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hooks");
 		}
 	}
 
 	/**
-	 * Adds a hook.
+	 * Fails as the former code did on a null trigger (a NullPointerException, answered as an
+	 * unexpected error), before the validation of the hook.
 	 *
-	 * @param hook the hook to add (it becomes the persistent one)
-	 * @return the new hook
-	 * @throws NetshotException if the name is blank or already used, the Web hook target URL, action
-	 *         or HTTPS trust policy is invalid, or the hook can't be stored
+	 * @param hook the hook
 	 */
-	public Hook create(Hook hook) {
-		if (hook.getName() == null || "".equals(hook.getName().trim())) {
-			log.error("Invalid hook name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
+	private static void refuseNullTrigger(Hook hook) {
+		if (hook.triggers() != null && hook.triggers().contains(null)) {
+			throw new NullPointerException("Null hook trigger");
 		}
-		if (hook.getTriggers() != null) {
-			for (HookTrigger trigger : hook.getTriggers()) {
-				trigger.setHook(hook);
-			}
-		}
-		if (hook instanceof WebHook webHook) {
-			HookValidation.validateWebHook(webHook);
-		}
-		try {
-			this.transactions.run(session -> this.repository.add(session, hook));
-		}
-		catch (HibernateException e) {
-			log.error("Can't add the hook.", e);
-			throw saveFailure(e);
-		}
-		AAA_LOG.info("{} has been created.", hook);
-		return hook;
 	}
 
 	/**
-	 * Edits a hook.
+	 * Adds a hook.
 	 *
-	 * @param id the hook ID
-	 * @param incoming the new definition, of the same kind as the existing hook (its ID is set to {@code id})
-	 * @return the new definition, as it has been saved
-	 * @throws NetshotException if the name is blank or already used, the Web hook target URL, action
-	 *         or HTTPS trust policy is invalid, the hook doesn't exist or is of another kind, or
-	 *         the hook can't be stored
+	 * @param hook the hook to add
+	 * @return the added hook, with its ID
 	 */
-	public Hook update(long id, Hook incoming) {
-		incoming.setId(id);
-		if (incoming.getTriggers() == null) {
-			// No triggers (null) means none, as on creation
-			incoming.setTriggers(new HashSet<>());
-		}
-		if (incoming.getName() == null || "".equals(incoming.getName().trim())) {
+	public Hook create(Hook hook) {
+		if (hook.name() == null || "".equals(hook.name().trim())) {
 			log.error("Invalid hook name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
 		}
-		if (incoming instanceof WebHook rsWebHook) {
-			HookValidation.validateWebHook(rsWebHook);
-		}
+		refuseNullTrigger(hook);
+		Hook valid = validate(hook);
+		Hook created;
 		try {
-			this.transactions.run(session -> {
-				Hook hook = this.repository.find(session, incoming.getClass(), id);
-				if (hook == null) {
+			created = valid.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, valid)));
+		}
+		catch (DataAccessException e) {
+			log.error("Can't add the hook.", e);
+			throw saveFailure(e);
+		}
+		AAA_LOG.info("{} has been created.", created);
+		return created;
+	}
+
+	private static Hook validate(Hook hook) {
+		return switch (hook) {
+			case WebHook webHook -> HookValidation.validateWebHook(webHook);
+		};
+	}
+
+	/**
+	 * Edits a hook: its properties and triggers are replaced by the given ones.
+	 *
+	 * @param id the ID of the hook
+	 * @param incoming the new values (null triggers meaning none, as on creation)
+	 * @return the hook as saved
+	 */
+	public Hook update(long id, Hook incoming) {
+		Hook hook = incoming.withId(id);
+		if (hook.triggers() == null) {
+			// No triggers (null) means none, as on creation
+			hook = hook.withTriggers(new HashSet<>());
+		}
+		if (hook.name() == null || "".equals(hook.name().trim())) {
+			log.error("Invalid hook name.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
+		}
+		Hook valid = validate(hook);
+		try {
+			this.transactions.runDsl(dsl -> {
+				Hook stored = this.repository.find(dsl, id);
+				// A hook of another type is not found, as with the former query by type
+				if (stored == null || !stored.getClass().equals(valid.getClass())) {
 					log.error("Unable to find the hook {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK, "Unable to find the hook.");
 				}
-				if (!hook.getClass().equals(incoming.getClass())) {
-					log.error("Wrong posted type for hook {}.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_TYPE,
-						"The posted hook type doesn't match the existing one.");
-				}
-				hook.setEnabled(incoming.isEnabled());
-				hook.setName(incoming.getName());
-				Set<HookTrigger> triggers = incoming.getTriggers();
-				for (HookTrigger trigger : triggers) {
-					trigger.setHook(hook);
-				}
-				// Ensure we keep the same HookTrigger object instances
-				hook.getTriggers().retainAll(triggers);
-				hook.getTriggers().addAll(triggers);
-				if (incoming instanceof WebHook rsWebHook
-						&& hook instanceof WebHook webHook) {
-					webHook.setAction(rsWebHook.getAction());
-					webHook.setUrl(rsWebHook.getUrl());
-					webHook.setHttpsCaTrustMode(rsWebHook.getHttpsCaTrustMode());
-					webHook.setHttpsCustomCaCertificate(rsWebHook.getHttpsCustomCaCertificate());
-				}
-				this.repository.save(session, hook);
+				refuseNullTrigger(valid);
+				this.repository.save(dsl, valid);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the hook {}.", id, e);
 			throw saveFailure(e);
 		}
-		AAA_LOG.info("{} has been edited", incoming);
-		return incoming;
+		AAA_LOG.info("{} has been edited", valid);
+		return valid;
 	}
 
-	private static NetshotException saveFailure(HibernateException e) {
-		if (DatabaseErrors.causeMentions(e, "uplicate")) {
+	private static NetshotException saveFailure(DataAccessException e) {
+		if (DatabaseErrors.isUniqueViolation(e)) {
 			return new NetshotException(ErrorCode.NETSHOT_DUPLICATE_HOOK, "A hook with this name already exists.");
 		}
 		return new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the hook");
@@ -199,22 +182,13 @@ public class HookService {
 	/**
 	 * Deletes a hook.
 	 *
-	 * @param id the hook ID
-	 * @return true if the hook has been deleted, false if there was no such hook
-	 * @throws NetshotException if the hook can't be deleted
+	 * @param id the ID of the hook
+	 * @return false if there is no such hook
 	 */
 	public boolean delete(long id) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.write(session -> {
-				Hook hook = this.repository.find(session, id);
-				if (hook == null) {
-					log.info("No such hook of ID {}", id);
-					return false;
-				}
-				this.repository.remove(session, hook);
-				return true;
-			});
+			deleted = this.transactions.writeDsl(dsl -> this.repository.remove(dsl, id));
 		}
 		catch (RuntimeException e) {
 			log.error("Unable to delete the hook {}", id, e);
@@ -222,6 +196,9 @@ public class HookService {
 		}
 		if (deleted) {
 			AAA_LOG.info("Hook of ID {} has been deleted.", id);
+		}
+		else {
+			log.info("No such hook of ID {}", id);
 		}
 		return deleted;
 	}

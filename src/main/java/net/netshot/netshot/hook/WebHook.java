@@ -22,59 +22,64 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Set;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Transient;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
- * A Web hook, called after specific event.
+ * A Web hook: the data of the event is posted to a URL.
+ *
+ * @param id the ID (0 if not stored yet)
+ * @param name the name
+ * @param enabled whether the hook is enabled
+ * @param triggers the triggers
+ * @param action what is posted
+ * @param url the target URL
+ * @param httpsCaTrustMode how the certificate of an HTTPS target is checked
+ * @param httpsCustomCaCertificate the CA (PEM) of {@link HttpsCaTrustMode#CUSTOM_CA}
  */
-@Entity
-public class WebHook extends Hook {
+public record WebHook(long id, String name, boolean enabled, Set<HookTrigger> triggers, Action action, String url,
+	HttpsCaTrustMode httpsCaTrustMode, String httpsCustomCaCertificate) implements Hook {
 
 	/**
-	 * Types of web hook.
+	 * What a Web hook posts.
 	 */
 	public enum Action {
-		POST_XML, POST_JSON, POST_YAML,
+		POST_XML,
+		POST_JSON,
+		POST_YAML,
 	}
 
-	/** Action of the hook. */
-	private Action action;
+	@Override
+	public WebHook withId(long newId) {
+		return new WebHook(newId, this.name, this.enabled, this.triggers, this.action, this.url, this.httpsCaTrustMode,
+			this.httpsCustomCaCertificate);
+	}
 
-	/** The target http URL. */
-	private String url;
-
-	/** HTTPS certificate CA trust mode (only meaningful for a HTTPS target URL). */
-	private HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
+	@Override
+	public WebHook withTriggers(Set<HookTrigger> newTriggers) {
+		return new WebHook(this.id, this.name, this.enabled, newTriggers, this.action, this.url, this.httpsCaTrustMode,
+			this.httpsCustomCaCertificate);
+	}
 
 	/**
-	 * PEM-encoded trust anchor certificate (optionally a chain of several
-	 * concatenated PEM certificates) used when {@link #httpsCaTrustMode} is
-	 * {@link HttpsCaTrustMode#CUSTOM_CA}.
+	 * Gets the same hook with another HTTPS trust mode.
+	 *
+	 * @param newMode the trust mode
+	 * @return the hook
 	 */
-	private String httpsCustomCaCertificate;
+	public WebHook withHttpsCaTrustMode(HttpsCaTrustMode newMode) {
+		return new WebHook(this.id, this.name, this.enabled, this.triggers, this.action, this.url, newMode,
+			this.httpsCustomCaCertificate);
+	}
 
 	/**
-	 * Instantiates a new web hook.
+	 * Parses the target URL.
+	 *
+	 * @return the URL
+	 * @throws MalformedURLException if the URL is empty, invalid, relative, or not HTTP(S)
 	 */
-	public WebHook() {
-	}
-
-	public String getUrl() {
-		return url;
-	}
-
-	public void setUrl(String url) {
-		this.url = url;
-	}
-
-	@Transient
-	public URL getParsedUrl() throws MalformedURLException {
+	public URL parsedUrl() throws MalformedURLException {
 		if (this.url == null || "".equals(this.url.trim())) {
 			throw new MalformedURLException("Empty URL");
 		}
@@ -91,30 +96,11 @@ public class WebHook extends Hook {
 		}
 	}
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	public HttpsCaTrustMode getHttpsCaTrustMode() {
-		return httpsCaTrustMode;
-	}
-
-	public void setHttpsCaTrustMode(HttpsCaTrustMode httpsCaTrustMode) {
-		this.httpsCaTrustMode = httpsCaTrustMode;
-	}
-
-	@Column(columnDefinition = "TEXT")
-	public String getHttpsCustomCaCertificate() {
-		return httpsCustomCaCertificate;
-	}
-
-	public void setHttpsCustomCaCertificate(String httpsCustomCaCertificate) {
-		this.httpsCustomCaCertificate = httpsCustomCaCertificate;
-	}
-
-	public Action getAction() {
-		return action;
-	}
-
-	public void setAction(Action action) {
-		this.action = action;
+	/**
+	 * Describes the hook in the logs (the audit log among others): the URL may hold credentials.
+	 */
+	@Override
+	public String toString() {
+		return "Hook [id=" + this.id + ", name=" + this.name + "]";
 	}
 }
