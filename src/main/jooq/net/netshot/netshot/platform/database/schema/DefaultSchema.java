@@ -52,7 +52,6 @@ import net.netshot.netshot.platform.database.schema.tables.TaskDeviceListMembers
 import net.netshot.netshot.platform.database.schema.tables.TextRule;
 import net.netshot.netshot.platform.database.schema.tables.User;
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance;
-import net.netshot.netshot.platform.database.schema.tables.WebHook;
 
 import org.jooq.Catalog;
 import org.jooq.Table;
@@ -299,11 +298,6 @@ public class DefaultSchema extends SchemaImpl {
     public final VaultInstance VAULT_INSTANCE = VaultInstance.VAULT_INSTANCE;
 
     /**
-     * The table <code>web_hook</code>.
-     */
-    public final WebHook WEB_HOOK = WebHook.WEB_HOOK;
-
-    /**
      * No further instances allowed
      */
     private DefaultSchema() {
@@ -363,8 +357,7 @@ public class DefaultSchema extends SchemaImpl {
             TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS,
             TextRule.TEXT_RULE,
             User.USER,
-            VaultInstance.VAULT_INSTANCE,
-            WebHook.WEB_HOOK
+            VaultInstance.VAULT_INSTANCE
         );
     }
 }

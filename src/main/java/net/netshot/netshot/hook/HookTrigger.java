@@ -18,87 +18,19 @@
  */
 package net.netshot.netshot.hook;
 
-import java.io.Serializable;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import lombok.Getter;
-import lombok.Setter;
-
 /**
- * A trigger for a hook.
+ * An event triggering a hook.
+ *
+ * @param type the kind of event
+ * @param item what the event is about (for {@link TriggerType#POST_TASK}: the type of task, e.g. TakeSnapshotTask)
  */
-@Entity
-public class HookTrigger implements Serializable {
-
-	private static final long serialVersionUID = -1209506185538121214L;
+public record HookTrigger(TriggerType type, String item) {
 
 	/**
-	 * Types of trigger.
+	 * Kinds of events.
 	 */
 	public enum TriggerType {
-		/** Trigger the hook right at the end of a task. */
+		/** A task has finished. */
 		POST_TASK,
 	}
-
-	/** Type of trigger. */
-	@Getter(onMethod = @__({
-		@Id
-	}))
-	@Setter
-	private TriggerType type;
-
-	/** Item to be matched. */
-	@Getter(onMethod = @__({
-		@Id
-	}))
-	@Setter
-	private String item;
-
-	/** Associated hook. */
-	@Getter(onMethod = @__({
-		@Id,
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private Hook hook;
-
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (item == null ? 0 : item.hashCode());
-		result = prime * result + (type == null ? 0 : type.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		HookTrigger other = (HookTrigger) obj;
-		if (item == null) {
-			if (other.item != null) {
-				return false;
-			}
-		}
-		else if (!item.equals(other.item)) {
-			return false;
-		}
-		return type == other.type;
-	}
-
 }

@@ -21,8 +21,11 @@ package net.netshot.netshot.platform.database.migrator;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
@@ -503,6 +506,73 @@ public class DatabaseMigrationTest {
 				assertDeviceAccessPortAddress(statement, 112, "ssh", 2222, null);
 				assertDeviceAccess(statement, 112, "telnet", null, null);
 			}
+		}
+	}
+
+	@Nested
+	@DisplayName("0.26.0_3 - hooks in one table, with their enumerations stored by name")
+	class HookSingleTableMigrationTest {
+
+		@Test
+		@DisplayName("The Web hooks and their triggers are kept, the ordinals become names, a hook without a type is dropped")
+		void migratesHooks() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("hooksingletablemigrationtest"));
+			updateToChangeSet("0.26.0_2", "netshot");
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into hook (id, enabled, name) values (401, true, 'json hook'), (402, false, 'yaml hook'), "
+					+ "(403, true, 'orphan')");
+				statement.execute("insert into web_hook (id, action, url, https_ca_trust_mode, https_custom_ca_certificate) "
+					+ "values (401, 1, 'https://example.net/a', 'TRUST_ANY', null), (402, 2, 'https://example.net/b', 'CUSTOM_CA', 'PEM')");
+				statement.execute("insert into hook_trigger (type, item, hook) values (0, 'TakeSnapshotTask', 401), "
+					+ "(0, 'CheckComplianceTask', 401), (0, 'TakeSnapshotTask', 402)");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				try (var rows = statement.executeQuery("select id, type, name, enabled, action, url, https_ca_trust_mode, "
+						+ "https_custom_ca_certificate from hook order by id")) {
+					Assertions.assertTrue(rows.next());
+					Assertions.assertEquals(List.of("401", "WEB", "json hook", "t", "POST_JSON", "https://example.net/a", "TRUST_ANY", "null"),
+						row(rows, 8));
+					Assertions.assertTrue(rows.next());
+					Assertions.assertEquals(List.of("402", "WEB", "yaml hook", "f", "POST_YAML", "https://example.net/b", "CUSTOM_CA", "PEM"),
+						row(rows, 8));
+					Assertions.assertFalse(rows.next(), "The hook without a type is dropped");
+				}
+				try (var rows = statement.executeQuery("select hook, type, item from hook_trigger order by hook, item")) {
+					List<List<String>> triggers = new ArrayList<>();
+					while (rows.next()) {
+						triggers.add(row(rows, 3));
+					}
+					Assertions.assertEquals(List.of(
+						List.of("401", "POST_TASK", "CheckComplianceTask"),
+						List.of("401", "POST_TASK", "TakeSnapshotTask"),
+						List.of("402", "POST_TASK", "TakeSnapshotTask")), triggers);
+				}
+				try (var rows = statement.executeQuery("select count(*) from information_schema.tables "
+						+ "where table_schema = current_schema() and table_name = 'web_hook'")) {
+					rows.next();
+					Assertions.assertEquals(0, rows.getInt(1), "The web_hook table is dropped");
+				}
+				// The triggers now follow the hook table
+				statement.execute("delete from hook where id = 401");
+				try (var rows = statement.executeQuery("select count(*) from hook_trigger where hook = 401")) {
+					rows.next();
+					Assertions.assertEquals(0, rows.getInt(1));
+				}
+			}
+		}
+
+		private static List<String> row(ResultSet rows, int columns) throws SQLException {
+			List<String> values = new ArrayList<>();
+			for (int i = 1; i <= columns; i++) {
+				values.add(String.valueOf(rows.getString(i)));
+			}
+			return values;
 		}
 	}
 
