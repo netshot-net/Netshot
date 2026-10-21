@@ -223,7 +223,7 @@ public final class Radius {
 						}
 						AAA_LOG.info(MarkerFactory.getMarker("AAA"), "The user {} passed authentication on RADIUS server {} (with permission level {}).",
 							username, radiusClient.getRemoteInetAddress().toString(), level);
-						UiUser user = new UiUser(username, level);
+						UiUser user = UiUser.remote(username, level);
 						return user;
 					}
 					else {

@@ -45,7 +45,7 @@ public final class UserMapper {
 	 * @return the DTO
 	 */
 	public static UserDto toDto(UiUser user) {
-		return new UserDto(user.getId(), user.isLocal(), user.getUsername(), user.getLevel());
+		return new UserDto(user.id(), user.local(), user.username(), user.level());
 	}
 
 	/**
@@ -67,7 +67,7 @@ public final class UserMapper {
 	 * @return the DTO
 	 */
 	public static ApiTokenDto toDto(ApiToken apiToken) {
-		return new ApiTokenDto(apiToken.getId(), apiToken.getDescription(), apiToken.getLevel());
+		return new ApiTokenDto(apiToken.id(), apiToken.description(), apiToken.level());
 	}
 
 	/**
@@ -89,10 +89,10 @@ public final class UserMapper {
 	 * @return the DTO
 	 */
 	public static CurrentUserDto toCurrentUserDto(User principal) {
-		if (principal instanceof UiUser user) {
-			return toDto(user);
-		}
-		return toDto((ApiToken) principal);
+		return switch (principal) {
+			case UiUser user -> toDto(user);
+			case ApiToken apiToken -> toDto(apiToken);
+		};
 	}
 
 	/**
