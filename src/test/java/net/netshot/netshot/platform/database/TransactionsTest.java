@@ -18,17 +18,21 @@
  */
 package net.netshot.netshot.platform.database;
 
+import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.hibernate.Session;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.DatabaseTest;
 
 @DatabaseTest
@@ -131,6 +135,64 @@ public class TransactionsTest {
 			Assertions.assertFalse(session.getTransaction().isActive());
 			return null;
 		});
+	}
+
+	@Test
+	@DisplayName("writeDsl() commits the statements of the work")
+	void writeDslCommits() {
+		int inserted = this.transactions.writeDsl(dsl -> dsl.insertInto(Tables.DOMAIN)
+			.set(Tables.DOMAIN.NAME, "dsl-commit").set(Tables.DOMAIN.DESCRIPTION, "committed").set(Tables.DOMAIN.VERSION, 0)
+			.execute());
+		Assertions.assertEquals(1, inserted);
+		Assertions.assertEquals(1, this.countDomains("dsl-commit"));
+	}
+
+	@Test
+	@DisplayName("runDsl() rolls back on exception and rethrows it unchanged")
+	void runDslRollsBack() {
+		IllegalStateException failure = new IllegalStateException("boom");
+		IllegalStateException thrown = Assertions.assertThrows(IllegalStateException.class,
+			() -> this.transactions.runDsl(dsl -> {
+				dsl.insertInto(Tables.DOMAIN)
+					.set(Tables.DOMAIN.NAME, "dsl-rollback").set(Tables.DOMAIN.DESCRIPTION, "rolled back").set(Tables.DOMAIN.VERSION, 0)
+					.execute();
+				throw failure;
+			}));
+		Assertions.assertSame(failure, thrown);
+		Assertions.assertEquals(0, this.countDomains("dsl-rollback"));
+	}
+
+	@Test
+	@DisplayName("readDsl() sees the committed data")
+	void readDslSeesCommittedData() {
+		this.transactions.run(session -> session.persist(new Domain("dsl-read", "readable", null, null)));
+		String description = this.transactions.readDsl(dsl -> dsl.select(Tables.DOMAIN.DESCRIPTION).from(Tables.DOMAIN)
+			.where(Tables.DOMAIN.NAME.eq("dsl-read")).fetchOne(Tables.DOMAIN.DESCRIPTION));
+		Assertions.assertEquals("readable", description);
+	}
+
+	@Test
+	@DisplayName("In a Hibernate transaction, a jOOQ statement sees the changes of the session not flushed yet, in the same transaction")
+	void dslSeesPendingSessionChanges() {
+		Assertions.assertThrows(IllegalStateException.class, () -> this.transactions.run(session -> {
+			session.persist(new Domain("dsl-pending", "pending", null, null));
+			DSLContext dsl = Jooq.dsl(session);
+			Assertions.assertEquals(1, dsl.fetchCount(Tables.DOMAIN, Tables.DOMAIN.NAME.eq("dsl-pending")));
+			throw new IllegalStateException("rollback");
+		}));
+		Assertions.assertEquals(0, this.countDomains("dsl-pending"), "The jOOQ statement ran in the rolled back transaction");
+	}
+
+	@Test
+	@DisplayName("jOOQ reads the dates and the addresses written by Hibernate as the same instants and addresses")
+	void dslReadsHibernateValues() throws Exception {
+		Domain domain = new Domain("dsl-values", "values", new Network4Address("10.20.30.40", 24), null);
+		this.transactions.run(session -> session.persist(domain));
+		var record = this.transactions.readDsl(dsl -> dsl.fetchOne(Tables.DOMAIN, Tables.DOMAIN.NAME.eq("dsl-values")));
+		Assertions.assertNotNull(domain.getChangeDate());
+		Assertions.assertEquals(domain.getChangeDate().toInstant(), record.getChangeDate());
+		Assertions.assertEquals(InetAddress.getByName("10.20.30.40"), record.getIpv4Address());
+		Assertions.assertEquals(24, record.getIpv4Pfxlen());
 	}
 
 }
