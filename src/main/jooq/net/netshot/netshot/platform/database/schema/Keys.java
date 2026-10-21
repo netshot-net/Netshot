@@ -49,7 +49,6 @@ import net.netshot.netshot.platform.database.schema.tables.TaskDeviceListMembers
 import net.netshot.netshot.platform.database.schema.tables.TextRule;
 import net.netshot.netshot.platform.database.schema.tables.User;
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance;
-import net.netshot.netshot.platform.database.schema.tables.WebHook;
 import net.netshot.netshot.platform.database.schema.tables.records.ApiTokenRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.CheckResultRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.ConfigAttributeRecord;
@@ -95,7 +94,6 @@ import net.netshot.netshot.platform.database.schema.tables.records.TaskRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.TextRuleRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.UserRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.VaultInstanceRecord;
-import net.netshot.netshot.platform.database.schema.tables.records.WebHookRecord;
 
 import org.jooq.ForeignKey;
 import org.jooq.TableField;
@@ -169,7 +167,6 @@ public class Keys {
     public static final UniqueKey<UserRecord> USER_PKEY = Internal.createUniqueKey(User.USER, DSL.name("user_pkey"), new TableField[] { User.USER.ID }, true);
     public static final UniqueKey<VaultInstanceRecord> UK_VAULT_INSTANCE_NAME = Internal.createUniqueKey(VaultInstance.VAULT_INSTANCE, DSL.name("uk_vault_instance_name"), new TableField[] { VaultInstance.VAULT_INSTANCE.NAME }, true);
     public static final UniqueKey<VaultInstanceRecord> VAULT_INSTANCE_PKEY = Internal.createUniqueKey(VaultInstance.VAULT_INSTANCE, DSL.name("vault_instance_pkey"), new TableField[] { VaultInstance.VAULT_INSTANCE.ID }, true);
-    public static final UniqueKey<WebHookRecord> WEB_HOOK_PKEY = Internal.createUniqueKey(WebHook.WEB_HOOK, DSL.name("web_hook_pkey"), new TableField[] { WebHook.WEB_HOOK.ID }, true);
 
     // -------------------------------------------------------------------------
     // FOREIGN KEY definitions
@@ -212,7 +209,7 @@ public class Keys {
     public static final ForeignKey<ExemptionRecord, DeviceRecord> EXEMPTION__FK_EXEMPTION_DEVICE = Internal.createForeignKey(Exemption.EXEMPTION, DSL.name("fk_exemption_device"), new TableField[] { Exemption.EXEMPTION.DEVICE }, Keys.DEVICE_PKEY, new TableField[] { Device.DEVICE.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<ExemptionRecord, RuleRecord> EXEMPTION__FK_EXEMPTION_RULE = Internal.createForeignKey(Exemption.EXEMPTION, DSL.name("fk_exemption_rule"), new TableField[] { Exemption.EXEMPTION.RULE }, Keys.RULE_PKEY, new TableField[] { Rule.RULE.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<HardwareRuleRecord, DeviceGroupRecord> HARDWARE_RULE__FK_HARDWARE_RULE_TARGET_GROUP = Internal.createForeignKey(HardwareRule.HARDWARE_RULE, DSL.name("fk_hardware_rule_target_group"), new TableField[] { HardwareRule.HARDWARE_RULE.TARGET_GROUP }, Keys.DEVICE_GROUP_PKEY, new TableField[] { DeviceGroup.DEVICE_GROUP.ID }, true, ForeignKeyRule.SET_NULL, ForeignKeyRule.NO_ACTION);
-    public static final ForeignKey<HookTriggerRecord, WebHookRecord> HOOK_TRIGGER__FK_HOOK_TRIGGER_HOOK = Internal.createForeignKey(HookTrigger.HOOK_TRIGGER, DSL.name("fk_hook_trigger_hook"), new TableField[] { HookTrigger.HOOK_TRIGGER.HOOK }, Keys.WEB_HOOK_PKEY, new TableField[] { WebHook.WEB_HOOK.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<HookTriggerRecord, HookRecord> HOOK_TRIGGER__FK_HOOK_TRIGGER_HOOK = Internal.createForeignKey(HookTrigger.HOOK_TRIGGER, DSL.name("fk_hook_trigger_hook"), new TableField[] { HookTrigger.HOOK_TRIGGER.HOOK }, Keys.HOOK_PKEY, new TableField[] { Hook.HOOK.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<JavaScriptDiagnosticRecord, DiagnosticRecord> JAVA_SCRIPT_DIAGNOSTIC__FK_JAVA_SCRIPT_DIAGNOSTIC_ID = Internal.createForeignKey(JavaScriptDiagnostic.JAVA_SCRIPT_DIAGNOSTIC, DSL.name("fk_java_script_diagnostic_id"), new TableField[] { JavaScriptDiagnostic.JAVA_SCRIPT_DIAGNOSTIC.ID }, Keys.DIAGNOSTIC_PKEY, new TableField[] { Diagnostic.DIAGNOSTIC.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<JavaScriptRuleRecord, RuleRecord> JAVA_SCRIPT_RULE__FK_JAVA_SCRIPT_RULE_ID = Internal.createForeignKey(JavaScriptRule.JAVA_SCRIPT_RULE, DSL.name("fk_java_script_rule_id"), new TableField[] { JavaScriptRule.JAVA_SCRIPT_RULE.ID }, Keys.RULE_PKEY, new TableField[] { Rule.RULE.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<ModuleRecord, DeviceRecord> MODULE__FK_MODULE_DEVICE = Internal.createForeignKey(Module.MODULE, DSL.name("fk_module_device"), new TableField[] { Module.MODULE.DEVICE }, Keys.DEVICE_PKEY, new TableField[] { Device.DEVICE.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
@@ -237,5 +234,4 @@ public class Keys {
     public static final ForeignKey<TaskDeviceListMembersRecord, DeviceRecord> TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_DEVICE_ID = Internal.createForeignKey(TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS, DSL.name("fk_task_device_list_members_device_id"), new TableField[] { TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS.DEVICE_ID }, Keys.DEVICE_PKEY, new TableField[] { Device.DEVICE.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<TaskDeviceListMembersRecord, TaskRecord> TASK_DEVICE_LIST_MEMBERS__FK_TASK_DEVICE_LIST_MEMBERS_TASK_ID = Internal.createForeignKey(TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS, DSL.name("fk_task_device_list_members_task_id"), new TableField[] { TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS.TASK_ID }, Keys.TASK_PKEY, new TableField[] { Task.TASK.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<TextRuleRecord, RuleRecord> TEXT_RULE__FK_TEXT_RULE_ID = Internal.createForeignKey(TextRule.TEXT_RULE, DSL.name("fk_text_rule_id"), new TableField[] { TextRule.TEXT_RULE.ID }, Keys.RULE_PKEY, new TableField[] { Rule.RULE.ID }, true, ForeignKeyRule.CASCADE, ForeignKeyRule.NO_ACTION);
-    public static final ForeignKey<WebHookRecord, HookRecord> WEB_HOOK__FK_WEB_HOOK_ID = Internal.createForeignKey(WebHook.WEB_HOOK, DSL.name("fk_web_hook_id"), new TableField[] { WebHook.WEB_HOOK.ID }, Keys.HOOK_PKEY, new TableField[] { Hook.HOOK.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
 }
