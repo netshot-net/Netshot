@@ -67,19 +67,13 @@ class AaaDtoTest {
 	}
 
 	private static UiUser localUser() {
-		UiUser user = new UiUser("alice", true, "Sup3r-s3cret");
-		user.setId(7);
-		user.setLevel(100);
-		List<String> old = new ArrayList<>();
-		old.add("$argon2id$old-hash-1");
-		user.setOldHashedPasswords(old);
-		return user;
+		UiUser user = UiUser.withPassword("alice", true, 100, "Sup3r-s3cret").withId(7);
+		return new UiUser(user.id(), user.username(), user.local(), user.level(), user.hashedPassword(),
+			List.of("$argon2id$old-hash-1"), user.lastPasswordChangeDate());
 	}
 
 	private static ApiToken token() {
-		ApiToken apiToken = new ApiToken("Monitoring", TOKEN, 10);
-		apiToken.setId(3);
-		return apiToken;
+		return ApiToken.of("Monitoring", TOKEN, 10).withId(3);
 	}
 
 	@Test
@@ -93,15 +87,14 @@ class AaaDtoTest {
 	@Test
 	@DisplayName("A remote user has the same representation as the entity")
 	void remoteUserRepresentation() throws Exception {
-		UiUser user = new UiUser("radius-user", 50);
-		user.setId(8);
+		UiUser user = UiUser.remote("radius-user", 50).withId(8);
 		this.assertRepresentation(UserMapper.toDto(user));
 	}
 
 	@Test
 	@DisplayName("A list of users has the same representation as a list of entities")
 	void userListRepresentation() throws Exception {
-		List<UiUser> users = new ArrayList<>(List.of(localUser(), new UiUser("radius-user", 50)));
+		List<UiUser> users = new ArrayList<>(List.of(localUser(), UiUser.remote("radius-user", 50)));
 		this.assertRepresentation(UserMapper.toUserDtos(users));
 	}
 
@@ -111,7 +104,7 @@ class AaaDtoTest {
 		ApiToken apiToken = token();
 		this.assertRepresentation(UserMapper.toDto(apiToken));
 		Assertions.assertTrue(new String(xml(UserMapper.toDto(apiToken))).startsWith("<ApiToken>"));
-		List<ApiToken> tokens = new ArrayList<>(List.of(apiToken, new ApiToken("", "ZyXwVuTsRqPoNmLkJiHgFeDcBa987654", 1000)));
+		List<ApiToken> tokens = new ArrayList<>(List.of(apiToken, ApiToken.of("", "ZyXwVuTsRqPoNmLkJiHgFeDcBa987654", 1000)));
 		this.assertRepresentation(UserMapper.toApiTokenDtos(tokens));
 	}
 
@@ -142,11 +135,11 @@ class AaaDtoTest {
 			new String(json(UserMapper.toCurrentUserDto(apiToken))), new String(xml(UserMapper.toCurrentUserDto(apiToken))),
 		};
 		String[] secrets = {
-			user.getHashedPassword(), "$argon2id", "old-hash", "Sup3r-s3cret", TOKEN, apiToken.getHashedToken(),
+			user.hashedPassword(), "$argon2id", "old-hash", "Sup3r-s3cret", TOKEN, apiToken.hashedToken(),
 			"hashedPassword", "oldHashedPasswords", "lastPasswordChangeDate", "hashedToken", "password", "token",
 		};
-		Assertions.assertNotNull(user.getHashedPassword());
-		Assertions.assertNotNull(apiToken.getHashedToken());
+		Assertions.assertNotNull(user.hashedPassword());
+		Assertions.assertNotNull(apiToken.hashedToken());
 		for (String output : outputs) {
 			for (String secret : secrets) {
 				// "description" and "token" would only match as a property name: the check is on whole words

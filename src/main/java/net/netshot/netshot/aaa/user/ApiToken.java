@@ -20,22 +20,17 @@ package net.netshot.netshot.aaa.user;
 
 import java.util.regex.Pattern;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
 
-@Entity
-@Table(indexes = {
-	@Index(name = "hashedTokenIndex", columnList = "hashedToken")
-})
-public final class ApiToken implements User {
+/**
+ * An API token: the value itself is not stored, only its hash.
+ *
+ * @param id the ID (0 for a token not stored yet)
+ * @param description the description
+ * @param hashedToken the hash of the token value
+ * @param level the authorization level
+ */
+public record ApiToken(long id, String description, String hashedToken, int level) implements User {
 
 	public static String hashToken(String token) {
 		Sha2BasedHash hash = new Sha2BasedHash();
@@ -56,57 +51,38 @@ public final class ApiToken implements User {
 		return token != null && TOKEN_PATTERN.matcher(token).matches();
 	}
 
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id,
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The hashed token. */
-	@Getter
-	@Setter
-	private String hashedToken;
-
-	/** The description. */
-	@Getter
-	@Setter
-	private String description;
-
-	/** The level. */
-	@Getter
-	@Setter
-	private int level = User.LEVEL_ADMIN;
+	/**
+	 * Builds an API token from its clear value, not stored yet.
+	 *
+	 * @param description the description
+	 * @param token the clear token value
+	 * @param level the authorization level
+	 * @return the API token
+	 */
+	public static ApiToken of(String description, String token, int level) {
+		return new ApiToken(0, description, hashToken(token), level);
+	}
 
 	/**
-	 * Instantiates a new API Token.
+	 * Gets a copy of the API token with another ID.
+	 *
+	 * @param newId the ID
+	 * @return the API token
 	 */
-	protected ApiToken() {
-	}
-
-	public ApiToken(String description, String token, int level) {
-		this.description = description;
-		this.setToken(token);
-		this.level = level;
-	}
-
-	public void setToken(String token) {
-		this.hashedToken = hashToken(token);
+	public ApiToken withId(long newId) {
+		return new ApiToken(newId, this.description, this.hashedToken, this.level);
 	}
 
 	/*(non-Javadoc)
 	 * @see java.security.Principal#getName()
 	 */
 	@Override
-	@Transient
 	public String getName() {
 		return String.format("API Token [%d: %s]", this.id, this.description);
 	}
 
 	@Override
-	@Transient
-	public String getUsername() {
+	public String username() {
 		return getName();
 	}
 
