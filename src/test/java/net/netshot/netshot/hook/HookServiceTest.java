@@ -68,23 +68,19 @@ class HookServiceTest {
 	}
 
 	private static HookTrigger trigger(String item) {
-		HookTrigger trigger = new HookTrigger();
-		trigger.setType(TriggerType.POST_TASK);
-		trigger.setItem(item);
-		return trigger;
+		return new HookTrigger(TriggerType.POST_TASK, item);
 	}
 
 	private static WebHook webHook(String name, String url, Action action, String... triggerItems) {
-		WebHook hook = new WebHook();
-		hook.setName(name);
-		hook.setUrl(url);
-		hook.setAction(action);
 		Set<HookTrigger> triggers = new HashSet<>();
 		for (String item : triggerItems) {
 			triggers.add(trigger(item));
 		}
-		hook.setTriggers(triggers);
-		return hook;
+		return new WebHook(0, name, true, triggers, action, url, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null);
+	}
+
+	private static WebHook withCa(WebHook hook, HttpsCaTrustMode mode, String certificate) {
+		return new WebHook(hook.id(), hook.name(), hook.enabled(), hook.triggers(), hook.action(), hook.url(), mode, certificate);
 	}
 
 	private WebHook valid(String... triggerItems) {
@@ -92,43 +88,37 @@ class HookServiceTest {
 	}
 
 	private WebHook stored(long id) {
-		return (WebHook) this.transactions.read(session -> {
-			Hook hook = session.get(Hook.class, id);
-			hook.getTriggers().size();
-			return hook;
-		});
+		return (WebHook) this.transactions.readDsl(dsl -> new HookRepository().find(dsl, id));
 	}
 
 	private static Set<String> items(Hook hook) {
 		Set<String> items = new HashSet<>();
-		hook.getTriggers().forEach(trigger -> items.add(trigger.getItem()));
+		hook.triggers().forEach(trigger -> items.add(trigger.item()));
 		return items;
 	}
 
 	@Test
 	@DisplayName("create() stores the Web hook with its triggers, and defaults the CA trust mode")
 	void create() {
-		WebHook hook = this.valid("TakeSnapshotTask", "CheckComplianceTask");
-		hook.setHttpsCaTrustMode(null);
+		WebHook hook = this.valid("TakeSnapshotTask", "CheckComplianceTask").withHttpsCaTrustMode(null);
 		WebHook created = (WebHook) this.service.create(hook);
-		Assertions.assertTrue(created.getId() > 0);
-		WebHook reloaded = this.stored(created.getId());
+		Assertions.assertTrue(created.id() > 0);
+		WebHook reloaded = this.stored(created.id());
 		Assertions.assertEquals(Set.of("TakeSnapshotTask", "CheckComplianceTask"), items(reloaded));
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, reloaded.getHttpsCaTrustMode());
-		Assertions.assertTrue(reloaded.isEnabled());
-		Assertions.assertEquals(Action.POST_JSON, reloaded.getAction());
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, reloaded.httpsCaTrustMode());
+		Assertions.assertTrue(reloaded.enabled());
+		Assertions.assertEquals(Action.POST_JSON, reloaded.action());
 	}
 
 	@Test
 	@DisplayName("create() accepts a hook without triggers or with a null set of triggers")
 	void createWithoutTriggers() {
 		WebHook none = this.valid();
-		Assertions.assertTrue(this.service.create(none).getId() > 0);
-		WebHook nullSet = this.valid();
-		nullSet.setTriggers(null);
+		Assertions.assertTrue(this.service.create(none).id() > 0);
+		WebHook nullSet = this.valid().withTriggers(null);
 		Hook created = this.service.create(nullSet);
-		Assertions.assertTrue(created.getId() > 0);
-		Assertions.assertTrue(this.stored(created.getId()).getTriggers().isEmpty());
+		Assertions.assertTrue(created.id() > 0);
+		Assertions.assertTrue(this.stored(created.id()).triggers().isEmpty());
 	}
 
 	@Test
@@ -142,11 +132,10 @@ class HookServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB, () -> this.service.create(webHook(this.nextName(), "http://example.net", null)));
 		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.create(webHook(this.nextName(), "relative", Action.POST_JSON)));
 		assertError(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, () -> this.service.create(webHook(this.nextName(), "/path/only", Action.POST_JSON)));
-		WebHook customCa = webHook(this.nextName(), "https://example.net", Action.POST_JSON);
-		customCa.setHttpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA);
+		WebHook customCa = withCa(webHook(this.nextName(), "https://example.net", Action.POST_JSON), HttpsCaTrustMode.CUSTOM_CA, null);
 		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.create(customCa));
-		customCa.setHttpsCustomCaCertificate("not a certificate");
-		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.create(customCa));
+		WebHook badCa = withCa(customCa, HttpsCaTrustMode.CUSTOM_CA, "not a certificate");
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.create(badCa));
 	}
 
 	@Test
@@ -154,7 +143,7 @@ class HookServiceTest {
 	void createUrlWithCredentials() {
 		WebHook hook = webHook(this.nextName(), "https://user:secret@example.net/path?token=abc", Action.POST_XML);
 		WebHook created = (WebHook) this.service.create(hook);
-		Assertions.assertEquals("https://user:secret@example.net/path?token=abc", this.stored(created.getId()).getUrl());
+		Assertions.assertEquals("https://user:secret@example.net/path?token=abc", this.stored(created.id()).url());
 	}
 
 	@Test
@@ -162,7 +151,7 @@ class HookServiceTest {
 	void createDuplicate() {
 		WebHook first = (WebHook) this.service.create(this.valid());
 		int before = this.service.list(Page.ALL).size();
-		assertError(ErrorCode.NETSHOT_DUPLICATE_HOOK, () -> this.service.create(webHook(first.getName(), "https://example.net/other", Action.POST_XML, "A")));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_HOOK, () -> this.service.create(webHook(first.name(), "https://example.net/other", Action.POST_XML, "A")));
 		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
 	}
 
@@ -173,7 +162,7 @@ class HookServiceTest {
 		this.service.create(this.valid("C"));
 		List<Hook> all = this.service.list(Page.ALL);
 		Assertions.assertTrue(all.size() >= 2);
-		all.forEach(hook -> hook.getTriggers().size());
+		all.forEach(hook -> Assertions.assertNotNull(hook.triggers()));
 		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
 		Assertions.assertEquals(all.size() - 1, this.service.list(new Page(1, null)).size());
 	}
@@ -182,18 +171,19 @@ class HookServiceTest {
 	@DisplayName("update() changes the Web hook and its triggers, keeping the triggers which stay")
 	void update() {
 		WebHook created = (WebHook) this.service.create(this.valid("A", "B"));
-		WebHook incoming = webHook("Renamed " + created.getName(), "http://example.net/new", Action.POST_YAML, "B", "C");
-		incoming.setEnabled(false);
-		incoming.setHttpsCaTrustMode(HttpsCaTrustMode.TRUST_ANY);
-		Hook updated = this.service.update(created.getId(), incoming);
-		Assertions.assertSame(incoming, updated, "the new definition is what is returned");
-		Assertions.assertEquals(created.getId(), updated.getId());
-		WebHook reloaded = this.stored(created.getId());
-		Assertions.assertEquals(incoming.getName(), reloaded.getName());
-		Assertions.assertFalse(reloaded.isEnabled());
-		Assertions.assertEquals("http://example.net/new", reloaded.getUrl());
-		Assertions.assertEquals(Action.POST_YAML, reloaded.getAction());
-		Assertions.assertEquals(HttpsCaTrustMode.TRUST_ANY, reloaded.getHttpsCaTrustMode());
+		WebHook renamed = withCa(webHook("Renamed " + created.name(), "http://example.net/new", Action.POST_YAML, "B", "C"),
+			HttpsCaTrustMode.TRUST_ANY, null);
+		WebHook incoming = new WebHook(0, renamed.name(), false, renamed.triggers(), renamed.action(), renamed.url(),
+			renamed.httpsCaTrustMode(), null);
+		Hook updated = this.service.update(created.id(), incoming);
+		Assertions.assertEquals(incoming.withId(created.id()), updated, "the new definition is what is returned");
+		Assertions.assertEquals(created.id(), updated.id());
+		WebHook reloaded = this.stored(created.id());
+		Assertions.assertEquals(incoming.name(), reloaded.name());
+		Assertions.assertFalse(reloaded.enabled());
+		Assertions.assertEquals("http://example.net/new", reloaded.url());
+		Assertions.assertEquals(Action.POST_YAML, reloaded.action());
+		Assertions.assertEquals(HttpsCaTrustMode.TRUST_ANY, reloaded.httpsCaTrustMode());
 		Assertions.assertEquals(Set.of("B", "C"), items(reloaded));
 	}
 
@@ -201,13 +191,11 @@ class HookServiceTest {
 	@DisplayName("update() defaults the CA trust mode, and ignores the ID of the definition")
 	void updateDefaults() {
 		WebHook created = (WebHook) this.service.create(this.valid());
-		WebHook incoming = webHook(created.getName(), "https://example.net/x", Action.POST_JSON);
-		incoming.setId(99999999L);
-		incoming.setHttpsCaTrustMode(null);
-		Hook updated = this.service.update(created.getId(), incoming);
-		Assertions.assertEquals(created.getId(), updated.getId());
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, ((WebHook) updated).getHttpsCaTrustMode());
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, this.stored(created.getId()).getHttpsCaTrustMode());
+		WebHook incoming = webHook(created.name(), "https://example.net/x", Action.POST_JSON).withId(99999999L).withHttpsCaTrustMode(null);
+		Hook updated = this.service.update(created.id(), incoming);
+		Assertions.assertEquals(created.id(), updated.id());
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, ((WebHook) updated).httpsCaTrustMode());
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, this.stored(created.id()).httpsCaTrustMode());
 	}
 
 	@Test
@@ -225,10 +213,10 @@ class HookServiceTest {
 		WebHook first = (WebHook) this.service.create(this.valid());
 		WebHook second = (WebHook) this.service.create(this.valid("A"));
 		assertError(ErrorCode.NETSHOT_DUPLICATE_HOOK,
-			() -> this.service.update(second.getId(), webHook(first.getName(), "https://example.net/changed", Action.POST_XML, "Z")));
-		WebHook reloaded = this.stored(second.getId());
-		Assertions.assertEquals(second.getName(), reloaded.getName());
-		Assertions.assertEquals("https://example.net/hook", reloaded.getUrl());
+			() -> this.service.update(second.id(), webHook(first.name(), "https://example.net/changed", Action.POST_XML, "Z")));
+		WebHook reloaded = this.stored(second.id());
+		Assertions.assertEquals(second.name(), reloaded.name());
+		Assertions.assertEquals("https://example.net/hook", reloaded.url());
 		Assertions.assertEquals(Set.of("A"), items(reloaded));
 	}
 
@@ -236,11 +224,10 @@ class HookServiceTest {
 	@DisplayName("update() without a set of triggers removes all the triggers, as on creation")
 	void updateNullTriggers() {
 		WebHook created = (WebHook) this.service.create(this.valid("A"));
-		WebHook incoming = webHook("Changed " + created.getName(), "https://example.net/x", Action.POST_JSON);
-		incoming.setTriggers(null);
-		this.service.update(created.getId(), incoming);
-		WebHook reloaded = (WebHook) this.stored(created.getId());
-		Assertions.assertEquals("Changed " + created.getName(), reloaded.getName());
+		WebHook incoming = webHook("Changed " + created.name(), "https://example.net/x", Action.POST_JSON).withTriggers(null);
+		this.service.update(created.id(), incoming);
+		WebHook reloaded = (WebHook) this.stored(created.id());
+		Assertions.assertEquals("Changed " + created.name(), reloaded.name());
 		Assertions.assertEquals(Set.of(), items(reloaded));
 	}
 
@@ -248,9 +235,9 @@ class HookServiceTest {
 	@DisplayName("delete() removes the hook with its triggers, and says when there was none")
 	void delete() {
 		WebHook created = (WebHook) this.service.create(this.valid("A"));
-		Assertions.assertTrue(this.service.delete(created.getId()));
-		Assertions.assertNull(this.transactions.read(session -> session.get(Hook.class, created.getId())));
-		Assertions.assertFalse(this.service.delete(created.getId()));
+		Assertions.assertTrue(this.service.delete(created.id()));
+		Assertions.assertNull(this.stored(created.id()));
+		Assertions.assertFalse(this.service.delete(created.id()));
 		Assertions.assertFalse(this.service.delete(99999999L));
 	}
 }
