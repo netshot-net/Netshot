@@ -45,9 +45,6 @@ import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
-import net.netshot.netshot.hook.Hook;
-import net.netshot.netshot.hook.HookTrigger;
-import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
@@ -148,9 +145,6 @@ public final class EntityModel {
 			DiagnosticTextResult.class,
 			UiUser.class,
 			ApiToken.class,
-			Hook.class,
-			WebHook.class,
-			HookTrigger.class,
 			HashicorpVaultKv2Instance.class));
 		entities.addAll(Task.getTaskClasses());
 		for (Class<?> clazz : Rule.getRuleClasses()) {

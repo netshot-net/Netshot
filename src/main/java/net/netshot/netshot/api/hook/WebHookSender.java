@@ -81,11 +81,11 @@ public class WebHookSender {
 	 * @throws Exception if the hook is invalid or the call fails
 	 */
 	public String send(WebHook hook, Object data) throws Exception {
-		URL targetUrl = hook.getParsedUrl();
+		URL targetUrl = hook.parsedUrl();
 
 		ClientConfig config = new ClientConfig();
 		MediaType mediaType;
-		switch (hook.getAction()) {
+		switch (hook.action()) {
 			case POST_JSON:
 				mediaType = MediaType.APPLICATION_JSON_TYPE;
 				JacksonXmlBindJsonProvider jsonProvider = new JacksonXmlBindJsonProvider();
@@ -113,9 +113,9 @@ public class WebHookSender {
 		ClientBuilder clientBuilder = ClientBuilder.newBuilder();
 		if ("https".equals(targetUrl.getProtocol())) {
 			try {
-				SSLContext sslContext = HttpsTrustPolicy.buildSslContext(hook.getHttpsCaTrustMode(), hook.getHttpsCustomCaCertificate());
+				SSLContext sslContext = HttpsTrustPolicy.buildSslContext(hook.httpsCaTrustMode(), hook.httpsCustomCaCertificate());
 				clientBuilder.sslContext(sslContext);
-				HostnameVerifier hostnameVerifier = HttpsTrustPolicy.buildHostnameVerifier(hook.getHttpsCaTrustMode());
+				HostnameVerifier hostnameVerifier = HttpsTrustPolicy.buildHostnameVerifier(hook.httpsCaTrustMode());
 				if (hostnameVerifier != null) {
 					clientBuilder.hostnameVerifier(hostnameVerifier);
 				}

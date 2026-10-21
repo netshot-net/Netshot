@@ -10,9 +10,10 @@ import java.util.List;
 
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
-import net.netshot.netshot.platform.database.schema.tables.WebHook.WebHookPath;
+import net.netshot.netshot.platform.database.schema.tables.HookTrigger.HookTriggerPath;
 import net.netshot.netshot.platform.database.schema.tables.records.HookRecord;
 
+import org.jooq.Check;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
@@ -72,6 +73,31 @@ public class Hook extends TableImpl<HookRecord> {
      * The column <code>hook.name</code>.
      */
     public final TableField<HookRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>hook.type</code>.
+     */
+    public final TableField<HookRecord, String> TYPE = createField(DSL.name("type"), SQLDataType.VARCHAR(16).nullable(false), this, "");
+
+    /**
+     * The column <code>hook.action</code>.
+     */
+    public final TableField<HookRecord, String> ACTION = createField(DSL.name("action"), SQLDataType.VARCHAR(16), this, "");
+
+    /**
+     * The column <code>hook.url</code>.
+     */
+    public final TableField<HookRecord, String> URL = createField(DSL.name("url"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>hook.https_ca_trust_mode</code>.
+     */
+    public final TableField<HookRecord, String> HTTPS_CA_TRUST_MODE = createField(DSL.name("https_ca_trust_mode"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>hook.https_custom_ca_certificate</code>.
+     */
+    public final TableField<HookRecord, String> HTTPS_CUSTOM_CA_CERTIFICATE = createField(DSL.name("https_custom_ca_certificate"), SQLDataType.CLOB, this, "");
 
     private Hook(Name alias, Table<HookRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -155,16 +181,24 @@ public class Hook extends TableImpl<HookRecord> {
         return Arrays.asList(Keys.UK_HOOK_NAME);
     }
 
-    private transient WebHookPath _webHook;
+    private transient HookTriggerPath _hookTrigger;
 
     /**
-     * Get the implicit to-many join path to the <code>web_hook</code> table
+     * Get the implicit to-many join path to the <code>hook_trigger</code> table
      */
-    public WebHookPath webHook() {
-        if (_webHook == null)
-            _webHook = new WebHookPath(this, null, Keys.WEB_HOOK__FK_WEB_HOOK_ID.getInverseKey());
+    public HookTriggerPath hookTrigger() {
+        if (_hookTrigger == null)
+            _hookTrigger = new HookTriggerPath(this, null, Keys.HOOK_TRIGGER__FK_HOOK_TRIGGER_HOOK.getInverseKey());
 
-        return _webHook;
+        return _hookTrigger;
+    }
+
+    @Override
+    public List<Check<HookRecord>> getChecks() {
+        return Arrays.asList(
+            Internal.createCheck(this, DSL.name("ck_hook_type"), "(((type)::text = 'WEB'::text))", true),
+            Internal.createCheck(this, DSL.name("ck_hook_web_https_ca_trust_mode"), "((((type)::text <> 'WEB'::text) OR (https_ca_trust_mode IS NOT NULL)))", true)
+        );
     }
 
     @Override
