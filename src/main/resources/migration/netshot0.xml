@@ -2151,4 +2151,53 @@
 			<column name="tag"/>
 		</createIndex>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_1">
+		<!-- Name the foreign keys, the unique constraints and the indexes of the foreign keys after their table and
+			columns (fk_/uk_/ix_<table>_<columns>) instead of the random names Hibernate generated (FK_gpsllhlyii8d5...):
+			the jOOQ classes generated from the schema are named after them. Names longer than 63 characters are
+			truncated by PostgreSQL. -->
+		<sql splitStatements="false">
+			DO $$
+			DECLARE
+				r record;
+			BEGIN
+				FOR r IN
+					SELECT c.conrelid::regclass AS tbl, t.relname AS tblname, c.conname, c.contype,
+						(SELECT string_agg(a.attname, '_' ORDER BY k.ord)
+							FROM unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord)
+							JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum) AS cols
+					FROM pg_constraint c
+					JOIN pg_class t ON t.oid = c.conrelid
+					WHERE c.connamespace = current_schema()::regnamespace AND c.contype IN ('f', 'u')
+				LOOP
+					IF r.conname &lt;&gt; left(CASE r.contype WHEN 'f' THEN 'fk_' ELSE 'uk_' END || r.tblname || '_' || r.cols, 63) THEN
+						EXECUTE format('ALTER TABLE %s RENAME CONSTRAINT %I TO %I', r.tbl, r.conname,
+							left(CASE r.contype WHEN 'f' THEN 'fk_' ELSE 'uk_' END || r.tblname || '_' || r.cols, 63));
+					END IF;
+				END LOOP;
+				FOR r IN
+					SELECT i.indexrelid::regclass AS idx, ic.relname AS idxname, t.relname AS tbl,
+						(SELECT string_agg(a.attname, '_' ORDER BY k.ord)
+							FROM unnest(i.indkey::smallint[]) WITH ORDINALITY AS k(attnum, ord)
+							JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = k.attnum) AS cols
+					FROM pg_index i
+					JOIN pg_class ic ON ic.oid = i.indexrelid
+					JOIN pg_class t ON t.oid = i.indrelid
+					WHERE t.relnamespace = current_schema()::regnamespace
+						AND ic.relname ~ '^FK_[a-z0-9]{25}$'
+						AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = i.indexrelid)
+				LOOP
+					EXECUTE format('ALTER INDEX %s RENAME TO %I', r.idx, left('ix_' || r.tbl || '_' || r.cols, 63));
+				END LOOP;
+			END $$;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_2">
+		<!-- Deleting the last configuration of a device deleted the device (ON DELETE CASCADE on device.last_config):
+			only clear the reference. -->
+		<dropForeignKeyConstraint baseTableName="device" constraintName="fk_device_last_config"/>
+		<addForeignKeyConstraint baseColumnNames="last_config" baseTableName="device"
+			constraintName="fk_device_last_config" onDelete="SET NULL" onUpdate="NO ACTION"
+			referencedColumnNames="id" referencedTableName="config" validate="true"/>
+	</changeSet>
 </databaseChangeLog>

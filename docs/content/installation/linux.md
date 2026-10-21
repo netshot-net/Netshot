@@ -4,7 +4,7 @@ This guide walks through installing Netshot on a Linux server: database setup, t
 
 ## 1. Database server
 
-Install the database engine:
+Netshot needs PostgreSQL 15 or later. Install the database engine:
 
 ```bash
 sudo apt-get install postgresql

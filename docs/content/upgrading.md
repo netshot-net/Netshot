@@ -43,6 +43,8 @@
 
 ### Any version to the next release
 
+* PostgreSQL 15 or later is required (the provided `compose.yaml` uses PostgreSQL 17). Upgrade older database servers before upgrading Netshot.
+* Database: the foreign keys, unique constraints and indexes of foreign keys are renamed after their table and columns (`fk_device_mgmt_domain`, `uk_domain_name`, `ix_module_device`...) instead of generated names (`FK_6w0sgusprwk0sum7kho1yl9n7`); update any external script or tool referring to them by name. Deleting the last configuration of a device now clears the reference to it, instead of deleting the device.
 * REST API: a request body which can't be read (malformed JSON or XML, value of the wrong type, unknown property) now answers 400 (`NETSHOT_INVALID_REQUEST_PARAMETER`, with the reason in the message) instead of an empty 500 response.
 * REST API: `GET /reports/hardwaresupportdevices/{type}/{date}` with a type other than `eos` or `eol` now answers 400 (`NETSHOT_INVALID_REQUEST_PARAMETER`) instead of a database access error (500).
 * REST API: webhooks: a relative target URL is now refused with a 400 error (`NETSHOT_INVALID_HOOK_WEB_URL`) instead of 500, and `"triggers": null` in `PUT /hooks/{id}` now removes all the triggers (as on creation) instead of failing with a 500 error.
