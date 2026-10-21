@@ -60,6 +60,76 @@ public class HookRecord extends UpdatableRecordImpl<HookRecord> {
         return (String) get(2);
     }
 
+    /**
+     * Setter for <code>hook.type</code>.
+     */
+    public void setType(String value) {
+        set(3, value);
+    }
+
+    /**
+     * Getter for <code>hook.type</code>.
+     */
+    public String getType() {
+        return (String) get(3);
+    }
+
+    /**
+     * Setter for <code>hook.action</code>.
+     */
+    public void setAction(String value) {
+        set(4, value);
+    }
+
+    /**
+     * Getter for <code>hook.action</code>.
+     */
+    public String getAction() {
+        return (String) get(4);
+    }
+
+    /**
+     * Setter for <code>hook.url</code>.
+     */
+    public void setUrl(String value) {
+        set(5, value);
+    }
+
+    /**
+     * Getter for <code>hook.url</code>.
+     */
+    public String getUrl() {
+        return (String) get(5);
+    }
+
+    /**
+     * Setter for <code>hook.https_ca_trust_mode</code>.
+     */
+    public void setHttpsCaTrustMode(String value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>hook.https_ca_trust_mode</code>.
+     */
+    public String getHttpsCaTrustMode() {
+        return (String) get(6);
+    }
+
+    /**
+     * Setter for <code>hook.https_custom_ca_certificate</code>.
+     */
+    public void setHttpsCustomCaCertificate(String value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>hook.https_custom_ca_certificate</code>.
+     */
+    public String getHttpsCustomCaCertificate() {
+        return (String) get(7);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -83,12 +153,17 @@ public class HookRecord extends UpdatableRecordImpl<HookRecord> {
     /**
      * Create a detached, initialised HookRecord
      */
-    public HookRecord(Long id, Boolean enabled, String name) {
+    public HookRecord(Long id, Boolean enabled, String name, String type, String action, String url, String httpsCaTrustMode, String httpsCustomCaCertificate) {
         super(Hook.HOOK);
 
         setId(id);
         setEnabled(enabled);
         setName(name);
+        setType(type);
+        setAction(action);
+        setUrl(url);
+        setHttpsCaTrustMode(httpsCaTrustMode);
+        setHttpsCustomCaCertificate(httpsCustomCaCertificate);
         resetTouchedOnNotNull();
     }
 }

@@ -18,57 +18,54 @@
  */
 package net.netshot.netshot.hook;
 
-import java.util.HashSet;
 import java.util.Set;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.OneToMany;
-import lombok.Getter;
-import lombok.Setter;
-
 /**
- * Hook base class.
+ * A hook, run after some events (see {@link HookTrigger}).
  */
-@Entity
-@Inheritance(strategy = InheritanceType.JOINED)
-public abstract class Hook {
+public sealed interface Hook permits WebHook {
 
-	/** Unique ID of the webhook. **/
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
+	/**
+	 * Gets the ID of the hook (0 for a hook which is not stored yet).
+	 *
+	 * @return the ID
+	 */
+	long id();
 
-	/** Name of the webhook. */
-	@Getter(onMethod = @__({
-		@Column(unique = true)
-	}))
-	@Setter
-	private String name;
+	/**
+	 * Gets the name of the hook (unique).
+	 *
+	 * @return the name
+	 */
+	String name();
 
-	/** Whether the hook is enabled. */
-	@Getter
-	@Setter
-	private boolean enabled = true;
+	/**
+	 * Tells whether the hook is enabled.
+	 *
+	 * @return true if enabled
+	 */
+	boolean enabled();
 
-	/** List of associated triggers. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "hook", orphanRemoval = true, fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<HookTrigger> triggers = new HashSet<>();
+	/**
+	 * Gets the triggers of the hook (null when not given in a request).
+	 *
+	 * @return the triggers
+	 */
+	Set<HookTrigger> triggers();
 
-	@Override
-	public String toString() {
-		return "Hook [id=" + id + ", name=" + name + "]";
-	}
+	/**
+	 * Gets the same hook with another ID.
+	 *
+	 * @param newId the ID
+	 * @return the hook
+	 */
+	Hook withId(long newId);
+
+	/**
+	 * Gets the same hook with other triggers.
+	 *
+	 * @param newTriggers the triggers
+	 * @return the hook
+	 */
+	Hook withTriggers(Set<HookTrigger> newTriggers);
 }

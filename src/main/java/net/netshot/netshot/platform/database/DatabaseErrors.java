@@ -19,6 +19,7 @@
 package net.netshot.netshot.platform.database;
 
 import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 
 /**
  * Helpers to tell what a failed database operation was about.
@@ -43,5 +44,17 @@ public final class DatabaseErrors {
 	public static boolean causeMentions(HibernateException e, String text) {
 		Throwable cause = e.getCause();
 		return cause != null && cause.getMessage() != null && cause.getMessage().contains(text);
+	}
+
+	/**
+	 * Tells whether a jOOQ statement failed on a unique constraint (or primary key), from the
+	 * SQL state of the failure ({@code 23505}), which doesn't depend on the language of the
+	 * messages of the server.
+	 *
+	 * @param e the failure
+	 * @return true for a unique violation
+	 */
+	public static boolean isUniqueViolation(DataAccessException e) {
+		return "23505".equals(e.sqlState());
 	}
 }
