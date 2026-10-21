@@ -23,8 +23,6 @@ import java.util.List;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Entity;
-import net.netshot.netshot.aaa.user.ApiToken;
-import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Exemption;
@@ -143,8 +141,6 @@ public final class EntityModel {
 			DiagnosticNumericResult.class,
 			DiagnosticLongTextResult.class,
 			DiagnosticTextResult.class,
-			UiUser.class,
-			ApiToken.class,
 			HashicorpVaultKv2Instance.class));
 		entities.addAll(Task.getTaskClasses());
 		for (Class<?> clazz : Rule.getRuleClasses()) {

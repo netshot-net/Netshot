@@ -21,7 +21,7 @@ package net.netshot.netshot.aaa.auth;
 import java.net.MalformedURLException;
 import java.net.URI;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +89,7 @@ public class LoginService {
 					attempt.authorizationCode(),
 					URI.create(attempt.redirectUri()).toURL());
 				if (remoteUser != null) {
-					username = remoteUser.getUsername();
+					username = remoteUser.username();
 				}
 			}
 			catch (MalformedURLException | IllegalArgumentException e) {
@@ -101,15 +101,15 @@ public class LoginService {
 		if (username != null) {
 			String name = username;
 			try {
-				user = this.transactions.read(session -> this.repository.findByUsername(session, name));
+				user = this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, name));
 			}
-			catch (HibernateException e) {
+			catch (DataAccessException e) {
 				log.error("Unable to retrieve the user {}.", username, e);
 				throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the user.");
 			}
 		}
 
-		if (user != null && user.isLocal()) {
+		if (user != null && user.local()) {
 			try {
 				if (remoteUser != null) {
 					// Remote login (via OIDC) while a corresponding user configured as local exists
@@ -129,7 +129,7 @@ public class LoginService {
 					// If new password, proceed with password change
 				}
 				if (attempt.newPassword() != null) {
-					this.changePassword(user.getId(), attempt.newPassword());
+					this.changePassword(user.id(), attempt.newPassword());
 					AAA_LOG.info(
 						"User {} changed its password.", username, remoteAddress);
 				}
@@ -162,18 +162,18 @@ public class LoginService {
 				AAA_LOG.info("Remote authentication success for user {} from {}.",
 					username, remoteAddress);
 				if (user != null) {
-					remoteUser.setLevel(user.getLevel());
+					remoteUser = remoteUser.withLevel(user.level());
 					AAA_LOG.info("Level permission for user {} is locally overriden: {}.",
-						username, user.getLevel());
+						username, user.level());
 				}
 			}
 			user = remoteUser;
 		}
 
-		if (user != null && user.getLevel() <= 0) {
+		if (user != null && user.level() <= 0) {
 			AAA_LOG.info(
 				"User {} was successfully authenticated but has unsufficient permission (level {})",
-				user.getUsername(), user.getLevel());
+				user.username(), user.level());
 			return null;
 		}
 		return user;
@@ -188,19 +188,18 @@ public class LoginService {
 	 */
 	private void changePassword(long userId, String newPassword) {
 		try {
-			this.transactions.run(session -> {
-				UiUser user = session.get(UiUser.class, userId);
+			this.transactions.runDsl(dsl -> {
+				UiUser user = this.repository.find(dsl, userId);
 				try {
-					user.setPassword(newPassword, PasswordPolicy.getMainPolicy());
+					this.repository.save(dsl, user.withPassword(newPassword, PasswordPolicy.getMainPolicy()));
 				}
 				catch (PasswordPolicyException e) {
 					log.error("New user password doesn't comply with password policy.", e);
 					throw new NetshotException(ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY, e.getMessage());
 				}
-				session.merge(user);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while updating a user.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to update the user in the database");
 		}

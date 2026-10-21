@@ -24,11 +24,12 @@ import java.net.Socket;
 import java.net.URI;
 import java.util.Map;
 
-import org.hibernate.Session;
 import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -103,18 +104,15 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!managesTokens(context)) {
 			return;
 		}
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
+		ApiTokenRepository tokens = new ApiTokenRepository();
+		new Transactions().runDsl(dsl -> {
 			// Remove the default admin account
-			session
-				.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser")
-				.executeUpdate();
+			dsl.deleteFrom(Tables.USER).execute();
 			for (Map.Entry<Integer, String> entry : TestServer.API_TOKENS.entrySet()) {
 				String description = "Test Token - level %d".formatted(entry.getKey());
-				session.persist(new ApiToken(description, entry.getValue(), entry.getKey()));
+				tokens.add(dsl, ApiToken.of(description, entry.getValue(), entry.getKey()));
 			}
-			session.getTransaction().commit();
-		}
+		});
 	}
 
 	@Override
@@ -122,13 +120,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!managesTokens(context)) {
 			return;
 		}
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from ApiToken")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		new Transactions().runDsl(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
 	}
 
 	@Override

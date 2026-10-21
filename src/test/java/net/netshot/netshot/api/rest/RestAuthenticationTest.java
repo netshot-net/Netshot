@@ -25,12 +25,10 @@ import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
-
-import org.hibernate.Session;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -41,10 +39,13 @@ import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.aaa.user.UserRepository;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.error.ErrorCode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -101,13 +102,7 @@ public class RestAuthenticationTest {
 
 		@AfterEach
 		void cleanUpData() {
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session
-					.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser")
-					.executeUpdate();
-				session.getTransaction().commit();
-			}
+			new Transactions().runDsl(dsl -> dsl.deleteFrom(Tables.USER).execute());
 		}
 
 		@Test
@@ -160,12 +155,8 @@ public class RestAuthenticationTest {
 		@DisplayName("Current user retrieval for API token")
 		void currentUser() throws IOException, InterruptedException {
 			String secret = "jmE5C9JHDpLtbGswYfWBdUayKFn7Th6R";
-			ApiToken token1 = new ApiToken("Token get test", secret, UiUser.LEVEL_READONLY);
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.persist(token1);
-				session.getTransaction().commit();
-			}
+			ApiToken temp = ApiToken.of("Token get test", secret, UiUser.LEVEL_READONLY);
+			ApiToken token1 = temp.withId(new Transactions().writeDsl(dsl -> new ApiTokenRepository().add(dsl, temp)));
 			apiClient.setApiToken(secret);
 			HttpResponse<JsonNode> response = apiClient.get("/user");
 			Assertions.assertEquals(
@@ -174,9 +165,9 @@ public class RestAuthenticationTest {
 
 			Assertions.assertEquals(
 				JsonNodeFactory.instance.objectNode()
-					.put("id", token1.getId())
-					.put("description", token1.getDescription())
-					.put("level", Long.valueOf(token1.getLevel())),
+					.put("id", token1.id())
+					.put("description", token1.description())
+					.put("level", Long.valueOf(token1.level())),
 				response.body(),
 				"Retrieved user/token doesn't match expected object");
 		}
@@ -200,29 +191,22 @@ public class RestAuthenticationTest {
 		private UiUser testUser;
 
 		private void createTestUser() {
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				List<String> oldPasswords = new ArrayList<>(List.of(testOldPasswords));
-				UiUser user = new UiUser(testUsername, true, oldPasswords.removeLast());
-				while (oldPasswords.size() > 0) {
-					try {
-						user.setPassword(oldPasswords.removeLast(), PasswordPolicy.getMainPolicy());
-					}
-					catch (PasswordPolicyException e) {
-						// Ignore
-					}
+			List<String> oldPasswords = new ArrayList<>(List.of(testOldPasswords));
+			UiUser user = UiUser.withPassword(testUsername, true, testUserLevel, oldPasswords.removeLast());
+			while (oldPasswords.size() > 0) {
+				try {
+					user = user.withPassword(oldPasswords.removeLast(), PasswordPolicy.getMainPolicy());
 				}
-				user.setPassword(testPassword);
-				user.setLevel(testUserLevel);
-				if (passwordAge > 0) {
-					Calendar oneYearAgo = Calendar.getInstance();
-					oneYearAgo.add(Calendar.DATE, -1 * passwordAge);
-					user.setLastPasswordChangeDate(oneYearAgo.getTime());
+				catch (PasswordPolicyException e) {
+					// Ignore
 				}
-				session.persist(user);
-				session.getTransaction().commit();
-				this.testUser = user;
 			}
+			user = user.withPassword(testPassword);
+			if (passwordAge > 0) {
+				user = user.withLastPasswordChangeDate(Instant.now().minus(passwordAge, ChronoUnit.DAYS));
+			}
+			UiUser stored = user;
+			this.testUser = stored.withId(new Transactions().writeDsl(dsl -> new UserRepository().add(dsl, stored)));
 		}
 
 		@Test
@@ -296,10 +280,10 @@ public class RestAuthenticationTest {
 
 			Assertions.assertEquals(
 				JsonNodeFactory.instance.objectNode()
-					.put("id", this.testUser.getId())
-					.put("username", this.testUser.getUsername())
+					.put("id", this.testUser.id())
+					.put("username", this.testUser.username())
 					.put("local", true)
-					.put("level", Long.valueOf(this.testUser.getLevel())),
+					.put("level", Long.valueOf(this.testUser.level())),
 				response.body(),
 				"Retrieved user doesn't match expected object");
 		}
@@ -353,10 +337,8 @@ public class RestAuthenticationTest {
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response");
-			try (Session session = Database.getSession()) {
-				UiUser user = session
-					.bySimpleNaturalId(UiUser.class)
-					.load(testUsername);
+			{
+				UiUser user = new Transactions().readDsl(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 					"Password not changed as expected");
 			}
@@ -373,10 +355,8 @@ public class RestAuthenticationTest {
 			Assertions.assertThrows(WrongApiResponseException.class,
 				() -> apiClient.get("/domains"),
 				"Login should have failed");
-			try (Session session = Database.getSession()) {
-				UiUser user = session
-					.bySimpleNaturalId(UiUser.class)
-					.load(testUsername);
+			{
+				UiUser user = new Transactions().readDsl(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(testPassword, null),
 					"Password should not have changed");
 			}
@@ -521,10 +501,8 @@ public class RestAuthenticationTest {
 				Assertions.assertEquals(
 					Response.Status.OK.getStatusCode(), response.statusCode(),
 					"Not getting 200 response");
-				try (Session session = Database.getSession()) {
-					UiUser user = session
-						.bySimpleNaturalId(UiUser.class)
-						.load(testUsername);
+				{
+					UiUser user = new Transactions().readDsl(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 					Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 						"Password should have changed");
 				}
