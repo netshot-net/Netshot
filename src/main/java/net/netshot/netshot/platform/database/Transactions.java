@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.jooq.DSLContext;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -87,6 +88,39 @@ public class Transactions {
 			work.accept(session);
 			return null;
 		});
+	}
+
+	/**
+	 * Same as {@link #read(Function)}, with a jOOQ context (on the connection of the session).
+	 *
+	 * @param <T> the type of the result
+	 * @param work the work to run
+	 * @return the result of the work
+	 */
+	public <T> T readDsl(Function<DSLContext, T> work) {
+		return this.read(session -> work.apply(Jooq.dsl(session)));
+	}
+
+	/**
+	 * Same as {@link #write(Function)}, with a jOOQ context (on the connection of the
+	 * session, in its transaction).
+	 *
+	 * @param <T> the type of the result
+	 * @param work the work to run
+	 * @return the result of the work
+	 */
+	public <T> T writeDsl(Function<DSLContext, T> work) {
+		return this.write(session -> work.apply(Jooq.dsl(session)));
+	}
+
+	/**
+	 * Same as {@link #run(Consumer)}, with a jOOQ context (on the connection of the
+	 * session, in its transaction).
+	 *
+	 * @param work the work to run
+	 */
+	public void runDsl(Consumer<DSLContext> work) {
+		this.run(session -> work.accept(Jooq.dsl(session)));
 	}
 
 	private static void rollbackQuietly(Transaction transaction) {

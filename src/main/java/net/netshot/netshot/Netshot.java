@@ -442,6 +442,11 @@ public class Netshot extends Thread {
 		rootLogger.detachAppender(appenderName);
 		rootLogger.addAppender(appender);
 
+		// jOOQ (open source edition) warns at each start that the PostgreSQL version is older than the latest one,
+		// the only one it officially supports: the supported versions are tested (see the backend architecture docs)
+		((ch.qos.logback.classic.Logger) LoggerFactory.getLogger("org.jooq.impl.DefaultExecuteContext.logVersionSupport"))
+			.setLevel(Level.ERROR);
+
 		Pattern logSetting = Pattern.compile("^netshot\\.log\\.class\\.(?<class>.*)");
 		Enumeration<?> propertyNames = Netshot.config.propertyNames();
 		while (propertyNames.hasMoreElements()) {

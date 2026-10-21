@@ -13,7 +13,8 @@ Everything lives under `net.netshot.netshot`.
 Netshot            entry point only (main)
 boot/              composition root (Wiring), persistent model (EntityModel)
 platform/          technical building blocks; depends on no feature
-├── database/      Hibernate set-up, Database, Transactions, Liquibase migrators
+├── database/      Hibernate and jOOQ set-up, Database, Transactions, Liquibase migrators
+│   └── schema/    jOOQ classes generated from the schema (committed under src/main/jooq)
 ├── error/         ErrorCode, NetshotException
 ├── event/         DomainEvents: synchronous in-process publish/subscribe
 ├── crypto/ tls/ rest/
@@ -56,6 +57,9 @@ Services open their transactions through `platform.database.Transactions` (a thi
 | `<T> T read(Function<Session, T>)` | from the read-only pool (`Database.getSession(true)`) | none |
 | `<T> T write(Function<Session, T>)` | read-write | begun, committed on success |
 | `void run(Consumer<Session>)` | read-write | same as `write`, without result |
+| `<T> T readDsl(Function<DSLContext, T>)` | as `read`, with a jOOQ context | none |
+| `<T> T writeDsl(Function<DSLContext, T>)` | as `write`, with a jOOQ context | begun, committed on success |
+| `void runDsl(Consumer<DSLContext>)` | as `run`, with a jOOQ context | same as `writeDsl`, without result |
 
 On any exception (including a failing commit) the transaction is rolled back and the exception is rethrown unchanged; the session is always closed. Note that the read-only pool only points to a different database when `netshot.db.readurl` is set: otherwise it is the read-write database and nothing prevents a `read` from writing.
 
@@ -71,6 +75,16 @@ public Domain rename(long id, String name) {
 
 !!! warning
     Do not hold a transaction across device I/O, hooks or other long operations.
+
+## Database access with jOOQ
+
+The persistence moves from Hibernate to [jOOQ](https://www.jooq.org), one feature at a time. Until the last feature is migrated, both work on the same connections and transactions: `Jooq.dsl(session)` gives a jOOQ context on the connection of a Hibernate session, which jOOQ never commits nor rolls back, and which flushes the pending changes of the session before each jOOQ statement, so that the statement sees them. The `*Dsl` methods of `Transactions` are the same as the others, with that context: a migrated service uses them, and its repository takes a `DSLContext` instead of a `Session`. When Hibernate is gone, they are renamed `read`, `write` and `run`.
+
+- **Generated classes**: the tables, records and keys are generated from the schema into `net.netshot.netshot.platform.database.schema`, committed under `src/main/jooq` (a source folder of the build, not checked by checkstyle). After a change of the Liquibase changelog, regenerate them with `./mvnw -Pjooq-codegen process-test-classes` (`JooqCodegen`: a PostgreSQL container, migrated by `Database.update()`, then the jOOQ generator) and commit the result: `JooqSchemaTest` fails when they don't match the changelog. The classes are not bound to a schema (the tables are found through the search path).
+- **Types**: the `inet` columns are `InetAddress` (`InetBinding`), the `timestamp` columns are `Instant` (`UtcInstantConverter`: the dates are stored in UTC). The enumerations stay integers (their ordinal) or strings in the generated classes, since the generated package depends on no feature: convert them in the repository (`field.convert(...)`, or an `EnumConverter`).
+- **Names**: the foreign keys, unique constraints and indexes of foreign keys are named `fk_`, `uk_` and `ix_<table>_<columns>`; the generated keys and join paths are named after them. Name the new ones the same way.
+- **Errors**: a failing jOOQ statement throws a `org.jooq.exception.DataAccessException`, not a `HibernateException`: catch it in the migrated services.
+- **PostgreSQL versions**: the open source edition of jOOQ only officially supports the latest PostgreSQL version (18 for jOOQ 3.21), while Netshot supports PostgreSQL 15 and later. The database tests therefore run on PostgreSQL 15 by default, and the CI also runs them on the latest version (`-Dnetshot.test.postgres=postgres:18`); the warning jOOQ logs about the version is silenced. Don't use the jOOQ API of features which are more recent than PostgreSQL 15.
 
 ## Errors
 
@@ -147,6 +161,7 @@ A `Task` entity holds the data of a task (target, schedule, status, log, result 
 - The `*DtoTest` classes (`DeviceDtoTest`, `ComplianceDtoTest`...): the representation of objects made of every kind of attribute, credential set, group, rule... (JSON and XML), and the way the requests are read (values, defaults, refused bodies), are compared with stored files under `src/test/resources/dto-contract/<test>/`. They are regenerated with `-Dnetshot.dto.contract.update=true`, only for a deliberate change. The contract goldens only cover the kinds of objects the seed data holds: add a case here for the types they don't reach.
 - `DeviceServiceTest`: the use cases against a real database (error codes, update semantics, side effects), with a recording `TaskSubmitter`.
 - `DatabaseMigrationTest`: schema upgrades.
+- `JooqSchemaTest`: the committed jOOQ classes match the schema built by the changelog.
 - `ArchitectureTest`: the dependency rules.
 
 ### Test layout
@@ -161,7 +176,7 @@ Each test class carries an annotation of `net.netshot.netshot.testing` giving it
 |---|---|---|---|
 | `@UnitTest` | `unit` | the JVM only (the architecture and layout tests too) | nothing |
 | `@ScriptEngineTest` | `component` | the script engines, the drivers, servers on the loopback interface | empty configuration (plus the `@TestProperty` values), module configurations, drivers |
-| `@DatabaseTest` | `db` | PostgreSQL | a database named after the class in a container shared by the run, copied from a template database migrated once per run (`Database.update()`), the configuration pointing at it with a temporary binary snapshot folder, then `Wiring.init(...)` (see `boot`: `MIGRATED` stops before the wiring, `MANUAL` sets up nothing, for the tests driving the schema themselves in schemas of the main database) |
+| `@DatabaseTest` | `db` | PostgreSQL (15, the oldest supported version, unless `-Dnetshot.test.postgres=postgres:18`) | a database named after the class in a container shared by the run, copied from a template database migrated once per run (`Database.update()`), the configuration pointing at it with a temporary binary snapshot folder, then `Wiring.init(...)` (see `boot`: `MIGRATED` stops before the wiring, `MANUAL` sets up nothing, for the tests driving the schema themselves in schemas of the main database) |
 | `@ApiTest` | `api` | the REST API over HTTP | as `@DatabaseTest`, plus the task manager and the REST server on a free port; the API tokens of `TestServer.API_TOKENS` replace the users around each test |
 | `@ContractTest` | `contract` | golden files (`src/test/resources`) | as `@ApiTest`, but the tasks are never run (schedulers in standby), the time zone is UTC and no token is managed |
 | `@SimulatorTest` | `simulator` | the device simulator containers (`dev/device-simulator`) | as `@ScriptEngineTest`; the containers are static `@Container` fields built by `DeviceSimulators` |
