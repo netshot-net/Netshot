@@ -309,7 +309,7 @@ public final class Oidc {
 			if (level == null) {
 				level = Oidc.defaultLevel;
 			}
-			UiUser user = new UiUser(username, level);
+			UiUser user = UiUser.remote(username, level);
 			AAA_LOG.info("User {} successfully authenticated via OIDC (level {})", username, level);
 			return user;
 		}

@@ -142,7 +142,7 @@ public class UserResource {
 		UserRequest rsUser) throws WebApplicationException {
 		log.debug("REST request, edit user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		return UserMapper.toDto(this.userService.update(id, currentUser.getUsername(), UserMapper.toUpdate(rsUser)));
+		return UserMapper.toDto(this.userService.update(id, currentUser.username(), UserMapper.toUpdate(rsUser)));
 	}
 
 	/**
@@ -165,7 +165,7 @@ public class UserResource {
 		throws WebApplicationException {
 		log.debug("REST request, delete user {}.", id);
 		User currentUser = (User) this.securityContext.getUserPrincipal();
-		if (this.userService.delete(id, currentUser.getUsername())) {
+		if (this.userService.delete(id, currentUser.username())) {
 			ResponseCodeFilter.suggest(this.request, Response.Status.NO_CONTENT);
 		}
 		else {
