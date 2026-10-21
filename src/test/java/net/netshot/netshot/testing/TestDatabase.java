@@ -49,6 +49,16 @@ public final class TestDatabase {
 	}
 
 	/**
+	 * Gets the PostgreSQL image of the tests: the oldest supported version by default, another one with
+	 * {@code -Dnetshot.test.postgres=postgres:18}.
+	 *
+	 * @return the image name
+	 */
+	public static String postgresImage() {
+		return SharedPostgres.image();
+	}
+
+	/**
 	 * Gets the name of the database of the test class (a copy of the migrated template, see
 	 * {@link DatabaseTest}).
 	 *
