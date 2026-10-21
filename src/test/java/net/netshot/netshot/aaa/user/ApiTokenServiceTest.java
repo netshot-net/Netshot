@@ -71,7 +71,7 @@ class ApiTokenServiceTest {
 	}
 
 	private ApiToken reload(long id) {
-		return this.transactions.read(session -> this.repository.find(session, id));
+		return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
 	}
 
 	@Test
@@ -81,8 +81,8 @@ class ApiTokenServiceTest {
 		ApiToken created = this.service.create("Auth", authToken, 10);
 		ApiToken found = this.service.authenticate("  " + authToken + " ");
 		Assertions.assertNotNull(found);
-		Assertions.assertEquals(created.getId(), found.getId());
-		Assertions.assertEquals(10, found.getLevel());
+		Assertions.assertEquals(created.id(), found.id());
+		Assertions.assertEquals(10, found.level());
 		Assertions.assertNull(this.service.authenticate("00000000000000000000000000000000"));
 	}
 
@@ -90,19 +90,19 @@ class ApiTokenServiceTest {
 	@DisplayName("Create: only the hash of the token is stored, the description is trimmed")
 	void create() {
 		ApiToken created = this.service.create("  Monitoring  ", TOKEN, 50);
-		Assertions.assertTrue(created.getId() > 0);
-		ApiToken stored = this.reload(created.getId());
-		Assertions.assertEquals("Monitoring", stored.getDescription());
-		Assertions.assertEquals(50, stored.getLevel());
-		Assertions.assertEquals(ApiToken.hashToken(TOKEN), stored.getHashedToken());
-		Assertions.assertNotEquals(TOKEN, stored.getHashedToken());
+		Assertions.assertTrue(created.id() > 0);
+		ApiToken stored = this.reload(created.id());
+		Assertions.assertEquals("Monitoring", stored.description());
+		Assertions.assertEquals(50, stored.level());
+		Assertions.assertEquals(ApiToken.hashToken(TOKEN), stored.hashedToken());
+		Assertions.assertNotEquals(TOKEN, stored.hashedToken());
 	}
 
 	@Test
 	@DisplayName("Create: a missing or blank description is stored as empty")
 	void createBlankDescription() {
-		Assertions.assertEquals("", this.reload(this.service.create(null, OTHER_TOKEN, 10).getId()).getDescription());
-		Assertions.assertEquals("", this.reload(this.service.create("   ", this.newToken(), 10).getId()).getDescription());
+		Assertions.assertEquals("", this.reload(this.service.create(null, OTHER_TOKEN, 10).id()).description());
+		Assertions.assertEquals("", this.reload(this.service.create("   ", this.newToken(), 10).id()).description());
 	}
 
 	@Test
@@ -124,7 +124,7 @@ class ApiTokenServiceTest {
 		int before = this.service.list(Page.ALL).size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, () -> this.service.create("two", token, 1000));
 		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
-		Assertions.assertEquals(first.getId(), this.service.authenticate(token).getId());
+		Assertions.assertEquals(first.id(), this.service.authenticate(token).id());
 	}
 
 	@Test
@@ -142,9 +142,9 @@ class ApiTokenServiceTest {
 	@DisplayName("Delete: true when deleted, false when there is no such token")
 	void delete() {
 		ApiToken created = this.service.create("to delete", this.newToken(), 10);
-		Assertions.assertTrue(this.service.delete(created.getId()));
-		Assertions.assertNull(this.reload(created.getId()));
-		Assertions.assertFalse(this.service.delete(created.getId()));
+		Assertions.assertTrue(this.service.delete(created.id()));
+		Assertions.assertNull(this.reload(created.id()));
+		Assertions.assertFalse(this.service.delete(created.id()));
 		Assertions.assertFalse(this.service.delete(99_999_999L));
 	}
 }

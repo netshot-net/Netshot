@@ -87,13 +87,13 @@ public class SecurityFilter implements ContainerRequestFilter {
 			if (user != null) {
 				for (User.Role knownRole : User.Role.values()) {
 					if (knownRole.getName().equals(role)) {
-						result = user.getLevel() >= knownRole.getLevel();
+						result = user.level() >= knownRole.getLevel();
 						break;
 					}
 				}
 			}
 			AAA_LOG.debug("Role {} requested for user {}: result {}.", role,
-				user == null ? "<null>" : user.getUsername(), result);
+				user == null ? "<null>" : user.username(), result);
 			return result;
 		}
 

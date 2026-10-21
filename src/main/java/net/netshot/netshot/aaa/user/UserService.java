@@ -20,14 +20,14 @@ package net.netshot.netshot.aaa.user;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -67,9 +67,9 @@ public class UserService {
 	 */
 	public List<UiUser> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.list(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.list(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to retrieve the users.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the users.");
 		}
@@ -102,12 +102,11 @@ public class UserService {
 			password = "";
 		}
 
-		UiUser user;
+		UiUser valid;
 		if (creation.local()) {
-			user = new UiUser(username, creation.level());
-			user.setLocal(true);
 			try {
-				user.setPassword(password, PasswordPolicy.getMainPolicy());
+				valid = new UiUser(0, username, true, creation.level(), null, List.of(), null)
+					.withPassword(password, PasswordPolicy.getMainPolicy());
 			}
 			catch (PasswordPolicyException e) {
 				log.warn("New user password doesn't comply with password policy.", e);
@@ -115,16 +114,16 @@ public class UserService {
 			}
 		}
 		else {
-			user = new UiUser(username, false, password);
+			valid = UiUser.withPassword(username, false, creation.level(), password);
 		}
-		user.setLevel(creation.level());
 
+		UiUser user;
 		try {
-			this.transactions.run(session -> this.repository.persist(session, user));
+			user = valid.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, valid)));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new user.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_USER, "A user with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the user to the database");
@@ -145,13 +144,13 @@ public class UserService {
 	public UiUser update(long id, String currentUsername, UserUpdate update) {
 		UiUser user;
 		try {
-			user = this.transactions.write(session -> {
-				UiUser existing = this.repository.find(session, id);
+			user = this.transactions.writeDsl(dsl -> {
+				UiUser existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the user {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user.");
 				}
-				if (existing.getUsername().equals(currentUsername)) {
+				if (existing.username().equals(currentUsername)) {
 					throw new NetshotException(ErrorCode.NETSHOT_LOCKED_USER, "Cannot edit the user who is making the request.");
 				}
 
@@ -161,19 +160,18 @@ public class UserService {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER_NAME, "Invalid user name.");
 				}
 				username = username.trim();
-				existing.setUsername(username);
 
-				existing.setLevel(update.level());
+				UiUser edited = existing.withSettings(username, update.local(), update.level());
 				if (update.local()) {
 					if (update.password() == null) {
-						if (!existing.isLocal()) {
+						if (!existing.local()) {
 							log.error("The password cannot be empty for user {}.", id);
 							throw new NetshotException(ErrorCode.NETSHOT_INVALID_PASSWORD, "You must set a password.");
 						}
 					}
 					else {
 						try {
-							existing.setPassword(update.password(), PasswordPolicy.getMainPolicy());
+							edited = edited.withPassword(update.password(), PasswordPolicy.getMainPolicy());
 						}
 						catch (PasswordPolicyException e) {
 							log.error("New user password doesn't comply with password policy.", e);
@@ -182,15 +180,15 @@ public class UserService {
 					}
 				}
 				else {
-					existing.setHashedPassword("");
+					edited = edited.withHashedPassword("");
 				}
-				existing.setLocal(update.local());
-				return existing;
+				this.repository.save(dsl, edited);
+				return edited;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the user {}.", id, e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_USER, "A user with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the user.");
@@ -210,26 +208,26 @@ public class UserService {
 	public boolean delete(long id, String currentUsername) {
 		UiUser user;
 		try {
-			user = this.transactions.write(session -> {
-				UiUser existing = this.repository.find(session, id);
+			user = this.transactions.writeDsl(dsl -> {
+				UiUser existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.info("No such user of ID {}", id);
 					return null;
 				}
-				if (existing.getUsername().equals(currentUsername)) {
+				if (existing.username().equals(currentUsername)) {
 					throw new NetshotException(ErrorCode.NETSHOT_LOCKED_USER, "Cannot delete the user who is making the request.");
 				}
-				this.repository.remove(session, existing);
+				this.repository.remove(dsl, existing.id());
 				return existing;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the user.");
 		}
 		if (user == null) {
 			return false;
 		}
-		AAA_LOG.info("User {} of ID {} has been deleted", user.getUsername(), user.getId());
+		AAA_LOG.info("User {} of ID {} has been deleted", user.username(), user.id());
 		return true;
 	}
 
@@ -248,9 +246,9 @@ public class UserService {
 		AAA_LOG.warn("Password change request via REST by user {} for user {}.", currentUsername, username);
 		UiUser user;
 		try {
-			user = this.transactions.write(session -> {
-				UiUser existing = this.repository.findByUsername(session, currentUsername);
-				if (existing == null || !existing.getUsername().equals(username) || !existing.isLocal()) {
+			user = this.transactions.writeDsl(dsl -> {
+				UiUser existing = this.repository.findByUsername(dsl, currentUsername);
+				if (existing == null || !existing.username().equals(username) || !existing.local()) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Invalid user.");
 				}
 
@@ -268,18 +266,19 @@ public class UserService {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_PASSWORD, "The password cannot be empty.");
 				}
 
+				UiUser changed;
 				try {
-					existing.setPassword(newPassword, PasswordPolicy.getMainPolicy());
+					changed = existing.withPassword(newPassword, PasswordPolicy.getMainPolicy());
 				}
 				catch (PasswordPolicyException e) {
 					log.error("New user password doesn't comply with password policy.", e);
 					throw new NetshotException(ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY, e.getMessage());
 				}
-				this.repository.persist(session, existing);
-				return existing;
+				this.repository.save(dsl, changed);
+				return changed;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to retrieve the user {}.", username, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the user.");
 		}

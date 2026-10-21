@@ -19,8 +19,9 @@
 package net.netshot.netshot.aaa.auth;
 
 import java.net.URL;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -127,7 +128,7 @@ class LoginServiceTest {
 	}
 
 	private UiUser reload(String name) {
-		return this.transactions.read(session -> this.repository.findByUsername(session, name));
+		return this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, name));
 	}
 
 	private static LoginAttempt password(String username, String password) {
@@ -135,11 +136,8 @@ class LoginServiceTest {
 	}
 
 	private void expire(String name) {
-		this.transactions.run(session -> {
-			Calendar old = Calendar.getInstance();
-			old.add(Calendar.DATE, -60);
-			this.repository.findByUsername(session, name).setLastPasswordChangeDate(old.getTime());
-		});
+		this.transactions.runDsl(dsl -> this.repository.save(dsl,
+			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
 	}
 
 	// ------------------------------------------------------------------
@@ -150,10 +148,10 @@ class LoginServiceTest {
 	@DisplayName("Local user: the right password authenticates, the remote methods are not tried")
 	void localSuccess() {
 		UiUser user = this.createLocal(User.LEVEL_READWRITE);
-		UiUser result = this.service.authenticate(password(user.getUsername(), PASSWORD));
+		UiUser result = this.service.authenticate(password(user.username(), PASSWORD));
 		Assertions.assertNotNull(result);
-		Assertions.assertEquals(user.getId(), result.getId());
-		Assertions.assertEquals(User.LEVEL_READWRITE, result.getLevel());
+		Assertions.assertEquals(user.id(), result.id());
+		Assertions.assertEquals(User.LEVEL_READWRITE, result.level());
 		Assertions.assertEquals(List.of(), this.remote.calls);
 	}
 
@@ -161,8 +159,8 @@ class LoginServiceTest {
 	@DisplayName("Local user: a wrong or missing password authenticates nobody, and never falls back to the remote methods")
 	void localFailure() {
 		UiUser user = this.createLocal(User.LEVEL_READWRITE);
-		Assertions.assertNull(this.service.authenticate(password(user.getUsername(), "wrong")));
-		Assertions.assertNull(this.service.authenticate(password(user.getUsername(), "")));
+		Assertions.assertNull(this.service.authenticate(password(user.username(), "wrong")));
+		Assertions.assertNull(this.service.authenticate(password(user.username(), "")));
 		Assertions.assertEquals(List.of(), this.remote.calls);
 	}
 
@@ -170,16 +168,16 @@ class LoginServiceTest {
 	@DisplayName("Local user: a user without sufficient level is not authenticated")
 	void localInsufficientLevel() {
 		UiUser user = this.createLocal(0);
-		Assertions.assertNull(this.service.authenticate(password(user.getUsername(), PASSWORD)));
+		Assertions.assertNull(this.service.authenticate(password(user.username(), PASSWORD)));
 		UiUser negative = this.createLocal(-10);
-		Assertions.assertNull(this.service.authenticate(password(negative.getUsername(), PASSWORD)));
+		Assertions.assertNull(this.service.authenticate(password(negative.username(), PASSWORD)));
 	}
 
 	@Test
 	@DisplayName("Local user: an expired password is an error, unless a new one is given")
 	void localExpiredPassword() throws Exception {
 		UiUser user = this.createLocal(User.LEVEL_READONLY);
-		String name = user.getUsername();
+		String name = user.username();
 		this.expire(name);
 		NetshotException expired = assertError(ErrorCode.NETSHOT_EXPIRED_PASSWORD, () -> this.service.authenticate(password(name, PASSWORD)));
 		Assertions.assertEquals("Password has expired, it must be changed.", expired.getMessage());
@@ -196,7 +194,7 @@ class LoginServiceTest {
 	@DisplayName("Local user: the new password given at login must comply with the policy, and the old one stays")
 	void localNewPasswordPolicy() throws Exception {
 		UiUser user = this.createLocal(User.LEVEL_READONLY);
-		String name = user.getUsername();
+		String name = user.username();
 		NetshotException failed = assertError(ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY,
 			() -> this.service.authenticate(new LoginAttempt(name, PASSWORD, "short", null, null, ADDRESS)));
 		Assertions.assertTrue(failed.getMessage().startsWith("The password doesn't match the defined policy"), failed.getMessage());
@@ -207,7 +205,7 @@ class LoginServiceTest {
 	@DisplayName("Local user: a new password is only taken after the current one is checked")
 	void localNewPasswordWithWrongPassword() throws Exception {
 		UiUser user = this.createLocal(User.LEVEL_READONLY);
-		String name = user.getUsername();
+		String name = user.username();
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(name, "wrong", "New-passw0rd", null, null, ADDRESS)));
 		this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy());
 	}
@@ -216,7 +214,7 @@ class LoginServiceTest {
 	@DisplayName("Local user: an authorization code for a user who is local is a failure")
 	void localUserWithCode() {
 		UiUser user = this.createLocal(User.LEVEL_READONLY);
-		this.remote.codeUser = new UiUser(user.getUsername(), User.LEVEL_ADMIN);
+		this.remote.codeUser = UiUser.remote(user.username(), User.LEVEL_ADMIN);
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", "https://netshot.example/", ADDRESS)));
 		Assertions.assertEquals(1, this.remote.calls.size());
 	}
@@ -229,14 +227,14 @@ class LoginServiceTest {
 	@DisplayName("Remote: RADIUS, then TACACS+ when RADIUS doesn't know the user")
 	void remoteMethods() {
 		String name = this.nextName();
-		this.remote.tacacsUser = new UiUser(name, 100);
+		this.remote.tacacsUser = UiUser.remote(name, 100);
 		UiUser result = this.service.authenticate(password(name, "secret"));
 		Assertions.assertSame(this.remote.tacacsUser, result);
 		Assertions.assertEquals(List.of("radius:" + name + ":secret:" + ADDRESS, "tacacs:" + name + ":secret:" + ADDRESS), this.remote.calls);
 
 		this.remote.reset();
-		this.remote.radiusUser = new UiUser(name, 50);
-		this.remote.tacacsUser = new UiUser(name, 100);
+		this.remote.radiusUser = UiUser.remote(name, 50);
+		this.remote.tacacsUser = UiUser.remote(name, 100);
 		Assertions.assertSame(this.remote.radiusUser, this.service.authenticate(password(name, "secret")));
 		Assertions.assertEquals(List.of("radius:" + name + ":secret:" + ADDRESS), this.remote.calls, "TACACS+ is not tried once RADIUS succeeded");
 	}
@@ -246,7 +244,7 @@ class LoginServiceTest {
 	void remoteFailure() {
 		String name = this.nextName();
 		Assertions.assertNull(this.service.authenticate(password(name, "secret")));
-		this.remote.radiusUser = new UiUser(name, 0);
+		this.remote.radiusUser = UiUser.remote(name, 0);
 		Assertions.assertNull(this.service.authenticate(password(name, "secret")));
 	}
 
@@ -254,22 +252,21 @@ class LoginServiceTest {
 	@DisplayName("Remote: a user known as non local keeps its local level, over the remote one")
 	void remoteLevelOverride() {
 		UiUser known = this.users.create(new UserCreation(this.nextName(), false, null, User.LEVEL_OPERATOR));
-		this.remote.radiusUser = new UiUser(known.getUsername(), User.LEVEL_ADMIN);
-		UiUser result = this.service.authenticate(password(known.getUsername(), "secret"));
-		Assertions.assertSame(this.remote.radiusUser, result);
-		Assertions.assertEquals(User.LEVEL_OPERATOR, result.getLevel());
+		this.remote.radiusUser = UiUser.remote(known.username(), User.LEVEL_ADMIN);
+		UiUser result = this.service.authenticate(password(known.username(), "secret"));
+		Assertions.assertEquals(this.remote.radiusUser.withLevel(User.LEVEL_OPERATOR), result);
 
 		// A level of 0 set locally is a way to deny a remote user
 		UiUser denied = this.users.create(new UserCreation(this.nextName(), false, null, 0));
-		this.remote.radiusUser = new UiUser(denied.getUsername(), User.LEVEL_ADMIN);
-		Assertions.assertNull(this.service.authenticate(password(denied.getUsername(), "secret")));
+		this.remote.radiusUser = UiUser.remote(denied.username(), User.LEVEL_ADMIN);
+		Assertions.assertNull(this.service.authenticate(password(denied.username(), "secret")));
 	}
 
 	@Test
 	@DisplayName("OIDC: the user name comes from the authorization code, and the remote password methods are not tried")
 	void oidc() {
 		String name = this.nextName();
-		this.remote.codeUser = new UiUser(name, 100);
+		this.remote.codeUser = UiUser.remote(name, 100);
 		UiUser result = this.service.authenticate(new LoginAttempt(null, "ignored", null, "the-code", "https://netshot.example/cb", ADDRESS));
 		Assertions.assertSame(this.remote.codeUser, result);
 		Assertions.assertEquals(List.of("oidc:the-code:https://netshot.example/cb"), this.remote.calls);
@@ -283,7 +280,7 @@ class LoginServiceTest {
 		Assertions.assertEquals(1, this.remote.calls.size());
 
 		this.remote.reset();
-		this.remote.codeUser = new UiUser("someone", 100);
+		this.remote.codeUser = UiUser.remote("someone", 100);
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", null, ADDRESS)));
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, null, "https://netshot.example/cb", ADDRESS)));
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt(null, null, null, "code", "foo://unknown-protocol", ADDRESS)));
@@ -295,7 +292,7 @@ class LoginServiceTest {
 	@Test
 	@DisplayName("OIDC: the code is not looked at when a user name is given")
 	void oidcCodeIgnoredWithUsername() {
-		this.remote.codeUser = new UiUser("someone", 100);
+		this.remote.codeUser = UiUser.remote("someone", 100);
 		Assertions.assertNull(this.service.authenticate(new LoginAttempt("nobody", "pw", null, "code", "https://netshot.example/cb", ADDRESS)));
 		Assertions.assertEquals(List.of("radius:nobody:pw:" + ADDRESS, "tacacs:nobody:pw:" + ADDRESS), this.remote.calls);
 	}

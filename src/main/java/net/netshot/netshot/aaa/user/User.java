@@ -23,9 +23,9 @@ import java.security.Principal;
 import lombok.Getter;
 
 /**
- * Netshot user with permission level.
+ * Netshot user with permission level: a user who logged in, or an API token.
  */
-public interface User extends Principal {
+public sealed interface User extends Principal permits UiUser, ApiToken {
 
 	/** Read-only authorization level. */
 	int LEVEL_READONLY = 10;
@@ -79,13 +79,13 @@ public interface User extends Principal {
 	 *
 	 * @return the username
 	 */
-	String getUsername();
+	String username();
 
 	/**
 	 * Gets the level.
 	 *
 	 * @return the level
 	 */
-	int getLevel();
+	int level();
 
 }

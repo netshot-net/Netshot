@@ -42,6 +42,7 @@ import org.junit.jupiter.api.Assertions;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.CheckResult;
@@ -73,6 +74,8 @@ import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.task.DebugLog;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.CheckComplianceTask;
@@ -203,10 +206,10 @@ public final class ApiContractSeed {
 	}
 
 	private void seedAuth() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
+		ApiTokenRepository repository = new ApiTokenRepository();
+		new Transactions().runDsl(dsl -> {
 			// Remove default admin account
-			session.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser").executeUpdate();
+			dsl.deleteFrom(Tables.USER).execute();
 			Object[][] tokens = {
 				{UiUser.LEVEL_READONLY, READONLY_TOKEN},
 				{UiUser.LEVEL_OPERATOR, OPERATOR_TOKEN},
@@ -215,11 +218,10 @@ public final class ApiContractSeed {
 				{UiUser.LEVEL_ADMIN, ADMIN_TOKEN},
 			};
 			for (Object[] token : tokens) {
-				session.persist(new ApiToken("Test Token - level %d".formatted((Integer) token[0]),
+				repository.add(dsl, ApiToken.of("Test Token - level %d".formatted((Integer) token[0]),
 					(String) token[1], (Integer) token[0]));
 			}
-			session.getTransaction().commit();
-		}
+		});
 	}
 
 	private void seedDomains() {

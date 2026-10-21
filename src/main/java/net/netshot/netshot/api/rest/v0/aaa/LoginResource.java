@@ -109,7 +109,7 @@ public class LoginResource {
 		log.debug("REST logout request.");
 		HttpSession httpSession = this.request.getSession(false);
 		User user = (User) this.securityContext.getUserPrincipal();
-		String username = user == null ? "<none>" : user.getUsername();
+		String username = user == null ? "<none>" : user.username();
 		if (httpSession != null) {
 			httpSession.invalidate();
 		}
@@ -147,7 +147,7 @@ public class LoginResource {
 		log.debug("REST password change request, username {}.", rsLogin.username());
 		User currentUser = (User) this.securityContext.getUserPrincipal();
 		UiUser user = this.userService.changeOwnPassword(
-			currentUser.getUsername(), rsLogin.username(), rsLogin.password(), rsLogin.newPassword());
+			currentUser.username(), rsLogin.username(), rsLogin.password(), rsLogin.newPassword());
 		return UserMapper.toDto(user);
 	}
 

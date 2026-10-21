@@ -22,15 +22,15 @@ import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.util.Iterator;
 
-import org.hibernate.Session;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.aaa.user.UserRepository;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
@@ -52,15 +52,17 @@ public class UserResourceTest {
 		this.apiClient = client;
 	}
 
+	private final Transactions transactions = new Transactions();
+
+	private final UserRepository repository = new UserRepository();
+
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		this.transactions.runDsl(dsl -> dsl.deleteFrom(Tables.USER).execute());
+	}
+
+	private UiUser store(UiUser user) {
+		return user.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, user)));
 	}
 
 	@Test
@@ -75,16 +77,10 @@ public class UserResourceTest {
 			Assertions.assertEquals(0, response.body().size(),
 				"User list is not empty");
 		}
-		UiUser user1 = new UiUser("user1", true, "pass1");
-		user1.setLevel(UiUser.LEVEL_EXECUTEREADWRITE);
-		UiUser user2 = new UiUser("user2", false, "pass2");
-		user2.setLevel(UiUser.LEVEL_READONLY);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(user1);
-			session.persist(user2);
-			session.getTransaction().commit();
-		}
+		UiUser user1 = UiUser.withPassword("user1", true, UiUser.LEVEL_EXECUTEREADWRITE, "pass1");
+		UiUser user2 = UiUser.withPassword("user2", false, UiUser.LEVEL_READONLY, "pass2");
+		user1 = this.store(user1);
+		user2 = this.store(user2);
 		{
 			HttpResponse<JsonNode> response = apiClient.get("/users");
 			Assertions.assertEquals(
@@ -96,19 +92,19 @@ public class UserResourceTest {
 			JsonNode userNode1 = userNodeIt.next();
 			Assertions.assertEquals(
 				JsonNodeFactory.instance.objectNode()
-					.put("id", user1.getId())
-					.put("local", user1.isLocal())
-					.put("username", user1.getUsername())
-					.put("level", Long.valueOf(user1.getLevel())),
+					.put("id", user1.id())
+					.put("local", user1.local())
+					.put("username", user1.username())
+					.put("level", Long.valueOf(user1.level())),
 				userNode1,
 				"Retrieved user doesn't match expected object");
 			JsonNode userNode2 = userNodeIt.next();
 			Assertions.assertEquals(
 				JsonNodeFactory.instance.objectNode()
-					.put("id", user2.getId())
-					.put("local", user2.isLocal())
-					.put("username", user2.getUsername())
-					.put("level", Long.valueOf(user2.getLevel())),
+					.put("id", user2.id())
+					.put("local", user2.local())
+					.put("username", user2.username())
+					.put("level", Long.valueOf(user2.level())),
 				userNode2,
 				"Retrieved user doesn't match expected object");
 		}
@@ -120,26 +116,22 @@ public class UserResourceTest {
 	@ResourceLock("DB")
 	void createUser() throws IOException, InterruptedException {
 		String password = "userpass";
-		UiUser user = new UiUser("newuser", true, password);
-		user.setLevel(UiUser.LEVEL_EXECUTEREADWRITE);
+		UiUser user = UiUser.withPassword("newuser", true, UiUser.LEVEL_EXECUTEREADWRITE, password);
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
-			.put("username", user.getUsername())
+			.put("username", user.username())
 			.put("password", password)
-			.put("level", Long.valueOf(user.getLevel()))
-			.put("local", user.isLocal());
+			.put("level", Long.valueOf(user.level()))
+			.put("local", user.local());
 		HttpResponse<JsonNode> response = apiClient.post("/users", data);
 		Assertions.assertEquals(
 			Response.Status.CREATED.getStatusCode(), response.statusCode(),
 			"Not getting 201 response for created user");
 
-		try (Session session = Database.getSession()) {
-			UiUser newUser = session
-				.createQuery("from net.netshot.netshot.aaa.user.UiUser u where u.username = :name", UiUser.class)
-				.setParameter("name", user.getUsername())
-				.uniqueResult();
-			Assertions.assertEquals(user.getUsername(), newUser.getUsername(), "User not created as expected");
-			Assertions.assertEquals(user.getLevel(), newUser.getLevel(), "User not created as expected");
-			Assertions.assertEquals(user.isLocal(), newUser.isLocal(), "User not created as expected");
+		{
+			UiUser newUser = this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, user.username()));
+			Assertions.assertEquals(user.username(), newUser.username(), "User not created as expected");
+			Assertions.assertEquals(user.level(), newUser.level(), "User not created as expected");
+			Assertions.assertEquals(user.local(), newUser.local(), "User not created as expected");
 		}
 	}
 
@@ -147,18 +139,12 @@ public class UserResourceTest {
 	@DisplayName("Delete user")
 	@ResourceLock("DB")
 	void deleteUser() throws IOException, InterruptedException {
-		UiUser user1 = new UiUser("user1", true, "pass1");
-		user1.setLevel(UiUser.LEVEL_EXECUTEREADWRITE);
-		UiUser user2 = new UiUser("user2", false, "pass2");
-		user2.setLevel(UiUser.LEVEL_READONLY);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(user1);
-			session.persist(user2);
-			session.getTransaction().commit();
-		}
+		UiUser user1 = UiUser.withPassword("user1", true, UiUser.LEVEL_EXECUTEREADWRITE, "pass1");
+		UiUser user2 = UiUser.withPassword("user2", false, UiUser.LEVEL_READONLY, "pass2");
+		user1 = this.store(user1);
+		user2 = this.store(user2);
 		HttpResponse<JsonNode> response = apiClient.delete(
-			"/users/%d".formatted(user1.getId()));
+			"/users/%d".formatted(user1.id()));
 		Assertions.assertEquals(
 			Response.Status.NO_CONTENT.getStatusCode(), response.statusCode(),
 			"Not getting 204 response for user deletion");
@@ -171,10 +157,10 @@ public class UserResourceTest {
 		JsonNode userNode = listResponse.body().iterator().next();
 		Assertions.assertEquals(
 			JsonNodeFactory.instance.objectNode()
-				.put("id", user2.getId())
-				.put("local", user2.isLocal())
-				.put("username", user2.getUsername())
-				.put("level", Long.valueOf(user2.getLevel())),
+				.put("id", user2.id())
+				.put("local", user2.local())
+				.put("username", user2.username())
+				.put("level", Long.valueOf(user2.level())),
 			userNode,
 			"Retrieved user doesn't match expected object");
 	}
@@ -183,32 +169,24 @@ public class UserResourceTest {
 	@DisplayName("Update user")
 	@ResourceLock("DB")
 	void updateUser() throws IOException, InterruptedException {
-		UiUser user = new UiUser("user1", true, "pass1");
-		user.setLevel(UiUser.LEVEL_EXECUTEREADWRITE);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(user);
-			session.getTransaction().commit();
-		}
-		UiUser targetUser = new UiUser("user2", true, "pass1");
-		targetUser.setLevel(UiUser.LEVEL_READONLY);
-		targetUser.setHashedPassword(user.getHashedPassword());
-		targetUser.setId(user.getId());
+		UiUser user = UiUser.withPassword("user1", true, UiUser.LEVEL_EXECUTEREADWRITE, "pass1");
+		user = this.store(user);
+		UiUser targetUser = UiUser.withPassword("user2", true, UiUser.LEVEL_READONLY, "pass1")
+			.withHashedPassword(user.hashedPassword()).withId(user.id());
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
-			.put("local", targetUser.isLocal())
-			.put("username", targetUser.getUsername())
-			.put("level", Long.valueOf(targetUser.getLevel()));
+			.put("local", targetUser.local())
+			.put("username", targetUser.username())
+			.put("level", Long.valueOf(targetUser.level()));
 		HttpResponse<JsonNode> response = apiClient.put(
-			"/users/%d".formatted(user.getId()), data);
+			"/users/%d".formatted(user.id()), data);
 		Assertions.assertEquals(
 			Response.Status.OK.getStatusCode(), response.statusCode(),
 			"Not getting 200 response for user update");
-		try (Session session = Database.getSession()) {
-			UiUser dbUser = session.byId(UiUser.class)
-				.load(targetUser.getId());
+		{
+			UiUser dbUser = this.transactions.readDsl(dsl -> this.repository.find(dsl, targetUser.id()));
 			Assertions.assertEquals(targetUser.getName(), dbUser.getName(),
 				"User not updated as expected");
-			Assertions.assertEquals(targetUser.getLevel(), dbUser.getLevel(),
+			Assertions.assertEquals(targetUser.level(), dbUser.level(),
 				"User not updated as expected");
 		}
 	}
@@ -217,24 +195,17 @@ public class UserResourceTest {
 	@DisplayName("Update remote user")
 	@ResourceLock("DB")
 	void updateRemoteUser() throws IOException, InterruptedException {
-		UiUser user = new UiUser("user1", false, "pass1");
-		user.setLevel(UiUser.LEVEL_OPERATOR);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(user);
-			session.getTransaction().commit();
-		}
-		UiUser targetUser = new UiUser("user2", true, "pass1");
-		targetUser.setLevel(UiUser.LEVEL_OPERATOR);
-		targetUser.setHashedPassword(user.getHashedPassword());
-		targetUser.setId(user.getId());
+		UiUser user = UiUser.withPassword("user1", false, UiUser.LEVEL_OPERATOR, "pass1");
+		user = this.store(user);
+		UiUser targetUser = UiUser.withPassword("user2", true, UiUser.LEVEL_OPERATOR, "pass1")
+			.withHashedPassword(user.hashedPassword()).withId(user.id());
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("local", true)
-			.put("username", targetUser.getUsername())
-			.put("level", Long.valueOf(targetUser.getLevel()));
+			.put("username", targetUser.username())
+			.put("level", Long.valueOf(targetUser.level()));
 		{
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/users/%d".formatted(user.getId()), data);
+				"/users/%d".formatted(user.id()), data);
 			Assertions.assertEquals(
 				Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 				"Not getting 400 response for erroneous user update");
@@ -242,19 +213,18 @@ public class UserResourceTest {
 		data.put("password", "pass2");
 		{
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/users/%d".formatted(user.getId()), data);
+				"/users/%d".formatted(user.id()), data);
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for user update");
 		}
-		try (Session session = Database.getSession()) {
-			UiUser dbUser = session.byId(UiUser.class)
-				.load(targetUser.getId());
+		{
+			UiUser dbUser = this.transactions.readDsl(dsl -> this.repository.find(dsl, targetUser.id()));
 			Assertions.assertEquals(targetUser.getName(), dbUser.getName(),
 				"User not updated as expected");
-			Assertions.assertEquals(targetUser.getLevel(), dbUser.getLevel(),
+			Assertions.assertEquals(targetUser.level(), dbUser.level(),
 				"User not updated as expected");
-			Assertions.assertEquals(targetUser.isLocal(), dbUser.isLocal(),
+			Assertions.assertEquals(targetUser.local(), dbUser.local(),
 				"User not updated as expected");
 		}
 	}

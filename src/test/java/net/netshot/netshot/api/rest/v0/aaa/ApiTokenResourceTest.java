@@ -21,16 +21,15 @@ package net.netshot.netshot.api.rest.v0.aaa;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 
-import org.hibernate.Session;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.NetshotApiClient;
@@ -46,6 +45,10 @@ public class ApiTokenResourceTest {
 
 	/** API client of the current test, authenticated with the admin token. */
 	private NetshotApiClient apiClient;
+
+	private final Transactions transactions = new Transactions();
+
+	private final ApiTokenRepository repository = new ApiTokenRepository();
 
 	@BeforeEach
 	void createApiClient(NetshotApiClient client) {
@@ -71,26 +74,23 @@ public class ApiTokenResourceTest {
 	@ResourceLock("DB")
 	void createToken() throws IOException, InterruptedException {
 		String tokenString = "dZLV0zCn5gmbUJIebRHBxM4QjIAoNruK";
-		ApiToken token = new ApiToken(
+		ApiToken token = ApiToken.of(
 			"Test API token",
 			tokenString,
 			UiUser.LEVEL_READWRITE
 		);
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
-			.put("description", token.getDescription())
+			.put("description", token.description())
 			.put("token", tokenString)
-			.put("level", token.getLevel());
+			.put("level", token.level());
 		HttpResponse<JsonNode> response = apiClient.post("/apitokens", data);
 		Assertions.assertEquals(
 			Response.Status.CREATED.getStatusCode(), response.statusCode(),
 			"Not getting 201 response for created API token");
 
-		try (Session session = Database.getSession()) {
-			ApiToken newToken = session
-				.createQuery("from ApiToken t where t.description = :description", ApiToken.class)
-				.setParameter("description", token.getDescription())
-				.uniqueResult();
-			Assertions.assertEquals(token.getLevel(), newToken.getLevel(),
+		{
+			ApiToken newToken = this.transactions.readDsl(dsl -> this.repository.findByHash(dsl, token.hashedToken()));
+			Assertions.assertEquals(token.level(), newToken.level(),
 				"Token not created as expected");
 		}
 	}
@@ -99,15 +99,11 @@ public class ApiTokenResourceTest {
 	@DisplayName("Delete token")
 	@ResourceLock("DB")
 	void deleteToken() throws IOException, InterruptedException {
-		ApiToken token1 = new ApiToken(
+		ApiToken temp = ApiToken.of(
 			"Temp token", "dZLV0zCn5gmbUJIebRHBxM4QjIAoNruK", UiUser.LEVEL_OPERATOR);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(token1);
-			session.getTransaction().commit();
-		}
+		ApiToken token1 = temp.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, temp)));
 		HttpResponse<JsonNode> response = apiClient.delete(
-			"/apitokens/%d".formatted(token1.getId()));
+			"/apitokens/%d".formatted(token1.id()));
 		Assertions.assertEquals(
 			Response.Status.NO_CONTENT.getStatusCode(), response.statusCode(),
 			"Not getting 204 response for token deletion");
