@@ -45,6 +45,8 @@
 
 **Reverse proxy**: the session cookie is now marked as `Secure` (only sent over HTTPS) when `netshot.http.trustxforwardedfor` is enabled (as in the provided `compose.yaml`), in addition to when Netshot serves HTTPS itself. If users access Netshot over plain HTTP through a reverse proxy, set the new `netshot.http.securecookie` option to `false`, otherwise they won't be able to log in. If Netshot is accessed over HTTPS through a reverse proxy without `trustxforwardedfor`, set `netshot.http.securecookie` to `true`.
 
+**Static groups**: since 0.25.0, a device was removed from all its static groups each time its dynamic groups were refreshed, that is after a snapshot, a compliance check, diagnostics, a script run, a device type discovery, or a device creation or update through the API ([#413](https://github.com/netshot-net/Netshot/issues/413)). This is fixed, but the lost memberships can't be restored automatically: check your static groups after the upgrade, and add the missing devices again (or restore them from a database backup taken before the upgrade to 0.25).
+
 ### Any version to 0.20+
 
 Java environment must be upgraded to GraalVM for Java 21. Check the [install guide](installation/linux.md) for version details.

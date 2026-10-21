@@ -124,8 +124,10 @@ public class DynamicDeviceGroup extends DeviceGroup {
 		List<DynamicDeviceGroup> allGroups = session
 			.createQuery("select ddg from DynamicDeviceGroup ddg", DynamicDeviceGroup.class)
 			.list();
+		// Only the dynamic memberships are recomputed: the static ones must be kept
 		session
-			.createMutationQuery("delete from DeviceGroupMembership m where m.key.device.id = :deviceId")
+			.createMutationQuery("delete from DeviceGroupMembership m where m.key.device.id = :deviceId "
+				+ "and m.key.group.id in (select ddg.id from DynamicDeviceGroup ddg)")
 			.setParameter("deviceId", deviceId)
 			.executeUpdate();
 		for (DynamicDeviceGroup group : allGroups) {
