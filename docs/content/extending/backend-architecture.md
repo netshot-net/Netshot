@@ -188,7 +188,7 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 #### Helpers
 
 - `testing`: the kind annotations and their extensions, `TestDrivers` (the drivers of the resource folder, loaded once), `TestNetwork` (free ports), `DeviceSimulators`;
-- `testing.fake`: the test doubles (`FakeDeviceFactory`, `FakeTaskContext`, `FakeQuery`, `FakeOidcIdpServer`);
+- `testing.fake`: the test doubles (`FakeDeviceFactory`, `FakeTaskContext`, `FakeOidcIdpServer`);
 - `testing.api`: `NetshotApiClient` (REST client of the tests) and `NetshotBadRequestException` (the former exception, as a reference);
 - `testing.contract`: the golden file helpers (`ApiContractSeed`, `ApiContractCases`, `ApiContractGolden`, `DtoContract`);
 - `TestConfig.init` (replaces the configuration) stays in the root package, as it calls the protected `Netshot.initConfig`.
