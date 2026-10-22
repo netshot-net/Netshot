@@ -69,7 +69,7 @@ public class ScanSubnetsTaskSubnets extends TableImpl<ScanSubnetsTaskSubnetsReco
     /**
      * The column <code>scan_subnets_task_subnets.ipv4usage</code>.
      */
-    public final TableField<ScanSubnetsTaskSubnetsRecord, Integer> IPV4USAGE = createField(DSL.name("ipv4usage"), SQLDataType.INTEGER, this, "");
+    public final TableField<ScanSubnetsTaskSubnetsRecord, String> IPV4USAGE = createField(DSL.name("ipv4usage"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>scan_subnets_task_subnets.ipv4mask</code>.

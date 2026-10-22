@@ -231,6 +231,7 @@ public class ReportRepository {
 		if (results.size() > 0) {
 			hqlQuery += " and ccr.result in (:results)";
 		}
+		hqlQuery += " order by d.id, p.id, r.id";
 		Query<PolicyRuleDevice> query = session.createQuery(hqlQuery, PolicyRuleDevice.class);
 		query.setParameter("nonConforming", CheckResult.ResultOption.NONCONFORMING);
 		query.setParameter("enabled", Device.Status.INPRODUCTION);
@@ -280,7 +281,8 @@ public class ReportRepository {
 					+ "ccr.result as result"
 					+ ") from Device d "
 					+ "join d.groupMemberships gm join d.complianceCheckResults ccr join ccr.key.rule r join r.policy p "
-					+ "where gm.key.group.id = :id and ccr.result = :nonConforming and d.status = :enabled" + domainFilter + policyFilter,
+					+ "where gm.key.group.id = :id and ccr.result = :nonConforming and d.status = :enabled" + domainFilter + policyFilter
+					+ " order by d.id, p.id, r.id",
 				PolicyRuleDevice.class)
 			.setParameter("id", groupId)
 			.setParameter("nonConforming", CheckResult.ResultOption.NONCONFORMING)

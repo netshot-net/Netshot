@@ -350,7 +350,9 @@ public class Device {
 	private String name = DEFAULTNAME;
 
 	/** The network class. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	private NetworkClass networkClass = NetworkClass.UNKNOWN;
 
@@ -374,7 +376,9 @@ public class Device {
 	private String serialNumber = "";
 
 	/** The software level. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	private SoftwareRule.ConformanceLevel softwareLevel = ConformanceLevel.UNKNOWN;
 
@@ -385,7 +389,7 @@ public class Device {
 
 	/** The status. */
 	@Getter(onMethod = @__({
-		@Enumerated(EnumType.ORDINAL)
+		@Enumerated(EnumType.STRING)
 	}))
 	@Setter
 	private Status status = Status.INPRODUCTION;

@@ -63,15 +63,15 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
     /**
      * Setter for <code>diagnostic.result_type</code>.
      */
-    public void setResultType(Integer value) {
+    public void setResultType(String value) {
         set(3, value);
     }
 
     /**
      * Getter for <code>diagnostic.result_type</code>.
      */
-    public Integer getResultType() {
-        return (Integer) get(3);
+    public String getResultType() {
+        return (String) get(3);
     }
 
     /**
@@ -86,6 +86,104 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
      */
     public Long getTargetGroup() {
         return (Long) get(4);
+    }
+
+    /**
+     * Setter for <code>diagnostic.type</code>.
+     */
+    public void setType(String value) {
+        set(5, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.type</code>.
+     */
+    public String getType() {
+        return (String) get(5);
+    }
+
+    /**
+     * Setter for <code>diagnostic.script</code>.
+     */
+    public void setScript(String value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.script</code>.
+     */
+    public String getScript() {
+        return (String) get(6);
+    }
+
+    /**
+     * Setter for <code>diagnostic.cli_mode</code>.
+     */
+    public void setCliMode(String value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.cli_mode</code>.
+     */
+    public String getCliMode() {
+        return (String) get(7);
+    }
+
+    /**
+     * Setter for <code>diagnostic.command</code>.
+     */
+    public void setCommand(String value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.command</code>.
+     */
+    public String getCommand() {
+        return (String) get(8);
+    }
+
+    /**
+     * Setter for <code>diagnostic.device_driver</code>.
+     */
+    public void setDeviceDriver(String value) {
+        set(9, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.device_driver</code>.
+     */
+    public String getDeviceDriver() {
+        return (String) get(9);
+    }
+
+    /**
+     * Setter for <code>diagnostic.modifier_pattern</code>.
+     */
+    public void setModifierPattern(String value) {
+        set(10, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.modifier_pattern</code>.
+     */
+    public String getModifierPattern() {
+        return (String) get(10);
+    }
+
+    /**
+     * Setter for <code>diagnostic.modifier_replacement</code>.
+     */
+    public void setModifierReplacement(String value) {
+        set(11, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.modifier_replacement</code>.
+     */
+    public String getModifierReplacement() {
+        return (String) get(11);
     }
 
     // -------------------------------------------------------------------------
@@ -111,7 +209,7 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
     /**
      * Create a detached, initialised DiagnosticRecord
      */
-    public DiagnosticRecord(Long id, Boolean enabled, String name, Integer resultType, Long targetGroup) {
+    public DiagnosticRecord(Long id, Boolean enabled, String name, String resultType, Long targetGroup, String type, String script, String cliMode, String command, String deviceDriver, String modifierPattern, String modifierReplacement) {
         super(Diagnostic.DIAGNOSTIC);
 
         setId(id);
@@ -119,6 +217,13 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
         setName(name);
         setResultType(resultType);
         setTargetGroup(targetGroup);
+        setType(type);
+        setScript(script);
+        setCliMode(cliMode);
+        setCommand(command);
+        setDeviceDriver(deviceDriver);
+        setModifierPattern(modifierPattern);
+        setModifierReplacement(modifierReplacement);
         resetTouchedOnNotNull();
     }
 }

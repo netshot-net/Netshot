@@ -136,29 +136,29 @@ public class TaskRecord extends UpdatableRecordImpl<TaskRecord> {
     /**
      * Setter for <code>task.schedule_type</code>.
      */
-    public void setScheduleType(Integer value) {
+    public void setScheduleType(String value) {
         set(8, value);
     }
 
     /**
      * Getter for <code>task.schedule_type</code>.
      */
-    public Integer getScheduleType() {
-        return (Integer) get(8);
+    public String getScheduleType() {
+        return (String) get(8);
     }
 
     /**
      * Setter for <code>task.status</code>.
      */
-    public void setStatus(Integer value) {
+    public void setStatus(String value) {
         set(9, value);
     }
 
     /**
      * Getter for <code>task.status</code>.
      */
-    public Integer getStatus() {
-        return (Integer) get(9);
+    public String getStatus() {
+        return (String) get(9);
     }
 
     /**
@@ -486,15 +486,15 @@ public class TaskRecord extends UpdatableRecordImpl<TaskRecord> {
     /**
      * Setter for <code>task.schedule_mode</code>.
      */
-    public void setScheduleMode(Integer value) {
+    public void setScheduleMode(String value) {
         set(33, value);
     }
 
     /**
      * Getter for <code>task.schedule_mode</code>.
      */
-    public Integer getScheduleMode() {
-        return (Integer) get(33);
+    public String getScheduleMode() {
+        return (String) get(33);
     }
 
     /**
@@ -562,7 +562,7 @@ public class TaskRecord extends UpdatableRecordImpl<TaskRecord> {
     /**
      * Create a detached, initialised TaskRecord
      */
-    public TaskRecord(Long id, String author, Instant changeDate, String comments, Instant creationDate, Instant executionDate, String log, Instant scheduleReference, Integer scheduleType, Integer status, String target, Integer version, Boolean debugEnabled, Long debugLog, Integer scheduleFactor, String runnerId, Integer priority, String dtype, Long device, Long deviceGroup, Long domain, Long discoverResultDevice, String deviceDriver, String script, JSONB userInputValues, JSONB attributes, Boolean runSnapshot, Boolean runDiagnostics, Boolean checkCompliance, Boolean dontRunDiagnostics, Boolean dontCheckCompliance, Long parentTaskId, Integer childOrder, Integer scheduleMode, Boolean stopOnFailure, Boolean cancelRequested, String deviceAddress) {
+    public TaskRecord(Long id, String author, Instant changeDate, String comments, Instant creationDate, Instant executionDate, String log, Instant scheduleReference, String scheduleType, String status, String target, Integer version, Boolean debugEnabled, Long debugLog, Integer scheduleFactor, String runnerId, Integer priority, String dtype, Long device, Long deviceGroup, Long domain, Long discoverResultDevice, String deviceDriver, String script, JSONB userInputValues, JSONB attributes, Boolean runSnapshot, Boolean runDiagnostics, Boolean checkCompliance, Boolean dontRunDiagnostics, Boolean dontCheckCompliance, Long parentTaskId, Integer childOrder, String scheduleMode, Boolean stopOnFailure, Boolean cancelRequested, String deviceAddress) {
         super(Task.TASK);
 
         setId(id);

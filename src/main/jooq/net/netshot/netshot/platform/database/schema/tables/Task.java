@@ -113,12 +113,12 @@ public class Task extends TableImpl<TaskRecord> {
     /**
      * The column <code>task.schedule_type</code>.
      */
-    public final TableField<TaskRecord, Integer> SCHEDULE_TYPE = createField(DSL.name("schedule_type"), SQLDataType.INTEGER, this, "");
+    public final TableField<TaskRecord, String> SCHEDULE_TYPE = createField(DSL.name("schedule_type"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>task.status</code>.
      */
-    public final TableField<TaskRecord, Integer> STATUS = createField(DSL.name("status"), SQLDataType.INTEGER, this, "");
+    public final TableField<TaskRecord, String> STATUS = createField(DSL.name("status"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>task.target</code>.
@@ -238,7 +238,7 @@ public class Task extends TableImpl<TaskRecord> {
     /**
      * The column <code>task.schedule_mode</code>.
      */
-    public final TableField<TaskRecord, Integer> SCHEDULE_MODE = createField(DSL.name("schedule_mode"), SQLDataType.INTEGER.nullable(false), this, "");
+    public final TableField<TaskRecord, String> SCHEDULE_MODE = createField(DSL.name("schedule_mode"), SQLDataType.VARCHAR(32).nullable(false), this, "");
 
     /**
      * The column <code>task.stop_on_failure</code>.

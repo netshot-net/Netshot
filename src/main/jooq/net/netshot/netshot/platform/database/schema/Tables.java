@@ -23,13 +23,10 @@ import net.netshot.netshot.platform.database.schema.tables.Diagnostic;
 import net.netshot.netshot.platform.database.schema.tables.DiagnosticResult;
 import net.netshot.netshot.platform.database.schema.tables.DiscoverDeviceTypeTaskCredentialSets;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
-import net.netshot.netshot.platform.database.schema.tables.DynamicDeviceGroup;
 import net.netshot.netshot.platform.database.schema.tables.Exemption;
 import net.netshot.netshot.platform.database.schema.tables.HardwareRule;
 import net.netshot.netshot.platform.database.schema.tables.Hook;
 import net.netshot.netshot.platform.database.schema.tables.HookTrigger;
-import net.netshot.netshot.platform.database.schema.tables.JavaScriptDiagnostic;
-import net.netshot.netshot.platform.database.schema.tables.JavaScriptRule;
 import net.netshot.netshot.platform.database.schema.tables.LongTextConfiguration;
 import net.netshot.netshot.platform.database.schema.tables.Module;
 import net.netshot.netshot.platform.database.schema.tables.NetworkInterface;
@@ -37,16 +34,11 @@ import net.netshot.netshot.platform.database.schema.tables.NetworkInterfaceIp4ad
 import net.netshot.netshot.platform.database.schema.tables.NetworkInterfaceIp6addresses;
 import net.netshot.netshot.platform.database.schema.tables.Policy;
 import net.netshot.netshot.platform.database.schema.tables.PolicyTargetGroups;
-import net.netshot.netshot.platform.database.schema.tables.PythonDiagnostic;
-import net.netshot.netshot.platform.database.schema.tables.PythonRule;
 import net.netshot.netshot.platform.database.schema.tables.Rule;
 import net.netshot.netshot.platform.database.schema.tables.ScanSubnetsTaskSubnets;
-import net.netshot.netshot.platform.database.schema.tables.SimpleDiagnostic;
 import net.netshot.netshot.platform.database.schema.tables.SoftwareRule;
-import net.netshot.netshot.platform.database.schema.tables.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.schema.tables.Task;
 import net.netshot.netshot.platform.database.schema.tables.TaskDeviceListMembers;
-import net.netshot.netshot.platform.database.schema.tables.TextRule;
 import net.netshot.netshot.platform.database.schema.tables.User;
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance;
 
@@ -153,11 +145,6 @@ public class Tables {
     public static final Domain DOMAIN = Domain.DOMAIN;
 
     /**
-     * The table <code>dynamic_device_group</code>.
-     */
-    public static final DynamicDeviceGroup DYNAMIC_DEVICE_GROUP = DynamicDeviceGroup.DYNAMIC_DEVICE_GROUP;
-
-    /**
      * The table <code>exemption</code>.
      */
     public static final Exemption EXEMPTION = Exemption.EXEMPTION;
@@ -176,16 +163,6 @@ public class Tables {
      * The table <code>hook_trigger</code>.
      */
     public static final HookTrigger HOOK_TRIGGER = HookTrigger.HOOK_TRIGGER;
-
-    /**
-     * The table <code>java_script_diagnostic</code>.
-     */
-    public static final JavaScriptDiagnostic JAVA_SCRIPT_DIAGNOSTIC = JavaScriptDiagnostic.JAVA_SCRIPT_DIAGNOSTIC;
-
-    /**
-     * The table <code>java_script_rule</code>.
-     */
-    public static final JavaScriptRule JAVA_SCRIPT_RULE = JavaScriptRule.JAVA_SCRIPT_RULE;
 
     /**
      * The table <code>long_text_configuration</code>.
@@ -223,16 +200,6 @@ public class Tables {
     public static final PolicyTargetGroups POLICY_TARGET_GROUPS = PolicyTargetGroups.POLICY_TARGET_GROUPS;
 
     /**
-     * The table <code>python_diagnostic</code>.
-     */
-    public static final PythonDiagnostic PYTHON_DIAGNOSTIC = PythonDiagnostic.PYTHON_DIAGNOSTIC;
-
-    /**
-     * The table <code>python_rule</code>.
-     */
-    public static final PythonRule PYTHON_RULE = PythonRule.PYTHON_RULE;
-
-    /**
      * The table <code>rule</code>.
      */
     public static final Rule RULE = Rule.RULE;
@@ -243,19 +210,9 @@ public class Tables {
     public static final ScanSubnetsTaskSubnets SCAN_SUBNETS_TASK_SUBNETS = ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS;
 
     /**
-     * The table <code>simple_diagnostic</code>.
-     */
-    public static final SimpleDiagnostic SIMPLE_DIAGNOSTIC = SimpleDiagnostic.SIMPLE_DIAGNOSTIC;
-
-    /**
      * The table <code>software_rule</code>.
      */
     public static final SoftwareRule SOFTWARE_RULE = SoftwareRule.SOFTWARE_RULE;
-
-    /**
-     * The table <code>static_device_group</code>.
-     */
-    public static final StaticDeviceGroup STATIC_DEVICE_GROUP = StaticDeviceGroup.STATIC_DEVICE_GROUP;
 
     /**
      * The table <code>task</code>.
@@ -266,11 +223,6 @@ public class Tables {
      * The table <code>task_device_list_members</code>.
      */
     public static final TaskDeviceListMembers TASK_DEVICE_LIST_MEMBERS = TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS;
-
-    /**
-     * The table <code>text_rule</code>.
-     */
-    public static final TextRule TEXT_RULE = TextRule.TEXT_RULE;
 
     /**
      * The table <code>user</code>.

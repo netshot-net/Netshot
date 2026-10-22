@@ -83,7 +83,7 @@ public class SoftwareRule extends TableImpl<SoftwareRuleRecord> {
     /**
      * The column <code>software_rule.level</code>.
      */
-    public final TableField<SoftwareRuleRecord, Integer> LEVEL = createField(DSL.name("level"), SQLDataType.INTEGER, this, "");
+    public final TableField<SoftwareRuleRecord, String> LEVEL = createField(DSL.name("level"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>software_rule.priority</code>.

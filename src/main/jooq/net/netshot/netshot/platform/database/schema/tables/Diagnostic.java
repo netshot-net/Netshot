@@ -13,11 +13,9 @@ import net.netshot.netshot.platform.database.schema.Indexes;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.DeviceGroup.DeviceGroupPath;
 import net.netshot.netshot.platform.database.schema.tables.DiagnosticResult.DiagnosticResultPath;
-import net.netshot.netshot.platform.database.schema.tables.JavaScriptDiagnostic.JavaScriptDiagnosticPath;
-import net.netshot.netshot.platform.database.schema.tables.PythonDiagnostic.PythonDiagnosticPath;
-import net.netshot.netshot.platform.database.schema.tables.SimpleDiagnostic.SimpleDiagnosticPath;
 import net.netshot.netshot.platform.database.schema.tables.records.DiagnosticRecord;
 
+import org.jooq.Check;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
@@ -82,12 +80,47 @@ public class Diagnostic extends TableImpl<DiagnosticRecord> {
     /**
      * The column <code>diagnostic.result_type</code>.
      */
-    public final TableField<DiagnosticRecord, Integer> RESULT_TYPE = createField(DSL.name("result_type"), SQLDataType.INTEGER, this, "");
+    public final TableField<DiagnosticRecord, String> RESULT_TYPE = createField(DSL.name("result_type"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>diagnostic.target_group</code>.
      */
     public final TableField<DiagnosticRecord, Long> TARGET_GROUP = createField(DSL.name("target_group"), SQLDataType.BIGINT, this, "");
+
+    /**
+     * The column <code>diagnostic.type</code>.
+     */
+    public final TableField<DiagnosticRecord, String> TYPE = createField(DSL.name("type"), SQLDataType.VARCHAR(16).nullable(false), this, "");
+
+    /**
+     * The column <code>diagnostic.script</code>.
+     */
+    public final TableField<DiagnosticRecord, String> SCRIPT = createField(DSL.name("script"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>diagnostic.cli_mode</code>.
+     */
+    public final TableField<DiagnosticRecord, String> CLI_MODE = createField(DSL.name("cli_mode"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>diagnostic.command</code>.
+     */
+    public final TableField<DiagnosticRecord, String> COMMAND = createField(DSL.name("command"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>diagnostic.device_driver</code>.
+     */
+    public final TableField<DiagnosticRecord, String> DEVICE_DRIVER = createField(DSL.name("device_driver"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>diagnostic.modifier_pattern</code>.
+     */
+    public final TableField<DiagnosticRecord, String> MODIFIER_PATTERN = createField(DSL.name("modifier_pattern"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>diagnostic.modifier_replacement</code>.
+     */
+    public final TableField<DiagnosticRecord, String> MODIFIER_REPLACEMENT = createField(DSL.name("modifier_replacement"), SQLDataType.VARCHAR(255), this, "");
 
     private Diagnostic(Name alias, Table<DiagnosticRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -206,43 +239,11 @@ public class Diagnostic extends TableImpl<DiagnosticRecord> {
         return _diagnosticResult;
     }
 
-    private transient JavaScriptDiagnosticPath _javaScriptDiagnostic;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>java_script_diagnostic</code> table
-     */
-    public JavaScriptDiagnosticPath javaScriptDiagnostic() {
-        if (_javaScriptDiagnostic == null)
-            _javaScriptDiagnostic = new JavaScriptDiagnosticPath(this, null, Keys.JAVA_SCRIPT_DIAGNOSTIC__FK_JAVA_SCRIPT_DIAGNOSTIC_ID.getInverseKey());
-
-        return _javaScriptDiagnostic;
-    }
-
-    private transient PythonDiagnosticPath _pythonDiagnostic;
-
-    /**
-     * Get the implicit to-many join path to the <code>python_diagnostic</code>
-     * table
-     */
-    public PythonDiagnosticPath pythonDiagnostic() {
-        if (_pythonDiagnostic == null)
-            _pythonDiagnostic = new PythonDiagnosticPath(this, null, Keys.PYTHON_DIAGNOSTIC__FK_PYTHON_DIAGNOSTIC_ID.getInverseKey());
-
-        return _pythonDiagnostic;
-    }
-
-    private transient SimpleDiagnosticPath _simpleDiagnostic;
-
-    /**
-     * Get the implicit to-many join path to the <code>simple_diagnostic</code>
-     * table
-     */
-    public SimpleDiagnosticPath simpleDiagnostic() {
-        if (_simpleDiagnostic == null)
-            _simpleDiagnostic = new SimpleDiagnosticPath(this, null, Keys.SIMPLE_DIAGNOSTIC__FK_SIMPLE_DIAGNOSTIC_ID.getInverseKey());
-
-        return _simpleDiagnostic;
+    @Override
+    public List<Check<DiagnosticRecord>> getChecks() {
+        return Arrays.asList(
+            Internal.createCheck(this, DSL.name("ck_diagnostic_type"), "(((type)::text = ANY ((ARRAY['SIMPLE'::character varying, 'JAVASCRIPT'::character varying, 'PYTHON'::character varying])::text[])))", true)
+        );
     }
 
     @Override

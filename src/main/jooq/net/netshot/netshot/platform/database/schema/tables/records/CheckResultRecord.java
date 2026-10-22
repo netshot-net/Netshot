@@ -51,15 +51,15 @@ public class CheckResultRecord extends UpdatableRecordImpl<CheckResultRecord> {
     /**
      * Setter for <code>check_result.result</code>.
      */
-    public void setResult(Integer value) {
+    public void setResult(String value) {
         set(2, value);
     }
 
     /**
      * Getter for <code>check_result.result</code>.
      */
-    public Integer getResult() {
-        return (Integer) get(2);
+    public String getResult() {
+        return (String) get(2);
     }
 
     /**
@@ -113,7 +113,7 @@ public class CheckResultRecord extends UpdatableRecordImpl<CheckResultRecord> {
     /**
      * Create a detached, initialised CheckResultRecord
      */
-    public CheckResultRecord(Instant checkDate, String comment, Integer result, Long device, Long rule) {
+    public CheckResultRecord(Instant checkDate, String comment, String result, Long device, Long rule) {
         super(CheckResult.CHECK_RESULT);
 
         setCheckDate(checkDate);

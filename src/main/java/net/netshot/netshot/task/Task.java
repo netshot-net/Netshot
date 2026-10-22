@@ -38,13 +38,13 @@ import org.quartz.Trigger;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
-import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.Converter;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -130,36 +130,30 @@ public abstract class Task implements Cloneable {
 	}
 
 	/**
-	 * The Enum Status.
-	 *
-	 * <p>Persisted via {@link StatusConverter} using the explicit {@link #getValue()} below,
-	 * rather than JPA's default (the enum's declaration order) -- so this list can be
-	 * reordered or extended (e.g. {@link #DELAYED}, added after the rest) without silently
-	 * reinterpreting already-persisted status values. When adding a new constant, give it the
-	 * next unused value; never reuse or renumber an existing one.
+	 * The Enum Status, stored by name.
 	 */
 	public enum Status {
 
 		/** The task was cancelled. */
-		CANCELLED(0),
+		CANCELLED,
 
 		/** The task failed. */
-		FAILURE(1),
+		FAILURE,
 
 		/** The task is new. */
-		NEW(2),
+		NEW,
 
 		/** The task is running. */
-		RUNNING(3),
+		RUNNING,
 
 		/** The task is scheduled. */
-		SCHEDULED(4),
+		SCHEDULED,
 
 		/** The task is a success. */
-		SUCCESS(5),
+		SUCCESS,
 
 		/** The task is waiting. */
-		WAITING(6),
+		WAITING,
 
 		/**
 		 * The task is a not-yet-promoted child of a group-based task -- pre-created (with its
@@ -168,54 +162,7 @@ public abstract class Task implements Cloneable {
 		 * ({@code scheduleNewTasks}, {@code rescheduleAll}, {@code reassignOrphanTasks}) until
 		 * the parent's own orchestration logic promotes it.
 		 */
-		DELAYED(7);
-
-		private final int value;
-
-		Status(int value) {
-			this.value = value;
-		}
-
-		/**
-		 * The fixed value this status is persisted as (see {@link StatusConverter}).
-		 * @return the persisted value
-		 */
-		public int getValue() {
-			return this.value;
-		}
-
-		/**
-		 * Finds the status for the given persisted value.
-		 * @param value the persisted value
-		 * @return the matching status
-		 * @throws IllegalArgumentException if no status has this value
-		 */
-		public static Status fromValue(int value) {
-			for (Status status : Status.values()) {
-				if (status.value == value) {
-					return status;
-				}
-			}
-			throw new IllegalArgumentException("Unknown Task.Status value " + value);
-		}
-
-		/**
-		 * Converts {@link Status} to/from its explicit, permanently-fixed persisted value
-		 * (see {@link #getValue()}), instead of JPA's default ordinal-by-declaration-order
-		 * mapping.
-		 */
-		@Converter(autoApply = true)
-		public static class StatusConverter implements AttributeConverter<Status, Integer> {
-			@Override
-			public Integer convertToDatabaseColumn(Status status) {
-				return status == null ? null : status.getValue();
-			}
-
-			@Override
-			public Status convertToEntityAttribute(Integer value) {
-				return value == null ? null : Status.fromValue(value);
-			}
-		}
+		DELAYED
 	}
 
 	/** The Constant TASK_CLASSES. */
@@ -407,7 +354,9 @@ public abstract class Task implements Cloneable {
 	protected Date scheduleReference = new Date();
 
 	/** The schedule type. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	protected ScheduleType scheduleType = ScheduleType.ASAP;
 
@@ -417,7 +366,9 @@ public abstract class Task implements Cloneable {
 	protected int scheduleFactor = 1;
 
 	/** The status. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	protected Status status = Status.NEW;
 
@@ -615,7 +566,9 @@ public abstract class Task implements Cloneable {
 	protected int childOrder;
 
 	/** Parallel vs sequential scheduling of child tasks (group-based tasks only). */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	protected ScheduleMode scheduleMode = ScheduleMode.PARALLEL;
 

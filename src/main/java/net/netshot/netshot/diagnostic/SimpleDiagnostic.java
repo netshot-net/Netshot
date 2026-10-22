@@ -19,9 +19,8 @@
 package net.netshot.netshot.diagnostic;
 
 import org.graalvm.polyglot.HostAccess.Export;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,7 +34,7 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
  * @author sylvain.cadilhac
  */
 @Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
+@DiscriminatorValue("SIMPLE")
 public class SimpleDiagnostic extends Diagnostic {
 
 	/**

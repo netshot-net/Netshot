@@ -15,15 +15,14 @@ import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.Device.DevicePath;
 import net.netshot.netshot.platform.database.schema.tables.DeviceGroupCachedDevices.DeviceGroupCachedDevicesPath;
 import net.netshot.netshot.platform.database.schema.tables.Diagnostic.DiagnosticPath;
-import net.netshot.netshot.platform.database.schema.tables.DynamicDeviceGroup.DynamicDeviceGroupPath;
 import net.netshot.netshot.platform.database.schema.tables.HardwareRule.HardwareRulePath;
 import net.netshot.netshot.platform.database.schema.tables.Policy.PolicyPath;
 import net.netshot.netshot.platform.database.schema.tables.PolicyTargetGroups.PolicyTargetGroupsPath;
 import net.netshot.netshot.platform.database.schema.tables.SoftwareRule.SoftwareRulePath;
-import net.netshot.netshot.platform.database.schema.tables.StaticDeviceGroup.StaticDeviceGroupPath;
 import net.netshot.netshot.platform.database.schema.tables.Task.TaskPath;
 import net.netshot.netshot.platform.database.schema.tables.records.DeviceGroupRecord;
 
+import org.jooq.Check;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
@@ -98,6 +97,16 @@ public class DeviceGroup extends TableImpl<DeviceGroupRecord> {
      * The column <code>device_group.version</code>.
      */
     public final TableField<DeviceGroupRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false), this, "");
+
+    /**
+     * The column <code>device_group.type</code>.
+     */
+    public final TableField<DeviceGroupRecord, String> TYPE = createField(DSL.name("type"), SQLDataType.VARCHAR(16).nullable(false), this, "");
+
+    /**
+     * The column <code>device_group.query</code>.
+     */
+    public final TableField<DeviceGroupRecord, String> QUERY = createField(DSL.name("query"), SQLDataType.VARCHAR(1000), this, "");
 
     private DeviceGroup(Name alias, Table<DeviceGroupRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -206,19 +215,6 @@ public class DeviceGroup extends TableImpl<DeviceGroupRecord> {
         return _diagnostic;
     }
 
-    private transient DynamicDeviceGroupPath _dynamicDeviceGroup;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>dynamic_device_group</code> table
-     */
-    public DynamicDeviceGroupPath dynamicDeviceGroup() {
-        if (_dynamicDeviceGroup == null)
-            _dynamicDeviceGroup = new DynamicDeviceGroupPath(this, null, Keys.DYNAMIC_DEVICE_GROUP__FK_DYNAMIC_DEVICE_GROUP_ID.getInverseKey());
-
-        return _dynamicDeviceGroup;
-    }
-
     private transient HardwareRulePath _hardwareRule;
 
     /**
@@ -258,19 +254,6 @@ public class DeviceGroup extends TableImpl<DeviceGroupRecord> {
         return _softwareRule;
     }
 
-    private transient StaticDeviceGroupPath _staticDeviceGroup;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>static_device_group</code> table
-     */
-    public StaticDeviceGroupPath staticDeviceGroup() {
-        if (_staticDeviceGroup == null)
-            _staticDeviceGroup = new StaticDeviceGroupPath(this, null, Keys.STATIC_DEVICE_GROUP__FK_STATIC_DEVICE_GROUP_ID.getInverseKey());
-
-        return _staticDeviceGroup;
-    }
-
     private transient TaskPath _task;
 
     /**
@@ -295,6 +278,13 @@ public class DeviceGroup extends TableImpl<DeviceGroupRecord> {
      */
     public PolicyPath policy() {
         return policyTargetGroups().policy();
+    }
+
+    @Override
+    public List<Check<DeviceGroupRecord>> getChecks() {
+        return Arrays.asList(
+            Internal.createCheck(this, DSL.name("ck_device_group_type"), "(((type)::text = ANY ((ARRAY['STATIC'::character varying, 'DYNAMIC'::character varying])::text[])))", true)
+        );
     }
 
     @Override

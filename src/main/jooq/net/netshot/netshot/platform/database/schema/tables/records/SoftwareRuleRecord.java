@@ -77,15 +77,15 @@ public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> 
     /**
      * Setter for <code>software_rule.level</code>.
      */
-    public void setLevel(Integer value) {
+    public void setLevel(String value) {
         set(4, value);
     }
 
     /**
      * Getter for <code>software_rule.level</code>.
      */
-    public Integer getLevel() {
-        return (Integer) get(4);
+    public String getLevel() {
+        return (String) get(4);
     }
 
     /**
@@ -195,7 +195,7 @@ public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> 
     /**
      * Create a detached, initialised SoftwareRuleRecord
      */
-    public SoftwareRuleRecord(Long id, String driver, String family, Boolean familyRegExp, Integer level, Double priority, String version, Boolean versionRegExp, Long targetGroup, String partNumber, Boolean partNumberRegExp) {
+    public SoftwareRuleRecord(Long id, String driver, String family, Boolean familyRegExp, String level, Double priority, String version, Boolean versionRegExp, Long targetGroup, String partNumber, Boolean partNumberRegExp) {
         super(SoftwareRule.SOFTWARE_RULE);
 
         setId(id);

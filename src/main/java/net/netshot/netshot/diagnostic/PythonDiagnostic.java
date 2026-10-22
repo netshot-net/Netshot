@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,7 +33,7 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
  * @author sylvain.cadilhac
  */
 @Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
+@DiscriminatorValue("PYTHON")
 public class PythonDiagnostic extends Diagnostic {
 
 	/**

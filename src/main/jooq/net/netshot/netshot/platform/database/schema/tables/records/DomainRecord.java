@@ -80,15 +80,15 @@ public class DomainRecord extends UpdatableRecordImpl<DomainRecord> {
     /**
      * Setter for <code>domain.ipv4_usage</code>.
      */
-    public void setIpv4Usage(Integer value) {
+    public void setIpv4Usage(String value) {
         set(4, value);
     }
 
     /**
      * Getter for <code>domain.ipv4_usage</code>.
      */
-    public Integer getIpv4Usage() {
-        return (Integer) get(4);
+    public String getIpv4Usage() {
+        return (String) get(4);
     }
 
     /**
@@ -108,15 +108,15 @@ public class DomainRecord extends UpdatableRecordImpl<DomainRecord> {
     /**
      * Setter for <code>domain.ipv6_usage</code>.
      */
-    public void setIpv6Usage(Integer value) {
+    public void setIpv6Usage(String value) {
         set(6, value);
     }
 
     /**
      * Getter for <code>domain.ipv6_usage</code>.
      */
-    public Integer getIpv6Usage() {
-        return (Integer) get(6);
+    public String getIpv6Usage() {
+        return (String) get(6);
     }
 
     /**
@@ -198,7 +198,7 @@ public class DomainRecord extends UpdatableRecordImpl<DomainRecord> {
     /**
      * Create a detached, initialised DomainRecord
      */
-    public DomainRecord(Long id, Instant changeDate, String description, String name, Integer ipv4Usage, Integer ipv4Pfxlen, Integer ipv6Usage, Integer ipv6Pfxlen, Integer version, InetAddress ipv4Address, InetAddress ipv6Address) {
+    public DomainRecord(Long id, Instant changeDate, String description, String name, String ipv4Usage, Integer ipv4Pfxlen, String ipv6Usage, Integer ipv6Pfxlen, Integer version, InetAddress ipv4Address, InetAddress ipv6Address) {
         super(Domain.DOMAIN);
 
         setId(id);

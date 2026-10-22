@@ -25,7 +25,10 @@ import org.hibernate.annotations.NaturalId;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -44,7 +47,8 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
  *
  */
 @Entity
-@Inheritance(strategy = InheritanceType.JOINED)
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "type", length = 16)
 public abstract class Diagnostic {
 
 	/** The set of real rule types. */
@@ -94,7 +98,9 @@ public abstract class Diagnostic {
 	protected boolean enabled;
 
 	/** The type of data returned by the diagnostic. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	protected AttributeType resultType;
 

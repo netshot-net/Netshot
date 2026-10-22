@@ -193,15 +193,15 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
     /**
      * Setter for <code>device.network_class</code>.
      */
-    public void setNetworkClass(Integer value) {
+    public void setNetworkClass(String value) {
         set(12, value);
     }
 
     /**
      * Getter for <code>device.network_class</code>.
      */
-    public Integer getNetworkClass() {
-        return (Integer) get(12);
+    public String getNetworkClass() {
+        return (String) get(12);
     }
 
     /**
@@ -221,15 +221,15 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
     /**
      * Setter for <code>device.software_level</code>.
      */
-    public void setSoftwareLevel(Integer value) {
+    public void setSoftwareLevel(String value) {
         set(14, value);
     }
 
     /**
      * Getter for <code>device.software_level</code>.
      */
-    public Integer getSoftwareLevel() {
-        return (Integer) get(14);
+    public String getSoftwareLevel() {
+        return (String) get(14);
     }
 
     /**
@@ -249,15 +249,15 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
     /**
      * Setter for <code>device.status</code>.
      */
-    public void setStatus(Integer value) {
+    public void setStatus(String value) {
         set(16, value);
     }
 
     /**
      * Getter for <code>device.status</code>.
      */
-    public Integer getStatus() {
-        return (Integer) get(16);
+    public String getStatus() {
+        return (String) get(16);
     }
 
     /**
@@ -395,7 +395,7 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
     /**
      * Create a detached, initialised DeviceRecord
      */
-    public DeviceRecord(Long id, Instant changeDate, String comments, String contact, Instant createdDate, String creator, String driver, Instant eolDate, Instant eosDate, String family, String location, String name, Integer networkClass, String serialNumber, Integer softwareLevel, String softwareVersion, Integer status, Integer version, Long eolModule, Long eosModule, Long lastConfig, Long mgmtDomain, String mgmtAddress, InetAddress cachedIpAddress, JSONB options) {
+    public DeviceRecord(Long id, Instant changeDate, String comments, String contact, Instant createdDate, String creator, String driver, Instant eolDate, Instant eosDate, String family, String location, String name, String networkClass, String serialNumber, String softwareLevel, String softwareVersion, String status, Integer version, Long eolModule, Long eosModule, Long lastConfig, Long mgmtDomain, String mgmtAddress, InetAddress cachedIpAddress, JSONB options) {
         super(Device.DEVICE);
 
         setId(id);

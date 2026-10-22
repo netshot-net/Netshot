@@ -31,6 +31,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -49,7 +50,8 @@ import net.netshot.netshot.inventory.device.Device;
  * A group of devices.
  */
 @Entity
-@Inheritance(strategy = InheritanceType.JOINED)
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "type", length = 16)
 public abstract class DeviceGroup {
 
 	/** The cached devices, in user-defined order (for static groups). */
