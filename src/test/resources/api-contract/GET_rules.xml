@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <ArrayList>
   <item>
-    <enabled>false</enabled>
-    <id>3</id>
-    <name>JS check</name>
-    <policyId>2</policyId>
-    <type>JavaScriptRule</type>
+    <enabled>true</enabled>
+    <id>1</id>
+    <name>No telnet</name>
+    <policyId>1</policyId>
+    <type>TextRule</type>
   </item>
   <item>
     <enabled>false</enabled>
@@ -16,16 +16,16 @@
   </item>
   <item>
     <enabled>false</enabled>
+    <id>3</id>
+    <name>JS check</name>
+    <policyId>2</policyId>
+    <type>JavaScriptRule</type>
+  </item>
+  <item>
+    <enabled>false</enabled>
     <id>4</id>
     <name>Python check</name>
     <policyId>2</policyId>
     <type>PythonRule</type>
-  </item>
-  <item>
-    <enabled>true</enabled>
-    <id>1</id>
-    <name>No telnet</name>
-    <policyId>1</policyId>
-    <type>TextRule</type>
   </item>
 </ArrayList>

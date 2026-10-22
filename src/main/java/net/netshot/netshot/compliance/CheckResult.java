@@ -29,6 +29,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -188,7 +190,9 @@ public class CheckResult {
 	private String comment = "";
 
 	/** The result. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	private CheckResult.ResultOption result = CheckResult.ResultOption.NOTAPPLICABLE;
 

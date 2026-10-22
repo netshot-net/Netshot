@@ -37,15 +37,15 @@ public class NetworkInterfaceIp4addressesRecord extends UpdatableRecordImpl<Netw
     /**
      * Setter for <code>network_interface_ip4addresses.address_usage</code>.
      */
-    public void setAddressUsage(Integer value) {
+    public void setAddressUsage(String value) {
         set(1, value);
     }
 
     /**
      * Getter for <code>network_interface_ip4addresses.address_usage</code>.
      */
-    public Integer getAddressUsage() {
-        return (Integer) get(1);
+    public String getAddressUsage() {
+        return (String) get(1);
     }
 
     /**
@@ -99,7 +99,7 @@ public class NetworkInterfaceIp4addressesRecord extends UpdatableRecordImpl<Netw
     /**
      * Create a detached, initialised NetworkInterfaceIp4addressesRecord
      */
-    public NetworkInterfaceIp4addressesRecord(Long networkInterface, Integer addressUsage, Integer prefixLength, InetAddress address) {
+    public NetworkInterfaceIp4addressesRecord(Long networkInterface, String addressUsage, Integer prefixLength, InetAddress address) {
         super(NetworkInterfaceIp4addresses.NETWORK_INTERFACE_IP4ADDRESSES);
 
         setNetworkInterface(networkInterface);

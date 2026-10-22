@@ -145,7 +145,7 @@ public class Device extends TableImpl<DeviceRecord> {
     /**
      * The column <code>device.network_class</code>.
      */
-    public final TableField<DeviceRecord, Integer> NETWORK_CLASS = createField(DSL.name("network_class"), SQLDataType.INTEGER, this, "");
+    public final TableField<DeviceRecord, String> NETWORK_CLASS = createField(DSL.name("network_class"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>device.serial_number</code>.
@@ -155,7 +155,7 @@ public class Device extends TableImpl<DeviceRecord> {
     /**
      * The column <code>device.software_level</code>.
      */
-    public final TableField<DeviceRecord, Integer> SOFTWARE_LEVEL = createField(DSL.name("software_level"), SQLDataType.INTEGER, this, "");
+    public final TableField<DeviceRecord, String> SOFTWARE_LEVEL = createField(DSL.name("software_level"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>device.software_version</code>.
@@ -165,7 +165,7 @@ public class Device extends TableImpl<DeviceRecord> {
     /**
      * The column <code>device.status</code>.
      */
-    public final TableField<DeviceRecord, Integer> STATUS = createField(DSL.name("status"), SQLDataType.INTEGER, this, "");
+    public final TableField<DeviceRecord, String> STATUS = createField(DSL.name("status"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>device.version</code>.

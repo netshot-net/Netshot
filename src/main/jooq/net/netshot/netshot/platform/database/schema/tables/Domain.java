@@ -88,7 +88,7 @@ public class Domain extends TableImpl<DomainRecord> {
     /**
      * The column <code>domain.ipv4_usage</code>.
      */
-    public final TableField<DomainRecord, Integer> IPV4_USAGE = createField(DSL.name("ipv4_usage"), SQLDataType.INTEGER, this, "");
+    public final TableField<DomainRecord, String> IPV4_USAGE = createField(DSL.name("ipv4_usage"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>domain.ipv4_pfxlen</code>.
@@ -98,7 +98,7 @@ public class Domain extends TableImpl<DomainRecord> {
     /**
      * The column <code>domain.ipv6_usage</code>.
      */
-    public final TableField<DomainRecord, Integer> IPV6_USAGE = createField(DSL.name("ipv6_usage"), SQLDataType.INTEGER, this, "");
+    public final TableField<DomainRecord, String> IPV6_USAGE = createField(DSL.name("ipv6_usage"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>domain.ipv6_pfxlen</code>.

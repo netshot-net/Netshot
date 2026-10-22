@@ -13,12 +13,10 @@ import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.CheckResult.CheckResultPath;
 import net.netshot.netshot.platform.database.schema.tables.Device.DevicePath;
 import net.netshot.netshot.platform.database.schema.tables.Exemption.ExemptionPath;
-import net.netshot.netshot.platform.database.schema.tables.JavaScriptRule.JavaScriptRulePath;
 import net.netshot.netshot.platform.database.schema.tables.Policy.PolicyPath;
-import net.netshot.netshot.platform.database.schema.tables.PythonRule.PythonRulePath;
-import net.netshot.netshot.platform.database.schema.tables.TextRule.TextRulePath;
 import net.netshot.netshot.platform.database.schema.tables.records.RuleRecord;
 
+import org.jooq.Check;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
@@ -83,6 +81,61 @@ public class Rule extends TableImpl<RuleRecord> {
      * The column <code>rule.policy</code>.
      */
     public final TableField<RuleRecord, Long> POLICY = createField(DSL.name("policy"), SQLDataType.BIGINT, this, "");
+
+    /**
+     * The column <code>rule.type</code>.
+     */
+    public final TableField<RuleRecord, String> TYPE = createField(DSL.name("type"), SQLDataType.VARCHAR(16).nullable(false), this, "");
+
+    /**
+     * The column <code>rule.script</code>.
+     */
+    public final TableField<RuleRecord, String> SCRIPT = createField(DSL.name("script"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>rule.any_block</code>.
+     */
+    public final TableField<RuleRecord, Boolean> ANY_BLOCK = createField(DSL.name("any_block"), SQLDataType.BOOLEAN, this, "");
+
+    /**
+     * The column <code>rule.context</code>.
+     */
+    public final TableField<RuleRecord, String> CONTEXT = createField(DSL.name("context"), SQLDataType.VARCHAR(10000), this, "");
+
+    /**
+     * The column <code>rule.device_driver</code>.
+     */
+    public final TableField<RuleRecord, String> DEVICE_DRIVER = createField(DSL.name("device_driver"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>rule.field</code>.
+     */
+    public final TableField<RuleRecord, String> FIELD = createField(DSL.name("field"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>rule.invert</code>.
+     */
+    public final TableField<RuleRecord, Boolean> INVERT = createField(DSL.name("invert"), SQLDataType.BOOLEAN, this, "");
+
+    /**
+     * The column <code>rule.match_all</code>.
+     */
+    public final TableField<RuleRecord, Boolean> MATCH_ALL = createField(DSL.name("match_all"), SQLDataType.BOOLEAN, this, "");
+
+    /**
+     * The column <code>rule.normalize</code>.
+     */
+    public final TableField<RuleRecord, Boolean> NORMALIZE = createField(DSL.name("normalize"), SQLDataType.BOOLEAN, this, "");
+
+    /**
+     * The column <code>rule.reg_exp</code>.
+     */
+    public final TableField<RuleRecord, Boolean> REG_EXP = createField(DSL.name("reg_exp"), SQLDataType.BOOLEAN, this, "");
+
+    /**
+     * The column <code>rule.text</code>.
+     */
+    public final TableField<RuleRecord, String> TEXT = createField(DSL.name("text"), SQLDataType.CLOB, this, "");
 
     private Rule(Name alias, Table<RuleRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -207,43 +260,6 @@ public class Rule extends TableImpl<RuleRecord> {
         return _exemption;
     }
 
-    private transient JavaScriptRulePath _javaScriptRule;
-
-    /**
-     * Get the implicit to-many join path to the <code>java_script_rule</code>
-     * table
-     */
-    public JavaScriptRulePath javaScriptRule() {
-        if (_javaScriptRule == null)
-            _javaScriptRule = new JavaScriptRulePath(this, null, Keys.JAVA_SCRIPT_RULE__FK_JAVA_SCRIPT_RULE_ID.getInverseKey());
-
-        return _javaScriptRule;
-    }
-
-    private transient PythonRulePath _pythonRule;
-
-    /**
-     * Get the implicit to-many join path to the <code>python_rule</code> table
-     */
-    public PythonRulePath pythonRule() {
-        if (_pythonRule == null)
-            _pythonRule = new PythonRulePath(this, null, Keys.PYTHON_RULE__FK_PYTHON_RULE_ID.getInverseKey());
-
-        return _pythonRule;
-    }
-
-    private transient TextRulePath _textRule;
-
-    /**
-     * Get the implicit to-many join path to the <code>text_rule</code> table
-     */
-    public TextRulePath textRule() {
-        if (_textRule == null)
-            _textRule = new TextRulePath(this, null, Keys.TEXT_RULE__FK_TEXT_RULE_ID.getInverseKey());
-
-        return _textRule;
-    }
-
     /**
      * Get the implicit many-to-many join path to the <code>device</code> table,
      * via the <code>fk_check_result_device</code> key
@@ -258,6 +274,14 @@ public class Rule extends TableImpl<RuleRecord> {
      */
     public DevicePath fkExemptionDevice() {
         return exemption().device();
+    }
+
+    @Override
+    public List<Check<RuleRecord>> getChecks() {
+        return Arrays.asList(
+            Internal.createCheck(this, DSL.name("ck_rule_text_flags"), "((((type)::text <> 'TEXT'::text) OR ((any_block IS NOT NULL) AND (invert IS NOT NULL) AND (match_all IS NOT NULL) AND (\"normalize\" IS NOT NULL) AND (reg_exp IS NOT NULL))))", true),
+            Internal.createCheck(this, DSL.name("ck_rule_type"), "(((type)::text = ANY ((ARRAY['TEXT'::character varying, 'JAVASCRIPT'::character varying, 'PYTHON'::character varying])::text[])))", true)
+        );
     }
 
     @Override

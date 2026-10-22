@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Transient;
 import net.netshot.netshot.platform.database.InetAddressUserType;
 
@@ -261,6 +263,7 @@ public final class Network6Address extends NetworkAddress {
 	private AddressUsage addressUsage = AddressUsage.PRIMARY;
 
 	@Override
+	@Enumerated(EnumType.STRING)
 	public AddressUsage getAddressUsage() {
 		return addressUsage;
 	}

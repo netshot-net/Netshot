@@ -43,7 +43,7 @@ public class GroupRepository {
 	 * @return the groups
 	 */
 	public List<DeviceGroup> findAll(Session session, Page page) {
-		Query<DeviceGroup> query = session.createQuery("select g from DeviceGroup g", DeviceGroup.class);
+		Query<DeviceGroup> query = session.createQuery("select g from DeviceGroup g order by g.id", DeviceGroup.class);
 		page.apply(query);
 		return query.list();
 	}

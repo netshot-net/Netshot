@@ -104,6 +104,34 @@ public class DeviceGroupRecord extends UpdatableRecordImpl<DeviceGroupRecord> {
         return (Integer) get(5);
     }
 
+    /**
+     * Setter for <code>device_group.type</code>.
+     */
+    public void setType(String value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>device_group.type</code>.
+     */
+    public String getType() {
+        return (String) get(6);
+    }
+
+    /**
+     * Setter for <code>device_group.query</code>.
+     */
+    public void setQuery(String value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>device_group.query</code>.
+     */
+    public String getQuery() {
+        return (String) get(7);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -127,7 +155,7 @@ public class DeviceGroupRecord extends UpdatableRecordImpl<DeviceGroupRecord> {
     /**
      * Create a detached, initialised DeviceGroupRecord
      */
-    public DeviceGroupRecord(Long id, Instant changeDate, String folder, Boolean hiddenFromReports, String name, Integer version) {
+    public DeviceGroupRecord(Long id, Instant changeDate, String folder, Boolean hiddenFromReports, String name, Integer version, String type, String query) {
         super(DeviceGroup.DEVICE_GROUP);
 
         setId(id);
@@ -136,6 +164,8 @@ public class DeviceGroupRecord extends UpdatableRecordImpl<DeviceGroupRecord> {
         setHiddenFromReports(hiddenFromReports);
         setName(name);
         setVersion(version);
+        setType(type);
+        setQuery(query);
         resetTouchedOnNotNull();
     }
 }

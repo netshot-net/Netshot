@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.compliance.rules;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,7 +33,7 @@ import net.netshot.netshot.compliance.Rule;
  * or not.
  */
 @Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
+@DiscriminatorValue("JAVASCRIPT")
 @Slf4j
 public class JavaScriptRule extends Rule {
 
