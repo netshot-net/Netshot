@@ -21,9 +21,8 @@ package net.netshot.netshot.inventory.group;
 import java.util.Iterator;
 
 import org.hibernate.Session;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import net.netshot.netshot.inventory.device.Device;
 
@@ -32,7 +31,7 @@ import net.netshot.netshot.inventory.device.Device;
  * The devices are manually listed.
  */
 @Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
+@DiscriminatorValue("STATIC")
 public class StaticDeviceGroup extends DeviceGroup {
 
 	/**

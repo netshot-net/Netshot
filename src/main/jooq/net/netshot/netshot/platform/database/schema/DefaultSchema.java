@@ -26,13 +26,10 @@ import net.netshot.netshot.platform.database.schema.tables.Diagnostic;
 import net.netshot.netshot.platform.database.schema.tables.DiagnosticResult;
 import net.netshot.netshot.platform.database.schema.tables.DiscoverDeviceTypeTaskCredentialSets;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
-import net.netshot.netshot.platform.database.schema.tables.DynamicDeviceGroup;
 import net.netshot.netshot.platform.database.schema.tables.Exemption;
 import net.netshot.netshot.platform.database.schema.tables.HardwareRule;
 import net.netshot.netshot.platform.database.schema.tables.Hook;
 import net.netshot.netshot.platform.database.schema.tables.HookTrigger;
-import net.netshot.netshot.platform.database.schema.tables.JavaScriptDiagnostic;
-import net.netshot.netshot.platform.database.schema.tables.JavaScriptRule;
 import net.netshot.netshot.platform.database.schema.tables.LongTextConfiguration;
 import net.netshot.netshot.platform.database.schema.tables.Module;
 import net.netshot.netshot.platform.database.schema.tables.NetworkInterface;
@@ -40,16 +37,11 @@ import net.netshot.netshot.platform.database.schema.tables.NetworkInterfaceIp4ad
 import net.netshot.netshot.platform.database.schema.tables.NetworkInterfaceIp6addresses;
 import net.netshot.netshot.platform.database.schema.tables.Policy;
 import net.netshot.netshot.platform.database.schema.tables.PolicyTargetGroups;
-import net.netshot.netshot.platform.database.schema.tables.PythonDiagnostic;
-import net.netshot.netshot.platform.database.schema.tables.PythonRule;
 import net.netshot.netshot.platform.database.schema.tables.Rule;
 import net.netshot.netshot.platform.database.schema.tables.ScanSubnetsTaskSubnets;
-import net.netshot.netshot.platform.database.schema.tables.SimpleDiagnostic;
 import net.netshot.netshot.platform.database.schema.tables.SoftwareRule;
-import net.netshot.netshot.platform.database.schema.tables.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.schema.tables.Task;
 import net.netshot.netshot.platform.database.schema.tables.TaskDeviceListMembers;
-import net.netshot.netshot.platform.database.schema.tables.TextRule;
 import net.netshot.netshot.platform.database.schema.tables.User;
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance;
 
@@ -168,11 +160,6 @@ public class DefaultSchema extends SchemaImpl {
     public final Domain DOMAIN = Domain.DOMAIN;
 
     /**
-     * The table <code>dynamic_device_group</code>.
-     */
-    public final DynamicDeviceGroup DYNAMIC_DEVICE_GROUP = DynamicDeviceGroup.DYNAMIC_DEVICE_GROUP;
-
-    /**
      * The table <code>exemption</code>.
      */
     public final Exemption EXEMPTION = Exemption.EXEMPTION;
@@ -191,16 +178,6 @@ public class DefaultSchema extends SchemaImpl {
      * The table <code>hook_trigger</code>.
      */
     public final HookTrigger HOOK_TRIGGER = HookTrigger.HOOK_TRIGGER;
-
-    /**
-     * The table <code>java_script_diagnostic</code>.
-     */
-    public final JavaScriptDiagnostic JAVA_SCRIPT_DIAGNOSTIC = JavaScriptDiagnostic.JAVA_SCRIPT_DIAGNOSTIC;
-
-    /**
-     * The table <code>java_script_rule</code>.
-     */
-    public final JavaScriptRule JAVA_SCRIPT_RULE = JavaScriptRule.JAVA_SCRIPT_RULE;
 
     /**
      * The table <code>long_text_configuration</code>.
@@ -238,16 +215,6 @@ public class DefaultSchema extends SchemaImpl {
     public final PolicyTargetGroups POLICY_TARGET_GROUPS = PolicyTargetGroups.POLICY_TARGET_GROUPS;
 
     /**
-     * The table <code>python_diagnostic</code>.
-     */
-    public final PythonDiagnostic PYTHON_DIAGNOSTIC = PythonDiagnostic.PYTHON_DIAGNOSTIC;
-
-    /**
-     * The table <code>python_rule</code>.
-     */
-    public final PythonRule PYTHON_RULE = PythonRule.PYTHON_RULE;
-
-    /**
      * The table <code>rule</code>.
      */
     public final Rule RULE = Rule.RULE;
@@ -258,19 +225,9 @@ public class DefaultSchema extends SchemaImpl {
     public final ScanSubnetsTaskSubnets SCAN_SUBNETS_TASK_SUBNETS = ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS;
 
     /**
-     * The table <code>simple_diagnostic</code>.
-     */
-    public final SimpleDiagnostic SIMPLE_DIAGNOSTIC = SimpleDiagnostic.SIMPLE_DIAGNOSTIC;
-
-    /**
      * The table <code>software_rule</code>.
      */
     public final SoftwareRule SOFTWARE_RULE = SoftwareRule.SOFTWARE_RULE;
-
-    /**
-     * The table <code>static_device_group</code>.
-     */
-    public final StaticDeviceGroup STATIC_DEVICE_GROUP = StaticDeviceGroup.STATIC_DEVICE_GROUP;
 
     /**
      * The table <code>task</code>.
@@ -281,11 +238,6 @@ public class DefaultSchema extends SchemaImpl {
      * The table <code>task_device_list_members</code>.
      */
     public final TaskDeviceListMembers TASK_DEVICE_LIST_MEMBERS = TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS;
-
-    /**
-     * The table <code>text_rule</code>.
-     */
-    public final TextRule TEXT_RULE = TextRule.TEXT_RULE;
 
     /**
      * The table <code>user</code>.
@@ -332,13 +284,10 @@ public class DefaultSchema extends SchemaImpl {
             DiagnosticResult.DIAGNOSTIC_RESULT,
             DiscoverDeviceTypeTaskCredentialSets.DISCOVER_DEVICE_TYPE_TASK_CREDENTIAL_SETS,
             Domain.DOMAIN,
-            DynamicDeviceGroup.DYNAMIC_DEVICE_GROUP,
             Exemption.EXEMPTION,
             HardwareRule.HARDWARE_RULE,
             Hook.HOOK,
             HookTrigger.HOOK_TRIGGER,
-            JavaScriptDiagnostic.JAVA_SCRIPT_DIAGNOSTIC,
-            JavaScriptRule.JAVA_SCRIPT_RULE,
             LongTextConfiguration.LONG_TEXT_CONFIGURATION,
             Module.MODULE,
             NetworkInterface.NETWORK_INTERFACE,
@@ -346,16 +295,11 @@ public class DefaultSchema extends SchemaImpl {
             NetworkInterfaceIp6addresses.NETWORK_INTERFACE_IP6ADDRESSES,
             Policy.POLICY,
             PolicyTargetGroups.POLICY_TARGET_GROUPS,
-            PythonDiagnostic.PYTHON_DIAGNOSTIC,
-            PythonRule.PYTHON_RULE,
             Rule.RULE,
             ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS,
-            SimpleDiagnostic.SIMPLE_DIAGNOSTIC,
             SoftwareRule.SOFTWARE_RULE,
-            StaticDeviceGroup.STATIC_DEVICE_GROUP,
             Task.TASK,
             TaskDeviceListMembers.TASK_DEVICE_LIST_MEMBERS,
-            TextRule.TEXT_RULE,
             User.USER,
             VaultInstance.VAULT_INSTANCE
         );

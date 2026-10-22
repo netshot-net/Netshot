@@ -41,7 +41,7 @@ public class DiagnosticRepository {
 	 * @return the diagnostics
 	 */
 	public List<Diagnostic> findAllWithGroup(Session session, Page page) {
-		var query = session.createQuery("select d from Diagnostic d left join fetch d.targetGroup", Diagnostic.class);
+		var query = session.createQuery("select d from Diagnostic d left join fetch d.targetGroup order by d.id", Diagnostic.class);
 		page.apply(query);
 		return query.list();
 	}

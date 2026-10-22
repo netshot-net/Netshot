@@ -24,6 +24,8 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -114,7 +116,9 @@ public class SoftwareRule implements Comparable<SoftwareRule> {
 	private boolean partNumberRegExp;
 
 	/** The level. */
-	@Getter
+	@Getter(onMethod = @__({
+		@Enumerated(EnumType.STRING)
+	}))
 	@Setter
 	protected ConformanceLevel level = ConformanceLevel.GOLD;
 

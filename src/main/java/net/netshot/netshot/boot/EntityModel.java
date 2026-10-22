@@ -21,7 +21,6 @@ package net.netshot.netshot.boot;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Entity;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.CheckResult;
@@ -152,8 +151,7 @@ public final class EntityModel {
 			}
 		}
 		entities.addAll(Diagnostic.getDiagnosticClasses());
-		List<Class<? extends AttributeConverter<?, ?>>> converters = List.of(Task.Status.StatusConverter.class);
-		return new DatabaseModel(entities, converters);
+		return new DatabaseModel(entities, List.of());
 	}
 
 	private EntityModel() {

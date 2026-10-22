@@ -25,6 +25,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -48,7 +49,8 @@ import net.netshot.netshot.compliance.rules.TextRule;
  * A concrete implementation is the Javascript-based script rule.
  */
 @Entity
-@Inheritance(strategy = InheritanceType.JOINED)
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "type", length = 16)
 @Table(uniqueConstraints = {@UniqueConstraint(columnNames = {"policy", "name"})})
 @Slf4j
 public abstract class Rule {

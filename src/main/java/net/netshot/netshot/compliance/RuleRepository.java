@@ -42,7 +42,7 @@ public class RuleRepository {
 	 */
 	public List<RuleSummary> findSummaries(Session session, Page page) {
 		var query = session.createQuery(
-			"select new " + RuleSummary.class.getName() + "(r.id, r.name, type(r), r.enabled, r.policy.id) from Rule r",
+			"select new " + RuleSummary.class.getName() + "(r.id, r.name, type(r), r.enabled, r.policy.id) from Rule r order by r.id",
 			RuleSummary.class);
 		page.apply(query);
 		return query.list();

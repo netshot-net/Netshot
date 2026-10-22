@@ -75,7 +75,7 @@ public class CheckResult extends TableImpl<CheckResultRecord> {
     /**
      * The column <code>check_result.result</code>.
      */
-    public final TableField<CheckResultRecord, Integer> RESULT = createField(DSL.name("result"), SQLDataType.INTEGER, this, "");
+    public final TableField<CheckResultRecord, String> RESULT = createField(DSL.name("result"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>check_result.device</code>.

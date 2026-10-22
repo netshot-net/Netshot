@@ -68,7 +68,7 @@ public class NetworkInterfaceIp4addresses extends TableImpl<NetworkInterfaceIp4a
     /**
      * The column <code>network_interface_ip4addresses.address_usage</code>.
      */
-    public final TableField<NetworkInterfaceIp4addressesRecord, Integer> ADDRESS_USAGE = createField(DSL.name("address_usage"), SQLDataType.INTEGER, this, "");
+    public final TableField<NetworkInterfaceIp4addressesRecord, String> ADDRESS_USAGE = createField(DSL.name("address_usage"), SQLDataType.VARCHAR(32), this, "");
 
     /**
      * The column <code>network_interface_ip4addresses.prefix_length</code>.

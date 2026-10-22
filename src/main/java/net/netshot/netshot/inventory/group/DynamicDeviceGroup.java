@@ -24,12 +24,11 @@ import java.util.List;
 
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -44,7 +43,7 @@ import net.netshot.netshot.platform.database.Database;
  * A dynamic group of devices is defined by search criteria.
  */
 @Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
+@DiscriminatorValue("DYNAMIC")
 @Slf4j
 public class DynamicDeviceGroup extends DeviceGroup {
 

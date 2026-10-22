@@ -36,15 +36,15 @@ public class ScanSubnetsTaskSubnetsRecord extends TableRecordImpl<ScanSubnetsTas
     /**
      * Setter for <code>scan_subnets_task_subnets.ipv4usage</code>.
      */
-    public void setIpv4usage(Integer value) {
+    public void setIpv4usage(String value) {
         set(1, value);
     }
 
     /**
      * Getter for <code>scan_subnets_task_subnets.ipv4usage</code>.
      */
-    public Integer getIpv4usage() {
-        return (Integer) get(1);
+    public String getIpv4usage() {
+        return (String) get(1);
     }
 
     /**
@@ -89,7 +89,7 @@ public class ScanSubnetsTaskSubnetsRecord extends TableRecordImpl<ScanSubnetsTas
     /**
      * Create a detached, initialised ScanSubnetsTaskSubnetsRecord
      */
-    public ScanSubnetsTaskSubnetsRecord(Long scanSubnetsTask, Integer ipv4usage, Integer ipv4mask, InetAddress ipv4address) {
+    public ScanSubnetsTaskSubnetsRecord(Long scanSubnetsTask, String ipv4usage, Integer ipv4mask, InetAddress ipv4address) {
         super(ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS);
 
         setScanSubnetsTask(scanSubnetsTask);
