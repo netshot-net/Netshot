@@ -29,15 +29,11 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import javax.sql.DataSource;
 
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
@@ -51,12 +47,10 @@ import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.SessionFactoryBuilder;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.AvailableSettings;
-import org.hibernate.cfg.C3p0Settings;
 import org.hibernate.proxy.HibernateProxy;
 import org.hibernate.service.ServiceRegistry;
 import org.slf4j.MarkerFactory;
 
-import com.mchange.v2.c3p0.C3P0Registry;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.PersistenceException;
 import liquibase.UpdateSummaryOutputEnum;
@@ -82,7 +76,7 @@ public final class Database {
 	private static ServiceRegistry serviceRegistry;
 
 	/** The connection pools of the current session factory. */
-	private static CustomConnectionProvider connectionProvider;
+	private static ConnectionPools pools;
 
 	/**
 	 * List classes in a given package.
@@ -207,36 +201,10 @@ public final class Database {
 			// Dates/times stored in UTC in the DB, without timezone, up to Java to convert to server local time
 			serviceProperties.setProperty(AvailableSettings.JDBC_TIME_ZONE, "UTC");
 
-			// Use the custom Multi Tenant connection provider (to handle read vs read-write connections)
-			connectionProvider = new CustomConnectionProvider();
-
-
-			final Map<String, Object> connectionProviderProperties = new HashMap<>();
-			connectionProviderProperties.put("hibernate.connection.driver_class", getDriverClass());
-			connectionProviderProperties.put("hibernate.connection.username", getUsername());
-			connectionProviderProperties.put("hibernate.connection.password", getPassword());
-
-			// Each pool gets its own copy of the base properties
-			final Map<String, Object> readWriteProperties = new HashMap<>(connectionProviderProperties);
-			readWriteProperties.put(AvailableSettings.JAKARTA_JDBC_URL, getUrl());
-			connectionProvider.registerConnectionProvider(TenantIdentifier.READ_WRITE, readWriteProperties, true);
-
-			// Small dedicated pool for task dispatch and cluster bookkeeping, so that these can't be
-			// starved by long-running tasks holding connections from the main pool
-			final Map<String, Object> systemProperties = new HashMap<>(connectionProviderProperties);
-			systemProperties.put(AvailableSettings.JAKARTA_JDBC_URL, getUrl());
-			systemProperties.put(C3p0Settings.C3P0_MIN_SIZE,
-				Netshot.getConfig("netshot.db.pooler.system.minpoolsize", 1, 0, Integer.MAX_VALUE));
-			systemProperties.put(C3p0Settings.C3P0_MAX_SIZE,
-				Netshot.getConfig("netshot.db.pooler.system.maxpoolsize", 5, 1, Integer.MAX_VALUE));
-			connectionProvider.registerConnectionProvider(TenantIdentifier.SYSTEM, systemProperties, false);
-
-			String readDbUrl = getReadUrl();
-			if (readDbUrl != null) {
-				final Map<String, Object> readOnlyProperties = new HashMap<>(connectionProviderProperties);
-				readOnlyProperties.put(AvailableSettings.JAKARTA_JDBC_URL, readDbUrl);
-				connectionProvider.registerConnectionProvider(TenantIdentifier.READ_ONLY, readOnlyProperties, true);
-			}
+			// The connection pools (read-write, system and read-only), given to Hibernate by the custom
+			// multi-tenant connection provider
+			pools = new ConnectionPools(getDriverClass(), getUrl(), getReadUrl(), getUsername(), getPassword());
+			CustomConnectionProvider connectionProvider = new CustomConnectionProvider(pools);
 
 			serviceProperties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER, connectionProvider);
 			if (getDriverClass().contains("postgresql")) {
@@ -280,9 +248,9 @@ public final class Database {
 			StandardServiceRegistryBuilder.destroy(serviceRegistry);
 			serviceRegistry = null;
 		}
-		if (connectionProvider != null) {
-			connectionProvider.stop();
-			connectionProvider = null;
+		if (pools != null) {
+			pools.close();
+			pools = null;
 		}
 	}
 
@@ -417,8 +385,7 @@ public final class Database {
 	 * @throws SQLException
 	 */
 	public static Connection getConnection() throws SQLException {
-		final DataSource dataSource = C3P0Registry.pooledDataSourceByName(TenantIdentifier.READ_WRITE.getSourceName());
-		return dataSource.getConnection();
+		return pools.get(TenantIdentifier.READ_WRITE).getConnection();
 	}
 
 	/**

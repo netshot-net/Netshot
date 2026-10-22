@@ -227,12 +227,7 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-c3p0</artifactId>
-			<version>${hibernate.version}</version>
-		</dependency>
-		<dependency>
-			<!-- c3p0 dependency with compile scope -->
+			<!-- Connection pools (platform.database.ConnectionPools) -->
 			<groupId>com.mchange</groupId>
 			<artifactId>c3p0</artifactId>
 			<version>${c3p0.version}</version>
