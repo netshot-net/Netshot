@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.inventory.search;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
@@ -60,10 +60,10 @@ public class SearchService {
 			Finder finder = new Finder(query);
 			try {
 				// Read-write session, as it has always been used for this query
-				return this.transactions.write(session -> new SearchResult(
-					finder.getFormattedQuery(), this.repository.findDevices(session, finder, page)));
+				return this.transactions.writeDsl(dsl -> new SearchResult(
+					finder.getFormattedQuery(), this.repository.findDevices(dsl, finder, page)));
 			}
-			catch (HibernateException e) {
+			catch (DataAccessException e) {
 				log.error("Error while searching for the devices.", e);
 				throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the devices");
 			}

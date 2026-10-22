@@ -18,14 +18,16 @@
  */
 package net.netshot.netshot.inventory.group;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
-import org.hibernate.query.MutationQuery;
-import org.hibernate.query.Query;
+import org.jooq.impl.DSL;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
@@ -38,6 +40,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Jooq;
 
 /**
  * A dynamic group of devices is defined by search criteria.
@@ -103,11 +106,26 @@ public class DynamicDeviceGroup extends DeviceGroup {
 	@Override
 	public void refreshCache(Session session) throws FinderParseException, HibernateException {
 		Finder finder = this.getFinder();
-		Query<Device> cacheQuery = session.createQuery("select d" + finder.getHql(), Device.class);
-		finder.setVariables(cacheQuery);
-		List<Device> devices = cacheQuery.list();
+		List<Long> deviceIds = Jooq.dsl(session).select(DEVICE.ID).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.ID);
+		List<Device> devices = session.byMultipleIds(Device.class).multiLoad(deviceIds);
 		this.updateCachedDevices(devices);
 		this.query = finder.getFormattedQuery();
+	}
+
+	/**
+	 * Adds the memberships of a group for the devices matching a query (the existing ones are kept).
+	 *
+	 * @param session the DB session
+	 * @param group the group
+	 * @param finder the query
+	 */
+	private static void insertMemberships(Session session, DynamicDeviceGroup group, Finder finder) {
+		Jooq.dsl(session)
+			.insertInto(DEVICE_GROUP_CACHED_DEVICES, DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES,
+				DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION)
+			.select(DSL.select(DEVICE.ID, DSL.val(group.getId()), DSL.val(0)).from(DEVICE).where(finder.getCondition()))
+			.onConflictDoNothing()
+			.execute();
 	}
 
 	/**
@@ -140,13 +158,7 @@ public class DynamicDeviceGroup extends DeviceGroup {
 				// so "position" is only a placeholder to satisfy the NOT NULL column; it's not
 				// meant to be meaningful or kept dense. Devices are listed by name instead, see
 				// the device list of the group resource.
-				MutationQuery insertQuery = session.createMutationQuery(
-					"insert into DeviceGroupMembership(key.device, key.group, position) "
-					+ "select d, :group, 0 " + finder.getHql() + " "
-					+ "on conflict do nothing");
-				insertQuery.setParameter("group", group);
-				finder.setVariables(insertQuery);
-				insertQuery.executeUpdate();
+				insertMemberships(session, group, finder);
 			}
 			catch (FinderParseException e) {
 				log.error("Parse error while updating the group {}.", group.getId(), e);
@@ -208,13 +220,7 @@ public class DynamicDeviceGroup extends DeviceGroup {
 					// Dynamic group membership has no user-defined order, so "position" is only a
 					// placeholder to satisfy the NOT NULL column -- see the comment in
 					// refreshAllGroupsOfOneDevice() above.
-					MutationQuery insertQuery = session.createMutationQuery(
-						"insert into DeviceGroupMembership(key.device, key.group, position) "
-						+ "select d, :group, 0 " + finder.getHql() + " "
-						+ "on conflict do nothing");
-					insertQuery.setParameter("group", group);
-					finder.setVariables(insertQuery);
-					insertQuery.executeUpdate();
+					insertMemberships(session, group, finder);
 				}
 				catch (FinderParseException e) {
 					log.error("Parse error while updating the group {}.", group.getId(), e);

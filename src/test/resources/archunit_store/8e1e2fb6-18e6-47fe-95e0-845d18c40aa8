@@ -366,6 +366,7 @@ Class <net.netshot.netshot.inventory.device.DeviceService> (slice inventory) dep
 Class <net.netshot.netshot.inventory.device.DeviceService> (slice inventory) depends on <net.netshot.netshot.task.TaskSubmitter> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.DeviceService> (slice inventory) depends on <net.netshot.netshot.task.type.DiscoverDeviceTypeTask> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.DeviceService> (slice inventory) depends on <net.netshot.netshot.task.type.TakeSnapshotTask> (slice task) which is part of a dependency cycle
+Class <net.netshot.netshot.inventory.device.DeviceSummary> (slice inventory) depends on <net.netshot.netshot.compliance.CheckResult$ResultOption> (slice compliance) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.DeviceSummary> (slice inventory) depends on <net.netshot.netshot.compliance.SoftwareRule$ConformanceLevel> (slice compliance) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.DeviceUpdate> (slice inventory) depends on <net.netshot.netshot.access.DeviceAccess> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.device.DeviceValidation$1> (slice inventory) depends on <net.netshot.netshot.driver.DriverValueType> (slice driver) which is part of a dependency cycle
@@ -408,7 +409,6 @@ Class <net.netshot.netshot.inventory.search.Finder$TextAttributeExpression> (sli
 Class <net.netshot.netshot.inventory.search.Finder$TextAttributeExpression> (slice inventory) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder$TextDiagnosticExpression> (slice inventory) depends on <net.netshot.netshot.diagnostic.Diagnostic> (slice diagnostic) which is part of a dependency cycle
 Class <net.netshot.netshot.inventory.search.Finder> (slice inventory) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
-Class <net.netshot.netshot.inventory.search.SearchRepository> (slice inventory) depends on <net.netshot.netshot.compliance.CheckResult$ResultOption> (slice compliance) which is part of a dependency cycle
 Class <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) depends on <net.netshot.netshot.cluster.ClusterManager> (slice cluster) which is part of a dependency cycle
 Class <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) depends on <net.netshot.netshot.inventory.device.Device$Status> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
