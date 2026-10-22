@@ -18,93 +18,94 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.util.HashMap;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.EnumMap;
 import java.util.Map;
 
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.boot.registry.internal.StandardServiceRegistryImpl;
-import org.hibernate.c3p0.internal.C3P0ConnectionProvider;
-import org.hibernate.cfg.C3p0Settings;
+import javax.sql.DataSource;
+
 import org.hibernate.engine.jdbc.connections.spi.AbstractMultiTenantConnectionProvider;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
-import org.hibernate.service.spi.Stoppable;
-
-import net.netshot.netshot.Netshot;
 
 /**
- * Custom connection provider, to handle read-write and read-only connections to the database.
+ * Hibernate connection provider, to handle the read-write, read-only and system connections to the
+ * database: it gives Hibernate the connections of the {@link ConnectionPools}.
  */
-public class CustomConnectionProvider extends AbstractMultiTenantConnectionProvider<TenantIdentifier> implements Stoppable {
+public class CustomConnectionProvider extends AbstractMultiTenantConnectionProvider<TenantIdentifier> {
 
 	private static final long serialVersionUID = 1L;
 
-	/** Map of ConnectionProvider objects (read-only and read-write). */
-	private final Map<TenantIdentifier, ConnectionProvider> providerMap = new HashMap<>();
+	/**
+	 * Gives the connections of one pool, without auto-commit (as the c3p0 provider of Hibernate did).
+	 */
+	private static final class PoolConnectionProvider implements ConnectionProvider {
 
-	private ConnectionProvider defaultProvider;
+		private static final long serialVersionUID = 1L;
 
-	public void registerConnectionProvider(TenantIdentifier identifier, Map<String, Object> props, boolean asDefaultProvider) {
-		C3P0ConnectionProvider provider = new C3P0ConnectionProvider();
-		provider.injectServices((StandardServiceRegistryImpl) new StandardServiceRegistryBuilder().build());
-		Map<String, Object> configProps = new HashMap<>(props);
-		configProps.put("hibernate.c3p0.dataSourceName", identifier.getSourceName());
+		private final transient DataSource dataSource;
 
-		// Pool sizes can be set by the caller (e.g. for the small SYSTEM pool)
-		configProps.putIfAbsent(C3p0Settings.C3P0_MIN_SIZE,
-			Netshot.getConfig("netshot.db.pooler.minpoolsize", 5, 0, Integer.MAX_VALUE));
-		configProps.putIfAbsent(C3p0Settings.C3P0_MAX_SIZE,
-			Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE));
-		configProps.put("hibernate.c3p0.checkoutTimeout",
-			Netshot.getConfig("netshot.db.pooler.checkouttimeout", 0, 0, Integer.MAX_VALUE));
-		configProps.put(C3p0Settings.C3P0_TIMEOUT,
-			Netshot.getConfig("netshot.db.pooler.maxidletimeout", 1800, 0, Integer.MAX_VALUE));
-		configProps.put("hibernate.c3p0.maxConnectionAge",
-			Netshot.getConfig("netshot.db.pooler.maxconnectionage", 0, 0, Integer.MAX_VALUE));
-		configProps.put("hibernate.c3p0.testConnectionOnCheckout",
-			Netshot.getConfig("netshot.db.pooler.testconnectiononcheckout", true));
-		configProps.put("hibernate.c3p0.testConnectionOnCheckin",
-			Netshot.getConfig("netshot.db.pooler.testconnectiononcheckin", false));
-		configProps.put("hibernate.c3p0.idleConnectionTestPeriod",
-			Netshot.getConfig("netshot.db.pooler.idleconnectiontestperiod", 0, 0, Integer.MAX_VALUE));
-		configProps.put("hibernate.c3p0.connectionIsValidTimeout",
-			Netshot.getConfig("netshot.db.pooler.connectionisvalidtimeout", 0, 0, Integer.MAX_VALUE));
-		configProps.put(C3p0Settings.C3P0_MAX_STATEMENTS,
-			Netshot.getConfig("netshot.db.pooler.maxstatements", 50, 0, Integer.MAX_VALUE));
-		configProps.put("hibernate.c3p0.unreturnedConnectionTimeout",
-			Netshot.getConfig("netshot.db.pooler.unreturnedconnectiontimeout", 1800, 0, Integer.MAX_VALUE));
-		configProps.put("hibernate.c3p0.debugUnreturnedConnectionStackTraces", "true");
-		provider.configure(configProps);
-		this.providerMap.put(identifier, provider);
-		if (asDefaultProvider) {
-			this.defaultProvider = provider;
+		PoolConnectionProvider(DataSource dataSource) {
+			this.dataSource = dataSource;
+		}
+
+		@Override
+		public Connection getConnection() throws SQLException {
+			Connection connection = this.dataSource.getConnection();
+			if (connection.getAutoCommit()) {
+				connection.setAutoCommit(false);
+			}
+			return connection;
+		}
+
+		@Override
+		public void closeConnection(Connection connection) throws SQLException {
+			connection.close();
+		}
+
+		@Override
+		public boolean supportsAggressiveRelease() {
+			return false;
+		}
+
+		@Override
+		public boolean isUnwrappableAs(Class<?> unwrapType) {
+			return unwrapType.isInstance(this) || unwrapType.isInstance(this.dataSource);
+		}
+
+		@Override
+		public <T> T unwrap(Class<T> unwrapType) {
+			if (unwrapType.isInstance(this)) {
+				return unwrapType.cast(this);
+			}
+			if (unwrapType.isInstance(this.dataSource)) {
+				return unwrapType.cast(this.dataSource);
+			}
+			throw new IllegalArgumentException("Cannot unwrap to " + unwrapType);
+		}
+	}
+
+	/** The providers, by kind of connection. */
+	private final Map<TenantIdentifier, ConnectionProvider> providerMap = new EnumMap<>(TenantIdentifier.class);
+
+	/**
+	 * Instantiates the provider.
+	 *
+	 * @param pools the connection pools
+	 */
+	public CustomConnectionProvider(ConnectionPools pools) {
+		for (TenantIdentifier identifier : TenantIdentifier.values()) {
+			this.providerMap.put(identifier, new PoolConnectionProvider(pools.get(identifier)));
 		}
 	}
 
 	@Override
 	protected ConnectionProvider getAnyConnectionProvider() {
-		return this.defaultProvider;
+		return this.providerMap.get(TenantIdentifier.READ_ONLY);
 	}
 
 	@Override
 	protected ConnectionProvider selectConnectionProvider(TenantIdentifier tenantIdentifier) {
-		ConnectionProvider cp = this.providerMap.get(tenantIdentifier);
-		if (cp == null) {
-			return this.defaultProvider;
-		}
-		return cp;
-	}
-
-	/**
-	 * Closes the connection pools.
-	 */
-	@Override
-	public void stop() {
-		for (ConnectionProvider provider : this.providerMap.values()) {
-			if (provider instanceof Stoppable stoppable) {
-				stoppable.stop();
-			}
-		}
-		this.providerMap.clear();
-		this.defaultProvider = null;
+		return this.providerMap.get(tenantIdentifier);
 	}
 }
