@@ -32,7 +32,6 @@ import java.util.regex.Matcher;
 import org.apache.poi.openxml4j.exceptions.InvalidOperationException;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
@@ -50,11 +49,13 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.ConfigDraft;
+import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.engine.TaskContext;
 
 @Slf4j
@@ -69,7 +70,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param device = the device
 	 * @param config = the config
 	 */
-	protected void dumpConfig(Device device, Config config) {
+	protected void dumpConfig(DeviceDraft device, ConfigDraft config) {
 		String path = Netshot.getConfig("netshot.snapshots.dump");
 		if (path != null) {
 			// The device name is reported by the device itself, it must not be able to escape the dump folder
@@ -135,8 +136,22 @@ public final class SnapshotDeviceScript extends DeviceScript {
 		}
 	}
 
+	/**
+	 * Loads the last configuration of a device (with its long texts), to compare the new one with.
+	 *
+	 * @param device the device
+	 * @return the last configuration, or null if the device has none
+	 */
+	private static Config loadLastConfig(DeviceDraft device) {
+		Long lastConfigId = device.getOriginal().lastConfigId();
+		if (lastConfigId == null) {
+			return null;
+		}
+		return new Transactions().readDsl(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
+	}
+
 	@Override
-	protected void run(Session session, Device device, AccessManager accessManager)
+	protected void run(DeviceDraft device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, InvalidOperationException, MissingDeviceDriverException {
 
 		DeviceDriver driver = this.driverRegistry.forDevice(device);
@@ -151,13 +166,14 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			this.taskContext.info("Starting snapshot of device {} using driver {} version {}",
 				device.getId(), driver.getName(), driver.getVersion());
 			driver.loadCode(context);
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, session, this.taskContext, false);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, this.taskContext, false);
 			options.setDeviceHelper(deviceHelper);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Device {} options: {}", device.getId(), deviceHelper.resolveOptionValues());
 			}
-			Config config = new Config(device);
-			Config lastConfig = Database.unproxy(device.getLastConfig());
+			ConfigDraft config = new ConfigDraft(device.getId());
+			Config lastConfig = device.getLastConfig() != null ? device.getLastConfig() : loadLastConfig(device);
+			device.setLastConfig(lastConfig);
 			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.taskContext);
 			options.setConfigHelper(configHelper);
 			context.getBindings("js").getMember("_connect")
@@ -168,7 +184,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			if (lastConfig == null) {
 				different = true;
 			}
-			else if (lastConfig.getCustomHash() == null && config.getCustomHash() == null) {
+			else if (lastConfig.customHash() == null && config.getCustomHash() == null) {
 				Map<String, ConfigAttribute> oldAttributes = lastConfig.getAttributeMap();
 				Map<String, ConfigAttribute> newAttributes = config.getAttributeMap();
 				for (AttributeDefinition definition : driver.getAttributes()) {
@@ -190,23 +206,23 @@ public final class SnapshotDeviceScript extends DeviceScript {
 				}
 			}
 			else {
-				different = !Objects.equals(lastConfig.getCustomHash(), config.getCustomHash());
+				different = !Objects.equals(lastConfig.customHash(), config.getCustomHash());
 			}
 			if (different) {
-				device.setLastConfig(config);
-				device.getConfigs().add(config);
+				device.setNewConfig(config.toConfig());
 			}
 			else {
 				this.taskContext.info("The configuration hasn't changed. Not storing a new one in the DB.");
 				for (ConfigAttribute ca : config.getAttributes()) {
 					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
+						Path pendingPath = cbfa.getPendingFilePath(device.getId());
 						try {
-							log.debug("Removing useless file {}", cbfa.getFilePath());
-							Files.deleteIfExists(cbfa.getFilePath());
+							log.debug("Removing useless file {}", pendingPath);
+							Files.deleteIfExists(pendingPath);
 						}
 						catch (IOException e) {
-							log.warn("Unable to delete binary file attribute {}", cbfa.getFilePath(), e);
-							this.taskContext.warn("Unable to delete binary file attribute {}", cbfa.getFilePath(), e);
+							log.warn("Unable to delete binary file attribute {}", pendingPath, e);
+							this.taskContext.warn("Unable to delete binary file attribute {}", pendingPath, e);
 						}
 					}
 				}

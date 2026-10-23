@@ -18,158 +18,62 @@
  */
 package net.netshot.netshot.inventory.group;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.hibernate.Session;
-import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorColumn;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderBy;
-import jakarta.persistence.Transient;
-import jakarta.persistence.Version;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
+import java.time.Instant;
 
 /**
- * A group of devices.
+ * A group of devices. Its members are stored apart (in order), see {@link GroupRepository}.
  */
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type", length = 16)
-public abstract class DeviceGroup {
-
-	/** The cached devices, in user-defined order (for static groups). */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.group", cascade = CascadeType.ALL, orphanRemoval = true),
-		@OrderBy("position asc"),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	protected List<DeviceGroupMembership> cachedMemberships = new ArrayList<>();
-
-	/** The change date. */
-	@Getter
-	@Setter
-	protected Date changeDate;
-
-	/** Version internal field. */
-	@Getter(onMethod = @__({
-		@Version
-	}))
-	@Setter
-	private int version;
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	/** The name. */
-	@Getter(onMethod = @__({
-		@NaturalId(mutable = true)
-	}))
-	@Setter
-	protected String name;
-
-	/** Folder containing the group. */
-	@Getter(onMethod = @__({
-		@Column(length = 1000)
-	}))
-	@Setter
-	protected String folder = "";
-
-	/** Whether the group should be hidden in reports. */
-	@Getter
-	@Setter
-	protected boolean hiddenFromReports;
+public sealed interface DeviceGroup permits StaticDeviceGroup, DynamicDeviceGroup {
 
 	/**
-	 * Instantiates a new device group.
-	 */
-	protected DeviceGroup() {
-
-	}
-
-	/**
-	 * Instantiates a new device group.
+	 * Gets the ID.
 	 *
-	 * @param name the name
+	 * @return the ID (0 for a group which isn't stored yet)
 	 */
-	public DeviceGroup(String name) {
-		this.name = name;
-	}
+	long id();
 
 	/**
-	 * Return cached members of this group, in their stored order.
-	 * @return the ordered cached devices of the group
-	 */
-	@Transient
-	public List<Device> getCachedDevices() {
-		List<Device> devices = new ArrayList<>(this.cachedMemberships.size());
-		for (DeviceGroupMembership membership : this.cachedMemberships) {
-			devices.add(membership.getDevice());
-		}
-		return devices;
-	}
-
-	/**
-	 * Refresh cache.
+	 * Gets the version.
 	 *
-	 * @param session the session
-	 * @throws Exception the exception
+	 * @return the version, incremented on each change
 	 */
-	public abstract void refreshCache(Session session) throws Exception;
+	int version();
 
 	/**
-	 * Update cached devices, preserving the given order.
-	 * Existing membership rows are reused (only their position is updated) so that
-	 * unaffected devices aren't needlessly deleted and reinserted on refresh.
+	 * Gets the time of the last change.
 	 *
-	 * @param devices the ordered devices
+	 * @return the time
 	 */
-	public void updateCachedDevices(List<Device> devices) {
-		Map<Device, DeviceGroupMembership> existingByDevice = new HashMap<>();
-		for (DeviceGroupMembership membership : this.cachedMemberships) {
-			existingByDevice.put(membership.getDevice(), membership);
-		}
-		List<DeviceGroupMembership> memberships = new ArrayList<>(devices.size());
-		int position = 0;
-		for (Device device : devices) {
-			DeviceGroupMembership membership = existingByDevice.get(device);
-			if (membership == null) {
-				membership = new DeviceGroupMembership(device, this, position);
-			}
-			else {
-				membership.setPosition(position);
-			}
-			memberships.add(membership);
-			position++;
-		}
-		this.cachedMemberships.clear();
-		this.cachedMemberships.addAll(memberships);
-	}
+	Instant changeDate();
 
-	@Override
-	public String toString() {
-		return "Device Group " + id + " (name '" + name + "')";
-	}
+	/**
+	 * Gets the name.
+	 *
+	 * @return the name, unique
+	 */
+	String name();
 
+	/**
+	 * Gets the folder the group is shown in.
+	 *
+	 * @return the folder
+	 */
+	String folder();
+
+	/**
+	 * Tells whether the group is hidden from the reports.
+	 *
+	 * @return true if the group is hidden
+	 */
+	boolean hiddenFromReports();
+
+	/**
+	 * Describes a group (for the logs).
+	 *
+	 * @param group the group
+	 * @return the description
+	 */
+	static String describe(DeviceGroup group) {
+		return "Device Group " + group.id() + " (name '" + group.name() + "')";
+	}
 }

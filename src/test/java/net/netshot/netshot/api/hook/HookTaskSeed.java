@@ -19,20 +19,21 @@
 package net.netshot.netshot.api.hook;
 
 import java.net.http.HttpClient;
-import java.util.Date;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.Session;
+import org.jooq.DSLContext;
 
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
@@ -83,52 +84,46 @@ final class HookTaskSeed {
 			String[] parts = entry.split("=");
 			taskIds.put(parts[0], seed.id(parts[1]));
 		}
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Device router1 = session.get(Device.class, seed.id("device.router1"));
-			Device router2 = session.get(Device.class, seed.id("device.router2"));
-			DeviceGroup group = session.get(DeviceGroup.class, seed.id("group.static"));
+		new Transactions().runDsl(dsl -> {
+			DeviceGroup group = new GroupRepository().find(dsl, seed.id("group.static"));
 			long created = ApiContractSeed.D2022 + 10000;
 
-			CheckGroupSoftwareTask groupSoftware = new CheckGroupSoftwareTask(group, "Group software", "tester");
-			taskData(session, groupSoftware, Task.Status.SUCCESS, created, "Software checked");
-			taskIds.put("CheckGroupSoftwareTask", groupSoftware.getId());
+			Task groupSoftware = taskData(dsl, GroupBasedTask.of(new CheckGroupSoftwareTask(group.id(), null), group.name(),
+				"Group software", "tester"), Task.Status.SUCCESS, created, "Software checked");
+			taskIds.put("CheckGroupSoftwareTask", groupSoftware.id());
 
-			RunGroupDiagnosticsTask groupDiagnostics = new RunGroupDiagnosticsTask(group, "Group diagnostics", "tester", true);
-			taskData(session, groupDiagnostics, Task.Status.FAILURE, created + 10000, "Diagnostics failed");
-			taskIds.put("RunGroupDiagnosticsTask", groupDiagnostics.getId());
+			Task groupDiagnostics = taskData(dsl, GroupBasedTask.of(new RunGroupDiagnosticsTask(group.id(), null, true), group.name(),
+				"Group diagnostics", "tester"), Task.Status.FAILURE, created + 10000, "Diagnostics failed");
+			taskIds.put("RunGroupDiagnosticsTask", groupDiagnostics.id());
 
-			RunDeviceGroupScriptTask groupScript = new RunDeviceGroupScriptTask(group, "function run(cli, device) {}",
-				TestDrivers.registry().getDriverByName("CiscoIOS12"), "Group script", "tester");
-			taskData(session, groupScript, Task.Status.SUCCESS, created + 20000, "Group script output");
-			taskIds.put("RunDeviceGroupScriptTask", groupScript.getId());
+			Task groupScript = taskData(dsl, GroupBasedTask.of(new RunDeviceGroupScriptTask(group.id(), null, "function run(cli, device) {}",
+				TestDrivers.registry().getDriverByName("CiscoIOS12").getName(), null, false, false, false), group.name(),
+				"Group script", "tester"), Task.Status.SUCCESS, created + 20000, "Group script output");
+			taskIds.put("RunDeviceGroupScriptTask", groupScript.id());
 
 			// Group task built from a device list instead of a group
-			TakeGroupSnapshotTask listSnapshot = new TakeGroupSnapshotTask(List.of(router1, router2), "List snapshot",
-				"tester", -1, false, false);
-			taskData(session, listSnapshot, Task.Status.SUCCESS, created + 30000, "List snapshot done");
-			taskIds.put("TakeGroupSnapshotTask-devicelist", listSnapshot.getId());
+			Task listSnapshot = taskData(dsl, GroupBasedTask.of(new TakeGroupSnapshotTask(null,
+				List.of(seed.id("device.router1"), seed.id("device.router2")), -1, false, false), null, "List snapshot", "tester"),
+				Task.Status.SUCCESS, created + 30000, "List snapshot done");
+			taskIds.put("TakeGroupSnapshotTask-devicelist", listSnapshot.id());
 
 			// Discovery task which created a device
-			DiscoverDeviceTypeTask discovered = new DiscoverDeviceTypeTask("10.1.1.1", session.get(Domain.class, seed.id("domain.paris")),
-				"Discovered device", "tester");
-			discovered.setDiscoveredDeviceType("CiscoIOS12");
-			discovered.setDiscoverResultDevice(router1);
-			taskData(session, discovered, Task.Status.SUCCESS, created + 40000, "Device created");
-			taskIds.put("DiscoverDeviceTypeTask-result", discovered.getId());
-
-			session.getTransaction().commit();
-		}
+			Task discovered = taskData(dsl, Task.of(DiscoverDeviceTypeTask.builder().deviceAddress("10.1.1.1").domainId(seed.id("domain.paris"))
+				.discoveredDeviceType("CiscoIOS12").discoverResultDeviceId(seed.id("device.router1")).build(),
+				"Discovered device", "10.1.1.1", "tester"), Task.Status.SUCCESS, created + 40000, "Device created");
+			taskIds.put("DiscoverDeviceTypeTask-result", discovered.id());
+		});
 	}
 
-	private static void taskData(Session session, Task task, Task.Status status, long created, String log) {
-		task.setStatus(status);
-		task.setCreationDate(new Date(created));
-		task.setChangeDate(new Date(created + 2000));
-		task.setScheduleReference(new Date(created));
-		task.setExecutionDate(new Date(created + 1000));
-		task.setLogs(log);
-		session.persist(task);
+	private static Task taskData(DSLContext dsl, Task task, Task.Status status, long created, String log) {
+		return new TaskRepository().add(dsl, task.toBuilder()
+			.status(status)
+			.creationDate(Instant.ofEpochMilli(created))
+			.changeDate(Instant.ofEpochMilli(created + 2000))
+			.scheduleReference(Instant.ofEpochMilli(created))
+			.executionDate(Instant.ofEpochMilli(created + 1000))
+			.log(log)
+			.build());
 	}
 
 	/**

@@ -21,13 +21,15 @@ package net.netshot.netshot.task.handler;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
+import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.Snmp;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -36,12 +38,17 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.NetworkAddress;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -54,6 +61,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
+	private final TaskRepository taskRepository = new TaskRepository();
 
 	/**
 	 * Creates the handler.
@@ -70,97 +78,104 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 		return DiscoverDeviceTypeTask.class;
 	}
 
+	// Loads the credential sets to try, by ID
+	private static List<DeviceCredentialSet> loadCredentialSets(DiscoverDeviceTypeTask spec) {
+		if (spec.credentialSetIds().isEmpty()) {
+			return List.of();
+		}
+		return new Transactions().readDsl(dsl -> new CredentialSetRepository().findAll(dsl, spec.credentialSetIds()));
+	}
+
 	@Override
-	public void run(DiscoverDeviceTypeTask task) {
-		log.debug("Task {}. Starting autodiscovery process.", task.getId());
+	public void run(Task task, DiscoverDeviceTypeTask spec, TaskRun run) {
+		log.debug("Task {}. Starting autodiscovery process.", task.id());
 		boolean didTrySnmp = false;
 
+		NetworkAddress address;
 		try {
-			task.setResolvedAddress(NetworkAddress.getNetworkAddress(InetAddress.getByName(task.getDeviceAddress())));
+			address = NetworkAddress.getNetworkAddress(InetAddress.getByName(spec.deviceAddress()));
 		}
 		catch (UnknownHostException e) {
-			log.warn("Task {}. Unable to resolve device address '{}'.", task.getId(), task.getDeviceAddress(), e);
-			task.logger.error("Unable to resolve device address '{}'.", task.getDeviceAddress());
-			task.setStatus(Status.FAILURE);
+			log.warn("Task {}. Unable to resolve device address '{}'.", task.id(), spec.deviceAddress(), e);
+			run.logger.error("Unable to resolve device address '{}'.", spec.deviceAddress());
+			run.setStatus(Status.FAILURE);
 			return;
 		}
 
-		log.trace("Task {}. {} credential sets in the list.", task.getId(), task.getCredentialSets().size());
-		for (DeviceCredentialSet credentialSet : task.getCredentialSets()) {
+		List<DeviceCredentialSet> credentialSets = loadCredentialSets(spec);
+		log.trace("Task {}. {} credential sets in the list.", task.id(), credentialSets.size());
+		String discoveredDeviceType = null;
+		for (DeviceCredentialSet credentialSet : credentialSets) {
 			if (credentialSet instanceof DeviceSnmpv1Community snmpCommunity) {
-				log.trace("Task {}. SNMPv1 credential set.", task.getId());
+				log.trace("Task {}. SNMPv1 credential set.", task.id());
 				didTrySnmp = true;
-				if (this.snmpv1Discover(task, snmpCommunity)) {
-					task.setStatus(Status.SUCCESS);
-					task.setSuccessCredentialSet(credentialSet);
-					break;
-				}
+				discoveredDeviceType = this.snmpv1Discover(task, run, address, snmpCommunity);
 			}
 			else if (credentialSet instanceof DeviceSnmpv2cCommunity snmpCommunity) {
-				log.trace("Task {}. SNMPv2c credential set.", task.getId());
+				log.trace("Task {}. SNMPv2c credential set.", task.id());
 				didTrySnmp = true;
-				if (this.snmpv2cDiscover(task, snmpCommunity)) {
-					task.setStatus(Status.SUCCESS);
-					task.setSuccessCredentialSet(credentialSet);
-					break;
-				}
+				discoveredDeviceType = this.snmpv2cDiscover(task, run, address, snmpCommunity);
 			}
 			else if (credentialSet instanceof DeviceSnmpv3Community snmpCreds) {
-				log.trace("Task {}. SNMPv3 credential set.", task.getId());
+				log.trace("Task {}. SNMPv3 credential set.", task.id());
 				didTrySnmp = true;
-				if (this.snmpv3Discover(task, snmpCreds)) {
-					task.setStatus(Status.SUCCESS);
-					task.setSuccessCredentialSet(credentialSet);
-					break;
-				}
+				discoveredDeviceType = this.snmpv3Discover(task, run, address, snmpCreds);
+			}
+			if (discoveredDeviceType != null) {
+				run.setStatus(Status.SUCCESS);
+				run.setResult(DiscoverDeviceTypeTask.DISCOVERED_DEVICE_TYPE, discoveredDeviceType);
+				break;
 			}
 		}
-		if (task.getStatus() == Status.SUCCESS) {
+		if (run.getStatus() == Status.SUCCESS) {
 			Task snapshotTask = null;
-			Session session = Database.getSession();
-			task.setDiscoverResultDevice(null);
 			Device newDevice = null;
 			try {
-				session.beginTransaction();
-				newDevice = new Device(task.getDiscoveredDeviceType(), task.getDeviceAddress(), task.getDomain(), task.getAuthor());
-				// Create a bare (enabled, no pin) DeviceAccess row for every access the
-				// driver declares, so each is usable via the domain's auto-try pool -
-				// an access with no row at all is never used (see AccessManager).
-				DeviceDriver newDeviceDriver = this.driverRegistry.getDriverByName(task.getDiscoveredDeviceType());
-				if (newDeviceDriver != null) {
-					for (String accessName : newDeviceDriver.getAccessDefinitions().keySet()) {
-						newDevice.getAccesses().add(new DeviceAccess(newDevice, accessName));
+				final String deviceType = discoveredDeviceType;
+				Object[] created = new Transactions().writeDsl(dsl -> {
+					Domain domain = spec.domainId() == null ? null : new DomainRepository().find(dsl, spec.domainId());
+					Device.DeviceBuilder device = Device.create(deviceType, spec.deviceAddress(), domain, task.author()).toBuilder();
+					// Create a bare (enabled, no pin) DeviceAccess row for every access the
+					// driver declares, so each is usable via the domain's auto-try pool -
+					// an access with no row at all is never used (see AccessManager).
+					DeviceDriver newDeviceDriver = this.driverRegistry.getDriverByName(deviceType);
+					if (newDeviceDriver != null) {
+						List<DeviceAccess> accesses = new ArrayList<>();
+						for (String accessName : newDeviceDriver.getAccessDefinitions().keySet()) {
+							accesses.add(DeviceAccess.of(accessName));
+						}
+						device.accesses(accesses);
 					}
-				}
-				if (task.getDeviceComments() != null) {
-					newDevice.setComments(task.getDeviceComments());
-				}
-				newDevice.replaceTags(task.getDeviceTags());
-				task.setDiscoverResultDevice(newDevice);
-				session.persist(newDevice);
-				snapshotTask = new TakeSnapshotTask(newDevice,
-					"Automatic snapshot after discovery", task.getAuthor(), true, false, false);
-				snapshotTask.setPriority(task.getPriority());
-				snapshotTask.setParentTaskId(task.getId());
-				session.persist(snapshotTask);
-				session.getTransaction().commit();
-				task.setSnapshotTaskId(snapshotTask.getId());
+					if (spec.deviceComments() != null) {
+						device.comments(spec.deviceComments());
+					}
+					device.tags(Device.normalizeTags(spec.deviceTags()));
+					Device added = new DeviceRepository().add(dsl, device.build());
+					Task added2 = this.taskRepository.add(dsl, TakeSnapshotTask.of(added,
+						"Automatic snapshot after discovery", task.author(), true, false, false).toBuilder()
+						.priority(task.priority())
+						.parentTaskId(task.id())
+						.build());
+					return new Object[] {added, added2};
+				});
+				newDevice = (Device) created[0];
+				snapshotTask = (Task) created[1];
+				run.setResultDeviceId(newDevice.id());
+				run.setResult(DiscoverDeviceTypeTask.SNAPSHOT_TASK_ID, snapshotTask.id());
 			}
-			catch (HibernateException e) {
-				Database.rollbackSilently(session);
-				log.error("Task {}. Couldn't save the new device.", task.getId(), e);
-				task.logger.error("Database error while adding the device");
+			catch (DataAccessException e) {
+				log.error("Task {}. Couldn't save the new device.", task.id(), e);
+				run.logger.error("Database error while adding the device");
+				newDevice = null;
+				snapshotTask = null;
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while saving the new device or the new task.", task.getId(), e);
-				task.logger.error("Couldn't add the device after discovery");
-			}
-			finally {
-				session.close();
+				log.error("Task {}. Error while saving the new device or the new task.", task.id(), e);
+				run.logger.error("Couldn't add the device after discovery");
 			}
 
 			if (newDevice != null) {
-				DynamicDeviceGroup.refreshAllGroupsOfOneDevice(newDevice);
+				DynamicGroups.refreshAllGroupsOfOneDevice(newDevice.id());
 			}
 
 			try {
@@ -169,110 +184,109 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 				}
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the new snapshot task.", task.getId(), e);
+				log.error("Task {}. Error while registering the new snapshot task.", task.id(), e);
 			}
 
 			return;
 		}
 		if (!didTrySnmp) {
-			log.warn("Task {}. No available SNMP credential set.", task.getId());
-			task.logger.error(
+			log.warn("Task {}. No available SNMP credential set.", task.id());
+			run.logger.error(
 				"No available SNMP credential set... cannot start autodiscovery.");
 		}
-		task.setStatus(Status.FAILURE);
+		run.setStatus(Status.FAILURE);
 	}
 
-	private boolean snmpDiscover(DiscoverDeviceTypeTask task, Snmp poller) {
-		log.debug("Task {}. Trying SNMP discovery.", task.getId());
+	// Polls the device, returns the name of the matching driver (or null)
+	private String snmpDiscover(Task task, TaskRun run, Snmp poller) {
+		log.debug("Task {}. Trying SNMP discovery.", task.id());
 		String sysObjectId;
 		String sysDesc;
 		try {
 			sysDesc = poller.getAsString("1.3.6.1.2.1.1.1.0");
 			sysObjectId = poller.getAsString("1.3.6.1.2.1.1.2.0");
-			task.logger.debug("Got sysDesc = {}", sysDesc);
-			task.logger.debug("Got sysObjectID = {}", sysObjectId);
+			run.logger.debug("Got sysDesc = {}", sysDesc);
+			run.logger.debug("Got sysObjectID = {}", sysObjectId);
 			log.trace("Got sysDesc '{}' and sysObjectID '{}'.", sysDesc,
 				sysObjectId);
 
 			// Iterates over possible device classes
 			for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
-				if (driver.snmpAutoDiscover(task, sysObjectId, sysDesc, task.logger)) {
-					log.trace("The driver {} did accept the OID.", driver.getName());
-					task.setDiscoveredDeviceType(driver.getName());
-					return true;
+				if (driver.snmpAutoDiscover(sysObjectId, sysDesc, run.logger)) {
+					return driver.getName();
 				}
 			}
 		}
 		catch (IOException e) {
 			log.warn("Error while polling the device via SNMP.", e);
-			task.logger.error("Error while polling the device via SNMP.");
+			run.logger.error("Error while polling the device via SNMP.");
 		}
 		finally {
 			try {
 				poller.stop();
 			}
 			catch (IOException e) {
+				// Ignore
 			}
 		}
 		log.debug("No driver has accepted the OID.");
-		return false;
+		return null;
 	}
 
-	private boolean snmpv1Discover(DiscoverDeviceTypeTask task, DeviceSnmpCommunity community) {
+	private String snmpv1Discover(Task task, TaskRun run, NetworkAddress address, DeviceSnmpCommunity community) {
 		log.trace("Task {}. SNMPv1 discovery with credential set {}.",
-			task.getId(), community.getName());
-		task.logger.trace("Trying SNMPv1 discovery (credentials {})", community.getName());
+			task.id(), community.name());
+		run.logger.trace("Trying SNMPv1 discovery (credentials {})", community.name());
 		try {
-			Snmp poller = new Snmp(task.getResolvedAddress(), community);
-			return this.snmpDiscover(task, poller);
+			Snmp poller = new Snmp(address, community);
+			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
-			log.warn("Task {}. SNMPv1 unknown host error.", task.getId(), e);
-			task.logger.warn("SNMPv1 unknown host error: {}", e.getMessage());
+			log.warn("Task {}. SNMPv1 unknown host error.", task.id(), e);
+			run.logger.warn("SNMPv1 unknown host error: {}", e.getMessage());
 		}
 		catch (Exception e) {
-			log.error("Task {}. SNMPv1 error while polling the device.", task.getId(), e);
-			task.logger.warn("Error while SNMPv1 polling the device: {}", e.getMessage());
+			log.error("Task {}. SNMPv1 error while polling the device.", task.id(), e);
+			run.logger.warn("Error while SNMPv1 polling the device: {}", e.getMessage());
 		}
-		return false;
+		return null;
 	}
 
-	private boolean snmpv2cDiscover(DiscoverDeviceTypeTask task, DeviceSnmpCommunity community) {
+	private String snmpv2cDiscover(Task task, TaskRun run, NetworkAddress address, DeviceSnmpCommunity community) {
 		log.trace("Task {}. SNMPv2c discovery with credential set {}.",
-			task.getId(), community.getName());
-		task.logger.trace("Trying SNMPv2c discovery (credential set {})", community.getName());
+			task.id(), community.name());
+		run.logger.trace("Trying SNMPv2c discovery (credential set {})", community.name());
 		try {
-			Snmp poller = new Snmp(task.getResolvedAddress(), community);
-			return this.snmpDiscover(task, poller);
+			Snmp poller = new Snmp(address, community);
+			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
-			log.warn("Task {}. SNMPv2 unknown host error.", task.getId(), e);
-			task.logger.warn("SNMPv2 unknown host error: {}", e.getMessage());
+			log.warn("Task {}. SNMPv2 unknown host error.", task.id(), e);
+			run.logger.warn("SNMPv2 unknown host error: {}", e.getMessage());
 		}
 		catch (Exception e) {
-			log.error("Task {}. SNMPv2 error while polling the device.", task.getId(), e);
-			task.logger.warn("Error while SNMPv2 polling the device: {}", e.getMessage());
+			log.error("Task {}. SNMPv2 error while polling the device.", task.id(), e);
+			run.logger.warn("Error while SNMPv2 polling the device: {}", e.getMessage());
 		}
-		return false;
+		return null;
 	}
 
-	private boolean snmpv3Discover(DiscoverDeviceTypeTask task, DeviceSnmpv3Community cred) {
+	private String snmpv3Discover(Task task, TaskRun run, NetworkAddress address, DeviceSnmpv3Community cred) {
 		log.trace("Task {}. SNMPv3 discovery with credential set {}.",
-			task.getId(), cred.getName());
-		task.logger.trace("Trying SNMPv3 discovery (credentials {})", cred.getName());
+			task.id(), cred.name());
+		run.logger.trace("Trying SNMPv3 discovery (credentials {})", cred.name());
 		try {
-			Snmp poller = new Snmp(task.getResolvedAddress(), cred);
-			return this.snmpDiscover(task, poller);
+			Snmp poller = new Snmp(address, cred);
+			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
-			log.warn("Task {}. SNMPv3 unknown host error.", task.getId(), e);
-			task.logger.warn("SNMPv3 unknown host error: {}", e.getMessage());
+			log.warn("Task {}. SNMPv3 unknown host error.", task.id(), e);
+			run.logger.warn("SNMPv3 unknown host error: {}", e.getMessage());
 		}
 		catch (Exception e) {
-			log.error("Task {}. SNMPv3 error while polling the device.", task.getId(), e);
-			task.logger.warn("Error while SNMPv3 polling the device: {}", e.getMessage());
+			log.error("Task {}. SNMPv3 error while polling the device.", task.id(), e);
+			run.logger.warn("Error while SNMPv3 polling the device: {}", e.getMessage());
 		}
-		return false;
+		return null;
 	}
-
 }

@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 
 /**
  * The registry of the loaded device drivers: lookups by name or description, and the global hash of
@@ -83,13 +84,36 @@ public class DriverRegistry {
 	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
 	 */
 	public DeviceDriver forDevice(Device device) throws MissingDeviceDriverException {
-		if (device.getDriver() == null) {
-			String message = String.format("The device with ID %d has no associated driver.", device.getId());
+		return this.forDevice(device.id(), device.driver());
+	}
+
+	/**
+	 * Gets the driver of a device being worked on.
+	 *
+	 * @param device the device
+	 * @return the driver of the device
+	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
+	 */
+	public DeviceDriver forDevice(DeviceDraft device) throws MissingDeviceDriverException {
+		return this.forDevice(device.getId(), device.getDriver());
+	}
+
+	/**
+	 * Gets the driver of a device.
+	 *
+	 * @param deviceId the ID of the device
+	 * @param driverName the name of the driver of the device
+	 * @return the driver of the device
+	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
+	 */
+	public DeviceDriver forDevice(long deviceId, String driverName) throws MissingDeviceDriverException {
+		if (driverName == null) {
+			String message = String.format("The device with ID %d has no associated driver.", deviceId);
 			throw new MissingDeviceDriverException(message);
 		}
-		DeviceDriver deviceDriver = this.getDriverByName(device.getDriver());
+		DeviceDriver deviceDriver = this.getDriverByName(driverName);
 		if (deviceDriver == null) {
-			String message = String.format("Unable to locate the driver %s for device %d.", device.getDriver(), device.getId());
+			String message = String.format("Unable to locate the driver %s for device %d.", driverName, deviceId);
 			throw new MissingDeviceDriverException(message);
 		}
 		return deviceDriver;

@@ -29,16 +29,15 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.compliance.rules.PythonRule;
+import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -84,7 +83,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	 */
 	private static Source getSource(PythonRule rule) {
 		return Source
-			.newBuilder("python", rule.getScript(), "_rule%d.py".formatted(rule.getId()))
+			.newBuilder("python", rule.script(), "_rule%d.py".formatted(rule.id()))
 			.cached(false).buildLiteral();
 	}
 
@@ -118,9 +117,9 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	}
 
 	@Override
-	public CheckResult evaluate(PythonRule rule, Device device, Session session, TaskContext taskContext) {
-		if (!rule.isEnabled()) {
-			return new CheckResult(rule, device, ResultOption.DISABLED);
+	public CheckResult evaluate(PythonRule rule, DeviceDraft device, boolean exempted, TaskContext taskContext) {
+		if (!rule.enabled()) {
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.DISABLED);
 		}
 
 		// The script top-level code, the check function and the context closing (which runs the
@@ -144,13 +143,13 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 				}, deadline);
 				boolean pyValid = this.prepare(rule, context, taskContext);
 				if (!pyValid) {
-					checkResult = new CheckResult(rule, device, ResultOption.INVALIDRULE);
+					checkResult = CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE);
 				}
-				else if (device.isExempted(rule)) {
-					checkResult = new CheckResult(rule, device, ResultOption.EXEMPTED);
+				else if (exempted) {
+					checkResult = CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 				}
 				else {
-					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, device, session, taskContext, true);
+					PyDeviceHelper deviceHelper = new PyDeviceHelper(this.driverRegistry, device, taskContext, true);
 					Value result = runBeforeDeadline(executor,
 						() -> ctx.getBindings("python").getMember("_check").execute(deviceHelper), deadline);
 					checkResult = this.toCheckResult(rule, result, device, taskContext);
@@ -169,7 +168,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 				}
 				taskContext.error(
 					"The rule took too long to execute (check for endless loop in the script or adjust netshot.python.maxexecutiontime value)");
-				return new CheckResult(rule, device, CheckResult.ResultOption.INVALIDRULE,
+				return CheckResult.of(rule.id(), device.getId(), CheckResult.ResultOption.INVALIDRULE,
 					"The rule took too long to execute");
 			}
 			return checkResult;
@@ -191,7 +190,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 			executor.shutdownNow();
 			taskContext.debug("End of check");
 		}
-		return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+		return CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE);
 	}
 
 	/**
@@ -202,7 +201,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	 * @param taskContext the task context
 	 * @return the check result
 	 */
-	private CheckResult toCheckResult(PythonRule rule, Value result, Device device, TaskContext taskContext) {
+	private CheckResult toCheckResult(PythonRule rule, Value result, DeviceDraft device, TaskContext taskContext) {
 		String txtResult = null;
 		String comment = "";
 		if (result.isString()) {
@@ -222,10 +221,10 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 			if (allowedResult.toString().equals(txtResult)) {
 				taskContext.info("The script returned {} ({}), comment '{}'.",
 					allowedResult.toString(), allowedResult.getValue(), comment);
-				return new CheckResult(rule, device, allowedResult, comment);
+				return CheckResult.of(rule.id(), device.getId(), allowedResult, comment);
 			}
 		}
-		return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+		return CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE);
 	}
 
 	/**

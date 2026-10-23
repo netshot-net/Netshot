@@ -60,7 +60,7 @@ public final class OptionDefinition {
 	 * Default value, typed to match {@link #type}: a {@link Boolean} for
 	 * BOOLEAN, a {@link String} for TEXT - never a stringified "true"/
 	 * "false", so it can be stored and returned as real JSON, matching how
-	 * {@link net.netshot.netshot.inventory.device.Device#getOptions()} persists values.
+	 * {@link net.netshot.netshot.inventory.device.Device#options()} persists values.
 	 */
 	@Getter
 	@Setter

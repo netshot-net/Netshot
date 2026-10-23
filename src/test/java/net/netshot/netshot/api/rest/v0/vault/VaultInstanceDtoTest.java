@@ -22,6 +22,8 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.RecordComponent;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -65,24 +67,25 @@ class VaultInstanceDtoTest {
 	private final DtoContract contract = new DtoContract(VaultInstanceDtoTest.class);
 
 	private static HashicorpVaultKv2Instance full() {
-		HashicorpVaultKv2Instance instance = new HashicorpVaultKv2Instance("Main vault");
-		instance.setId(3);
-		instance.setChangeDate(new Date(1_600_000_000_000L));
-		instance.setBaseUrl("https://vault.example.net:8200");
-		instance.setNamespace("netshot");
-		instance.setHttpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA);
-		instance.setHttpsCustomCaCertificate("-----BEGIN CERTIFICATE-----");
-		instance.setKvMountPath("kv");
-		instance.setAuthMethod(AuthMethod.JWT);
-		instance.setAppRoleMountPath("approle-2");
-		instance.setAppRoleId("role-1234");
-		instance.setAppRoleSecretId(APPROLE_SECRET);
-		instance.setJwtMountPath("jwt-2");
-		instance.setJwtIdpTokenEndpoint("https://idp.example.net/token");
-		instance.setJwtClientId("netshot");
-		instance.setJwtClientSecret(JWT_SECRET);
-		instance.setJwtVaultRole("netshot-role");
-		instance.setJwtScope("vault");
+		HashicorpVaultKv2Instance instance = HashicorpVaultKv2Instance.builder("Main vault")
+			.id(3)
+			.changeDate(Instant.ofEpochMilli(1_600_000_000_000L))
+			.baseUrl("https://vault.example.net:8200")
+			.namespace("netshot")
+			.httpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA)
+			.httpsCustomCaCertificate("-----BEGIN CERTIFICATE-----")
+			.kvMountPath("kv")
+			.authMethod(AuthMethod.JWT)
+			.appRoleMountPath("approle-2")
+			.appRoleId("role-1234")
+			.appRoleSecretId(APPROLE_SECRET)
+			.jwtMountPath("jwt-2")
+			.jwtIdpTokenEndpoint("https://idp.example.net/token")
+			.jwtClientId("netshot")
+			.jwtClientSecret(JWT_SECRET)
+			.jwtVaultRole("netshot-role")
+			.jwtScope("vault")
+			.build();
 		return instance;
 	}
 
@@ -107,7 +110,7 @@ class VaultInstanceDtoTest {
 	void representation() throws Exception {
 		HashicorpVaultKv2Instance full = full();
 		this.assertRepresentation(VaultInstanceMapper.toDto(full));
-		HashicorpVaultKv2Instance bare = new HashicorpVaultKv2Instance("Bare");
+		HashicorpVaultKv2Instance bare = HashicorpVaultKv2Instance.builder("Bare").build();
 		this.assertRepresentation(VaultInstanceMapper.toDto(bare));
 
 		List<VaultInstance> entities = new ArrayList<>(List.of(full, bare));
@@ -132,7 +135,7 @@ class VaultInstanceDtoTest {
 		Assertions.assertTrue(text.contains("\"appRoleSecretId\":\"=\""), text);
 		Assertions.assertTrue(text.contains("\"jwtClientSecret\":\"=\""), text);
 		Assertions.assertTrue(text.contains("\"appRoleId\":\"role-1234\""), "the role ID is not a secret: " + text);
-		String bare = new String(json(VaultInstanceMapper.toDto(new HashicorpVaultKv2Instance("Bare"))));
+		String bare = new String(json(VaultInstanceMapper.toDto(HashicorpVaultKv2Instance.builder("Bare").build())));
 		Assertions.assertTrue(bare.contains("\"appRoleSecretId\":null"), "a missing secret stays null: " + bare);
 	}
 
@@ -142,6 +145,13 @@ class VaultInstanceDtoTest {
 
 	private static Map<String, Object> describe(Object bean) throws IntrospectionException, ReflectiveOperationException {
 		Map<String, Object> description = new TreeMap<>();
+		if (bean instanceof Record record) {
+			// The components of the record are the properties of the former entity
+			for (RecordComponent component : record.getClass().getRecordComponents()) {
+				description.put(component.getName(), component.getAccessor().invoke(record));
+			}
+			return description;
+		}
 		for (PropertyDescriptor property : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
 			if (property.getReadMethod() == null || "class".equals(property.getName())) {
 				continue;
@@ -218,16 +228,16 @@ class VaultInstanceDtoTest {
 	void requestDefaults() throws Exception {
 		HashicorpVaultKv2Instance minimal = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(
 			JSON.readerFor(VaultInstanceRequest.class).readValue("{\"type\": \"Vault KV v2\", \"name\": \"n\"}"));
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.getHttpsCaTrustMode());
-		Assertions.assertEquals("secret", minimal.getKvMountPath());
-		Assertions.assertEquals("approle", minimal.getAppRoleMountPath());
-		Assertions.assertEquals("jwt", minimal.getJwtMountPath());
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, minimal.httpsCaTrustMode());
+		Assertions.assertEquals("secret", minimal.kvMountPath());
+		Assertions.assertEquals("approle", minimal.appRoleMountPath());
+		Assertions.assertEquals("jwt", minimal.jwtMountPath());
 		HashicorpVaultKv2Instance masked = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
 			.readValue("{" + BASE + ", \"appRoleSecretId\": \"=\", \"jwtClientSecret\": \"=\"}"));
-		Assertions.assertNull(masked.getAppRoleSecretId());
-		Assertions.assertNull(masked.getJwtClientSecret());
+		Assertions.assertNull(masked.appRoleSecretId());
+		Assertions.assertNull(masked.jwtClientSecret());
 		HashicorpVaultKv2Instance given = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
 			.readValue("{" + BASE + ", \"appRoleSecretId\": \"new\"}"));
-		Assertions.assertEquals("new", given.getAppRoleSecretId());
+		Assertions.assertEquals("new", given.appRoleSecretId());
 	}
 }

@@ -20,12 +20,13 @@ package net.netshot.netshot.driver;
 
 import java.lang.reflect.Field;
 
-import net.netshot.netshot.access.Telnet;
-import net.netshot.netshot.testing.UnitTest;
-import net.netshot.netshot.testing.fake.FakeTaskContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import net.netshot.netshot.access.Telnet;
+import net.netshot.netshot.testing.UnitTest;
+import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 @UnitTest
 @DisplayName("Telnet config merge test")

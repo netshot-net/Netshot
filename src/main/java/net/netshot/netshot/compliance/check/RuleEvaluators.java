@@ -22,13 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.Hibernate;
-import org.hibernate.Session;
-
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -51,7 +48,7 @@ public final class RuleEvaluators {
 				throw new IllegalStateException("Several evaluators for the rule type " + evaluator.ruleType().getSimpleName());
 			}
 		}
-		for (Class<? extends Rule> ruleClass : Rule.getRuleClasses()) {
+		for (Class<?> ruleClass : Rule.class.getPermittedSubclasses()) {
 			if (!this.evaluators.containsKey(ruleClass)) {
 				throw new IllegalStateException("No evaluator for the rule type " + ruleClass.getSimpleName());
 			}
@@ -77,13 +74,13 @@ public final class RuleEvaluators {
 	 * Gets the evaluator of a rule.
 	 *
 	 * @param <R> the type of rule
-	 * @param rule the rule (a proxy is accepted)
+	 * @param rule the rule
 	 * @return the evaluator for the type of the rule
 	 * @throws IllegalStateException if the type of the rule has no evaluator
 	 */
 	@SuppressWarnings("unchecked")
 	public <R extends Rule> RuleEvaluator<R> forRule(R rule) {
-		Class<?> ruleClass = Hibernate.unproxy(rule).getClass();
+		Class<?> ruleClass = rule.getClass();
 		RuleEvaluator<? extends Rule> evaluator = this.evaluators.get(ruleClass);
 		if (evaluator == null) {
 			throw new IllegalStateException("No evaluator for the rule type " + ruleClass.getSimpleName());
@@ -94,16 +91,15 @@ public final class RuleEvaluators {
 	/**
 	 * Checks the device against the rule, with the evaluator of the type of the rule.
 	 *
-	 * @param rule the rule (a proxy is accepted)
+	 * @param rule the rule
 	 * @param device the device
-	 * @param session the session
+	 * @param exempted true if the device is exempted from the rule
 	 * @param taskContext the task context
 	 * @return the result of the check
 	 * @throws IllegalStateException if the type of the rule has no evaluator
 	 */
-	public CheckResult evaluate(Rule rule, Device device, Session session, TaskContext taskContext) {
-		Rule realRule = (Rule) Hibernate.unproxy(rule);
-		return this.forRule(realRule).evaluate(realRule, device, session, taskContext);
+	public CheckResult evaluate(Rule rule, DeviceDraft device, boolean exempted, TaskContext taskContext) {
+		return this.forRule(rule).evaluate(rule, device, exempted, taskContext);
 	}
 
 }

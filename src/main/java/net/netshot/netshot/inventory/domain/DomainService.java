@@ -21,15 +21,14 @@ package net.netshot.netshot.inventory.domain;
 import java.net.UnknownHostException;
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.exception.ConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -38,8 +37,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * The domain use cases: list, add, edit and delete the device domains.
  *
- * <p>The domains it returns are detached entities: a domain has no association to load for
- * its representation.</p>
+ * <p>The domains it returns are records: a domain has no association to load for its representation.</p>
  */
 @Slf4j
 public class DomainService {
@@ -70,9 +68,9 @@ public class DomainService {
 	 */
 	public List<Domain> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findAll(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the domains.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the domains");
 		}
@@ -93,22 +91,23 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
 		}
 		String description = definition.description() == null ? "" : definition.description().trim();
-		Domain domain;
+		Domain definedDomain;
 		try {
 			Network4Address v4Address = parseServerAddress(definition.server4Address());
 			Network6Address v6Address = new Network6Address("::");
-			domain = new Domain(name, description, v4Address, v6Address);
+			definedDomain = Domain.builder().name(name).description(description).server4Address(v4Address).server6Address(v6Address).build();
 		}
 		catch (UnknownHostException e) {
 			log.warn("User posted an invalid IP address.");
 			throw new NetshotException(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, "Malformed IP address");
 		}
+		Domain domain;
 		try {
-			this.transactions.run(session -> this.repository.add(session, domain));
+			domain = this.transactions.writeDsl(dsl -> this.repository.add(dsl, definedDomain));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while adding a domain.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, "A domain with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the domain to the database");
@@ -143,25 +142,26 @@ public class DomainService {
 		}
 		Domain domain;
 		try {
-			domain = this.transactions.write(session -> {
-				Domain existing = this.repository.find(session, id);
+			domain = this.transactions.writeDsl(dsl -> {
+				Domain existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
-				existing.setName(name);
-				existing.setDescription(description);
-				existing.setServer4Address(v4Address);
-				return existing;
+				return this.repository.save(dsl, existing.toBuilder()
+					.name(name)
+					.description(description)
+					.server4Address(v4Address)
+					.build());
 			});
 		}
 		catch (NetshotException e) {
 			log.error("Cannot edit the domain.", e);
 			throw e;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while editing the domain.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DOMAIN, "A domain with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the domain... is the name already in use?");
@@ -179,17 +179,15 @@ public class DomainService {
 	 */
 	public void delete(long id) {
 		try {
-			this.transactions.run(session -> {
-				Domain domain = this.repository.find(session, id);
-				if (domain == null) {
+			this.transactions.runDsl(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
-				this.repository.remove(session, domain);
 			});
 		}
-		catch (HibernateException e) {
-			if (e instanceof ConstraintViolationException) {
+		catch (DataAccessException e) {
+			if (DatabaseErrors.isForeignKeyViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_IN_USE,
 					"Unable to delete the domain, there must be devices or credential sets using it.");
 			}

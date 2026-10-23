@@ -18,8 +18,6 @@
  */
 package net.netshot.netshot.task.handler;
 
-import org.hibernate.Session;
-
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.devicescript.DeviceScript;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
@@ -28,12 +26,15 @@ import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
@@ -47,6 +48,8 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
+	private final Transactions transactions = new Transactions();
+	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/**
 	 * Creates the handler.
@@ -64,87 +67,88 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	}
 
 	@Override
-	public void run(TakeSnapshotTask task) {
-		Device device = task.getDevice();
-		log.debug("Task {}. Starting snapshot task for device {}.", task.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			task.logger.info("The device doesn't exist, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, TakeSnapshotTask spec, TaskRun run) {
+		Long deviceId = spec.deviceId();
+		Device device = null;
+		log.debug("Task {}. Starting snapshot task for device {}.", task.id(),
+			deviceId);
+		if (deviceId == null) {
+			run.logger.info("The device doesn't exist, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		Session session = Database.getSession();
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, task.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, run.logger);
 		try {
-			session.beginTransaction();
 			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			task.setDevice(device);
-			task.logger.info("Snapshot task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (device.getStatus() != Device.Status.INPRODUCTION) {
-				log.trace("Task {}. Device not INPRODUCTION, stopping the snapshot task.", task.getId());
-				task.logger.warn("The device is not enabled (not in production).");
-				task.setStatus(Status.CANCELLED);
+			device = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			if (device == null) {
+				throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
+			}
+			run.logger.info("Snapshot task for device {} ({}).",
+				device.name(), device.mgmtAddress());
+			if (device.status() != Device.Status.INPRODUCTION) {
+				log.trace("Task {}. Device not INPRODUCTION, stopping the snapshot task.", task.id());
+				run.logger.warn("The device is not enabled (not in production).");
+				run.setStatus(Status.CANCELLED);
 				return;
 			}
-			deviceScript.connectRun(session, device);
-			session.persist(device);
-			session.getTransaction().commit();
-			Config lastConfig = device.getLastConfig();
-			if (lastConfig != null) {
-				for (ConfigAttribute ca : lastConfig.getAttributes()) {
+			DeviceDraft draft = new DeviceDraft(device);
+			deviceScript.connectRun(draft);
+			Config newConfig = this.transactions.writeDsl(dsl -> this.deviceRepository.saveDraft(dsl, draft));
+			device = newConfig == null ? draft.toDevice() : draft.toDevice().toBuilder().lastConfigId(newConfig.id()).build();
+			if (newConfig != null) {
+				for (ConfigAttribute ca : newConfig.attributes()) {
 					if (ca instanceof ConfigBinaryFileAttribute cbfa) {
-						cbfa.finalizeStorage();
+						cbfa.finalizeStorage(deviceId, newConfig.id());
 					}
 				}
 			}
-			task.setStatus(Status.SUCCESS);
+			run.setStatus(Status.SUCCESS);
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while taking the snapshot.", task.getId(), e);
-			task.logger.error("Error while taking the snapshot: {}", e.getMessage());
-			task.setStatus(Status.FAILURE);
+			log.error("Task {}. Error while taking the snapshot.", task.id(), e);
+			run.logger.error("Error while taking the snapshot: {}", e.getMessage());
+			run.setStatus(Status.FAILURE);
 			return;
 		}
 		finally {
 			try {
-				task.attachDebugLog();
+				run.attachDebugLog();
 			}
 			catch (Exception e1) {
-				log.error("Task {}. Error while saving the debug logs.", task.getId(), e1);
+				log.error("Task {}. Error while saving the debug logs.", task.id(), e1);
 			}
-			session.close();
-			if (task.isAutomatic()) {
-				AutoSnapshotScheduler.clearScheduledAutoSnapshot(task.getDevice().getId());
+			if (spec.automatic()) {
+				AutoSnapshotScheduler.clearScheduledAutoSnapshot(deviceId);
 			}
 		}
 
-		log.debug("Task {}. Request to refresh all the groups for the device after the snapshot.", task.getId());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
+		log.debug("Task {}. Request to refresh all the groups for the device after the snapshot.", task.id());
+		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
-		if (!task.isDontRunDiagnostics()) {
+		if (!spec.dontRunDiagnostics()) {
 			try {
-				Task diagTask = new RunDiagnosticsTask(device, "Run diagnostics after device snapshot", "Auto", task.isDontCheckCompliance());
-				diagTask.setPriority(task.getPriority());
-				diagTask.setParentTaskId(task.getId());
+				Task diagTask = RunDiagnosticsTask.of(device, "Run diagnostics after device snapshot", "Auto", spec.dontCheckCompliance()).toBuilder()
+					.priority(task.priority())
+					.parentTaskId(task.id())
+					.build();
 				this.taskSubmitter.submit(diagTask);
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the diagnostic task.", task.getId(), e);
+				log.error("Task {}. Error while registering the diagnostic task.", task.id(), e);
 			}
 
 		}
-		else if (!task.isDontCheckCompliance()) {
+		else if (!spec.dontCheckCompliance()) {
 			try {
-				Task checkTask = new CheckComplianceTask(device, "Check compliance after device snapshot", "Auto");
-				checkTask.setPriority(task.getPriority());
-				checkTask.setParentTaskId(task.getId());
+				Task checkTask = CheckComplianceTask.of(device, "Check compliance after device snapshot", "Auto").toBuilder()
+					.priority(task.priority())
+					.parentTaskId(task.id())
+					.build();
 				this.taskSubmitter.submit(checkTask);
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the check compliance task.", task.getId(), e);
+				log.error("Task {}. Error while registering the check compliance task.", task.id(), e);
 			}
 		}
 	}

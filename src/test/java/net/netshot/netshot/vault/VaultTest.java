@@ -18,9 +18,6 @@
  */
 package net.netshot.netshot.vault;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -32,10 +29,14 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.vault.VaultContainer;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
 @DatabaseTest(boot = Boot.MANUAL)
@@ -152,38 +153,20 @@ public class VaultTest {
 
 		@BeforeAll
 		static void initDatabaseAndVaultInstance() throws Exception {
-			HashicorpVaultKv2Instance vaultInstance = new HashicorpVaultKv2Instance("test-vault");
-			vaultInstance.setBaseUrl(VAULT_CONTAINER.getHttpHostAddress());
-			vaultInstance.setKvMountPath("secret");
-			vaultInstance.setAuthMethod(AuthMethod.APPROLE);
-			vaultInstance.setAppRoleId(ROLE_ID);
-			vaultInstance.setAppRoleSecretId(SECRET_ID);
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.persist(vaultInstance);
-				session.getTransaction().commit();
-			}
-			vaultInstanceId = vaultInstance.getId();
+			HashicorpVaultKv2Instance vaultInstance = HashicorpVaultKv2Instance.builder("test-vault")
+				.baseUrl(VAULT_CONTAINER.getHttpHostAddress())
+				.kvMountPath("secret")
+				.authMethod(AuthMethod.APPROLE)
+				.appRoleId(ROLE_ID)
+				.appRoleSecretId(SECRET_ID)
+				.build();
+			vaultInstanceId = new Transactions().writeDsl(dsl -> new VaultInstanceRepository().add(dsl, vaultInstance)).id();
 
-			DeviceSshAccount account = new DeviceSshAccount(null, null, LOCAL_SUPER_PASSWORD, "vault-test-account");
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				HashicorpVaultKv2Instance reloadedInstance = session.get(HashicorpVaultKv2Instance.class, vaultInstanceId);
-
-				VaultableSecret usernameSecret = new VaultableSecret();
-				usernameSecret.setVaultInstance(reloadedInstance);
-				usernameSecret.setVaultPath(SECRET_PATH + "/username");
-				account.setUsernameSecret(usernameSecret);
-
-				VaultableSecret passwordSecret = new VaultableSecret();
-				passwordSecret.setVaultInstance(reloadedInstance);
-				passwordSecret.setVaultPath(SECRET_PATH + "/password");
-				account.setPasswordSecret(passwordSecret);
-
-				session.persist(account);
-				session.getTransaction().commit();
-			}
-			accountId = account.getId();
+			DeviceSshAccount account = DeviceSshAccount.builder().superPassword(LOCAL_SUPER_PASSWORD).name("vault-test-account")
+				.usernameVaultInstanceId(vaultInstanceId).usernameVaultPath(SECRET_PATH + "/username")
+				.passwordVaultInstanceId(vaultInstanceId).passwordVaultPath(SECRET_PATH + "/password")
+				.build();
+			accountId = TestDevices.addCredentialSet(account).id();
 		}
 
 		/**
@@ -191,9 +174,7 @@ public class VaultTest {
 		 * @return the reloaded account
 		 */
 		private DeviceSshAccount reloadAccount() {
-			try (Session session = Database.getSession(true)) {
-				return session.get(DeviceSshAccount.class, accountId);
-			}
+			return (DeviceSshAccount) TestDevices.findCredentialSet(accountId);
 		}
 
 		@Test
@@ -201,8 +182,8 @@ public class VaultTest {
 		void resolvesVaultBackedFields() throws VaultException {
 			DeviceSshAccount account = this.reloadAccount();
 
-			Assertions.assertEquals("vaultadmin", VaultManager.resolve(account.getUsernameSecret()));
-			Assertions.assertEquals("Sup3rS3cr3tPassword!", VaultManager.resolve(account.getPasswordSecret()));
+			Assertions.assertEquals("vaultadmin", VaultManager.resolve(account.usernameSecret()));
+			Assertions.assertEquals("Sup3rS3cr3tPassword!", VaultManager.resolve(account.passwordSecret()));
 		}
 
 		@Test
@@ -210,41 +191,31 @@ public class VaultTest {
 		void resolvesLocalFieldUnaffected() throws VaultException {
 			DeviceSshAccount account = this.reloadAccount();
 
-			Assertions.assertFalse(account.getSuperPasswordSecret().isVaultBacked());
-			Assertions.assertEquals(LOCAL_SUPER_PASSWORD, VaultManager.resolve(account.getSuperPasswordSecret()));
+			Assertions.assertFalse(account.superPasswordSecret().isVaultBacked());
+			Assertions.assertEquals(LOCAL_SUPER_PASSWORD, VaultManager.resolve(account.superPasswordSecret()));
 		}
 
 		@Test
 		@DisplayName("Resolution fails fast when the key doesn't exist at the Vault path")
 		void resolutionFailsForMissingKey() {
-			try (Session session = Database.getSession(true)) {
-				HashicorpVaultKv2Instance reloadedInstance = session.get(HashicorpVaultKv2Instance.class, vaultInstanceId);
-				VaultableSecret missingKeySecret = new VaultableSecret();
-				missingKeySecret.setVaultInstance(reloadedInstance);
-				missingKeySecret.setVaultPath(SECRET_PATH + "/no-such-key");
+			VaultableSecret missingKeySecret = new VaultableSecret(null, vaultInstanceId, SECRET_PATH + "/no-such-key");
 
-				Assertions.assertThrows(VaultException.class, () -> VaultManager.resolve(missingKeySecret));
-			}
+			Assertions.assertThrows(VaultException.class, () -> VaultManager.resolve(missingKeySecret));
 		}
 
 		@Test
 		@DisplayName("Resolution fails fast with wrong AppRole credentials")
 		void resolutionFailsForWrongCredentials() {
-			HashicorpVaultKv2Instance wrongInstance = new HashicorpVaultKv2Instance("test-vault-bad-creds");
-			wrongInstance.setBaseUrl(VAULT_CONTAINER.getHttpHostAddress());
-			wrongInstance.setKvMountPath("secret");
-			wrongInstance.setAuthMethod(AuthMethod.APPROLE);
-			wrongInstance.setAppRoleId(ROLE_ID);
-			wrongInstance.setAppRoleSecretId("not-the-right-secret-id");
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.persist(wrongInstance);
-				session.getTransaction().commit();
-			}
+			HashicorpVaultKv2Instance wrongInstance = HashicorpVaultKv2Instance.builder("test-vault-bad-creds")
+				.baseUrl(VAULT_CONTAINER.getHttpHostAddress())
+				.kvMountPath("secret")
+				.authMethod(AuthMethod.APPROLE)
+				.appRoleId(ROLE_ID)
+				.appRoleSecretId("not-the-right-secret-id")
+				.build();
+			long wrongInstanceId = new Transactions().writeDsl(dsl -> new VaultInstanceRepository().add(dsl, wrongInstance)).id();
 
-			VaultableSecret secret = new VaultableSecret();
-			secret.setVaultInstance(wrongInstance);
-			secret.setVaultPath(SECRET_PATH + "/username");
+			VaultableSecret secret = new VaultableSecret(null, wrongInstanceId, SECRET_PATH + "/username");
 
 			Assertions.assertThrows(VaultException.class, () -> VaultManager.resolve(secret));
 		}

@@ -18,153 +18,97 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.util.Date;
+import java.time.Instant;
+import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * The Class HardwareRule.
+ * A hardware compliance rule: the end-of-sale and end-of-life dates of the modules matching it
+ * (driver and family of the device, part number of the module).
+ *
+ * @param id the ID (0 for a rule not stored yet)
+ * @param driver the name of the driver of the devices (null for any)
+ * @param targetGroupId the ID of the group the rule applies to (null for all the devices)
+ * @param family the family of the devices (empty for any)
+ * @param familyRegExp true if the family is a regular expression
+ * @param partNumber the part number of the modules
+ * @param partNumberRegExp true if the part number is a regular expression
+ * @param endOfSale the end-of-sale date of the matching modules
+ * @param endOfLife the end-of-life date of the matching modules
  */
-@Entity
-public class HardwareRule {
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The device class. */
-	@Getter
-	@Setter
-	private String driver;
-
-	/** The target group. */
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.SET_NULL)
-	}))
-	@Setter
-	private DeviceGroup targetGroup;
-
-	/** The family. */
-	@Getter
-	@Setter
-	private String family = "";
-
-	/** The family reg exp. */
-	@Getter
-	@Setter
-	private boolean familyRegExp;
-
-	/** The part number. */
-	@Getter
-	@Setter
-	private String partNumber;
-
-	/** The part number reg exp. */
-	@Getter
-	@Setter
-	private boolean partNumberRegExp;
-
-	/** The end of sale. */
-	@Getter
-	@Setter
-	private Date endOfSale;
-
-	/** The end of life. */
-	@Getter
-	@Setter
-	private Date endOfLife;
+@Builder(toBuilder = true)
+public record HardwareRule(long id, String driver, Long targetGroupId, String family, boolean familyRegExp, String partNumber,
+	boolean partNumberRegExp, Instant endOfSale, Instant endOfLife) {
 
 	/**
-	 * Instantiates a new hardware rule.
+	 * Gets a copy of the rule with another ID.
+	 *
+	 * @param newId the ID
+	 * @return the rule
 	 */
-	protected HardwareRule() {
-
-	}
-
-	public HardwareRule(String driver,
-		DeviceGroup targetGroup, String family, boolean familyRegExp,
-		String partNumber, boolean partNumberRegExp, Date endOfSale,
-		Date endOfLife) {
-		this.driver = driver;
-		this.targetGroup = targetGroup;
-		this.family = family;
-		this.familyRegExp = familyRegExp;
-		this.partNumber = partNumber;
-		this.partNumberRegExp = partNumberRegExp;
-		this.endOfSale = endOfSale;
-		this.endOfLife = endOfLife;
+	public HardwareRule withId(long newId) {
+		return this.toBuilder().id(newId).build();
 	}
 
 	/**
-	 * Check.
+	 * Checks a device: gives its end-of-sale and end-of-life dates (and modules) the ones of
+	 * the rule, if the rule matches and the dates are earlier.
 	 *
 	 * @param device the device
+	 * @param deviceGroupIds the IDs of the groups of the device
+	 * @return the device, with its end-of-sale and end-of-life dates
 	 */
-	public void check(Device device) {
-		if (targetGroup != null && !targetGroup.getCachedDevices().contains(device)) {
-			return;
+	public Device check(Device device, Set<Long> deviceGroupIds) {
+		if (targetGroupId != null && !deviceGroupIds.contains(targetGroupId)) {
+			return device;
 		}
-		if (driver != null && !driver.equals(device.getDriver())) {
-			return;
+		if (driver != null && !driver.equals(device.driver())) {
+			return device;
 		}
 		if (familyRegExp) {
 			try {
-				if (!device.getFamily().matches(family)) {
-					return;
+				if (!device.family().matches(family)) {
+					return device;
 				}
 			}
 			catch (PatternSyntaxException e) {
-				return;
+				return device;
 			}
 		}
 		else {
-			if (!"".equals(family) && !device.getFamily().equals(family)) {
-				return;
+			if (!"".equals(family) && !device.family().equals(family)) {
+				return device;
 			}
 		}
-
-		for (Module module : device.getModules()) {
+		Device checked = device;
+		for (Module module : device.modules()) {
 			if (partNumberRegExp) {
 				try {
-					if (!module.getPartNumber().matches(partNumber)) {
+					if (!module.partNumber().matches(partNumber)) {
 						continue;
 					}
 				}
 				catch (PatternSyntaxException e) {
-					return;
+					return checked;
 				}
 			}
 			else {
-				if (!"".equals(partNumber) && !module.getPartNumber().equals(partNumber)) {
+				if (!"".equals(partNumber) && !module.partNumber().equals(partNumber)) {
 					continue;
 				}
 			}
-			if (endOfLife != null && (device.getEolDate() == null || endOfLife.before(device.getEolDate()))) {
-				device.setEolDate(endOfLife);
-				device.setEolModule(module);
+			if (endOfLife != null && (checked.eolDate() == null || endOfLife.isBefore(checked.eolDate()))) {
+				checked = checked.toBuilder().eolDate(endOfLife).eolModule(module).build();
 			}
-			if (endOfSale != null && (device.getEosDate() == null || endOfSale.before(device.getEosDate()))) {
-				device.setEosDate(endOfSale);
-				device.setEosModule(module);
+			if (endOfSale != null && (checked.eosDate() == null || endOfSale.isBefore(checked.eosDate()))) {
+				checked = checked.toBuilder().eosDate(endOfSale).eosModule(module).build();
 			}
 		}
+		return checked;
 	}
 
 	@Override

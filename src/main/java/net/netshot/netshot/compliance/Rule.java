@@ -18,169 +18,53 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.DiscriminatorColumn;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.compliance.rules.JavaScriptRule;
-import net.netshot.netshot.compliance.rules.PythonRule;
-import net.netshot.netshot.compliance.rules.TextRule;
-
-
 /**
  * A rule defines a number of constraints that a device should comply with.
- * A concrete implementation is the Javascript-based script rule.
  */
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type", length = 16)
-@Table(uniqueConstraints = {@UniqueConstraint(columnNames = {"policy", "name"})})
-@Slf4j
-public abstract class Rule {
-
-	/** The set of real rule types. */
-	private static final Set<Class<? extends Rule>> RULE_CLASSES;
-
-	static {
-		RULE_CLASSES = new HashSet<>();
-		RULE_CLASSES.add(JavaScriptRule.class);
-		RULE_CLASSES.add(PythonRule.class);
-		RULE_CLASSES.add(TextRule.class);
-	}
+public sealed interface Rule permits TextRule, JavaScriptRule, PythonRule {
 
 	/**
-	 * Gets the rule classes.
+	 * Gets the ID.
 	 *
-	 * @return the rule classes
+	 * @return the ID (0 for a rule not stored yet)
 	 */
-	public static final Set<Class<? extends Rule>> getRuleClasses() {
-		return RULE_CLASSES;
-	}
-
-	/** The enabled. */
-	@Getter
-	@Setter
-	protected boolean enabled;
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	/** The policy. */
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	protected Policy policy;
-
-	/** The name. */
-	@Getter
-	@Setter
-	protected String name = "";
-
-	/** The exemptions. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.rule", orphanRemoval = true, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<Exemption> exemptions = new HashSet<>();
+	long id();
 
 	/**
-	 * Instantiates a new rule.
-	 */
-	protected Rule() {
-
-	}
-
-	/**
-	 * Instantiates a new rule.
+	 * Gets the name.
 	 *
-	 * @param name the name
-	 * @param policy the policy
+	 * @return the name
 	 */
-	public Rule(String name, Policy policy) {
-		this.name = name;
-		this.policy = policy;
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		Rule other = (Rule) obj;
-		return id == other.id;
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (int) (id ^ (id >>> 32));
-		return result;
-	}
+	String name();
 
 	/**
-	 * Delete exemption.
+	 * Tells whether the rule is checked.
 	 *
-	 * @param exemption the exemption
+	 * @return true if enabled
 	 */
-	public void deleteExemption(Exemption exemption) {
-		this.exemptions.remove(exemption);
-	}
+	boolean enabled();
 
 	/**
-	 * Adds the exemption.
+	 * Gets the ID of the policy of the rule.
 	 *
-	 * @param exemption the exemption
+	 * @return the policy ID
 	 */
-	public void addExemption(Exemption exemption) {
-		this.exemptions.add(exemption);
-	}
+	long policyId();
 
 	/**
-	 * Clear exemptions.
+	 * Gets a copy of the rule with another ID.
+	 *
+	 * @param id the ID
+	 * @return the rule
 	 */
-	public void clearExemptions() {
-		this.exemptions.clear();
-	}
+	Rule withId(long id);
 
-	@Override
-	public String toString() {
-		return "Compliance rule " + id + " (name '" + name + "')";
+	/**
+	 * Gets the name of the type of rule, as the REST API publishes it.
+	 *
+	 * @return the name of the type
+	 */
+	default String typeName() {
+		return this.getClass().getSimpleName();
 	}
-
 }

@@ -18,18 +18,19 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -65,11 +66,17 @@ public class DiagnosticService {
 	 * @return the diagnostics
 	 * @throws NetshotException if the diagnostics can't be read
 	 */
-	public List<Diagnostic> list(Page page) {
+	public List<DiagnosticView> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findAllWithGroup(session, page));
+			return this.transactions.readDsl(dsl -> {
+				List<DiagnosticView> views = new ArrayList<>();
+				for (Diagnostic diagnostic : this.repository.findAll(dsl, page)) {
+					views.add(this.view(dsl, diagnostic));
+				}
+				return views;
+			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostics.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the diagnostics");
 		}
@@ -82,21 +89,33 @@ public class DiagnosticService {
 	 * @return the diagnostic
 	 * @throws NetshotException if the diagnostic doesn't exist or can't be read
 	 */
-	public Diagnostic get(long id) {
+	public DiagnosticView get(long id) {
 		try {
-			return this.transactions.read(session -> {
-				Diagnostic diagnostic = this.repository.findWithGroup(session, id);
+			return this.transactions.readDsl(dsl -> {
+				Diagnostic diagnostic = this.repository.find(dsl, id);
 				if (diagnostic == null) {
 					log.warn("Unable to find the diagnostic object.");
 					throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic");
 				}
-				return diagnostic;
+				return this.view(dsl, diagnostic);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostic.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the diagnostic");
 		}
+	}
+
+	/**
+	 * Gets the view of a diagnostic: the diagnostic with its target group.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param diagnostic the diagnostic
+	 * @return the view
+	 */
+	private DiagnosticView view(DSLContext dsl, Diagnostic diagnostic) {
+		return new DiagnosticView(diagnostic,
+			diagnostic.targetGroupId() == null ? null : this.requireGroup(dsl, diagnostic.targetGroupId()));
 	}
 
 	/**
@@ -107,33 +126,28 @@ public class DiagnosticService {
 	 * @throws NetshotException if the name, the result type, the type or the type-specific
 	 *         properties are invalid, if the name is already used, or if the diagnostic can't be stored
 	 */
-	public Diagnostic create(DiagnosticDefinition definition) {
+	public DiagnosticView create(DiagnosticDefinition definition) {
 		String name = checkName(definition);
 		AttributeType resultType = parseResultType(definition);
-		Diagnostic diagnostic;
+		DiagnosticView diagnostic;
 		try {
-			diagnostic = this.transactions.write(session -> {
+			diagnostic = this.transactions.writeDsl(dsl -> {
 				DeviceGroup group = null;
 				if (definition.targetGroup() != -1) {
-					group = this.requireGroup(session, definition.targetGroup());
+					group = this.requireGroup(dsl, definition.targetGroup());
 				}
-				Diagnostic newDiagnostic = build(definition, name, group, resultType);
-				session.persist(newDiagnostic);
-				return newDiagnostic;
+				Diagnostic newDiagnostic = build(definition, 0, name, group == null ? null : group.id(), resultType);
+				return new DiagnosticView(newDiagnostic.withId(this.repository.add(dsl, newDiagnostic)), group);
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("The posted group doesn't exist", e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new diagnostic.", e);
-			if (Database.isDuplicateException(e)) {
+			if (e instanceof DataAccessException dae && DatabaseErrors.isUniqueViolation(dae)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, "A diagnostic with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the diagnostic to the database.");
 		}
-		AAA_LOG.info("{} has been created", diagnostic);
+		AAA_LOG.info("{} has been created", diagnostic.diagnostic());
 		return diagnostic;
 	}
 
@@ -147,63 +161,55 @@ public class DiagnosticService {
 	 * @throws NetshotException if the diagnostic doesn't exist, the properties are invalid or of
 	 *         another kind of diagnostic, the name is already used, or the diagnostic can't be stored
 	 */
-	public Diagnostic update(long id, DiagnosticDefinition definition) {
-		Diagnostic diagnostic;
+	public DiagnosticView update(long id, DiagnosticDefinition definition) {
+		DiagnosticView diagnostic;
 		try {
-			diagnostic = this.transactions.write(session -> {
-				Diagnostic existing = this.repository.find(session, id);
+			diagnostic = this.transactions.writeDsl(dsl -> {
+				Diagnostic existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the diagnostic {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "Unable to find this diagnostic.");
 				}
 				String name = checkName(definition);
 				AttributeType resultType = parseResultType(definition);
-				existing.setName(name);
-				if (existing.getTargetGroup() != null && existing.getTargetGroup().getId() != definition.targetGroup()) {
-					this.repository.deleteResults(session, existing.getId());
+				if (existing.targetGroupId() != null && existing.targetGroupId() != definition.targetGroup()) {
+					this.repository.deleteResults(dsl, existing.id());
 				}
 				DeviceGroup group = null;
 				if (definition.targetGroup() != -1) {
-					group = this.requireGroup(session, definition.targetGroup());
+					group = this.requireGroup(dsl, definition.targetGroup());
 				}
-				existing.setTargetGroup(group);
-				existing.setResultType(resultType);
-				existing.setEnabled(definition.enabled());
-				if (existing instanceof JavaScriptDiagnostic javaScriptDiagnostic) {
-					checkSameType("JavaScriptDiagnostic", definition);
-					checkScript(definition);
-					javaScriptDiagnostic.setScript(definition.script());
-				}
-				else if (existing instanceof PythonDiagnostic pythonDiagnostic) {
-					checkSameType("PythonDiagnostic", definition);
-					checkScript(definition);
-					pythonDiagnostic.setScript(definition.script());
-				}
-				else if (existing instanceof SimpleDiagnostic simpleDiagnostic) {
-					checkSameType("SimpleDiagnostic", definition);
-					checkCommand(definition);
-					simpleDiagnostic.setDeviceDriver(definition.deviceDriver());
-					simpleDiagnostic.setCliMode(definition.cliMode());
-					simpleDiagnostic.setCommand(definition.command());
-					simpleDiagnostic.setModifierPattern(definition.modifierPattern());
-					simpleDiagnostic.setModifierReplacement(definition.modifierReplacement());
-				}
-				session.merge(existing);
-				return existing;
+				Long groupId = group == null ? null : group.id();
+				Diagnostic edited = switch (existing) {
+					case JavaScriptDiagnostic js -> {
+						checkSameType("JavaScriptDiagnostic", definition);
+						checkScript(definition);
+						yield new JavaScriptDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
+					}
+					case PythonDiagnostic python -> {
+						checkSameType("PythonDiagnostic", definition);
+						checkScript(definition);
+						yield new PythonDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
+					}
+					case SimpleDiagnostic simple -> {
+						checkSameType("SimpleDiagnostic", definition);
+						checkCommand(definition);
+						yield new SimpleDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),
+							definition.cliMode(), definition.command(), definition.modifierPattern(), definition.modifierReplacement());
+					}
+				};
+				this.repository.save(dsl, edited);
+				return new DiagnosticView(edited, group);
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("Unable to find the group {} to be assigned to the diagnostic {}.", definition.targetGroup(), id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Unable to find the group.");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the diagnostic {}.", id, e);
-			if (Database.isDuplicateException(e)) {
+			if (e instanceof DataAccessException dae && DatabaseErrors.isUniqueViolation(dae)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DIAGNOSTIC, "A diagnostic with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the diagnostic.");
 		}
-		AAA_LOG.info("{} has been edited", diagnostic);
+		AAA_LOG.info("{} has been edited", diagnostic.diagnostic());
 		return diagnostic;
 	}
 
@@ -216,14 +222,14 @@ public class DiagnosticService {
 	 */
 	public boolean delete(long id) {
 		try {
-			Diagnostic deleted = this.transactions.write(session -> {
-				Diagnostic diagnostic = this.repository.find(session, id);
+			Diagnostic deleted = this.transactions.writeDsl(dsl -> {
+				Diagnostic diagnostic = this.repository.find(dsl, id);
 				if (diagnostic == null) {
 					log.info("No such diagnostic of ID {}", id);
 					return null;
 				}
-				this.repository.deleteResults(session, diagnostic.getId());
-				session.remove(diagnostic);
+				this.repository.deleteResults(dsl, diagnostic.id());
+				this.repository.remove(dsl, id);
 				return diagnostic;
 			});
 			if (deleted != null) {
@@ -231,11 +237,7 @@ public class DiagnosticService {
 			}
 			return deleted != null;
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("The diagnostic {} to be deleted doesn't exist.", id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "The diagnostic doesn't exist.");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the diagnostic {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the diagnostic");
 		}
@@ -251,9 +253,9 @@ public class DiagnosticService {
 	 */
 	public List<DiagnosticResult> listResults(long deviceId, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findResultsOfDevice(session, deviceId, page));
+			return this.transactions.readDsl(dsl -> new DiagnosticResultRepository().findByDevice(dsl, deviceId, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostic results.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the diagnostic results");
 		}
@@ -304,25 +306,25 @@ public class DiagnosticService {
 	}
 
 	// Builds a new diagnostic of the requested kind, after checking its specific properties.
-	private static Diagnostic build(DiagnosticDefinition definition, String name, DeviceGroup group, AttributeType resultType) {
+	private static Diagnostic build(DiagnosticDefinition definition, long id, String name, Long groupId, AttributeType resultType) {
 		if ("JavaScriptDiagnostic".equals(definition.type())) {
 			checkScript(definition);
-			return new JavaScriptDiagnostic(name, definition.enabled(), group, resultType, definition.script());
+			return new JavaScriptDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
 		}
 		else if ("PythonDiagnostic".equals(definition.type())) {
 			checkScript(definition);
-			return new PythonDiagnostic(name, definition.enabled(), group, resultType, definition.script());
+			return new PythonDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
 		}
 		else if ("SimpleDiagnostic".equals(definition.type())) {
 			checkCommand(definition);
-			return new SimpleDiagnostic(name, definition.enabled(), group, resultType, definition.deviceDriver(),
+			return new SimpleDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),
 				definition.cliMode(), definition.command(), definition.modifierPattern(), definition.modifierReplacement());
 		}
 		throw new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_TYPE, "Invalid diagnostic type.");
 	}
 
-	private DeviceGroup requireGroup(Session session, long groupId) {
-		DeviceGroup group = this.repository.findGroup(session, groupId);
+	private DeviceGroup requireGroup(DSLContext dsl, long groupId) {
+		DeviceGroup group = new GroupRepository().find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");

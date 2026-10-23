@@ -18,107 +18,53 @@
  */
 package net.netshot.netshot.task.type;
 
-import org.quartz.JobKey;
-
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskLockManager;
 
 /**
- * This task runs the diagnostics (if any is defined) on the specified device.
+ * Runs the diagnostics on a device.
+ *
+ * @param deviceId the ID of the device (null if it was deleted)
+ * @param dontCheckCompliance true not to check the compliance afterwards
  */
-@Entity
-@DiscriminatorValue("RunDiagnosticsTask")
-@Slf4j
-public final class RunDiagnosticsTask extends Task implements DeviceBasedTask {
+public record RunDiagnosticsTask(Long deviceId, boolean dontCheckCompliance) implements TaskSpec, DeviceBasedTask {
 
 	/**
-	 * Instantiate a new RunDiagnosticTask (for Hibernate).
+	 * Builds a new diagnostics task.
+	 *
+	 * @param device the device
+	 * @param comments the comments
+	 * @param author the author
+	 * @param dontCheckCompliance true not to check the compliance afterwards
+	 * @return the new task
 	 */
-	protected RunDiagnosticsTask() {
-	}
-
-	/**
-	 * Instantiate a new RunDiagnosticTask.
-	 * @param device The device to run the task on
-	 * @param comments Any commends about this task
-	 * @param author Who requested that task
-	 * @param dontCheckCompliance Do not check compliance after these diagnostics
-	 */
-	public RunDiagnosticsTask(Device device, String comments, String author, boolean dontCheckCompliance) {
-		super(comments, device.getLastConfig() == null ? device.getMgmtAddress() : device.getName(),
-			author);
-		this.setDevice(device);
-		this.setDontCheckCompliance(dontCheckCompliance);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#deviceLockPolicy()
-	 */
-	@Override
-	public DeviceLockPolicy deviceLockPolicy() {
-		return DeviceLockPolicy.CANCEL_IF_SAME_TYPE;
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#deviceLockTypeNamespace()
-	 */
-	@Override
-	public int deviceLockTypeNamespace() {
-		return TaskLockManager.NS_DIAGNOSTICS;
+	public static Task of(Device device, String comments, String author, boolean dontCheckCompliance) {
+		return Task.of(new RunDiagnosticsTask(device.id(), dontCheckCompliance), comments, DeviceBasedTask.targetOf(device), author);
 	}
 
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Device diagnostics";
 	}
 
-	/**
-	 * Get the ID of the device.
-	 * 
-	 * @return the ID of the device
-	 */
-	@Transient
-	public long getDeviceId() {
-		if (this.device == null) {
-			return 0;
-		}
-		return this.device.getId();
+	@Override
+	public String identityGroup() {
+		return DeviceBasedTask.identityGroup("RunDevice", this.deviceId);
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
 	@Override
-	public Object clone() throws CloneNotSupportedException {
-		RunDiagnosticsTask task = (RunDiagnosticsTask) super.clone();
-		task.setDevice(this.device);
-		return task;
+	public long runnerHash() {
+		return this.deviceId == null ? 0 : this.deviceId;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
 	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()),
-			String.format("RunDevice_%d", this.getDeviceId()));
+	public Task.DeviceLockPolicy deviceLockPolicy() {
+		return Task.DeviceLockPolicy.CANCEL_IF_SAME_TYPE;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getRunnerHash()
-	 */
 	@Override
-	@Transient
-	public long getRunnerHash() {
-		return this.getDeviceId();
+	public int deviceLockTypeNamespace() {
+		return TaskLockManager.NS_DIAGNOSTICS;
 	}
 }

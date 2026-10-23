@@ -42,6 +42,8 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestTasks;
 
 /**
  * Characterization of {@link TakeSnapshotHandler}, run through the task engine against a Cisco IOS
@@ -69,7 +71,7 @@ class TakeSnapshotHandlerTest {
 	}
 
 	private static Device reload(Device device) {
-		return TaskRunner.inSession(session -> session.get(Device.class, device.getId()));
+		return TestDevices.find(device.id());
 	}
 
 	@Test
@@ -77,17 +79,15 @@ class TakeSnapshotHandlerTest {
 	void snapshotsTheDevice() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
 
-		long id = this.runner.run(new TakeSnapshotTask(device, "Test", "tester", false, true, true));
+		long id = this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, true, true));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(TakeSnapshotTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		Device snapshot = reload(device);
-		Assertions.assertEquals("router1", snapshot.getName());
-		Assertions.assertEquals("15.5(3)S7b", snapshot.getSoftwareVersion());
-		Assertions.assertEquals("Cisco CSR1000V", snapshot.getFamily());
-		String runningConfig = TaskRunner.inSession(session -> {
-			Config config = session.get(Device.class, device.getId()).getLastConfig();
-			return ((ConfigLongTextAttribute) config.getAttribute("runningConfig")).getLongText().getText();
-		});
+		Assertions.assertEquals("router1", snapshot.name());
+		Assertions.assertEquals("15.5(3)S7b", snapshot.softwareVersion());
+		Assertions.assertEquals("Cisco CSR1000V", snapshot.family());
+		Config config = TestDevices.findConfig(snapshot.lastConfigId());
+		String runningConfig = ((ConfigLongTextAttribute) config.getAttribute("runningConfig")).text();
 		Assertions.assertTrue(runningConfig.contains("ip ssh version 2"), "Running configuration stored");
 		Assertions.assertEquals(List.of(), this.runner.submitted(), "No follow-up task when diagnostics and compliance are disabled");
 	}
@@ -96,20 +96,19 @@ class TakeSnapshotHandlerTest {
 	@DisplayName("Submits the diagnostics afterwards, passing the compliance option")
 	void submitsTheDiagnostics() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		TakeSnapshotTask task = new TakeSnapshotTask(device, "Test", "tester", false, false, true);
-		task.setPriority(7);
+		Task task = TakeSnapshotTask.of(device, "Test", "tester", false, false, true).toBuilder().priority(7).build();
 
 		long id = this.runner.run(task);
 
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
-		RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) submitted.get(0);
-		Assertions.assertEquals("Run diagnostics after device snapshot", diagnostics.getComments());
-		Assertions.assertEquals("Auto", diagnostics.getAuthor());
-		Assertions.assertTrue(diagnostics.isDontCheckCompliance());
-		Assertions.assertEquals(7, diagnostics.getPriority());
-		Assertions.assertEquals(id, diagnostics.getParentTaskId());
-		Assertions.assertEquals(device.getId(), diagnostics.getDevice().getId());
+		RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) submitted.get(0).spec();
+		Assertions.assertEquals("Run diagnostics after device snapshot", submitted.get(0).comments());
+		Assertions.assertEquals("Auto", submitted.get(0).author());
+		Assertions.assertTrue(diagnostics.dontCheckCompliance());
+		Assertions.assertEquals(7, submitted.get(0).priority());
+		Assertions.assertEquals(id, submitted.get(0).parentTaskId());
+		Assertions.assertEquals(device.id(), diagnostics.deviceId());
 	}
 
 	@Test
@@ -117,42 +116,38 @@ class TakeSnapshotHandlerTest {
 	void submitsTheComplianceCheck() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
 
-		long id = this.runner.run(new TakeSnapshotTask(device, "Test", "tester", false, true, false));
+		long id = this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, true, false));
 
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
-		CheckComplianceTask check = (CheckComplianceTask) submitted.get(0);
-		Assertions.assertEquals("Check compliance after device snapshot", check.getComments());
-		Assertions.assertEquals("Auto", check.getAuthor());
-		Assertions.assertEquals(id, check.getParentTaskId());
+		Task check = submitted.get(0);
+		Assertions.assertInstanceOf(CheckComplianceTask.class, check.spec());
+		Assertions.assertEquals("Check compliance after device snapshot", check.comments());
+		Assertions.assertEquals("Auto", check.author());
+		Assertions.assertEquals(id, check.parentTaskId());
 	}
 
 	@Test
 	@DisplayName("Refreshes the dynamic groups of the device afterwards")
 	void refreshesTheDynamicGroups() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		DynamicDeviceGroup group = new DynamicDeviceGroup("Router 1", null, "[Name] is \"router1\"");
-		TaskRunner.persist(group);
+		DynamicDeviceGroup group = TestDevices.addDynamicGroup("Router 1", "[Name] is \"router1\"");
 
-		this.runner.run(new TakeSnapshotTask(device, "Test", "tester", false, true, true));
+		this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, true, true));
 
-		List<Long> members = TaskRunner.inSession(session -> session
-			.createQuery("select m.key.device.id from DeviceGroupMembership m where m.key.group.id = :id", Long.class)
-			.setParameter("id", group.getId())
-			.list());
-		Assertions.assertEquals(List.of(device.getId()), members);
+		List<Long> members = TestDevices.memberIds(group.id());
+		Assertions.assertEquals(List.of(device.id()), members);
 	}
 
 	@Test
 	@DisplayName("Keeps the debug log when debugging is enabled")
 	void keepsTheDebugLog() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		TakeSnapshotTask task = new TakeSnapshotTask(device, "Test", "tester", false, true, true);
-		task.setDebugEnabled(true);
+		Task task = TakeSnapshotTask.of(device, "Test", "tester", false, true, true).toBuilder().debugEnabled(true).build();
 
 		long id = this.runner.run(task);
 
-		String debugLog = TaskRunner.inSession(session -> session.get(TakeSnapshotTask.class, id).getDebugLog().getText());
+		String debugLog = TestTasks.debugLog(id);
 		Assertions.assertTrue(debugLog.contains("show version"), "The debug log has the CLI exchanges");
 	}
 
@@ -161,11 +156,11 @@ class TakeSnapshotHandlerTest {
 	void failsWhenUnreachable() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER, 1);
 
-		long id = this.runner.run(new TakeSnapshotTask(device, "Test", "tester", false, false, false));
+		long id = this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, false, false));
 
-		TakeSnapshotTask task = TaskRunner.load(TakeSnapshotTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Error while taking the snapshot"), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("Error while taking the snapshot"), task.log());
 		Assertions.assertEquals(List.of(), this.runner.submitted());
 	}
 
@@ -173,18 +168,13 @@ class TakeSnapshotHandlerTest {
 	@DisplayName("Is cancelled for a disabled device")
 	void cancelledForDisabledDevice() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		TaskRunner.inSession(session -> {
-			session.beginTransaction();
-			session.get(Device.class, device.getId()).setStatus(Device.Status.DISABLED);
-			session.getTransaction().commit();
-			return null;
-		});
+		TestDevices.save(device.toBuilder().status(Device.Status.DISABLED).build());
 
-		long id = this.runner.run(new TakeSnapshotTask(device, "Test", "tester", false, false, false));
+		long id = this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, false, false));
 
-		TakeSnapshotTask task = TaskRunner.load(TakeSnapshotTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("The device is not enabled (not in production)."), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, task.status());
+		Assertions.assertTrue(task.log().contains("The device is not enabled (not in production)."), task.log());
 		Assertions.assertEquals(List.of(), this.runner.submitted(), "No follow-up task for a cancelled snapshot");
 	}
 }

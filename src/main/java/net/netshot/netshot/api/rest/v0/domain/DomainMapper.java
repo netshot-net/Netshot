@@ -18,20 +18,26 @@
  */
 package net.netshot.netshot.api.rest.v0.domain;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.domain.DomainDefinition;
 
 /**
- * Maps the domains between the entities of the inventory and their REST representations.
+ * Maps the domains between the records of the inventory and their REST representations.
  * All the methods are pure functions.
  */
 public final class DomainMapper {
 
 	private DomainMapper() {
 		// Static helpers only
+	}
+
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
 	}
 
 	/**
@@ -45,12 +51,12 @@ public final class DomainMapper {
 			return null;
 		}
 		return new DomainDto(
-			domain.getId(),
-			domain.getChangeDate(),
-			domain.getName(),
-			domain.getDescription(),
-			domain.getServer4Address() == null ? null : domain.getServer4Address().getIp(),
-			domain.getServer6Address() == null ? null : domain.getServer6Address().getIp());
+			domain.id(),
+			date(domain.changeDate()),
+			domain.name(),
+			domain.description(),
+			domain.server4Address() == null ? null : domain.server4Address().getIp(),
+			domain.server6Address() == null ? null : domain.server6Address().getIp());
 	}
 
 	/**
@@ -61,10 +67,10 @@ public final class DomainMapper {
 	 */
 	public static DomainSummaryDto toSummaryDto(Domain domain) {
 		return new DomainSummaryDto(
-			domain.getId(),
-			domain.getName(),
-			domain.getDescription(),
-			domain.getServer4Address() == null ? null : domain.getServer4Address().getIp());
+			domain.id(),
+			domain.name(),
+			domain.description(),
+			domain.server4Address() == null ? null : domain.server4Address().getIp());
 	}
 
 	/**

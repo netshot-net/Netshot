@@ -18,95 +18,40 @@
  */
 package net.netshot.netshot.task.type;
 
-import org.quartz.JobKey;
-
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 
 /**
- * This task checks the configuration compliance of a device.
+ * Checks the compliance of a device.
+ *
+ * @param deviceId the ID of the device (null if it was deleted)
  */
-@Entity
-@DiscriminatorValue("CheckComplianceTask")
-@Slf4j
-public final class CheckComplianceTask extends Task implements DeviceBasedTask {
+public record CheckComplianceTask(Long deviceId) implements TaskSpec, DeviceBasedTask {
 
 	/**
-	 * Instantiates a new check compliance task.
-	 */
-	protected CheckComplianceTask() {
-	}
-
-	/**
-	 * Instantiates a new check compliance task.
+	 * Builds a new compliance check task.
 	 *
 	 * @param device the device
 	 * @param comments the comments
 	 * @param author the author
+	 * @return the new task
 	 */
-	public CheckComplianceTask(Device device, String comments, String author) {
-		super(comments, device.getLastConfig() == null ? device.getMgmtAddress() : device.getName(), author);
-		this.device = device;
+	public static Task of(Device device, String comments, String author) {
+		return Task.of(new CheckComplianceTask(device.id()), comments, DeviceBasedTask.targetOf(device), author);
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Device compliance check";
 	}
 
-	/**
-	 * Get the ID of the device.
-	 * 
-	 * @return the ID of the device
-	 */
-	@Transient
-	public long getDeviceId() {
-		if (this.device == null) {
-			return 0;
-		}
-		return this.device.getId();
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
 	@Override
-	public Object clone() throws CloneNotSupportedException {
-		CheckComplianceTask task = (CheckComplianceTask) super.clone();
-		task.setDevice(this.device);
-		return task;
+	public String identityGroup() {
+		return DeviceBasedTask.identityGroup("CheckCompliance", this.deviceId);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
 	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()),
-			String.format("CheckCompliance_%d", this.getDeviceId()));
+	public long runnerHash() {
+		return this.deviceId == null ? 0 : this.deviceId;
 	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getRunnerHash()
-	 */
-	@Override
-	@Transient
-	public long getRunnerHash() {
-		if (this.getDevice() == null) {
-			return 0;
-		}
-		return this.getDevice().getId();
-	}
-
 }

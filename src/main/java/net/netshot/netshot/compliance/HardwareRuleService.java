@@ -18,26 +18,29 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 
 /**
- * The hardware compliance rule use cases: list, add, edit and delete the hardware rules (end of
- * sale and end of life dates by hardware).
+ * The hardware compliance rule use cases: list, add, edit and delete the hardware rules, which give
+ * the end-of-sale and end-of-life dates of the modules.
  *
- * <p>The rules it returns are detached entities whose target group is loaded.</p>
+ * <p>The rules are returned with their target group.</p>
  */
 @Slf4j
 public class HardwareRuleService {
@@ -63,19 +66,35 @@ public class HardwareRuleService {
 	}
 
 	/**
-	 * Lists all the hardware rules.
+	 * Lists the hardware rules, by ID.
 	 *
 	 * @return the rules
 	 * @throws NetshotException if the rules can't be read
 	 */
-	public List<HardwareRule> list() {
+	public List<HardwareRuleView> list() {
 		try {
-			return this.transactions.read(this.repository::findAllWithGroup);
+			return this.transactions.readDsl(dsl -> {
+				List<HardwareRuleView> views = new ArrayList<>();
+				for (HardwareRule rule : this.repository.findAll(dsl)) {
+					views.add(new HardwareRuleView(rule, this.findGroup(dsl, rule.targetGroupId())));
+				}
+				return views;
+			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the hardware rules.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hardware rules.");
 		}
+	}
+
+	private static Instant toInstant(Date date) {
+		return date == null ? null : date.toInstant();
+	}
+
+	private HardwareRule fromDefinition(long id, HardwareRuleDefinition definition) {
+		return new HardwareRule(id, knownDriver(definition.driver()), definition.groupId(),
+			definition.family(), definition.familyRegExp(), definition.partNumber(),
+			definition.partNumberRegExp(), toInstant(definition.endOfSale()), toInstant(definition.endOfLife()));
 	}
 
 	/**
@@ -83,29 +102,22 @@ public class HardwareRuleService {
 	 *
 	 * @param definition the rule
 	 * @return the new rule
-	 * @throws NetshotException if the rule can't be stored
+	 * @throws NetshotException if the group doesn't exist, or the rule can't be stored
 	 */
-	public HardwareRule create(HardwareRuleDefinition definition) {
-		HardwareRule rule;
+	public HardwareRuleView create(HardwareRuleDefinition definition) {
+		HardwareRuleView rule;
 		try {
-			rule = this.transactions.write(session -> {
-				DeviceGroup group = this.findGroup(session, definition.groupId());
-				HardwareRule newRule = new HardwareRule(knownDriver(definition.driver()), group,
-					definition.family(), definition.familyRegExp(), definition.partNumber(),
-					definition.partNumberRegExp(), definition.endOfSale(), definition.endOfLife());
-				session.persist(newRule);
-				return newRule;
+			rule = this.transactions.writeDsl(dsl -> {
+				DeviceGroup group = this.findGroup(dsl, definition.groupId());
+				HardwareRule newRule = this.fromDefinition(0, definition);
+				return new HardwareRuleView(newRule.withId(this.repository.add(dsl, newRule)), group);
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("The posted group doesn't exist", e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new rule.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
 		}
-		AAA_LOG.info("{} has been created", rule);
+		AAA_LOG.info("{} has been created", rule.rule());
 		return rule;
 	}
 
@@ -115,34 +127,27 @@ public class HardwareRuleService {
 	 * @param id the rule ID
 	 * @param definition the new properties
 	 * @return the rule
-	 * @throws NetshotException if the rule doesn't exist, or can't be stored
+	 * @throws NetshotException if the rule or the group doesn't exist, or the rule can't be stored
 	 */
-	public HardwareRule update(long id, HardwareRuleDefinition definition) {
-		HardwareRule rule;
+	public HardwareRuleView update(long id, HardwareRuleDefinition definition) {
+		HardwareRuleView rule;
 		try {
-			rule = this.transactions.write(session -> {
-				HardwareRule existing = this.repository.find(session, id);
-				if (existing == null) {
+			rule = this.transactions.writeDsl(dsl -> {
+				if (this.repository.find(dsl, id) == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
 				}
-				existing.setDriver(knownDriver(definition.driver()));
-				existing.setTargetGroup(this.findGroup(session, definition.groupId()));
-				existing.setFamily(definition.family());
-				existing.setFamilyRegExp(definition.familyRegExp());
-				existing.setEndOfLife(definition.endOfLife());
-				existing.setEndOfSale(definition.endOfSale());
-				existing.setPartNumber(definition.partNumber());
-				existing.setPartNumberRegExp(definition.partNumberRegExp());
-				session.merge(existing);
-				return existing;
+				DeviceGroup group = this.findGroup(dsl, definition.groupId());
+				HardwareRule edited = this.fromDefinition(id, definition);
+				this.repository.save(dsl, edited);
+				return new HardwareRuleView(edited, group);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the rule.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
 		}
-		AAA_LOG.info("{} has been edited", rule);
+		AAA_LOG.info("{} has been edited", rule.rule());
 		return rule;
 	}
 
@@ -155,13 +160,11 @@ public class HardwareRuleService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.write(session -> {
-				HardwareRule rule = this.repository.find(session, id);
-				if (rule == null) {
+			boolean deleted = this.transactions.writeDsl(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.info("No such hardware rule of ID {}", id);
 					return false;
 				}
-				session.remove(rule);
 				return true;
 			});
 			if (deleted) {
@@ -169,17 +172,25 @@ public class HardwareRuleService {
 			}
 			return deleted;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the rule {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the rule.");
 		}
 	}
 
-	private DeviceGroup findGroup(Session session, Long groupId) {
+	/**
+	 * Finds a group.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param groupId the ID of the group, or null
+	 * @return the group, or null for no group
+	 * @throws NetshotException if there is no such group
+	 */
+	private DeviceGroup findGroup(DSLContext dsl, Long groupId) {
 		if (groupId == null) {
 			return null;
 		}
-		DeviceGroup group = this.repository.findGroup(session, groupId);
+		DeviceGroup group = new GroupRepository().find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");

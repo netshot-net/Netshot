@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.graalvm.polyglot.proxy.ProxyObject;
-import org.hibernate.Session;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
@@ -32,13 +34,11 @@ import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.driver.DeviceDriver.Location;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /**
  * Tests for the {@code Options} descriptor block: per-device,
@@ -218,17 +218,19 @@ public class OptionsBlockTest {
 		DeviceDriver driver = this.buildDriver(OPTIONS_DRIVER_JS, "OptionsTestDriver.js");
 		this.registerDriver(driver);
 		try {
-			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-			Device device = new Device("OptionsTestDriver", null, domain, "test");
+			Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
+			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 
-			JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), device, null, null, new FakeTaskContext(), false);
+			JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), device, null, new FakeTaskContext(), false);
 			ProxyObject options = (ProxyObject) helper.getOptions();
 			Assertions.assertEquals(Boolean.TRUE, options.getMember("fullBackup"),
 				"Default Boolean option value should be a real boolean, not a string");
 			Assertions.assertEquals("running-config", options.getMember("backupMode"),
 				"Text option value should remain a plain string");
 
-			device.setOptions(Map.of("fullBackup", Boolean.FALSE));
+			DeviceDraft updated = new DeviceDraft(deviceBuilder.options(Map.of("fullBackup", Boolean.FALSE)).build());
+			helper = new JsDeviceHelper(TestDrivers.registry(), updated, null, new FakeTaskContext(), false);
 			ProxyObject updatedOptions = (ProxyObject) helper.getOptions();
 			Assertions.assertEquals(Boolean.FALSE, updatedOptions.getMember("fullBackup"),
 				"An explicitly stored false value should be exposed as boolean false");
@@ -244,16 +246,15 @@ public class OptionsBlockTest {
 		DeviceDriver driver = this.buildDriver(OPTIONS_DRIVER_JS, "OptionsTestDriver.js");
 		this.registerDriver(driver);
 		try {
-			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-			Device device = new Device("OptionsTestDriver", null, domain, "test");
+			Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
+			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 			FakeTaskContext taskContext = new FakeTaskContext();
 			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
-			Session nullSession = null;
-			AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, taskContext, null);
-			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-				Device.class, AccessManager.class);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
+			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 			runMethod.setAccessible(true);
-			runMethod.invoke(script, nullSession, device, accessManager);
+			runMethod.invoke(script, device, accessManager);
 
 			String log = taskContext.getLog();
 			Assertions.assertTrue(log.contains("options") && log.contains("fullBackup=true"),

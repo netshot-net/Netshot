@@ -24,13 +24,13 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import org.hibernate.annotations.Type;
+
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Transient;
 import net.netshot.netshot.platform.database.InetAddressUserType;
-
-import org.hibernate.annotations.Type;
 
 /**
  * An IPv6 address.
@@ -80,6 +80,30 @@ public final class Network6Address extends NetworkAddress {
 	 */
 	protected Network6Address() {
 
+	}
+
+	/**
+	 * Builds an address from the columns it is stored in.
+	 *
+	 * @param address the address (inet column), or null
+	 * @param prefixLength the prefix length, or null for a host address
+	 * @param usage the name of the usage, or null for the default one
+	 * @return the address, or null if there is no address
+	 */
+	public static Network6Address fromColumns(InetAddress address, Integer prefixLength, String usage) {
+		if (address == null) {
+			return null;
+		}
+		try {
+			Network6Address result = new Network6Address((Inet6Address) address, prefixLength == null ? 128 : prefixLength);
+			if (usage != null) {
+				result.setAddressUsage(AddressUsage.valueOf(usage));
+			}
+			return result;
+		}
+		catch (ClassCastException e) {
+			throw new IllegalStateException("Invalid stored address " + address, e);
+		}
 	}
 
 	/**

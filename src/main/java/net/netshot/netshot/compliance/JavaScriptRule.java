@@ -16,33 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.compliance.rules;
+package net.netshot.netshot.compliance;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.Rule;
+import lombok.Builder;
 
 /**
- * A JavaScriptRule is a Javascript-coded script that will check the device
- * attributes, including config, and return whether the device is compliant
- * or not.
+ * A rule checking the devices with a JavaScript script.
+ *
+ * @param id the ID (0 for a rule not stored yet)
+ * @param name the name
+ * @param enabled true if the rule is checked
+ * @param policyId the ID of the policy
+ * @param script the script
  */
-@Entity
-@DiscriminatorValue("JAVASCRIPT")
-@Slf4j
-public class JavaScriptRule extends Rule {
+@Builder(toBuilder = true)
+public record JavaScriptRule(long id, String name, boolean enabled, long policyId, String script) implements Rule {
 
-	/** The script. */
-	@Getter(onMethod = @__({
-		@Column(length = 10000000)
-	}))
-	@Setter
-	private String script = ""
+	/** The script of a new rule. */
+	public static final String TEMPLATE = ""
 		+ "/*\n"
 		+ " * Script template - to be customized.\n"
 		+ " */\n"
@@ -55,25 +46,23 @@ public class JavaScriptRule extends Rule {
 		+ "}\n";
 
 	/**
-	 * Instantiates a new JavaScript rule.
-	 */
-	protected JavaScriptRule() {
-
-	}
-
-	/**
-	 * Instantiates a new JavaScript rule.
+	 * Builds a new (disabled) rule, with the script template.
 	 *
 	 * @param name the name
-	 * @param policy the policy
+	 * @param policyId the ID of the policy
+	 * @return the rule
 	 */
-	public JavaScriptRule(String name, Policy policy) {
-		super(name, policy);
+	public static JavaScriptRule of(String name, long policyId) {
+		return new JavaScriptRule(0, name, false, policyId, TEMPLATE);
+	}
+
+	@Override
+	public JavaScriptRule withId(long newId) {
+		return new JavaScriptRule(newId, this.name, this.enabled, this.policyId, this.script);
 	}
 
 	@Override
 	public String toString() {
 		return "Compliance JavaScript-based rule " + id + " (name '" + name + "')";
 	}
-
 }

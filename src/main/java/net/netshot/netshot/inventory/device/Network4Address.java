@@ -24,13 +24,13 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import org.hibernate.annotations.Type;
+
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Transient;
 import net.netshot.netshot.platform.database.InetAddressUserType;
-
-import org.hibernate.annotations.Type;
 
 /**
  * An IPv4 address.
@@ -153,6 +153,30 @@ public final class Network4Address extends NetworkAddress {
 	 * Instantiates a new network4 address.
 	 */
 	public Network4Address() {
+	}
+
+	/**
+	 * Builds an address from the columns it is stored in.
+	 *
+	 * @param address the address (inet column), or null
+	 * @param prefixLength the prefix length, or null for a host address
+	 * @param usage the name of the usage, or null for the default one
+	 * @return the address, or null if there is no address
+	 */
+	public static Network4Address fromColumns(InetAddress address, Integer prefixLength, String usage) {
+		if (address == null) {
+			return null;
+		}
+		try {
+			Network4Address result = new Network4Address((Inet4Address) address, prefixLength == null ? 32 : prefixLength);
+			if (usage != null) {
+				result.setAddressUsage(AddressUsage.valueOf(usage));
+			}
+			return result;
+		}
+		catch (UnknownHostException | ClassCastException e) {
+			throw new IllegalStateException("Invalid stored address " + address, e);
+		}
 	}
 
 	/**

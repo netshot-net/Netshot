@@ -18,74 +18,28 @@
  */
 package net.netshot.netshot.inventory.config.attribute;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+import java.util.Objects;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.Config;
-
-@Entity
-@DiscriminatorValue("T")
-public final class ConfigLongTextAttribute extends ConfigAttribute {
-
-	@Getter(onMethod = @__({
-		@OneToOne(orphanRemoval = true, fetch = FetchType.LAZY, cascade = CascadeType.ALL),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private LongTextConfiguration longText;
-
-	protected ConfigLongTextAttribute() {
-	}
-
-	public ConfigLongTextAttribute(Config config, String name, String value) {
-		super(config, name);
-		this.longText = new LongTextConfiguration(value);
-	}
+/**
+ * A long text configuration attribute (stored apart). The text is null when it hasn't been loaded.
+ *
+ * @param name the name of the attribute
+ * @param text the value
+ */
+public record ConfigLongTextAttribute(String name, String text) implements ConfigAttribute {
 
 	@Override
-	@Transient
 	public String getAsText() {
-		if (this.longText == null || this.longText.getText() == null) {
-			return "";
-		}
-		return this.longText.getText();
+		return this.text == null ? "" : this.text;
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		if (getLongText() == null) {
-			return null;
-		}
-		return getLongText().getText();
+		return this.text;
 	}
 
 	@Override
-	public boolean valueEquals(ConfigAttribute obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ConfigLongTextAttribute)) {
-			return false;
-		}
-		ConfigLongTextAttribute other = (ConfigLongTextAttribute) obj;
-		if (longText == null) {
-			if (other.longText != null) {
-				return false;
-			}
-		}
-		else if (!longText.equals(other.longText)) {
-			return false;
-		}
-		return true;
+	public boolean valueEquals(ConfigAttribute other) {
+		return other instanceof ConfigLongTextAttribute o && Objects.equals(this.text, o.text);
 	}
-
 }

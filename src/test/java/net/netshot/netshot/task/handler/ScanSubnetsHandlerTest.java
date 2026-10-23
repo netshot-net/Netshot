@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.inventory.device.Device;
@@ -41,6 +40,7 @@ import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestProperty;
 
 /**
@@ -64,8 +64,7 @@ class ScanSubnetsHandlerTest {
 
 	@BeforeEach
 	void createDomain() {
-		this.domain = new Domain("Lab", "Test domain", null, null);
-		TaskRunner.persist(this.domain);
+		this.domain = TestDevices.addDomain("Lab", "Test domain");
 	}
 
 	@AfterEach
@@ -73,54 +72,49 @@ class ScanSubnetsHandlerTest {
 		TaskRunner.cleanDatabase();
 	}
 
-	private ScanSubnetsTask scan(String address, int prefixLength) throws Exception {
-		return new ScanSubnetsTask(Set.of(new Network4Address(address, prefixLength)), this.domain, "Scan", address, "tester");
+	private Task scan(String address, int prefixLength) throws Exception {
+		return ScanSubnetsTask.of(Set.of(new Network4Address(address, prefixLength)), this.domain.id(), "Scan", address, "tester");
 	}
 
-	private DeviceSnmpv2cCommunity community(String name, Domain mgmtDomain) {
-		DeviceSnmpv2cCommunity community = new DeviceSnmpv2cCommunity("public", name);
-		community.setMgmtDomain(mgmtDomain);
-		return community;
+	private void community(String name, Domain mgmtDomain) {
+		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community("public").name(name).mgmtDomain(mgmtDomain).build());
 	}
 
 	private static Set<String> addresses(List<Task> children) {
-		return children.stream().map(child -> ((DiscoverDeviceTypeTask) child).getDeviceAddress()).collect(Collectors.toSet());
+		return children.stream().map(child -> ((DiscoverDeviceTypeTask) child.spec()).deviceAddress()).collect(Collectors.toSet());
 	}
 
 	@Test
 	@DisplayName("Creates a discovery task per address of the subnet without device, with the usable SNMP communities")
 	void discoversTheSubnet() throws Exception {
-		Domain otherDomain = new Domain("Other", "Other domain", null, null);
-		TaskRunner.persist(otherDomain,
-			new Device("CiscoIOS12", "10.20.0.3", this.domain, "tester"),
-			this.community("global", null), this.community("same domain", this.domain), this.community("other domain", otherDomain),
-			new DeviceSshAccount("admin", "admin", "admin", "ssh"));
+		Domain otherDomain = TestDevices.addDomain("Other", "Other domain");
+		TestDevices.add(Device.create("CiscoIOS12", "10.20.0.3", this.domain, "tester"));
+		this.community("global", null);
+		this.community("same domain", this.domain);
+		this.community("other domain", otherDomain);
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("ssh").build());
 
 		long id = this.runner.run(this.scan("10.20.0.0", 29));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(ScanSubnetsTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		List<Task> children = TaskRunner.children(id);
 		Assertions.assertEquals(Set.of("10.20.0.1", "10.20.0.2", "10.20.0.4", "10.20.0.5", "10.20.0.6"), addresses(children),
 			"Neither the network and broadcast addresses, nor the address of an existing device");
 		Assertions.assertEquals(children.size(), this.runner.scheduledChildIds().size());
-		TaskRunner.inSession(session -> {
-			for (Task child : children) {
-				DiscoverDeviceTypeTask discovery = session.get(DiscoverDeviceTypeTask.class, child.getId());
-				Assertions.assertEquals(Set.of("global", "same domain"),
-					discovery.getCredentialSets().stream().map(DeviceCredentialSet::getName).collect(Collectors.toSet()));
-				Assertions.assertEquals(this.domain.getId(), discovery.getDomain().getId());
-				Assertions.assertEquals("Scan", discovery.getComments());
-				Assertions.assertEquals("tester", discovery.getAuthor());
-			}
-			return null;
-		});
+		for (Task child : children) {
+			DiscoverDeviceTypeTask discovery = (DiscoverDeviceTypeTask) child.spec();
+			Assertions.assertEquals(Set.of("global", "same domain"), discovery.credentialSetIds().stream()
+				.map(credentialSetId -> TestDevices.findCredentialSet(credentialSetId).name()).collect(Collectors.toSet()));
+			Assertions.assertEquals(this.domain.id(), discovery.domainId());
+			Assertions.assertEquals("Scan", child.comments());
+			Assertions.assertEquals("tester", child.author());
+		}
 	}
 
 	@Test
 	@DisplayName("Scans the single address of a /32")
 	void scansASingleAddress() throws Exception {
-		TaskRunner.persist(this.community("global", null));
-
+		this.community("global", null);
 		long id = this.runner.run(this.scan("10.20.0.9", 32));
 
 		Assertions.assertEquals(Set.of("10.20.0.9"), addresses(TaskRunner.children(id)));
@@ -131,9 +125,9 @@ class ScanSubnetsHandlerTest {
 	void failsWithoutCommunity() throws Exception {
 		long id = this.runner.run(this.scan("10.20.0.0", 30));
 
-		ScanSubnetsTask task = TaskRunner.load(ScanSubnetsTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("No available SNMP community to scan devices."), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("No available SNMP community to scan devices."), task.log());
 		Assertions.assertEquals(List.of(), TaskRunner.children(id));
 	}
 }

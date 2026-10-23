@@ -18,51 +18,96 @@
  */
 package net.netshot.netshot.compliance;
 
+import static net.netshot.netshot.platform.database.schema.Tables.HARDWARE_RULE;
+
 import java.util.List;
 
-import org.hibernate.Session;
-
-import net.netshot.netshot.inventory.group.DeviceGroup;
+import org.jooq.DSLContext;
+import org.jooq.Record;
 
 /**
- * The queries on hardware rules. The {@link Session} is always the first parameter: the caller
- * (the service) owns the session and the transaction. None of these methods catches an exception.
+ * The queries on the hardware compliance rules. The {@link DSLContext} is always the first
+ * parameter: the caller (the service) owns the transaction.
  */
 public class HardwareRuleRepository {
 
+	private static HardwareRule toRule(Record r) {
+		return new HardwareRule(r.get(HARDWARE_RULE.ID), r.get(HARDWARE_RULE.DRIVER), r.get(HARDWARE_RULE.TARGET_GROUP),
+			r.get(HARDWARE_RULE.FAMILY), r.get(HARDWARE_RULE.FAMILY_REG_EXP), r.get(HARDWARE_RULE.PART_NUMBER),
+			r.get(HARDWARE_RULE.PART_NUMBER_REG_EXP), r.get(HARDWARE_RULE.END_OF_SALE), r.get(HARDWARE_RULE.END_OF_LIFE));
+	}
+
 	/**
-	 * Finds all the hardware rules.
+	 * Lists the rules, by ID.
 	 *
-	 * <p>Fetch plan: the target group is fetched with the rule.</p>
-	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @return the rules
 	 */
-	public List<HardwareRule> findAllWithGroup(Session session) {
-		return session
-			.createQuery("from HardwareRule r left join fetch r.targetGroup g", HardwareRule.class)
-			.list();
+	public List<HardwareRule> findAll(DSLContext dsl) {
+		return dsl.select(HARDWARE_RULE.fields()).from(HARDWARE_RULE).orderBy(HARDWARE_RULE.ID).fetch(HardwareRuleRepository::toRule);
 	}
 
 	/**
-	 * Finds a hardware rule, without any of its associations.
+	 * Gets a rule.
 	 *
-	 * @param session the session
-	 * @param id the rule ID
+	 * @param dsl the jOOQ context
+	 * @param id the ID
 	 * @return the rule, or null if there is no such rule
 	 */
-	public HardwareRule find(Session session, long id) {
-		return session.get(HardwareRule.class, id);
+	public HardwareRule find(DSLContext dsl, long id) {
+		return dsl.select(HARDWARE_RULE.fields()).from(HARDWARE_RULE).where(HARDWARE_RULE.ID.eq(id)).fetchOne(HardwareRuleRepository::toRule);
 	}
 
 	/**
-	 * Finds a device group, to be the target of a rule.
+	 * Stores a new rule.
 	 *
-	 * @param session the session
-	 * @param id the group ID
-	 * @return the group, or null if there is no such group
+	 * @param dsl the jOOQ context
+	 * @param rule the rule (its ID is ignored)
+	 * @return the ID of the new rule
 	 */
-	public DeviceGroup findGroup(Session session, long id) {
-		return session.get(DeviceGroup.class, id);
+	public long add(DSLContext dsl, HardwareRule rule) {
+		return dsl.insertInto(HARDWARE_RULE)
+			.set(HARDWARE_RULE.DRIVER, rule.driver())
+			.set(HARDWARE_RULE.TARGET_GROUP, rule.targetGroupId())
+			.set(HARDWARE_RULE.FAMILY, rule.family())
+			.set(HARDWARE_RULE.FAMILY_REG_EXP, rule.familyRegExp())
+			.set(HARDWARE_RULE.PART_NUMBER, rule.partNumber())
+			.set(HARDWARE_RULE.PART_NUMBER_REG_EXP, rule.partNumberRegExp())
+			.set(HARDWARE_RULE.END_OF_SALE, rule.endOfSale())
+			.set(HARDWARE_RULE.END_OF_LIFE, rule.endOfLife())
+			.returning(HARDWARE_RULE.ID)
+			.fetchOne(HARDWARE_RULE.ID);
+	}
+
+	/**
+	 * Saves an existing rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param rule the rule
+	 * @return true if the rule was found and saved
+	 */
+	public boolean save(DSLContext dsl, HardwareRule rule) {
+		return dsl.update(HARDWARE_RULE)
+			.set(HARDWARE_RULE.DRIVER, rule.driver())
+			.set(HARDWARE_RULE.TARGET_GROUP, rule.targetGroupId())
+			.set(HARDWARE_RULE.FAMILY, rule.family())
+			.set(HARDWARE_RULE.FAMILY_REG_EXP, rule.familyRegExp())
+			.set(HARDWARE_RULE.PART_NUMBER, rule.partNumber())
+			.set(HARDWARE_RULE.PART_NUMBER_REG_EXP, rule.partNumberRegExp())
+			.set(HARDWARE_RULE.END_OF_SALE, rule.endOfSale())
+			.set(HARDWARE_RULE.END_OF_LIFE, rule.endOfLife())
+			.where(HARDWARE_RULE.ID.eq(rule.id()))
+			.execute() > 0;
+	}
+
+	/**
+	 * Removes a rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return true if the rule was found and removed
+	 */
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(HARDWARE_RULE).where(HARDWARE_RULE.ID.eq(id)).execute() > 0;
 	}
 }

@@ -18,130 +18,105 @@
  */
 package net.netshot.netshot.credentials;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.UUID;
 
-import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Version;
-import lombok.Getter;
-import lombok.Setter;
 import net.netshot.netshot.inventory.domain.Domain;
 
 /**
- * A credential set. Authentication data to access a device.
+ * A set of credentials to connect to devices: either a global one (which can be used by
+ * the devices of its domain, or of all the domains), or one specific to one access of one
+ * device. Its type (the name of its record) is stored as the discriminator.
  */
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-public abstract class DeviceCredentialSet {
+public sealed interface DeviceCredentialSet permits DeviceCliAccount, DeviceSnmpCommunity, DeviceHttpAccount {
 
-	public static String generateSpecificName() {
+	/**
+	 * Generates a name for a credential set specific to a device access (the name of a
+	 * credential set has to be unique).
+	 *
+	 * @return the name
+	 */
+	static String generateSpecificName() {
 		return String.format("DEVICESPECIFIC-%s", UUID.randomUUID());
 	}
 
-	/** The change date. */
-	@Getter
-	@Setter
-	protected Date changeDate;
-
-	@Getter(onMethod = @__({
-		@Version
-	}))
-	@Setter
-	private int version;
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	/** The name. */
-	@Getter(onMethod = @__({
-		@NaturalId(mutable = true)
-	}))
-	@Setter
-	protected String name;
-
-	/** The mgmtDomain. */
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.CASCADE),
-	}))
-	@Setter
-	protected Domain mgmtDomain;
-
-	/** Device-specific credential set. */
-	@Getter
-	@Setter
-	protected boolean deviceSpecific;
-
 	/**
-	 * Instantiates a new device credential set.
-	 */
-	protected DeviceCredentialSet() {
-		// Reserved for Hibernate
-	}
-
-	/**
-	 * Instantiates a new device credential set.
+	 * Describes a credential set (for the logs).
 	 *
-	 * @param name the name
+	 * @param credentialSet the credential set
+	 * @return the description
 	 */
-	public DeviceCredentialSet(String name) {
-		this.name = name;
+	static String describe(DeviceCredentialSet credentialSet) {
+		return "Device Credential Set " + credentialSet.id() + " (name '" + credentialSet.name()
+			+ "', type " + credentialSet.getClass().getSimpleName() + ")";
 	}
 
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
+	/**
+	 * Gets the ID.
+	 *
+	 * @return the ID (0 for a credential set which isn't stored yet)
 	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof DeviceCredentialSet)) {
-			return false;
-		}
-		DeviceCredentialSet other = (DeviceCredentialSet) obj;
-		if (name == null) {
-			if (other.name != null) {
-				return false;
-			}
-		}
-		else if (!name.equals(other.name)) {
-			return false;
-		}
-		return true;
-	}
+	long id();
 
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * Gets the version.
+	 *
+	 * @return the version, incremented on each change
 	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (name == null ? 0 : name.hashCode());
-		return result;
-	}
+	int version();
 
-	@Override
-	public String toString() {
-		return "Device Credential Set " + id + " (name '" + name + "', type " + this.getClass().getSimpleName() + ")";
-	}
+	/**
+	 * Gets the time of the last change.
+	 *
+	 * @return the time
+	 */
+	Instant changeDate();
 
+	/**
+	 * Gets the name.
+	 *
+	 * @return the name, unique
+	 */
+	String name();
+
+	/**
+	 * Gets the domain the credential set is restricted to.
+	 *
+	 * @return the domain, or null for all the domains
+	 */
+	Domain mgmtDomain();
+
+	/**
+	 * Tells whether the credential set belongs to one access of one device.
+	 *
+	 * @return true for a device specific credential set, false for a global one
+	 */
+	boolean deviceSpecific();
+
+	/**
+	 * Gets the same credential set, with another identity.
+	 *
+	 * @param newId the new ID
+	 * @param newName the new name
+	 * @param newDeviceSpecific whether it is specific to a device access
+	 * @return the credential set
+	 */
+	DeviceCredentialSet withIdentity(long newId, String newName, boolean newDeviceSpecific);
+
+	/**
+	 * Gets the same credential set, restricted to another domain.
+	 *
+	 * @param newMgmtDomain the domain, or null for all the domains
+	 * @return the credential set
+	 */
+	DeviceCredentialSet withMgmtDomain(Domain newMgmtDomain);
+
+	/**
+	 * Gets the type of the credential set, as it is stored.
+	 *
+	 * @return the type
+	 */
+	default String typeName() {
+		return this.getClass().getSimpleName();
+	}
 }

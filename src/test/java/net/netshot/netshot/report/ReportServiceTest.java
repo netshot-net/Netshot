@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.report;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -36,12 +38,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.PolicyService;
-import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.RuleService;
@@ -51,17 +52,22 @@ import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 
 /**
@@ -107,91 +113,74 @@ class ReportServiceTest {
 		TimeZone.setDefault(this.previousTimeZone);
 	}
 
-	private Device device(org.hibernate.Session session, String name, Domain domain, Device.Status status, ConformanceLevel level,
-		String version, Date eos, Date eol) {
-		Device device = new Device("CiscoIOS12", "10.40.0." + (name.length() + (int) (Math.random() * 200)), domain, "seed");
-		device.setName(name);
-		device.setStatus(status);
-		device.setSoftwareLevel(level);
-		device.setSoftwareVersion(version);
-		device.setEosDate(eos);
-		device.setEolDate(eol);
-		session.persist(device);
-		return device;
+	private Device device(String name, Domain domain, Device.Status status, ConformanceLevel level,
+		String version, Date eos, Date eol, DeviceAttribute... attributes) {
+		return TestDevices.add(Device.create("CiscoIOS12", "10.40.0." + (name.length() + (int) (Math.random() * 200)), domain, "seed")
+			.toBuilder()
+			.name(name)
+			.status(status)
+			.softwareLevel(level)
+			.softwareVersion(version)
+			.eosDate(eos == null ? null : eos.toInstant())
+			.eolDate(eol == null ? null : eol.toInstant())
+			.attributes(List.of(attributes))
+			.build());
 	}
 
 	private void seed() {
-		this.transactions.run(session -> {
-			Domain a = new Domain("Report A", "A", null, null);
-			session.persist(a);
-			Domain b = new Domain("Report B", "B", null, null);
-			session.persist(b);
-			this.domainA = a.getId();
-			this.domainB = b.getId();
-			Device d1 = this.device(session, "rep-1", a, Device.Status.INPRODUCTION, ConformanceLevel.GOLD, "1.0", EOS, null);
-			Device d2 = this.device(session, "rep-2", b, Device.Status.INPRODUCTION, ConformanceLevel.SILVER, "2.0", EOS, EOL);
-			Device d3 = this.device(session, "rep-3", a, Device.Status.DISABLED, ConformanceLevel.GOLD, "3.0", EOS, EOL);
-			Device d4 = this.device(session, "rep-4", a, Device.Status.INPRODUCTION, ConformanceLevel.BRONZE, "4.0", null, null);
-			this.dev1 = d1.getId();
-			this.dev2 = d2.getId();
-			this.dev3 = d3.getId();
-			this.dev4 = d4.getId();
-			StaticDeviceGroup g1 = new StaticDeviceGroup("Report group");
-			session.persist(g1);
-			g1.addDevice(d1);
-			g1.addDevice(d2);
-			g1.addDevice(d3);
-			session.merge(g1);
-			StaticDeviceGroup hidden = new StaticDeviceGroup("Report hidden group");
-			hidden.setHiddenFromReports(true);
-			session.persist(hidden);
-			hidden.addDevice(d4);
-			session.merge(hidden);
-			StaticDeviceGroup empty = new StaticDeviceGroup("Report empty group");
-			session.persist(empty);
-			this.group1 = g1.getId();
-			this.hiddenGroup = hidden.getId();
-			this.emptyGroup = empty.getId();
-			session.persist(new DeviceNumericAttribute(d1, "mainMemorySize", 2048));
-			session.persist(new DeviceLongTextAttribute(d1, "inventoryNotes", "no definition for this one"));
-		});
+		Domain a = TestDevices.addDomain("Report A", "A");
+		Domain b = TestDevices.addDomain("Report B", "B");
+		this.domainA = a.id();
+		this.domainB = b.id();
+		Device d1 = this.device("rep-1", a, Device.Status.INPRODUCTION, ConformanceLevel.GOLD, "1.0", EOS, null,
+			new DeviceNumericAttribute("mainMemorySize", 2048.0),
+			new DeviceLongTextAttribute("inventoryNotes", "no definition for this one"));
+		Device d2 = this.device("rep-2", b, Device.Status.INPRODUCTION, ConformanceLevel.SILVER, "2.0", EOS, EOL);
+		Device d3 = this.device("rep-3", a, Device.Status.DISABLED, ConformanceLevel.GOLD, "3.0", EOS, EOL);
+		Device d4 = this.device("rep-4", a, Device.Status.INPRODUCTION, ConformanceLevel.BRONZE, "4.0", null, null);
+		this.dev1 = d1.id();
+		this.dev2 = d2.id();
+		this.dev3 = d3.id();
+		this.dev4 = d4.id();
+		this.group1 = TestDevices.addStaticGroup("Report group", d1, d2, d3).id();
+		StaticDeviceGroup hidden = TestDevices.addStaticGroup("Report hidden group", d4);
+		new Transactions().runDsl(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
+		this.hiddenGroup = hidden.id();
+		this.emptyGroup = TestDevices.addStaticGroup("Report empty group").id();
 		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
 			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry()));
-		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).getId();
-		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).getId();
-		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).getId();
-		this.transactions.run(session -> {
-			Rule r1 = session.get(Rule.class, this.rule1);
-			Rule r2 = session.get(Rule.class, this.rule2);
-			session.persist(new CheckResult(r1, session.get(Device.class, this.dev1), ResultOption.NONCONFORMING, "bad"));
-			session.persist(new CheckResult(r2, session.get(Device.class, this.dev1), ResultOption.CONFORMING, "ok"));
-			session.persist(new CheckResult(r1, session.get(Device.class, this.dev2), ResultOption.CONFORMING, "ok"));
-			session.persist(new CheckResult(r2, session.get(Device.class, this.dev2), ResultOption.EXEMPTED, "exempted"));
-			session.persist(new CheckResult(r1, session.get(Device.class, this.dev3), ResultOption.NONCONFORMING, "disabled device"));
+		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).policy().id();
+		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
+		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();
+		this.transactions.runDsl(dsl -> {
+			new RuleRepository().saveCheckResults(dsl, List.of(
+				CheckResult.of(this.rule1, this.dev1, ResultOption.NONCONFORMING, "bad"),
+				CheckResult.of(this.rule2, this.dev1, ResultOption.CONFORMING, "ok"),
+				CheckResult.of(this.rule1, this.dev2, ResultOption.CONFORMING, "ok"),
+				CheckResult.of(this.rule2, this.dev2, ResultOption.EXEMPTED, "exempted"),
+				CheckResult.of(this.rule1, this.dev3, ResultOption.NONCONFORMING, "disabled device")));
 			long now = System.currentTimeMillis();
-			this.snapshot(session, this.dev1, Task.Status.SUCCESS, now - 10 * DAY);
-			this.snapshot(session, this.dev1, Task.Status.FAILURE, now - DAY);
-			this.snapshot(session, this.dev2, Task.Status.SUCCESS, now - DAY);
-			// Configurations, for the daily counts: now, and 3 days ago
-			Device d1 = session.get(Device.class, this.dev1);
-			Config today = new Config(d1);
-			today.setChangeDate(new Date(now));
-			session.persist(today);
-			Config old = new Config(d1);
-			old.setChangeDate(new Date(now - 3 * DAY));
-			session.persist(old);
+			this.snapshot(dsl, this.dev1, Task.Status.SUCCESS, now - 10 * DAY);
+			this.snapshot(dsl, this.dev1, Task.Status.FAILURE, now - DAY);
+			this.snapshot(dsl, this.dev2, Task.Status.SUCCESS, now - DAY);
 		});
+		// Configurations, for the daily counts: now, and 3 days ago
+		long now = System.currentTimeMillis();
+		TestDevices.addOldConfig(this.dev1, Config.builder().author("").changeDate(Instant.ofEpochMilli(now)).build());
+		TestDevices.addOldConfig(this.dev1, Config.builder().author("").changeDate(Instant.ofEpochMilli(now - 3 * DAY)).build());
 	}
 
-	private void snapshot(org.hibernate.Session session, long deviceId, Task.Status status, long date) {
-		TakeSnapshotTask task = new TakeSnapshotTask(session.get(Device.class, deviceId), "snapshot", "tester", true, false, false);
-		task.setStatus(status);
-		task.setCreationDate(new Date(date));
-		task.setChangeDate(new Date(date));
-		task.setScheduleReference(new Date(date));
-		task.setExecutionDate(new Date(date));
-		session.persist(task);
+	private void snapshot(DSLContext dsl, long deviceId, Task.Status status, long date) {
+		Instant when = Instant.ofEpochMilli(date);
+		new TaskRepository().add(dsl, TakeSnapshotTask.of(new DeviceRepository().find(dsl, deviceId), "snapshot", "tester", true, false, false)
+			.toBuilder()
+			.status(status)
+			.creationDate(when)
+			.changeDate(when)
+			.scheduleReference(when)
+			.executionDate(when)
+			.build());
 	}
 
 	private static RuleDefinition textRule(String name, long policyId) {

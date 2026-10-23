@@ -21,8 +21,13 @@ package net.netshot.netshot.report;
 import static net.netshot.netshot.platform.database.schema.Tables.CHECK_RESULT;
 import static net.netshot.netshot.platform.database.schema.Tables.CONFIG;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_ATTRIBUTE;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+import static net.netshot.netshot.platform.database.schema.Tables.DOMAIN;
+import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
+import static net.netshot.netshot.platform.database.schema.Tables.MODULE;
+import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE;
 import static net.netshot.netshot.platform.database.schema.Tables.POLICY;
 import static net.netshot.netshot.platform.database.schema.Tables.RULE;
 import static net.netshot.netshot.platform.database.schema.Tables.TASK;
@@ -33,8 +38,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
-import org.hibernate.query.Query;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -45,13 +48,16 @@ import org.jooq.impl.DSL;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.inventory.device.Module;
+import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.device.NetworkInterface;
-import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.report.ReportExportSink.ExportedAddress;
+import net.netshot.netshot.report.ReportExportSink.ExportedDevice;
+import net.netshot.netshot.report.ReportExportSink.ExportedInterface;
+import net.netshot.netshot.report.ReportExportSink.ExportedMembership;
+import net.netshot.netshot.report.ReportExportSink.ExportedModule;
 import net.netshot.netshot.task.Task;
 
 /**
@@ -271,197 +277,184 @@ public class ReportRepository {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Finds domains by ID.
+	 * The condition on the devices selected for an export.
 	 *
-	 * @param session the session
+	 * @param domains the domains to filter on (empty: any)
+	 * @param groups the groups to filter on (empty: any)
+	 * @return the condition on {@code DEVICE}
+	 */
+	private static Condition exportedDevices(Set<Long> domains, Set<Long> groups) {
+		Condition condition = DSL.noCondition();
+		if (domains.size() > 0) {
+			condition = condition.and(DEVICE.MGMT_DOMAIN.in(domains));
+		}
+		if (groups.size() > 0) {
+			condition = condition.and(DEVICE.ID.in(DSL.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(groups))));
+		}
+		return condition;
+	}
+
+	/**
+	 * Finds the names of domains, by ID.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param domainIds the IDs
-	 * @return the domains (the unknown IDs are ignored)
+	 * @return the domains, as "name (ID)" (the unknown IDs are ignored)
 	 */
-	public List<Domain> findDomains(Session session, Set<Long> domainIds) {
-		return session
-			.createQuery("select d from Domain d where d.id in (:domainIds)", Domain.class)
-			.setParameterList("domainIds", domainIds)
-			.list();
+	public List<String> findDomainNames(DSLContext dsl, Set<Long> domainIds) {
+		return dsl.select(DOMAIN.ID, DOMAIN.NAME).from(DOMAIN).where(DOMAIN.ID.in(domainIds)).orderBy(DOMAIN.ID)
+			.fetch(r -> String.format("%s (%d)", r.value2(), r.value1()));
 	}
 
 	/**
-	 * Finds device groups by ID.
+	 * Finds the names of device groups, by ID.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param groupIds the IDs
-	 * @return the groups (the unknown IDs are ignored)
+	 * @return the groups, as "name (ID)" (the unknown IDs are ignored)
 	 */
-	public List<DeviceGroup> findDeviceGroups(Session session, Set<Long> groupIds) {
-		return session
-			.createQuery("select g from DeviceGroup g where g.id in (:groupIds)", DeviceGroup.class)
-			.setParameterList("groupIds", groupIds)
-			.list();
+	public List<String> findGroupNames(DSLContext dsl, Set<Long> groupIds) {
+		return dsl.select(DEVICE_GROUP.ID, DEVICE_GROUP.NAME).from(DEVICE_GROUP).where(DEVICE_GROUP.ID.in(groupIds))
+			.orderBy(DEVICE_GROUP.ID)
+			.fetch(r -> String.format("%s (%d)", r.value2(), r.value1()));
 	}
 
 	/**
-	 * Finds a page of the devices to export, by name. Fetch plan: the device and its management domain.
+	 * Finds a page of the devices to export, by name.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
 	 * @param page the window on the result
 	 * @return the devices
 	 */
-	public List<Device> findDevicesToExport(Session session, Set<Long> domains, Set<Long> groups, Page page) {
-		StringBuilder deviceHqlQuery = new StringBuilder(
-			"select d from Device d left join d.groupMemberships gm "
-				+ "left join fetch d.mgmtDomain "
-				+ "where 1 = 1");
-		if (domains.size() > 0) {
-			deviceHqlQuery.append(" and d.mgmtDomain.id in (:domainIds)");
-		}
-		if (groups.size() > 0) {
-			deviceHqlQuery.append(" and gm.key.group.id in (:groupIds)");
-		}
-		deviceHqlQuery.append(" order by d.name asc");
-		Query<Device> deviceQuery = session.createQuery(deviceHqlQuery.toString(), Device.class);
-		if (domains.size() > 0) {
-			deviceQuery.setParameterList("domainIds", domains);
-		}
-		if (groups.size() > 0) {
-			deviceQuery.setParameterList("groupIds", groups);
-		}
-		page.apply(deviceQuery);
-		return deviceQuery.list();
+	public List<ExportedDevice> findDevicesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Page page) {
+		return page.apply(dsl.select(DEVICE.ID, DEVICE.NAME, DEVICE.MGMT_ADDRESS, DOMAIN.NAME, DEVICE.NETWORK_CLASS, DEVICE.FAMILY,
+					DEVICE.CREATED_DATE, DEVICE.CHANGE_DATE, DEVICE.SOFTWARE_VERSION, DEVICE.SOFTWARE_LEVEL, DEVICE.EOS_DATE,
+					DEVICE.EOL_DATE, DEVICE.LOCATION, DEVICE.CONTACT)
+				.from(DEVICE)
+				.leftJoin(DOMAIN).on(DOMAIN.ID.eq(DEVICE.MGMT_DOMAIN))
+				.where(exportedDevices(domains, groups))
+				.orderBy(DEVICE.NAME.asc(), DEVICE.ID.asc()))
+			.fetch(r -> new ExportedDevice(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(DEVICE.MGMT_ADDRESS), r.get(DOMAIN.NAME),
+				r.get(DEVICE.NETWORK_CLASS) == null ? null : Device.NetworkClass.valueOf(r.get(DEVICE.NETWORK_CLASS)),
+				r.get(DEVICE.FAMILY), toDate(r.get(DEVICE.CREATED_DATE)), toDate(r.get(DEVICE.CHANGE_DATE)), r.get(DEVICE.SOFTWARE_VERSION),
+				r.get(DEVICE.SOFTWARE_LEVEL) == null ? null : ConformanceLevel.valueOf(r.get(DEVICE.SOFTWARE_LEVEL)),
+				toDate(r.get(DEVICE.EOS_DATE)), toDate(r.get(DEVICE.EOL_DATE)), r.get(DEVICE.LOCATION), r.get(DEVICE.CONTACT)));
 	}
 
 	/**
-	 * Finds all the interfaces to export. Fetch plan: the interface and its IPv4 and IPv6 addresses
-	 * (the device is read lazily).
+	 * Finds all the interfaces to export, by device name.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
 	 * @return the interfaces
 	 */
-	public List<NetworkInterface> findInterfacesToExport(Session session, Set<Long> domains, Set<Long> groups) {
-		StringBuilder interfaceHqlQuery = new StringBuilder(
-			"select ni from NetworkInterface ni "
-				+ "left join fetch ni.ip4Addresses left join fetch ni.ip6Addresses "
-				+ "join ni.device d left join d.groupMemberships gm where 1 = 1");
-		if (domains.size() > 0) {
-			interfaceHqlQuery.append(" and d.mgmtDomain.id in (:domainIds)");
-		}
-		if (groups.size() > 0) {
-			interfaceHqlQuery.append(" and gm.key.group.id in (:groupIds)");
-		}
-		interfaceHqlQuery.append(" order by d.name asc, ni.id asc");
-		Query<NetworkInterface> interfaceQuery = session.createQuery(interfaceHqlQuery.toString(),
-			NetworkInterface.class);
-		if (domains.size() > 0) {
-			interfaceQuery.setParameterList("domainIds", domains);
-		}
-		if (groups.size() > 0) {
-			interfaceQuery.setParameterList("groupIds", groups);
-		}
-		return interfaceQuery.list();
+	public List<ExportedInterface> findInterfacesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups) {
+		List<SelectField<?>> fields = new ArrayList<>(DeviceRepository.INTERFACE_FIELDS);
+		fields.add(DEVICE.ID);
+		fields.add(DEVICE.NAME);
+		return dsl.select(fields)
+			.from(NETWORK_INTERFACE)
+			.join(DEVICE).on(DEVICE.ID.eq(NETWORK_INTERFACE.DEVICE))
+			.where(exportedDevices(domains, groups))
+			.orderBy(DEVICE.NAME.asc(), NETWORK_INTERFACE.ID.asc())
+			.fetch(r -> {
+				NetworkInterface networkInterface = DeviceRepository.toInterface(r);
+				List<ExportedAddress> addresses = new ArrayList<>();
+				for (NetworkAddress address : networkInterface.getIpAddresses()) {
+					addresses.add(new ExportedAddress(address.getIp(), address.getPrefixLength(), address.getAddressUsage()));
+				}
+				return new ExportedInterface(r.get(DEVICE.ID), r.get(DEVICE.NAME),
+					networkInterface.virtualDevice(), networkInterface.interfaceName(),
+					networkInterface.description(), networkInterface.vrfInstance(), networkInterface.getMacAddress(),
+					networkInterface.enabled(), networkInterface.level3(), addresses);
+			});
 	}
 
 	/**
-	 * Finds a page of the modules to export. Fetch plan: the module (the device is read lazily).
+	 * Finds a page of the modules to export, by device name.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param history whether to include the removed modules
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
 	 * @param page the window on the result
 	 * @return the modules
 	 */
-	public List<Module> findModulesToExport(Session session, boolean history, Set<Long> domains, Set<Long> groups,
-		Page page) {
-		StringBuilder moduleHqlQuery = new StringBuilder(
-			"select m from Module m "
-				+ "join m.device d left join d.groupMemberships gm where 1 = 1");
+	public List<ExportedModule> findModulesToExport(DSLContext dsl, boolean history, Set<Long> domains, Set<Long> groups, Page page) {
+		Condition condition = exportedDevices(domains, groups);
 		if (!history) {
-			moduleHqlQuery.append(" and m.removed is not true");
+			condition = condition.and(MODULE.REMOVED.isDistinctFrom(true));
 		}
-		if (domains.size() > 0) {
-			moduleHqlQuery.append(" and d.mgmtDomain.id in (:domainIds)");
-		}
-		if (groups.size() > 0) {
-			moduleHqlQuery.append(" and gm.key.group.id in (:groupIds)");
-		}
-		moduleHqlQuery.append(" order by d.name asc, m.id asc");
-		Query<Module> moduleQuery = session.createQuery(moduleHqlQuery.toString(), Module.class);
-		if (domains.size() > 0) {
-			moduleQuery.setParameterList("domainIds", domains);
-		}
-		if (groups.size() > 0) {
-			moduleQuery.setParameterList("groupIds", groups);
-		}
-		page.apply(moduleQuery);
-		return moduleQuery.list();
+		return page.apply(dsl.select(DEVICE.ID, DEVICE.NAME, MODULE.SLOT, MODULE.PART_NUMBER, MODULE.SERIAL_NUMBER,
+					MODULE.FIRST_SEEN_DATE, MODULE.LAST_SEEN_DATE, MODULE.REMOVED)
+				.from(MODULE)
+				.join(DEVICE).on(DEVICE.ID.eq(MODULE.DEVICE))
+				.where(condition)
+				.orderBy(DEVICE.NAME.asc(), MODULE.ID.asc()))
+			.fetch(r -> new ExportedModule(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(MODULE.SLOT), r.get(MODULE.PART_NUMBER),
+				r.get(MODULE.SERIAL_NUMBER), toDate(r.get(MODULE.FIRST_SEEN_DATE)), toDate(r.get(MODULE.LAST_SEEN_DATE)),
+				Boolean.TRUE.equals(r.get(MODULE.REMOVED))));
 	}
 
 	/**
-	 * Finds a page of the devices whose group memberships are to be exported, by name.
-	 * Fetch plan: the device (the group memberships are read lazily).
+	 * Finds the group memberships to export (the groups hidden from the reports are left out),
+	 * by device name.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
-	 * @param page the window on the result
-	 * @return the devices
+	 * @return the memberships
 	 */
-	public List<Device> findDevicesWithGroupsToExport(Session session, Set<Long> domains, Set<Long> groups, Page page) {
-		StringBuilder deviceHqlQuery = new StringBuilder(
-			"select d from Device d left join d.groupMemberships gm join gm.key.group g"
-				+ "left join d.mgmtDomain "
-				+ "where 1 = 1");
-		if (domains.size() > 0) {
-			deviceHqlQuery.append(" and d.mgmtDomain.id in (:domainIds)");
-		}
-		if (groups.size() > 0) {
-			deviceHqlQuery.append(" and gm.key.group.id in (:groupIds)");
-		}
-		deviceHqlQuery.append(" order by d.name asc");
-		Query<Device> deviceQuery = session.createQuery(deviceHqlQuery.toString(), Device.class);
-		if (domains.size() > 0) {
-			deviceQuery.setParameterList("domainIds", domains);
-		}
-		if (groups.size() > 0) {
-			deviceQuery.setParameterList("groupIds", groups);
-		}
-		page.apply(deviceQuery);
-		return deviceQuery.list();
+	public List<ExportedMembership> findMembershipsToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups) {
+		return dsl.select(DEVICE.ID, DEVICE.NAME, DEVICE_GROUP.ID, DEVICE_GROUP.NAME)
+			.from(DEVICE_GROUP_CACHED_DEVICES)
+			.join(DEVICE).on(DEVICE.ID.eq(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES))
+			.join(DEVICE_GROUP).on(DEVICE_GROUP.ID.eq(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS))
+			.where(exportedDevices(domains, groups), DEVICE_GROUP.HIDDEN_FROM_REPORTS.isFalse())
+			.orderBy(DEVICE.NAME.asc(), DEVICE.ID.asc(), DEVICE_GROUP.ID.asc())
+			.fetch(r -> new ExportedMembership(r.value1(), r.value2(), r.value3(), r.value4()));
 	}
 
 	/**
-	 * Finds a page of the device attributes to export. Fetch plan: the attribute and its device.
+	 * A device attribute to export.
 	 *
-	 * @param session the session
+	 * @param deviceId the ID of the device
+	 * @param deviceName the name of the device
+	 * @param driver the driver of the device
+	 * @param name the name of the attribute
+	 * @param value the value of the attribute
+	 */
+	public record AttributeToExport(long deviceId, String deviceName, String driver, String name, Object value) {
+	}
+
+	/**
+	 * Finds a page of the device attributes to export, by device name.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
 	 * @param page the window on the result
 	 * @return the attributes
 	 */
-	public List<DeviceAttribute> findDeviceAttributesToExport(Session session, Set<Long> domains, Set<Long> groups,
-		Page page) {
-		StringBuilder attributeHqlQuery = new StringBuilder(
-			"select da from DeviceAttribute da "
-				+ "join fetch da.device d where 1 = 1");
-		if (domains.size() > 0) {
-			attributeHqlQuery.append(" and d.mgmtDomain.id in (:domainIds)");
-		}
-		if (groups.size() > 0) {
-			attributeHqlQuery.append(" and d.id in (select d.id from Device d left join d.groupMemberships gm where gm.key.group.id in (:groupIds))");
-		}
-		attributeHqlQuery.append(" order by d.name asc, da.id asc");
-		Query<DeviceAttribute> attributeQuery = session.createQuery(attributeHqlQuery.toString(),
-			DeviceAttribute.class);
-		if (domains.size() > 0) {
-			attributeQuery.setParameterList("domainIds", domains);
-		}
-		if (groups.size() > 0) {
-			attributeQuery.setParameterList("groupIds", groups);
-		}
-		page.apply(attributeQuery);
-		return attributeQuery.list();
+	public List<AttributeToExport> findDeviceAttributesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Page page) {
+		return page.apply(dsl.select(DEVICE.ID, DEVICE.NAME, DEVICE.DRIVER, DEVICE_ATTRIBUTE.TYPE, DEVICE_ATTRIBUTE.NAME,
+					DEVICE_ATTRIBUTE.TEXT, DEVICE_ATTRIBUTE.NUMBER, DEVICE_ATTRIBUTE.ASSUMPTION, LONG_TEXT_CONFIGURATION.TEXT)
+				.from(DEVICE_ATTRIBUTE)
+				.join(DEVICE).on(DEVICE.ID.eq(DEVICE_ATTRIBUTE.DEVICE))
+				.leftJoin(LONG_TEXT_CONFIGURATION).on(LONG_TEXT_CONFIGURATION.ID.eq(DEVICE_ATTRIBUTE.LONG_TEXT))
+				.where(exportedDevices(domains, groups))
+				.orderBy(DEVICE.NAME.asc(), DEVICE_ATTRIBUTE.ID.asc()))
+			.fetch(r -> new AttributeToExport(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(DEVICE.DRIVER), r.get(DEVICE_ATTRIBUTE.NAME),
+				switch (r.get(DEVICE_ATTRIBUTE.TYPE)) {
+					case "N" -> r.get(DEVICE_ATTRIBUTE.NUMBER);
+					case "B" -> r.get(DEVICE_ATTRIBUTE.ASSUMPTION);
+					case "T" -> r.get(LONG_TEXT_CONFIGURATION.TEXT);
+					default -> r.get(DEVICE_ATTRIBUTE.TEXT);
+				}));
 	}
 
 	private static Field<Instant> milestoneField(EndOfSupport milestone) {

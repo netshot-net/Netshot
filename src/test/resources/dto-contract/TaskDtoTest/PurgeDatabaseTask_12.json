@@ -2,7 +2,7 @@
   "author": "author-12",
   "cancelRequested": true,
   "changeDate": 1600000000012,
-  "checkCompliance": true,
+  "checkCompliance": false,
   "childOrder": 12,
   "comments": "Comments of 12",
   "configDays": 60,
@@ -11,7 +11,7 @@
   "creationDate": 1500000000012,
   "days": 30,
   "debugEnabled": true,
-  "deviceDriver": "CiscoIOS12",
+  "deviceDriver": null,
   "deviceGroupId": 15,
   "executionDate": 1550000000012,
   "id": 12,
@@ -22,20 +22,18 @@
   "priority": 7,
   "removeOrphanFiles": true,
   "repeating": true,
-  "runDiagnostics": true,
-  "runSnapshot": true,
+  "runDiagnostics": false,
+  "runSnapshot": false,
   "runnerId": "<runnerId>",
   "scheduleFactor": 3,
   "scheduleMode": "SEQUENTIAL",
   "scheduleReference": 1700000000000,
   "scheduleType": "WEEKLY",
-  "script": "script of 12",
+  "script": null,
   "status": "SCHEDULED",
   "stopOnFailure": true,
   "target": "Global",
   "taskDescription": "Database purge",
   "type": "PurgeDatabaseTask",
-  "userInputValues": {
-    "input": "value"
-  }
+  "userInputValues": null
 }

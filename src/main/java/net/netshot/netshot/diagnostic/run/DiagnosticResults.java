@@ -26,7 +26,6 @@ import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
-import net.netshot.netshot.inventory.device.Device;
 
 /**
  * Builds the diagnostic results from the values returned by the scripts.
@@ -39,20 +38,19 @@ final class DiagnosticResults {
 	/**
 	 * Build a diagnostic result.
 	 * @param diagnostic the diagnostic
-	 * @param device the device
 	 * @param value the diagnostic result
 	 * @return the diagnostic result of the right type
 	 */
-	static DiagnosticResult make(Diagnostic diagnostic, Device device, Value value) {
-		switch (diagnostic.getResultType()) {
+	static DiagnosticResult make(Diagnostic diagnostic, Value value) {
+		switch (diagnostic.resultType()) {
 			case LONGTEXT:
-				return new DiagnosticLongTextResult(device, diagnostic, value.asString());
+				return DiagnosticLongTextResult.of(diagnostic, value.asString());
 			case TEXT:
-				return new DiagnosticTextResult(device, diagnostic, value.asString());
+				return DiagnosticTextResult.of(diagnostic, value.asString());
 			case NUMERIC:
-				return new DiagnosticNumericResult(device, diagnostic, value.asDouble());
+				return DiagnosticNumericResult.of(diagnostic, value.asDouble());
 			case BINARY:
-				return new DiagnosticBinaryResult(device, diagnostic, value.asBoolean());
+				return DiagnosticBinaryResult.of(diagnostic, value.asBoolean());
 			default:
 				return null;
 		}

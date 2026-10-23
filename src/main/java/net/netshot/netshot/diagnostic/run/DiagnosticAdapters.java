@@ -21,12 +21,10 @@ package net.netshot.netshot.diagnostic.run;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.script.ScriptException;
 
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.hibernate.Hibernate;
 
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
@@ -52,7 +50,7 @@ public final class DiagnosticAdapters {
 				throw new IllegalStateException("Several adapters for the diagnostic type " + adapter.diagnosticType().getSimpleName());
 			}
 		}
-		for (Class<? extends Diagnostic> diagnosticClass : Diagnostic.getDiagnosticClasses()) {
+		for (Class<?> diagnosticClass : Diagnostic.class.getPermittedSubclasses()) {
 			if (!this.adapters.containsKey(diagnosticClass)) {
 				throw new IllegalStateException("No adapter for the diagnostic type " + diagnosticClass.getSimpleName());
 			}
@@ -92,7 +90,7 @@ public final class DiagnosticAdapters {
 	 * @throws IllegalStateException if the type of the diagnostic has no adapter
 	 */
 	public Value toJsObject(Diagnostic diagnostic, Device device, Context context) throws ScriptException {
-		Diagnostic real = (Diagnostic) Hibernate.unproxy(diagnostic);
+		Diagnostic real = diagnostic;
 		return this.forDiagnostic(real).toJsObject(real, device, context);
 	}
 
@@ -100,14 +98,13 @@ public final class DiagnosticAdapters {
 	 * Builds a diagnostic result.
 	 *
 	 * @param diagnostic the diagnostic (a proxy is accepted)
-	 * @param device the device
 	 * @param value the diagnostic result, as returned by the script
 	 * @return the diagnostic result of the right type
 	 * @throws IllegalStateException if the type of the diagnostic has no adapter
 	 */
-	public DiagnosticResult makeResult(Diagnostic diagnostic, Device device, Value value) {
-		Diagnostic real = (Diagnostic) Hibernate.unproxy(diagnostic);
-		return this.forDiagnostic(real).makeResult(real, device, value);
+	public DiagnosticResult makeResult(Diagnostic diagnostic, Value value) {
+		Diagnostic real = diagnostic;
+		return this.forDiagnostic(real).makeResult(real, value);
 	}
 
 }

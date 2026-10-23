@@ -18,19 +18,19 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
-
-import org.hibernate.Hibernate;
 
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.device.DeviceUpdate;
@@ -56,6 +56,10 @@ public final class DeviceMapper {
 		// Static helpers only
 	}
 
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
+	}
+
 	// The description of the driver of the device
 	private static String realDeviceType(DriverRegistry driverRegistry, Device device) {
 		try {
@@ -76,46 +80,46 @@ public final class DeviceMapper {
 	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device) {
 		// The collections of the device are sets: they are listed in a stable order
 		List<DeviceAccessDto> accesses = new ArrayList<>();
-		device.getAccesses().stream().sorted(Comparator.comparing(DeviceAccess::getAccessName, Comparator.nullsFirst(Comparator.naturalOrder())))
+		device.accesses().stream().sorted(Comparator.comparing(DeviceAccess::accessName, Comparator.nullsFirst(Comparator.naturalOrder())))
 			.forEach(access -> accesses.add(DeviceAccessMapper.toDto(access)));
 		List<DeviceAttributeDto> attributes = new ArrayList<>();
-		device.getAttributes().stream().sorted(Comparator.comparing(DeviceAttribute::getName, Comparator.nullsFirst(Comparator.naturalOrder())))
+		device.attributes().stream().sorted(Comparator.comparing(DeviceAttribute::name, Comparator.nullsFirst(Comparator.naturalOrder())))
 			.forEach(attribute -> attributes.add(toDto(attribute)));
 		List<DeviceGroupDto> ownerGroups = new ArrayList<>();
-		device.getOwnerGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::getId))
+		device.ownerGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::id))
 			.forEach(group -> ownerGroups.add(GroupMapper.toDto(group)));
 		return new DeviceDto(
 			accesses,
 			attributes,
 			device.getCachedIpAddressAsString(),
-			device.getChangeDate(),
-			device.getComments(),
-			device.isCompliant(),
-			device.getContact(),
-			device.getCreatedDate(),
-			device.getCreator(),
-			device.getDriver(),
+			date(device.changeDate()),
+			device.comments(),
+			device.compliant(),
+			device.contact(),
+			date(device.createdDate()),
+			device.creator(),
+			device.driver(),
 			device.isEndOfLife(),
 			device.isEndOfSale(),
-			device.getEolDate(),
-			toDto(device.getEolModule()),
-			device.getEosDate(),
-			toDto(device.getEosModule()),
-			device.getFamily(),
-			device.getId(),
-			device.getLocation(),
-			device.getMgmtAddress(),
-			DomainMapper.toDto(device.getMgmtDomain()),
-			device.getName(),
-			device.getNetworkClass(),
-			device.getOptions(),
+			date(device.eolDate()),
+			toDto(device.eolModule()),
+			date(device.eosDate()),
+			toDto(device.eosModule()),
+			device.family(),
+			device.id(),
+			device.location(),
+			device.mgmtAddress(),
+			DomainMapper.toDto(device.mgmtDomain()),
+			device.name(),
+			device.networkClass(),
+			device.options(),
 			ownerGroups,
 			realDeviceType(driverRegistry, device),
-			device.getSerialNumber(),
-			device.getSoftwareLevel(),
-			device.getSoftwareVersion(),
-			device.getStatus(),
-			device.getTags().stream().sorted().toList());
+			device.serialNumber(),
+			device.softwareLevel(),
+			device.softwareVersion(),
+			device.status(),
+			device.tags().stream().sorted().toList());
 	}
 
 	/**
@@ -198,34 +202,26 @@ public final class DeviceMapper {
 	}
 
 	private static DeviceAttributeDto toDto(DeviceAttribute attribute) {
-		if (attribute instanceof DeviceTextAttribute text) {
-			return new DeviceAttributeDto.Text(text.getName(), text.getText());
-		}
-		else if (attribute instanceof DeviceNumericAttribute numeric) {
-			return new DeviceAttributeDto.Numeric(numeric.getName(), numeric.getNumber());
-		}
-		else if (attribute instanceof DeviceBinaryAttribute binary) {
-			return new DeviceAttributeDto.Binary(binary.getName(), binary.getAssumption());
-		}
-		else if (attribute instanceof DeviceLongTextAttribute) {
-			return new DeviceAttributeDto.LongText(attribute.getName());
-		}
-		throw new IllegalArgumentException("Unknown kind of device attribute: " + attribute.getClass().getName());
+		return switch (attribute) {
+			case DeviceTextAttribute text -> new DeviceAttributeDto.Text(text.name(), text.text());
+			case DeviceNumericAttribute numeric -> new DeviceAttributeDto.Numeric(numeric.name(), numeric.number());
+			case DeviceBinaryAttribute binary -> new DeviceAttributeDto.Binary(binary.name(), binary.assumption());
+			case DeviceLongTextAttribute longText -> new DeviceAttributeDto.LongText(longText.name());
+		};
 	}
 
-	public static ModuleDto toDto(Module moduleOrProxy) {
-		if (moduleOrProxy == null) {
+	public static ModuleDto toDto(Module module) {
+		if (module == null) {
 			return null;
 		}
-		Module module = (Module) Hibernate.unproxy(moduleOrProxy);
 		return new ModuleDto(
-			module.getId(),
-			module.getSlot(),
-			module.getPartNumber(),
-			module.getSerialNumber(),
-			module.getFirstSeenDate(),
-			module.getLastSeenDate(),
-			module.isRemoved());
+			module.id(),
+			module.slot(),
+			module.partNumber(),
+			module.serialNumber(),
+			date(module.firstSeenDate()),
+			date(module.lastSeenDate()),
+			module.removed());
 	}
 
 }

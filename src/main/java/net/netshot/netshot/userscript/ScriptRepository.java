@@ -18,38 +18,76 @@
  */
 package net.netshot.netshot.userscript;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_JS_SCRIPT;
+
 import java.util.List;
 
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The queries on the command scripts. No method opens a transaction or catches an exception.
+ * The queries on the device scripts. The {@link DSLContext} is always the first parameter: the
+ * caller (the service) owns the transaction.
  */
 public class ScriptRepository {
 
-	/**
-	 * Finds the scripts. The entities are attached to the session: callers must not change them.
-	 *
-	 * @param session the session
-	 * @param page the window on the result
-	 * @return the scripts
-	 */
-	public List<DeviceJsScript> findAll(Session session, Page page) {
-		var query = session.createQuery("from DeviceJsScript s", DeviceJsScript.class);
-		page.apply(query);
-		return query.list();
+	private static DeviceJsScript toScript(Record r) {
+		return new DeviceJsScript(r.get(DEVICE_JS_SCRIPT.ID), r.get(DEVICE_JS_SCRIPT.NAME), r.get(DEVICE_JS_SCRIPT.FOLDER),
+			r.get(DEVICE_JS_SCRIPT.SCRIPT), r.get(DEVICE_JS_SCRIPT.DEVICE_DRIVER), r.get(DEVICE_JS_SCRIPT.AUTHOR), null);
 	}
 
 	/**
-	 * Finds a script.
+	 * Lists the scripts, by ID.
 	 *
-	 * @param session the session
-	 * @param id the script ID
+	 * @param dsl the jOOQ context
+	 * @param page the window on the result
+	 * @return the scripts
+	 */
+	public List<DeviceJsScript> findAll(DSLContext dsl, Page page) {
+		return page.apply(dsl.select(DEVICE_JS_SCRIPT.fields()).from(DEVICE_JS_SCRIPT).orderBy(DEVICE_JS_SCRIPT.ID))
+			.fetch(ScriptRepository::toScript);
+	}
+
+	/**
+	 * Gets a script.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
 	 * @return the script, or null if there is no such script
 	 */
-	public DeviceJsScript find(Session session, long id) {
-		return session.get(DeviceJsScript.class, id);
+	public DeviceJsScript find(DSLContext dsl, long id) {
+		return dsl.select(DEVICE_JS_SCRIPT.fields()).from(DEVICE_JS_SCRIPT).where(DEVICE_JS_SCRIPT.ID.eq(id))
+			.fetchOne(ScriptRepository::toScript);
+	}
+
+	/**
+	 * Stores a new script.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param script the script (its ID is ignored)
+	 * @return the ID of the new script
+	 */
+	public long add(DSLContext dsl, DeviceJsScript script) {
+		return dsl.insertInto(DEVICE_JS_SCRIPT)
+			.set(DEVICE_JS_SCRIPT.NAME, script.name())
+			.set(DEVICE_JS_SCRIPT.FOLDER, script.folder())
+			.set(DEVICE_JS_SCRIPT.SCRIPT, script.script())
+			.set(DEVICE_JS_SCRIPT.DEVICE_DRIVER, script.deviceDriver())
+			.set(DEVICE_JS_SCRIPT.AUTHOR, script.author())
+			.returning(DEVICE_JS_SCRIPT.ID)
+			.fetchOne(DEVICE_JS_SCRIPT.ID);
+	}
+
+	/**
+	 * Removes a script.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return true if the script was found and removed
+	 */
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(DEVICE_JS_SCRIPT).where(DEVICE_JS_SCRIPT.ID.eq(id)).execute() > 0;
 	}
 }

@@ -18,14 +18,15 @@
  */
 package net.netshot.netshot.task.type;
 
-import net.netshot.netshot.inventory.domain.Domain;
-
 /**
- * Domain specific task interface.
+ * A task working in a domain.
  */
 public interface DomainBasedTask {
 
-	Domain getDomain();
-
-	void setDomain(Domain domain);
+	/**
+	 * Gets the ID of the domain.
+	 *
+	 * @return the domain ID, null for none
+	 */
+	Long domainId();
 }

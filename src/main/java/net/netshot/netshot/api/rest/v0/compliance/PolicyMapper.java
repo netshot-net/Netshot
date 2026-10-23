@@ -19,14 +19,12 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
-import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyView;
 import net.netshot.netshot.compliance.PolicyDefinition;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
  * Maps the compliance policies between the entities and their REST representation. All the
@@ -43,15 +41,14 @@ public final class PolicyMapper {
 	/**
 	 * Maps a policy to its representation.
 	 *
-	 * @param policy the policy, with its target groups loaded
+	 * @param view the policy, with its target groups
 	 * @return the DTO
 	 */
-	public static PolicyDto toDto(Policy policy) {
+	public static PolicyDto toDto(PolicyView view) {
 		List<DeviceGroupDto> groups = new ArrayList<>();
-		// The target groups are a set: they are listed by ID
-		policy.getTargetGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::getId))
-			.forEach(group -> groups.add(GroupMapper.toDto(group)));
-		return new PolicyDto(policy.getId(), policy.getName(), groups);
+		// The target groups are listed by ID
+		view.targetGroups().forEach(group -> groups.add(GroupMapper.toDto(group)));
+		return new PolicyDto(view.policy().id(), view.policy().name(), groups);
 	}
 
 	/**
@@ -60,7 +57,7 @@ public final class PolicyMapper {
 	 * @param policies the policies, with their target groups loaded
 	 * @return the DTOs, in the same order
 	 */
-	public static List<PolicyDto> toDtos(List<Policy> policies) {
+	public static List<PolicyDto> toDtos(List<PolicyView> policies) {
 		List<PolicyDto> dtos = new ArrayList<>(policies.size());
 		policies.forEach(policy -> dtos.add(toDto(policy)));
 		return dtos;

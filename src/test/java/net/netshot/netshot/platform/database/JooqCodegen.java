@@ -81,7 +81,12 @@ public final class JooqCodegen {
 						new ForcedType()
 							.withUserType("java.time.Instant")
 							.withConverter(UtcInstantConverter.class.getName())
-							.withIncludeTypes("timestamp(\\(\\d+\\))?( without time zone)?")))
+							.withIncludeTypes("timestamp(\\(\\d+\\))?( without time zone)?"),
+						new ForcedType()
+							.withUserType("java.lang.String")
+							.withConverter(EncryptedStringConverter.class.getName())
+							.withIncludeExpression("(.*\\.)?(device_credential_set\\.(auth_key|priv_key|private_key|community|password|super_password)"
+								+ "|vault_instance\\.(app_role_secret_id|jwt_client_secret))")))
 				.withGenerate(new Generate()
 					.withGeneratedAnnotation(false)
 					.withJavaTimeTypes(true)

@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.task;
 
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * A light-weight projection of a {@link Task}, carrying only the fields needed to list tasks
@@ -26,7 +26,7 @@ import java.util.Date;
  * the task list queries; the full task is fetched when its details are needed.
  *
  * @param id the task ID
- * @param type the concrete class of the task
+ * @param type the type name of the task (e.g. TakeSnapshotTask)
  * @param status the status
  * @param author the author
  * @param target the target
@@ -49,15 +49,15 @@ import java.util.Date;
  */
 public record TaskSummary(
 	long id,
-	Class<? extends Task> type,
+	String type,
 	Task.Status status,
 	String author,
 	String target,
 	String comments,
-	Date creationDate,
-	Date changeDate,
-	Date executionDate,
-	Date scheduleReference,
+	Instant creationDate,
+	Instant changeDate,
+	Instant executionDate,
+	Instant scheduleReference,
 	Task.ScheduleType scheduleType,
 	int scheduleFactor,
 	int priority,

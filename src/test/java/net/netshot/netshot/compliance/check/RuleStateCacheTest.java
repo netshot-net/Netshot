@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
@@ -35,9 +35,9 @@ public class RuleStateCacheTest {
 	void identityKeyed() {
 		RuleStateCache<TextRule, String> cache = new RuleStateCache<>();
 		AtomicInteger prepared = new AtomicInteger();
-		TextRule rule1 = new TextRule("Rule", null);
-		TextRule rule2 = new TextRule("Rule", null);
-		Assertions.assertEquals(rule1, rule2, "Rules with the same id are equal");
+		TextRule rule1 = TextRule.builder("Rule", 0).build();
+		TextRule rule2 = TextRule.builder("Rule", 0).build();
+		Assertions.assertEquals(rule1, rule2, "Rules with the same components are equal");
 
 		Assertions.assertEquals("state", cache.get(rule1, r -> {
 			prepared.incrementAndGet();
@@ -56,7 +56,7 @@ public class RuleStateCacheTest {
 	@DisplayName("The state is replaced only if present")
 	void replaceIfPresent() {
 		RuleStateCache<TextRule, Boolean> cache = new RuleStateCache<>();
-		TextRule rule = new TextRule("Rule", null);
+		TextRule rule = TextRule.builder("Rule", 0).build();
 		cache.replaceIfPresent(rule, false);
 		Assertions.assertEquals(0, cache.size());
 		Assertions.assertTrue(cache.get(rule, r -> true));
@@ -68,7 +68,7 @@ public class RuleStateCacheTest {
 	@DisplayName("The state is released with the rule instance")
 	void weaklyHeld() throws Exception {
 		RuleStateCache<TextRule, String> cache = new RuleStateCache<>();
-		TextRule rule = new TextRule("Rule", null);
+		TextRule rule = TextRule.builder("Rule", 0).build();
 		cache.get(rule, r -> "state");
 		Assertions.assertEquals(1, cache.size());
 		rule = null;

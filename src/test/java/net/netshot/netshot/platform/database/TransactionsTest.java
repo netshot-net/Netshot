@@ -18,20 +18,16 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.hibernate.Session;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
-import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.DatabaseTest;
 
@@ -42,10 +38,14 @@ public class TransactionsTest {
 	private final Transactions transactions = new Transactions();
 
 	private long countDomains(String name) {
-		try (Session session = Database.getSession()) {
-			return session.createQuery("select count(d) from Domain d where d.name = :name", Long.class)
-				.setParameter("name", name).uniqueResult();
-		}
+		return this.transactions.readDsl(dsl -> (long) dsl.fetchCount(Tables.DOMAIN, Tables.DOMAIN.NAME.eq(name)));
+	}
+
+	// Inserts a domain with the connection of a session
+	private static int insertDomain(Session session, String name, String description) {
+		return Jooq.dsl(session).insertInto(Tables.DOMAIN)
+			.set(Tables.DOMAIN.NAME, name).set(Tables.DOMAIN.DESCRIPTION, description).set(Tables.DOMAIN.VERSION, 0)
+			.execute();
 	}
 
 	@Test
@@ -54,9 +54,9 @@ public class TransactionsTest {
 		AtomicReference<Session> used = new AtomicReference<>();
 		long id = this.transactions.write(session -> {
 			used.set(session);
-			Domain domain = new Domain("tx-commit", "committed", null, null);
-			session.persist(domain);
-			return domain.getId();
+			insertDomain(session, "tx-commit", "committed");
+			return Jooq.dsl(session).select(Tables.DOMAIN.ID).from(Tables.DOMAIN).where(Tables.DOMAIN.NAME.eq("tx-commit"))
+				.fetchOne(Tables.DOMAIN.ID);
 		});
 		Assertions.assertTrue(id > 0);
 		Assertions.assertEquals(1, this.countDomains("tx-commit"));
@@ -66,7 +66,7 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("run() commits")
 	void runCommits() {
-		this.transactions.run(session -> session.persist(new Domain("tx-run", "committed", null, null)));
+		this.transactions.run(session -> insertDomain(session, "tx-run", "committed"));
 		Assertions.assertEquals(1, this.countDomains("tx-run"));
 	}
 
@@ -78,8 +78,7 @@ public class TransactionsTest {
 		IllegalStateException thrown = Assertions.assertThrows(IllegalStateException.class,
 			() -> this.transactions.write(session -> {
 				used.set(session);
-				session.persist(new Domain("tx-rollback", "rolled back", null, null));
-				session.flush();
+				insertDomain(session, "tx-rollback", "rolled back");
 				throw failure;
 			}));
 		Assertions.assertSame(failure, thrown);
@@ -92,8 +91,7 @@ public class TransactionsTest {
 	void runRollsBack() {
 		Assertions.assertThrows(UnsupportedOperationException.class,
 			() -> this.transactions.run(session -> {
-				session.persist(new Domain("tx-run-rollback", "rolled back", null, null));
-				session.flush();
+				insertDomain(session, "tx-run-rollback", "rolled back");
 				throw new UnsupportedOperationException();
 			}));
 		Assertions.assertEquals(0, this.countDomains("tx-run-rollback"));
@@ -102,11 +100,11 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("write() rolls back when the commit itself fails (constraint violation)")
 	void writeRollsBackOnFlushError() {
-		this.transactions.run(session -> session.persist(new Domain("tx-unique", "first", null, null)));
+		this.transactions.run(session -> insertDomain(session, "tx-unique", "first"));
 		Assertions.assertThrows(RuntimeException.class,
 			() -> this.transactions.run(session -> {
-				session.persist(new Domain("tx-unique-other", "other", null, null));
-				session.persist(new Domain("tx-unique", "duplicate", null, null));
+				insertDomain(session, "tx-unique-other", "other");
+				insertDomain(session, "tx-unique", "duplicate");
 			}));
 		Assertions.assertEquals(1, this.countDomains("tx-unique"));
 		Assertions.assertEquals(0, this.countDomains("tx-unique-other"));
@@ -115,14 +113,14 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("read() uses a READ_ONLY tenant session, sees committed data and closes the session")
 	void readUsesReadOnlyTenant() {
-		this.transactions.run(session -> session.persist(new Domain("tx-read", "readable", null, null)));
+		this.transactions.run(session -> insertDomain(session, "tx-read", "readable"));
 		AtomicReference<Session> used = new AtomicReference<>();
 		String description = this.transactions.read(session -> {
 			used.set(session);
 			Assertions.assertEquals(TenantIdentifier.READ_ONLY.toString(), session.unwrap(SharedSessionContractImplementor.class)
 				.getTenantIdentifier());
-			return session.createQuery("select d.description from Domain d where d.name = :name", String.class)
-				.setParameter("name", "tx-read").uniqueResult();
+			return Jooq.dsl(session).select(Tables.DOMAIN.DESCRIPTION).from(Tables.DOMAIN).where(Tables.DOMAIN.NAME.eq("tx-read"))
+				.fetchOne(Tables.DOMAIN.DESCRIPTION);
 		});
 		Assertions.assertEquals("readable", description);
 		Assertions.assertFalse(used.get().isOpen(), "The session must be closed");
@@ -165,34 +163,9 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("readDsl() sees the committed data")
 	void readDslSeesCommittedData() {
-		this.transactions.run(session -> session.persist(new Domain("dsl-read", "readable", null, null)));
+		this.transactions.run(session -> insertDomain(session, "dsl-read", "readable"));
 		String description = this.transactions.readDsl(dsl -> dsl.select(Tables.DOMAIN.DESCRIPTION).from(Tables.DOMAIN)
 			.where(Tables.DOMAIN.NAME.eq("dsl-read")).fetchOne(Tables.DOMAIN.DESCRIPTION));
 		Assertions.assertEquals("readable", description);
 	}
-
-	@Test
-	@DisplayName("In a Hibernate transaction, a jOOQ statement sees the changes of the session not flushed yet, in the same transaction")
-	void dslSeesPendingSessionChanges() {
-		Assertions.assertThrows(IllegalStateException.class, () -> this.transactions.run(session -> {
-			session.persist(new Domain("dsl-pending", "pending", null, null));
-			DSLContext dsl = Jooq.dsl(session);
-			Assertions.assertEquals(1, dsl.fetchCount(Tables.DOMAIN, Tables.DOMAIN.NAME.eq("dsl-pending")));
-			throw new IllegalStateException("rollback");
-		}));
-		Assertions.assertEquals(0, this.countDomains("dsl-pending"), "The jOOQ statement ran in the rolled back transaction");
-	}
-
-	@Test
-	@DisplayName("jOOQ reads the dates and the addresses written by Hibernate as the same instants and addresses")
-	void dslReadsHibernateValues() throws Exception {
-		Domain domain = new Domain("dsl-values", "values", new Network4Address("10.20.30.40", 24), null);
-		this.transactions.run(session -> session.persist(domain));
-		var record = this.transactions.readDsl(dsl -> dsl.fetchOne(Tables.DOMAIN, Tables.DOMAIN.NAME.eq("dsl-values")));
-		Assertions.assertNotNull(domain.getChangeDate());
-		Assertions.assertEquals(domain.getChangeDate().toInstant(), record.getChangeDate());
-		Assertions.assertEquals(InetAddress.getByName("10.20.30.40"), record.getIpv4Address());
-		Assertions.assertEquals(24, record.getIpv4Pfxlen());
-	}
-
 }

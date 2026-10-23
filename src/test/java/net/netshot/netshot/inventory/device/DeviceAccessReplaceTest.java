@@ -18,92 +18,92 @@
  */
 package net.netshot.netshot.inventory.device;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.UnitTest;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 @UnitTest
 @DisplayName("Device access replace test")
 public class DeviceAccessReplaceTest {
 
 	private Device fakeDevice() {
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		return new Device("CiscoIOS12", null, domain, "test");
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		return Device.create("CiscoIOS12", null, domain, "test");
+	}
+
+	// Gives the device the incoming accesses, as an edit does
+	private static Device replace(Device device, DeviceAccess... incoming) {
+		return device.toBuilder().accesses(Device.mergeAccesses(device.accesses(), List.of(incoming))).build();
 	}
 
 	@Test
-	@DisplayName("replaceAccesses copies the SSH/HTTPS trust fields onto the managed access")
+	@DisplayName("mergeAccesses copies the SSH/HTTPS trust fields onto the managed access")
 	void replaceAccessesCopiesTrustFields() {
-		Device device = fakeDevice();
-		DeviceAccess sshIncoming = new DeviceAccess(device, "ssh");
-		sshIncoming.setSshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN);
-		sshIncoming.setSshTrustedHostKeys("ssh-ed25519 AAAAKEY");
-		DeviceAccess httpsIncoming = new DeviceAccess(device, "https");
-		httpsIncoming.setHttpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA);
-		httpsIncoming.setHttpsCustomCaCertificate("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----");
+		DeviceAccess sshIncoming = DeviceAccess.of("ssh").toBuilder()
+			.sshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN)
+			.sshTrustedHostKeys("ssh-ed25519 AAAAKEY")
+			.build();
+		DeviceAccess httpsIncoming = DeviceAccess.of("https").toBuilder()
+			.httpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA)
+			.httpsCustomCaCertificate("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----")
+			.build();
 
-		device.replaceAccesses(List.of(sshIncoming, httpsIncoming));
+		Device device = replace(fakeDevice(), sshIncoming, httpsIncoming);
 
 		DeviceAccess sshAccess = device.getDeviceAccess("ssh");
-		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN, sshAccess.getSshHostKeyVerification());
-		Assertions.assertEquals("ssh-ed25519 AAAAKEY", sshAccess.getSshTrustedHostKeys());
-		Assertions.assertNotNull(sshAccess.getSshTrustedHostKeysSince(),
+		Assertions.assertEquals(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN, sshAccess.sshHostKeyVerification());
+		Assertions.assertEquals("ssh-ed25519 AAAAKEY", sshAccess.sshTrustedHostKeys());
+		Assertions.assertNotNull(sshAccess.sshTrustedHostKeysSince(),
 			"Setting a trusted key for the first time should stamp 'since'");
 
 		DeviceAccess httpsAccess = device.getDeviceAccess("https");
-		Assertions.assertEquals(HttpsCaTrustMode.CUSTOM_CA, httpsAccess.getHttpsCaTrustMode());
+		Assertions.assertEquals(HttpsCaTrustMode.CUSTOM_CA, httpsAccess.httpsCaTrustMode());
 		Assertions.assertEquals("-----BEGIN CERTIFICATE-----FAKE-----END CERTIFICATE-----",
-			httpsAccess.getHttpsCustomCaCertificate());
+			httpsAccess.httpsCustomCaCertificate());
 	}
 
 	@Test
-	@DisplayName("replaceAccesses actually clears the trusted host keys when resubmitted empty (regression test)")
+	@DisplayName("mergeAccesses actually clears the trusted host keys when resubmitted empty (regression test)")
 	void replaceAccessesClearsTrustedHostKeys() {
-		Device device = fakeDevice();
-		DeviceAccess initial = new DeviceAccess(device, "ssh");
-		initial.setSshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN);
-		initial.setSshTrustedHostKeys("ssh-ed25519 AAAAKEY");
-		device.replaceAccesses(List.of(initial));
-		Assertions.assertEquals("ssh-ed25519 AAAAKEY", device.getDeviceAccess("ssh").getSshTrustedHostKeys());
-		Assertions.assertNotNull(device.getDeviceAccess("ssh").getSshTrustedHostKeysSince());
+		Device device = replace(fakeDevice(), DeviceAccess.of("ssh").toBuilder()
+			.sshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN)
+			.sshTrustedHostKeys("ssh-ed25519 AAAAKEY")
+			.build());
+		Assertions.assertEquals("ssh-ed25519 AAAAKEY", device.getDeviceAccess("ssh").sshTrustedHostKeys());
+		Assertions.assertNotNull(device.getDeviceAccess("ssh").sshTrustedHostKeysSince());
 
 		// Re-submit with the field cleared, as the "clear" button in the device edit form does.
-		DeviceAccess cleared = new DeviceAccess(device, "ssh");
-		cleared.setSshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN);
-		cleared.setSshTrustedHostKeys(null);
-		device.replaceAccesses(List.of(cleared));
+		device = replace(device, DeviceAccess.of("ssh").toBuilder()
+			.sshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN)
+			.sshTrustedHostKeys(null)
+			.build());
 
 		DeviceAccess sshAccess = device.getDeviceAccess("ssh");
-		Assertions.assertNull(sshAccess.getSshTrustedHostKeys(), "The trusted host keys should actually be cleared");
-		Assertions.assertNull(sshAccess.getSshTrustedHostKeysSince(),
+		Assertions.assertNull(sshAccess.sshTrustedHostKeys(), "The trusted host keys should actually be cleared");
+		Assertions.assertNull(sshAccess.sshTrustedHostKeysSince(),
 			"The 'since' timestamp should be cleared along with the keys");
 	}
 
 	@Test
-	@DisplayName("replaceAccesses does not bump sshTrustedHostKeysSince when resubmitted unchanged")
+	@DisplayName("mergeAccesses does not bump sshTrustedHostKeysSince when resubmitted unchanged")
 	void replaceAccessesKeepsSinceWhenUnchanged() throws InterruptedException {
-		Device device = fakeDevice();
-		DeviceAccess initial = new DeviceAccess(device, "ssh");
-		initial.setSshTrustedHostKeys("ssh-ed25519 AAAAKEY");
-		device.replaceAccesses(List.of(initial));
-		Date firstSince = device.getDeviceAccess("ssh").getSshTrustedHostKeysSince();
+		Device device = replace(fakeDevice(), DeviceAccess.of("ssh").toBuilder().sshTrustedHostKeys("ssh-ed25519 AAAAKEY").build());
+		Instant firstSince = device.getDeviceAccess("ssh").sshTrustedHostKeysSince();
 		Assertions.assertNotNull(firstSince);
 
 		Thread.sleep(5);
 
-		DeviceAccess resubmitted = new DeviceAccess(device, "ssh");
-		resubmitted.setSshTrustedHostKeys("ssh-ed25519 AAAAKEY");
-		device.replaceAccesses(List.of(resubmitted));
+		device = replace(device, DeviceAccess.of("ssh").toBuilder().sshTrustedHostKeys("ssh-ed25519 AAAAKEY").build());
 
-		Assertions.assertEquals(firstSince, device.getDeviceAccess("ssh").getSshTrustedHostKeysSince(),
+		Assertions.assertEquals(firstSince, device.getDeviceAccess("ssh").sshTrustedHostKeysSince(),
 			"Resubmitting the same value should not touch the 'since' timestamp");
 	}
 }

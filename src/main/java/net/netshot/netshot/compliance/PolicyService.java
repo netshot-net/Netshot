@@ -18,19 +18,18 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -69,14 +68,35 @@ public class PolicyService {
 	 * @return the policies
 	 * @throws NetshotException if the policies can't be read
 	 */
-	public List<Policy> list(Page page) {
+	public List<PolicyView> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findAllWithGroups(session, page));
+			return this.transactions.readDsl(dsl -> {
+				List<PolicyView> views = new ArrayList<>();
+				for (Policy policy : this.repository.findAll(dsl, page)) {
+					views.add(this.view(dsl, policy));
+				}
+				return views;
+			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the policies.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the policies");
 		}
+	}
+
+	/**
+	 * Gets the view of a policy: the policy with its target groups, by ID.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param policy the policy
+	 * @return the view
+	 */
+	private PolicyView view(DSLContext dsl, Policy policy) {
+		List<DeviceGroup> groups = new ArrayList<>();
+		for (Long groupId : policy.targetGroupIds().stream().sorted().toList()) {
+			groups.add(this.requireGroup(dsl, groupId));
+		}
+		return new PolicyView(policy, groups);
 	}
 
 	/**
@@ -84,38 +104,31 @@ public class PolicyService {
 	 *
 	 * @param definition the policy
 	 * @return the new policy
-	 * @throws NetshotException if the name is blank or already used, or if the policy can't be stored
+	 * @throws NetshotException if the name is blank or already used, a group doesn't exist, or if the policy can't be stored
 	 */
-	public Policy create(PolicyDefinition definition) {
+	public PolicyView create(PolicyDefinition definition) {
 		String name = definition.name().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an empty policy name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY_NAME, "Invalid policy name.");
 		}
-		Policy policy;
+		PolicyView policy;
 		try {
-			policy = this.transactions.write(session -> {
-				Set<DeviceGroup> groups = new HashSet<>();
-				for (Long groupId : definition.targetGroupIds()) {
-					groups.add(this.requireGroup(session, groupId));
-				}
-				Policy newPolicy = new Policy(name, groups);
-				session.persist(newPolicy);
-				return newPolicy;
+			policy = this.transactions.writeDsl(dsl -> {
+				Policy newPolicy = new Policy(0, name, definition.targetGroupIds());
+				PolicyView view = this.view(dsl, newPolicy);
+				newPolicy = newPolicy.withId(this.repository.add(dsl, newPolicy));
+				return new PolicyView(newPolicy, view.targetGroups());
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("The posted group doesn't exist", e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new policy.", e);
-			if (Database.isDuplicateException(e)) {
+			if (e instanceof DataAccessException dae && DatabaseErrors.isUniqueViolation(dae)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_POLICY, "A policy with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database");
 		}
-		AAA_LOG.info("{} has been created.", policy);
+		AAA_LOG.info("{} has been created.", policy.policy());
 		return policy;
 	}
 
@@ -126,14 +139,14 @@ public class PolicyService {
 	 * @param id the policy ID
 	 * @param definition the new properties
 	 * @return the policy
-	 * @throws NetshotException if the policy doesn't exist, the name is blank or already used,
+	 * @throws NetshotException if the policy or a group doesn't exist, the name is blank or already used,
 	 *         or if the policy can't be stored
 	 */
-	public Policy update(long id, PolicyDefinition definition) {
-		Policy policy;
+	public PolicyView update(long id, PolicyDefinition definition) {
+		PolicyView policy;
 		try {
-			policy = this.transactions.write(session -> {
-				Policy existing = this.repository.find(session, id);
+			policy = this.transactions.writeDsl(dsl -> {
+				Policy existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the policy {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Unable to find this policy.");
@@ -143,34 +156,26 @@ public class PolicyService {
 					log.warn("User posted an empty policy name.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY_NAME, "Invalid policy name.");
 				}
-				existing.setName(name);
-
 				// Remove orphan check results
-				for (DeviceGroup group : existing.getTargetGroups()) {
-					if (!definition.targetGroupIds().contains(group.getId())) {
-						this.repository.deleteCheckResults(session, existing.getId(), group.getId());
+				for (Long groupId : existing.targetGroupIds()) {
+					if (!definition.targetGroupIds().contains(groupId)) {
+						this.repository.deleteCheckResults(dsl, existing.id(), groupId);
 					}
 				}
-				existing.getTargetGroups().clear();
-				for (Long groupId : definition.targetGroupIds()) {
-					existing.getTargetGroups().add(this.requireGroup(session, groupId));
-				}
-				session.merge(existing);
-				return existing;
+				Policy edited = new Policy(id, name, definition.targetGroupIds());
+				PolicyView view = this.view(dsl, edited);
+				this.repository.save(dsl, edited);
+				return view;
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("Unable to find a group to be assigned to the policy {}.", id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Unable to find the group.");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the policy {}.", id, e);
-			if (Database.isDuplicateException(e)) {
+			if (e instanceof DataAccessException dae && DatabaseErrors.isUniqueViolation(dae)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_POLICY, "A policy with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the policy.");
 		}
-		AAA_LOG.info("{} has been edited.", policy);
+		AAA_LOG.info("{} has been edited.", policy.policy());
 		return policy;
 	}
 
@@ -183,13 +188,11 @@ public class PolicyService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.write(session -> {
-				Policy policy = this.repository.find(session, id);
-				if (policy == null) {
+			boolean deleted = this.transactions.writeDsl(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.info("No such policy of ID {}", id);
 					return false;
 				}
-				session.remove(policy);
 				return true;
 			});
 			if (deleted) {
@@ -197,14 +200,14 @@ public class PolicyService {
 			}
 			return deleted;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the policy {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the policy");
 		}
 	}
 
-	private DeviceGroup requireGroup(Session session, long groupId) {
-		DeviceGroup group = this.repository.findGroup(session, groupId);
+	private DeviceGroup requireGroup(DSLContext dsl, long groupId) {
+		DeviceGroup group = new GroupRepository().find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group");

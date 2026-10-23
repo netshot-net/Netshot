@@ -18,28 +18,27 @@
  */
 package net.netshot.netshot.task;
 
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.Hibernate;
+import net.netshot.netshot.task.type.TaskSpec;
 
 /**
- * The registry of the task handlers, by task type. It is checked when built: every concrete task
- * type known to the application ({@link Task#getTaskClasses()}) must have exactly one handler.
+ * The registry of the task handlers, by task type. It is checked when built: every task
+ * type ({@link TaskSpec}) must have exactly one handler.
  */
 public class TaskHandlers {
 
-	private final Map<Class<? extends Task>, TaskHandler<?>> handlers = new HashMap<>();
+	private final Map<Class<?>, TaskHandler<?>> handlers = new HashMap<>();
 
 	/**
 	 * Builds the registry.
 	 *
 	 * @param handlers all the task handlers
-	 * @throws IllegalStateException if two handlers serve the same task type, or if a concrete task type has no handler
+	 * @throws IllegalStateException if two handlers serve the same task type, or if a task type has no handler
 	 */
 	public TaskHandlers(Collection<? extends TaskHandler<?>> handlers) {
 		for (TaskHandler<?> handler : handlers) {
@@ -49,9 +48,9 @@ public class TaskHandlers {
 			}
 		}
 		List<String> missing = new ArrayList<>();
-		for (Class<? extends Task> taskClass : Task.getTaskClasses()) {
-			if (!Modifier.isAbstract(taskClass.getModifiers()) && !this.handlers.containsKey(taskClass)) {
-				missing.add(taskClass.getSimpleName());
+		for (Class<?> specClass : TaskSpec.class.getPermittedSubclasses()) {
+			if (!this.handlers.containsKey(specClass)) {
+				missing.add(specClass.getSimpleName());
 			}
 		}
 		if (!missing.isEmpty()) {
@@ -60,21 +59,21 @@ public class TaskHandlers {
 	}
 
 	/**
-	 * Runs the given task with the handler of its type.
+	 * Runs a task with its handler.
 	 *
-	 * @param task the task to run
-	 * @throws IllegalStateException if there is no handler for the type of the task
+	 * @param task the task
+	 * @param run the run
+	 * @throws IllegalStateException if there is no handler for the type of task
 	 */
-	public void run(Task task) {
-		Task concrete = (Task) Hibernate.unproxy(task);
-		TaskHandler<?> handler = this.handlers.get(concrete.getClass());
+	public void run(Task task, TaskRun run) {
+		TaskHandler<?> handler = this.handlers.get(task.spec().getClass());
 		if (handler == null) {
-			throw new IllegalStateException("No task handler for the task type " + concrete.getClass().getSimpleName());
+			throw new IllegalStateException("No task handler for the task type " + task.typeName());
 		}
-		TaskHandlers.run(handler, concrete);
+		TaskHandlers.run(handler, task, run);
 	}
 
-	private static <T extends Task> void run(TaskHandler<T> handler, Task task) {
-		handler.run(handler.taskType().cast(task));
+	private static <S extends TaskSpec> void run(TaskHandler<S> handler, Task task, TaskRun run) {
+		handler.run(task, handler.taskType().cast(task.spec()), run);
 	}
 }

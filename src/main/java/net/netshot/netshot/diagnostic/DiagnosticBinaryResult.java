@@ -18,66 +18,50 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
 import java.util.Objects;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
+/**
+ * A binary (true/false) diagnostic result.
+ *
+ * @param diagnosticId the ID of the diagnostic
+ * @param diagnosticName the name of the diagnostic
+ * @param creationDate when the diagnostic first gave this value
+ * @param lastCheckDate when the diagnostic last gave this value
+ * @param assumption the value
+ */
+public record DiagnosticBinaryResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, Boolean assumption)
+	implements DiagnosticResult {
 
-@Entity
-@DiscriminatorValue("B")
-public class DiagnosticBinaryResult extends DiagnosticResult {
-
-	@Getter
-	@Setter
-	private Boolean assumption;
-
-	protected DiagnosticBinaryResult() {
-	}
-
-	public DiagnosticBinaryResult(Device device, Diagnostic diagnostic, boolean value) {
-		super(device, diagnostic);
-		this.assumption = value;
-	}
-
-	public DiagnosticBinaryResult(Device device, Diagnostic diagnostic, String value) {
-		super(device, diagnostic);
-		this.assumption = true;
-		if (value == null || "false".equals(value) || "FALSE".equals(value) || "False".equals(value) || "0".equals(value)) {
-			this.assumption = false;
-		}
+	/**
+	 * Builds a new result of a diagnostic (created and checked now).
+	 *
+	 * @param diagnostic the diagnostic
+	 * @param value the value
+	 * @return the result
+	 */
+	public static DiagnosticBinaryResult of(Diagnostic diagnostic, Boolean value) {
+		Instant now = DiagnosticResult.now();
+		return new DiagnosticBinaryResult(diagnostic.id(), diagnostic.name(), now, now, value);
 	}
 
 	@Override
-	@Transient
+	public DiagnosticBinaryResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticBinaryResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.assumption);
+	}
+
+	@Override
 	public String getAsText() {
-		if (Boolean.TRUE.equals(assumption)) {
-			return "true";
-		}
-		else {
-			return "false";
-		}
+		return Boolean.TRUE.equals(this.assumption) ? "true" : "false";
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getAssumption();
+		return this.assumption;
 	}
 
 	@Override
-	public boolean valueEquals(DiagnosticResult obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DiagnosticBinaryResult)) {
-			return false;
-		}
-		DiagnosticBinaryResult other = (DiagnosticBinaryResult) obj;
-		return Objects.equals(this.assumption, other.assumption);
+	public boolean valueEquals(DiagnosticResult other) {
+		return other instanceof DiagnosticBinaryResult o && Objects.equals(this.assumption, o.assumption);
 	}
-
 }

@@ -20,19 +20,21 @@ package net.netshot.netshot.task.handler;
 
 import java.util.List;
 
-import org.hibernate.Session;
-
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.devicescript.RunDiagnosticDeviceScript;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
@@ -46,6 +48,8 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	private final DriverRegistry driverRegistry;
 	private final DiagnosticAdapters diagnosticAdapters;
 	private final TaskSubmitter taskSubmitter;
+	private final Transactions transactions = new Transactions();
+	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/**
 	 * Creates the handler.
@@ -66,83 +70,78 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	}
 
 	@Override
-	public void run(RunDiagnosticsTask task) {
-		Device device = task.getDevice();
-		log.debug("Task {}. Starting diagnostic task for device {}.", task.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			task.logger.info("The device doesn't exist, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, RunDiagnosticsTask spec, TaskRun run) {
+		Long deviceId = spec.deviceId();
+		Device device = null;
+		log.debug("Task {}. Starting diagnostic task for device {}.", task.id(),
+			deviceId);
+		if (deviceId == null) {
+			run.logger.info("The device doesn't exist, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		Session session = Database.getSession();
 		RunDiagnosticDeviceScript deviceScript = null;
 		try {
-			session.beginTransaction();
 			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			task.setDevice(device);
-			task.logger.trace("Run diagnostic task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (device.getStatus() != Device.Status.INPRODUCTION) {
-				log.trace("Task {}. Device not INPRODUCTION, stopping the diagnostic task.", task.getId());
-				task.logger.warn("The device is not enabled (not in production).");
-				task.setStatus(Status.CANCELLED);
+			device = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			if (device == null) {
+				throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
+			}
+			run.logger.trace("Run diagnostic task for device {} ({}).",
+				device.name(), device.mgmtAddress());
+			if (device.status() != Device.Status.INPRODUCTION) {
+				log.trace("Task {}. Device not INPRODUCTION, stopping the diagnostic task.", task.id());
+				run.logger.warn("The device is not enabled (not in production).");
+				run.setStatus(Status.CANCELLED);
 				return;
 			}
-			List<Diagnostic> diagnostics = session.createQuery(
-				"select dg from Diagnostic dg join fetch dg.targetGroup tg where dg.enabled = :enabled and "
-					+ "tg in (select gm.key.group from DeviceGroupMembership gm where gm.key.device = :device)",
-				Diagnostic.class)
-				.setParameter("device", device)
-				.setParameter("enabled", true)
-				.list();
+			List<Diagnostic> diagnostics = this.transactions.readDsl(dsl -> new DiagnosticRepository().findEnabledForDevice(dsl, deviceId));
 			if (diagnostics.size() > 0) {
-				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, diagnostics, this.diagnosticAdapters, task.logger);
-				deviceScript.connectRun(session, device);
-				session.merge(device);
-				session.getTransaction().commit();
+				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, diagnostics, this.diagnosticAdapters, run.logger);
+				DeviceDraft draft = new DeviceDraft(device);
+				deviceScript.connectRun(draft);
+				this.transactions.writeDsl(dsl -> this.deviceRepository.saveDraft(dsl, draft));
+				device = draft.toDevice();
 			}
 			else {
-				task.logger.info("No diagnostic was found that apply to this device.");
+				run.logger.info("No diagnostic was found that apply to this device.");
 			}
-			task.setStatus(Status.SUCCESS);
+			run.setStatus(Status.SUCCESS);
 
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while executing the diagnostics.", task.getId(), e);
+			log.error("Task {}. Error while executing the diagnostics.", task.id(), e);
 			String message = e.getMessage();
 			if (e.getCause() != null && e.getCause().getCause() != null) {
 				// Add SQL error if possible
 				message += " / " + e.getCause().getCause().getMessage();
 			}
-			task.logger.error("Error while executing the diagnostics: {}", message);
-			task.setStatus(Status.FAILURE);
+			run.logger.error("Error while executing the diagnostics: {}", message);
+			run.setStatus(Status.FAILURE);
 			return;
 		}
 		finally {
 			try {
-				task.attachDebugLog();
+				run.attachDebugLog();
 			}
 			catch (Exception e1) {
-				log.error("Task {}. Error while saving the debug logs.", task.getId(), e1);
+				log.error("Task {}. Error while saving the debug logs.", task.id(), e1);
 			}
-			session.close();
 		}
 
-		log.debug("Task {}. Request to refresh all the groups for the device after the diagnostics.", task.getId());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
+		log.debug("Task {}. Request to refresh all the groups for the device after the diagnostics.", task.id());
+		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
-		if (!task.isDontCheckCompliance()) {
+		if (!spec.dontCheckCompliance()) {
 			try {
-				Task checkTask = new CheckComplianceTask(device, "Check compliance after device diagnostics", "Auto");
-				checkTask.setPriority(task.getPriority());
-				checkTask.setParentTaskId(task.getId());
+				Task checkTask = CheckComplianceTask.of(device, "Check compliance after device diagnostics", "Auto").toBuilder()
+					.priority(task.priority())
+					.parentTaskId(task.id())
+					.build();
 				this.taskSubmitter.submit(checkTask);
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the new task.", task.getId(), e);
+				log.error("Task {}. Error while registering the new task.", task.id(), e);
 			}
 		}
 	}

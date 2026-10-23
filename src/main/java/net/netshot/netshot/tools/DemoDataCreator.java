@@ -19,44 +19,57 @@
 package net.netshot.netshot.tools;
 
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
+import org.jooq.DSLContext;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
+import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.domain.DomainRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
 
 @Slf4j
 public class DemoDataCreator {
@@ -69,22 +82,60 @@ public class DemoDataCreator {
 	private long fortiosDeviceCount = 1000;
 	private List<Device> testDevices = new ArrayList<>();
 
+	/**
+	 * A device to create, with its configurations (the oldest first) and its diagnostic result.
+	 *
+	 * @param device the device
+	 * @param configs the configurations, the oldest first
+	 * @param diagnosticResult the diagnostic result
+	 */
+	private record FakeDevice(Device device, List<Config> configs, DiagnosticResult diagnosticResult) {
+	}
+
+	/**
+	 * Collects the values of a network interface.
+	 */
+	private static final class InterfaceBuilder {
+		private final NetworkInterface.NetworkInterfaceBuilder builder;
+		private final Set<Network4Address> ip4Addresses = new LinkedHashSet<>();
+		private final Set<Network6Address> ip6Addresses = new LinkedHashSet<>();
+
+		InterfaceBuilder(String name, String virtualDevice, String vrf, boolean enabled, boolean level3, String description) {
+			this.builder = NetworkInterface.builder().interfaceName(name).virtualDevice(virtualDevice).vrfInstance(vrf)
+				.enabled(enabled).level3(level3).description(description);
+		}
+
+		void addIpAddress(NetworkAddress address) {
+			NetworkInterface.addIpAddress(this.ip4Addresses, this.ip6Addresses, address);
+		}
+
+		NetworkInterface build() {
+			return this.builder.ip4Addresses(this.ip4Addresses).ip6Addresses(this.ip6Addresses).build();
+		}
+	}
+
+	private static Module module(String slot, String partNumber, String serialNumber) {
+		Instant now = Instant.now();
+		return Module.builder().slot(slot).partNumber(partNumber).serialNumber(serialNumber)
+			.firstSeenDate(now).lastSeenDate(now).build();
+	}
+
 	private String getFakeCiscoIosInterfaceConfig(NetworkInterface ni) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("interface %s\n".formatted(ni.getInterfaceName()));
-		if (ni.getDescription() != null) {
-			sb.append(" description %s\n".formatted(ni.getDescription()));
+		sb.append("interface %s\n".formatted(ni.interfaceName()));
+		if (ni.description() != null) {
+			sb.append(" description %s\n".formatted(ni.description()));
 		}
-		if (ni.getVrfInstance() != null && !ni.getVrfInstance().isBlank()) {
-			sb.append(" vrf forwarding %s".formatted(ni.getVrfInstance()));
+		if (ni.vrfInstance() != null && !ni.vrfInstance().isBlank()) {
+			sb.append(" vrf forwarding %s".formatted(ni.vrfInstance()));
 		}
-		for (Network4Address na : ni.getIp4Addresses()) {
+		for (Network4Address na : ni.ip4Addresses()) {
 			sb.append(" ip address %s %s\n".formatted(na.getIp(), Network4Address.prefixLengthToDottedMask(na.getPrefixLength())));
 		}
-		for (Network6Address na : ni.getIp6Addresses()) {
+		for (Network6Address na : ni.ip6Addresses()) {
 			sb.append(" ipv6 address %s/%d\n".formatted(na.getIp(), na.getPrefixLength()));
 		}
-		if (!ni.isEnabled()) {
+		if (!ni.enabled()) {
 			sb.append(" shutdown");
 		}
 		sb.append("!\n");
@@ -92,21 +143,21 @@ public class DemoDataCreator {
 	}
 
 	private Config getFakeCiscoIosConfig(Device device, int shift) {
-		Config config = new Config(device);
+		List<ConfigAttribute> attributes = new ArrayList<>();
 
 		StringBuffer allInterfaceConfig = new StringBuffer();
-		for (NetworkInterface ni : device.getNetworkInterfaces()) {
+		for (NetworkInterface ni : device.networkInterfaces()) {
 			allInterfaceConfig.append(this.getFakeCiscoIosInterfaceConfig(ni));
 		}
 		String location = "Location%05d".formatted(shift);
 
-		ConfigAttribute runningConfig = new ConfigLongTextAttribute(config, "runningConfig", ""
+		ConfigAttribute runningConfig = new ConfigLongTextAttribute("runningConfig", ""
 			+ "version 16.1\n"
 			+ "no service pad\n"
 			+ "service timestamps debug datetime msec\n"
 			+ "no service password-encryption\n"
 			+ "!\n"
-			+ "hostname %s\n".formatted(device.getName())
+			+ "hostname %s\n".formatted(device.name())
 			+ "!\n"
 			+ "boot-start-marker\n"
 			+ "boot-end-marker\n"
@@ -126,15 +177,15 @@ public class DemoDataCreator {
 			+ " transport input all\n"
 			+ " transport output all\n"
 			+ "!\n");
-		config.addAttribute(runningConfig);
-		ConfigAttribute iosVersion = new ConfigTextAttribute(config, "iosVersion", "16.1.6");
-		config.addAttribute(iosVersion);
-		ConfigAttribute iosImageFile = new ConfigTextAttribute(config, "iosImageFile", "cisco-ios-16.1.6.bin");
-		config.addAttribute(iosImageFile);
-		return config;
+		attributes.add(runningConfig);
+		ConfigAttribute iosVersion = new ConfigTextAttribute("iosVersion", "16.1.6");
+		attributes.add(iosVersion);
+		ConfigAttribute iosImageFile = new ConfigTextAttribute("iosImageFile", "cisco-ios-16.1.6.bin");
+		attributes.add(iosImageFile);
+		return Config.builder().deviceId(device.id()).author("").attributes(attributes).build();
 	}
 
-	private Device getFakeCiscoIosDevice(Domain domain, Diagnostic diagnostic, int shift, int configCount) {
+	private FakeDevice getFakeCiscoIosDevice(Domain domain, Diagnostic diagnostic, int shift, int configCount) {
 		Network4Address mgmtIp = null;
 		try {
 			mgmtIp = new Network4Address("172.16.0.0");
@@ -143,28 +194,29 @@ public class DemoDataCreator {
 		catch (UnknownHostException e) {
 			// Ignore
 		}
-		Device device = new Device("CiscoIOS12", mgmtIp.getIp(), domain, "test");
-		device.setName(String.format("cisco%05d", shift));
-		device.setFamily("Fake IOS device");
-		device.setNetworkClass(NetworkClass.ROUTER);
-		device.setLocation("Test Location");
-		device.setContact("Test Contact");
-		device.setSoftwareVersion("16.1.6");
-		device.setSoftwareLevel(ConformanceLevel.GOLD);
-		device.setCreator("tester");
-		DeviceCredentialSet cs = new DeviceSshAccount("user", "pass", "pass",
-			DeviceCredentialSet.generateSpecificName());
-		cs.setDeviceSpecific(true);
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setSpecificCredentialSet(cs);
-		device.getAccesses().add(sshAccess);
-		device.setSerialNumber("1616TEST%05d".formatted(shift));
-		device.setComments("Comments for testing");
-		device.setVrfInstances(new HashSet<String>(Set.of("VRF1", "VRF2")));
-		device.getModules().add(new Module("chassis", "TESTCHASSIS", device.getSerialNumber(), device));
-		device.getModules().add(new Module("slot", "TESTSLOT", "29038POSD203", device));
+		Device.DeviceBuilder device = Device.create("CiscoIOS12", mgmtIp.getIp(), domain, "test").toBuilder();
+		List<Module> modules = new ArrayList<>();
+		List<NetworkInterface> interfaces = new ArrayList<>();
+		List<DeviceAttribute> attributes = new ArrayList<>();
+		device.name(String.format("cisco%05d", shift));
+		device.family("Fake IOS device");
+		device.networkClass(NetworkClass.ROUTER);
+		device.location("Test Location");
+		device.contact("Test Contact");
+		device.softwareVersion("16.1.6");
+		device.softwareLevel(ConformanceLevel.GOLD);
+		device.creator("tester");
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username("user").password("pass").superPassword("pass")
+			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
+		device.accesses(List.of(DeviceAccess.of("ssh").toBuilder().specificCredentialSet(cs).build()));
+		String serial = "1616TEST%05d".formatted(shift);
+		device.serialNumber(serial);
+		device.comments("Comments for testing");
+		device.vrfInstances(Set.of("VRF1", "VRF2"));
+		modules.add(module("chassis", "TESTCHASSIS", serial));
+		modules.add(module("slot", "TESTSLOT", "29038POSD203"));
 		{
-			NetworkInterface ni = new NetworkInterface(device, "GigabitEthernet0/0", "", "VRF1", true, true, "Desc for interface 0/0");
+			InterfaceBuilder ni = new InterfaceBuilder("GigabitEthernet0/0", "", "VRF1", true, true, "Desc for interface 0/0");
 			try {
 				Network4Address na1 = new Network4Address("10.0.0.1", 25);
 				na1.setIntAddress(na1.getIntAddress() + (shift << 8));
@@ -175,10 +227,10 @@ public class DemoDataCreator {
 			}
 			catch (UnknownHostException e) {
 			}
-			device.getNetworkInterfaces().add(ni);
+			interfaces.add(ni.build());
 		}
 		{
-			NetworkInterface ni = new NetworkInterface(device, "GigabitEthernet0/1", "", "VRF2", false, true, "Desc for interface 0/1");
+			InterfaceBuilder ni = new InterfaceBuilder("GigabitEthernet0/1", "", "VRF2", false, true, "Desc for interface 0/1");
 			try {
 				Network4Address na1 = new Network4Address("10.0.0.129", 25);
 				na1.setIntAddress(na1.getIntAddress() + (shift << 8));
@@ -189,51 +241,48 @@ public class DemoDataCreator {
 			}
 			catch (UnknownHostException e) {
 			}
-			device.getNetworkInterfaces().add(ni);
+			interfaces.add(ni.build());
 		}
+		Device built = device.modules(modules).networkInterfaces(interfaces).attributes(attributes).build();
+		List<Config> configs = new ArrayList<>();
 		for (int j = 0; j < configCount; j++) {
-			Config config = getFakeCiscoIosConfig(device, j);
+			Config config = getFakeCiscoIosConfig(built, j);
 			// Set config date: spread over the past year, oldest configs first
 			Calendar cal = Calendar.getInstance();
 			cal.add(Calendar.HOUR, -(365 * 24 * (configCount - j) / configCount));
-			config.setChangeDate(cal.getTime());
-			device.getConfigs().add(config);
-			device.setLastConfig(config);
+			configs.add(config.toBuilder().changeDate(cal.getTime().toInstant()).build());
 		}
 
-		DeviceAttribute mainMemorySize = new DeviceNumericAttribute(device, "mainMemorySize", 2048);
-		device.addAttribute(mainMemorySize);
-		DeviceAttribute configRegister = new DeviceTextAttribute(device, "configRegister", "0x1202");
-		device.addAttribute(configRegister);
-		DeviceAttribute configurationSaved = new DeviceBinaryAttribute(device, "configurationSaved", true);
-		device.addAttribute(configurationSaved);
+		DeviceAttribute mainMemorySize = new DeviceNumericAttribute("mainMemorySize", 2048.0);
+		attributes.add(mainMemorySize);
+		DeviceAttribute configRegister = new DeviceTextAttribute("configRegister", "0x1202");
+		attributes.add(configRegister);
+		DeviceAttribute configurationSaved = new DeviceBinaryAttribute("configurationSaved", true);
+		attributes.add(configurationSaved);
 
-		if (diagnostic != null) {
-			DiagnosticResult reloadReasonDiagResult = new DiagnosticTextResult(device, diagnostic, "Reload Command");
-			device.addDiagnosticResult(reloadReasonDiagResult);
-		}
+		DiagnosticResult reloadReasonDiagResult = diagnostic == null ? null : DiagnosticTextResult.of(diagnostic, "Reload Command");
 
-		return device;
+		return new FakeDevice(built.toBuilder().attributes(attributes).build(), configs, reloadReasonDiagResult);
 	}
 
 	private String getFakeJunosInterfaceConfig(NetworkInterface ni) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("    %s {\n".formatted(ni.getInterfaceName()));
-		if (ni.getDescription() != null) {
-			sb.append("        description \"%s\";\n".formatted(ni.getDescription()));
+		sb.append("    %s {\n".formatted(ni.interfaceName()));
+		if (ni.description() != null) {
+			sb.append("        description \"%s\";\n".formatted(ni.description()));
 		}
 		sb.append("        unit 0 {\n");
-		if (ni.getVrfInstance() != null && !ni.getVrfInstance().isBlank()) {
-			sb.append("            vrf-instance %s;\n".formatted(ni.getVrfInstance()));
+		if (ni.vrfInstance() != null && !ni.vrfInstance().isBlank()) {
+			sb.append("            vrf-instance %s;\n".formatted(ni.vrfInstance()));
 		}
 		sb.append("            family inet {\n");
-		for (Network4Address na : ni.getIp4Addresses()) {
+		for (Network4Address na : ni.ip4Addresses()) {
 			sb.append("                address %s/%d;\n".formatted(na.getIp(), na.getPrefixLength()));
 		}
 		sb.append("            }\n");
-		if (!ni.getIp6Addresses().isEmpty()) {
+		if (!ni.ip6Addresses().isEmpty()) {
 			sb.append("            family inet6 {\n");
-			for (Network6Address na : ni.getIp6Addresses()) {
+			for (Network6Address na : ni.ip6Addresses()) {
 				sb.append("                address %s/%d;\n".formatted(na.getIp(), na.getPrefixLength()));
 			}
 			sb.append("            }\n");
@@ -294,10 +343,10 @@ public class DemoDataCreator {
 	}
 
 	private Config getFakeJunosConfig(Device device, int shift) {
-		Config config = new Config(device);
+		List<ConfigAttribute> attributes = new ArrayList<>();
 
 		StringBuffer allInterfaceConfig = new StringBuffer();
-		for (NetworkInterface ni : device.getNetworkInterfaces()) {
+		for (NetworkInterface ni : device.networkInterfaces()) {
 			allInterfaceConfig.append(this.getFakeJunosInterfaceConfig(ni));
 		}
 		String location = "Location%05d".formatted(shift);
@@ -305,7 +354,7 @@ public class DemoDataCreator {
 		String curlyConfiguration = ""
 			+ "version 23.4R1.10;\n"
 			+ "system {\n"
-			+ "    host-name %s;\n".formatted(device.getName())
+			+ "    host-name %s;\n".formatted(device.name())
 			+ "    root-authentication {\n"
 			+ "        encrypted-password \"$6$xxx\";\n"
 			+ "    }\n"
@@ -332,19 +381,19 @@ public class DemoDataCreator {
 			+ "    }\n"
 			+ "}\n";
 
-		ConfigAttribute configuration = new ConfigLongTextAttribute(config, "configuration", curlyConfiguration);
-		config.addAttribute(configuration);
+		ConfigAttribute configuration = new ConfigLongTextAttribute("configuration", curlyConfiguration);
+		attributes.add(configuration);
 
-		ConfigAttribute configurationAsSet = new ConfigLongTextAttribute(config, "configurationAsSet",
+		ConfigAttribute configurationAsSet = new ConfigLongTextAttribute("configurationAsSet",
 			convertJunosCurlyToSet(curlyConfiguration));
-		config.addAttribute(configurationAsSet);
+		attributes.add(configurationAsSet);
 
-		ConfigAttribute junosVersion = new ConfigTextAttribute(config, "junosVersion", "23.4R1.10");
-		config.addAttribute(junosVersion);
-		return config;
+		ConfigAttribute junosVersion = new ConfigTextAttribute("junosVersion", "23.4R1.10");
+		attributes.add(junosVersion);
+		return Config.builder().deviceId(device.id()).author("").attributes(attributes).build();
 	}
 
-	private Device getFakeJunosDevice(Domain domain, int shift, int configCount) {
+	private FakeDevice getFakeJunosDevice(Domain domain, int shift, int configCount) {
 		Network4Address mgmtIp = null;
 		try {
 			mgmtIp = new Network4Address("172.17.0.0");
@@ -353,27 +402,28 @@ public class DemoDataCreator {
 		catch (UnknownHostException e) {
 			// Ignore
 		}
-		Device device = new Device("JuniperJunos", mgmtIp.getIp(), domain, "test");
-		device.setName(String.format("juniper%05d", shift));
-		device.setFamily("Fake Junos device");
-		device.setNetworkClass(NetworkClass.FIREWALL);
-		device.setLocation("Test Location");
-		device.setContact("Test Contact");
-		device.setSoftwareVersion("23.4R1.10");
-		device.setSoftwareLevel(ConformanceLevel.GOLD);
-		device.setCreator("tester");
-		DeviceCredentialSet cs = new DeviceSshAccount("user", "pass", "pass",
-			DeviceCredentialSet.generateSpecificName());
-		cs.setDeviceSpecific(true);
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setSpecificCredentialSet(cs);
-		device.getAccesses().add(sshAccess);
-		device.setSerialNumber("JN23040TEST");
-		device.setComments("Comments for testing");
-		device.setVrfInstances(new HashSet<String>(Set.of("VRF1", "VRF2")));
-		device.getModules().add(new Module("Chassis", "SRX300", "JN23040TEST", device));
+		Device.DeviceBuilder device = Device.create("JuniperJunos", mgmtIp.getIp(), domain, "test").toBuilder();
+		List<Module> modules = new ArrayList<>();
+		List<NetworkInterface> interfaces = new ArrayList<>();
+		List<DeviceAttribute> attributes = new ArrayList<>();
+		device.name(String.format("juniper%05d", shift));
+		device.family("Fake Junos device");
+		device.networkClass(NetworkClass.FIREWALL);
+		device.location("Test Location");
+		device.contact("Test Contact");
+		device.softwareVersion("23.4R1.10");
+		device.softwareLevel(ConformanceLevel.GOLD);
+		device.creator("tester");
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username("user").password("pass").superPassword("pass")
+			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
+		device.accesses(List.of(DeviceAccess.of("ssh").toBuilder().specificCredentialSet(cs).build()));
+		String serial = "JN23040TEST";
+		device.serialNumber(serial);
+		device.comments("Comments for testing");
+		device.vrfInstances(Set.of("VRF1", "VRF2"));
+		modules.add(module("Chassis", "SRX300", "JN23040TEST"));
 		{
-			NetworkInterface ni = new NetworkInterface(device, "ge-0/0/0", "", "VRF1", true, true, "WAN interface");
+			InterfaceBuilder ni = new InterfaceBuilder("ge-0/0/0", "", "VRF1", true, true, "WAN interface");
 			try {
 				Network4Address na1 = new Network4Address("10.1.0.1", 24);
 				na1.setIntAddress(na1.getIntAddress() + (shift << 8));
@@ -384,10 +434,10 @@ public class DemoDataCreator {
 			}
 			catch (UnknownHostException e) {
 			}
-			device.getNetworkInterfaces().add(ni);
+			interfaces.add(ni.build());
 		}
 		{
-			NetworkInterface ni = new NetworkInterface(device, "ge-0/0/1", "", "VRF2", true, true, "LAN interface");
+			InterfaceBuilder ni = new InterfaceBuilder("ge-0/0/1", "", "VRF2", true, true, "LAN interface");
 			try {
 				Network4Address na1 = new Network4Address("10.1.1.1", 24);
 				na1.setIntAddress(na1.getIntAddress() + (shift << 8));
@@ -398,42 +448,42 @@ public class DemoDataCreator {
 			}
 			catch (UnknownHostException e) {
 			}
-			device.getNetworkInterfaces().add(ni);
+			interfaces.add(ni.build());
 		}
+		Device built = device.modules(modules).networkInterfaces(interfaces).attributes(attributes).build();
+		List<Config> configs = new ArrayList<>();
 		for (int j = 0; j < configCount; j++) {
-			Config config = getFakeJunosConfig(device, j);
+			Config config = getFakeJunosConfig(built, j);
 			// Set config date: spread over the past year, oldest configs first
 			Calendar cal = Calendar.getInstance();
 			cal.add(Calendar.HOUR, -(365 * 24 * (configCount - j) / configCount));
-			config.setChangeDate(cal.getTime());
-			device.getConfigs().add(config);
-			device.setLastConfig(config);
+			configs.add(config.toBuilder().changeDate(cal.getTime().toInstant()).build());
 		}
 
-		return device;
+		return new FakeDevice(built.toBuilder().attributes(attributes).build(), configs, null);
 	}
 
 	private String getFakeFortiOSInterfaceConfig(NetworkInterface ni) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("config system interface\n");
-		sb.append("    edit \"%s\"\n".formatted(ni.getInterfaceName()));
-		if (ni.getDescription() != null) {
-			sb.append("        set alias \"%s\"\n".formatted(ni.getDescription()));
+		sb.append("    edit \"%s\"\n".formatted(ni.interfaceName()));
+		if (ni.description() != null) {
+			sb.append("        set alias \"%s\"\n".formatted(ni.description()));
 		}
-		if (ni.getVrfInstance() != null && !ni.getVrfInstance().isBlank()) {
-			sb.append("        set vrf %s\n".formatted(ni.getVrfInstance()));
+		if (ni.vrfInstance() != null && !ni.vrfInstance().isBlank()) {
+			sb.append("        set vrf %s\n".formatted(ni.vrfInstance()));
 		}
-		for (Network4Address na : ni.getIp4Addresses()) {
+		for (Network4Address na : ni.ip4Addresses()) {
 			sb.append("        set ip %s %s\n".formatted(na.getIp(), Network4Address.prefixLengthToDottedMask(na.getPrefixLength())));
 		}
-		if (!ni.getIp6Addresses().isEmpty()) {
+		if (!ni.ip6Addresses().isEmpty()) {
 			sb.append("        set ipv6 {\n");
-			for (Network6Address na : ni.getIp6Addresses()) {
+			for (Network6Address na : ni.ip6Addresses()) {
 				sb.append("            %s/%d\n".formatted(na.getIp(), na.getPrefixLength()));
 			}
 			sb.append("        }\n");
 		}
-		if (!ni.isEnabled()) {
+		if (!ni.enabled()) {
 			sb.append("        set status down\n");
 		}
 		sb.append("    next\n");
@@ -442,18 +492,18 @@ public class DemoDataCreator {
 	}
 
 	private Config getFakeFortiOSConfig(Device device, int shift) {
-		Config config = new Config(device);
+		List<ConfigAttribute> attributes = new ArrayList<>();
 
 		StringBuffer allInterfaceConfig = new StringBuffer();
-		for (NetworkInterface ni : device.getNetworkInterfaces()) {
+		for (NetworkInterface ni : device.networkInterfaces()) {
 			allInterfaceConfig.append(this.getFakeFortiOSInterfaceConfig(ni));
 		}
 		String location = "Location%05d".formatted(shift);
 
-		ConfigAttribute configuration = new ConfigLongTextAttribute(config, "configuration", ""
+		ConfigAttribute configuration = new ConfigLongTextAttribute("configuration", ""
 			+ "#config-version=FGT60E-7.4.4-FW-build2662-240527:opmode=0:vdom=0\n"
 			+ "config system global\n"
-			+ "    set hostname \"%s\"\n".formatted(device.getName())
+			+ "    set hostname \"%s\"\n".formatted(device.name())
 			+ "    set timezone 04\n"
 			+ "end\n"
 			+ "config system admin\n"
@@ -484,13 +534,13 @@ public class DemoDataCreator {
 			+ "        set service \"ALL\"\n"
 			+ "    next\n"
 			+ "end\n");
-		config.addAttribute(configuration);
-		ConfigAttribute osVersion = new ConfigTextAttribute(config, "osVersion", "7.4.4");
-		config.addAttribute(osVersion);
-		return config;
+		attributes.add(configuration);
+		ConfigAttribute osVersion = new ConfigTextAttribute("osVersion", "7.4.4");
+		attributes.add(osVersion);
+		return Config.builder().deviceId(device.id()).author("").attributes(attributes).build();
 	}
 
-	private Device getFakeFortiOSDevice(Domain domain, int shift, int configCount) {
+	private FakeDevice getFakeFortiOSDevice(Domain domain, int shift, int configCount) {
 		Network4Address mgmtIp = null;
 		try {
 			mgmtIp = new Network4Address("172.18.0.0");
@@ -499,27 +549,28 @@ public class DemoDataCreator {
 		catch (UnknownHostException e) {
 			// Ignore
 		}
-		Device device = new Device("FortinetFortiOS", mgmtIp.getIp(), domain, "test");
-		device.setName(String.format("fortigate%05d", shift));
-		device.setFamily("Fake FortiGate");
-		device.setNetworkClass(NetworkClass.FIREWALL);
-		device.setLocation("Test Location");
-		device.setContact("Test Contact");
-		device.setSoftwareVersion("7.4.4");
-		device.setSoftwareLevel(ConformanceLevel.GOLD);
-		device.setCreator("tester");
-		DeviceCredentialSet cs = new DeviceSshAccount("admin", "pass", "pass",
-			DeviceCredentialSet.generateSpecificName());
-		cs.setDeviceSpecific(true);
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setSpecificCredentialSet(cs);
-		device.getAccesses().add(sshAccess);
-		device.setSerialNumber("FGT60E7440TEST");
-		device.setComments("Comments for testing");
-		device.setVrfInstances(new HashSet<String>(Set.of("VRF1", "VRF2")));
-		device.getModules().add(new Module("System", "FortiGate-60E", "FGT60E7440TEST", device));
+		Device.DeviceBuilder device = Device.create("FortinetFortiOS", mgmtIp.getIp(), domain, "test").toBuilder();
+		List<Module> modules = new ArrayList<>();
+		List<NetworkInterface> interfaces = new ArrayList<>();
+		List<DeviceAttribute> attributes = new ArrayList<>();
+		device.name(String.format("fortigate%05d", shift));
+		device.family("Fake FortiGate");
+		device.networkClass(NetworkClass.FIREWALL);
+		device.location("Test Location");
+		device.contact("Test Contact");
+		device.softwareVersion("7.4.4");
+		device.softwareLevel(ConformanceLevel.GOLD);
+		device.creator("tester");
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username("admin").password("pass").superPassword("pass")
+			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
+		device.accesses(List.of(DeviceAccess.of("ssh").toBuilder().specificCredentialSet(cs).build()));
+		String serial = "FGT60E7440TEST";
+		device.serialNumber(serial);
+		device.comments("Comments for testing");
+		device.vrfInstances(Set.of("VRF1", "VRF2"));
+		modules.add(module("System", "FortiGate-60E", "FGT60E7440TEST"));
 		{
-			NetworkInterface ni = new NetworkInterface(device, "port1", "", "VRF1", true, true, "WAN port");
+			InterfaceBuilder ni = new InterfaceBuilder("port1", "", "VRF1", true, true, "WAN port");
 			try {
 				Network4Address na1 = new Network4Address("10.2.0.1", 24);
 				na1.setIntAddress(na1.getIntAddress() + (shift << 8));
@@ -530,10 +581,10 @@ public class DemoDataCreator {
 			}
 			catch (UnknownHostException e) {
 			}
-			device.getNetworkInterfaces().add(ni);
+			interfaces.add(ni.build());
 		}
 		{
-			NetworkInterface ni = new NetworkInterface(device, "port2", "", "VRF2", true, true, "LAN port");
+			InterfaceBuilder ni = new InterfaceBuilder("port2", "", "VRF2", true, true, "LAN port");
 			try {
 				Network4Address na1 = new Network4Address("10.2.1.1", 24);
 				na1.setIntAddress(na1.getIntAddress() + (shift << 8));
@@ -544,33 +595,32 @@ public class DemoDataCreator {
 			}
 			catch (UnknownHostException e) {
 			}
-			device.getNetworkInterfaces().add(ni);
+			interfaces.add(ni.build());
 		}
+		Device built = device.modules(modules).networkInterfaces(interfaces).attributes(attributes).build();
+		List<Config> configs = new ArrayList<>();
 		for (int j = 0; j < configCount; j++) {
-			Config config = getFakeFortiOSConfig(device, j);
+			Config config = getFakeFortiOSConfig(built, j);
 			// Set config date: spread over the past year, oldest configs first
 			Calendar cal = Calendar.getInstance();
 			cal.add(Calendar.HOUR, -(365 * 24 * (configCount - j) / configCount));
-			config.setChangeDate(cal.getTime());
-			device.getConfigs().add(config);
-			device.setLastConfig(config);
+			configs.add(config.toBuilder().changeDate(cal.getTime().toInstant()).build());
 		}
 
-		DeviceAttribute haMode = new DeviceTextAttribute(device, "haMode", "standalone");
-		device.addAttribute(haMode);
+		DeviceAttribute haMode = new DeviceTextAttribute("haMode", "standalone");
+		attributes.add(haMode);
 
-		return device;
+		return new FakeDevice(built.toBuilder().attributes(attributes).build(), configs, null);
 	}
 
 
-	private DeviceGroup getAllDevicesGroup() {
-		DeviceGroup group = new DynamicDeviceGroup("All", null, "");
-		return group;
+	private DynamicDeviceGroup getAllDevicesGroup() {
+		return DynamicDeviceGroup.builder().name("All").folder("").query("").build();
 	}
 
 	private Diagnostic getReloadReasonIosSimpleDiagnostic(DeviceGroup group) {
-		Diagnostic diagnostic = new SimpleDiagnostic("Reload reason", true,
-			group, AttributeType.TEXT, "CiscoIOS12",
+		Diagnostic diagnostic = new SimpleDiagnostic(0, "Reload reason", true,
+			group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable",
 			"show version | include reason",
 			"(?s).*Last reload reason: (.+?)[\r\n]+",
@@ -578,13 +628,17 @@ public class DemoDataCreator {
 		return diagnostic;
 	}
 
-	private Domain getDomain(int shift) throws UnknownHostException {
-		Domain domain = new Domain(
-			"Domain %d".formatted(shift), "Test Domain for devices",
-			new Network4Address("10.%d.1.1".formatted(shift)),
-			null
-		);
-		return domain;
+	private Domain getDomain(int shift) {
+		try {
+			return Domain.builder()
+				.name("Domain %d".formatted(shift))
+				.description("Test Domain for devices")
+				.server4Address(new Network4Address("10.%d.1.1".formatted(shift)))
+				.build();
+		}
+		catch (UnknownHostException e) {
+			throw new IllegalStateException("Invalid domain address", e);
+		}
 	}
 
 
@@ -592,59 +646,65 @@ public class DemoDataCreator {
 
 	public void createData() {
 		log.info("Creating data...");
-		try (Session session = Database.getSession()) {
-			if (session.createQuery("select d from Domain d", Domain.class).getResultCount() > 0) {
+		try {
+			new Transactions().runDsl(this::createData);
+			log.info("Success");
+		}
+		catch (Exception e) {
+			log.error("Error while creating demo data", e);
+		}
+	}
+
+	private void createData(DSLContext dsl) {
+		{
+			if (!new DomainRepository().findAll(dsl, Page.ALL).isEmpty()) {
 				log.error("Data already exist in the DB (domain found)");
 				return;
 			}
 
-			session.beginTransaction();
-
 			// Create domains
 			for (int i = 1; i <= domainCount; i++) {
 				Domain domain = this.getDomain(i);
-				testDomains.add(domain);
-				session.persist(domain);
+				testDomains.add(new DomainRepository().add(dsl, domain));
 			}
 			log.info("Created {} domains", domainCount);
 
-			DeviceGroup allGroup = this.getAllDevicesGroup();
-			session.persist(allGroup);
+			DynamicDeviceGroup allGroup = (DynamicDeviceGroup) new GroupRepository().add(dsl, this.getAllDevicesGroup());
 
-			Diagnostic diag = this.getReloadReasonIosSimpleDiagnostic(allGroup);
-			session.persist(diag);
+			Diagnostic draft = this.getReloadReasonIosSimpleDiagnostic(allGroup);
+			Diagnostic diag = draft.withId(new DiagnosticRepository().add(dsl, draft));
 
 			// Create Cisco IOS devices
 			for (int i = 0; i < ciscoIosDeviceCount; i++) {
 				int configCount = i < 10 ? 100 : 3;
 				int domainIndex = i % testDomains.size();
-				Device device = getFakeCiscoIosDevice(testDomains.get(domainIndex), diag, i, configCount);
+				FakeDevice fake = getFakeCiscoIosDevice(testDomains.get(domainIndex), diag, i, configCount);
+				Device.DeviceBuilder device = fake.device().toBuilder();
 
 				// Add diversity
 				if (i % 100 == 0) {
-					device.setStatus(Device.Status.DISABLED);
+					device.status(Device.Status.DISABLED);
 				}
 				if (i % 100 == 10) {
-					device.setSoftwareVersion("15.2.3");
-					device.setSoftwareLevel(ConformanceLevel.BRONZE);
+					device.softwareVersion("15.2.3");
+					device.softwareLevel(ConformanceLevel.BRONZE);
 				}
 				if (i % 100 == 20) {
-					device.setSoftwareVersion("16.3.1");
-					device.setSoftwareLevel(ConformanceLevel.SILVER);
+					device.softwareVersion("16.3.1");
+					device.softwareLevel(ConformanceLevel.SILVER);
 				}
 				if (i % 100 == 30) {
-					device.setFamily("Catalyst 3850");
-					device.setNetworkClass(NetworkClass.SWITCH);
+					device.family("Catalyst 3850");
+					device.networkClass(NetworkClass.SWITCH);
 				}
 				if (i % 100 == 40) {
-					((DeviceNumericAttribute) device.getAttribute("mainMemorySize")).setNumber(4096.0);
+					device.attributes(withAttribute(fake.device().attributes(), new DeviceNumericAttribute("mainMemorySize", 4096.0)));
 				}
 				if (i % 100 == 50) {
-					((DeviceBinaryAttribute) device.getAttribute("configurationSaved")).setAssumption(false);
+					device.attributes(withAttribute(fake.device().attributes(), new DeviceBinaryAttribute("configurationSaved", false)));
 				}
 
-				this.testDevices.add(device);
-				session.persist(device);
+				this.testDevices.add(this.store(dsl, new FakeDevice(device.build(), fake.configs(), fake.diagnosticResult())));
 			}
 			log.info("Created {} Cisco IOS devices", ciscoIosDeviceCount);
 
@@ -652,27 +712,27 @@ public class DemoDataCreator {
 			for (int i = 0; i < junosDeviceCount; i++) {
 				int configCount = i < 10 ? 100 : 3;
 				int domainIndex = i % testDomains.size();
-				Device device = getFakeJunosDevice(testDomains.get(domainIndex), i, configCount);
+				FakeDevice fake = getFakeJunosDevice(testDomains.get(domainIndex), i, configCount);
+				Device.DeviceBuilder device = fake.device().toBuilder();
 
 				// Add diversity
 				if (i % 100 == 5) {
-					device.setStatus(Device.Status.DISABLED);
+					device.status(Device.Status.DISABLED);
 				}
 				if (i % 100 == 15) {
-					device.setSoftwareVersion("22.4R1.10");
-					device.setSoftwareLevel(ConformanceLevel.BRONZE);
+					device.softwareVersion("22.4R1.10");
+					device.softwareLevel(ConformanceLevel.BRONZE);
 				}
 				if (i % 100 == 25) {
-					device.setSoftwareVersion("23.2R1.5");
-					device.setSoftwareLevel(ConformanceLevel.SILVER);
+					device.softwareVersion("23.2R1.5");
+					device.softwareLevel(ConformanceLevel.SILVER);
 				}
 				if (i % 100 == 35) {
-					device.setFamily("MX Series");
-					device.setNetworkClass(NetworkClass.ROUTER);
+					device.family("MX Series");
+					device.networkClass(NetworkClass.ROUTER);
 				}
 
-				this.testDevices.add(device);
-				session.persist(device);
+				this.testDevices.add(this.store(dsl, new FakeDevice(device.build(), fake.configs(), fake.diagnosticResult())));
 			}
 			log.info("Created {} Junos devices", junosDeviceCount);
 
@@ -680,42 +740,71 @@ public class DemoDataCreator {
 			for (int i = 0; i < fortiosDeviceCount; i++) {
 				int configCount = i < 10 ? 100 : 3;
 				int domainIndex = i % testDomains.size();
-				Device device = getFakeFortiOSDevice(testDomains.get(domainIndex), i, configCount);
+				FakeDevice fake = getFakeFortiOSDevice(testDomains.get(domainIndex), i, configCount);
+				Device.DeviceBuilder device = fake.device().toBuilder();
 
 				// Add diversity
 				if (i % 100 == 7) {
-					device.setStatus(Device.Status.DISABLED);
+					device.status(Device.Status.DISABLED);
 				}
 				if (i % 100 == 17) {
-					device.setSoftwareVersion("7.2.8");
-					device.setSoftwareLevel(ConformanceLevel.BRONZE);
+					device.softwareVersion("7.2.8");
+					device.softwareLevel(ConformanceLevel.BRONZE);
 				}
 				if (i % 100 == 27) {
-					device.setSoftwareVersion("7.4.1");
-					device.setSoftwareLevel(ConformanceLevel.SILVER);
+					device.softwareVersion("7.4.1");
+					device.softwareLevel(ConformanceLevel.SILVER);
 				}
 				if (i % 100 == 37) {
-					device.setFamily("FortiGate-100F");
+					device.family("FortiGate-100F");
 				}
 				if (i % 100 == 47) {
-					((DeviceTextAttribute) device.getAttribute("haMode")).setText("a-p");
+					device.attributes(withAttribute(fake.device().attributes(), new DeviceTextAttribute("haMode", "a-p")));
 				}
 
-				this.testDevices.add(device);
-				session.persist(device);
+				this.testDevices.add(this.store(dsl, new FakeDevice(device.build(), fake.configs(), fake.diagnosticResult())));
 			}
 			log.info("Created {} FortiOS devices", fortiosDeviceCount);
 
 			log.info("Refreshing dynamic group");
-			allGroup.refreshCache(session);
-
-			session.getTransaction().commit();
-
-			log.info("Success");
+			try {
+				DynamicGroups.refresh(dsl, allGroup);
+			}
+			catch (FinderParseException e) {
+				throw new IllegalStateException("Invalid query of the group", e);
+			}
 		}
-		catch (Exception e) {
-			log.error("Error while creating demo data", e);
+	}
+
+	private static List<DeviceAttribute> withAttribute(List<DeviceAttribute> attributes, DeviceAttribute attribute) {
+		List<DeviceAttribute> result = new ArrayList<>(attributes);
+		result.replaceAll(a -> a.name().equals(attribute.name()) ? attribute : a);
+		return result;
+	}
+
+	private Device store(DSLContext dsl, FakeDevice fake) {
+		CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+		List<DeviceAccess> accesses = new ArrayList<>();
+		for (DeviceAccess access : fake.device().accesses()) {
+			if (access.specificCredentialSet() != null) {
+				access = access.toBuilder().specificCredentialSet(credentialSetRepository.add(dsl, access.specificCredentialSet())).build();
+			}
+			accesses.add(access);
 		}
+		DeviceRepository deviceRepository = new DeviceRepository();
+		Device added = deviceRepository.add(dsl, fake.device().toBuilder().accesses(accesses).build());
+		ConfigRepository configRepository = new ConfigRepository();
+		Long lastConfigId = null;
+		for (Config config : fake.configs()) {
+			lastConfigId = configRepository.add(dsl, config.toBuilder().deviceId(added.id()).build());
+		}
+		if (lastConfigId != null) {
+			deviceRepository.save(dsl, added, added.toBuilder().lastConfigId(lastConfigId).build());
+		}
+		if (fake.diagnosticResult() != null) {
+			new DiagnosticResultRepository().save(dsl, added.id(), List.of(fake.diagnosticResult()));
+		}
+		return added;
 	}
 
 	public static void main(String[] args) {

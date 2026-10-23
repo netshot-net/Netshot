@@ -26,6 +26,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
@@ -52,27 +53,28 @@ public class RunGroupDiagnosticsHandler implements TaskHandler<RunGroupDiagnosti
 	}
 
 	@Override
-	public void run(RunGroupDiagnosticsTask task) {
-		List<Device> devices = task.getTargetDevices();
-		if (task.getDeviceGroup() == null && devices.isEmpty()) {
-			task.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, RunGroupDiagnosticsTask spec, TaskRun run) {
+		TaskTargets targets = TaskTargets.load(spec);
+		List<Device> devices = targets.devices();
+		if (targets.group() == null && devices.isEmpty()) {
+			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		log.debug("Task {}. {} device(s) to process.", task.getId(), devices.size());
-		String comment = task.getDeviceGroup() == null
+		log.debug("Task {}. {} device(s) to process.", task.id(), devices.size());
+		String comment = targets.group() == null
 			? String.format("Started due to %d-device diagnostics list", devices.size())
-			: String.format("Started due to group %s diagnostics", task.getDeviceGroup().getName());
+			: String.format("Started due to group %s diagnostics", targets.group().name());
 
-		List<Task> children = this.childTaskOrchestrator.reloadExistingChildren(task);
+		List<Task> children = this.childTaskOrchestrator.reloadExistingChildren(run);
 		if (children.isEmpty()) {
 			children = new ArrayList<>();
 			for (Device device : devices) {
-				children.add(new RunDiagnosticsTask(device, comment, task.getAuthor(), task.isDontCheckCompliance()));
+				children.add(RunDiagnosticsTask.of(device, comment, task.author(), spec.dontCheckCompliance()));
 			}
-			this.childTaskOrchestrator.preCreateChildren(task, children);
+			children = this.childTaskOrchestrator.preCreateChildren(run, children);
 		}
-		task.setStatus(this.childTaskOrchestrator.orchestrateChildren(task, children));
+		run.setStatus(this.childTaskOrchestrator.orchestrateChildren(run, children));
 	}
 
 }

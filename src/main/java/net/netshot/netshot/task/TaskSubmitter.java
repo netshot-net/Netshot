@@ -32,8 +32,9 @@ public interface TaskSubmitter {
 	 * Adds a task to the system: stores it if needed and schedules it.
 	 *
 	 * @param task the task
+	 * @return the task as stored (with its ID)
 	 * @throws SchedulerException if the task can't be scheduled
-	 * @throws org.hibernate.HibernateException if the task can't be stored
+	 * @throws org.jooq.exception.DataAccessException if the task can't be stored
 	 */
-	void submit(Task task) throws SchedulerException;
+	Task submit(Task task) throws SchedulerException;
 }

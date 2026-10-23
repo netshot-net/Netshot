@@ -85,7 +85,7 @@ public class HookDispatcher {
 				return;
 			}
 			// Mapped once, in the transaction which loads the task, for all the hooks
-			TaskPayload payload = this.taskService.mapTask(id, mapped -> TaskPayloads.toPayload(this.driverRegistry, mapped));
+			TaskPayload payload = this.taskService.mapTask(id, (mapped, devices) -> TaskPayloads.toPayload(this.driverRegistry, mapped, devices));
 			for (Hook hook : hooks) {
 				log.trace("Executing post-task hook {}", hook.name());
 				try {

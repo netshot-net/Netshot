@@ -18,9 +18,10 @@
  */
 package net.netshot.netshot.inventory.device;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +42,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 
 /**
@@ -62,48 +64,48 @@ class DeviceInventoryServiceTest {
 	void initDb() throws Exception {
 		this.transactions = new Transactions();
 		DeviceRepository repository = new DeviceRepository();
-		TaskSubmitter noTask = task -> { };
+		TaskSubmitter noTask = task -> task;
 		this.deviceService = new DeviceService(this.transactions, repository, noTask, TestDrivers.registry());
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
 		this.searchService = new SearchService(this.transactions, new SearchRepository());
-		this.transactions.run(session -> {
-			Domain domain = new Domain("Lab", "Test domain", null, null);
-			session.persist(domain);
-			Device routerDevice = device(session, "router-a", "10.50.0.1", "Cisco 2900", "16.1", domain);
-			routerDevice.replaceTags(List.of("core", "lab"));
-			this.router = routerDevice.getId();
-			Device otherDevice = device(session, "switch-b", "10.50.0.2", "Cisco 1900", "", domain);
-			otherDevice.replaceTags(List.of("lab"));
-			this.other = otherDevice.getId();
-			device(session, "router-c", "10.50.0.3", "Cisco 2900", "16.1", domain);
-
-			session.persist(new Module("chassis", "PN-1", "SN-1", routerDevice));
-			session.persist(new Module("slot 1", "PN-2", "SN-2", routerDevice));
-			Module removed = new Module("slot 2", "PN-3", "SN-3", routerDevice);
-			removed.setRemoved(true);
-			session.persist(removed);
-			session.persist(new Module("chassis", "PN-1", "SN-4", otherDevice));
-
-			try {
-				NetworkInterface uplink = new NetworkInterface(routerDevice, "Gi0/0", "", "VRF1", true, true, "Uplink");
-				uplink.addIpAddress((Network4Address) Network4Address.getNetworkAddress("10.0.0.1", 24));
-				uplink.addIpAddress((Network6Address) Network6Address.getNetworkAddress("2001:db8::1", 64));
-				session.persist(uplink);
-				session.persist(new NetworkInterface(routerDevice, "Lo0", "", "", true, false, ""));
-			}
-			catch (java.net.UnknownHostException e) {
-				throw new IllegalStateException(e);
-			}
-		});
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		Set<Network4Address> ip4 = new LinkedHashSet<>();
+		Set<Network6Address> ip6 = new LinkedHashSet<>();
+		try {
+			NetworkInterface.addIpAddress(ip4, ip6, Network4Address.getNetworkAddress("10.0.0.1", 24));
+			NetworkInterface.addIpAddress(ip4, ip6, Network6Address.getNetworkAddress("2001:db8::1", 64));
+		}
+		catch (java.net.UnknownHostException e) {
+			throw new IllegalStateException(e);
+		}
+		Device routerDevice = TestDevices.add(device("router-a", "10.50.0.1", "Cisco 2900", "16.1", domain)
+			.tags(Device.normalizeTags(List.of("core", "lab")))
+			.modules(List.of(module("chassis", "PN-1", "SN-1"), module("slot 1", "PN-2", "SN-2"),
+				module("slot 2", "PN-3", "SN-3").toBuilder().removed(true).build()))
+			.networkInterfaces(List.of(
+				NetworkInterface.builder().interfaceName("Gi0/0").virtualDevice("").vrfInstance("VRF1").enabled(true).level3(true)
+					.description("Uplink").ip4Addresses(ip4).ip6Addresses(ip6).build(),
+				NetworkInterface.builder().interfaceName("Lo0").virtualDevice("").vrfInstance("").enabled(true).level3(false)
+					.description("").build()))
+			.build());
+		this.router = routerDevice.id();
+		Device otherDevice = TestDevices.add(device("switch-b", "10.50.0.2", "Cisco 1900", "", domain)
+			.tags(Device.normalizeTags(List.of("lab")))
+			.modules(List.of(module("chassis", "PN-1", "SN-4")))
+			.build());
+		this.other = otherDevice.id();
+		TestDevices.add(device("router-c", "10.50.0.3", "Cisco 2900", "16.1", domain).build());
 	}
 
-	private static Device device(Session session, String name, String address, String family, String version, Domain domain) {
-		Device device = new Device("CiscoIOS12", address, domain, "seed");
-		device.setName(name);
-		device.setFamily(family);
-		device.setSoftwareVersion(version);
-		session.persist(device);
-		return device;
+	private static Module module(String slot, String partNumber, String serialNumber) {
+		return Module.builder().slot(slot).partNumber(partNumber).serialNumber(serialNumber).build();
+	}
+
+	private static Device.DeviceBuilder device(String name, String address, String family, String version, Domain domain) {
+		return Device.create("CiscoIOS12", address, domain, "seed").toBuilder()
+			.name(name)
+			.family(family)
+			.softwareVersion(version);
 	}
 
 	private static NetshotException assertError(ErrorCode code, Executable executable) {
@@ -121,10 +123,10 @@ class DeviceInventoryServiceTest {
 	void interfaces() {
 		List<NetworkInterface> interfaces = this.deviceService.getInterfaces(this.router, Page.ALL);
 		Assertions.assertEquals(2, interfaces.size());
-		NetworkInterface uplink = interfaces.stream().filter(i -> "Gi0/0".equals(i.getInterfaceName())).findFirst().orElseThrow();
-		Assertions.assertEquals(1, uplink.getIp4Addresses().size());
-		Assertions.assertEquals(1, uplink.getIp6Addresses().size());
-		Assertions.assertEquals("10.0.0.1", uplink.getIp4Addresses().iterator().next().getIp());
+		NetworkInterface uplink = interfaces.stream().filter(i -> "Gi0/0".equals(i.interfaceName())).findFirst().orElseThrow();
+		Assertions.assertEquals(1, uplink.ip4Addresses().size());
+		Assertions.assertEquals(1, uplink.ip6Addresses().size());
+		Assertions.assertEquals("10.0.0.1", uplink.ip4Addresses().iterator().next().getIp());
 		Assertions.assertEquals(List.of(), this.deviceService.getInterfaces(this.other, Page.ALL));
 		Assertions.assertEquals(List.of(), this.deviceService.getInterfaces(99999999L, Page.ALL));
 		Assertions.assertEquals(1, this.deviceService.getInterfaces(this.router, new Page(0, 1)).size());
@@ -134,7 +136,7 @@ class DeviceInventoryServiceTest {
 	@DisplayName("getModules() returns the current modules, and the removed ones on demand")
 	void modules() {
 		List<Module> current = this.deviceService.getModules(this.router, false, Page.ALL);
-		Assertions.assertEquals(List.of("PN-1", "PN-2"), current.stream().map(Module::getPartNumber).sorted().toList());
+		Assertions.assertEquals(List.of("PN-1", "PN-2"), current.stream().map(Module::partNumber).sorted().toList());
 		List<Module> history = this.deviceService.getModules(this.router, true, Page.ALL);
 		Assertions.assertEquals(3, history.size());
 		Assertions.assertEquals(1, this.deviceService.getModules(this.router, true, new Page(2, null)).size());

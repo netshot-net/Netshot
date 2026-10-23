@@ -22,7 +22,12 @@ import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.util.Iterator;
 
-import org.hibernate.Session;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -31,16 +36,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.NetshotApiClient;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 @ApiTest
 @DisplayName("Domain API Tests")
@@ -56,13 +58,7 @@ public class DomainResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from Domain")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		TestDevices.deleteAll();
 	}
 
 	@Test
@@ -77,22 +73,10 @@ public class DomainResourceTest {
 			Assertions.assertEquals(0, response.body().size(),
 				"Domain list is not empty");
 		}
-		Domain domain1 = new Domain(
-			"Test1", "Test Domain1 for listing",
-			new Network4Address("10.1.1.1"),
-			null
-		);
-		Domain domain2 = new Domain(
-			"Test2", "Test Domain2 for listing",
-			new Network4Address("10.1.2.1"),
-			null
-		);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(domain1);
-			session.persist(domain2);
-			session.getTransaction().commit();
-		}
+		Domain domain1 = Domain.builder().name("Test1").description("Test Domain1 for listing").server4Address(new Network4Address("10.1.1.1")).build();
+		Domain domain2 = Domain.builder().name("Test2").description("Test Domain2 for listing").server4Address(new Network4Address("10.1.2.1")).build();
+		domain1 = TestDevices.addDomain(domain1);
+		domain2 = TestDevices.addDomain(domain2);
 		{
 			HttpResponse<JsonNode> response = apiClient.get("/domains");
 			Assertions.assertEquals(
@@ -104,10 +88,10 @@ public class DomainResourceTest {
 			JsonNode domainNode1 = domainNodeIt.next();
 			Assertions.assertEquals(
 				JsonNodeFactory.instance.objectNode()
-					.put("id", domain1.getId())
-					.put("name", domain1.getName())
-					.put("description", domain1.getDescription())
-					.put("ipAddress", domain1.getServer4Address().getIp()),
+					.put("id", domain1.id())
+					.put("name", domain1.name())
+					.put("description", domain1.description())
+					.put("ipAddress", domain1.server4Address().getIp()),
 				domainNode1,
 				"Retrieved domain doesn't match expected object");
 		}
@@ -117,18 +101,13 @@ public class DomainResourceTest {
 	@DisplayName("List domains with pagination")
 	@ResourceLock("DB")
 	void listPaginatedDomains() throws IOException, InterruptedException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
+		{
 			for (int i = 1; i <= 15; i++) {
-				Domain domain = new Domain(
-					"Test%d".formatted(i),
-					"Test Domain%d for pagination".formatted(i),
-					new Network4Address("10.1.%d.1".formatted(i)),
-					null
-				);
-				session.persist(domain);
+				Domain domain = Domain.builder().name("Test%d".formatted(i)).description("Test Domain%d for pagination".formatted(i))
+					.server4Address(new Network4Address("10.1.%d.1".formatted(i)))
+					.build();
+				TestDevices.addDomain(domain);
 			}
-			session.getTransaction().commit();
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.get("/domains?limit=10");
@@ -157,50 +136,30 @@ public class DomainResourceTest {
 	@DisplayName("Create domain")
 	@ResourceLock("DB")
 	void createDomain() throws IOException, InterruptedException {
-		Domain domain = new Domain(
-			"Test", "Test Domain for creation",
-			new Network4Address("10.1.1.1"),
-			null
-		);
+		Domain domain = Domain.builder().name("Test").description("Test Domain for creation").server4Address(new Network4Address("10.1.1.1")).build();
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
-			.put("name", domain.getName())
-			.put("description", domain.getDescription())
-			.put("ipAddress", domain.getServer4Address().getIp());
+			.put("name", domain.name())
+			.put("description", domain.description())
+			.put("ipAddress", domain.server4Address().getIp());
 		HttpResponse<JsonNode> response = apiClient.post("/domains", data);
 		Assertions.assertEquals(
 			Response.Status.CREATED.getStatusCode(), response.statusCode(),
 			"Not getting 201 response for created domain");
 
-		try (Session session = Database.getSession()) {
-			Domain newDomain = session
-				.createQuery("from Domain d where d.name = :name", Domain.class)
-				.setParameter("name", domain.getName())
-				.uniqueResult();
-			domain.setId(newDomain.getId());
-			Assertions.assertEquals(domain, newDomain, "Domain not created as expected");
-		}
+		Domain newDomain = new Transactions().readDsl(dsl -> new DomainRepository().findAll(dsl, Page.ALL)).stream()
+			.filter(d -> d.name().equals(domain.name())).findFirst().orElseThrow();
+		Assertions.assertEquals(domain.description(), newDomain.description(), "Domain not created as expected");
+		Assertions.assertEquals(domain.server4Address(), newDomain.server4Address(), "Domain not created as expected");
 	}
 
 	@Test
 	@DisplayName("Delete domain")
 	@ResourceLock("DB")
 	void deleteDomain() throws IOException, InterruptedException {
-		Domain domain1 = new Domain(
-			"Test1", "Test Domain1 for deletion",
-			new Network4Address("10.1.1.1"),
-			null
-		);
-		Domain domain2 = new Domain(
-			"Test2", "Test Domain2 for deletion",
-			new Network4Address("10.1.2.1"),
-			null
-		);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(domain1);
-			session.persist(domain2);
-			session.getTransaction().commit();
-		}
+		Domain domain1 = Domain.builder().name("Test1").description("Test Domain1 for deletion").server4Address(new Network4Address("10.1.1.1")).build();
+		Domain domain2 = Domain.builder().name("Test2").description("Test Domain2 for deletion").server4Address(new Network4Address("10.1.2.1")).build();
+		domain1 = TestDevices.addDomain(domain1);
+		domain2 = TestDevices.addDomain(domain2);
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
 				"/domains/%d".formatted(TestServer.UNKNOWN_ID));
@@ -210,7 +169,7 @@ public class DomainResourceTest {
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
-				"/domains/%d".formatted(domain1.getId()));
+				"/domains/%d".formatted(domain1.id()));
 			Assertions.assertEquals(
 				Response.Status.NO_CONTENT.getStatusCode(), response.statusCode(),
 				"Not getting 204 response for domain deletion");
@@ -224,10 +183,10 @@ public class DomainResourceTest {
 		JsonNode domainNode = listResponse.body().iterator().next();
 		Assertions.assertEquals(
 			JsonNodeFactory.instance.objectNode()
-				.put("id", domain2.getId())
-				.put("name", domain2.getName())
-				.put("description", domain2.getDescription())
-				.put("ipAddress", domain2.getServer4Address().getIp()),
+				.put("id", domain2.id())
+				.put("name", domain2.name())
+				.put("description", domain2.description())
+				.put("ipAddress", domain2.server4Address().getIp()),
 			domainNode,
 			"Retrieved domain doesn't match expected object");
 	}
@@ -236,27 +195,15 @@ public class DomainResourceTest {
 	@DisplayName("Update domain")
 	@ResourceLock("DB")
 	void updateDomain() throws IOException, InterruptedException {
-		Domain domain = new Domain(
-			"Test1", "Test Domain1 for update",
-			new Network4Address("10.1.1.1"),
-			null
-		);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(domain);
-			session.getTransaction().commit();
-		}
-		Domain targetDomain = new Domain(
-			"Test2", "Test Domain2 for update",
-			new Network4Address("10.1.2.1"),
-			null
-		);
-		targetDomain.setId(domain.getId());
+		Domain domain = Domain.builder().name("Test1").description("Test Domain1 for update").server4Address(new Network4Address("10.1.1.1")).build();
+		domain = TestDevices.addDomain(domain);
+		Domain targetDomain = Domain.builder().name("Test2").description("Test Domain2 for update").server4Address(new Network4Address("10.1.2.1")).build();
+		targetDomain = targetDomain.toBuilder().id(domain.id()).build();
 
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
-			.put("name", targetDomain.getName())
-			.put("description", targetDomain.getDescription())
-			.put("ipAddress", targetDomain.getServer4Address().getIp());
+			.put("name", targetDomain.name())
+			.put("description", targetDomain.description())
+			.put("ipAddress", targetDomain.server4Address().getIp());
 		{
 			HttpResponse<JsonNode> response = apiClient.put(
 				"/domains/%d".formatted(TestServer.UNKNOWN_ID), data);
@@ -266,16 +213,15 @@ public class DomainResourceTest {
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/domains/%d".formatted(domain.getId()), data);
+				"/domains/%d".formatted(domain.id()), data);
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for domain update");
 		}
-		try (Session session = Database.getSession()) {
-			Domain dbDomain = session.byId(Domain.class)
-				.load(targetDomain.getId());
-			Assertions.assertEquals(
-				targetDomain, dbDomain, "Domain not updated as expected");
-		}
+		long targetId = targetDomain.id();
+		Domain dbDomain = new Transactions().readDsl(dsl -> new DomainRepository().find(dsl, targetId));
+		Assertions.assertEquals(targetDomain.name(), dbDomain.name(), "Domain not updated as expected");
+		Assertions.assertEquals(targetDomain.description(), dbDomain.description(), "Domain not updated as expected");
+		Assertions.assertEquals(targetDomain.server4Address(), dbDomain.server4Address(), "Domain not updated as expected");
 	}
 }

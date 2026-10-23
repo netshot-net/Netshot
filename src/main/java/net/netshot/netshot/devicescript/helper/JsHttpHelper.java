@@ -122,7 +122,7 @@ public class JsHttpHelper {
 		String host = this.accessManager.resolveHost(candidateAccessDef);
 		int port = this.accessManager.resolvePort(candidateAccessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
-			candidateAccessDef.getName(), candidateAccessDef.getProtocol(), credentialSet.getName(), host, port);
+			candidateAccessDef.getName(), candidateAccessDef.getProtocol(), credentialSet.name(), host, port);
 		Http httpClient = new Http(host, port, httpConfig.isTls(), this.taskContext);
 		this.accessManager.applyHttpsTrustPolicy(candidateAccessDef, httpClient);
 		return httpClient;
@@ -395,7 +395,7 @@ public class JsHttpHelper {
 				"No config is available in the current script context; can't store a downloaded file.");
 		}
 		ConfigBinaryFileAttribute fileAttribute = this.configHelper.prepareBinaryFileDownload(key, storeFileName, path);
-		Path tempPath = fileAttribute.getPendingFilePath();
+		Path tempPath = this.configHelper.pendingFilePath(fileAttribute);
 		tempPath.toFile().deleteOnExit();
 		HttpDownloadResult result;
 		try {

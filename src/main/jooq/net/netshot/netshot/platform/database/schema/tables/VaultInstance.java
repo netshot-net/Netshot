@@ -9,12 +9,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.EncryptedStringConverter;
 import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet.DeviceCredentialSetPath;
 import net.netshot.netshot.platform.database.schema.tables.records.VaultInstanceRecord;
 
+import org.jooq.Check;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
@@ -128,7 +130,7 @@ public class VaultInstance extends TableImpl<VaultInstanceRecord> {
     /**
      * The column <code>vault_instance.app_role_secret_id</code>.
      */
-    public final TableField<VaultInstanceRecord, String> APP_ROLE_SECRET_ID = createField(DSL.name("app_role_secret_id"), SQLDataType.VARCHAR(1000), this, "");
+    public final TableField<VaultInstanceRecord, String> APP_ROLE_SECRET_ID = createField(DSL.name("app_role_secret_id"), SQLDataType.VARCHAR(1000), this, "", new EncryptedStringConverter());
 
     /**
      * The column <code>vault_instance.jwt_mount_path</code>.
@@ -148,7 +150,7 @@ public class VaultInstance extends TableImpl<VaultInstanceRecord> {
     /**
      * The column <code>vault_instance.jwt_client_secret</code>.
      */
-    public final TableField<VaultInstanceRecord, String> JWT_CLIENT_SECRET = createField(DSL.name("jwt_client_secret"), SQLDataType.VARCHAR(1000), this, "");
+    public final TableField<VaultInstanceRecord, String> JWT_CLIENT_SECRET = createField(DSL.name("jwt_client_secret"), SQLDataType.VARCHAR(1000), this, "", new EncryptedStringConverter());
 
     /**
      * The column <code>vault_instance.jwt_vault_role</code>.
@@ -339,6 +341,13 @@ public class VaultInstance extends TableImpl<VaultInstanceRecord> {
             _fkDeviceCredentialSetUsernameVaultInstanceId = new DeviceCredentialSetPath(this, null, Keys.DEVICE_CREDENTIAL_SET__FK_DEVICE_CREDENTIAL_SET_USERNAME_VAULT_INSTANCE_ID.getInverseKey());
 
         return _fkDeviceCredentialSetUsernameVaultInstanceId;
+    }
+
+    @Override
+    public List<Check<VaultInstanceRecord>> getChecks() {
+        return Arrays.asList(
+            Internal.createCheck(this, DSL.name("ck_vault_instance_hashicorp_auth_method"), "((((dtype)::text <> 'HashicorpVaultKv2Instance'::text) OR (auth_method IS NOT NULL)))", true)
+        );
     }
 
     @Override
