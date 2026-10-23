@@ -18,42 +18,16 @@
  */
 package net.netshot.netshot.inventory.device.attribute;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.attribute.LongTextConfiguration;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@DiscriminatorValue("T")
-public final class DeviceLongTextAttribute extends DeviceAttribute {
-
-	@Getter(onMethod = @__({
-		@OneToOne(orphanRemoval = true, fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private LongTextConfiguration longText;
-
-	protected DeviceLongTextAttribute() {
-	}
-
-	public DeviceLongTextAttribute(Device device, String name, String value) {
-		super(device, name);
-		this.longText = new LongTextConfiguration(value);
-	}
+/**
+ * A long text device attribute (stored apart).
+ *
+ * @param name the name of the attribute
+ * @param text the value
+ */
+public record DeviceLongTextAttribute(String name, String text) implements DeviceAttribute {
 
 	@Override
-	@Transient
 	public Object getData() {
-		if (getLongText() == null) {
-			return null;
-		}
-		return getLongText().getText();
+		return this.text;
 	}
-
 }

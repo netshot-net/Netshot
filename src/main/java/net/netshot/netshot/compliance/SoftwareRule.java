@@ -18,30 +18,33 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * A software rule defines constraints that apply to the software versions.
+ * A software compliance rule: the devices matching it (driver, family, version, part number of a
+ * module) get its conformance level. The rules are checked by priority, the first match wins.
+ *
+ * @param id the ID (0 for a rule not stored yet)
+ * @param priority the priority (lowest first)
+ * @param targetGroupId the ID of the group the rule applies to (null for all the devices)
+ * @param driver the name of the driver of the devices (null for any)
+ * @param family the family of the devices (empty for any)
+ * @param familyRegExp true if the family is a regular expression
+ * @param version the software version of the devices (empty for any)
+ * @param versionRegExp true if the version is a regular expression
+ * @param partNumber the part number of a module of the devices (null or empty for any)
+ * @param partNumberRegExp true if the part number is a regular expression
+ * @param level the conformance level of the matching devices
  */
-@Entity
-public class SoftwareRule implements Comparable<SoftwareRule> {
+@Builder(toBuilder = true)
+public record SoftwareRule(long id, double priority, Long targetGroupId, String driver, String family, boolean familyRegExp,
+	String version, boolean versionRegExp, String partNumber, boolean partNumberRegExp, ConformanceLevel level) {
 
 	/**
 	 * The Enum ConformanceLevel.
@@ -61,186 +64,86 @@ public class SoftwareRule implements Comparable<SoftwareRule> {
 		UNKNOWN
 	}
 
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	/** The priority, to determine which software rule should apply first. */
-	@Getter
-	@Setter
-	protected double priority;
-
-	/** The target group. */
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.SET_NULL)
-	}))
-	@Setter
-	protected DeviceGroup targetGroup;
-
-	@Getter
-	@Setter
-	private String driver;
-
-	/** The family. */
-	@Getter
-	@Setter
-	private String family = "";
-
-	/** The family is a regular expression. */
-	@Getter
-	@Setter
-	private boolean familyRegExp;
-
-	/** The version. */
-	@Getter
-	@Setter
-	private String version = "";
-
-	/** The version is a regular expression. */
-	@Getter
-	@Setter
-	private boolean versionRegExp;
-
-	/** The part number. */
-	@Getter
-	@Setter
-	private String partNumber;
-
-	/** The part number reg exp. */
-	@Getter
-	@Setter
-	private boolean partNumberRegExp;
-
-	/** The level. */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING)
-	}))
-	@Setter
-	protected ConformanceLevel level = ConformanceLevel.GOLD;
-
-
 	/**
-	 * Instantiates a new software rule.
+	 * Gets a copy of the rule with another ID.
+	 *
+	 * @param newId the ID
+	 * @return the rule
 	 */
-	protected SoftwareRule() {
-
-	}
-
-	public SoftwareRule(double priority, DeviceGroup targetGroup,
-		String driver, String family, boolean familyRegExp,
-		String version, boolean versionRegExp, String partNumber,
-		boolean partNumberRegExp, ConformanceLevel level) {
-		this.priority = priority;
-		this.targetGroup = targetGroup;
-		this.driver = driver;
-		this.family = family;
-		this.familyRegExp = familyRegExp;
-		this.version = version;
-		this.versionRegExp = versionRegExp;
-		this.partNumber = partNumber;
-		this.partNumberRegExp = partNumberRegExp;
-		this.level = level;
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Comparable#compareTo(java.lang.Object)
-	 */
-	@Override
-	public int compareTo(SoftwareRule o) {
-		return Double.compare(this.priority, o.priority);
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (int) (id ^ (id >>> 32));
-		return result;
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		SoftwareRule other = (SoftwareRule) obj;
-		return id == other.id;
+	public SoftwareRule withId(long newId) {
+		return this.toBuilder().id(newId).build();
 	}
 
 	/**
-	 * Check.
+	 * Gets a copy of the rule with another priority.
+	 *
+	 * @param newPriority the priority
+	 * @return the rule
+	 */
+	public SoftwareRule withPriority(double newPriority) {
+		return this.toBuilder().priority(newPriority).build();
+	}
+
+	/**
+	 * Checks a device: gives the level of the rule if it matches the device,
+	 * {@link ConformanceLevel#UNKNOWN} otherwise.
 	 *
 	 * @param device the device
+	 * @param deviceGroupIds the IDs of the groups of the device
+	 * @return the software level of the device according to this rule
 	 */
-	public void check(Device device) {
-		device.setSoftwareLevel(ConformanceLevel.UNKNOWN);
-		if (targetGroup != null && !targetGroup.getCachedDevices().contains(device)) {
-			return;
+	public ConformanceLevel check(Device device, Set<Long> deviceGroupIds) {
+		if (targetGroupId != null && !deviceGroupIds.contains(targetGroupId)) {
+			return ConformanceLevel.UNKNOWN;
 		}
-		if (driver != null && !driver.equals(device.getDriver())) {
-			return;
+		if (driver != null && !driver.equals(device.driver())) {
+			return ConformanceLevel.UNKNOWN;
 		}
 		if (familyRegExp) {
 			try {
-				if (!device.getFamily().matches(family)) {
-					return;
+				if (!device.family().matches(family)) {
+					return ConformanceLevel.UNKNOWN;
 				}
 			}
 			catch (PatternSyntaxException e) {
-				return;
+				return ConformanceLevel.UNKNOWN;
 			}
 		}
 		else {
-			if (!"".equals(family) && !device.getFamily().equals(family)) {
-				return;
+			if (!"".equals(family) && !device.family().equals(family)) {
+				return ConformanceLevel.UNKNOWN;
 			}
 		}
 		if (versionRegExp) {
 			try {
-				if (!device.getSoftwareVersion().matches(version)) {
-					return;
+				if (!device.softwareVersion().matches(version)) {
+					return ConformanceLevel.UNKNOWN;
 				}
 			}
 			catch (PatternSyntaxException e) {
-				return;
+				return ConformanceLevel.UNKNOWN;
 			}
 		}
 		else {
-			if (!"".equals(version) && !device.getSoftwareVersion().equals(version)) {
-				return;
+			if (!"".equals(version) && !device.softwareVersion().equals(version)) {
+				return ConformanceLevel.UNKNOWN;
 			}
 		}
 		if (partNumber != null && !"".equals(partNumber)) {
 			boolean moduleMatches = false;
-			for (Module module : device.getModules()) {
+			for (Module module : device.modules()) {
 				if (partNumberRegExp) {
 					try {
-						if (!module.getPartNumber().matches(partNumber)) {
+						if (!module.partNumber().matches(partNumber)) {
 							continue;
 						}
 					}
 					catch (PatternSyntaxException e) {
-						return;
+						return ConformanceLevel.UNKNOWN;
 					}
 				}
 				else {
-					if (!"".equals(partNumber) && !module.getPartNumber().equals(partNumber)) {
+					if (!"".equals(partNumber) && !module.partNumber().equals(partNumber)) {
 						continue;
 					}
 				}
@@ -248,15 +151,14 @@ public class SoftwareRule implements Comparable<SoftwareRule> {
 				break;
 			}
 			if (!moduleMatches) {
-				return;
+				return ConformanceLevel.UNKNOWN;
 			}
 		}
-		device.setSoftwareLevel(this.level);
+		return this.level;
 	}
 
 	@Override
 	public String toString() {
 		return "Software compliance rule " + id;
 	}
-
 }

@@ -25,17 +25,6 @@ import java.util.List;
 
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.hibernate.Session;
-
-import jakarta.ws.rs.core.MediaType;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.testing.ApiTest;
-import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.testing.api.NetshotApiClient;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +32,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
+
+import jakarta.ws.rs.core.MediaType;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 
 @ApiTest
 @DisplayName("Report tests")
@@ -62,28 +60,14 @@ public class ReportResourceTest {
 	private List<Device> testDevices;
 
 	private void createTestDomain() throws IOException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			this.testDomain = new Domain(
-				this.testDomainName, "Test Domain for devices",
-				new Network4Address("10.1.1.1"),
-				null
-			);
-			session.persist(this.testDomain);
-			session.getTransaction().commit();
-		}
+		this.testDomain = TestDevices.addDomain(Domain.builder().name(this.testDomainName).description("Test Domain for devices")
+			.server4Address(new Network4Address("10.1.1.1")).build());
 	}
 
 	private void createTestDevices() {
 		this.testDevices = new ArrayList<>();
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			for (int i = 0; i < 1000; i++) {
-				Device device = FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, i);
-				this.testDevices.add(device);
-				session.persist(device);
-			}
-			session.getTransaction().commit();
+		for (int i = 0; i < 1000; i++) {
+			this.testDevices.add(TestDevices.addFakeCiscoIos(this.testDomain, i));
 		}
 	}
 
@@ -94,19 +78,7 @@ public class ReportResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from Device")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from DeviceCredentialSet cs where cs.deviceSpecific is true")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Domain")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		TestDevices.deleteAll();
 	}
 
 	@Test

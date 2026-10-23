@@ -16,32 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.compliance.rules;
+package net.netshot.netshot.compliance;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.Rule;
+import lombok.Builder;
 
 /**
- * A PythonRule is a Python-coded script that will check the device attributes,
- * including config, and return whether the device is compliant or not.
+ * A rule checking the devices with a Python script.
+ *
+ * @param id the ID (0 for a rule not stored yet)
+ * @param name the name
+ * @param enabled true if the rule is checked
+ * @param policyId the ID of the policy
+ * @param script the script
  */
-@Entity
-@DiscriminatorValue("PYTHON")
-@Slf4j
-public class PythonRule extends Rule {
+@Builder(toBuilder = true)
+public record PythonRule(long id, String name, boolean enabled, long policyId, String script) implements Rule {
 
-	/** The default example script. */
-	@Getter(onMethod = @__({
-		@Column(length = 10000000)
-	}))
-	@Setter
-	private String script = ""
+	/** The script of a new rule. */
+	public static final String TEMPLATE = ""
 		+ "# Script template - to be customized\n"
 		+ "def check(device):\n"
 		+ "  ## Grab some data:\n"
@@ -54,27 +46,23 @@ public class PythonRule extends Rule {
 		+ "  # return result_option.NOTAPPLICABLE\n";
 
 	/**
-	 * Instantiates a new Python rule.
+	 * Builds a new (disabled) rule, with the script template.
+	 *
+	 * @param name the name
+	 * @param policyId the ID of the policy
+	 * @return the rule
 	 */
-	protected PythonRule() {
-
+	public static PythonRule of(String name, long policyId) {
+		return new PythonRule(0, name, false, policyId, TEMPLATE);
 	}
 
-	/**
-	 * Instantiates a new Python rule.
-	 *
-	 * @param name
-	 *                   the name
-	 * @param policy
-	 *                   the policy
-	 */
-	public PythonRule(String name, Policy policy) {
-		super(name, policy);
+	@Override
+	public PythonRule withId(long newId) {
+		return new PythonRule(newId, this.name, this.enabled, this.policyId, this.script);
 	}
 
 	@Override
 	public String toString() {
 		return "Compliance Python-based rule " + id + " (name '" + name + "')";
 	}
-
 }

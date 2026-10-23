@@ -20,100 +20,45 @@ package net.netshot.netshot.task.type;
 
 import java.util.Set;
 
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
-import org.quartz.JobKey;
-
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.Task;
 
 /**
- * This task scans a subnet to discover devices.
+ * Scans subnets, to discover the devices (one discovery task per unknown address).
+ *
+ * @param domainId the ID of the domain of the new devices
+ * @param subnets the subnets to scan
  */
-@Entity
-@DiscriminatorValue("ScanSubnetsTask")
-@Slf4j
-public final class ScanSubnetsTask extends Task implements DomainBasedTask, ChildOrchestratingTask {
-
-	/** The subnets. */
-	@Getter(onMethod = @__({
-		@Fetch(FetchMode.SELECT),
-		@ElementCollection(fetch = FetchType.EAGER),
-		// Can't make it accepted by Hibernate 6.5... nevermind
-		// @OnDelete(action = OnDeleteAction.CASCADE),
-		@CollectionTable(name = "scan_subnets_task_subnets",
-			joinColumns = @JoinColumn(name = "scan_subnets_task")),
-		@AttributeOverrides({
-			@AttributeOverride(name = "address", column = @Column(name = "ipv4address")),
-			@AttributeOverride(name = "addressUsage", column = @Column(name = "ipv4usage")),
-			@AttributeOverride(name = "prefixLength", column = @Column(name = "ipv4mask")),
-		})
-	}))
-	@Setter
-	private Set<Network4Address> subnets;
+public record ScanSubnetsTask(Long domainId, Set<Network4Address> subnets) implements TaskSpec, DomainBasedTask, ChildOrchestratingTask {
 
 	/**
-	 * Instantiates a new scan subnet task.
+	 * Canonical constructor: a null set of subnets is replaced by an empty one.
 	 */
-	protected ScanSubnetsTask() {
+	public ScanSubnetsTask {
+		subnets = subnets == null ? Set.of() : Set.copyOf(subnets);
 	}
 
 	/**
-	 * Instantiates a new scan subnets task.
+	 * Builds a new scan task.
 	 *
 	 * @param subnets the subnets
-	 * @param domain the domain
+	 * @param domainId the ID of the domain
 	 * @param comments the comments
-	 * @param target the target
+	 * @param target the description of the target
 	 * @param author the author
+	 * @return the new task
 	 */
-	public ScanSubnetsTask(Set<Network4Address> subnets, Domain domain, String comments,
-		String target, String author) {
-		super(comments, target, author);
-		this.setDomain(domain);
-		this.subnets = subnets;
+	public static Task of(Set<Network4Address> subnets, Long domainId, String comments, String target, String author) {
+		return Task.of(new ScanSubnetsTask(domainId, subnets), comments, target, author);
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Subnet scan";
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
 	@Override
-	public Object clone() throws CloneNotSupportedException {
-		ScanSubnetsTask task = (ScanSubnetsTask) super.clone();
-		task.setSubnets(this.subnets);
-		return task;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
-	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()), "ScanSubnets");
+	public String identityGroup() {
+		return "ScanSubnets";
 	}
 }

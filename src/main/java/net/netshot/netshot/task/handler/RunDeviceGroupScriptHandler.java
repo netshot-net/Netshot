@@ -28,6 +28,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
@@ -57,44 +58,41 @@ public class RunDeviceGroupScriptHandler implements TaskHandler<RunDeviceGroupSc
 	}
 
 	@Override
-	public void run(RunDeviceGroupScriptTask task) {
-		List<Device> devices = task.getTargetDevices();
-		if (task.getDeviceGroup() == null && devices.isEmpty()) {
-			task.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, RunDeviceGroupScriptTask spec, TaskRun run) {
+		TaskTargets targets = TaskTargets.load(spec);
+		List<Device> devices = targets.devices();
+		if (targets.group() == null && devices.isEmpty()) {
+			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		log.debug("Task {}. {} device(s) to process.", task.getId(), devices.size());
-		String comment = task.getDeviceGroup() == null
+		log.debug("Task {}. {} device(s) to process.", task.id(), devices.size());
+		String comment = targets.group() == null
 			? String.format("Started due to %d-device script list", devices.size())
-			: String.format("Started due to group %s script task", task.getDeviceGroup().getName());
+			: String.format("Started due to group %s script task", targets.group().name());
 
-		DeviceDriver driver = this.driverRegistry.getDriverByName(task.getDeviceDriver());
+		DeviceDriver driver = this.driverRegistry.getDriverByName(spec.deviceDriver());
 		if (driver == null) {
-			log.error("Task {}. No such device driver {}.", task.getId(), task.getDeviceDriver());
-			task.logger.error("Unknown device driver.");
-			task.setStatus(Status.FAILURE);
+			log.error("Task {}. No such device driver {}.", task.id(), spec.deviceDriver());
+			run.logger.error("Unknown device driver.");
+			run.setStatus(Status.FAILURE);
 			return;
 		}
 
-		List<Task> children = this.childTaskOrchestrator.reloadExistingChildren(task);
+		List<Task> children = this.childTaskOrchestrator.reloadExistingChildren(run);
 		if (children.isEmpty()) {
 			children = new ArrayList<>();
 			for (Device device : devices) {
-				children.add(this.buildChild(task, device, driver, comment));
+				children.add(buildChild(task, spec, device, driver, comment));
 			}
-			this.childTaskOrchestrator.preCreateChildren(task, children);
+			children = this.childTaskOrchestrator.preCreateChildren(run, children);
 		}
-		task.setStatus(this.childTaskOrchestrator.orchestrateChildren(task, children));
+		run.setStatus(this.childTaskOrchestrator.orchestrateChildren(run, children));
 	}
 
-	private RunDeviceScriptTask buildChild(RunDeviceGroupScriptTask task, Device device, DeviceDriver driver, String comment) {
-		RunDeviceScriptTask child = new RunDeviceScriptTask(device, task.getScript(), driver, comment, task.getAuthor());
-		child.setUserInputValues(task.getUserInputValues());
-		child.setRunSnapshot(task.isRunSnapshot());
-		child.setRunDiagnostics(task.isRunDiagnostics());
-		child.setCheckCompliance(task.isCheckCompliance());
-		return child;
+	private static Task buildChild(Task task, RunDeviceGroupScriptTask spec, Device device, DeviceDriver driver, String comment) {
+		return RunDeviceScriptTask.of(device, new RunDeviceScriptTask(null, spec.script(), driver.getName(), spec.userInputValues(),
+			spec.runSnapshot(), spec.runDiagnostics(), spec.checkCompliance()), comment, task.author());
 	}
 
 }

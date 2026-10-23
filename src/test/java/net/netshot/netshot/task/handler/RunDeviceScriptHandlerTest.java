@@ -31,6 +31,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
@@ -81,10 +82,13 @@ class RunDeviceScriptHandlerTest {
 		TaskRunner.cleanDatabase();
 	}
 
-	private RunDeviceScriptTask script(Device device, String code) {
-		RunDeviceScriptTask task = new RunDeviceScriptTask(device, code, this.driver, "Test", "tester");
-		task.setUserInputValues(new HashMap<>());
-		return task;
+	private Task script(Device device, String code) {
+		return this.script(device, code, this.driver.getName(), false, false, false);
+	}
+
+	private Task script(Device device, String code, String driverName, boolean runSnapshot, boolean runDiagnostics, boolean checkCompliance) {
+		return RunDeviceScriptTask.of(device, new RunDeviceScriptTask(null, code, driverName, new HashMap<>(),
+			runSnapshot, runDiagnostics, checkCompliance), "Test", "tester");
 	}
 
 	@Test
@@ -94,8 +98,8 @@ class RunDeviceScriptHandlerTest {
 
 		long id = this.runner.run(this.script(device, SCRIPT));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(RunDeviceScriptTask.class, id).getStatus());
-		Assertions.assertEquals("CSR seen", TaskRunner.inSession(session -> session.get(Device.class, device.getId()).getComments()));
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
+		Assertions.assertEquals("CSR seen", TestDevices.find(device.id()).comments());
 		Assertions.assertEquals(List.of(), this.runner.submitted(), "No follow-up task by default");
 	}
 
@@ -103,66 +107,61 @@ class RunDeviceScriptHandlerTest {
 	@DisplayName("Submits a snapshot afterwards when asked, passing the diagnostics and compliance options")
 	void submitsTheSnapshot() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		RunDeviceScriptTask task = this.script(device, SCRIPT);
-		task.setRunSnapshot(true);
-		task.setRunDiagnostics(false);
-		task.setCheckCompliance(true);
+		Task task = this.script(device, SCRIPT, this.driver.getName(), true, false, true);
 
 		long id = this.runner.run(task);
 
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
-		TakeSnapshotTask snapshot = (TakeSnapshotTask) submitted.get(0);
-		Assertions.assertEquals("Snapshot after device script execution", snapshot.getComments());
-		Assertions.assertEquals("Auto", snapshot.getAuthor());
-		Assertions.assertFalse(snapshot.isAutomatic());
-		Assertions.assertTrue(snapshot.isDontRunDiagnostics());
-		Assertions.assertFalse(snapshot.isDontCheckCompliance());
-		Assertions.assertEquals(id, snapshot.getParentTaskId());
+		TakeSnapshotTask snapshot = (TakeSnapshotTask) submitted.get(0).spec();
+		Assertions.assertEquals("Snapshot after device script execution", submitted.get(0).comments());
+		Assertions.assertEquals("Auto", submitted.get(0).author());
+		Assertions.assertFalse(snapshot.automatic());
+		Assertions.assertTrue(snapshot.dontRunDiagnostics());
+		Assertions.assertFalse(snapshot.dontCheckCompliance());
+		Assertions.assertEquals(id, submitted.get(0).parentTaskId());
 	}
 
 	@Test
 	@DisplayName("Without snapshot, submits the diagnostics afterwards when asked")
 	void submitsTheDiagnostics() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		RunDeviceScriptTask task = this.script(device, SCRIPT);
-		task.setRunDiagnostics(true);
+		Task task = this.script(device, SCRIPT, this.driver.getName(), false, true, false);
 
 		this.runner.run(task);
 
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
-		RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) submitted.get(0);
-		Assertions.assertEquals("Run diagnostics after device script execution", diagnostics.getComments());
-		Assertions.assertTrue(diagnostics.isDontCheckCompliance());
+		RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) submitted.get(0).spec();
+		Assertions.assertEquals("Run diagnostics after device script execution", submitted.get(0).comments());
+		Assertions.assertTrue(diagnostics.dontCheckCompliance());
 	}
 
 	@Test
 	@DisplayName("Without snapshot nor diagnostics, submits the compliance check afterwards when asked")
 	void submitsTheComplianceCheck() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		RunDeviceScriptTask task = this.script(device, SCRIPT);
-		task.setCheckCompliance(true);
+		Task task = this.script(device, SCRIPT, this.driver.getName(), false, false, true);
 
 		this.runner.run(task);
 
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
-		Assertions.assertEquals("Check compliance after device script execution", ((CheckComplianceTask) submitted.get(0)).getComments());
+		Assertions.assertInstanceOf(CheckComplianceTask.class, submitted.get(0).spec());
+		Assertions.assertEquals("Check compliance after device script execution", submitted.get(0).comments());
 	}
 
 	@Test
 	@DisplayName("Fails when the script fails, without follow-up task")
 	void failsWhenTheScriptFails() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		RunDeviceScriptTask task = this.script(device, "function run(cli, device) { throw 'Broken script'; }");
-		task.setRunSnapshot(true);
+		Task task = this.script(device, "function run(cli, device) { throw 'Broken script'; }", this.driver.getName(), true, false, false);
 
 		long id = this.runner.run(task);
 
-		RunDeviceScriptTask result = TaskRunner.load(RunDeviceScriptTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, result.getStatus());
-		Assertions.assertTrue(result.getLog().contains("Error while running the script"), result.getLog());
+		Task result = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, result.status());
+		Assertions.assertTrue(result.log().contains("Error while running the script"), result.log());
 		Assertions.assertEquals(List.of(), this.runner.submitted());
 	}
 
@@ -170,31 +169,25 @@ class RunDeviceScriptHandlerTest {
 	@DisplayName("Is cancelled when the script is for another driver")
 	void cancelledForAnotherDriver() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		RunDeviceScriptTask task = this.script(device, SCRIPT);
-		task.setDeviceDriver("JuniperJunos");
+		Task task = this.script(device, SCRIPT, "JuniperJunos", false, false, false);
 
 		long id = this.runner.run(task);
 
-		RunDeviceScriptTask result = TaskRunner.load(RunDeviceScriptTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, result.getStatus());
-		Assertions.assertTrue(result.getLog().contains("The script doesn't apply to the driver of the device."), result.getLog());
+		Task result = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, result.status());
+		Assertions.assertTrue(result.log().contains("The script doesn't apply to the driver of the device."), result.log());
 	}
 
 	@Test
 	@DisplayName("Is cancelled for a disabled device")
 	void cancelledForDisabledDevice() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		TaskRunner.inSession(session -> {
-			session.beginTransaction();
-			session.get(Device.class, device.getId()).setStatus(Device.Status.DISABLED);
-			session.getTransaction().commit();
-			return null;
-		});
+		TestDevices.save(TestDevices.find(device.id()).toBuilder().status(Device.Status.DISABLED).build());
 
 		long id = this.runner.run(this.script(device, SCRIPT));
 
-		RunDeviceScriptTask result = TaskRunner.load(RunDeviceScriptTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, result.getStatus());
-		Assertions.assertTrue(result.getLog().contains("The device is not enabled (not in production)."), result.getLog());
+		Task result = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, result.status());
+		Assertions.assertTrue(result.log().contains("The device is not enabled (not in production)."), result.log());
 	}
 }

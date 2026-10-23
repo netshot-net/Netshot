@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.task;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,8 +31,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +41,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.domain.DomainRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -52,6 +56,7 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 import net.netshot.netshot.task.type.ChildOrchestratingTask;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
@@ -60,6 +65,7 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.userscript.DeviceJsScript;
 
 /**
@@ -118,9 +124,9 @@ public class TaskService {
 	public List<TaskSummary> list(TaskFilter filter, Page page) {
 		Page effective = page.limit() == null ? new Page(page.offset(), DEFAULT_LIMIT) : page;
 		try {
-			return this.transactions.read(session -> this.repository.findSummaries(session, filter, effective));
+			return this.transactions.readDsl(dsl -> this.repository.findSummaries(dsl, filter, effective));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the tasks.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
 		}
@@ -141,7 +147,7 @@ public class TaskService {
 	public List<TaskSummary> listByDevice(long deviceId, Integer offset, Integer limit) {
 		try {
 			Page page = new Page(offset, limit == null ? DEFAULT_LIMIT : limit);
-			return this.transactions.read(session -> this.repository.findSummariesByDevice(session, deviceId, page));
+			return this.transactions.readDsl(dsl -> this.repository.findSummariesByDevice(dsl, deviceId, page));
 		}
 		catch (Exception e) {
 			log.error("Unable to fetch the tasks.", e);
@@ -158,18 +164,18 @@ public class TaskService {
 	 */
 	public Task find(long id) {
 		try {
-			return this.transactions.read(session -> this.repository.find(session, id));
+			return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task");
 		}
 	}
 
 	/**
-	 * Prepares a task (like the task engine does before it runs it, see {@link Task#prepare(Session)})
-	 * and maps it to another representation, in a read transaction: the mapper can read what is
-	 * lazily loaded. The mapper must not keep the task.
+	 * Maps a task to another representation, in a read transaction, giving the mapper access
+	 * to the devices of the task (loaded on demand, in the same transaction).
+	 * The mapper must not keep the devices.
 	 *
 	 * @param <R> the type of the result
 	 * @param id the task ID
@@ -177,22 +183,38 @@ public class TaskService {
 	 * @return the result of the mapper
 	 * @throws NetshotException if the task doesn't exist or can't be read
 	 */
-	public <R> R mapTask(long id, Function<Task, R> mapper) {
+	public <R> R mapTask(long id, TaskMapping<R> mapper) {
 		try {
-			return this.transactions.read(session -> {
-				Task task = this.repository.find(session, id);
+			return this.transactions.readDsl(dsl -> {
+				Task task = this.repository.find(dsl, id);
 				if (task == null) {
 					log.error("Unable to find the task {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
 				}
-				task.prepare(session);
-				return mapper.apply(task);
+				return mapper.map(task, deviceId -> deviceId == null ? null : new DeviceRepository().find(dsl, deviceId));
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the task");
 		}
+	}
+
+	/**
+	 * Maps a task, with access to its devices.
+	 *
+	 * @param <R> the type of the result
+	 */
+	@FunctionalInterface
+	public interface TaskMapping<R> {
+		/**
+		 * Maps a task.
+		 *
+		 * @param task the task
+		 * @param devices gets a device by ID (null for a null ID or a missing device)
+		 * @return the result
+		 */
+		R map(Task task, Function<Long, Device> devices);
 	}
 
 	/**
@@ -204,17 +226,17 @@ public class TaskService {
 	 */
 	public String getDebugLog(long id) {
 		try {
-			return this.transactions.read(session -> {
-				Task task = this.repository.find(session, id);
+			return this.transactions.readDsl(dsl -> {
+				Task task = this.repository.find(dsl, id);
 				if (task == null) {
 					log.error("Unable to find the task {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
 				}
-				DebugLog debugLog = task.getDebugLog();
-				return debugLog == null ? "" : debugLog.getText();
+				String debugLog = this.repository.findDebugLog(dsl, id);
+				return debugLog == null ? "" : debugLog;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the task");
 		}
@@ -232,9 +254,9 @@ public class TaskService {
 	public Task update(long id, boolean cancel, String author) {
 		Task task;
 		try {
-			task = this.transactions.write(session -> this.repository.find(session, id));
+			task = this.transactions.writeDsl(dsl -> this.repository.find(dsl, id));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task.");
 		}
@@ -244,23 +266,30 @@ public class TaskService {
 		}
 		if (cancel) {
 			this.cancel(task, author);
+			try {
+				task = this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
+			}
+			catch (DataAccessException e) {
+				log.error("Unable to fetch the task {}.", id, e);
+				throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task.");
+			}
 		}
 		return task;
 	}
 
 	private void cancel(Task task, String author) {
-		long id = task.getId();
+		long id = task.id();
 		// A group-based task that orchestrates per-device children (either schedule mode)
 		// spends its whole run in RUNNING, so the normal SCHEDULED-only cancel path doesn't
 		// apply -- it's cancelled by flagging cancelRequested, polled by its own
 		// orchestration loop, rather than by pulling it out of the Quartz scheduler.
-		boolean runningOrchestrator = task.getStatus() == Task.Status.RUNNING
-			&& task instanceof ChildOrchestratingTask;
+		boolean runningOrchestrator = task.status() == Task.Status.RUNNING
+			&& task.spec() instanceof ChildOrchestratingTask;
 		// Same for a running device task, which may be waiting for its turn on the device
 		// (the request is only honored while waiting, not once the device session started)
-		boolean runningDeviceTask = task.getStatus() == Task.Status.RUNNING
+		boolean runningDeviceTask = task.status() == Task.Status.RUNNING
 			&& task.deviceLockPolicy() != Task.DeviceLockPolicy.NONE;
-		if (task.getStatus() != Task.Status.SCHEDULED && !runningOrchestrator && !runningDeviceTask) {
+		if (task.status() != Task.Status.SCHEDULED && !runningOrchestrator && !runningDeviceTask) {
 			log.error("User is trying to cancel task {} not in SCHEDULED state (or RUNNING group task).", id);
 			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_CANCELLABLE, "The task isn't in 'SCHEDULED' state.");
 		}
@@ -294,7 +323,7 @@ public class TaskService {
 	 */
 	public TaskOverview getOverview(Long parentTaskId) {
 		try {
-			List<TaskStatusCount> counts = this.transactions.read(session -> this.repository.countByStatus(session, parentTaskId));
+			List<TaskStatusCount> counts = this.transactions.readDsl(dsl -> this.repository.countByStatus(dsl, parentTaskId));
 			Map<Task.Status, Long> countByStatus = new HashMap<>();
 			for (Task.Status status : Task.Status.values()) {
 				countByStatus.put(status, 0L);
@@ -304,7 +333,7 @@ public class TaskService {
 			}
 			return new TaskOverview(countByStatus, this.taskEngine.threadCount());
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the task counts", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task counts");
 		}
@@ -326,36 +355,35 @@ public class TaskService {
 		long span = Math.max(1L, to - from);
 		double step = ((double) span) / binCount;
 		try {
-			return this.transactions.read(session -> {
+			return this.transactions.readDsl(dsl -> {
 				Map<Task.Status, Long> statusCounts = new HashMap<>();
 				for (Task.Status status : FINAL_STATUSES) {
 					statusCounts.put(status, 0L);
 				}
 				List<TaskStats.Bin> bins = new ArrayList<>();
 				for (int i = 0; i < binCount; i++) {
-					Date bucketStart = new Date(from + Math.round(i * step));
-					Date bucketEnd = new Date(i == binCount - 1 ? to : from + Math.round((i + 1) * step));
+					Instant bucketStart = Instant.ofEpochMilli(from + Math.round(i * step));
+					Instant bucketEnd = Instant.ofEpochMilli(i == binCount - 1 ? to : from + Math.round((i + 1) * step));
 					Map<Task.Status, Long> countByStatus = new HashMap<>();
 					for (Task.Status status : FINAL_STATUSES) {
 						countByStatus.put(status, 0L);
 					}
-					for (TaskStatusCount count : this.repository.countByStatus(session, FINAL_STATUSES, bucketStart, bucketEnd)) {
+					for (TaskStatusCount count : this.repository.countByStatus(dsl, FINAL_STATUSES, bucketStart, bucketEnd)) {
 						countByStatus.put(count.status(), count.count());
 						statusCounts.merge(count.status(), count.count(), Long::sum);
 					}
-					bins.add(new TaskStats.Bin(bucketStart, bucketEnd, countByStatus));
+					bins.add(new TaskStats.Bin(Date.from(bucketStart), Date.from(bucketEnd), countByStatus));
 				}
-				Date rangeStart = new Date(from);
-				Date rangeEnd = new Date(to);
+				Instant rangeStart = Instant.ofEpochMilli(from);
+				Instant rangeEnd = Instant.ofEpochMilli(to);
 				Map<String, Long> typeCounts = new HashMap<>();
-				for (Class<? extends Task> taskClass : Task.getTaskClasses()) {
-					typeCounts.put(taskClass.getSimpleName(),
-						this.repository.countByType(session, taskClass, FINAL_STATUSES, rangeStart, rangeEnd));
+				for (String typeName : TaskRepository.TYPE_NAMES) {
+					typeCounts.put(typeName, this.repository.countByType(dsl, typeName, FINAL_STATUSES, rangeStart, rangeEnd));
 				}
 				return new TaskStats(bins, statusCounts, typeCounts);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the task stats", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the task stats");
 		}
@@ -377,21 +405,23 @@ public class TaskService {
 		log.debug("Adding a task.");
 		Task task = this.build(creation);
 		if (creation.scheduleReference() != null) {
-			task.setDebugEnabled(creation.debugEnabled());
-			task.setScheduleReference(creation.scheduleReference());
-			task.setScheduleType(creation.scheduleType());
-			task.setScheduleFactor(creation.scheduleFactor());
-			if (task.getScheduleType() == ScheduleType.AT) {
+			task = task.toBuilder()
+				.debugEnabled(creation.debugEnabled())
+				.scheduleReference(creation.scheduleReference().toInstant())
+				.scheduleType(creation.scheduleType())
+				.scheduleFactor(creation.scheduleFactor())
+				.build();
+			if (task.scheduleType() == ScheduleType.AT) {
 				Calendar inOneMinute = Calendar.getInstance();
 				inOneMinute.add(Calendar.MINUTE, 1);
-				if (task.getScheduleReference().before(inOneMinute.getTime())) {
+				if (creation.scheduleReference().before(inOneMinute.getTime())) {
 					log.error("The schedule for the task occurs in less than one minute ({} vs {}).",
-						task.getScheduleReference(), inOneMinute.getTime());
+						creation.scheduleReference(), inOneMinute.getTime());
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_TASK, "The schedule occurs in the past.");
 				}
 			}
-			else if (task.getScheduleFactor() < 1) {
-				log.error("The repeating factor {} is invalid.", task.getScheduleFactor());
+			else if (task.scheduleFactor() < 1) {
+				log.error("The repeating factor {} is invalid.", task.scheduleFactor());
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_TASK, "The repeating factor is invalid.");
 			}
 		}
@@ -399,11 +429,11 @@ public class TaskService {
 			log.error("Invalid priority {} for the task", creation.schedulePriority());
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_TASK, "Invalid priority value.");
 		}
-		task.setPriority(creation.schedulePriority());
+		task = task.toBuilder().priority(creation.schedulePriority()).build();
 		try {
-			this.taskSubmitter.submit(task);
+			task = this.taskSubmitter.submit(task);
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to add the task.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the task to the database.");
 		}
@@ -419,113 +449,39 @@ public class TaskService {
 	private Task build(TaskCreation c) {
 		String type = c.type();
 		if ("TakeSnapshotTask".equals(type)) {
-			log.trace("Adding a TakeSnapshotTask");
 			Device device = this.loadDevice(c.device());
-			return new TakeSnapshotTask(device, c.comments(), c.author(), false, c.dontRunDiagnostics(), c.dontCheckCompliance());
+			return TakeSnapshotTask.of(device, c.comments(), c.author(), false, c.dontRunDiagnostics(), c.dontCheckCompliance());
 		}
 		else if ("RunDeviceScriptTask".equals(type)) {
-			log.trace("Adding a RunDeviceScriptTask");
 			DeviceDriver driver = this.validateScript(c);
 			Device device = this.loadDevice(c.device());
 			this.validateUserInputs(c);
-			RunDeviceScriptTask task = new RunDeviceScriptTask(device, c.script(), driver, c.comments(), c.author());
-			task.setUserInputValues(c.userInputs());
-			task.setRunSnapshot(c.runSnapshot());
-			task.setRunDiagnostics(c.runDiagnostics());
-			task.setCheckCompliance(c.checkCompliance());
-			return task;
+			return RunDeviceScriptTask.of(device, new RunDeviceScriptTask(null, c.script(), driver.getName(), c.userInputs(),
+				c.runSnapshot(), c.runDiagnostics(), c.checkCompliance()), c.comments(), c.author());
 		}
 		else if ("RunDeviceGroupScriptTask".equals(type)) {
-			log.trace("Adding a RunDeviceGroupScriptTask");
 			DeviceDriver driver = this.validateScript(c);
 			this.validateUserInputs(c);
-			RunDeviceGroupScriptTask task = this.buildGroupTask(c, new GroupTaskFactory<>() {
-				@Override
-				public RunDeviceGroupScriptTask forGroup(DeviceGroup group) {
-					return new RunDeviceGroupScriptTask(group, c.script(), driver, c.comments(), c.author());
-				}
-
-				@Override
-				public RunDeviceGroupScriptTask forDevices(List<Device> devices) {
-					return new RunDeviceGroupScriptTask(devices, c.script(), driver, c.comments(), c.author());
-				}
-			});
-			task.setUserInputValues(c.userInputs());
-			task.setRunSnapshot(c.runSnapshot());
-			task.setRunDiagnostics(c.runDiagnostics());
-			task.setCheckCompliance(c.checkCompliance());
-			task.setScheduleMode(c.scheduleMode());
-			task.setStopOnFailure(c.stopOnFailure());
-			return task;
+			return this.buildGroupTask(c, (groupId, deviceIds) -> new RunDeviceGroupScriptTask(groupId, deviceIds, c.script(),
+				driver.getName(), c.userInputs(), c.runSnapshot(), c.runDiagnostics(), c.checkCompliance()), true);
 		}
 		else if ("CheckComplianceTask".equals(type)) {
-			log.trace("Adding a CheckComplianceTask");
 			Device device = this.loadDevice(c.device());
-			return new CheckComplianceTask(device, c.comments(), c.author());
+			return CheckComplianceTask.of(device, c.comments(), c.author());
 		}
 		else if ("TakeGroupSnapshotTask".equals(type)) {
-			log.trace("Adding a TakeGroupSnapshotTask");
-			Task task = this.buildGroupTask(c, new GroupTaskFactory<>() {
-				@Override
-				public TakeGroupSnapshotTask forGroup(DeviceGroup group) {
-					return new TakeGroupSnapshotTask(group, c.comments(), c.author(), c.limitToOutofdateDeviceHours(),
-						c.dontRunDiagnostics(), c.dontCheckCompliance());
-				}
-
-				@Override
-				public TakeGroupSnapshotTask forDevices(List<Device> devices) {
-					return new TakeGroupSnapshotTask(devices, c.comments(), c.author(), c.limitToOutofdateDeviceHours(),
-						c.dontRunDiagnostics(), c.dontCheckCompliance());
-				}
-			});
-			task.setScheduleMode(c.scheduleMode());
-			task.setStopOnFailure(c.stopOnFailure());
-			return task;
+			return this.buildGroupTask(c, (groupId, deviceIds) -> new TakeGroupSnapshotTask(groupId, deviceIds,
+				c.limitToOutofdateDeviceHours(), c.dontRunDiagnostics(), c.dontCheckCompliance()), true);
 		}
 		else if ("CheckGroupComplianceTask".equals(type)) {
-			log.trace("Adding a CheckGroupComplianceTask");
-			return this.buildGroupTask(c, new GroupTaskFactory<>() {
-				@Override
-				public CheckGroupComplianceTask forGroup(DeviceGroup group) {
-					return new CheckGroupComplianceTask(group, c.comments(), c.author());
-				}
-
-				@Override
-				public CheckGroupComplianceTask forDevices(List<Device> devices) {
-					return new CheckGroupComplianceTask(devices, c.comments(), c.author());
-				}
-			});
+			return this.buildGroupTask(c, CheckGroupComplianceTask::new, false);
 		}
 		else if ("CheckGroupSoftwareTask".equals(type)) {
-			log.trace("Adding a CheckGroupSoftwareTask");
-			return this.buildGroupTask(c, new GroupTaskFactory<>() {
-				@Override
-				public CheckGroupSoftwareTask forGroup(DeviceGroup group) {
-					return new CheckGroupSoftwareTask(group, c.comments(), c.author());
-				}
-
-				@Override
-				public CheckGroupSoftwareTask forDevices(List<Device> devices) {
-					return new CheckGroupSoftwareTask(devices, c.comments(), c.author());
-				}
-			});
+			return this.buildGroupTask(c, CheckGroupSoftwareTask::new, false);
 		}
 		else if ("RunGroupDiagnosticsTask".equals(type)) {
-			log.trace("Adding a RunGroupDiagnosticsTask");
-			Task task = this.buildGroupTask(c, new GroupTaskFactory<>() {
-				@Override
-				public RunGroupDiagnosticsTask forGroup(DeviceGroup group) {
-					return new RunGroupDiagnosticsTask(group, c.comments(), c.author(), c.dontCheckCompliance());
-				}
-
-				@Override
-				public RunGroupDiagnosticsTask forDevices(List<Device> devices) {
-					return new RunGroupDiagnosticsTask(devices, c.comments(), c.author(), c.dontCheckCompliance());
-				}
-			});
-			task.setScheduleMode(c.scheduleMode());
-			task.setStopOnFailure(c.stopOnFailure());
-			return task;
+			return this.buildGroupTask(c, (groupId, deviceIds) -> new RunGroupDiagnosticsTask(groupId, deviceIds,
+				c.dontCheckCompliance()), true);
 		}
 		else if ("ScanSubnetsTask".equals(type)) {
 			return this.buildScanSubnetsTask(c);
@@ -534,30 +490,32 @@ public class TaskService {
 			return this.buildPurgeDatabaseTask(c);
 		}
 		else if ("RunDiagnosticsTask".equals(type)) {
-			log.trace("Adding a RunDiagnosticsTask");
 			Device device = this.loadDevice(c.device());
-			return new RunDiagnosticsTask(device, c.comments(), c.author(), c.dontCheckCompliance());
+			return RunDiagnosticsTask.of(device, c.comments(), c.author(), c.dontCheckCompliance());
 		}
 		log.error("User posted an invalid task type '{}'.", type);
 		throw new NetshotException(ErrorCode.NETSHOT_INVALID_TASK, "Invalid task type.");
 	}
 
-	// Builds a task targeting either a group or a device list.
-	private interface GroupTaskFactory<T extends Task> {
-
-		T forGroup(DeviceGroup group);
-
-		T forDevices(List<Device> devices);
+	// Builds the specification of a task targeting either a group or a device list.
+	private interface GroupTaskFactory<S extends TaskSpec & GroupBasedTask> {
+		S build(Long groupId, List<Long> deviceIds);
 	}
 
-	private <T extends Task> T buildGroupTask(TaskCreation c, GroupTaskFactory<T> factory) {
+	// Builds a task targeting either a group or a device list (with the schedule mode of the children, if any).
+	private <S extends TaskSpec & GroupBasedTask> Task buildGroupTask(TaskCreation c, GroupTaskFactory<S> factory, boolean withChildren) {
 		validateGroupOrDeviceList(c);
-		return this.inTransaction(session -> {
+		Task task = this.inTransaction(dsl -> {
 			if (hasGroup(c)) {
-				return factory.forGroup(this.loadGroup(session, c.group()));
+				DeviceGroup group = this.loadGroup(dsl, c.group());
+				return GroupBasedTask.of(factory.build(group.id(), List.of()), group.name(), c.comments(), c.author());
 			}
-			return factory.forDevices(this.resolveDeviceList(session, c));
+			return GroupBasedTask.of(factory.build(null, this.resolveDeviceList(dsl, c)), null, c.comments(), c.author());
 		});
+		if (withChildren) {
+			task = task.toBuilder().scheduleMode(c.scheduleMode()).stopOnFailure(c.stopOnFailure()).build();
+		}
+		return task;
 	}
 
 	private Task buildScanSubnetsTask(TaskCreation c) {
@@ -598,8 +556,8 @@ public class TaskService {
 		}
 		Domain domain;
 		try {
-			domain = this.transactions.write(session -> {
-				Domain found = this.repository.findDomain(session, c.domain());
+			domain = this.transactions.writeDsl(dsl -> {
+				Domain found = new DomainRepository().find(dsl, c.domain());
 				if (found == null) {
 					log.error("No such domain of ID {}.", c.domain());
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
@@ -620,7 +578,7 @@ public class TaskService {
 			target.append(subnet.getPrefix());
 		}
 		target.append("}");
-		return new ScanSubnetsTask(subnets, domain, c.comments(), target.toString(), c.author());
+		return ScanSubnetsTask.of(subnets, domain.id(), c.comments(), target.toString(), c.author());
 	}
 
 	private Task buildPurgeDatabaseTask(TaskCreation c) {
@@ -665,21 +623,21 @@ public class TaskService {
 		}
 		final int finalConfigSize = configSize;
 		final int finalConfigKeepDays = configKeepDays;
-		PurgeDatabaseTask task;
+		PurgeDatabaseTask.PurgeDatabaseTaskBuilder spec = PurgeDatabaseTask.builder()
+			.days(c.daysToPurge())
+			.configDays(configDays)
+			.configSize(finalConfigSize)
+			.configKeepDays(finalConfigKeepDays)
+			.moduleDays(moduleDays)
+			.removeOrphanFiles(c.removeOrphanFiles());
 		if (hasGroup(c)) {
-			task = this.inTransaction(session -> new PurgeDatabaseTask(c.comments(), c.author(), c.daysToPurge(),
-				configDays, finalConfigSize, finalConfigKeepDays, moduleDays, this.loadGroup(session, c.group())));
+			spec.deviceGroupId(this.inTransaction(dsl -> this.loadGroup(dsl, c.group()).id()));
 		}
 		else if (hasDeviceList(c)) {
 			// No translation of the database errors here, as in the former code
-			task = this.transactions.write(session -> new PurgeDatabaseTask(c.comments(), c.author(), c.daysToPurge(),
-				configDays, finalConfigSize, finalConfigKeepDays, moduleDays, this.resolveDeviceList(session, c)));
+			spec.deviceIds(this.transactions.writeDsl(dsl -> this.resolveDeviceList(dsl, c)));
 		}
-		else {
-			task = new PurgeDatabaseTask(c.comments(), c.author(), c.daysToPurge(),
-				configDays, configSize, configKeepDays, moduleDays, (DeviceGroup) null);
-		}
-		task.setRemoveOrphanFiles(c.removeOrphanFiles());
+		Task task = Task.of(spec.build(), c.comments(), "Global", c.author());
 		return task;
 	}
 
@@ -700,7 +658,7 @@ public class TaskService {
 	// Checks the user inputs against the declarations of the script.
 	private void validateUserInputs(TaskCreation c) {
 		try {
-			DeviceJsScript jsScript = new DeviceJsScript("__toValidate", c.driver(), c.script(), c.author());
+			DeviceJsScript jsScript = DeviceJsScript.of("__toValidate", c.driver(), c.script(), c.author());
 			jsScript.validateUserInputs(this.driverRegistry, c.userInputs());
 		}
 		catch (IllegalArgumentException e) {
@@ -711,8 +669,8 @@ public class TaskService {
 
 	// Loads the target device of a device-based task.
 	private Device loadDevice(Long deviceId) {
-		return this.inTransaction(session -> {
-			Device device = this.repository.findDevice(session, deviceId);
+		return this.inTransaction(dsl -> {
+			Device device = new DeviceRepository().find(dsl, deviceId);
 			if (device == null) {
 				log.error("Unable to find the device {}.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, "Unable to find the device.");
@@ -721,8 +679,8 @@ public class TaskService {
 		});
 	}
 
-	private DeviceGroup loadGroup(Session session, Long groupId) {
-		DeviceGroup group = this.repository.findGroup(session, groupId);
+	private DeviceGroup loadGroup(DSLContext dsl, Long groupId) {
+		DeviceGroup group = new GroupRepository().find(dsl, groupId);
 		if (group == null) {
 			log.error("Unable to find the group {}.", groupId);
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Unable to find the group.");
@@ -731,25 +689,25 @@ public class TaskService {
 	}
 
 	// Resolves the ordered list of devices of a one-time device list task.
-	private List<Device> resolveDeviceList(Session session, TaskCreation c) {
-		List<Device> devices = new ArrayList<>();
+	private List<Long> resolveDeviceList(DSLContext dsl, TaskCreation c) {
+		List<Long> devices = new ArrayList<>();
 		for (Long deviceId : c.deviceList()) {
-			Device device = this.repository.findDevice(session, deviceId);
+			Device device = new DeviceRepository().find(dsl, deviceId);
 			if (device == null) {
 				log.error("Unable to find the device {}.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE, String.format("Unable to find device %d.", deviceId));
 			}
-			devices.add(device);
+			devices.add(device.id());
 		}
 		return devices;
 	}
 
-	// Runs some work with a read-write session, reporting a database failure as such.
-	private <T> T inTransaction(Function<Session, T> work) {
+	// Runs some work in a read-write transaction, reporting a database failure as such.
+	private <T> T inTransaction(Function<DSLContext, T> work) {
 		try {
-			return this.transactions.write(work);
+			return this.transactions.writeDsl(work);
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while retrieving the target of the task.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error.");
 		}

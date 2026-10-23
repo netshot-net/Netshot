@@ -166,7 +166,7 @@ A `Task` entity holds the data of a task (target, schedule, status, log, result 
 
 ### Test layout
 
-A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.rules.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`, `TestLayoutTest`); the shared helpers are in `net.netshot.netshot.testing`.
+A test lives in the package of the code it tests: `inventory.device.DeviceServiceTest`, `compliance.JsRuleTest`, `api.rest.v0.device.DeviceDtoTest` and `DeviceResourceTest` (the REST resource over HTTP), `driver.CiscoIOS12DriverTest`... Write one class per subject; keep `@Nested` classes only for facets of the same subject sharing a fixture. The root package `net.netshot.netshot` holds the tests of the whole application (`ArchitectureTest`, `NetshotConfigTest`, `TestLayoutTest`); the shared helpers are in `net.netshot.netshot.testing`.
 
 #### Kinds of tests
 

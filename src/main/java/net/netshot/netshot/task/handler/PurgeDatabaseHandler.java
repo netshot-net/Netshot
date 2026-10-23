@@ -18,6 +18,14 @@
  */
 package net.netshot.netshot.task.handler;
 
+import static net.netshot.netshot.platform.database.schema.Tables.CONFIG;
+import static net.netshot.netshot.platform.database.schema.Tables.CONFIG_ATTRIBUTE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
+import static net.netshot.netshot.platform.database.schema.Tables.MODULE;
+import static net.netshot.netshot.platform.database.schema.Tables.TASK;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,32 +33,28 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.hibernate.CacheMode;
-import org.hibernate.HibernateException;
-import org.hibernate.ScrollMode;
-import org.hibernate.ScrollableResults;
-import org.hibernate.Session;
-import org.hibernate.query.MutationQuery;
-import org.hibernate.query.Query;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Record4;
+import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
-import net.netshot.netshot.task.type.DeviceBasedTask;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 
 /**
@@ -59,199 +63,84 @@ import net.netshot.netshot.task.type.PurgeDatabaseTask;
 @Slf4j
 public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 
+	private final TaskRepository taskRepository = new TaskRepository();
+
+	private final Transactions transactions = new Transactions();
 
 	@Override
 	public Class<PurgeDatabaseTask> taskType() {
 		return PurgeDatabaseTask.class;
 	}
 
-	@Override
-	public void run(PurgeDatabaseTask task) {
-		DeviceGroup group = task.getDeviceGroup();
-		List<Device> deviceList = group == null ? task.getDeviceList() : null;
-		List<Long> deviceIds = (deviceList != null && !deviceList.isEmpty())
-			? deviceList.stream().map(Device::getId).toList() : null;
-		log.debug("Task {}. Starting cleanup process (group {}).", task.getId(),
-			group == null ? (deviceIds == null ? "all" : deviceIds.size() + " listed device(s)") : group.getId());
+	/**
+	 * The condition on the devices targeted by the purge.
+	 *
+	 * @param deviceId the device ID column to filter
+	 * @param groupId the target group, or null
+	 * @param deviceIds the target devices, or null
+	 * @return the condition (none for all the devices)
+	 */
+	private static Condition targetDevices(org.jooq.Field<Long> deviceId, Long groupId, List<Long> deviceIds) {
+		if (groupId != null) {
+			return deviceId.in(DSL.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId)));
+		}
+		else if (deviceIds != null) {
+			return deviceId.in(deviceIds);
+		}
+		return DSL.noCondition();
+	}
 
-		int days = task.getDays();
-		int configDays = task.getConfigDays();
-		int configSize = task.getConfigSize();
-		int configKeepDays = task.getConfigKeepDays();
-		int moduleDays = task.getModuleDays();
+	@Override
+	public void run(Task task, PurgeDatabaseTask spec, TaskRun run) {
+		Long groupId = spec.deviceGroupId();
+		List<Long> deviceList = groupId == null ? spec.deviceIds() : null;
+		List<Long> deviceIds = (deviceList != null && !deviceList.isEmpty()) ? deviceList : null;
+		log.debug("Task {}. Starting cleanup process (group {}).", task.id(),
+			groupId == null ? (deviceIds == null ? "all" : deviceIds.size() + " listed device(s)") : groupId);
+
+		int days = spec.days();
+		int configDays = spec.configDays();
+		int configSize = spec.configSize();
+		int configKeepDays = spec.configKeepDays();
+		int moduleDays = spec.moduleDays();
 
 		if (days > 0) {
-			Session session = Database.getSession();
 			try {
-				session.beginTransaction();
-				log.trace("Task {}. Cleaning up tasks finished more than {} days ago...", task.getId(), days);
-				task.logger.info("Cleaning up tasks more than {} days ago...", days);
+				log.trace("Task {}. Cleaning up tasks finished more than {} days ago...", task.id(), days);
+				run.logger.info("Cleaning up tasks more than {} days ago...", days);
 				Calendar when = Calendar.getInstance();
 				when.add(Calendar.DATE, -1 * days);
-
-				int count = 0;
-				if (group == null && deviceIds == null) {
-					count += session.createMutationQuery(
-						"delete Task t where (t.status = :cancelled or t.status = :failure "
-							+ "or t.status = :success) and (t.executionDate < :when)")
-						.setParameter("cancelled", Task.Status.CANCELLED)
-						.setParameter("failure", Task.Status.FAILURE)
-						.setParameter("success", Task.Status.SUCCESS)
-						.setParameter("when", when.getTime())
-						.executeUpdate();
-				}
-				else {
-					for (Class<? extends Task> taskClass : Task.getTaskClasses()) {
-						if (DeviceBasedTask.class.isAssignableFrom(taskClass)) {
-							MutationQuery deleteQuery;
-							if (group != null) {
-								deleteQuery = session.createMutationQuery(
-									String.format(
-										"delete %1$s t where t in "
-											+ "(select t from %1$s join t.device d join d.groupMemberships gm "
-											+ "where gm.key.group = :group and (t.status = :cancelled or t.status = :failure or t.status = :success) "
-											+ "and (t.executionDate < :when))", taskClass.getSimpleName()))
-									.setParameter("group", group);
-							}
-							else {
-								deleteQuery = session.createMutationQuery(
-									String.format(
-										"delete %1$s t where t in "
-											+ "(select t from %1$s join t.device d "
-											+ "where d.id in :deviceIds and (t.status = :cancelled or t.status = :failure or t.status = :success) "
-											+ "and (t.executionDate < :when))", taskClass.getSimpleName()))
-									.setParameter("deviceIds", deviceIds);
-							}
-							count += deleteQuery
-								.setParameter("cancelled", Task.Status.CANCELLED)
-								.setParameter("failure", Task.Status.FAILURE)
-								.setParameter("success", Task.Status.SUCCESS)
-								.setParameter("when", when.getTime())
-								.executeUpdate();
-						}
-					}
-				}
-				session.getTransaction().commit();
-				log.trace("Task {}. Cleaning up done on tasks, {} entries affected.", task.getId(), count);
-				task.logger.info("Cleaning up done on tasks, {} entries affected.", count);
+				Condition deviceCondition = groupId == null && deviceIds == null ? null : targetDevices(TASK.DEVICE, groupId, deviceIds);
+				int count = this.transactions.writeDsl(dsl -> this.taskRepository.deleteFinished(dsl, when.toInstant(), deviceCondition));
+				log.trace("Task {}. Cleaning up done on tasks, {} entries affected.", task.id(), count);
+				run.logger.info("Cleaning up done on tasks, {} entries affected.", count);
 			}
-			catch (HibernateException e) {
-				Database.rollbackSilently(session);
-				log.error("Task {}. Database error while purging the old tasks from the database.", task.getId(), e);
-				task.logger.error("Database error during the task purge.");
-				task.setStatus(Status.FAILURE);
+			catch (DataAccessException e) {
+				log.error("Task {}. Database error while purging the old tasks from the database.", task.id(), e);
+				run.logger.error("Database error during the task purge.");
+				run.setStatus(Status.FAILURE);
 				return;
 			}
 			catch (Exception e) {
-				Database.rollbackSilently(session);
-				log.error("Task {}. Error while purging the old tasks from the database.", task.getId(), e);
-				task.logger.error("Error during the task purge.");
-				task.setStatus(Status.FAILURE);
+				log.error("Task {}. Error while purging the old tasks from the database.", task.id(), e);
+				run.logger.error("Error during the task purge.");
+				run.setStatus(Status.FAILURE);
 				return;
-			}
-			finally {
-				session.close();
 			}
 		}
 
 		if (configDays > 0) {
-			Session session = Database.getSession();
 			try {
-				session.beginTransaction();
-				log.trace("Task {}. Cleaning up configurations taken more than {} days ago...", task.getId(), configDays);
-				task.logger.info("Cleaning up configurations older than {} days...", configDays);
+				log.trace("Task {}. Cleaning up configurations taken more than {} days ago...", task.id(), configDays);
+				run.logger.info("Cleaning up configurations older than {} days...", configDays);
 				Calendar when = Calendar.getInstance();
 				when.add(Calendar.DATE, -1 * configDays);
-				Query<Config> query;
-				if (configSize > 0) {
-					if (group == null && deviceIds == null) {
-						query = session
-							.createQuery(
-								"select c from Config c join c.attributes a where (a.class = ConfigLongTextAttribute or a.class = ConfigBinaryFileAttribute) "
-									+ "group by c.id having ((max(length(a.longText.text)) > :size) or (max(a.fileSize) > :size)) and (c.changeDate < :when) "
-									+ "order by c.device asc, c.changeDate desc", Config.class)
-							.setParameter("size", configSize * 1024);
-					}
-					else if (group != null) {
-						query = session
-							.createQuery(
-								"select c from Config c join c.device d join d.groupMemberships gm join c.attributes a "
-									+ "where gm.key.group = :group and (a.class = ConfigLongTextAttribute or a.class = ConfigBinaryFileAttribute) "
-									+ "group by c.id having ((max(length(a.longText.text)) > :size) or (max(a.fileSize) > :size)) and (c.changeDate < :when) "
-									+ "order by c.device asc, c.changeDate desc", Config.class)
-							.setParameter("group", group)
-							.setParameter("size", configSize * 1024);
-					}
-					else {
-						query = session
-							.createQuery(
-								"select c from Config c join c.device d join c.attributes a "
-									+ "where d.id in :deviceIds and (a.class = ConfigLongTextAttribute or a.class = ConfigBinaryFileAttribute) "
-									+ "group by c.id having ((max(length(a.longText.text)) > :size) or (max(a.fileSize) > :size)) and (c.changeDate < :when) "
-									+ "order by c.device asc, c.changeDate desc", Config.class)
-							.setParameter("deviceIds", deviceIds)
-							.setParameter("size", configSize * 1024);
-					}
-				}
-				else if (group == null && deviceIds == null) {
-					query = session.createQuery(
-						"select c from Config c where (c.changeDate < :when) order by c.device asc, c.changeDate desc", Config.class);
-				}
-				else if (group != null) {
-					query = session.createQuery(
-						"select c from Config c join c.device d join d.groupMemberships gm "
-							+ "where gm.key.group = :group and (c.changeDate < :when) "
-							+ "order by c.device asc, c.changeDate desc", Config.class)
-						.setParameter("group", group);
-				}
-				else {
-					query = session.createQuery(
-						"select c from Config c join c.device d "
-							+ "where d.id in :deviceIds and (c.changeDate < :when) "
-							+ "order by c.device asc, c.changeDate desc", Config.class)
-						.setParameter("deviceIds", deviceIds);
-				}
-				ScrollableResults<Config> configs = query
-					.setParameter("when", when.getTime())
-					.setCacheMode(CacheMode.IGNORE)
-					.scroll(ScrollMode.FORWARD_ONLY);
-				long dontDeleteDevice = -1;
-				Date dontDeleteBefore = null;
-				int count = 0;
 				List<Path> toDeletePathes = new ArrayList<>();
-				while (configs.next()) {
-					try {
-						Config config = configs.get();
-						if ((config.getDevice().getLastConfig() != null && config.getDevice().getLastConfig().getId() == config.getId())
-							|| (dontDeleteBefore != null && config.getChangeDate().before(dontDeleteBefore))
-							|| (configKeepDays > 0 && dontDeleteDevice != config.getDevice().getId())) {
-							if (configKeepDays > 0) {
-								Calendar limitCalendar = Calendar.getInstance();
-								limitCalendar.setTime(config.getChangeDate());
-								limitCalendar.add(Calendar.DATE, -1 * configKeepDays);
-								dontDeleteBefore = limitCalendar.getTime();
-							}
-						}
-						else {
-							for (ConfigAttribute attribute : config.getAttributes()) {
-								if (attribute instanceof ConfigBinaryFileAttribute cbfa) {
-									toDeletePathes.add(cbfa.getFilePath());
-								}
-							}
-							session.remove(config);
-							if (++count % 30 == 0) {
-								session.flush();
-								session.clear();
-							}
-						}
-						dontDeleteDevice = config.getDevice().getId();
-					}
-					catch (NullPointerException e1) {
-					}
-				}
-				session.getTransaction().commit();
-				log.trace("Task {}. Cleaning up done on configurations, {} entries affected.", task.getId(), count);
-				task.logger.info("Cleaning up done on configurations, {} entries affected.", count);
+				int count = this.transactions.writeDsl(dsl -> this.purgeConfigs(dsl, when.toInstant(), configSize, configKeepDays,
+					groupId, deviceIds, toDeletePathes));
+				log.trace("Task {}. Cleaning up done on configurations, {} entries affected.", task.id(), count);
+				run.logger.info("Cleaning up done on configurations, {} entries affected.", count);
 				for (Path toDeletePath : toDeletePathes) {
 					try {
 						Files.delete(toDeletePath);
@@ -261,90 +150,49 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 					}
 				}
 			}
-			catch (HibernateException e) {
-				Database.rollbackSilently(session);
+			catch (DataAccessException e) {
 				log.error("Task {}. Database error while purging the old configurations from the database.",
-					task.getId(), e);
-				task.logger.error("Database error during the configuration purge.");
-				task.setStatus(Status.FAILURE);
+					task.id(), e);
+				run.logger.error("Database error during the configuration purge.");
+				run.setStatus(Status.FAILURE);
 				return;
 			}
 			catch (Exception e) {
-				Database.rollbackSilently(session);
 				log.error("Task {}. Error while purging the old configurations from the database.",
-					task.getId(), e);
-				task.logger.error("Error during the configuration purge.");
-				task.setStatus(Status.FAILURE);
+					task.id(), e);
+				run.logger.error("Error during the configuration purge.");
+				run.setStatus(Status.FAILURE);
 				return;
 			}
-			finally {
-				session.close();
-			}
 		}
-
 
 		if (moduleDays > 0) {
-			Session session = Database.getSession();
 			try {
-				session.beginTransaction();
-				log.trace("Task {}. Cleaning up hardware modules removed more than {} days ago...", task.getId(), moduleDays);
-				task.logger.info("Cleaning up hardware modules removed more than {} days...", moduleDays);
+				log.trace("Task {}. Cleaning up hardware modules removed more than {} days ago...", task.id(), moduleDays);
+				run.logger.info("Cleaning up hardware modules removed more than {} days...", moduleDays);
 				Calendar when = Calendar.getInstance();
 				when.add(Calendar.DATE, -1 * moduleDays);
-
-				final MutationQuery query;
-
-				if (group == null && deviceIds == null) {
-					query = session
-						.createMutationQuery("delete from Module m where m.removed and m.lastSeenDate <= :when")
-						.setParameter("when", when.getTime());
-				}
-				else if (group != null) {
-					query = session
-						.createMutationQuery("delete from Module m where m in "
-							+ "(select m from Module m join m.device d join d.groupMemberships gm "
-							+ "where gm.key.group = :group and m.removed and m.lastSeenDate <= :when)")
-						.setParameter("group", group)
-						.setParameter("when", when.getTime());
-				}
-				else {
-					query = session
-						.createMutationQuery("delete from Module m where m in "
-							+ "(select m from Module m join m.device d "
-							+ "where d.id in :deviceIds and m.removed and m.lastSeenDate <= :when)")
-						.setParameter("deviceIds", deviceIds)
-						.setParameter("when", when.getTime());
-				}
-
-				int count = query.executeUpdate();
-				session.getTransaction().commit();
-				log.trace("Task {}. Cleaning up done on modules, {} entries affected.", task.getId(), count);
-				task.logger.info("Cleaning up done on modules, {} entries affected.", count);
-
+				int count = this.transactions.writeDsl(dsl -> dsl.deleteFrom(MODULE)
+					.where(MODULE.REMOVED.isTrue(), MODULE.LAST_SEEN_DATE.le(when.toInstant()), targetDevices(MODULE.DEVICE, groupId, deviceIds))
+					.execute());
+				log.trace("Task {}. Cleaning up done on modules, {} entries affected.", task.id(), count);
+				run.logger.info("Cleaning up done on modules, {} entries affected.", count);
 			}
 			catch (Exception e) {
-				Database.rollbackSilently(session);
 				log.error("Task {}. Error while purging the old modules from the database.",
-					task.getId(), e);
-				task.logger.error("Error during the module purge.");
-				task.setStatus(Status.FAILURE);
+					task.id(), e);
+				run.logger.error("Error during the module purge.");
+				run.setStatus(Status.FAILURE);
 				return;
-			}
-			finally {
-				session.close();
 			}
 		}
 
-		if (task.isRemoveOrphanFiles()) {
-			Session session = Database.getSession();
+		if (spec.removeOrphanFiles()) {
 			try {
-				session.beginTransaction();
-				log.trace("Task {}. Cleaning up orphan binary attribute files...", task.getId());
-				task.logger.info("Cleaning up orphan binary attribute files...");
-				Set<String> knownUids = new HashSet<>(session
-					.createQuery("select cfa.uid from ConfigBinaryFileAttribute cfa", String.class)
-					.list());
-				session.getTransaction().commit();
+				log.trace("Task {}. Cleaning up orphan binary attribute files...", task.id());
+				run.logger.info("Cleaning up orphan binary attribute files...");
+				Set<String> knownUids = new HashSet<>(this.transactions.writeDsl(dsl -> dsl.select(CONFIG_ATTRIBUTE.UID)
+					.from(CONFIG_ATTRIBUTE).where(CONFIG_ATTRIBUTE.TYPE.eq("F")).fetch(CONFIG_ATTRIBUTE.UID)));
 
 				int count = 0;
 				Path storageFolder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
@@ -385,30 +233,88 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 						}
 					}
 				}
-				log.trace("Task {}. Cleaning up done on orphan binary files, {} entries affected.", task.getId(), count);
-				task.logger.info("Cleaning up done on orphan binary files, {} entries affected.", count);
+				log.trace("Task {}. Cleaning up done on orphan binary files, {} entries affected.", task.id(), count);
+				run.logger.info("Cleaning up done on orphan binary files, {} entries affected.", count);
 			}
-			catch (HibernateException e) {
-				Database.rollbackSilently(session);
-				log.error("Task {}. Database error while purging orphan binary files.", task.getId(), e);
-				task.logger.error("Database error during the orphan binary file purge.");
-				task.setStatus(Status.FAILURE);
+			catch (DataAccessException e) {
+				log.error("Task {}. Database error while purging orphan binary files.", task.id(), e);
+				run.logger.error("Database error during the orphan binary file purge.");
+				run.setStatus(Status.FAILURE);
 				return;
 			}
 			catch (Exception e) {
-				Database.rollbackSilently(session);
-				log.error("Task {}. Error while purging orphan binary files.", task.getId(), e);
-				task.logger.error("Error during the orphan binary file purge.");
-				task.setStatus(Status.FAILURE);
+				log.error("Task {}. Error while purging orphan binary files.", task.id(), e);
+				run.logger.error("Error during the orphan binary file purge.");
+				run.setStatus(Status.FAILURE);
 				return;
-			}
-			finally {
-				session.close();
 			}
 		}
 
-		task.setStatus(Status.SUCCESS);
-		log.trace("Task {}. Cleaning up process finished.", task.getId());
+		run.setStatus(Status.SUCCESS);
+		log.trace("Task {}. Cleaning up process finished.", task.id());
 	}
 
+	/**
+	 * Removes the old configurations: those taken before the given date (and, if a size is given,
+	 * with a long text or a binary file bigger than it), but the last configuration of each device
+	 * and, if a number of days to keep is given, those taken during the given days before the
+	 * last one which is kept.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param when the date before which the configurations are removed
+	 * @param configSize the minimum size (in kB) of a long text or binary file for a configuration to be removed, 0 for any
+	 * @param configKeepDays the number of days of configurations to keep before the last kept one, 0 for none
+	 * @param groupId the group of the target devices, or null
+	 * @param deviceIds the target devices, or null
+	 * @param toDeletePathes receives the binary files to delete once the transaction is committed
+	 * @return the number of removed configurations
+	 */
+	private int purgeConfigs(DSLContext dsl, Instant when, int configSize, int configKeepDays, Long groupId, List<Long> deviceIds,
+			List<Path> toDeletePathes) {
+		Condition condition = CONFIG.CHANGE_DATE.lt(when).and(targetDevices(CONFIG.DEVICE, groupId, deviceIds));
+		if (configSize > 0) {
+			condition = condition.and(CONFIG.ID.in(DSL.select(CONFIG_ATTRIBUTE.CONFIG).from(CONFIG_ATTRIBUTE)
+				.leftJoin(LONG_TEXT_CONFIGURATION).on(LONG_TEXT_CONFIGURATION.ID.eq(CONFIG_ATTRIBUTE.LONG_TEXT))
+				.where(CONFIG_ATTRIBUTE.TYPE.in("T", "F"))
+				.groupBy(CONFIG_ATTRIBUTE.CONFIG)
+				.having(DSL.max(DSL.length(LONG_TEXT_CONFIGURATION.TEXT)).gt(configSize * 1024)
+					.or(DSL.max(CONFIG_ATTRIBUTE.FILE_SIZE).gt((long) configSize * 1024)))));
+		}
+		List<Record4<Long, Long, Instant, Long>> configs = dsl.select(CONFIG.ID, CONFIG.DEVICE, CONFIG.CHANGE_DATE, DEVICE.LAST_CONFIG)
+			.from(CONFIG)
+			.join(DEVICE).on(DEVICE.ID.eq(CONFIG.DEVICE))
+			.where(condition)
+			.orderBy(CONFIG.DEVICE.asc(), CONFIG.CHANGE_DATE.desc())
+			.fetch();
+		long dontDeleteDevice = -1;
+		Instant dontDeleteBefore = null;
+		int count = 0;
+		for (Record4<Long, Long, Instant, Long> config : configs) {
+			long configId = config.value1();
+			long deviceId = config.value2();
+			Instant changeDate = config.value3();
+			if (Objects.equals(config.value4(), configId)
+				|| (dontDeleteBefore != null && changeDate.isBefore(dontDeleteBefore))
+				|| (configKeepDays > 0 && dontDeleteDevice != deviceId)) {
+				if (configKeepDays > 0) {
+					dontDeleteBefore = changeDate.minus(configKeepDays, ChronoUnit.DAYS);
+				}
+			}
+			else {
+				dsl.select(CONFIG_ATTRIBUTE.NAME, CONFIG_ATTRIBUTE.UID, CONFIG_ATTRIBUTE.ORIGINAL_NAME)
+					.from(CONFIG_ATTRIBUTE)
+					.where(CONFIG_ATTRIBUTE.CONFIG.eq(configId), CONFIG_ATTRIBUTE.TYPE.eq("F"))
+					.forEach(a -> toDeletePathes.add(new ConfigBinaryFileAttribute(a.value1(), a.value2(), a.value3(), 0, null)
+						.getFilePath(deviceId, configId)));
+				List<Long> longTextIds = dsl.select(CONFIG_ATTRIBUTE.LONG_TEXT).from(CONFIG_ATTRIBUTE)
+					.where(CONFIG_ATTRIBUTE.CONFIG.eq(configId), CONFIG_ATTRIBUTE.LONG_TEXT.isNotNull())
+					.fetch(CONFIG_ATTRIBUTE.LONG_TEXT);
+				DeviceRepository.deleteLongTexts(dsl, longTextIds);
+				dsl.deleteFrom(CONFIG).where(CONFIG.ID.eq(configId)).execute();
+				count++;
+			}
+			dontDeleteDevice = deviceId;
+		}
+		return count;
+	}
 }

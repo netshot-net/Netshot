@@ -42,28 +42,28 @@ public class SimpleDiagnosticAdapter implements DiagnosticAdapter<SimpleDiagnost
 
 	@Override
 	public Value toJsObject(SimpleDiagnostic diagnostic, Device device, Context context) {
-		if (!device.getDriver().equals(diagnostic.getDeviceDriver())) {
+		if (!device.driver().equals(diagnostic.deviceDriver())) {
 			return null;
 		}
-		return Value.asValue(new JsSimpleDiagnostic(diagnostic.getCliMode(), diagnostic.getCommand()));
+		return Value.asValue(new JsSimpleDiagnostic(diagnostic.cliMode(), diagnostic.command()));
 	}
 
 	@Override
-	public DiagnosticResult makeResult(SimpleDiagnostic diagnostic, Device device, Value value) {
+	public DiagnosticResult makeResult(SimpleDiagnostic diagnostic, Value value) {
 		String newValue = value.asString();
-		if (diagnostic.getModifierPattern() != null) {
-			newValue = newValue.replaceAll(diagnostic.getModifierPattern(), diagnostic.getModifierReplacement());
+		if (diagnostic.modifierPattern() != null) {
+			newValue = newValue.replaceAll(diagnostic.modifierPattern(), diagnostic.modifierReplacement());
 		}
-		switch (diagnostic.getResultType()) {
+		switch (diagnostic.resultType()) {
 			case LONGTEXT:
-				return new DiagnosticLongTextResult(device, diagnostic, newValue);
+				return DiagnosticLongTextResult.of(diagnostic, newValue);
 			case TEXT:
-				return new DiagnosticTextResult(device, diagnostic, newValue);
+				return DiagnosticTextResult.of(diagnostic, newValue);
 			case NUMERIC:
-				return new DiagnosticNumericResult(device, diagnostic, Double.parseDouble(newValue));
+				return DiagnosticNumericResult.of(diagnostic, Double.parseDouble(newValue));
 			case BINARY:
 				boolean booleanValue = !"".equals(newValue) && !"false".equals(newValue.toLowerCase()) && !"no".equals(newValue.toLowerCase());
-				return new DiagnosticBinaryResult(device, diagnostic, booleanValue);
+				return DiagnosticBinaryResult.of(diagnostic, booleanValue);
 			default:
 				return null;
 		}

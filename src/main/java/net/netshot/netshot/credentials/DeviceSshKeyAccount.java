@@ -18,129 +18,76 @@
  */
 package net.netshot.netshot.credentials;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.platform.database.StringEncryptorConverter;
-import net.netshot.netshot.vault.VaultInstance;
+import java.time.Instant;
+
+import lombok.Builder;
+import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.vault.VaultableSecret;
 
 /**
- * SSH credentials with a private key.
- * The inherited password is actually the passphrase for the key.
- * @author sylv
+ * An SSH account, authenticated with a private key (the password is the passphrase of the key).
  *
+ * @param id the ID (0 for a credential set which isn't stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the time of the last change
+ * @param name the name, unique
+ * @param mgmtDomain the domain the credential set is restricted to, or null for all the domains
+ * @param deviceSpecific whether the credential set belongs to one access of one device (rather than being global)
+ * @param username the username
+ * @param usernameVaultInstanceId the ID of the Vault instance the username is read from, or null if it is local
+ * @param usernameVaultPath the Vault path (and key) of the username
+ * @param password the passphrase of the private key
+ * @param passwordVaultInstanceId the ID of the Vault instance the passphrase of the private key is read from, or null if it is local
+ * @param passwordVaultPath the Vault path (and key) of the passphrase of the private key
+ * @param superPassword the super (enable) password
+ * @param superPasswordVaultInstanceId the ID of the Vault instance the super (enable) password is read from, or null if it is local
+ * @param superPasswordVaultPath the Vault path (and key) of the super (enable) password
+ * @param privateKey the private key
+ * @param privateKeyVaultInstanceId the ID of the Vault instance the private key is read from, or null if it is local
+ * @param privateKeyVaultPath the Vault path (and key) of the private key
  */
-@Entity
-public class DeviceSshKeyAccount extends DeviceSshAccount {
+@Builder(toBuilder = true)
+public record DeviceSshKeyAccount(
+	long id,
+	int version,
+	Instant changeDate,
+	String name,
+	Domain mgmtDomain,
+	boolean deviceSpecific,
+	String username,
+	Long usernameVaultInstanceId,
+	String usernameVaultPath,
+	String password,
+	Long passwordVaultInstanceId,
+	String passwordVaultPath,
+	String superPassword,
+	Long superPasswordVaultInstanceId,
+	String superPasswordVaultPath,
+	String privateKey,
+	Long privateKeyVaultInstanceId,
+	String privateKeyVaultPath) implements SshAccount {
 
-	@Getter(onMethod = @__({
-		@Column(length = 5000),
-		@Convert(converter = StringEncryptorConverter.class)
-	}))
-	@Setter
-	private String privateKey;
-
-	/** See {@code DeviceCliAccount.usernameVaultInstanceId} for why this isn't named "privateKeyVaultInstance". */
-	@Getter(onMethod = @__({
-		@ManyToOne
-	}))
-	@Setter
-	private VaultInstance privateKeyVaultInstanceId;
-
-	@Getter(onMethod = @__({
-		@Column(name = "private_key_vault_path")
-	}))
-	@Setter
-	private String privateKeyVaultPath;
-
-	private Long privateKeyPendingVaultInstanceId;
-
-	protected DeviceSshKeyAccount() {
-
-	}
-
-	public DeviceSshKeyAccount(String username, String privateKey, String passphrase,
-		String superPassword, String name) {
-		super(username, passphrase, superPassword, name);
-		this.privateKey = privateKey;
-	}
-
-	/**
-	 * Accessor of the Vault instance ID, named differently in Java than the internal JPA getter (which returns the
-	 * entity, not the ID).
-	 * @return the Vault instance ID, or null if not Vault-backed
-	 */
-	@Transient
-	public Long getResolvedPrivateKeyVaultInstanceId() {
-		if (this.privateKeyPendingVaultInstanceId != null) {
-			return this.privateKeyPendingVaultInstanceId;
-		}
-		return this.privateKeyVaultInstanceId == null ? null : this.privateKeyVaultInstanceId.getId();
-	}
-
-	public void setResolvedPrivateKeyVaultInstanceId(Long vaultInstanceId) {
-		this.privateKeyPendingVaultInstanceId = vaultInstanceId;
-	}
-
-	/**
-	 * Bundles the private key's local/Vault state for {@link net.netshot.netshot.vault.VaultManager} and the REST layer. Not JPA-mapped.
-	 * @return the bundled private key secret
-	 */
-	@Transient
-	public VaultableSecret getPrivateKeySecret() {
-		VaultableSecret secret = new VaultableSecret();
-		secret.setLocalValue(this.privateKey);
-		secret.setVaultInstance(this.privateKeyVaultInstanceId);
-		if (this.privateKeyPendingVaultInstanceId != null) {
-			secret.setVaultInstanceId(this.privateKeyPendingVaultInstanceId);
-		}
-		secret.setVaultPath(this.privateKeyVaultPath);
-		return secret;
-	}
-
-	public void setPrivateKeySecret(VaultableSecret secret) {
-		this.privateKey = secret.getLocalValue();
-		this.privateKeyVaultInstanceId = secret.getVaultInstance();
-		this.privateKeyVaultPath = secret.getVaultPath();
-		this.privateKeyPendingVaultInstanceId = null;
+	@Override
+	public DeviceSshKeyAccount withIdentity(long newId, String newName, boolean newDeviceSpecific) {
+		return this.toBuilder().id(newId).name(newName).deviceSpecific(newDeviceSpecific).build();
 	}
 
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result
-			+ (privateKey == null ? 0 : privateKey.hashCode());
-		return result;
+	public DeviceSshKeyAccount withMgmtDomain(Domain newMgmtDomain) {
+		return this.toBuilder().mgmtDomain(newMgmtDomain).build();
+	}
+
+	/**
+	 * Gets the private key, local or in a Vault instance.
+	 *
+	 * @return the private key
+	 */
+	public VaultableSecret privateKeySecret() {
+		return new VaultableSecret(this.privateKey, this.privateKeyVaultInstanceId, this.privateKeyVaultPath);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!super.equals(obj)) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		DeviceSshKeyAccount other = (DeviceSshKeyAccount) obj;
-		if (privateKey == null) {
-			if (other.privateKey != null) {
-				return false;
-			}
-		}
-		else if (!privateKey.equals(other.privateKey)) {
-			return false;
-		}
-		return true;
+	public String toString() {
+		return DeviceCredentialSet.describe(this);
 	}
-
-
 }

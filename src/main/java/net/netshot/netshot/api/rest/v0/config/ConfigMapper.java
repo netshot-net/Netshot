@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v0.config;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -39,11 +40,10 @@ import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 
 /**
- * Maps the configurations between the entities (or the projections) of the inventory and their
+ * Maps the configurations between the records (or the projections) of the inventory and their
  * REST representation. All the methods are pure functions.
  *
- * <p>{@link #toDto(Config)} reads a <em>detached</em> configuration: it needs its attributes to be
- * loaded (see {@code ConfigRepository}).</p>
+ * <p>{@link #toDto(Config)} reads the attributes of the configuration (not their long texts).</p>
  */
 public final class ConfigMapper {
 
@@ -51,54 +51,49 @@ public final class ConfigMapper {
 		// Static helpers only
 	}
 
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
+	}
+
 	/**
 	 * Maps a configuration to its representation.
 	 *
-	 * @param config the configuration, with its attributes loaded
+	 * @param config the configuration
 	 * @return the DTO
 	 */
 	public static ConfigDto toDto(Config config) {
 		List<ConfigAttributeDto> attributes = new ArrayList<>();
 		// The attributes are a set: they are listed by name
-		config.getAttributes().stream().sorted(Comparator.comparing(ConfigAttribute::getName, Comparator.nullsFirst(Comparator.naturalOrder())))
+		config.attributes().stream().sorted(Comparator.comparing(ConfigAttribute::name, Comparator.nullsFirst(Comparator.naturalOrder())))
 			.forEach(attribute -> attributes.add(toDto(attribute)));
-		return new ConfigDto(config.getId(), config.getChangeDate(), config.getAuthor(), attributes, config.getCustomHash());
+		return new ConfigDto(config.id(), date(config.changeDate()), config.author(), attributes, config.customHash());
 	}
 
 	/**
 	 * Maps the configurations to their representation.
 	 *
-	 * @param configs the configurations, with their attributes loaded
+	 * @param configs the configurations
 	 * @return the DTOs, in the same order
 	 */
 	public static List<ConfigDto> toDtos(List<Config> configs) {
 		List<ConfigDto> dtos = new ArrayList<>(configs.size());
 		configs.forEach(config -> dtos.add(toDto(config)));
 		if (configs.getClass() != ArrayList.class) {
-			// Quirk kept: a paginated query with a collection fetch is paginated in memory and answers a
-			// sub list, which XML publishes as <SubList> instead of <ArrayList>
+			// Quirk kept: the configurations of a device are answered as a sub list when they are
+			// paginated (see ConfigRepository#findByDevice), which XML publishes as <SubList>
 			return dtos.subList(0, dtos.size());
 		}
 		return dtos;
 	}
 
 	private static ConfigAttributeDto toDto(ConfigAttribute attribute) {
-		if (attribute instanceof ConfigTextAttribute text) {
-			return new ConfigAttributeDto.Text(text.getName(), text.getText());
-		}
-		else if (attribute instanceof ConfigNumericAttribute numeric) {
-			return new ConfigAttributeDto.Numeric(numeric.getName(), numeric.getNumber());
-		}
-		else if (attribute instanceof ConfigBinaryAttribute binary) {
-			return new ConfigAttributeDto.Binary(binary.getName(), binary.getAssumption());
-		}
-		else if (attribute instanceof ConfigLongTextAttribute) {
-			return new ConfigAttributeDto.LongText(attribute.getName());
-		}
-		else if (attribute instanceof ConfigBinaryFileAttribute file) {
-			return new ConfigAttributeDto.BinaryFile(file.getName(), file.getOriginalName(), file.getFileSize(), file.getChecksum());
-		}
-		throw new IllegalArgumentException("Unknown kind of configuration attribute: " + attribute.getClass().getName());
+		return switch (attribute) {
+			case ConfigTextAttribute text -> new ConfigAttributeDto.Text(text.name(), text.text());
+			case ConfigNumericAttribute numeric -> new ConfigAttributeDto.Numeric(numeric.name(), numeric.number());
+			case ConfigBinaryAttribute binary -> new ConfigAttributeDto.Binary(binary.name(), binary.assumption());
+			case ConfigLongTextAttribute longText -> new ConfigAttributeDto.LongText(longText.name());
+			case ConfigBinaryFileAttribute file -> new ConfigAttributeDto.BinaryFile(file.name(), file.originalName(), file.fileSize(), file.checksum());
+		};
 	}
 
 	/**

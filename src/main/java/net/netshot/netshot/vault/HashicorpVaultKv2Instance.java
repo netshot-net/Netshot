@@ -18,131 +18,68 @@
  */
 package net.netshot.netshot.vault;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.platform.database.StringEncryptorConverter;
+import java.time.Instant;
+
+import lombok.Builder;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
- * A HashiCorp Vault instance, using the KV v2 secrets engine.
- * <p>
- * Authenticates using either AppRole (static role_id/secret_id) or JWT
- * (a JWT obtained from an external OAuth2 IdP via the client_credentials
- * grant, then exchanged with Vault's JWT auth method).
+ * A HashiCorp Vault server, with a KV version 2 secret engine, Netshot logging in with AppRole or JWT.
+ *
+ * @param id the ID (0 for an instance not stored yet)
+ * @param version the version, incremented at each change
+ * @param changeDate the date of the last change
+ * @param name the name
+ * @param baseUrl the base URL of the server
+ * @param namespace the namespace (Vault Enterprise)
+ * @param httpsCaTrustMode how the HTTPS certificate of the server is trusted
+ * @param httpsCustomCaCertificate the CA certificate trusted in custom CA mode
+ * @param kvMountPath the mount path of the KV secret engine
+ * @param authMethod the authentication method
+ * @param appRoleMountPath the mount path of the AppRole authentication
+ * @param appRoleId the AppRole role ID
+ * @param appRoleSecretId the AppRole secret ID
+ * @param jwtMountPath the mount path of the JWT authentication
+ * @param jwtIdpTokenEndpoint the token endpoint of the identity provider issuing the JWT
+ * @param jwtClientId the client ID at the identity provider
+ * @param jwtClientSecret the client secret at the identity provider
+ * @param jwtVaultRole the Vault role to log in with
+ * @param jwtScope the scope to request
  */
-@Entity
-public class HashicorpVaultKv2Instance extends VaultInstance {
+@Builder(builderMethodName = "defaults", toBuilder = true)
+public record HashicorpVaultKv2Instance(long id, int version, Instant changeDate, String name, String baseUrl, String namespace,
+	HttpsCaTrustMode httpsCaTrustMode, String httpsCustomCaCertificate, String kvMountPath, AuthMethod authMethod,
+	String appRoleMountPath, String appRoleId, String appRoleSecretId, String jwtMountPath, String jwtIdpTokenEndpoint,
+	String jwtClientId, String jwtClientSecret, String jwtVaultRole, String jwtScope) implements VaultInstance {
 
+	/** The authentication methods of Netshot to Vault. */
 	public enum AuthMethod {
 		APPROLE,
 		JWT
 	}
 
-	/** The KV v2 secrets engine mount path (e.g. "secret"). */
-	@Getter(onMethod = @__({
-		@Column(name = "kv_mount_path")
-	}))
-	@Setter
-	private String kvMountPath = "secret";
-
-	/** The authentication method used to log in to this Vault instance. */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING),
-		@Column(name = "auth_method", nullable = false)
-	}))
-	@Setter
-	private AuthMethod authMethod;
-
 	/**
-	 * The AppRole auth method's mount path (e.g. "approle" by default, but
-	 * Vault/OpenBao allow mounting an auth method at any custom path, such
-	 * as when multiple AppRole mounts serve different consumers).
-	 */
-	@Getter(onMethod = @__({
-		@Column(name = "app_role_mount_path")
-	}))
-	@Setter
-	private String appRoleMountPath = "approle";
-
-	/** AppRole role_id (used when {@link #authMethod} is {@link AuthMethod#APPROLE}). */
-	@Getter(onMethod = @__({
-		@Column(name = "app_role_id")
-	}))
-	@Setter
-	private String appRoleId;
-
-	/** AppRole secret_id (used when {@link #authMethod} is {@link AuthMethod#APPROLE}). */
-	@Getter(onMethod = @__({
-		@Column(name = "app_role_secret_id"),
-		@Convert(converter = StringEncryptorConverter.class)
-	}))
-	@Setter
-	private String appRoleSecretId;
-
-	/**
-	 * The JWT auth method's mount path (e.g. "jwt" by default, but Vault/OpenBao
-	 * allow mounting an auth method at any custom path, such as "oidc" or a
-	 * per-tenant mount).
-	 */
-	@Getter(onMethod = @__({
-		@Column(name = "jwt_mount_path")
-	}))
-	@Setter
-	private String jwtMountPath = "jwt";
-
-	/** External IdP token endpoint URL (used when {@link #authMethod} is {@link AuthMethod#JWT}). */
-	@Getter(onMethod = @__({
-		@Column(name = "jwt_idp_token_endpoint")
-	}))
-	@Setter
-	private String jwtIdpTokenEndpoint;
-
-	/** OAuth2 client ID used to obtain the JWT from the external IdP. */
-	@Getter(onMethod = @__({
-		@Column(name = "jwt_client_id")
-	}))
-	@Setter
-	private String jwtClientId;
-
-	/** OAuth2 client secret used to obtain the JWT from the external IdP. */
-	@Getter(onMethod = @__({
-		@Column(name = "jwt_client_secret"),
-		@Convert(converter = StringEncryptorConverter.class)
-	}))
-	@Setter
-	private String jwtClientSecret;
-
-	/** Vault-side role name to present when logging in via the JWT auth method. */
-	@Getter(onMethod = @__({
-		@Column(name = "jwt_vault_role")
-	}))
-	@Setter
-	private String jwtVaultRole;
-
-	/** Optional OAuth2 scope to request from the external IdP. */
-	@Getter(onMethod = @__({
-		@Column(name = "jwt_scope")
-	}))
-	@Setter
-	private String jwtScope;
-
-	/**
-	 * Instantiates a new Hashicorp Vault KV v2 instance.
-	 */
-	protected HashicorpVaultKv2Instance() {
-		// Reserved for Hibernate
-	}
-
-	/**
-	 * Instantiates a new Hashicorp Vault KV v2 instance.
+	 * Starts building an instance, with the default trust mode and mount paths.
+	 *
 	 * @param name the name
+	 * @return the builder
 	 */
-	public HashicorpVaultKv2Instance(String name) {
-		super(name);
+	public static HashicorpVaultKv2InstanceBuilder builder(String name) {
+		return defaults()
+			.name(name)
+			.httpsCaTrustMode(HttpsCaTrustMode.SYSTEM_TRUSTSTORE)
+			.kvMountPath("secret")
+			.appRoleMountPath("approle")
+			.jwtMountPath("jwt");
 	}
 
+	@Override
+	public HashicorpVaultKv2Instance withId(long newId) {
+		return this.toBuilder().id(newId).build();
+	}
+
+	@Override
+	public String toString() {
+		return VaultInstance.describe(this);
+	}
 }

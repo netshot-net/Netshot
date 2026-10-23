@@ -35,12 +35,13 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestProperty;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 /**
  * Characterization of {@link RunDeviceGroupScriptHandler}, run through the task engine (the child tasks
@@ -72,13 +73,12 @@ class RunDeviceGroupScriptHandlerTest {
 	@BeforeEach
 	void createDevices() {
 		this.driver = TestDrivers.registry().getDriverByName("CiscoIOS12");
-		Domain domain = new Domain("Lab", "Test domain", null, null);
-		this.first = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
-		this.second = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 2);
-		this.group = new StaticDeviceGroup("Routers");
-		this.group.addDevice(this.first);
-		this.group.addDevice(this.second);
-		TaskRunner.persist(domain, this.first, this.second, this.group);
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		this.first = TestDevices.addFakeCiscoIos(domain, 1);
+		this.second = TestDevices.addFakeCiscoIos(domain, 2);
+		this.group = TestDevices.addStaticGroup("Routers");
+		TestDevices.addMembers(this.group, this.first);
+		TestDevices.addMembers(this.group, this.second);
 	}
 
 	@AfterEach
@@ -87,73 +87,66 @@ class RunDeviceGroupScriptHandlerTest {
 	}
 
 	private static List<Long> deviceIds(List<Task> children) {
-		return TaskRunner.inSession(session -> children.stream()
-			.map(child -> session.get(RunDeviceScriptTask.class, child.getId()).getDevice().getId())
-			.toList());
+		return children.stream().map(child -> ((RunDeviceScriptTask) child.spec()).deviceId()).toList();
 	}
 
 	@Test
 	@DisplayName("Creates and schedules one script task per device of the group, with the script options")
 	void runsOnTheGroup() throws Exception {
-		RunDeviceGroupScriptTask task = new RunDeviceGroupScriptTask(this.group, SCRIPT, this.driver, "Test", "tester");
-		task.setUserInputValues(Map.of("name", "value"));
-		task.setRunSnapshot(true);
-		task.setRunDiagnostics(false);
-		task.setCheckCompliance(true);
+		Task task = GroupBasedTask.of(new RunDeviceGroupScriptTask(this.group.id(), null, SCRIPT, this.driver.getName(),
+			Map.of("name", "value"), true, false, true), this.group.name(), "Test", "tester");
 
 		long id = this.runner.run(task);
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(RunDeviceGroupScriptTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		List<Task> children = TaskRunner.children(id);
-		Assertions.assertEquals(List.of(this.first.getId(), this.second.getId()), deviceIds(children));
-		Assertions.assertEquals(children.stream().map(Task::getId).toList(), this.runner.scheduledChildIds());
-		TaskRunner.inSession(session -> {
-			for (Task child : children) {
-				RunDeviceScriptTask script = session.get(RunDeviceScriptTask.class, child.getId());
-				Assertions.assertEquals("Started due to group Routers script task", script.getComments());
-				Assertions.assertEquals("tester", script.getAuthor());
-				Assertions.assertEquals(SCRIPT, script.getScript());
-				Assertions.assertEquals("CiscoIOS12", script.getDeviceDriver());
-				Assertions.assertEquals(Map.of("name", "value"), script.getUserInputValues());
-				Assertions.assertTrue(script.isRunSnapshot());
-				Assertions.assertFalse(script.isRunDiagnostics());
-				Assertions.assertTrue(script.isCheckCompliance());
-			}
-			return null;
-		});
+		Assertions.assertEquals(List.of(this.first.id(), this.second.id()), deviceIds(children));
+		Assertions.assertEquals(children.stream().map(Task::id).toList(), this.runner.scheduledChildIds());
+		for (Task child : children) {
+			RunDeviceScriptTask script = (RunDeviceScriptTask) child.spec();
+			Assertions.assertEquals("Started due to group Routers script task", child.comments());
+			Assertions.assertEquals("tester", child.author());
+			Assertions.assertEquals(SCRIPT, script.script());
+			Assertions.assertEquals("CiscoIOS12", script.deviceDriver());
+			Assertions.assertEquals(Map.of("name", "value"), script.userInputValues());
+			Assertions.assertTrue(script.runSnapshot());
+			Assertions.assertFalse(script.runDiagnostics());
+			Assertions.assertTrue(script.checkCompliance());
+		}
 	}
 
 	@Test
 	@DisplayName("Runs on the devices of a list")
 	void runsOnAList() throws Exception {
-		long id = this.runner.run(new RunDeviceGroupScriptTask(List.of(this.second), SCRIPT, this.driver, "Test", "tester"));
+		long id = this.runner.run(TaskRunner.forDevices(new RunDeviceGroupScriptTask(null, TaskRunner.ids(this.second), SCRIPT,
+			this.driver.getName(), null, false, false, false), "Test", "tester"));
 
 		List<Task> children = TaskRunner.children(id);
-		Assertions.assertEquals(List.of(this.second.getId()), deviceIds(children));
-		Assertions.assertEquals("Started due to 1-device script list", children.get(0).getComments());
+		Assertions.assertEquals(List.of(this.second.id()), deviceIds(children));
+		Assertions.assertEquals("Started due to 1-device script list", children.get(0).comments());
 	}
 
 	@Test
 	@DisplayName("Fails for an unknown driver")
 	void failsForUnknownDriver() throws Exception {
-		RunDeviceGroupScriptTask task = new RunDeviceGroupScriptTask(this.group, SCRIPT, this.driver, "Test", "tester");
-		task.setDeviceDriver("NoSuchDriver");
+		Task task = GroupBasedTask.of(new RunDeviceGroupScriptTask(this.group.id(), null, SCRIPT, "NoSuchDriver", null, false, false, false),
+			this.group.name(), "Test", "tester");
 
 		long id = this.runner.run(task);
 
-		RunDeviceGroupScriptTask result = TaskRunner.load(RunDeviceGroupScriptTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, result.getStatus());
-		Assertions.assertTrue(result.getLog().contains("Unknown device driver."), result.getLog());
+		Task result = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, result.status());
+		Assertions.assertTrue(result.log().contains("Unknown device driver."), result.log());
 		Assertions.assertEquals(List.of(), TaskRunner.children(id));
 	}
 
 	@Test
 	@DisplayName("Is cancelled without group nor device")
 	void cancelledWithoutTarget() throws Exception {
-		long id = this.runner.run(new RunDeviceGroupScriptTask(List.of(), SCRIPT, this.driver, "Test", "tester"));
+		long id = this.runner.run(TaskRunner.forDevices(new RunDeviceGroupScriptTask(null, TaskRunner.ids(), SCRIPT, this.driver.getName(), null, false, false, false), "Test", "tester"));
 
-		RunDeviceGroupScriptTask task = TaskRunner.load(RunDeviceGroupScriptTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Neither a device group nor a device list is set"), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, task.status());
+		Assertions.assertTrue(task.log().contains("Neither a device group nor a device list is set"), task.log());
 	}
 }

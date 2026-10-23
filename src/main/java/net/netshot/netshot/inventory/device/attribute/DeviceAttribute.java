@@ -18,82 +18,24 @@
  */
 package net.netshot.netshot.inventory.device.attribute;
 
-import java.util.Objects;
+/**
+ * A device level attribute, as defined by the driver and set by the snapshots.
+ * Its type is stored as a one letter discriminator.
+ */
+public sealed interface DeviceAttribute
+	permits DeviceTextAttribute, DeviceNumericAttribute, DeviceBinaryAttribute, DeviceLongTextAttribute {
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.DiscriminatorColumn;
-import jakarta.persistence.DiscriminatorType;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.CHAR)
-@DiscriminatorValue("A")
-public abstract class DeviceAttribute {
-
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	@Getter
-	@Setter
-	protected String name;
-
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	protected Device device;
-
-	protected DeviceAttribute() {
-
-	}
-
-	public DeviceAttribute(Device device, String name) {
-		this.device = device;
-		this.name = name;
-	}
-
-	@Transient
-	public abstract Object getData();
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * Gets the name of the attribute.
+	 *
+	 * @return the name
 	 */
-	@Override
-	public int hashCode() {
-		return Objects.hash(this.name, this.device);
-	}
+	String name();
 
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals()
+	/**
+	 * Gets the value of the attribute.
+	 *
+	 * @return the value
 	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DeviceAttribute)) {
-			return false;
-		}
-		DeviceAttribute other = (DeviceAttribute) obj;
-		return Objects.equals(this.name, other.name)
-			&& Objects.equals(this.device, other.device);
-	}
+	Object getData();
 }

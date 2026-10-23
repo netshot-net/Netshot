@@ -60,24 +60,6 @@ public record DeviceSummary(
 	SoftwareRule.ConformanceLevel softwareLevel,
 	Device.NetworkClass networkClass) {
 
-	/**
-	 * The select clause projecting the devices (aliased {@code d}) into summaries. The query has to
-	 * bind the {@code nonConforming} parameter to {@code CheckResult.ResultOption.NONCONFORMING}.
-	 */
-	public static final String SELECT_HQL = "select new " + DeviceSummary.class.getName() + "("
-		+ "d.id, "
-		+ "d.name, "
-		+ "d.family, "
-		+ "d.mgmtAddress, "
-		+ "d.status, "
-		+ "d.driver, "
-		+ "case when (d.eolDate < current_date()) then true else false end,  "
-		+ "case when (d.eosDate < current_date()) then true else false end, "
-		+ "case when (select count(cr) from CheckResult cr where cr.key.device = d and cr.result = :nonConforming) = 0 then true else false end, "
-		+ "d.softwareLevel, "
-		+ "d.networkClass"
-		+ ")";
-
 	/** Whether the device is past its end of life date (jOOQ). */
 	private static final Field<Boolean> EOL = DSL.when(DSL.condition("{0} < current_date", DEVICE.EOL_DATE), DSL.inline(true))
 		.otherwise(DSL.inline(false)).as("eol");

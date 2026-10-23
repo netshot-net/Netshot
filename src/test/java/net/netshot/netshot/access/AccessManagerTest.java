@@ -23,25 +23,29 @@ import java.net.InetAddress;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.access.AccessManager.Resolution;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-
-import org.hibernate.Session;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link AccessManager}, the generalized lazy connect +
@@ -83,19 +87,24 @@ public class AccessManagerTest {
 		return new AccessDefinition(name, DriverProtocol.TELNET, null, null, null, null, 23);
 	}
 
-	private Device fakeDevice() {
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		return new Device("CiscoIOS12", null, domain, "test");
+	private DeviceDraft fakeDevice() {
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		return new DeviceDraft(Device.create("CiscoIOS12", null, domain, "test"));
+	}
+
+	// The auto-try pool of a stored device, read from the database
+	private static Supplier<List<DeviceCredentialSet>> autoPool(DeviceDraft device) {
+		return () -> new Transactions().readDsl(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
 	}
 
 	@Test
 	@DisplayName("Resolution is lazy: no connect() attempt happens before first use")
 	void resolutionIsLazy() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet cred = new DeviceSshAccount("admin", "admin", null, "cred1");
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setGlobalCredentialSet(cred);
-		device.getAccesses().add(sshAccess);
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet cred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("cred1").build();
+		DeviceAccess sshAccess = DeviceAccess.of("ssh");
+		sshAccess = sshAccess.toBuilder().globalCredentialSet(cred).build();
+		device.putDeviceAccess(sshAccess);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -112,9 +121,9 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("Auto-try cycles through the supplied credentials in order until one succeeds")
 	void autoTryCyclesScopedCredentials() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet credA = new DeviceSshAccount("admin", "wrong", null, "credA");
-		DeviceCredentialSet credB = new DeviceSshAccount("admin", "right", null, "credB");
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("credA").build();
+		DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("credB").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(),
@@ -135,15 +144,15 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("A non-auth IOException aborts remaining candidates of that access, but a different access is still tried")
 	void connectFailureAbortsOnlyThatAccess() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet sshCred = new DeviceSshAccount("admin", "admin", null, "sshCred");
-		DeviceCredentialSet telnetCred = new DeviceTelnetAccount("admin", "admin", null, "telnetCred");
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setGlobalCredentialSet(sshCred);
-		device.getAccesses().add(sshAccess);
-		DeviceAccess telnetAccess = new DeviceAccess(device, "telnet");
-		telnetAccess.setGlobalCredentialSet(telnetCred);
-		device.getAccesses().add(telnetAccess);
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet sshCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("sshCred").build();
+		DeviceCredentialSet telnetCred = DeviceTelnetAccount.builder().username("admin").password("admin").superPassword(null).name("telnetCred").build();
+		DeviceAccess sshAccess = DeviceAccess.of("ssh");
+		sshAccess = sshAccess.toBuilder().globalCredentialSet(sshCred).build();
+		device.putDeviceAccess(sshAccess);
+		DeviceAccess telnetAccess = DeviceAccess.of("telnet");
+		telnetAccess = telnetAccess.toBuilder().globalCredentialSet(telnetCred).build();
+		device.putDeviceAccess(telnetAccess);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -165,9 +174,9 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("Manual mode (autoTryCredentials=false) surfaces an AccessAuthenticationException instead of auto-cycling")
 	void manualModeSurfacesAuthFailure() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet credA = new DeviceSshAccount("admin", "wrong", null, "credA");
-		DeviceCredentialSet credB = new DeviceSshAccount("admin", "right", null, "credB");
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("credA").build();
+		DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("credB").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(),
@@ -193,7 +202,7 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("Exhausting all candidates without any credential configured throws immediately")
 	void noCredentialsConfigured() {
-		Device device = fakeDevice();
+		DeviceDraft device = fakeDevice();
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(accessDef, credentialSet) -> new FakeClient(new AtomicInteger(), null));
@@ -204,12 +213,12 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("A per-access global credential pin is used exclusively")
 	void globalCredentialPinResolution() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet pinnedCred = new DeviceSshAccount("admin", "pinned", null, "pinnedCred");
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username("admin").password("pinned").superPassword(null).name("pinnedCred").build();
 
-		DeviceAccess access = new DeviceAccess(device, "ssh");
-		access.setGlobalCredentialSet(pinnedCred);
-		device.getAccesses().add(access);
+		DeviceAccess access = DeviceAccess.of("ssh");
+		access = access.toBuilder().globalCredentialSet(pinnedCred).build();
+		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -226,12 +235,12 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("A per-access owned specific credential pin is used exclusively")
 	void specificCredentialPinResolution() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet specificCred = new DeviceSshAccount("admin", "specific", null, "DEVICESPECIFIC-test");
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet specificCred = DeviceSshAccount.builder().username("admin").password("specific").superPassword(null).name("DEVICESPECIFIC-test").build();
 
-		DeviceAccess access = new DeviceAccess(device, "ssh");
-		access.setSpecificCredentialSet(specificCred);
-		device.getAccesses().add(access);
+		DeviceAccess access = DeviceAccess.of("ssh");
+		access = access.toBuilder().specificCredentialSet(specificCred).build();
+		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -248,12 +257,12 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("A pinned credential that fails auth does NOT fall back to auto-try")
 	void pinnedCredentialFailureDoesNotFallBackToAutoTry() {
-		Device device = fakeDevice();
-		DeviceCredentialSet pinnedCred = new DeviceSshAccount("admin", "wrong", null, "pinnedCred");
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("pinnedCred").build();
 
-		DeviceAccess access = new DeviceAccess(device, "ssh");
-		access.setGlobalCredentialSet(pinnedCred);
-		device.getAccesses().add(access);
+		DeviceAccess access = DeviceAccess.of("ssh");
+		access = access.toBuilder().globalCredentialSet(pinnedCred).build();
+		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -272,23 +281,18 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("Auto (no pin configured) resolves via the domain-scoped credential pool, cycling in order")
 	void autoModeUsesDomainScopedPool() throws IOException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Domain domain = new Domain("Auto pool test domain", "", null, null);
-			session.persist(domain);
-			Device device = new Device("CiscoIOS12", null, domain, "test");
-			device.getAccesses().add(new DeviceAccess(device, "ssh"));
-			session.persist(device);
-			DeviceCredentialSet credA = new DeviceSshAccount("admin", "wrong", null, "autoPoolCredA");
-			DeviceCredentialSet credB = new DeviceSshAccount("admin", "right", null, "autoPoolCredB");
-			session.persist(credA);
-			session.persist(credB);
-			session.getTransaction().commit();
+		try {
+			Domain domain = TestDevices.addDomain("Auto pool test domain", "");
+			DeviceDraft device = new DeviceDraft(TestDevices.add(Device.create("CiscoIOS12", null, domain, "test").toBuilder().accesses(List.of(DeviceAccess.of("ssh"))).build()));
+			DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("autoPoolCredA").build();
+			DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("autoPoolCredB").build();
+			TestDevices.addCredentialSet(credA);
+			TestDevices.addCredentialSet(credB);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
-			AccessManager manager = new AccessManager(TestDrivers.registry(), session, device, null, new FakeTaskContext(), null);
+			AccessManager manager = new AccessManager(TestDrivers.registry(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
-				if (credentialSet.getName().equals("autoPoolCredA")) {
+				if (credentialSet.name().equals("autoPoolCredA")) {
 					return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 				}
 				return new FakeClient(connectCount, null);
@@ -296,84 +300,64 @@ public class AccessManagerTest {
 
 			Client client = resolution.ensureResolved(true);
 			Assertions.assertNotNull(client);
-			Assertions.assertEquals("autoPoolCredB", resolution.getCurrentCredentialSet().getName(),
+			Assertions.assertEquals("autoPoolCredB", resolution.getCurrentCredentialSet().name(),
 				"Should have connected using the second domain-pool credential after the first failed");
 			Assertions.assertEquals(2, connectCount.get(), "Both domain-pool credentials should have been attempted");
 		}
 		finally {
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.createMutationQuery("delete from Device").executeUpdate();
-				session.createMutationQuery("delete from DeviceCredentialSet").executeUpdate();
-				session.createMutationQuery("delete from Domain").executeUpdate();
-				session.getTransaction().commit();
-			}
+			TestDevices.deleteAll();
 		}
 	}
 
 	@Test
 	@DisplayName("A successful auto-pool connection is pinned as the access's global credential set")
 	void autoModeSuccessPinsCredentialSet() throws IOException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Domain domain = new Domain("Auto pin test domain", "", null, null);
-			session.persist(domain);
-			Device device = new Device("CiscoIOS12", null, domain, "test");
-			device.getAccesses().add(new DeviceAccess(device, "ssh"));
-			session.persist(device);
-			DeviceCredentialSet credA = new DeviceSshAccount("admin", "wrong", null, "autoPinCredA");
-			DeviceCredentialSet credB = new DeviceSshAccount("admin", "right", null, "autoPinCredB");
-			session.persist(credA);
-			session.persist(credB);
-			session.getTransaction().commit();
+		try {
+			Domain domain = TestDevices.addDomain("Auto pin test domain", "");
+			DeviceDraft device = new DeviceDraft(TestDevices.add(Device.create("CiscoIOS12", null, domain, "test").toBuilder().accesses(List.of(DeviceAccess.of("ssh"))).build()));
+			DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("autoPinCredA").build();
+			DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("autoPinCredB").build();
+			TestDevices.addCredentialSet(credA);
+			TestDevices.addCredentialSet(credB);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
-			AccessManager manager = new AccessManager(TestDrivers.registry(), session, device, null, new FakeTaskContext(), null);
+			AccessManager manager = new AccessManager(TestDrivers.registry(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
-				if (credentialSet.getName().equals("autoPinCredA")) {
+				if (credentialSet.name().equals("autoPinCredA")) {
 					return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 				}
 				return new FakeClient(connectCount, null);
 			});
 
-			session.beginTransaction();
 			Client client = resolution.ensureResolved(true);
 			Assertions.assertNotNull(client);
 			resolution.confirmCredentialWorks();
-			session.getTransaction().commit();
+			new Transactions().writeDsl(dsl -> new DeviceRepository().saveDraft(dsl, device));
 
 			Assertions.assertNotNull(device.getDeviceAccess("ssh"),
 				"A DeviceAccess row should have been created to hold the pin");
-			Assertions.assertEquals("autoPinCredB", device.getDeviceAccess("ssh").getGlobalCredentialSet().getName(),
+			Assertions.assertEquals("autoPinCredB", device.getDeviceAccess("ssh").globalCredentialSet().name(),
 				"The successful credential set should be pinned as the access's global credential set");
 
-			// Confirm the pin was actually persisted, not just mutated in memory.
-			try (Session verifySession = Database.getSession()) {
-				Device reloaded = verifySession.get(Device.class, device.getId());
-				Assertions.assertEquals("autoPinCredB",
-					reloaded.getDeviceAccess("ssh").getGlobalCredentialSet().getName(),
-					"The pin should survive a reload from the database");
-			}
+			// Confirm the pin was actually persisted, not just changed in memory.
+			Device reloaded = TestDevices.find(device.getId());
+			Assertions.assertEquals("autoPinCredB",
+				reloaded.getDeviceAccess("ssh").globalCredentialSet().name(),
+				"The pin should survive a reload from the database");
 		}
 		finally {
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.createMutationQuery("delete from Device").executeUpdate();
-				session.createMutationQuery("delete from DeviceCredentialSet").executeUpdate();
-				session.createMutationQuery("delete from Domain").executeUpdate();
-				session.getTransaction().commit();
-			}
+			TestDevices.deleteAll();
 		}
 	}
 
 	@Test
 	@DisplayName("confirmCredentialWorks() does not pin an already-pinned (global) credential")
 	void confirmCredentialWorksDoesNotRePinAlreadyPinnedAccess() throws IOException {
-		Device device = fakeDevice();
-		DeviceCredentialSet pinnedCred = new DeviceSshAccount("admin", "pinned", null, "pinnedCred");
-		DeviceAccess access = new DeviceAccess(device, "ssh");
-		access.setGlobalCredentialSet(pinnedCred);
-		device.getAccesses().add(access);
+		DeviceDraft device = fakeDevice();
+		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username("admin").password("pinned").superPassword(null).name("pinnedCred").build();
+		DeviceAccess access = DeviceAccess.of("ssh");
+		access = access.toBuilder().globalCredentialSet(pinnedCred).build();
+		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -383,26 +367,22 @@ public class AccessManagerTest {
 		resolution.ensureResolved(true);
 		resolution.confirmCredentialWorks();
 
-		Assertions.assertSame(pinnedCred, device.getDeviceAccess("ssh").getGlobalCredentialSet(),
+		Assertions.assertSame(pinnedCred, device.getDeviceAccess("ssh").globalCredentialSet(),
 			"An already-pinned access must not be re-pinned/altered by confirmCredentialWorks()");
 	}
 
 	@Test
 	@DisplayName("An access with no DeviceAccess row is never used, even with compatible domain-pool credentials")
 	void accessWithNoRowIsNeverUsed() throws IOException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Domain domain = new Domain("No-row test domain", "", null, null);
-			session.persist(domain);
-			Device device = new Device("CiscoIOS12", null, domain, "test");
+		try {
+			Domain domain = TestDevices.addDomain("No-row test domain", "");
 			// Deliberately no DeviceAccess row for "ssh" at all.
-			session.persist(device);
-			DeviceCredentialSet cred = new DeviceSshAccount("admin", "admin", null, "noRowCred");
-			session.persist(cred);
-			session.getTransaction().commit();
+			DeviceDraft device = new DeviceDraft(TestDevices.add(Device.create("CiscoIOS12", null, domain, "test")));
+			DeviceCredentialSet cred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("noRowCred").build();
+			TestDevices.addCredentialSet(cred);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
-			AccessManager manager = new AccessManager(TestDrivers.registry(), session, device, null, new FakeTaskContext(), null);
+			AccessManager manager = new AccessManager(TestDrivers.registry(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 				(accessDef, credentialSet) -> new FakeClient(connectCount, null));
 
@@ -411,22 +391,16 @@ public class AccessManagerTest {
 			Assertions.assertEquals(0, connectCount.get(), "No connection attempt should ever happen");
 		}
 		finally {
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.createMutationQuery("delete from Device").executeUpdate();
-				session.createMutationQuery("delete from DeviceCredentialSet").executeUpdate();
-				session.createMutationQuery("delete from Domain").executeUpdate();
-				session.getTransaction().commit();
-			}
+			TestDevices.deleteAll();
 		}
 	}
 
 	@Test
 	@DisplayName("A one-time credential set is tried regardless of whether a DeviceAccess row exists")
 	void oneTimeCredentialSetBypassesEnabledCheck() throws IOException {
-		Device device = fakeDevice();
+		DeviceDraft device = fakeDevice();
 		// Deliberately no DeviceAccess row for "ssh" at all.
-		DeviceCredentialSet oneTimeCred = new DeviceSshAccount("admin", "admin", null, "oneTimeCred");
+		DeviceCredentialSet oneTimeCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("oneTimeCred").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(),
@@ -442,13 +416,13 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("A successful connection removes sibling accesses in the same group")
 	void confirmCredentialWorksRemovesSiblingAccessesInSameGroup() throws IOException {
-		Device device = fakeDevice();
-		DeviceAccess sshRow = new DeviceAccess(device, "ssh");
-		sshRow.setGlobalCredentialSet(new DeviceSshAccount("admin", "admin", null, "sshCred"));
-		device.getAccesses().add(sshRow);
-		DeviceAccess telnetRow = new DeviceAccess(device, "telnet");
-		telnetRow.setGlobalCredentialSet(new DeviceTelnetAccount("admin", "admin", null, "telnetCred"));
-		device.getAccesses().add(telnetRow);
+		DeviceDraft device = fakeDevice();
+		DeviceAccess sshRow = DeviceAccess.of("ssh");
+		sshRow = sshRow.toBuilder().globalCredentialSet(DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("sshCred").build()).build();
+		device.putDeviceAccess(sshRow);
+		DeviceAccess telnetRow = DeviceAccess.of("telnet");
+		telnetRow = telnetRow.toBuilder().globalCredentialSet(DeviceTelnetAccount.builder().username("admin").password("admin").superPassword(null).name("telnetCred").build()).build();
+		device.putDeviceAccess(telnetRow);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
@@ -468,7 +442,7 @@ public class AccessManagerTest {
 	@Test
 	@DisplayName("resolveAddress/resolvePort use the device's per-access override when set, for any access name")
 	void perAccessOverrideResolution() throws IOException {
-		Device device = fakeDevice();
+		DeviceDraft device = fakeDevice();
 		NetworkAddress defaultAddress = NetworkAddress.getNetworkAddress(InetAddress.getByName("10.0.0.1"));
 
 		// A brand new, non-legacy access ("alternateSsh") with no override at all:
@@ -480,10 +454,10 @@ public class AccessManagerTest {
 		Assertions.assertEquals(2222, manager.resolvePort(alternateSsh));
 
 		// Now add a per-access override for that same access, with both an address and a port.
-		DeviceAccess override = new DeviceAccess(device, "alternateSsh");
-		override.setAddress("192.168.1.50");
-		override.setPort(2223);
-		device.getAccesses().add(override);
+		DeviceAccess override = DeviceAccess.of("alternateSsh");
+		override = override.toBuilder().address("192.168.1.50").build();
+		override = override.toBuilder().port(2223).build();
+		device.putDeviceAccess(override);
 		NetworkAddress overrideAddress = NetworkAddress.getNetworkAddress(InetAddress.getByName("192.168.1.50"));
 		Assertions.assertEquals(overrideAddress, manager.resolveAddress(alternateSsh));
 		Assertions.assertEquals(2223, manager.resolvePort(alternateSsh));

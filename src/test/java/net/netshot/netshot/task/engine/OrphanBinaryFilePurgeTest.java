@@ -24,19 +24,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
-import org.hibernate.Session;
-
-import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.Task.Status;
-import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
-import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,8 +34,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.TaskRun;
+import net.netshot.netshot.task.handler.PurgeDatabaseHandler;
+import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDatabase;
+import net.netshot.netshot.testing.TestDevices;
 
 /**
  * Tests for {@link PurgeDatabaseTask}'s "remove orphan binary files"
@@ -68,14 +69,7 @@ public class OrphanBinaryFilePurgeTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.createMutationQuery("delete from Config").executeUpdate();
-			session.createMutationQuery("delete from LongTextConfiguration").executeUpdate();
-			session.createMutationQuery("delete from Device").executeUpdate();
-			session.createMutationQuery("delete from Domain").executeUpdate();
-			session.getTransaction().commit();
-		}
+		TestDevices.deleteAll();
 	}
 
 	private void setOldMtime(Path path) throws IOException {
@@ -88,31 +82,22 @@ public class OrphanBinaryFilePurgeTest {
 		Device device;
 		ConfigBinaryFileAttribute attrA;
 		ConfigBinaryFileAttribute attrB;
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-			session.persist(domain);
-			device = new Device("CiscoIOS12", null, domain, "test");
-			Config config = new Config(device);
-			attrA = new ConfigBinaryFileAttribute(config, "attrA", "fileA.bin");
-			attrB = new ConfigBinaryFileAttribute(config, "attrB", "fileB.bin");
-			config.addAttribute(attrA);
-			config.addAttribute(attrB);
-			device.getConfigs().add(config);
-			device.setLastConfig(config);
-			session.persist(device);
-			session.getTransaction().commit();
-		}
+		Domain domain = TestDevices.addDomain("Test domain", "Fake domain for tests");
+		attrA = ConfigBinaryFileAttribute.create("attrA", "fileA.bin");
+		attrB = ConfigBinaryFileAttribute.create("attrB", "fileB.bin");
+		device = TestDevices.add(Device.create("CiscoIOS12", null, domain, "test"),
+			Config.builder().author("").attributes(List.of(attrA, attrB)).build());
+		long configId = device.lastConfigId();
 
 		// attrA: fully finalized, real referenced file - must survive.
-		Files.write(attrA.getPendingFilePath(), "real-data-a".getBytes());
-		attrA.finalizeStorage();
-		Path attrAFinalPath = attrA.getFilePath();
+		Files.write(attrA.getPendingFilePath(device.id()), "real-data-a".getBytes());
+		attrA.finalizeStorage(device.id(), configId);
+		Path attrAFinalPath = attrA.getFilePath(device.id(), configId);
 
 		// attrB: real, referenced, but stuck at its pending name and old -
 		// simulates a crash between commit() and finalizeStorage(). Must
 		// survive: its uid is known, so it's not an orphan.
-		Path attrBPendingPath = attrB.getPendingFilePath();
+		Path attrBPendingPath = attrB.getPendingFilePath(device.id());
 		Files.write(attrBPendingPath, "real-data-b".getBytes());
 		this.setOldMtime(attrBPendingPath);
 
@@ -133,11 +118,12 @@ public class OrphanBinaryFilePurgeTest {
 		Files.write(oldPendingOrphan, "orphan-old-pending".getBytes());
 		this.setOldMtime(oldPendingOrphan);
 
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, 0, (DeviceGroup) null);
-		task.setRemoveOrphanFiles(true);
-		new PurgeDatabaseHandler().run(task);
+		PurgeDatabaseTask spec = PurgeDatabaseTask.builder().configDays(0).moduleDays(0).removeOrphanFiles(true).build();
+		Task task = Task.of(spec, "Test", "Global", "tester");
+		TaskRun run = new TaskRun(task);
+		new PurgeDatabaseHandler().run(task, spec, run);
 
-		Assertions.assertEquals(Status.SUCCESS, task.getStatus());
+		Assertions.assertEquals(Status.SUCCESS, run.getStatus());
 		Assertions.assertTrue(Files.exists(attrAFinalPath), "The real, finalized attribute file must survive");
 		Assertions.assertTrue(Files.exists(attrBPendingPath),
 			"A real, referenced attribute file must survive even if still pending and old");

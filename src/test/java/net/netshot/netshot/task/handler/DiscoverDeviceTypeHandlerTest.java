@@ -18,7 +18,9 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -28,11 +30,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.testing.DatabaseTest;
@@ -58,8 +61,7 @@ class DiscoverDeviceTypeHandlerTest {
 
 	@BeforeEach
 	void createDomain() {
-		this.domain = new Domain("Lab", "Test domain", null, null);
-		TaskRunner.persist(this.domain);
+		this.domain = TestDevices.addDomain("Lab", "Test domain");
 	}
 
 	@AfterEach
@@ -67,52 +69,49 @@ class DiscoverDeviceTypeHandlerTest {
 		TaskRunner.cleanDatabase();
 	}
 
-	private DiscoverDeviceTypeTask discovery(String address, DeviceCredentialSet... credentialSets) {
-		DiscoverDeviceTypeTask task = new DiscoverDeviceTypeTask(address, this.domain, "Discovery", "tester");
+	private Task discovery(String address, DeviceCredentialSet... credentialSets) {
+		Set<Long> credentialSetIds = new HashSet<>();
 		for (DeviceCredentialSet credentialSet : credentialSets) {
-			TaskRunner.persist(credentialSet);
-			task.addCredentialSet(credentialSet);
+			credentialSetIds.add(TestDevices.addCredentialSet(credentialSet).id());
 		}
-		return task;
+		return DiscoverDeviceTypeTask.of(address, this.domain.id(), credentialSetIds, "Discovery", "tester");
 	}
 
 	private static long deviceCount() {
-		return TaskRunner.inSession(session -> session.createQuery("select count(d) from Device d", Long.class).uniqueResult());
+		return TestDevices.count();
 	}
 
 	@Test
 	@DisplayName("Fails when the address can't be resolved")
 	void failsOnUnresolvableAddress() throws Exception {
-		long id = this.runner.run(this.discovery("no-such-device.invalid", new DeviceSnmpv2cCommunity("public", "community")));
+		long id = this.runner.run(this.discovery("no-such-device.invalid", DeviceSnmpv2cCommunity.builder().community("public").name("community").build()));
 
-		DiscoverDeviceTypeTask task = TaskRunner.load(DiscoverDeviceTypeTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Unable to resolve device address 'no-such-device.invalid'"), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("Unable to resolve device address 'no-such-device.invalid'"), task.log());
 	}
 
 	@Test
 	@DisplayName("Fails without SNMP credential set")
 	void failsWithoutSnmpCredentials() throws Exception {
-		long id = this.runner.run(this.discovery("127.0.0.1", new DeviceSshAccount("admin", "admin", "admin", "ssh")));
+		long id = this.runner.run(this.discovery("127.0.0.1", DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("ssh").build()));
 
-		DiscoverDeviceTypeTask task = TaskRunner.load(DiscoverDeviceTypeTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("No available SNMP credential set... cannot start autodiscovery."), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("No available SNMP credential set... cannot start autodiscovery."), task.log());
 		Assertions.assertEquals(0, deviceCount());
 	}
 
 	@Test
 	@DisplayName("Fails when the device doesn't answer SNMP, without creating a device nor a snapshot task")
 	void failsWithoutAnswer() throws Exception {
-		long id = this.runner.run(this.discovery("127.0.0.1", new DeviceSnmpv2cCommunity("netshot-test-no-answer", "community")));
+		long id = this.runner.run(this.discovery("127.0.0.1", DeviceSnmpv2cCommunity.builder().community("netshot-test-no-answer").name("community").build()));
 
-		DiscoverDeviceTypeTask task = TaskRunner.load(DiscoverDeviceTypeTask.class, id);
-		Assertions.assertEquals(Status.FAILURE, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Error while polling the device via SNMP."), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("Error while polling the device via SNMP."), task.log());
 		Assertions.assertEquals(0, deviceCount());
 		Assertions.assertEquals(List.of(), this.runner.submitted());
-		Assertions.assertEquals(List.<Device>of(), TaskRunner.inSession(session -> session
-			.createQuery("select t.discoverResultDevice from DiscoverDeviceTypeTask t where t.id = :id", Device.class)
-			.setParameter("id", id).list()));
+		Assertions.assertNull(((DiscoverDeviceTypeTask) task.spec()).discoverResultDeviceId());
 	}
 }

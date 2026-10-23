@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -41,7 +41,7 @@ import net.netshot.netshot.task.engine.TaskContext;
 public class JsDiagnosticHelper {
 
 	/** The device the diagnostic is running on. */
-	public final Device device;
+	public final DeviceDraft device;
 	/** The list of diagnostics. */
 	public List<Diagnostic> diagnostics;
 	/** The diagnostic adapters, to build the results. */
@@ -59,7 +59,7 @@ public class JsDiagnosticHelper {
 	 * @param jsDiagnostics The set of JS diagnostics to run
 	 * @param taskContext the JS logger
 	 */
-	public JsDiagnosticHelper(Device device, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
+	public JsDiagnosticHelper(DeviceDraft device, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
 		Map<String, Object> jsDiagnostics, TaskContext taskContext) {
 		this.device = device;
 		this.diagnostics = diagnostics;
@@ -81,9 +81,9 @@ public class JsDiagnosticHelper {
 		}
 		try {
 			for (Diagnostic diagnostic : diagnostics) {
-				if (diagnostic.getName().equals(key)) {
+				if (diagnostic.name().equals(key)) {
 					this.taskContext.warn("Setting value for diagnostic key '{}'", key);
-					DiagnosticResult result = this.adapters.makeResult(diagnostic, this.device, value);
+					DiagnosticResult result = this.adapters.makeResult(diagnostic, value);
 					if (result != null) {
 						this.device.addDiagnosticResult(result);
 					}

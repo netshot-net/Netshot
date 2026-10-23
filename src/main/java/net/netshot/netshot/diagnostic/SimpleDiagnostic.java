@@ -20,25 +20,30 @@ package net.netshot.netshot.diagnostic;
 
 import org.graalvm.polyglot.HostAccess.Export;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * This is a simple diagnostic: runs a CLI command in a CLI mode, and optionally
- * transforms the result using a regular expression.
- * 
- * @author sylvain.cadilhac
+ * A diagnostic running a CLI command on the devices (of a driver), the result being modified by
+ * a regular expression.
+ *
+ * @param id the ID (0 for a diagnostic not stored yet)
+ * @param name the name
+ * @param enabled true if the diagnostic is run
+ * @param targetGroupId the ID of the group of devices the diagnostic is run on
+ * @param resultType the type of result
+ * @param deviceDriver the name of the driver of the devices
+ * @param cliMode the CLI mode to run the command in
+ * @param command the command
+ * @param modifierPattern the regular expression to apply to the output
+ * @param modifierReplacement the replacement of the regular expression
  */
-@Entity
-@DiscriminatorValue("SIMPLE")
-public class SimpleDiagnostic extends Diagnostic {
+public record SimpleDiagnostic(long id, String name, boolean enabled, Long targetGroupId, AttributeType resultType,
+	String deviceDriver, String cliMode, String command, String modifierPattern, String modifierReplacement) implements Diagnostic {
 
 	/**
-	 * A simple object to store command and CLI mode, to be passed to Javascript for execution.
+	 * The diagnostic, as the driver scripts see it.
 	 */
 	public static class JsSimpleDiagnostic {
 		@Getter(onMethod = @__({
@@ -59,69 +64,14 @@ public class SimpleDiagnostic extends Diagnostic {
 		}
 	}
 
-	/**
-	 * The type of device this diagnostic applies to.
-	 */
-	@Getter
-	@Setter
-	private String deviceDriver;
-
-	/**
-	 * The CLI mode to run the command in.
-	 */
-	@Getter
-	@Setter
-	private String cliMode;
-
-	/**
-	 * The CLI command to run.
-	 */
-	@Getter
-	@Setter
-	private String command;
-
-	/**
-	 * The pattern to search for in the result string.
-	 */
-	@Getter
-	@Setter
-	private String modifierPattern;
-
-	/**
-	 * The replacement string (to replace the modifierPattern with). Also supports
-	 * regular expression backreferences.
-	 */
-	@Getter
-	@Setter
-	private String modifierReplacement;
-
-	/**
-	 * Instantiates a new SimpleDiagnostic. For Hibernate.
-	 */
-	protected SimpleDiagnostic() {
+	@Override
+	public SimpleDiagnostic withId(long newId) {
+		return new SimpleDiagnostic(newId, this.name, this.enabled, this.targetGroupId, this.resultType, this.deviceDriver,
+			this.cliMode, this.command, this.modifierPattern, this.modifierReplacement);
 	}
 
-	/**
-	 * Instantiates a new diagnostic.
-	 * 
-	 * @param name = The name
-	 * @param enabled = True to enable the diagnostic
-	 * @param targetGroup = The group of devices the diagnostic applies to
-	 * @param resultType = The type of result expected by this diagnostic
-	 * @param deviceDriver = The device driver
-	 * @param cliMode = The CLI mode
-	 * @param command = The CLI command to issue
-	 * @param modifierPattern = The pattern to match
-	 * @param modifierReplacement = The replacement script if the pattern is matched
-	 */
-	public SimpleDiagnostic(String name, boolean enabled, DeviceGroup targetGroup, AttributeType resultType,
-		String deviceDriver, String cliMode, String command, String modifierPattern, String modifierReplacement) {
-		super(name, enabled, targetGroup, resultType);
-		this.deviceDriver = deviceDriver;
-		this.cliMode = cliMode;
-		this.command = command;
-		this.modifierPattern = modifierPattern;
-		this.modifierReplacement = modifierReplacement;
+	@Override
+	public String toString() {
+		return Diagnostic.describe(this);
 	}
-
 }

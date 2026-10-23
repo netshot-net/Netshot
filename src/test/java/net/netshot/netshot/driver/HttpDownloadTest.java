@@ -27,11 +27,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.hibernate.Session;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
@@ -47,16 +52,12 @@ import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@code Http.download()}/{@code http.download(...)}: the
@@ -232,28 +233,27 @@ public class HttpDownloadTest {
 
 		TaskContext taskContext = new FakeTaskContext();
 		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext);
-		DeviceHttpAccount credentials = new DeviceHttpAccount("user", "pass", "test-http-account");
-		Session nullSession = null;
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("HttpDownloadTestDriver", null, domain, "test");
+		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username("user").password("pass").name("test-http-account").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
+		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, taskContext, null);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
 		accessManager.forceClientForTest(fakeHttp, credentials);
-		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-			Device.class, AccessManager.class);
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
-		runMethod.invoke(script, nullSession, device, accessManager);
+		runMethod.invoke(script, device, accessManager);
 
-		Config config = device.getLastConfig();
+		Config config = device.getNewConfig();
 		Assertions.assertNotNull(config, "The config doesn't exist");
 		ConfigBinaryFileAttribute fileAttribute = (ConfigBinaryFileAttribute) config.getAttribute("backupArchive");
 		Assertions.assertNotNull(fileAttribute, "The backupArchive attribute wasn't set");
-		Assertions.assertEquals(payload.length, fileAttribute.getFileSize(), "The stored file size is incorrect");
-		Assertions.assertArrayEquals(payload, Files.readAllBytes(fileAttribute.getFilePath()),
+		Assertions.assertEquals(payload.length, fileAttribute.fileSize(), "The stored file size is incorrect");
+		Assertions.assertArrayEquals(payload, Files.readAllBytes(fileAttribute.getPendingFilePath(device.getId())),
 			"The stored file content doesn't match the server response");
 		Assertions.assertEquals(
-			".tmp.%d_cfg0_backupArchive_%s.data".formatted(device.getId(), fileAttribute.getUid()),
-			fileAttribute.getFilePath().getFileName().toString(),
+			".tmp.%d_cfg0_backupArchive_%s.data".formatted(device.getId(), fileAttribute.uid()),
+			fileAttribute.getPendingFilePath(device.getId()).getFileName().toString(),
 			"The pending file name should embed the device id, cfg0 placeholder, attribute name and uid");
 	}
 
@@ -303,31 +303,27 @@ public class HttpDownloadTest {
 
 		TaskContext taskContext = new FakeTaskContext();
 		// The apiKey value sent is the credential set's password ("pass") - see Http.applyAuth().
-		DeviceHttpAccount credentials = new DeviceHttpAccount("user", "pass", "test-http-account");
-		Session nullSession = null;
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("HttpAuthOverrideTestDriver", null, domain, "test");
-		DeviceAccess httpAccess = new DeviceAccess(device, "http");
-		httpAccess.setAddress("127.0.0.1");
-		httpAccess.setPort(this.port);
-		device.getAccesses().add(httpAccess);
+		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username("user").password("pass").name("test-http-account").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
+		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();
+		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(httpAccess)).build());
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, taskContext, Set.of(credentials));
-		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-			Device.class, AccessManager.class);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {
-			runMethod.invoke(script, nullSession, device, accessManager);
+			runMethod.invoke(script, device, accessManager);
 		}
 		finally {
 			accessManager.disconnectAll();
 		}
 
-		Config config = device.getLastConfig();
+		Config config = device.getNewConfig();
 		Assertions.assertNotNull(config,
 			"The config doesn't exist - the client.create(...) 'http.auth' override probably didn't take effect");
 		ConfigBinaryFileAttribute fileAttribute = (ConfigBinaryFileAttribute) config.getAttribute("backupArchive");
 		Assertions.assertNotNull(fileAttribute, "The backupArchive attribute wasn't set");
-		Assertions.assertEquals(payload.length, fileAttribute.getFileSize(), "The stored file size is incorrect");
+		Assertions.assertEquals(payload.length, fileAttribute.fileSize(), "The stored file size is incorrect");
 	}
 }

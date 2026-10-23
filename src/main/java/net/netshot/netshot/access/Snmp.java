@@ -23,15 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.credentials.DeviceSnmpCommunity;
-import net.netshot.netshot.credentials.DeviceSnmpv1Community;
-import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
-import net.netshot.netshot.inventory.device.NetworkAddress;
-import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultManager;
-import net.netshot.netshot.vault.VaultableSecret;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.PDU;
 import org.snmp4j.ScopedPDU;
@@ -66,6 +57,16 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.snmp4j.util.DefaultPDUFactory;
 import org.snmp4j.util.TreeEvent;
 import org.snmp4j.util.TreeUtils;
+
+import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.credentials.DeviceSnmpCommunity;
+import net.netshot.netshot.credentials.DeviceSnmpv1Community;
+import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community;
+import net.netshot.netshot.inventory.device.NetworkAddress;
+import net.netshot.netshot.vault.VaultException;
+import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.vault.VaultableSecret;
 
 
 /**
@@ -128,13 +129,13 @@ public class Snmp extends Poller implements Client {
 	public Snmp(NetworkAddress address, int port, DeviceSnmpCommunity community) throws IOException {
 		if (community instanceof DeviceSnmpv1Community) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
-				new OctetString(resolveSecret(community.getCommunitySecret())));
+				new OctetString(resolveSecret(community.communitySecret())));
 			this.target.setVersion(SnmpConstants.version1);
 			start();
 		}
 		else if (community instanceof DeviceSnmpv2cCommunity) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
-				new OctetString(resolveSecret(community.getCommunitySecret())));
+				new OctetString(resolveSecret(community.communitySecret())));
 			this.target.setVersion(SnmpConstants.version2c);
 			start();
 		}
@@ -146,8 +147,8 @@ public class Snmp extends Poller implements Client {
 			this.target.setVersion(SnmpConstants.version3);
 			this.target.setAddress(new UdpAddress(address.getInetAddress(), port));
 
-			final DeviceSnmpv3Community.AuthProtocol authType = v3Credentials.getAuthType();
-			final DeviceSnmpv3Community.PrivProtocol privType = v3Credentials.getPrivType();
+			final DeviceSnmpv3Community.AuthProtocol authType = v3Credentials.authType();
+			final DeviceSnmpv3Community.PrivProtocol privType = v3Credentials.privType();
 			final boolean hasAuth = authType != null && authType != DeviceSnmpv3Community.AuthProtocol.NONE;
 			final boolean hasPriv = hasAuth && privType != null && privType != DeviceSnmpv3Community.PrivProtocol.NONE;
 
@@ -160,7 +161,7 @@ public class Snmp extends Poller implements Client {
 			else {
 				this.target.setSecurityLevel(SecurityLevel.AUTH_PRIV);
 			}
-			String v3Username = resolveSecret(v3Credentials.getUsernameSecret());
+			String v3Username = resolveSecret(v3Credentials.usernameSecret());
 			this.target.setSecurityName(new OctetString(v3Username));
 
 			// Prepare transport
@@ -192,9 +193,9 @@ public class Snmp extends Poller implements Client {
 				new UsmUser(
 					new OctetString(v3Username),
 					hasAuth ? this.authProtocol : null,
-					hasAuth ? new OctetString(resolveSecret(v3Credentials.getAuthKeySecret())) : null,
+					hasAuth ? new OctetString(resolveSecret(v3Credentials.authKeySecret())) : null,
 					hasPriv ? this.privProtocol : null,
-					hasPriv ? new OctetString(resolveSecret(v3Credentials.getPrivKeySecret())) : null));
+					hasPriv ? new OctetString(resolveSecret(v3Credentials.privKeySecret())) : null));
 			SecurityModels.getInstance().addSecurityModel(usm);
 
 			start();

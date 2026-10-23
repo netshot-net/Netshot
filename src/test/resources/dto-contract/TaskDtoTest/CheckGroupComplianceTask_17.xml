@@ -3,12 +3,12 @@
   <author>author-17</author>
   <cancelRequested>true</cancelRequested>
   <changeDate>1600000000017</changeDate>
-  <checkCompliance>true</checkCompliance>
+  <checkCompliance>false</checkCompliance>
   <childOrder>17</childOrder>
   <comments>Comments of 17</comments>
   <creationDate>1500000000017</creationDate>
   <debugEnabled>false</debugEnabled>
-  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriver/>
   <deviceGroupId>0</deviceGroupId>
   <executionDate/>
   <id>17</id>
@@ -17,19 +17,17 @@
   <parentTaskId>117</parentTaskId>
   <priority>7</priority>
   <repeating>true</repeating>
-  <runDiagnostics>true</runDiagnostics>
-  <runSnapshot>true</runSnapshot>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
   <runnerId>&lt;runnerId&gt;</runnerId>
   <scheduleFactor>3</scheduleFactor>
   <scheduleMode>SEQUENTIAL</scheduleMode>
   <scheduleReference>1700000000000</scheduleReference>
   <scheduleType>WEEKLY</scheduleType>
-  <script>script of 17</script>
+  <script/>
   <status>NEW</status>
   <stopOnFailure>true</stopOnFailure>
   <target>None</target>
   <taskDescription>Group compliance check</taskDescription>
-  <userInputValues>
-    <input>value</input>
-  </userInputValues>
+  <userInputValues/>
 </CheckGroupComplianceTask>

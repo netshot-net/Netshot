@@ -18,33 +18,16 @@
  */
 package net.netshot.netshot.inventory.device.attribute;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@DiscriminatorValue("N")
-public final class DeviceNumericAttribute extends DeviceAttribute {
-
-	@Getter
-	@Setter
-	private Double number;
-
-	protected DeviceNumericAttribute() {
-	}
-
-	public DeviceNumericAttribute(Device device, String name, double value) {
-		super(device, name);
-		this.number = value;
-	}
+/**
+ * A numeric device attribute.
+ *
+ * @param name the name of the attribute
+ * @param number the value
+ */
+public record DeviceNumericAttribute(String name, Double number) implements DeviceAttribute {
 
 	@Override
-	@Transient
 	public Object getData() {
 		return this.number;
 	}
-
 }

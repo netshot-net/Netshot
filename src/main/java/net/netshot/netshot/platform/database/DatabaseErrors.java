@@ -57,4 +57,15 @@ public final class DatabaseErrors {
 	public static boolean isUniqueViolation(DataAccessException e) {
 		return "23505".equals(e.sqlState());
 	}
+
+	/**
+	 * Tells whether a jOOQ statement failed on a foreign key (the row is still referenced, or
+	 * references a missing one), from the SQL state of the failure ({@code 23503}).
+	 *
+	 * @param e the failure
+	 * @return true for a foreign key violation
+	 */
+	public static boolean isForeignKeyViolation(DataAccessException e) {
+		return "23503".equals(e.sqlState());
+	}
 }
