@@ -21,13 +21,15 @@ package net.netshot.netshot.inventory.config;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 
 import com.github.difflib.DiffUtils;
 import com.github.difflib.patch.AbstractDelta;
@@ -42,6 +44,8 @@ import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -50,8 +54,8 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * The configuration use cases: list the configurations, download an item of one, and compare two.
  *
- * <p>The configurations it returns are detached entities loaded with the fetch plan documented
- * on the repository method which found them.</p>
+ * <p>The configurations it returns are records loaded as documented on the repository method
+ * which found them.</p>
  */
 @Slf4j
 public class ConfigService {
@@ -59,6 +63,7 @@ public class ConfigService {
 	private final Transactions transactions;
 	private final ConfigRepository repository;
 	private final DriverRegistry driverRegistry;
+	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/**
 	 * Instantiates the service.
@@ -84,9 +89,9 @@ public class ConfigService {
 	 */
 	public List<Config> listByDevice(long deviceId, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findByDevice(session, deviceId, page));
+			return this.transactions.readDsl(dsl -> this.repository.findByDevice(dsl, deviceId, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
 		}
@@ -102,9 +107,9 @@ public class ConfigService {
 	 */
 	public List<ConfigSummary> listChanges(ConfigFilter filter, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findSummaries(session, filter, page));
+			return this.transactions.readDsl(dsl -> this.repository.findSummaries(dsl, filter, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
 		}
@@ -121,51 +126,52 @@ public class ConfigService {
 	 */
 	public ConfigItem getItem(long id, String itemName) {
 		try {
-			return this.transactions.read(session -> {
-				Config config = this.repository.find(session, id);
+			return this.transactions.readDsl(dsl -> {
+				Config config = this.repository.find(dsl, id, true);
 				if (config == null) {
 					log.warn("Unable to find the config object.");
 					throw new ConfigItemException(Reason.CONFIG_NOT_FOUND, "Unable to find the configuration set");
 				}
-				for (ConfigAttribute attribute : config.getAttributes()) {
-					if (attribute.getName().equals(itemName)) {
+				DeviceSummary device = this.deviceRepository.findSummary(dsl, config.deviceId());
+				for (ConfigAttribute attribute : config.attributes()) {
+					if (attribute.name().equals(itemName)) {
 						if (attribute instanceof ConfigLongTextAttribute longText) {
-							return textItem(config, longText);
+							return textItem(config, device, longText);
 						}
 						else if (attribute instanceof ConfigBinaryFileAttribute fileAttribute) {
-							return fileItem(config, fileAttribute);
+							return fileItem(config, device, fileAttribute);
 						}
 					}
 				}
 				throw new ConfigItemException(Reason.INVALID_ITEM, "Invalid configuration item '%s'".formatted(itemName));
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to get the configuration", e);
 			throw new ConfigItemException(Reason.DATABASE_ERROR, "Unable to get the configuration");
 		}
 	}
 
-	private static ConfigItem textItem(Config config, ConfigLongTextAttribute attribute) {
-		String text = attribute.getLongText().getText();
+	private static ConfigItem textItem(Config config, DeviceSummary device, ConfigLongTextAttribute attribute) {
+		String text = attribute.text();
 		if (text == null) {
 			throw new ConfigItemException(Reason.ITEM_NOT_AVAILABLE, "Configuration item not available");
 		}
-		String fileName = downloadFileName(config, "%s.cfg".formatted(attribute.getName()));
+		String fileName = downloadFileName(config, device, "%s.cfg".formatted(attribute.name()));
 		byte[] content = text.getBytes(StandardCharsets.UTF_8);
 		return new ConfigItem(fileName, content, null, content.length);
 	}
 
-	private static ConfigItem fileItem(Config config, ConfigBinaryFileAttribute attribute) {
-		String fileName = attribute.getOriginalName();
+	private static ConfigItem fileItem(Config config, DeviceSummary device, ConfigBinaryFileAttribute attribute) {
+		String fileName = attribute.originalName();
 		if (fileName == null) {
-			fileName = "%s.dat".formatted(attribute.getName());
+			fileName = "%s.dat".formatted(attribute.name());
 		}
 		else {
-			fileName = "%s_%s".formatted(attribute.getName(), fileName);
+			fileName = "%s_%s".formatted(attribute.name(), fileName);
 		}
-		fileName = downloadFileName(config, fileName);
-		File file = attribute.getFilePath().toFile();
+		fileName = downloadFileName(config, device, fileName);
+		File file = attribute.getFilePath(config.deviceId(), config.id()).toFile();
 		return new ConfigItem(fileName, null, file, file.length());
 	}
 
@@ -173,14 +179,15 @@ public class ConfigService {
 	 * Prefixes the name of a downloaded file with the device name and the date of the configuration (if known).
 	 *
 	 * @param config the configuration
+	 * @param device the device of the configuration
 	 * @param fileName the name of the file
 	 * @return the full name of the file
 	 */
-	private static String downloadFileName(Config config, String fileName) {
+	private static String downloadFileName(Config config, DeviceSummary device, String fileName) {
 		try {
 			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
-			return String.format("%s_%s_%s", config.getDevice().getName(),
-				formatter.format(config.getChangeDate()), fileName);
+			return String.format("%s_%s_%s", device.name(),
+				formatter.format(Date.from(config.changeDate())), fileName);
 		}
 		catch (Exception e) {
 			log.trace("Unable to build the full name of the file, keeping '{}'.", fileName, e);
@@ -202,17 +209,17 @@ public class ConfigService {
 	 */
 	public ConfigDiff diff(long id1, long id2, boolean includeDeltas, boolean includeConfigs) {
 		try {
-			return this.transactions.read(session -> {
-				Config config2 = this.repository.find(session, id2);
+			return this.transactions.readDsl(dsl -> {
+				Config config2 = this.repository.find(dsl, id2, true);
 				Config config1;
 				if (config2 != null && id1 == 0) {
-					config1 = this.repository.findPrevious(session, config2);
+					config1 = this.repository.findPrevious(dsl, config2, true);
 					if (config1 == null) {
-						config1 = new Config(config2.getDevice());
+						config1 = Config.empty(config2.deviceId());
 					}
 				}
 				else {
-					config1 = this.repository.find(session, id1);
+					config1 = this.repository.find(dsl, id1, true);
 				}
 				if (config1 == null || config2 == null) {
 					log.error("Non existing config, {} or {}.", id1, id2);
@@ -221,8 +228,10 @@ public class ConfigService {
 				DeviceDriver driver1;
 				DeviceDriver driver2;
 				try {
-					driver1 = this.driverRegistry.forDevice(config1.getDevice());
-					driver2 = this.driverRegistry.forDevice(config2.getDevice());
+					DeviceSummary device1 = this.deviceRepository.findSummary(dsl, config1.deviceId());
+					DeviceSummary device2 = this.deviceRepository.findSummary(dsl, config2.deviceId());
+					driver1 = this.driverRegistry.forDevice(device1.id(), device1.driver());
+					driver2 = this.driverRegistry.forDevice(device2.id(), device2.driver());
 				}
 				catch (MissingDeviceDriverException e) {
 					log.error("Missing driver.");
@@ -238,18 +247,18 @@ public class ConfigService {
 					deltas = new HashMap<>();
 					computeDeltas(driver1, config1, config2, deltas);
 				}
-				if (includeConfigs) {
-					this.repository.loadAttributes(config1);
-					this.repository.loadAttributes(config2);
-				}
-				return new ConfigDiff(config1.getChangeDate(), config2.getChangeDate(), config1.getId(), config2.getId(),
+				return new ConfigDiff(date(config1.changeDate()), date(config2.changeDate()), config1.id(), config2.id(),
 					includeConfigs ? config1 : null, includeConfigs ? config2 : null, deltas);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
 		}
+	}
+
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
 	}
 
 	private static void computeDeltas(DeviceDriver driver, Config config1, Config config2, Map<String, List<ConfigDelta>> deltas) {

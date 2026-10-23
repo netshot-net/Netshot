@@ -20,124 +20,29 @@ package net.netshot.netshot.task.type;
 
 import java.util.List;
 
-import org.hibernate.Hibernate;
-import org.hibernate.Session;
-import org.quartz.JobKey;
-
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.task.Task;
-
 /**
- * This task schedules new tasks to run diagnostics on each device of the
- * given group (either a real device group, or a one-time device list),
- * either in parallel or sequentially.
+ * Runs the diagnostics (one child task per device), for the devices of a group or a list of devices.
+ *
+ * @param deviceGroupId the ID of the target group (null for a device list)
+ * @param deviceIds the IDs of the target devices, when there is no group
+ * @param dontCheckCompliance true not to check the compliance after the diagnostics
  */
-@Entity
-@DiscriminatorValue("RunGroupDiagnosticsTask")
-@Slf4j
-public final class RunGroupDiagnosticsTask extends Task
-	implements GroupBasedTask, DeviceListBasedTask, ChildOrchestratingTask {
+public record RunGroupDiagnosticsTask(Long deviceGroupId, List<Long> deviceIds, boolean dontCheckCompliance) implements TaskSpec, GroupBasedTask, ChildOrchestratingTask {
 
 	/**
-	 * Instantiates a new run group diagnostic task.
+	 * Canonical constructor: a null list of devices is replaced by an empty one.
 	 */
-	public RunGroupDiagnosticsTask() {
-
+	public RunGroupDiagnosticsTask {
+		deviceIds = deviceIds == null ? List.of() : List.copyOf(deviceIds);
 	}
 
-	/**
-	 * Instantiates a new run group diagnostic task, targeting a real device group.
-	 *
-	 * @param group the group
-	 * @param comments the comments
-	 * @param author the author
-	 * @param dontCheckCompliance don't check compliance after this task
-	 */
-	public RunGroupDiagnosticsTask(DeviceGroup group, String comments, String author, boolean dontCheckCompliance) {
-		super(comments, group.getName(), author);
-		this.setDeviceGroup(group);
-		this.setDontCheckCompliance(dontCheckCompliance);
-	}
-
-	/**
-	 * Instantiates a new run group diagnostic task, targeting a one-time device list.
-	 *
-	 * @param devices the ordered list of devices
-	 * @param comments the comments
-	 * @param author the author
-	 * @param dontCheckCompliance don't check compliance after this task
-	 */
-	public RunGroupDiagnosticsTask(List<Device> devices, String comments, String author, boolean dontCheckCompliance) {
-		super(comments, String.format("%d device(s)", devices.size()), author);
-		this.setDeviceList(devices);
-		this.setDontCheckCompliance(dontCheckCompliance);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Group diagnostics";
 	}
 
-	/**
-	 * Get the ID of the associated group.
-	 * @return the ID of the group
-	 */
-	@Transient
-	public long getDeviceGroupId() {
-		if (this.getDeviceGroup() == null) {
-			return 0;
-		}
-		return this.getDeviceGroup().getId();
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#prepare()
-	 */
 	@Override
-	public void prepare(Session session) {
-		Hibernate.initialize(this.getDeviceGroup());
-		if (this.getDeviceGroup() != null) {
-			Hibernate.initialize(this.getDeviceGroup().getCachedDevices());
-		}
-		else {
-			Hibernate.initialize(this.getDeviceListMembers());
-		}
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
-	@Override
-	public Object clone() throws CloneNotSupportedException {
-		RunGroupDiagnosticsTask task = (RunGroupDiagnosticsTask) super.clone();
-		task.setDeviceGroup(this.getDeviceGroup());
-		if (this.getDeviceGroup() == null) {
-			// Mirrors prepare(), which only initializes the lazy deviceListMembers
-			// collection in this same case -- device group and device list are
-			// mutually exclusive, so there is nothing to copy (and nothing safe to
-			// touch) otherwise.
-			task.setDeviceList(this.getDeviceList());
-		}
-		return task;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
-	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()),
-			String.format("RunGroupDiagnostics_%d", this.getDeviceGroupId()));
+	public String identityGroup() {
+		return GroupBasedTask.identityGroup("RunGroupDiagnostics", this.deviceGroupId);
 	}
 }

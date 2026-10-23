@@ -93,7 +93,7 @@ public class HttpTest {
 		auth.setType("http");
 		auth.setScheme("basic");
 		config.setAuth(auth);
-		DeviceHttpAccount account = new DeviceHttpAccount("bob", "s3cret", "cred");
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username("bob").password("s3cret").name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -110,7 +110,7 @@ public class HttpTest {
 		auth.setType("http");
 		auth.setScheme("bearer");
 		config.setAuth(auth);
-		DeviceHttpAccount account = new DeviceHttpAccount(null, "tok3n", "cred");
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("tok3n").name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -127,7 +127,7 @@ public class HttpTest {
 		auth.setIn("header");
 		auth.setName("X-API-Key");
 		config.setAuth(auth);
-		DeviceHttpAccount account = new DeviceHttpAccount(null, "the-key", "cred");
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("the-key").name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -144,7 +144,7 @@ public class HttpTest {
 		auth.setIn("query");
 		auth.setName("api_key");
 		config.setAuth(auth);
-		DeviceHttpAccount account = new DeviceHttpAccount(null, "the-key", "cred");
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("the-key").name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -191,7 +191,7 @@ public class HttpTest {
 			"userPasswd", "$$NetshotPassword$$"
 		));
 		config.setAuth(auth);
-		DeviceHttpAccount account = new DeviceHttpAccount("bob", "s3cret", "cred");
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username("bob").password("s3cret").name("cred").build();
 		Http client = newClient();
 
 		HttpResult first = client.request("GET", "/status", null, null, null, null, config, account);
@@ -216,7 +216,7 @@ public class HttpTest {
 		auth.setIn("header");
 		auth.setName("X-API-Key");
 		config.setAuth(auth);
-		DeviceHttpAccount account = new DeviceHttpAccount(null, "the-key", "cred");
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("the-key").name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 

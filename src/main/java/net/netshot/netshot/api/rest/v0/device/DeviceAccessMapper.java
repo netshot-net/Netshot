@@ -18,16 +18,19 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
+import java.util.Date;
+
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.rest.v0.credentials.CredentialSetMapper;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
  * Maps the device accesses (and, through {@link CredentialSetMapper}, their credential sets) between
- * the entities and their REST representation, in both directions.
+ * the records and their REST representation, in both directions.
  *
- * <p>The mapping to an entity builds the <em>incoming</em> objects of a request: transient
- * entities which hold what the client sent, and which the device service validates, then
- * resolves against the persistent ones (global credential set by ID, Vault instance by ID...).
+ * <p>The mapping to a record builds the <em>incoming</em> objects of a request: records which
+ * hold what the client sent, and which the device service validates, then resolves against the
+ * stored ones (global credential set by ID, Vault instance by ID...).
  * The secrets read as {@code =} (unchanged) are already {@code null} in the DTO.</p>
  */
 public final class DeviceAccessMapper {
@@ -44,16 +47,16 @@ public final class DeviceAccessMapper {
 	 */
 	public static DeviceAccessDto toDto(DeviceAccess access) {
 		return new DeviceAccessDto(
-			access.getAccessName(),
-			access.getAddress(),
-			access.getPort(),
-			CredentialSetMapper.toDto(access.getGlobalCredentialSet()),
-			CredentialSetMapper.toDto(access.getSpecificCredentialSet()),
-			access.getSshHostKeyVerification(),
-			access.getSshTrustedHostKeys(),
-			access.getSshTrustedHostKeysSince(),
-			access.getHttpsCaTrustMode(),
-			access.getHttpsCustomCaCertificate());
+			access.accessName(),
+			access.address(),
+			access.port(),
+			CredentialSetMapper.toDto(access.globalCredentialSet()),
+			CredentialSetMapper.toDto(access.specificCredentialSet()),
+			access.sshHostKeyVerification(),
+			access.sshTrustedHostKeys(),
+			access.sshTrustedHostKeysSince() == null ? null : Date.from(access.sshTrustedHostKeysSince()),
+			access.httpsCaTrustMode(),
+			access.httpsCustomCaCertificate());
 	}
 
 	/**
@@ -63,19 +66,18 @@ public final class DeviceAccessMapper {
 	 * @return the access, not attached to any device
 	 */
 	public static DeviceAccess toEntity(DeviceAccessDto dto) {
-		DeviceAccess access = new DeviceAccess(null, dto.accessName());
-		access.setAddress(dto.address());
-		access.setPort(dto.port());
-		access.setGlobalCredentialSet(CredentialSetMapper.toEntity(dto.globalCredentialSet()));
-		access.setSpecificCredentialSet(CredentialSetMapper.toEntity(dto.specificCredentialSet()));
-		access.setSshHostKeyVerification(dto.sshHostKeyVerification());
-		access.setSshTrustedHostKeys(dto.sshTrustedHostKeys());
-		access.setSshTrustedHostKeysSince(dto.sshTrustedHostKeysSince());
-		// Absent or null: the system trust store, which is the default of the entity as well
-		if (dto.httpsCaTrustMode() != null) {
-			access.setHttpsCaTrustMode(dto.httpsCaTrustMode());
-		}
-		access.setHttpsCustomCaCertificate(dto.httpsCustomCaCertificate());
-		return access;
+		return DeviceAccess.builder()
+			.accessName(dto.accessName())
+			.address(dto.address())
+			.port(dto.port())
+			.globalCredentialSet(CredentialSetMapper.toEntity(dto.globalCredentialSet()))
+			.specificCredentialSet(CredentialSetMapper.toEntity(dto.specificCredentialSet()))
+			.sshHostKeyVerification(dto.sshHostKeyVerification())
+			.sshTrustedHostKeys(dto.sshTrustedHostKeys())
+			.sshTrustedHostKeysSince(dto.sshTrustedHostKeysSince() == null ? null : dto.sshTrustedHostKeysSince().toInstant())
+			// Absent or null: the system trust store
+			.httpsCaTrustMode(dto.httpsCaTrustMode() == null ? HttpsCaTrustMode.SYSTEM_TRUSTSTORE : dto.httpsCaTrustMode())
+			.httpsCustomCaCertificate(dto.httpsCustomCaCertificate())
+			.build();
 	}
 }

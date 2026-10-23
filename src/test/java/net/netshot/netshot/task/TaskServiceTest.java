@@ -36,20 +36,23 @@ import org.quartz.SchedulerException;
 
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.type.CheckComplianceTask;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestTasks;
 
 /**
  * Tests of the task use cases, against a real database, a recording task submitter and a fake task engine.
@@ -84,6 +87,7 @@ class TaskServiceTest {
 				throw this.schedulerFailure;
 			}
 			this.submittedTasks.add(task);
+			return task;
 		};
 		TaskEngine engine = new TaskEngine() {
 			@Override
@@ -108,28 +112,15 @@ class TaskServiceTest {
 			}
 		};
 		this.service = new TaskService(this.transactions, new TaskRepository(), submitter, engine, TestDrivers.registry());
-		this.domainId = this.transactions.write(session -> {
-			Domain domain = new Domain("Lab", "Test domain", null, null);
-			session.persist(domain);
-			return domain.getId();
-		});
-		Device device = this.transactions.write(session -> {
-			Domain domain = session.get(Domain.class, this.domainId);
-			Device d = new Device("CiscoIOS12", "10.30.0.1", domain, AUTHOR);
-			d.setName("router-1");
-			session.persist(d);
-			Device other = new Device("CiscoIOS12", "10.30.0.2", domain, AUTHOR);
-			other.setName("router-2");
-			session.persist(other);
-			this.otherDeviceId = other.getId();
-			StaticDeviceGroup group = new StaticDeviceGroup("Group");
-			session.persist(group);
-			this.groupId = group.getId();
-			return d;
-		});
-		this.deviceId = device.getId();
-		this.snapshotId = this.persistTask(this.deviceTask(Task.Status.SUCCESS, new Date(1_600_000_000_000L), "with debug log", true));
-		this.failedId = this.persistTask(this.deviceTask(Task.Status.FAILURE, new Date(1_600_000_100_000L), "failed", false));
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		this.domainId = domain.id();
+		Device device = TestDevices.add(Device.create("CiscoIOS12", "10.30.0.1", domain, AUTHOR).toBuilder().name("router-1").build());
+		this.otherDeviceId = TestDevices.add(Device.create("CiscoIOS12", "10.30.0.2", domain, AUTHOR).toBuilder().name("router-2").build()).id();
+		this.groupId = TestDevices.addStaticGroup("Group").id();
+		this.deviceId = device.id();
+		this.snapshotId = this.persistTask(this.deviceTask(Task.Status.SUCCESS, new Date(1_600_000_000_000L), "with debug log"));
+		TestTasks.setDebugLog(this.snapshotId, "debug text");
+		this.failedId = this.persistTask(this.deviceTask(Task.Status.FAILURE, new Date(1_600_000_100_000L), "failed"));
 	}
 
 	@BeforeEach
@@ -141,23 +132,17 @@ class TaskServiceTest {
 		this.engineFailure = false;
 	}
 
-	private Task deviceTask(Task.Status status, Date date, String comments, boolean debugLog) {
-		Device device = this.transactions.read(session -> session.get(Device.class, this.deviceId));
-		TakeSnapshotTask task = new TakeSnapshotTask(device, comments, AUTHOR, false, false, false);
-		task.setStatus(status);
-		task.setChangeDate(date);
-		task.setExecutionDate(date);
-		if (debugLog) {
-			task.setDebugLog(new DebugLog("debug text"));
-		}
-		return task;
+	private Task deviceTask(Task.Status status, Date date, String comments) {
+		Device device = TestDevices.find(this.deviceId);
+		return TakeSnapshotTask.of(device, comments, AUTHOR, false, false, false).toBuilder()
+			.status(status)
+			.changeDate(date.toInstant())
+			.executionDate(date.toInstant())
+			.build();
 	}
 
 	private long persistTask(Task task) {
-		return this.transactions.write(session -> {
-			session.persist(task);
-			return task.getId();
-		});
+		return TestTasks.add(task).id();
 	}
 
 	private static NetshotException assertError(ErrorCode code, Executable executable) {
@@ -178,8 +163,8 @@ class TaskServiceTest {
 	@DisplayName("find() returns the task, or null for an unknown one")
 	void find() {
 		Task task = this.service.find(this.snapshotId);
-		Assertions.assertInstanceOf(TakeSnapshotTask.class, task);
-		Assertions.assertEquals("with debug log", task.getComments());
+		Assertions.assertInstanceOf(TakeSnapshotTask.class, task.spec());
+		Assertions.assertEquals("with debug log", task.comments());
 		Assertions.assertNull(this.service.find(99_999_999L));
 	}
 
@@ -199,7 +184,7 @@ class TaskServiceTest {
 		Assertions.assertTrue(summaries.size() >= 2);
 		Assertions.assertTrue(summaries.get(0).id() > summaries.get(1).id(), "most recent first");
 		TaskSummary failed = summaries.stream().filter(s -> s.id() == this.failedId).findFirst().orElseThrow();
-		Assertions.assertEquals(TakeSnapshotTask.class, failed.type());
+		Assertions.assertEquals("TakeSnapshotTask", failed.type());
 		Assertions.assertEquals(this.deviceId, failed.deviceId());
 		Assertions.assertNull(failed.deviceGroupId());
 
@@ -250,7 +235,7 @@ class TaskServiceTest {
 		Assertions.assertEquals(1L, stats.statusCounts().get(Task.Status.SUCCESS));
 		Assertions.assertEquals(1L, stats.statusCounts().get(Task.Status.FAILURE));
 		Assertions.assertEquals(2L, stats.typeCounts().get("TakeSnapshotTask"));
-		Assertions.assertEquals(Task.getTaskClasses().size(), stats.typeCounts().size());
+		Assertions.assertEquals(TaskSpec.class.getPermittedSubclasses().length, stats.typeCounts().size());
 		Assertions.assertEquals(new Date(1_600_000_200_000L), stats.bins().get(1).to());
 		Assertions.assertEquals(48, this.service.getStats(0L, 1_000L, null).bins().size());
 		Assertions.assertEquals(366, this.service.getStats(0L, 1_000_000L, 1_000).bins().size());
@@ -266,7 +251,7 @@ class TaskServiceTest {
 	void updateUnknown() {
 		assertError(ErrorCode.NETSHOT_TASK_NOT_FOUND, () -> this.service.update(99_999_999L, true, AUTHOR));
 		Task task = this.service.update(this.failedId, false, AUTHOR);
-		Assertions.assertEquals(this.failedId, task.getId());
+		Assertions.assertEquals(this.failedId, task.id());
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
 		Assertions.assertTrue(this.cancelRequests.isEmpty());
 	}
@@ -275,26 +260,25 @@ class TaskServiceTest {
 	@DisplayName("update() cancels a scheduled task through the engine, and only a scheduled one")
 	void updateCancel() {
 		assertError(ErrorCode.NETSHOT_TASK_NOT_CANCELLABLE, () -> this.service.update(this.failedId, true, AUTHOR));
-		Task scheduled = this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled", false);
+		Task scheduled = this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled");
 		long id = this.persistTask(scheduled);
 		this.service.update(id, true, AUTHOR);
 		Assertions.assertEquals(1, this.cancelledTasks.size());
-		Assertions.assertEquals(id, this.cancelledTasks.get(0).getId());
+		Assertions.assertEquals(id, this.cancelledTasks.get(0).id());
 		Assertions.assertTrue(this.cancelRequests.isEmpty());
 	}
 
 	@Test
 	@DisplayName("update() only requests the cancellation of a running task")
 	void updateCancelRunning() {
-		long runningDevice = this.persistTask(this.deviceTask(Task.Status.RUNNING, new Date(), "running", false));
+		long runningDevice = this.persistTask(this.deviceTask(Task.Status.RUNNING, new Date(), "running"));
 		this.service.update(runningDevice, true, AUTHOR);
 		Assertions.assertEquals(List.of(runningDevice), this.cancelRequests);
 		Assertions.assertTrue(this.cancelledTasks.isEmpty());
 
-		Device device = this.transactions.read(session -> session.get(Device.class, this.deviceId));
-		TakeGroupSnapshotTask group = new TakeGroupSnapshotTask(List.of(device), "running group", AUTHOR, -1, false, false);
-		group.setStatus(Task.Status.RUNNING);
-		long runningGroup = this.persistTask(group);
+		Task group = GroupBasedTask.of(new TakeGroupSnapshotTask(null, List.of(this.deviceId), -1, false, false), null,
+			"running group", AUTHOR);
+		long runningGroup = this.persistTask(group.withStatus(Task.Status.RUNNING));
 		this.service.update(runningGroup, true, AUTHOR);
 		Assertions.assertEquals(List.of(runningDevice, runningGroup), this.cancelRequests);
 	}
@@ -302,7 +286,7 @@ class TaskServiceTest {
 	@Test
 	@DisplayName("update() reports a failing engine as a cancel error")
 	void updateCancelFailure() {
-		long id = this.persistTask(this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled", false));
+		long id = this.persistTask(this.deviceTask(Task.Status.SCHEDULED, new Date(), "scheduled"));
 		this.engineFailure = true;
 		assertError(ErrorCode.NETSHOT_TASK_CANCEL_ERROR, () -> this.service.update(id, true, AUTHOR));
 	}
@@ -324,25 +308,25 @@ class TaskServiceTest {
 	void createDeviceTasks() {
 		Task snapshot = this.service.create(creation("TakeSnapshotTask").device(this.deviceId).comments("c1")
 			.dontRunDiagnostics(true).priority(7).build());
-		TakeSnapshotTask take = Assertions.assertInstanceOf(TakeSnapshotTask.class, snapshot);
-		Assertions.assertEquals(this.deviceId, take.getDevice().getId());
-		Assertions.assertEquals("c1", take.getComments());
-		Assertions.assertEquals(AUTHOR, take.getAuthor());
-		Assertions.assertTrue(take.isDontRunDiagnostics());
-		Assertions.assertEquals(7, take.getPriority());
+		TakeSnapshotTask take = Assertions.assertInstanceOf(TakeSnapshotTask.class, snapshot.spec());
+		Assertions.assertEquals(this.deviceId, take.deviceId());
+		Assertions.assertEquals("c1", snapshot.comments());
+		Assertions.assertEquals(AUTHOR, snapshot.author());
+		Assertions.assertTrue(take.dontRunDiagnostics());
+		Assertions.assertEquals(7, snapshot.priority());
 		Assertions.assertEquals(List.of(snapshot), this.submittedTasks);
 
 		Assertions.assertInstanceOf(CheckComplianceTask.class,
-			this.service.create(creation("CheckComplianceTask").device(this.deviceId).build()));
+			this.service.create(creation("CheckComplianceTask").device(this.deviceId).build()).spec());
 		Assertions.assertInstanceOf(net.netshot.netshot.task.type.RunDiagnosticsTask.class,
-			this.service.create(creation("RunDiagnosticsTask").device(this.deviceId).build()));
+			this.service.create(creation("RunDiagnosticsTask").device(this.deviceId).build()).spec());
 		Assertions.assertEquals(3, this.submittedTasks.size());
 
 		RunDeviceScriptTask script = Assertions.assertInstanceOf(RunDeviceScriptTask.class,
 			this.service.create(creation("RunDeviceScriptTask").device(this.deviceId).driver("CiscoIOS12").script(SCRIPT)
-				.runSnapshot(true).userInputs(Map.of()).build()));
-		Assertions.assertEquals(SCRIPT, script.getScript());
-		Assertions.assertTrue(script.isRunSnapshot());
+				.runSnapshot(true).userInputs(Map.of()).build()).spec());
+		Assertions.assertEquals(SCRIPT, script.script());
+		Assertions.assertTrue(script.runSnapshot());
 	}
 
 	@Test
@@ -364,19 +348,19 @@ class TaskServiceTest {
 			assertError(ErrorCode.NETSHOT_INVALID_TASK, () -> this.service.create(
 				creation(type).group(this.groupId).deviceList(List.of(this.deviceId)).build()));
 			Task byGroup = this.service.create(creation(type).group(this.groupId).build());
-			Assertions.assertEquals(type, byGroup.getClass().getSimpleName());
+			Assertions.assertEquals(type, byGroup.typeName());
 			Task byList = this.service.create(creation(type).deviceList(List.of(this.deviceId, this.otherDeviceId)).build());
-			Assertions.assertEquals(type, byList.getClass().getSimpleName());
+			Assertions.assertEquals(type, byList.typeName());
 		}
 		Assertions.assertEquals(8, this.submittedTasks.size());
-		TakeGroupSnapshotTask snapshot = (TakeGroupSnapshotTask) this.service.create(
+		Task snapshot = this.service.create(
 			creation("TakeGroupSnapshotTask").group(this.groupId).limitHours(12).scheduleMode(Task.ScheduleMode.SEQUENTIAL)
 				.stopOnFailure(true).build());
-		Assertions.assertEquals(12, snapshot.getLimitToOutofdateDeviceHours());
-		Assertions.assertEquals(Task.ScheduleMode.SEQUENTIAL, snapshot.getScheduleMode());
-		Assertions.assertTrue(snapshot.isStopOnFailure());
+		Assertions.assertEquals(12, ((TakeGroupSnapshotTask) snapshot.spec()).limitToOutofdateDeviceHours());
+		Assertions.assertEquals(Task.ScheduleMode.SEQUENTIAL, snapshot.scheduleMode());
+		Assertions.assertTrue(snapshot.stopOnFailure());
 		Assertions.assertInstanceOf(RunDeviceGroupScriptTask.class, this.service.create(
-			creation("RunDeviceGroupScriptTask").group(this.groupId).driver("CiscoIOS12").script(SCRIPT).build()));
+			creation("RunDeviceGroupScriptTask").group(this.groupId).driver("CiscoIOS12").script(SCRIPT).build()).spec());
 	}
 
 	@Test
@@ -402,9 +386,10 @@ class TaskServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN, () -> this.service.create(creation("ScanSubnetsTask").domain(0L).subnets("10.0.0.0/24").build()));
 		assertError(ErrorCode.NETSHOT_INVALID_DOMAIN, () -> this.service.create(creation("ScanSubnetsTask").domain(99_999_999L).subnets("10.0.0.0/24").build()));
 		Assertions.assertTrue(this.submittedTasks.isEmpty());
-		ScanSubnetsTask scan = (ScanSubnetsTask) this.service.create(
+		Task scan = this.service.create(
 			creation("ScanSubnetsTask").domain(this.domainId).subnets("10.0.0.0/24,10.0.1.5").build());
-		Assertions.assertTrue(scan.getTarget().startsWith("{"), scan.getTarget());
+		Assertions.assertInstanceOf(ScanSubnetsTask.class, scan.spec());
+		Assertions.assertTrue(scan.target().startsWith("{"), scan.target());
 		Assertions.assertEquals(1, this.submittedTasks.size());
 	}
 
@@ -423,12 +408,12 @@ class TaskServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_DEVICE, () -> this.service.create(creation("PurgeDatabaseTask").days(30).deviceList(List.of(99_999_999L)).build()));
 		Assertions.assertTrue(this.submittedTasks.isEmpty());
 		PurgeDatabaseTask purge = (PurgeDatabaseTask) this.service.create(
-			creation("PurgeDatabaseTask").days(30).configDays(-1).configSize(10).configKeepDays(5).removeOrphanFiles(true).build());
-		Assertions.assertEquals(30, purge.getDays());
-		Assertions.assertEquals(-1, purge.getConfigDays());
-		Assertions.assertEquals(0, purge.getConfigSize(), "ignored without configuration purge");
-		Assertions.assertEquals(0, purge.getConfigKeepDays(), "ignored without configuration purge");
-		Assertions.assertTrue(purge.isRemoveOrphanFiles());
+			creation("PurgeDatabaseTask").days(30).configDays(-1).configSize(10).configKeepDays(5).removeOrphanFiles(true).build()).spec();
+		Assertions.assertEquals(30, purge.days());
+		Assertions.assertEquals(-1, purge.configDays());
+		Assertions.assertEquals(0, purge.configSize(), "ignored without configuration purge");
+		Assertions.assertEquals(0, purge.configKeepDays(), "ignored without configuration purge");
+		Assertions.assertTrue(purge.removeOrphanFiles());
 		Assertions.assertTrue(this.service.create(creation("PurgeDatabaseTask").days(30).group(this.groupId).build()) != null);
 		Assertions.assertTrue(this.service.create(creation("PurgeDatabaseTask").days(30).deviceList(List.of(this.deviceId)).build()) != null);
 	}
@@ -446,11 +431,11 @@ class TaskServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_TASK, () -> this.service.create(creation("TakeSnapshotTask").device(this.deviceId).priority(10).build()));
 		Assertions.assertTrue(this.submittedTasks.isEmpty());
 		Task daily = this.service.create(creation("TakeSnapshotTask").device(this.deviceId).schedule(Task.ScheduleType.DAILY, future, 2).build());
-		Assertions.assertEquals(Task.ScheduleType.DAILY, daily.getScheduleType());
-		Assertions.assertEquals(2, daily.getScheduleFactor());
+		Assertions.assertEquals(Task.ScheduleType.DAILY, daily.scheduleType());
+		Assertions.assertEquals(2, daily.scheduleFactor());
 		// Without schedule reference, the schedule is not checked at all
 		Task asap = this.service.create(creation("TakeSnapshotTask").device(this.deviceId).schedule(Task.ScheduleType.AT, null, -1).build());
-		Assertions.assertEquals(Task.ScheduleType.ASAP, asap.getScheduleType());
+		Assertions.assertEquals(Task.ScheduleType.ASAP, asap.scheduleType());
 	}
 
 	@Test

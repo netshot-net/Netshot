@@ -20,7 +20,7 @@ package net.netshot.netshot.inventory.device;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.Page;
@@ -61,9 +61,9 @@ public class DeviceCatalogService {
 	 */
 	public List<DeviceFamily> getFamilies(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findFamilies(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.findFamilies(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while loading device families.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
@@ -78,9 +78,9 @@ public class DeviceCatalogService {
 	 */
 	public List<String> getPartNumbers(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findPartNumbers(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.findPartNumbers(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while loading part numbers.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
@@ -95,9 +95,9 @@ public class DeviceCatalogService {
 	 */
 	public List<DeviceTagCount> getTags(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findTagCounts(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.findTagCounts(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while loading device tags.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
@@ -112,9 +112,9 @@ public class DeviceCatalogService {
 	 */
 	public List<String> getSoftwareVersions(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findSoftwareVersions(session, page));
+			return this.transactions.readDsl(dsl -> this.repository.findSoftwareVersions(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while loading software versions.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}

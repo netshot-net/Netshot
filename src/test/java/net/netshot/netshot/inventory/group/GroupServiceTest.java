@@ -35,6 +35,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 
 /**
  * Tests of the device group use cases, against a real database.
@@ -57,20 +58,14 @@ class GroupServiceTest {
 	void initDb() throws Exception {
 		this.transactions = new Transactions();
 		this.service = new GroupService(this.transactions, new GroupRepository());
-		Domain domain = new Domain("Lab", "Test domain", null, null);
-		this.transactions.run(session -> session.persist(domain));
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.routerA = this.createDevice(domain, "router-a", "10.30.0.1");
 		this.routerB = this.createDevice(domain, "router-b", "10.30.0.2");
 		this.switchC = this.createDevice(domain, "switch-c", "10.30.0.3");
 	}
 
 	private long createDevice(Domain domain, String name, String address) {
-		return this.transactions.write(session -> {
-			Device device = new Device("CiscoIOS12", address, domain, "tester");
-			device.setName(name);
-			session.persist(device);
-			return device.getId();
-		});
+		return TestDevices.add(Device.create("CiscoIOS12", address, domain, "tester").toBuilder().name(name).build()).id();
 	}
 
 	private static NetshotException assertError(ErrorCode code, Executable executable) {
@@ -92,8 +87,7 @@ class GroupServiceTest {
 	}
 
 	private List<Long> members(long groupId) {
-		return this.transactions.read(session -> session.get(DeviceGroup.class, groupId)
-			.getCachedDevices().stream().map(Device::getId).toList());
+		return TestDevices.memberIds(groupId);
 	}
 
 	// ------------------------------------------------------------------
@@ -107,10 +101,10 @@ class GroupServiceTest {
 		DeviceGroup created = this.service.create(new GroupDefinition(STATIC, " " + name + " ", List.of(this.routerB, this.routerA),
 			"ignored", "Production/Core", true));
 		StaticDeviceGroup group = Assertions.assertInstanceOf(StaticDeviceGroup.class, created);
-		Assertions.assertEquals(name, group.getName());
-		Assertions.assertEquals("Production/Core", group.getFolder());
-		Assertions.assertTrue(group.isHiddenFromReports());
-		Assertions.assertEquals(List.of(this.routerB, this.routerA), this.members(group.getId()));
+		Assertions.assertEquals(name, group.name());
+		Assertions.assertEquals("Production/Core", group.folder());
+		Assertions.assertTrue(group.hiddenFromReports());
+		Assertions.assertEquals(List.of(this.routerB, this.routerA), this.members(group.id()));
 	}
 
 	@Test
@@ -118,9 +112,9 @@ class GroupServiceTest {
 	void createDynamic() {
 		DeviceGroup created = this.service.create(dynamicGroup(this.nextName(), "[Name] contains   \"router\""));
 		DynamicDeviceGroup group = Assertions.assertInstanceOf(DynamicDeviceGroup.class, created);
-		Assertions.assertEquals("[Name] contains \"router\"", group.getQuery());
-		Assertions.assertEquals(2, this.members(group.getId()).size());
-		Assertions.assertTrue(this.members(group.getId()).containsAll(List.of(this.routerA, this.routerB)));
+		Assertions.assertEquals("[Name] contains \"router\"", group.query());
+		Assertions.assertEquals(2, this.members(group.id()).size());
+		Assertions.assertTrue(this.members(group.id()).containsAll(List.of(this.routerA, this.routerB)));
 	}
 
 	@Test
@@ -128,8 +122,8 @@ class GroupServiceTest {
 	void createDynamicWithoutQuery() {
 		DeviceGroup created = this.service.create(dynamicGroup(this.nextName(), null));
 		DynamicDeviceGroup group = Assertions.assertInstanceOf(DynamicDeviceGroup.class, created);
-		Assertions.assertEquals("[Name] is \"example\"", group.getQuery());
-		Assertions.assertEquals(List.of(), this.members(group.getId()));
+		Assertions.assertEquals("[Name] is \"example\"", group.query());
+		Assertions.assertEquals(List.of(), this.members(group.id()));
 	}
 
 	@Test
@@ -167,8 +161,8 @@ class GroupServiceTest {
 	void get() {
 		DeviceGroup fixed = this.service.create(staticGroup(this.nextName()));
 		DeviceGroup dynamic = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"a\""));
-		Assertions.assertInstanceOf(StaticDeviceGroup.class, this.service.get(fixed.getId()));
-		Assertions.assertInstanceOf(DynamicDeviceGroup.class, this.service.get(dynamic.getId()));
+		Assertions.assertInstanceOf(StaticDeviceGroup.class, this.service.get(fixed.id()));
+		Assertions.assertInstanceOf(DynamicDeviceGroup.class, this.service.get(dynamic.id()));
 		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.get(99999999L));
 	}
 
@@ -193,30 +187,30 @@ class GroupServiceTest {
 	void updateStatic() {
 		DeviceGroup created = this.service.create(staticGroup(this.nextName(), this.routerA, this.routerB));
 		String name = this.nextName();
-		DeviceGroup updated = this.service.update(created.getId(),
+		DeviceGroup updated = this.service.update(created.id(),
 			new GroupDefinition("ignored", " " + name + " ", List.of(this.switchC, this.routerB), "ignored", "Lab", true));
-		Assertions.assertEquals(name, updated.getName());
-		Assertions.assertEquals("Lab", updated.getFolder());
-		Assertions.assertTrue(updated.isHiddenFromReports());
-		Assertions.assertEquals(List.of(this.switchC, this.routerB), this.members(created.getId()));
+		Assertions.assertEquals(name, updated.name());
+		Assertions.assertEquals("Lab", updated.folder());
+		Assertions.assertTrue(updated.hiddenFromReports());
+		Assertions.assertEquals(List.of(this.switchC, this.routerB), this.members(created.id()));
 	}
 
 	@Test
 	@DisplayName("update() changes the query of a dynamic group and refreshes its members")
 	void updateDynamic() {
 		DeviceGroup created = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
-		DeviceGroup updated = this.service.update(created.getId(), dynamicGroup(created.getName(), "[Name] contains  \"switch\""));
-		Assertions.assertEquals("[Name] contains \"switch\"", ((DynamicDeviceGroup) updated).getQuery());
-		Assertions.assertEquals(List.of(this.switchC), this.members(created.getId()));
+		DeviceGroup updated = this.service.update(created.id(), dynamicGroup(created.name(), "[Name] contains  \"switch\""));
+		Assertions.assertEquals("[Name] contains \"switch\"", ((DynamicDeviceGroup) updated).query());
+		Assertions.assertEquals(List.of(this.switchC), this.members(created.id()));
 	}
 
 	@Test
 	@DisplayName("update() ignores the type of the request: a group keeps its kind")
 	void updateKeepsKind() {
 		DeviceGroup created = this.service.create(staticGroup(this.nextName(), this.routerA));
-		DeviceGroup updated = this.service.update(created.getId(), dynamicGroup(created.getName(), "[Name] contains \"switch\""));
+		DeviceGroup updated = this.service.update(created.id(), dynamicGroup(created.name(), "[Name] contains \"switch\""));
 		Assertions.assertInstanceOf(StaticDeviceGroup.class, updated);
-		Assertions.assertEquals(List.of(), this.members(created.getId()), "the devices of the request, none");
+		Assertions.assertEquals(List.of(), this.members(created.id()), "the devices of the request, none");
 	}
 
 	@Test
@@ -225,15 +219,15 @@ class GroupServiceTest {
 		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.update(99999999L, staticGroup("x")));
 		DeviceGroup fixed = this.service.create(staticGroup(this.nextName()));
 		// The devices are checked before the name
-		assertError(ErrorCode.NETSHOT_INVALID_DEVICE, () -> this.service.update(fixed.getId(), staticGroup(" ", 99999999L)));
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(fixed.getId(), staticGroup(" ")));
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(fixed.getId(), staticGroup(null)));
+		assertError(ErrorCode.NETSHOT_INVALID_DEVICE, () -> this.service.update(fixed.id(), staticGroup(" ", 99999999L)));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(fixed.id(), staticGroup(" ")));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(fixed.id(), staticGroup(null)));
 		DeviceGroup dynamic = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
 		// The query is checked before the name, and a failure leaves the group unchanged
-		assertError(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, () -> this.service.update(dynamic.getId(), dynamicGroup(" ", "[Nope] ???")));
-		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(dynamic.getId(), dynamicGroup(" ", "[Name] contains \"switch\"")));
-		Assertions.assertEquals("[Name] contains \"router\"", ((DynamicDeviceGroup) this.service.get(dynamic.getId())).getQuery());
-		Assertions.assertEquals(2, this.members(dynamic.getId()).size());
+		assertError(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, () -> this.service.update(dynamic.id(), dynamicGroup(" ", "[Nope] ???")));
+		assertError(ErrorCode.NETSHOT_INVALID_GROUP_NAME, () -> this.service.update(dynamic.id(), dynamicGroup(" ", "[Name] contains \"switch\"")));
+		Assertions.assertEquals("[Name] contains \"router\"", ((DynamicDeviceGroup) this.service.get(dynamic.id())).query());
+		Assertions.assertEquals(2, this.members(dynamic.id()).size());
 	}
 
 	@Test
@@ -242,8 +236,8 @@ class GroupServiceTest {
 		String name = this.nextName();
 		this.service.create(staticGroup(name));
 		DeviceGroup other = this.service.create(staticGroup(this.nextName()));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_GROUP, () -> this.service.update(other.getId(), staticGroup(name)));
-		Assertions.assertNotEquals(name, this.service.get(other.getId()).getName());
+		assertError(ErrorCode.NETSHOT_DUPLICATE_GROUP, () -> this.service.update(other.id(), staticGroup(name)));
+		Assertions.assertNotEquals(name, this.service.get(other.id()).name());
 	}
 
 	// ------------------------------------------------------------------
@@ -255,17 +249,15 @@ class GroupServiceTest {
 	void delete() {
 		DeviceGroup fixed = this.service.create(staticGroup(this.nextName(), this.routerA, this.routerB));
 		DeviceGroup dynamic = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
-		Assertions.assertTrue(this.service.delete(fixed.getId()));
-		Assertions.assertTrue(this.service.delete(dynamic.getId()));
-		Assertions.assertFalse(this.service.delete(fixed.getId()));
+		Assertions.assertTrue(this.service.delete(fixed.id()));
+		Assertions.assertTrue(this.service.delete(dynamic.id()));
+		Assertions.assertFalse(this.service.delete(fixed.id()));
 		Assertions.assertFalse(this.service.delete(99999999L));
-		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.get(fixed.getId()));
-		long memberships = this.transactions.read(session -> session
-			.createQuery("select count(m) from DeviceGroupMembership m where m.key.group.id in (:ids)", Long.class)
-			.setParameter("ids", List.of(fixed.getId(), dynamic.getId())).uniqueResult());
+		assertError(ErrorCode.NETSHOT_GROUP_NOT_FOUND, () -> this.service.get(fixed.id()));
+		long memberships = TestDevices.memberIds(fixed.id()).size() + TestDevices.memberIds(dynamic.id()).size();
 		Assertions.assertEquals(0L, memberships);
-		Assertions.assertNotNull(this.transactions.read(session -> session.get(Device.class, this.routerA)));
-		Assertions.assertNotNull(this.transactions.read(session -> session.get(Device.class, this.routerB)));
+		Assertions.assertNotNull(TestDevices.find(this.routerA));
+		Assertions.assertNotNull(TestDevices.find(this.routerB));
 	}
 
 	// ------------------------------------------------------------------
@@ -279,13 +271,10 @@ class GroupServiceTest {
 		DeviceGroup matching = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-a\""));
 		DeviceGroup notMatching = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
 		// Stale membership, which the refresh must remove
-		this.transactions.run(session -> session
-			.createMutationQuery("insert into DeviceGroupMembership(key.device, key.group, position) "
-				+ "select d, g, 0 from Device d, DynamicDeviceGroup g where d.id = :device and g.id = :group")
-			.setParameter("device", this.routerA).setParameter("group", notMatching.getId()).executeUpdate());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(this.routerA);
-		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.getId()));
-		Assertions.assertEquals(List.of(this.routerA), this.members(matching.getId()));
-		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.getId()));
+		TestDevices.addMembers(notMatching, TestDevices.find(this.routerA));
+		DynamicGroups.refreshAllGroupsOfOneDevice(this.routerA);
+		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.id()));
+		Assertions.assertEquals(List.of(this.routerA), this.members(matching.id()));
+		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.id()));
 	}
 }

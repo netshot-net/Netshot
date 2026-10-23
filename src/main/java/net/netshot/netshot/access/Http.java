@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 
@@ -299,8 +298,8 @@ public class Http implements Client {
 		}
 		// Resolved once here (local/Vault, per VaultableSecret) rather than read
 		// piecemeal below, so a Vault-backed username/password is only fetched once per request.
-		String username = resolveSecret(account.getUsernameSecret());
-		String password = resolveSecret(account.getPasswordSecret());
+		String username = resolveSecret(account.usernameSecret());
+		String password = resolveSecret(account.passwordSecret());
 		if ("http".equals(auth.getType())) {
 			if ("bearer".equals(auth.getScheme())) {
 				if (password != null) {

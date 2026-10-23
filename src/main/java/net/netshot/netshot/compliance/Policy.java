@@ -18,118 +18,36 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.util.HashSet;
 import java.util.Set;
 
-import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OneToMany;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-
 /**
- * A policy is a set of rules, applied to a group of devices.
+ * A compliance policy: a set of rules, checked on the devices of the target groups.
+ *
+ * @param id the ID (0 for a policy not stored yet)
+ * @param name the name
+ * @param targetGroupIds the IDs of the groups the policy applies to
  */
-@Entity
-public class Policy {
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The name. */
-	@Getter(onMethod = @__({
-		@NaturalId(mutable = true)
-	}))
-	@Setter
-	private String name;
-
-	/** The rules. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "policy", cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<Rule> rules = new HashSet<>();
-
-	/** The target group. */
-	@Getter(onMethod = @__({
-		@ManyToMany(),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private Set<DeviceGroup> targetGroups;
+public record Policy(long id, String name, Set<Long> targetGroupIds) {
 
 	/**
-	 * Instantiates a new policy.
+	 * Canonical constructor: the target groups are copied (none means an empty set).
 	 */
-	protected Policy() {
+	public Policy {
+		targetGroupIds = targetGroupIds == null ? Set.of() : Set.copyOf(targetGroupIds);
 	}
 
 	/**
-	 * Instantiates a new policy.
+	 * Gets a copy of the policy with another ID.
 	 *
-	 * @param name the name
-	 * @param deviceGroups the device groups
+	 * @param newId the ID
+	 * @return the policy
 	 */
-	public Policy(String name, Set<DeviceGroup> deviceGroups) {
-		this.name = name;
-		this.targetGroups = deviceGroups;
-	}
-
-	/**
-	 * Adds the rule.
-	 *
-	 * @param rule the rule
-	 */
-	public void addRule(Rule rule) {
-		rules.add(rule);
-		rule.setPolicy(this);
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (int) (id ^ (id >>> 32));
-		return result;
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		Policy other = (Policy) obj;
-		return id == other.id;
+	public Policy withId(long newId) {
+		return new Policy(newId, this.name, this.targetGroupIds);
 	}
 
 	@Override
 	public String toString() {
 		return "Compliance policy " + id + " (name '" + name + "')";
 	}
-
 }

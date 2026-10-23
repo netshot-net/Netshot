@@ -40,19 +40,19 @@ public class JavaScriptDiagnosticAdapter implements DiagnosticAdapter<JavaScript
 
 	@Override
 	public Value toJsObject(JavaScriptDiagnostic diagnostic, Device device, Context context) throws ScriptException {
-		Source diagSource = Source.newBuilder("js", diagnostic.getScript(),
-			"_diag%d.js".formatted(diagnostic.getId())).buildLiteral();
+		Source diagSource = Source.newBuilder("js", diagnostic.script(),
+			"_diag%d.js".formatted(diagnostic.id())).buildLiteral();
 		context.eval(diagSource);
 		Value diagnose = context.getBindings("js").getMember("diagnose");
 		if (!diagnose.canExecute()) {
-			throw new ScriptException(String.format("Unable to find 'diagnose' function in '%s' JS diagnostic", diagnostic.getName()));
+			throw new ScriptException(String.format("Unable to find 'diagnose' function in '%s' JS diagnostic", diagnostic.name()));
 		}
 		return diagnose;
 	}
 
 	@Override
-	public DiagnosticResult makeResult(JavaScriptDiagnostic diagnostic, Device device, Value value) {
-		return DiagnosticResults.make(diagnostic, device, value);
+	public DiagnosticResult makeResult(JavaScriptDiagnostic diagnostic, Value value) {
+		return DiagnosticResults.make(diagnostic, value);
 	}
 
 }

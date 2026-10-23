@@ -20,15 +20,14 @@ package net.netshot.netshot.userscript;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -69,17 +68,11 @@ public class ScriptService {
 	 */
 	public List<DeviceJsScript> list(Page page) {
 		try {
-			return this.transactions.read(session -> {
-				List<DeviceJsScript> scripts = this.repository.findAll(session, page);
-				for (DeviceJsScript script : scripts) {
-					// Detached first, so that blanking the content can never be written back
-					session.detach(script);
-					script.setScript(null);
-				}
-				return scripts;
-			});
+			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page).stream()
+				.map(DeviceJsScript::withoutScript)
+				.toList());
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the scripts.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the scripts");
 		}
@@ -94,13 +87,9 @@ public class ScriptService {
 	 */
 	public DeviceJsScript get(long id) {
 		try {
-			return this.transactions.read(session -> this.repository.find(session, id));
+			return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("Unable to find the script {}.", id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "Script not found.");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the script {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the script.");
 		}
@@ -129,10 +118,10 @@ public class ScriptService {
 			log.warn("Invalid script.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_SCRIPT, "The script content can't be empty.");
 		}
-		DeviceJsScript script = new DeviceJsScript(creation.name(), creation.deviceDriver(), creation.script(), creation.author());
-		script.setFolder(creation.folder());
+		DeviceJsScript script = DeviceJsScript.of(creation.name(), creation.deviceDriver(), creation.script(), creation.author())
+			.withFolder(creation.folder());
 		try {
-			script.extractUserInputDefinitions(this.driverRegistry);
+			script = script.withUserInputDefinitions(this.driverRegistry);
 		}
 		catch (IllegalArgumentException e) {
 			log.warn("Invalid script.");
@@ -150,13 +139,14 @@ public class ScriptService {
 	 *         already used, or if it can't be stored
 	 */
 	public DeviceJsScript create(ScriptCreation creation) {
-		DeviceJsScript script = this.validate(creation);
+		DeviceJsScript valid = this.validate(creation);
+		DeviceJsScript script;
 		try {
-			this.transactions.run(session -> session.persist(script));
+			script = valid.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, valid)));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new rule.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_SCRIPT, "A script with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the script to the database");
@@ -173,20 +163,18 @@ public class ScriptService {
 	 */
 	public void delete(long id) {
 		try {
-			this.transactions.run(session -> {
-				DeviceJsScript script = this.repository.find(session, id);
-				if (script == null) {
+			this.transactions.runDsl(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.warn("No such script of ID {}", id);
 					throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
 				}
-				session.remove(script);
 			});
 		}
 		catch (NetshotException e) {
 			log.error("Cannot delete the script.", e);
 			throw e;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the script {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the script.");
 		}

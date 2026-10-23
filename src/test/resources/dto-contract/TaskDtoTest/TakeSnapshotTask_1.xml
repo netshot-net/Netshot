@@ -3,12 +3,12 @@
   <author>author-1</author>
   <cancelRequested>true</cancelRequested>
   <changeDate>1600000000001</changeDate>
-  <checkCompliance>true</checkCompliance>
+  <checkCompliance>false</checkCompliance>
   <childOrder>1</childOrder>
   <comments>Comments of 1</comments>
   <creationDate>1500000000001</creationDate>
   <debugEnabled>false</debugEnabled>
-  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriver/>
   <deviceId>1</deviceId>
   <executionDate>1550000000001</executionDate>
   <id>1</id>
@@ -17,19 +17,17 @@
   <parentTaskId>101</parentTaskId>
   <priority>7</priority>
   <repeating>true</repeating>
-  <runDiagnostics>true</runDiagnostics>
-  <runSnapshot>true</runSnapshot>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
   <runnerId>&lt;runnerId&gt;</runnerId>
   <scheduleFactor>3</scheduleFactor>
   <scheduleMode>SEQUENTIAL</scheduleMode>
   <scheduleReference>1700000000000</scheduleReference>
   <scheduleType>WEEKLY</scheduleType>
-  <script>script of 1</script>
+  <script/>
   <status>SUCCESS</status>
   <stopOnFailure>true</stopOnFailure>
   <target>10.1.1.1</target>
   <taskDescription>Device snapshot</taskDescription>
-  <userInputValues>
-    <input>value</input>
-  </userInputValues>
+  <userInputValues/>
 </TakeSnapshotTask>

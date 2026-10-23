@@ -2350,4 +2350,10 @@
 				ALTER COLUMN ipv4usage TYPE varchar(32) USING CASE ipv4usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END;
 		</sql>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_8">
+		<!-- A HashiCorp Vault instance needs its authentication method (checked by Hibernate before, from the
+			nullable = false mapping). -->
+		<sql>ALTER TABLE vault_instance ADD CONSTRAINT ck_vault_instance_hashicorp_auth_method
+			CHECK (dtype &lt;&gt; 'HashicorpVaultKv2Instance' OR auth_method IS NOT NULL)</sql>
+	</changeSet>
 </databaseChangeLog>

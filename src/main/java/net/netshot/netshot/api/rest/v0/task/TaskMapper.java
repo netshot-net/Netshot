@@ -18,15 +18,13 @@
  */
 package net.netshot.netshot.api.rest.v0.task;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-
-import org.hibernate.Hibernate;
 
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskCreation;
 import net.netshot.netshot.task.TaskOverview;
@@ -44,6 +42,8 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.type.TaskSpec;
+import net.netshot.netshot.task.type.TaskSpecs;
 
 /**
  * Maps the tasks between the entities (or the projections) of the task package and their REST
@@ -69,102 +69,72 @@ public final class TaskMapper {
 	 * @throws IllegalArgumentException if the type of task has no representation
 	 */
 	public static TaskDto toDto(DriverRegistry driverRegistry, Task task) {
-		Task concrete = (Task) Hibernate.unproxy(task);
-		TaskBaseDto base = toBaseDto(concrete);
-		if (concrete instanceof TakeSnapshotTask) {
-			return new TaskDto.TakeSnapshot(base, deviceId(concrete));
-		}
-		else if (concrete instanceof CheckComplianceTask) {
-			return new TaskDto.CheckCompliance(base, deviceId(concrete));
-		}
-		else if (concrete instanceof RunDeviceScriptTask) {
-			return new TaskDto.RunDeviceScript(base, deviceId(concrete));
-		}
-		else if (concrete instanceof RunDiagnosticsTask) {
-			return new TaskDto.RunDiagnostics(base, deviceId(concrete));
-		}
-		else if (concrete instanceof DiscoverDeviceTypeTask discover) {
-			Device resultDevice = discover.getDiscoverResultDevice();
-			return new TaskDto.DiscoverDeviceType(base, discover.getDeviceAddress(), resultDevice == null ? 0 : resultDevice.getId(),
-				discoveredDeviceTypeDescription(driverRegistry, discover), discover.getSnapshotTaskId());
-		}
-		else if (concrete instanceof TakeGroupSnapshotTask snapshot) {
-			return new TaskDto.TakeGroupSnapshot(base, deviceGroupId(concrete), snapshot.getLimitToOutofdateDeviceHours());
-		}
-		else if (concrete instanceof CheckGroupComplianceTask) {
-			return new TaskDto.CheckGroupCompliance(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof CheckGroupSoftwareTask) {
-			return new TaskDto.CheckGroupSoftware(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof RunGroupDiagnosticsTask) {
-			return new TaskDto.RunGroupDiagnostics(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof RunDeviceGroupScriptTask) {
-			return new TaskDto.RunDeviceGroupScript(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof PurgeDatabaseTask purge) {
-			return new TaskDto.PurgeDatabase(base, purge.getConfigDays(), purge.getConfigKeepDays(), purge.getConfigSize(),
-				purge.getDays(), deviceGroupId(concrete), purge.getModuleDays(), purge.isRemoveOrphanFiles());
-		}
-		else if (concrete instanceof ScanSubnetsTask) {
-			return new TaskDto.ScanSubnets(base);
-		}
-		throw new IllegalArgumentException("No representation for the task type " + concrete.getClass().getSimpleName());
+		TaskBaseDto base = toBaseDto(task);
+		TaskSpec spec = task.spec();
+		return switch (spec) {
+			case TakeSnapshotTask s -> new TaskDto.TakeSnapshot(base, TaskSpecs.deviceId(s));
+			case CheckComplianceTask s -> new TaskDto.CheckCompliance(base, TaskSpecs.deviceId(s));
+			case RunDeviceScriptTask s -> new TaskDto.RunDeviceScript(base, TaskSpecs.deviceId(s));
+			case RunDiagnosticsTask s -> new TaskDto.RunDiagnostics(base, TaskSpecs.deviceId(s));
+			case DiscoverDeviceTypeTask s -> new TaskDto.DiscoverDeviceType(base, s.deviceAddress(),
+				s.discoverResultDeviceId() == null ? 0 : s.discoverResultDeviceId(),
+				discoveredDeviceTypeDescription(driverRegistry, s), s.snapshotTaskId());
+			case TakeGroupSnapshotTask s -> new TaskDto.TakeGroupSnapshot(base, TaskSpecs.deviceGroupId(s), s.limitToOutofdateDeviceHours());
+			case CheckGroupComplianceTask s -> new TaskDto.CheckGroupCompliance(base, TaskSpecs.deviceGroupId(s));
+			case CheckGroupSoftwareTask s -> new TaskDto.CheckGroupSoftware(base, TaskSpecs.deviceGroupId(s));
+			case RunGroupDiagnosticsTask s -> new TaskDto.RunGroupDiagnostics(base, TaskSpecs.deviceGroupId(s));
+			case RunDeviceGroupScriptTask s -> new TaskDto.RunDeviceGroupScript(base, TaskSpecs.deviceGroupId(s));
+			case PurgeDatabaseTask s -> new TaskDto.PurgeDatabase(base, s.configDays(), s.configKeepDays(), s.configSize(),
+				s.days(), TaskSpecs.deviceGroupId(s), s.moduleDays(), s.removeOrphanFiles());
+			case ScanSubnetsTask s -> new TaskDto.ScanSubnets(base);
+		};
 	}
 
 	// The description of the discovered device type, "Unknown" when there is no such driver
 	private static String discoveredDeviceTypeDescription(DriverRegistry driverRegistry, DiscoverDeviceTypeTask task) {
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(task.getDiscoveredDeviceType());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(task.discoveredDeviceType());
 		if (deviceDriver == null) {
 			return "Unknown";
 		}
 		return deviceDriver.getDescription();
 	}
 
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
+	}
+
 	private static TaskBaseDto toBaseDto(Task task) {
+		TaskSpec spec = task.spec();
 		return new TaskBaseDto(
-			task.getAuthor(),
-			task.isCancelRequested(),
-			task.getChangeDate(),
-			task.isCheckCompliance(),
-			task.getChildOrder(),
-			task.getComments(),
-			task.getCreationDate(),
-			task.isDebugEnabled(),
-			task.getDeviceDriver(),
-			task.getExecutionDate(),
-			task.getId(),
-			task.getLog(),
-			task.getNextExecutionDate(),
-			task.getParentTaskId(),
-			task.getPriority(),
+			task.author(),
+			task.cancelRequested(),
+			date(task.changeDate()),
+			TaskSpecs.checkCompliance(spec),
+			task.childOrder(),
+			task.comments(),
+			date(task.creationDate()),
+			task.debugEnabled(),
+			TaskSpecs.deviceDriver(spec),
+			date(task.executionDate()),
+			task.id(),
+			task.log(),
+			task.nextExecutionDate(),
+			task.parentTaskId(),
+			task.priority(),
 			task.isRepeating(),
-			task.isRunDiagnostics(),
-			task.isRunSnapshot(),
-			task.getRunnerId(),
-			task.getScheduleFactor(),
-			task.getScheduleMode(),
-			task.getScheduleReference(),
-			task.getScheduleType(),
-			task.getScript(),
-			task.getStatus(),
-			task.isStopOnFailure(),
-			task.getTarget(),
-			task.getTaskDescription(),
-			task.getUserInputValues());
-	}
-
-	// The ID of the target device, 0 for none. Only the ID of the (possibly lazy) device is read.
-	private static long deviceId(Task task) {
-		Device device = task.getDevice();
-		return device == null ? 0 : device.getId();
-	}
-
-	// The ID of the target group, 0 for none. Only the ID of the (possibly lazy) group is read.
-	private static long deviceGroupId(Task task) {
-		DeviceGroup group = task.getDeviceGroup();
-		return group == null ? 0 : group.getId();
+			TaskSpecs.runDiagnostics(spec),
+			TaskSpecs.runSnapshot(spec),
+			task.runnerId(),
+			task.scheduleFactor(),
+			task.scheduleMode(),
+			date(task.scheduleReference()),
+			task.scheduleType(),
+			TaskSpecs.script(spec),
+			task.status(),
+			task.stopOnFailure(),
+			task.target(),
+			task.description(),
+			TaskSpecs.userInputValues(spec));
 	}
 
 	/**
@@ -176,15 +146,15 @@ public final class TaskMapper {
 	public static TaskSummaryDto toDto(TaskSummary summary) {
 		return new TaskSummaryDto(
 			summary.id(),
-			summary.type() == null ? null : summary.type().getSimpleName(),
+			summary.type(),
 			summary.status(),
 			summary.author(),
 			summary.target(),
 			summary.comments(),
-			summary.creationDate(),
-			summary.changeDate(),
-			summary.executionDate(),
-			summary.scheduleReference(),
+			date(summary.creationDate()),
+			date(summary.changeDate()),
+			date(summary.executionDate()),
+			date(summary.scheduleReference()),
 			summary.scheduleType(),
 			summary.scheduleFactor(),
 			summary.priority(),

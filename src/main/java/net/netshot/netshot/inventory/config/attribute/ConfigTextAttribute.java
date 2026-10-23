@@ -18,62 +18,28 @@
  */
 package net.netshot.netshot.inventory.config.attribute;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.Config;
+import java.util.Objects;
 
-@Entity
-@DiscriminatorValue("S")
-public final class ConfigTextAttribute extends ConfigAttribute {
+/**
+ * A text configuration attribute.
+ *
+ * @param name the name of the attribute
+ * @param text the value
+ */
+public record ConfigTextAttribute(String name, String text) implements ConfigAttribute {
 
-	@Getter
-	@Setter
-	private String text;
-
-	protected ConfigTextAttribute() {
-	}
-
-	public ConfigTextAttribute(Config config, String name, String value) {
-		super(config, name);
-		this.text = value;
+	@Override
+	public String getAsText() {
+		return this.text == null ? "" : this.text;
 	}
 
 	@Override
-	@Transient
-	public String getAsText() {
-		if (this.text == null) {
-			return "";
-		}
+	public Object getData() {
 		return this.text;
 	}
 
 	@Override
-	@Transient
-	public Object getData() {
-		return getText();
+	public boolean valueEquals(ConfigAttribute other) {
+		return other instanceof ConfigTextAttribute o && Objects.equals(this.text, o.text);
 	}
-
-	@Override
-	public boolean valueEquals(ConfigAttribute obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ConfigTextAttribute)) {
-			return false;
-		}
-		ConfigTextAttribute other = (ConfigTextAttribute) obj;
-		if (this.text == null) {
-			if (other.text != null) {
-				return false;
-			}
-		}
-		else if (!this.text.equals(other.text)) {
-			return false;
-		}
-		return true;
-	}
-
 }

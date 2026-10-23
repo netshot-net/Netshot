@@ -18,17 +18,18 @@
  */
 package net.netshot.netshot.task.handler;
 
-import org.hibernate.Session;
-
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
@@ -43,6 +44,8 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
+	private final Transactions transactions = new Transactions();
+	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/**
 	 * Creates the handler.
@@ -60,99 +63,101 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 	}
 
 	@Override
-	public void run(RunDeviceScriptTask task) {
-		Device device = task.getDevice();
-		log.debug("Task {}. Starting script task for device {}.", task.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			task.logger.info("The device doesn't exist, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, RunDeviceScriptTask spec, TaskRun run) {
+		Long deviceId = spec.deviceId();
+		Device device = null;
+		log.debug("Task {}. Starting script task for device {}.", task.id(),
+			deviceId);
+		if (deviceId == null) {
+			run.logger.info("The device doesn't exist, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
 
 		UserDeviceScript deviceScript = null;
-		Session session = Database.getSession();
 		try {
-			session.beginTransaction();
 			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			task.setDevice(device);
-			task.logger.info("Run script task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (task.getDeviceDriver() == null || !task.getDeviceDriver().equals(device.getDriver())) {
-				log.trace("Task {}. The script doesn't apply to the driver of the device.", task.getId());
-				task.logger.error("The script doesn't apply to the driver of the device.");
-				task.setStatus(Status.CANCELLED);
+			device = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			if (device == null) {
+				throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
+			}
+			run.logger.info("Run script task for device {} ({}).",
+				device.name(), device.mgmtAddress());
+			if (spec.deviceDriver() == null || !spec.deviceDriver().equals(device.driver())) {
+				log.trace("Task {}. The script doesn't apply to the driver of the device.", task.id());
+				run.logger.error("The script doesn't apply to the driver of the device.");
+				run.setStatus(Status.CANCELLED);
 				return;
 			}
-			if (device.getStatus() != Device.Status.INPRODUCTION) {
-				log.trace("Task {}. Device not INPRODUCTION, stopping the run script task.", task.getId());
-				task.logger.warn("The device is not enabled (not in production).");
-				task.setStatus(Status.CANCELLED);
+			if (device.status() != Device.Status.INPRODUCTION) {
+				log.trace("Task {}. Device not INPRODUCTION, stopping the run script task.", task.id());
+				run.logger.warn("The device is not enabled (not in production).");
+				run.setStatus(Status.CANCELLED);
 				return;
 			}
 
-			deviceScript = new UserDeviceScript(this.driverRegistry, task.getDeviceDriver(), task.getScript(), task.logger);
-			deviceScript.setUserInputValues(task.getUserInputValues());
-			deviceScript.connectRun(session, device);
-
-			session.merge(device);
-			session.getTransaction().commit();
-			task.setStatus(Status.SUCCESS);
+			deviceScript = new UserDeviceScript(this.driverRegistry, spec.deviceDriver(), spec.script(), run.logger);
+			deviceScript.setUserInputValues(spec.userInputValues());
+			DeviceDraft draft = new DeviceDraft(device);
+			deviceScript.connectRun(draft);
+			this.transactions.writeDsl(dsl -> this.deviceRepository.saveDraft(dsl, draft));
+			device = draft.toDevice();
+			run.setStatus(Status.SUCCESS);
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while running the script.", task.getId(), e);
-			task.logger.error("Error while running the script: {}", e.getMessage());
+			log.error("Task {}. Error while running the script.", task.id(), e);
+			run.logger.error("Error while running the script: {}", e.getMessage());
 
-			task.setStatus(Status.FAILURE);
+			run.setStatus(Status.FAILURE);
 			return;
 		}
 		finally {
 			try {
-				task.attachDebugLog();
+				run.attachDebugLog();
 			}
 			catch (Exception e1) {
-				log.error("Task {}. Error while saving the debug logs.", task.getId(), e1);
+				log.error("Task {}. Error while saving the debug logs.", task.id(), e1);
 			}
-			session.close();
 		}
 
 		// The script may have changed the device tags/comments
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
+		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
-		if (task.isRunSnapshot()) {
+		if (spec.runSnapshot()) {
 			try {
-				Task snapshotTask = new TakeSnapshotTask(device, "Snapshot after device script execution", "Auto",
-					false, !task.isRunDiagnostics(), !task.isCheckCompliance());
-				snapshotTask.setPriority(task.getPriority());
-				snapshotTask.setParentTaskId(task.getId());
+				Task snapshotTask = TakeSnapshotTask.of(device, "Snapshot after device script execution", "Auto",
+					false, !spec.runDiagnostics(), !spec.checkCompliance()).toBuilder()
+					.priority(task.priority())
+					.parentTaskId(task.id())
+					.build();
 				this.taskSubmitter.submit(snapshotTask);
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the snapshot task.", task.getId(), e);
+				log.error("Task {}. Error while registering the snapshot task.", task.id(), e);
 			}
 		}
-		else if (task.isRunDiagnostics()) {
+		else if (spec.runDiagnostics()) {
 			try {
-				Task diagTask = new RunDiagnosticsTask(device, "Run diagnostics after device script execution", "Auto", !task.isCheckCompliance());
-				diagTask.setPriority(task.getPriority());
-				diagTask.setParentTaskId(task.getId());
+				Task diagTask = RunDiagnosticsTask.of(device, "Run diagnostics after device script execution", "Auto", !spec.checkCompliance()).toBuilder()
+					.priority(task.priority())
+					.parentTaskId(task.id())
+					.build();
 				this.taskSubmitter.submit(diagTask);
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the diagnostic task.", task.getId(), e);
+				log.error("Task {}. Error while registering the diagnostic task.", task.id(), e);
 			}
 		}
-		else if (task.isCheckCompliance()) {
+		else if (spec.checkCompliance()) {
 			try {
-				Task checkTask = new CheckComplianceTask(device, "Check compliance after device script execution", "Auto");
-				checkTask.setPriority(task.getPriority());
-				checkTask.setParentTaskId(task.getId());
+				Task checkTask = CheckComplianceTask.of(device, "Check compliance after device script execution", "Auto").toBuilder()
+					.priority(task.priority())
+					.parentTaskId(task.id())
+					.build();
 				this.taskSubmitter.submit(checkTask);
 			}
 			catch (Exception e) {
-				log.error("Task {}. Error while registering the check compliance task.", task.getId(), e);
+				log.error("Task {}. Error while registering the check compliance task.", task.id(), e);
 			}
 		}
 	}

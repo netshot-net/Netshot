@@ -20,11 +20,11 @@ package net.netshot.netshot.vault;
 
 import java.util.List;
 
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
 
 /**
  * Background daemon that proactively refreshes Vault client tokens shortly
@@ -81,23 +81,19 @@ final class VaultTokenRefreshDaemon extends Thread {
 	}
 
 	private void refreshAll() {
-		Session session = Database.getSession(true);
-		try {
-			List<HashicorpVaultKv2Instance> instances = session
-				.createQuery("from HashicorpVaultKv2Instance", HashicorpVaultKv2Instance.class)
-				.list();
-			for (HashicorpVaultKv2Instance vaultInstance : instances) {
-				try {
-					VaultManager.getToken(vaultInstance);
-				}
-				catch (VaultException e) {
-					log.warn("Unable to proactively refresh the token for Vault instance '{}': {}",
-						vaultInstance.getName(), e.getMessage());
-				}
+		// The instances are read first: no transaction is held during the logins
+		List<VaultInstance> instances = new Transactions().readDsl(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
+		for (VaultInstance candidate : instances) {
+			if (!(candidate instanceof HashicorpVaultKv2Instance vaultInstance)) {
+				continue;
 			}
-		}
-		finally {
-			session.close();
+			try {
+				VaultManager.getToken(vaultInstance);
+			}
+			catch (VaultException e) {
+				log.warn("Unable to proactively refresh the token for Vault instance '{}': {}",
+					vaultInstance.name(), e.getMessage());
+			}
 		}
 	}
 }

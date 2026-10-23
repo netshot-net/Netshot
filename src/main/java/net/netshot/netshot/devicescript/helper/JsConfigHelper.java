@@ -57,12 +57,13 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.ConfigDraft;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
@@ -262,8 +263,8 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	}
 
 	private final DriverRegistry driverRegistry;
-	private final Device device;
-	private Config config;
+	private final DeviceDraft device;
+	private ConfigDraft config;
 	private Config lastConfig;
 	private TaskContext taskContext;
 	private JsCliHelper defaultCliHelper;
@@ -271,7 +272,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	/** Upload tickets of this config helper context. */
 	private Map<Long, ConfigUploadTicket> uploadTickets = new HashMap<>();
 
-	public JsConfigHelper(DriverRegistry driverRegistry, Device device, Config config, Config lastConfig,
+	public JsConfigHelper(DriverRegistry driverRegistry, DeviceDraft device, ConfigDraft config, Config lastConfig,
 		JsCliHelper defaultCliHelper, TaskContext taskContext) {
 		this.driverRegistry = driverRegistry;
 		this.device = device;
@@ -306,19 +307,19 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 					if (attribute.getLevel().equals(AttributeLevel.CONFIG) && attribute.getName().equals(key)) {
 						switch (attribute.getType()) {
 							case BINARY:
-								config.addAttribute(new ConfigBinaryAttribute(config, key, value.asBoolean()));
+								config.addAttribute(new ConfigBinaryAttribute(key, value.asBoolean()));
 								taskContext.trace("Setting config attribute '{}' to {}.", key, value.asBoolean());
 								break;
 							case NUMERIC:
-								config.addAttribute(new ConfigNumericAttribute(config, key, value.asDouble()));
+								config.addAttribute(new ConfigNumericAttribute(key, value.asDouble()));
 								taskContext.trace("Setting config attribute '{}' to {}.", key, value.asDouble());
 								break;
 							case LONGTEXT:
-								config.addAttribute(new ConfigLongTextAttribute(config, key, value.asString()));
+								config.addAttribute(new ConfigLongTextAttribute(key, value.asString()));
 								taskContext.trace("Setting config attribute '{}' to '{}'.", key, value.asString());
 								break;
 							case TEXT:
-								config.addAttribute(new ConfigTextAttribute(config, key, value.asString()));
+								config.addAttribute(new ConfigTextAttribute(key, value.asString()));
 								taskContext.trace("Setting config attribute '{}' to '{}'.", key, value.asString());
 								break;
 							default:
@@ -356,7 +357,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 
 	@Export
 	public String getLastCustomHash() {
-		return lastConfig.getCustomHash();
+		return lastConfig.customHash();
 	}
 
 	private String checkFileSha256(Path filePath, String expected) throws IOException {
@@ -487,8 +488,8 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			Cli cli = defaultCliHelper.getUnderlyingCli();
 			if (cli instanceof Ssh sshCli) {
 				try {
-					ConfigBinaryFileAttribute fileAttribute = new ConfigBinaryFileAttribute(config, attribute.getName(), storeName);
-					Path tempPath = fileAttribute.getPendingFilePath();
+					ConfigBinaryFileAttribute fileAttribute = ConfigBinaryFileAttribute.create(attribute.getName(), storeName);
+					Path tempPath = fileAttribute.getPendingFilePath(this.device.getId());
 					tempPath.toFile().deleteOnExit();
 					log.trace("Temporary file path for download is {}", tempPath);
 					try {
@@ -546,25 +547,34 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @throws Exception if the checksum doesn't match, or the file can't be moved
 	 */
 	void finalizeBinaryFile(ConfigBinaryFileAttribute fileAttribute, Path tempPath, String expectedHash) throws Exception {
-		Path targetPath = fileAttribute.getPendingFilePath().toAbsolutePath();
+		Path targetPath = fileAttribute.getPendingFilePath(this.device.getId()).toAbsolutePath();
 		try {
 			this.checkFileSum(tempPath, expectedHash);
-			fileAttribute.setFileSize(tempPath.toFile().length());
+			long fileSize = tempPath.toFile().length();
+			String cs;
 			try (InputStream is = new FileInputStream(tempPath.toFile())) {
-				String cs = "sha256:" + DigestUtils.sha256Hex(is).toLowerCase();
+				cs = "sha256:" + DigestUtils.sha256Hex(is).toLowerCase();
 				log.trace("Computed SHA256 for the received file is {}", cs);
-				fileAttribute.setChecksum(cs);
 			}
 			if (!tempPath.toAbsolutePath().equals(targetPath)) {
 				Files.move(tempPath, targetPath);
 			}
-			config.addAttribute(fileAttribute);
+			config.addAttribute(fileAttribute.withFile(fileSize, cs));
 		}
 		catch (Exception e) {
 			log.debug("Removing temporary file path {}", tempPath);
 			Files.deleteIfExists(tempPath);
 			throw e;
 		}
+	}
+
+	/**
+	 * Gets where the file of a binary file attribute is stored until the configuration is stored.
+	 * @param fileAttribute the attribute
+	 * @return the pending path of the file
+	 */
+	Path pendingFilePath(ConfigBinaryFileAttribute fileAttribute) {
+		return fileAttribute.getPendingFilePath(this.device.getId());
 	}
 
 	/**
@@ -579,7 +589,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	 * @param storeFileName the file name to store (null to derive one from {@code fallbackRemoteName})
 	 * @param fallbackRemoteName used to derive a store file name when {@code storeFileName} is null
 	 *        (typically the request path/URL that's about to be downloaded)
-	 * @return the (not yet attached) binary file attribute, whose {@link ConfigBinaryFileAttribute#getPendingFilePath()}
+	 * @return the (not yet attached) binary file attribute, whose {@link ConfigBinaryFileAttribute#getPendingFilePath(long)}
 	 *         is where the caller should download the file to before calling {@link #finalizeBinaryFile}
 	 * @throws Exception if the device driver can't be resolved, the attribute is unknown/not a BinaryFile,
 	 *         or no store file name could be derived
@@ -603,7 +613,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			taskContext.error("Unable to generate a store file name for attribute '{}'.", attribute.getName());
 			throw new IllegalArgumentException("Unable to generate a proper store file name");
 		}
-		return new ConfigBinaryFileAttribute(config, attribute.getName(), storeName);
+		return ConfigBinaryFileAttribute.create(attribute.getName(), storeName);
 	}
 
 	/**
@@ -851,20 +861,20 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		Path tempPath = uploadedFile.getPath();
 
 		try {
-			ConfigBinaryFileAttribute fileAttribute = new ConfigBinaryFileAttribute(config, attribute.getName(), finalStoreName);
-			Path targetPath = fileAttribute.getPendingFilePath().toAbsolutePath();
+			ConfigBinaryFileAttribute fileAttribute = ConfigBinaryFileAttribute.create(attribute.getName(), finalStoreName);
+			Path targetPath = fileAttribute.getPendingFilePath(this.device.getId()).toAbsolutePath();
 
 			// Verify checksum if provided
 			this.checkFileSum(tempPath, expectedHash);
 
-			fileAttribute.setFileSize(tempPath.toFile().length());
+			long fileSize = tempPath.toFile().length();
+			String cs;
 			try (InputStream is = new FileInputStream(tempPath.toFile())) {
-				String cs = "sha256:" + DigestUtils.sha256Hex(is).toLowerCase();
+				cs = "sha256:" + DigestUtils.sha256Hex(is).toLowerCase();
 				log.trace("Computed SHA256 for the uploaded file is {}", cs);
-				fileAttribute.setChecksum(cs);
 			}
 			Files.move(tempPath, targetPath);
-			config.addAttribute(fileAttribute);
+			config.addAttribute(fileAttribute.withFile(fileSize, cs));
 
 			log.info("Committed uploaded file {} from ticket {} to attribute '{}' as '{}'",
 				fileId, ticketId, key, finalStoreName);

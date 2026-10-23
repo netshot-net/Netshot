@@ -21,8 +21,6 @@ package net.netshot.netshot.api.rest.v0.vault;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.Hibernate;
-
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultInstance;
 
@@ -44,14 +42,12 @@ public final class VaultInstanceMapper {
 	 * @throws IllegalArgumentException if the kind of Vault instance is unknown
 	 */
 	public static VaultInstanceDto toDto(VaultInstance vaultInstance) {
-		VaultInstance instance = (VaultInstance) Hibernate.unproxy(vaultInstance);
-		if (instance instanceof HashicorpVaultKv2Instance hc) {
-			return new VaultInstanceDto.HashicorpVaultKv2(hc.getId(), hc.getName(), hc.getBaseUrl(), hc.getNamespace(),
-				hc.getHttpsCaTrustMode(), hc.getHttpsCustomCaCertificate(), hc.getKvMountPath(), hc.getAuthMethod(),
-				hc.getAppRoleMountPath(), hc.getAppRoleId(), hc.getAppRoleSecretId(), hc.getJwtMountPath(),
-				hc.getJwtIdpTokenEndpoint(), hc.getJwtClientId(), hc.getJwtClientSecret(), hc.getJwtVaultRole(), hc.getJwtScope());
-		}
-		throw new IllegalArgumentException("Unknown kind of Vault instance: " + instance.getClass().getName());
+		return switch (vaultInstance) {
+			case HashicorpVaultKv2Instance hc -> new VaultInstanceDto.HashicorpVaultKv2(hc.id(), hc.name(), hc.baseUrl(), hc.namespace(),
+				hc.httpsCaTrustMode(), hc.httpsCustomCaCertificate(), hc.kvMountPath(), hc.authMethod(),
+				hc.appRoleMountPath(), hc.appRoleId(), hc.appRoleSecretId(), hc.jwtMountPath(),
+				hc.jwtIdpTokenEndpoint(), hc.jwtClientId(), hc.jwtClientSecret(), hc.jwtVaultRole(), hc.jwtScope());
+		};
 	}
 
 	/**
@@ -74,24 +70,24 @@ public final class VaultInstanceMapper {
 	 */
 	public static VaultInstance toEntity(VaultInstanceRequest request) {
 		if (request instanceof VaultInstanceRequest.HashicorpVaultKv2 hc) {
-			HashicorpVaultKv2Instance instance = new HashicorpVaultKv2Instance(hc.getName());
-			instance.setId(hc.getId());
-			instance.setBaseUrl(hc.getBaseUrl());
-			instance.setNamespace(hc.getNamespace());
-			instance.setHttpsCaTrustMode(hc.getHttpsCaTrustMode());
-			instance.setHttpsCustomCaCertificate(hc.getHttpsCustomCaCertificate());
-			instance.setKvMountPath(hc.getKvMountPath());
-			instance.setAuthMethod(hc.getAuthMethod());
-			instance.setAppRoleMountPath(hc.getAppRoleMountPath());
-			instance.setAppRoleId(hc.getAppRoleId());
-			instance.setAppRoleSecretId(hc.getAppRoleSecretId());
-			instance.setJwtMountPath(hc.getJwtMountPath());
-			instance.setJwtIdpTokenEndpoint(hc.getJwtIdpTokenEndpoint());
-			instance.setJwtClientId(hc.getJwtClientId());
-			instance.setJwtClientSecret(hc.getJwtClientSecret());
-			instance.setJwtVaultRole(hc.getJwtVaultRole());
-			instance.setJwtScope(hc.getJwtScope());
-			return instance;
+			return HashicorpVaultKv2Instance.builder(hc.getName())
+				.id(hc.getId())
+				.baseUrl(hc.getBaseUrl())
+				.namespace(hc.getNamespace())
+				.httpsCaTrustMode(hc.getHttpsCaTrustMode())
+				.httpsCustomCaCertificate(hc.getHttpsCustomCaCertificate())
+				.kvMountPath(hc.getKvMountPath())
+				.authMethod(hc.getAuthMethod())
+				.appRoleMountPath(hc.getAppRoleMountPath())
+				.appRoleId(hc.getAppRoleId())
+				.appRoleSecretId(hc.getAppRoleSecretId())
+				.jwtMountPath(hc.getJwtMountPath())
+				.jwtIdpTokenEndpoint(hc.getJwtIdpTokenEndpoint())
+				.jwtClientId(hc.getJwtClientId())
+				.jwtClientSecret(hc.getJwtClientSecret())
+				.jwtVaultRole(hc.getJwtVaultRole())
+				.jwtScope(hc.getJwtScope())
+				.build();
 		}
 		throw new IllegalArgumentException("Unknown kind of Vault instance request: " + request.getClass().getName());
 	}

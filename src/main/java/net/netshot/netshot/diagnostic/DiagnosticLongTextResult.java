@@ -18,68 +18,50 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
 import java.util.Objects;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
+/**
+ * A long text diagnostic result (stored apart).
+ *
+ * @param diagnosticId the ID of the diagnostic
+ * @param diagnosticName the name of the diagnostic
+ * @param creationDate when the diagnostic first gave this value
+ * @param lastCheckDate when the diagnostic last gave this value
+ * @param text the value
+ */
+public record DiagnosticLongTextResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, String text)
+	implements DiagnosticResult {
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.attribute.LongTextConfiguration;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@DiscriminatorValue("T")
-public class DiagnosticLongTextResult extends DiagnosticResult {
-
-	@Getter(onMethod = @__({
-		@OneToOne(cascade = CascadeType.ALL, orphanRemoval = true),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private LongTextConfiguration longText;
-
-	protected DiagnosticLongTextResult() {
-	}
-
-	public DiagnosticLongTextResult(Device device, Diagnostic diagnostic, String value) {
-		super(device, diagnostic);
-		this.longText = new LongTextConfiguration(value);
+	/**
+	 * Builds a new result of a diagnostic (created and checked now).
+	 *
+	 * @param diagnostic the diagnostic
+	 * @param value the value
+	 * @return the result
+	 */
+	public static DiagnosticLongTextResult of(Diagnostic diagnostic, String value) {
+		Instant now = DiagnosticResult.now();
+		return new DiagnosticLongTextResult(diagnostic.id(), diagnostic.name(), now, now, value);
 	}
 
 	@Override
-	@Transient
+	public DiagnosticLongTextResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticLongTextResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.text);
+	}
+
+	@Override
 	public String getAsText() {
-		if (longText == null || longText.getText() == null) {
-			return "";
-		}
-		return longText.getText();
+		return this.text == null ? "" : this.text;
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		if (getLongText() == null) {
-			return null;
-		}
-		return getLongText().getText();
+		return this.text;
 	}
 
 	@Override
-	public boolean valueEquals(DiagnosticResult obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DiagnosticLongTextResult)) {
-			return false;
-		}
-		DiagnosticLongTextResult other = (DiagnosticLongTextResult) obj;
-		return Objects.equals(this.longText, other.longText);
+	public boolean valueEquals(DiagnosticResult other) {
+		return other instanceof DiagnosticLongTextResult o && Objects.equals(this.text, o.text);
 	}
-
 }

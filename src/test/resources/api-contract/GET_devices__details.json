@@ -1,18 +1,5 @@
 [
   {
-    "configCompliant": true,
-    "driver": "CiscoIOS12",
-    "eol": false,
-    "eos": false,
-    "family": "",
-    "id": 4,
-    "mgmtAddress": "2001:db8::4",
-    "name": "bare-1",
-    "networkClass": "UNKNOWN",
-    "softwareLevel": "UNKNOWN",
-    "status": "INPRODUCTION"
-  },
-  {
     "configCompliant": false,
     "driver": "CiscoIOS12",
     "eol": false,
@@ -50,5 +37,18 @@
     "networkClass": "SERVER",
     "softwareLevel": "UNKNOWN",
     "status": "PREPRODUCTION"
+  },
+  {
+    "configCompliant": true,
+    "driver": "CiscoIOS12",
+    "eol": false,
+    "eos": false,
+    "family": "",
+    "id": 4,
+    "mgmtAddress": "2001:db8::4",
+    "name": "bare-1",
+    "networkClass": "UNKNOWN",
+    "softwareLevel": "UNKNOWN",
+    "status": "INPRODUCTION"
   }
 ]

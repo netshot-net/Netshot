@@ -18,12 +18,15 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.util.List;
+
 import org.testcontainers.containers.GenericContainer;
 
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.testing.TestDevices;
 
 /**
  * A Cisco IOS device of the inventory reaching a device simulator container (see
@@ -44,16 +47,12 @@ final class SimulatedRouter {
 	 * @return the saved device
 	 */
 	static Device persist(GenericContainer<?> container, int port) {
-		Domain domain = new Domain("Lab", "Test domain", null, null);
-		DeviceSshAccount account = new DeviceSshAccount("admin", "admin", "admin", "Lab SSH");
-		account.setMgmtDomain(domain);
-		Device device = new Device("CiscoIOS12", container.getHost(), domain, "tester");
-		DeviceAccess ssh = new DeviceAccess(device, "ssh");
-		ssh.setAddress(container.getHost());
-		ssh.setPort(port);
-		device.getAccesses().add(ssh);
-		TaskRunner.persist(domain, account, device);
-		return device;
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin")
+			.name("Lab SSH").mgmtDomain(domain).build());
+		return TestDevices.add(Device.create("CiscoIOS12", container.getHost(), domain, "tester").toBuilder()
+			.accesses(List.of(DeviceAccess.of("ssh").toBuilder().address(container.getHost()).port(port).build()))
+			.build());
 	}
 
 	/**

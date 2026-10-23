@@ -40,7 +40,7 @@ public interface TaskEngine {
 	 * @param task the task
 	 * @param reason the reason, logged in the task
 	 * @throws SchedulerException if the task can't be removed from the scheduler
-	 * @throws org.hibernate.HibernateException if the task can't be stored
+	 * @throws org.jooq.exception.DataAccessException if the task can't be stored
 	 */
 	void cancel(Task task, String reason) throws SchedulerException;
 

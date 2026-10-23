@@ -21,10 +21,14 @@ package net.netshot.netshot.driver;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
-
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
@@ -34,8 +38,9 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -44,9 +49,6 @@ import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 @SimulatorTest
 @DisplayName("Arista MOS driver test")
@@ -61,21 +63,22 @@ public class AristaMOSDriverTest {
 	@DisplayName("Arista MOS Snapshot")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
-		Session nullSession = null;
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("AristaMOS", null, domain, "test");
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(CONTAINER.getHost());
-		sshAccess.setPort(CONTAINER.getMappedPort(22));
-		device.getAccesses().add(sshAccess);
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("admin/admin").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("AristaMOS", null, domain, "test").toBuilder();
+		List<DeviceAccess> deviceAccesses = new ArrayList<>();
+		Set<String> deviceTags = new HashSet<>();
+		DeviceAccess.DeviceAccessBuilder sshAccess = DeviceAccess.of("ssh").toBuilder();
+		sshAccess.address(CONTAINER.getHost());
+		sshAccess.port(CONTAINER.getMappedPort(22));
+		deviceAccesses.add(sshAccess.build());
+		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
-		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-			Device.class, AccessManager.class);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, this.taskContext, Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {
-			runMethod.invoke(script, nullSession, device, accessManager);
+			runMethod.invoke(script, device, accessManager);
 			Assertions.assertEquals("switch1", device.getName(), "The device name is incorrect");
 			Assertions.assertEquals("0.31.0", device.getSoftwareVersion(), "The software version is incorrect");
 			Assertions.assertEquals("MetaConnect 48", device.getFamily(), "The device family is incorrect");
@@ -83,19 +86,19 @@ public class AristaMOSDriverTest {
 			Assertions.assertEquals("SNMPCONTACT", device.getContact(), "The contact is incorrect");
 			Assertions.assertEquals(NetworkClass.SWITCH, device.getNetworkClass(), "The network class is incorrect");
 			Assertions.assertEquals(
-				61057.0, ((DeviceNumericAttribute) device.getAttribute("totalDiskSize")).getNumber().doubleValue(),
+				61057.0, ((DeviceNumericAttribute) device.getAttribute("totalDiskSize")).number().doubleValue(),
 				"The disk size is incorrect");
-			Config config = device.getLastConfig();
+			Config config = device.getNewConfig();
 			Assertions.assertNotNull(config, "The config doesn't exist");
-			Assertions.assertEquals("admin", config.getAuthor(), "The config author is incorrect");
+			Assertions.assertEquals("admin", config.author(), "The config author is incorrect");
 			Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("runningConfig"))
-				.getLongText().getText().contains("username admin"), "The running config is not correct");
+				.text().contains("username admin"), "The running config is not correct");
 			Assertions.assertEquals(3, device.getModules().size(), "The number of modules is incorrect");
-			Assertions.assertEquals("C48-A6-12627-0", device.getModules().get(0).getSerialNumber(),
+			Assertions.assertEquals("C48-A6-12627-0", device.getModules().get(0).serialNumber(),
 				"The chassis module serial number is incorrect");
 			Assertions.assertEquals(
 				Network4Address.getNetworkAddress("10.18.25.40", 24),
-				device.getNetworkInterface("ma1").getIp4Addresses().iterator().next(),
+				device.getNetworkInterface("ma1").ip4Addresses().iterator().next(),
 				"The ma1 interface IP address is incorrect");
 		}
 		finally {

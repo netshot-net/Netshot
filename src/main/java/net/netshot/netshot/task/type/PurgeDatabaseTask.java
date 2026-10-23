@@ -20,203 +20,48 @@ package net.netshot.netshot.task.type;
 
 import java.util.List;
 
-import org.hibernate.Hibernate;
-import org.hibernate.Session;
-import org.quartz.JobKey;
-
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.task.Task;
+import lombok.Builder;
 
 /**
- * This task makes some clean up on the database, optionally restricted to a
- * device group or a one-time device list.
+ * Purges the old data from the database (tasks, configurations, modules, orphan files), for all the
+ * devices, the devices of a group, or a list of devices.
+ *
+ * @param deviceGroupId the ID of the target group (null for none)
+ * @param deviceIds the IDs of the target devices (empty for none)
+ * @param days the age (in days) of the tasks to purge (0 not to purge them)
+ * @param configDays the age (in days) of the configurations to purge (-1 not to purge them)
+ * @param configSize the minimum size (in kB) of the configurations to purge (0 for any)
+ * @param configKeepDays the interval (in days) between two configurations to keep (0 for none)
+ * @param moduleDays the age (in days) of the removed modules to purge (-1 not to purge them)
+ * @param removeOrphanFiles true to remove the orphan binary files
  */
-@Entity
-@DiscriminatorValue("PurgeDatabaseTask")
-@Slf4j
-public final class PurgeDatabaseTask extends Task implements GroupBasedTask, DeviceListBasedTask {
+@Builder(builderMethodName = "defaults", toBuilder = true)
+public record PurgeDatabaseTask(Long deviceGroupId, List<Long> deviceIds, int days, int configDays, int configSize,
+	int configKeepDays, int moduleDays, boolean removeOrphanFiles) implements TaskSpec, GroupBasedTask {
 
 	/**
-	 * Instantiates a new task.
+	 * Canonical constructor: a null list of devices is replaced by an empty one.
 	 */
-	protected PurgeDatabaseTask() {
+	public PurgeDatabaseTask {
+		deviceIds = deviceIds == null ? List.of() : List.copyOf(deviceIds);
 	}
 
 	/**
-	 * Instantiates a new purge database task, optionally restricted to a device group.
+	 * Starts building a purge task specification, with the defaults (nothing purged).
 	 *
-	 * @param comments = the comments
-	 * @param author = the author
-	 * @param days = remove tasks older than this number of days
-	 * @param configDays = remove configs older than this number of days
-	 * @param configSize = remove configs bigger than this size
-	 * @param configKeepDays = keep one config every this number of days
-	 * @param moduleDays = remove modules older than this number of days
-	 * @param group = device group to act on, or null for no restriction
+	 * @return the builder
 	 */
-	public PurgeDatabaseTask(String comments, String author, int days, int configDays,
-		int configSize, int configKeepDays, int moduleDays, DeviceGroup group) {
-		super(comments, "Global", author);
-		this.setDays(days);
-		this.setConfigDays(configDays);
-		this.setConfigSize(configSize);
-		this.setConfigKeepDays(configKeepDays);
-		this.setModuleDays(moduleDays);
-		this.setDeviceGroup(group);
+	public static PurgeDatabaseTaskBuilder builder() {
+		return defaults().configDays(-1).moduleDays(-1);
 	}
 
-	/**
-	 * Instantiates a new purge database task, restricted to a one-time device list.
-	 *
-	 * @param comments = the comments
-	 * @param author = the author
-	 * @param days = remove tasks older than this number of days
-	 * @param configDays = remove configs older than this number of days
-	 * @param configSize = remove configs bigger than this size
-	 * @param configKeepDays = keep one config every this number of days
-	 * @param moduleDays = remove modules older than this number of days
-	 * @param devices = the ordered list of devices to act on
-	 */
-	public PurgeDatabaseTask(String comments, String author, int days, int configDays,
-		int configSize, int configKeepDays, int moduleDays, List<Device> devices) {
-		super(comments, "Global", author);
-		this.setDays(days);
-		this.setConfigDays(configDays);
-		this.setConfigSize(configSize);
-		this.setConfigKeepDays(configKeepDays);
-		this.setModuleDays(moduleDays);
-		this.setDeviceList(devices);
-	}
-
-	/**
-	 * Remove tasks older than this number of days.
-	 * @return the number of days
-	 */
-	@Transient
-	public int getDays() {
-		return this.getIntAttribute("days", 0);
-	}
-
-	public void setDays(int days) {
-		this.setAttribute("days", days);
-	}
-
-	/**
-	 * Remove configs older than this number of days.
-	 * @return the number of days
-	 */
-	@Transient
-	public int getConfigDays() {
-		return this.getIntAttribute("configDays", -1);
-	}
-
-	public void setConfigDays(int configDays) {
-		this.setAttribute("configDays", configDays);
-	}
-
-	/**
-	 * Remove configs bigger than this size (KB).
-	 * @return the size
-	 */
-	@Transient
-	public int getConfigSize() {
-		return this.getIntAttribute("configSize", 0);
-	}
-
-	public void setConfigSize(int configSize) {
-		this.setAttribute("configSize", configSize);
-	}
-
-	/**
-	 * Keep one config every this number of days.
-	 * @return the number of days
-	 */
-	@Transient
-	public int getConfigKeepDays() {
-		return this.getIntAttribute("configKeepDays", 0);
-	}
-
-	public void setConfigKeepDays(int configKeepDays) {
-		this.setAttribute("configKeepDays", configKeepDays);
-	}
-
-	/**
-	 * Remove modules removed more than this number of days ago.
-	 * @return the number of days
-	 */
-	@Transient
-	public int getModuleDays() {
-		return this.getIntAttribute("moduleDays", -1);
-	}
-
-	public void setModuleDays(int moduleDays) {
-		this.setAttribute("moduleDays", moduleDays);
-	}
-
-	/**
-	 * Whether to remove orphan binary attribute files (files on disk with no
-	 * corresponding database record) from the binary attribute storage folder.
-	 * @return true if orphan files should be removed
-	 */
-	@Transient
-	public boolean isRemoveOrphanFiles() {
-		return this.getBooleanAttribute("removeOrphanFiles", false);
-	}
-
-	public void setRemoveOrphanFiles(boolean removeOrphanFiles) {
-		this.setAttribute("removeOrphanFiles", removeOrphanFiles);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Database purge";
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#prepare()
-	 */
 	@Override
-	public void prepare(Session session) {
-		Hibernate.initialize(this.getDeviceGroup());
-		if (this.getDeviceGroup() == null) {
-			Hibernate.initialize(this.getDeviceListMembers());
-		}
+	public String identityGroup() {
+		return "PurgeDatabase";
 	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
-	@Override
-	public Object clone() throws CloneNotSupportedException {
-		PurgeDatabaseTask task = (PurgeDatabaseTask) super.clone();
-		task.setDeviceGroup(this.getDeviceGroup());
-		if (this.getDeviceGroup() == null) {
-			// Mirrors prepare(), which only initializes the lazy deviceListMembers
-			// collection in this same case -- device group and device list are
-			// mutually exclusive, so there is nothing to copy (and nothing safe to
-			// touch) otherwise.
-			task.setDeviceList(this.getDeviceList());
-		}
-		return task;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
-	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()), "PurgeDatabase");
-	}
-
 }

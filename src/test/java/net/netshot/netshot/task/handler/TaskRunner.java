@@ -18,24 +18,23 @@
  */
 package net.netshot.netshot.task.handler;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
-
-import org.hibernate.Session;
 
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJob;
+import net.netshot.netshot.task.type.GroupBasedTask;
+import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestTasks;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -65,10 +64,13 @@ final class TaskRunner {
 	 */
 	TaskRunner() {
 		Wiring wiring = Wiring.get();
-		TaskSubmitter submitter = this.submittedTasks::add;
+		TaskSubmitter submitter = task -> {
+			this.submittedTasks.add(task);
+			return task;
+		};
 		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(child -> {
-			this.scheduledChildIds.add(child.getId());
-			setStatus(child.getId(), this.childStatus);
+			this.scheduledChildIds.add(child.id());
+			TestTasks.setStatus(child.id(), this.childStatus);
 		});
 		TaskHandlers handlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(wiring.complianceChecker()),
@@ -143,74 +145,31 @@ final class TaskRunner {
 	 * @return the ID of the task
 	 */
 	static long save(Task task) {
-		task.setStatus(Status.SCHEDULED);
-		persist(task);
-		return task.getId();
-	}
-
-	/**
-	 * Saves new objects, in one transaction.
-	 *
-	 * @param objects the objects, in order
-	 */
-	static void persist(Object... objects) {
-		inSession(session -> {
-			session.beginTransaction();
-			for (Object object : objects) {
-				session.persist(object);
-			}
-			session.getTransaction().commit();
-			return null;
-		});
+		return TestTasks.add(task, Status.SCHEDULED).id();
 	}
 
 	/**
 	 * Empties every table of the schema of the test class (except the bookkeeping tables of Liquibase).
 	 */
 	static void cleanDatabase() {
-		inSession(session -> {
-			session.beginTransaction();
-			session.doWork(connection -> {
-				List<String> tables = new ArrayList<>();
-				try (Statement statement = connection.createStatement();
-						ResultSet rows = statement.executeQuery("select tablename from pg_tables where schemaname = current_schema() "
-							+ "and tablename not like 'databasechangelog%'")) {
-					while (rows.next()) {
-						tables.add('"' + rows.getString(1) + '"');
-					}
-				}
-				try (Statement statement = connection.createStatement()) {
-					statement.execute("truncate table " + String.join(", ", tables) + " cascade");
-				}
-			});
-			session.getTransaction().commit();
-			return null;
+		new Transactions().runDsl(dsl -> {
+			List<String> tables = new ArrayList<>();
+			for (org.jooq.Record row : dsl.fetch("select tablename from pg_tables where schemaname = current_schema() "
+					+ "and tablename not like 'databasechangelog%'")) {
+				tables.add('"' + row.get(0, String.class) + '"');
+			}
+			dsl.execute("truncate table " + String.join(", ", tables) + " cascade");
 		});
-	}
-
-	/**
-	 * Runs a function in a new session.
-	 *
-	 * @param <T> the type of the result
-	 * @param function the function
-	 * @return the result of the function
-	 */
-	static <T> T inSession(Function<Session, T> function) {
-		try (Session session = Database.getSession()) {
-			return function.apply(session);
-		}
 	}
 
 	/**
 	 * Loads a task.
 	 *
-	 * @param <T> the type of task
-	 * @param type the type of task
 	 * @param id the ID of the task
-	 * @return the task (detached, lazy associations not loaded)
+	 * @return the task
 	 */
-	static <T extends Task> T load(Class<T> type, long id) {
-		return inSession(session -> session.get(type, id));
+	static Task load(long id) {
+		return TestTasks.find(id);
 	}
 
 	/**
@@ -220,27 +179,33 @@ final class TaskRunner {
 	 * @return the children, by order
 	 */
 	static List<Task> children(long parentId) {
-		return inSession(session -> session
-			.createQuery("from Task t where t.parentTaskId = :id order by t.childOrder asc", Task.class)
-			.setParameter("id", parentId)
-			.list());
+		return TestTasks.children(parentId);
 	}
 
 	/**
-	 * Sets the status of a task in the database.
+	 * Builds a new task working on a list of devices.
 	 *
-	 * @param id the ID of the task
-	 * @param status the status
+	 * @param <S> the type of specification
+	 * @param spec the specification
+	 * @param comments the comments
+	 * @param author the author
+	 * @return the task
 	 */
-	private static void setStatus(long id, Status status) {
-		inSession(session -> {
-			session.beginTransaction();
-			session.createMutationQuery("update Task t set t.status = :status where t.id = :id")
-				.setParameter("status", status)
-				.setParameter("id", id)
-				.executeUpdate();
-			session.getTransaction().commit();
-			return null;
-		});
+	static <S extends TaskSpec & GroupBasedTask> Task forDevices(S spec, String comments, String author) {
+		return GroupBasedTask.of(spec, null, comments, author);
+	}
+
+	/**
+	 * Gets the IDs of devices.
+	 *
+	 * @param devices the devices
+	 * @return the IDs, in order
+	 */
+	static List<Long> ids(Device... devices) {
+		List<Long> ids = new ArrayList<>();
+		for (Device device : devices) {
+			ids.add(device.id());
+		}
+		return ids;
 	}
 }

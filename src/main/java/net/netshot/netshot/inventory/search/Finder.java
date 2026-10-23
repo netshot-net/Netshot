@@ -50,21 +50,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
 import org.jooq.CaseValueStep;
 import org.jooq.CaseWhenStep;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.Table;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
@@ -76,7 +78,7 @@ import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.device.PhysicalAddress;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 
 /**
  * A Finder finds devices based on a text expression.
@@ -600,7 +602,7 @@ public class Finder {
 			}
 		}
 
-	
+
 		/**
 		 * Builds the jOOQ condition on the devices ({@code DEVICE}) matching the expression.
 		 *
@@ -653,7 +655,7 @@ public class Finder {
 			}
 			return field.like(likeTarget(sign, value));
 		}
-}
+	}
 
 	/**
 	 * The Class NotOperator.
@@ -709,12 +711,12 @@ public class Finder {
 			return null;
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			return DSL.not(this.child.toCondition(itemPrefix + "_0"));
 		}
-}
+	}
 
 	/**
 	 * The Class AndOperator.
@@ -783,7 +785,7 @@ public class Finder {
 			return null;
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			List<Condition> parts = new ArrayList<>();
@@ -792,7 +794,7 @@ public class Finder {
 			}
 			return DSL.and(parts);
 		}
-}
+	}
 
 	/**
 	 * The Class OrOperator.
@@ -861,7 +863,7 @@ public class Finder {
 			}
 			return null;
 		}
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			List<Condition> parts = new ArrayList<>();
@@ -870,7 +872,7 @@ public class Finder {
 			}
 			return DSL.or(parts);
 		}
-}
+	}
 
 	/**
 	 * The Class ModuleExpression.
@@ -936,7 +938,7 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -945,7 +947,7 @@ public class Finder {
 				.where(DSL.condition("{0} is not true", m.REMOVED)
 					.and(textCondition(sign, m.SERIAL_NUMBER, value).or(textCondition(sign, m.PART_NUMBER, value)))));
 		}
-}
+	}
 
 	/**
 	 * The Class InterfaceExpression.
@@ -1011,7 +1013,7 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -1019,7 +1021,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
 				.where(textCondition(sign, ni.INTERFACE_NAME, value).or(textCondition(sign, ni.DESCRIPTION, value))));
 		}
-}
+	}
 
 	/**
 	 * The Class DeviceExpression.
@@ -1069,12 +1071,12 @@ public class Finder {
 			return "[%s] %s %d".formatted(TokenType.ID, TokenType.IS, this.value);
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			return DEVICE.ID.eq(value);
 		}
-}
+	}
 
 	/**
 	 * The Class DomainExpression. Matches a device domain.
@@ -1115,12 +1117,12 @@ public class Finder {
 		public String toString() {
 			return "[%s] %s %d".formatted(TokenType.DOMAIN, TokenType.IS, this.value);
 		}
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			return DEVICE.MGMT_DOMAIN.eq(value);
 		}
-}
+	}
 
 	/**
 	 * The Class DriverExpression. Matches a device driver.
@@ -1179,7 +1181,7 @@ public class Finder {
 			return "[%s] %s \"%s\"".formatted(TokenType.TYPE, sign,
 				TokenType.escapeValue(value));
 		}
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			CaseValueStep<String> choose = DSL.choose(DEVICE.DRIVER);
@@ -1192,7 +1194,7 @@ public class Finder {
 			Field<String> description = cases == null ? DSL.inline((String) null, String.class) : cases;
 			return textCondition(sign, description, value);
 		}
-}
+	}
 
 	/**
 	 * The Class NullExpression.
@@ -1207,12 +1209,12 @@ public class Finder {
 			return "";
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			return DSL.trueCondition();
 		}
-}
+	}
 
 	/**
 	 * The Class MacExpression.
@@ -1288,7 +1290,7 @@ public class Finder {
 			return "[MAC] %s %s".formatted(this.sign, mac);
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -1305,7 +1307,7 @@ public class Finder {
 			}
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID)).where(where));
 		}
-}
+	}
 
 	/**
 	 * The Class Ipv4Expression.
@@ -1388,7 +1390,7 @@ public class Finder {
 				this.withMask ? this.target.getPrefix() : this.target.getIp());
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -1415,7 +1417,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
 				.leftJoin(ip4).on(ip4.NETWORK_INTERFACE.eq(ni.ID)).where(where));
 		}
-}
+	}
 
 	/**
 	 * The Class Ipv6Expression.
@@ -1490,7 +1492,7 @@ public class Finder {
 				this.withMask ? this.target.getPrefix() : this.target.getIp());
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -1513,7 +1515,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
 				.leftJoin(ip6).on(ip6.NETWORK_INTERFACE.eq(ni.ID)).where(where));
 		}
-}
+	}
 
 	/**
 	 * The Class DiagnosticExpression - base class for diagnostic result expressions.
@@ -1547,7 +1549,7 @@ public class Finder {
 		public String toString() {
 			return "[%s > %s] %s %s".formatted(
 				TokenType.DIAGNOSTIC,
-				TokenType.escapeKey(this.diagnostic.getName()),
+				TokenType.escapeKey(this.diagnostic.name()),
 				sign,
 				this.getTextValue());
 		}
@@ -1575,7 +1577,7 @@ public class Finder {
 					.formatted(token.key2, token.position));
 			}
 
-			switch (diagnostic.getResultType()) {
+			switch (diagnostic.resultType()) {
 			case BINARY:
 				Expression binaryExpression = BinaryDiagnosticExpression.parse(tokens, diagnostic);
 				if (binaryExpression != null) {
@@ -1597,12 +1599,12 @@ public class Finder {
 			default:
 				throw new FinderParseException(
 					"Unsupported diagnostic result type %s (%s).".formatted(
-						diagnostic.getResultType(), diagnostic.getName()));
+						diagnostic.resultType(), diagnostic.name()));
 			}
 
 			// Diagnostic found but syntax doesn't match any type
 			throw new FinderParseException("Invalid expression for diagnostic '%s' at character %d.".formatted(
-				diagnostic.getName(), token.position));
+				diagnostic.name(), token.position));
 		}
 
 		/**
@@ -1614,23 +1616,15 @@ public class Finder {
 		 */
 		private static Diagnostic getDiagnosticByName(Token token) throws FinderParseException {
 			String diagnosticName = token.key2;
-			Session session = Database.getSession();
 			try {
-				Diagnostic diagnostic = session
-					.createQuery("select d from Diagnostic d where d.name = :name", Diagnostic.class)
-					.setParameter("name", diagnosticName)
-					.uniqueResult();
-				return diagnostic;
+				return new Transactions().readDsl(dsl -> new DiagnosticRepository().findByName(dsl, diagnosticName));
 			}
-			catch (HibernateException e) {
+			catch (DataAccessException e) {
 				log.error("Error while retrieving diagnostic '{}'.", diagnosticName, e);
 				throw new FinderParseException("Database error while retrieving diagnostic '%s'.".formatted(diagnosticName));
 			}
-			finally {
-				session.close();
-			}
 		}
-	
+
 		/**
 		 * Builds the condition on the diagnostic result.
 		 *
@@ -1644,9 +1638,9 @@ public class Finder {
 			var d = subDevice(itemPrefix);
 			var dr = DIAGNOSTIC_RESULT.as(itemPrefix + "_dr");
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).join(dr).on(dr.DEVICE.eq(d.ID))
-				.where(dr.DIAGNOSTIC.eq(this.diagnostic.getId()).and(this.buildCondition(dr))));
+				.where(dr.DIAGNOSTIC.eq(this.diagnostic.id()).and(this.buildCondition(dr))));
 		}
-}
+	}
 
 	/**
 	 * The Class TextDiagnosticExpression.
@@ -1694,12 +1688,12 @@ public class Finder {
 				&& sign.type != TokenType.ENDSWITH) {
 				throw new FinderParseException(
 					"Invalid operator for a text diagnostic '%s' at character %d."
-					.formatted(diagnostic.getName(), sign.position));
+					.formatted(diagnostic.name(), sign.position));
 			}
 			if (value.type != TokenType.QUOTEDTEXT) {
 				throw new FinderParseException(
 					"Parsing error, invalid value for text diagnostic '%s' at position %d, should be a quoted text."
-					.formatted(diagnostic.getName(), value.position, TokenType.TRUE, TokenType.FALSE));
+					.formatted(diagnostic.name(), value.position, TokenType.TRUE, TokenType.FALSE));
 			}
 
 			// Build expression
@@ -1711,12 +1705,12 @@ public class Finder {
 			textExpr.sign = sign.type;
 			return textExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result) {
 			return textCondition(sign, result.TEXT, value);
 		}
-}
+	}
 
 	/**
 	 * The Class NumericDiagnosticExpression.
@@ -1763,12 +1757,12 @@ public class Finder {
 						&& sign.type != TokenType.GREATERTHAN) {
 				throw new FinderParseException(
 					"Invalid operator for a numeric diagnostic '%s' at character %d."
-					.formatted(diagnostic.getName(), sign.position));
+					.formatted(diagnostic.name(), sign.position));
 			}
 			if (value.type != TokenType.NUMERICVALUE) {
 				throw new FinderParseException(
 					"Parsing error, invalid value for numeric diagnostic '%s' at position %d."
-					.formatted(diagnostic.getName(), value.position));
+					.formatted(diagnostic.name(), value.position));
 			}
 
 			NumericDiagnosticExpression numExpr = new NumericDiagnosticExpression(diagnostic);
@@ -1782,7 +1776,7 @@ public class Finder {
 			numExpr.sign = sign.type;
 			return numExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result) {
 			if (TokenType.GREATERTHAN.equals(sign)) {
@@ -1793,7 +1787,7 @@ public class Finder {
 			}
 			return result.NUMBER.eq(value);
 		}
-}
+	}
 
 	/**
 	 * The Class BinaryDiagnosticExpression.
@@ -1836,7 +1830,7 @@ public class Finder {
 			if (sign.type != TokenType.IS) {
 				throw new FinderParseException(
 					"Invalid operator for a binary diagnostic '%s' at character %d."
-					.formatted(diagnostic.getName(), sign.position));
+					.formatted(diagnostic.name(), sign.position));
 			}
 
 			BinaryDiagnosticExpression binExpr = new BinaryDiagnosticExpression(diagnostic);
@@ -1850,16 +1844,16 @@ public class Finder {
 			else {
 				throw new FinderParseException(
 					"Parsing error, invalid value for binary diagnostic '%s' at position %d, should be '%s' or '%s'."
-					.formatted(diagnostic.getName(), value.position, TokenType.TRUE, TokenType.FALSE));
+					.formatted(diagnostic.name(), value.position, TokenType.TRUE, TokenType.FALSE));
 			}
 			return binExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result) {
 			return result.ASSUMPTION.eq(value);
 		}
-}
+	}
 
 	/**
 	 * The Class ComplianceRuleExpression.
@@ -1891,8 +1885,8 @@ public class Finder {
 		public String toString() {
 			return "[%s > %s > %s] %s %s".formatted(
 				TokenType.RULE,
-				TokenType.escapeKey(this.policy.getName()),
-				TokenType.escapeKey(this.rule.getName()),
+				TokenType.escapeKey(this.policy.name()),
+				TokenType.escapeKey(this.rule.name()),
 				TokenType.IS,
 				this.value);
 		}
@@ -1923,7 +1917,7 @@ public class Finder {
 			Rule rule = getRuleByPolicyAndName(policy, token.key2);
 			if (rule == null) {
 				throw new FinderParseException("Unknown rule '%s' for policy '%s' at character %d.".formatted(
-					token.key2, policy.getName(), token.position));
+					token.key2, policy.name(), token.position));
 			}
 
 			// Validate syntax
@@ -1959,20 +1953,12 @@ public class Finder {
 		 * @throws FinderParseException the finder parse exception
 		 */
 		private static Policy getPolicyByName(String policyName) throws FinderParseException {
-			Session session = Database.getSession();
 			try {
-				Policy policy = session
-					.createQuery("select p from Policy p where p.name = :name", Policy.class)
-					.setParameter("name", policyName)
-					.uniqueResult();
-				return policy;
+				return new Transactions().readDsl(dsl -> new PolicyRepository().findByName(dsl, policyName));
 			}
-			catch (HibernateException e) {
+			catch (DataAccessException e) {
 				log.error("Error while retrieving policy '{}'.", policyName, e);
 				throw new FinderParseException("Database error while retrieving policy '%s'.".formatted(policyName));
-			}
-			finally {
-				session.close();
 			}
 		}
 
@@ -1985,32 +1971,23 @@ public class Finder {
 		 * @throws FinderParseException the finder parse exception
 		 */
 		private static Rule getRuleByPolicyAndName(Policy policy, String ruleName) throws FinderParseException {
-			Session session = Database.getSession();
 			try {
-				Rule rule = session
-					.createQuery("select r from Rule r where r.policy = :policy and r.name = :name", Rule.class)
-					.setParameter("policy", policy)
-					.setParameter("name", ruleName)
-					.uniqueResult();
-				return rule;
+				return new Transactions().readDsl(dsl -> new RuleRepository().findOfPolicyByName(dsl, policy.id(), ruleName));
 			}
-			catch (HibernateException e) {
-				log.error("Error while retrieving rule '{}' for policy '{}'.", ruleName, policy.getName(), e);
-				throw new FinderParseException("Database error while retrieving rule '%s' for policy '%s'.".formatted(ruleName, policy.getName()));
-			}
-			finally {
-				session.close();
+			catch (DataAccessException e) {
+				log.error("Error while retrieving rule '{}' for policy '{}'.", ruleName, policy.name(), e);
+				throw new FinderParseException("Database error while retrieving rule '%s' for policy '%s'.".formatted(ruleName, policy.name()));
 			}
 		}
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
 			var cr = CHECK_RESULT.as(itemPrefix + "_cr");
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).join(cr).on(cr.DEVICE.eq(d.ID))
-				.where(cr.RULE.eq(this.rule.getId()).and(cr.RESULT.eq(this.value.name()))));
+				.where(cr.RULE.eq(this.rule.id()).and(cr.RESULT.eq(this.value.name()))));
 		}
-}
+	}
 
 	/**
 	 * Base class for (device/config) attribute-based expressions.
@@ -2128,7 +2105,7 @@ public class Finder {
 			return "[%s] %s %s".formatted(this.getItemLabel(), sign, this.getTextValue());
 		}
 
-	
+
 		/**
 		 * Gets a column of the table holding the attribute value: the native column (named after the
 		 * attribute) of the device or config, or the given column of the driver attribute table.
@@ -2194,7 +2171,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d.join(da).on(da.DEVICE.eq(d.ID).and(da.NAME.eq(this.attribute.getName()))))
 				.where(d.DRIVER.eq(this.attribute.getDriver().getName()).and(this.buildCondition(da))));
 		}
-}
+	}
 
 	/**
 	 * The Class NumericAttributeExpression.
@@ -2266,7 +2243,7 @@ public class Finder {
 			return numExpr;
 		}
 
-	
+
 		@Override
 		protected Condition buildCondition(Table<?> table) {
 			Field<Double> property = this.valueField(table, "number", Double.class);
@@ -2278,7 +2255,7 @@ public class Finder {
 			}
 			return property.eq(value);
 		}
-}
+	}
 
 	/**
 	 * The Class EnumAttributeExpression.
@@ -2380,13 +2357,13 @@ public class Finder {
 			}
 			return enumExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(Table<?> table) {
 			// The enumerations are stored by name
 			return this.valueField(table, "choice", String.class).eq(((Enum<?>) value).name());
 		}
-}
+	}
 
 	/**
 	 * The Class TextAttributeExpression.
@@ -2513,7 +2490,7 @@ public class Finder {
 			textExpr.sign = sign.type;
 			return textExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(Table<?> table) {
 			Field<String> property = this.valueField(table, "text", String.class);
@@ -2526,7 +2503,7 @@ public class Finder {
 			}
 			return textCondition(sign, property, value);
 		}
-}
+	}
 
 	/**
 	 * The Class DateAttributeExpression.
@@ -2817,7 +2794,7 @@ public class Finder {
 			}
 			return dateExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(Table<?> table) {
 			Field<Instant> property = this.valueField(table, "when", Instant.class);
@@ -2830,7 +2807,7 @@ public class Finder {
 					return property.ge(this.value.getStart()).and(property.le(this.value.getEnd()));
 			}
 		}
-}
+	}
 
 	/**
 	 * The Class BinaryAttributeExpression.
@@ -2895,12 +2872,12 @@ public class Finder {
 			}
 			return binExpr;
 		}
-	
+
 		@Override
 		protected Condition buildCondition(Table<?> table) {
 			return this.valueField(table, "assumption", Boolean.class).eq(this.value);
 		}
-}
+	}
 
 	/**
 	 * The Class VrfExpression.
@@ -2959,7 +2936,7 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -2967,7 +2944,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(v).on(v.DEVICE.eq(d.ID))
 				.where(textCondition(sign, v.VRF_INSTANCES, value)));
 		}
-}
+	}
 
 	/**
 	 * The Class VirtualNameExpression.
@@ -3026,7 +3003,7 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -3034,7 +3011,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(v).on(v.DEVICE.eq(d.ID))
 				.where(textCondition(sign, v.VIRTUAL_DEVICES, value).or(textCondition(sign, d.NAME, value))));
 		}
-}
+	}
 
 	/**
 	 * The Class TagExpression, to find devices by (user-defined) tag.
@@ -3093,7 +3070,7 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
-	
+
 		@Override
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
@@ -3101,7 +3078,7 @@ public class Finder {
 			return DEVICE.ID.in(DSL.select(d.ID).from(d).join(t).on(t.DEVICE.eq(d.ID))
 				.where(textCondition(sign, t.TAG, value)));
 		}
-}
+	}
 
 	/** The prefix of the aliases of the subqueries. */
 	private static final String ALIAS_PREFIX = "var";

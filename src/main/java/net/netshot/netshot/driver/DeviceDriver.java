@@ -61,12 +61,11 @@ import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
-import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
+import net.netshot.netshot.credentials.SshAccount;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -367,7 +366,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		public Class<? extends DeviceCredentialSet> getCredentialClass() {
 			switch (this.protocol) {
 				case SSH:
-					return DeviceSshAccount.class;
+					return SshAccount.class;
 				case TELNET:
 					return DeviceTelnetAccount.class;
 				case HTTP:
@@ -950,13 +949,12 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 
 	/**
 	 * Asks the driver to analyze SNMP information.
-	 * @param task The auto discovery task
 	 * @param sysObjectId The received sysObjectId
 	 * @param sysDesc The received sysDesc
 	 * @param taskContext The logger from the task
 	 * @return true if the passed SNMP information matches a device of this driver
 	 */
-	public boolean snmpAutoDiscover(Task task, String sysObjectId, String sysDesc, TaskContext taskContext) {
+	public boolean snmpAutoDiscover(String sysObjectId, String sysDesc, TaskContext taskContext) {
 		if (!canSnmpAutodiscover) {
 			return false;
 		}

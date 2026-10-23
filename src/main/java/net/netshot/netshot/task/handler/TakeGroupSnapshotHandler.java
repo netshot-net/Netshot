@@ -27,6 +27,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -53,40 +54,41 @@ public class TakeGroupSnapshotHandler implements TaskHandler<TakeGroupSnapshotTa
 	}
 
 	@Override
-	public void run(TakeGroupSnapshotTask task) {
-		List<Device> allDevices = task.getTargetDevices();
-		if (task.getDeviceGroup() == null && allDevices.isEmpty()) {
-			task.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, TakeGroupSnapshotTask spec, TaskRun run) {
+		TaskTargets targets = TaskTargets.load(spec);
+		List<Device> allDevices = targets.devices();
+		if (targets.group() == null && allDevices.isEmpty()) {
+			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		String comment = task.getDeviceGroup() == null
+		String comment = targets.group() == null
 			? String.format("Started due to %d-device snapshot list", allDevices.size())
-			: String.format("Started due to group %s snapshot", task.getDeviceGroup().getName());
+			: String.format("Started due to group %s snapshot", targets.group().name());
 
 		Calendar referenceDate = Calendar.getInstance();
-		referenceDate.add(Calendar.HOUR, -task.getLimitToOutofdateDeviceHours());
+		referenceDate.add(Calendar.HOUR, -spec.limitToOutofdateDeviceHours());
 		List<Device> devices = new ArrayList<>();
 		for (Device device : allDevices) {
-			if (referenceDate.getTime().before(device.getChangeDate())) {
-				task.logger.info("Ignoring device {} because it changed less than {} hours ago",
-					device.getName(), task.getLimitToOutofdateDeviceHours());
+			if (referenceDate.getTime().toInstant().isBefore(device.changeDate())) {
+				run.logger.info("Ignoring device {} because it changed less than {} hours ago",
+					device.name(), spec.limitToOutofdateDeviceHours());
 				continue;
 			}
 			devices.add(device);
 		}
-		log.debug("Task {}. {} device(s) to process (out of {}).", task.getId(), devices.size(), allDevices.size());
+		log.debug("Task {}. {} device(s) to process (out of {}).", task.id(), devices.size(), allDevices.size());
 
-		List<Task> children = this.childTaskOrchestrator.reloadExistingChildren(task);
+		List<Task> children = this.childTaskOrchestrator.reloadExistingChildren(run);
 		if (children.isEmpty()) {
 			children = new ArrayList<>();
 			for (Device device : devices) {
-				children.add(new TakeSnapshotTask(device, comment, task.getAuthor(), false,
-					task.isDontRunDiagnostics(), task.isDontCheckCompliance()));
+				children.add(TakeSnapshotTask.of(device, comment, task.author(), false,
+					spec.dontRunDiagnostics(), spec.dontCheckCompliance()));
 			}
-			this.childTaskOrchestrator.preCreateChildren(task, children);
+			children = this.childTaskOrchestrator.preCreateChildren(run, children);
 		}
-		task.setStatus(this.childTaskOrchestrator.orchestrateChildren(task, children));
+		run.setStatus(this.childTaskOrchestrator.orchestrateChildren(run, children));
 	}
 
 }

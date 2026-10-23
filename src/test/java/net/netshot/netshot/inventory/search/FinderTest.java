@@ -22,48 +22,57 @@ import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
-import net.netshot.netshot.diagnostic.SimpleDiagnostic;
-import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device.NetworkClass;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
-import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.testing.DatabaseTest;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
-
-import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+
+import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyRepository;
+import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleRepository;
+import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
+import net.netshot.netshot.diagnostic.DiagnosticResult;
+import net.netshot.netshot.diagnostic.DiagnosticTextResult;
+import net.netshot.netshot.diagnostic.SimpleDiagnostic;
+import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Module;
+import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.NetworkInterface;
+import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
+import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.search.Finder.FinderParseException;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
 @DisplayName("Device finder test")
@@ -76,213 +85,180 @@ public class FinderTest {
 	protected static List<Policy> testPolicies = new ArrayList<>();
 	protected static Map<String, Rule> testRules = new HashMap<>();
 
+	private static <A> List<A> withReplaced(List<A> attributes, Function<A, String> nameOf, A attribute) {
+		List<A> result = new ArrayList<>();
+		for (A a : attributes) {
+			result.add(nameOf.apply(a).equals(nameOf.apply(attribute)) ? attribute : a);
+		}
+		return result;
+	}
+
+	private static List<DeviceAttribute> withDeviceAttribute(Device device, DeviceAttribute attribute) {
+		return withReplaced(device.attributes(), DeviceAttribute::name, attribute);
+	}
+
+	private static Config withIosImageFile(Config config, String imageFile) {
+		return config.toBuilder().attributes(withReplaced(config.attributes(), ConfigAttribute::name,
+			new ConfigTextAttribute("iosImageFile", imageFile))).build();
+	}
+
+	private static Instant startOfDay(String day) {
+		return LocalDate.parse(day).atStartOfDay(ZoneId.systemDefault()).toInstant();
+	}
+
 	protected static void createDevices() throws IOException, InterruptedException, GeneralSecurityException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
+		// Create domains
+		for (int i = 1; i < 3; i++) {
+			testDomains.add(TestDevices.addDomain(Domain.builder()
+				.name("Domain %d".formatted(i)).description("Test Domain for devices")
+				.server4Address(new Network4Address("10.%d.1.1".formatted(i))).build()));
+		}
 
-			// Create domains
-			for (int i = 1; i < 3; i++) {
-				Domain domain = new Domain(
-					"Domain %d".formatted(i), "Test Domain for devices",
-					new Network4Address("10.%d.1.1".formatted(i)),
-					null
-				);
-				testDomains.add(domain);
-				session.persist(domain);
-			}
-
+		new Transactions().runDsl(dsl -> {
 			// Create test diagnostics BEFORE devices
-			Diagnostic textDiagnostic = new SimpleDiagnostic(
+			Diagnostic textDiagnostic = new SimpleDiagnostic(0,
 				"System Status", true, null, AttributeType.TEXT,
 				"CiscoIOS12", "enable", "show version", null, null);
-			session.persist(textDiagnostic);
+			textDiagnostic = textDiagnostic.withId(new DiagnosticRepository().add(dsl, textDiagnostic));
 			testDiagnostics.put(AttributeType.TEXT, textDiagnostic);
 
-			Diagnostic numericDiagnostic = new SimpleDiagnostic(
+			Diagnostic numericDiagnostic = new SimpleDiagnostic(0,
 				"CPU Usage", true, null, AttributeType.NUMERIC,
 				"CiscoIOS12", "enable", "show proc cpu", null, null);
-			session.persist(numericDiagnostic);
+			numericDiagnostic = numericDiagnostic.withId(new DiagnosticRepository().add(dsl, numericDiagnostic));
 			testDiagnostics.put(AttributeType.NUMERIC, numericDiagnostic);
 
-			Diagnostic binaryDiagnostic = new SimpleDiagnostic(
+			Diagnostic binaryDiagnostic = new SimpleDiagnostic(0,
 				"Is Reachable", true, null, AttributeType.BINARY,
 				"CiscoIOS12", "enable", "ping 8.8.8.8", null, null);
-			session.persist(binaryDiagnostic);
+			binaryDiagnostic = binaryDiagnostic.withId(new DiagnosticRepository().add(dsl, binaryDiagnostic));
 			testDiagnostics.put(AttributeType.BINARY, binaryDiagnostic);
 
-			Policy securityPolicy = new Policy("Security Policy", null);
-			session.persist(securityPolicy);
+			Policy securityPolicy = new Policy(0, "Security Policy", null);
+			securityPolicy = securityPolicy.withId(new PolicyRepository().add(dsl, securityPolicy));
 			testPolicies.add(securityPolicy);
 
-			Policy configPolicy = new Policy("Config Policy", null);
-			session.persist(configPolicy);
+			Policy configPolicy = new Policy(0, "Config Policy", null);
+			configPolicy = configPolicy.withId(new PolicyRepository().add(dsl, configPolicy));
 			testPolicies.add(configPolicy);
 
-			TextRule passwordRule = new TextRule("Password Check", securityPolicy);
-			passwordRule.setEnabled(true);
-			session.persist(passwordRule);
+			TextRule passwordRuleDraft = TextRule.builder("Password Check", securityPolicy.id()).enabled(true).build();
+			TextRule passwordRule = passwordRuleDraft.withId(new RuleRepository().add(dsl, passwordRuleDraft));
 			testRules.put("Security Policy/Password Check", passwordRule);
 
-			TextRule hostnameRule = new TextRule("Hostname Standard", configPolicy);
-			hostnameRule.setEnabled(true);
-			session.persist(hostnameRule);
+			TextRule hostnameRuleDraft = TextRule.builder("Hostname Standard", configPolicy.id()).enabled(true).build();
+			TextRule hostnameRule = hostnameRuleDraft.withId(new RuleRepository().add(dsl, hostnameRuleDraft));
 			testRules.put("Config Policy/Hostname Standard", hostnameRule);
 
-			TextRule snmpRule = new TextRule("SNMP Community", securityPolicy);
-			snmpRule.setEnabled(true);
-			session.persist(snmpRule);
+			TextRule snmpRuleDraft = TextRule.builder("SNMP Community", securityPolicy.id()).enabled(true).build();
+			TextRule snmpRule = snmpRuleDraft.withId(new RuleRepository().add(dsl, snmpRuleDraft));
 			testRules.put("Security Policy/SNMP Community", snmpRule);
+		});
 
-			// Create devices
-			for (int i = 0; i < 100; i++) {
-				Device device = FakeDeviceFactory.getFakeCiscoIosDevice(
-					testDomains.get(0), null, i);
-				if (i < 10) {
-					device.setStatus(Device.Status.DISABLED);
-				}
-				if (i == 10) {
-					device.getNetworkInterfaces().get(0)
-						.setDescription("Specific description");
-					device.setSerialNumber("SERIALNUMBER10");
-				}
-				if (i == 11) {
-					device.getModules().get(0)
-						.setPartNumber("SPECSN11");
-				}
-				if (i == 12) {
-					device.setDriver("JuniperJunos");
-					device.setFamily("SRX300");
-					device.setNetworkClass(NetworkClass.FIREWALL);
-				}
-				if (i == 13) {
-					device.setDriver("CiscoIOSXR");
-				}
-				if (i == 14) {
-					device.setCreatedDate(Date.from(LocalDate.parse("2070-10-10").atStartOfDay(ZoneId.systemDefault()).toInstant()));
-				}
-				if (i == 15) {
-					device.setCreatedDate(Date.from(LocalDate.parse("2023-01-02").atStartOfDay(ZoneId.systemDefault()).toInstant()));
-				}
-				if (i == 16) {
-					((ConfigTextAttribute) device.getLastConfig().getAttribute("iosImageFile"))
-						.setText("ciscoios-advanced-16.1.6.bin");
-				}
-				if (i == 17) {
-					((DeviceNumericAttribute) device.getAttribute("mainMemorySize"))
-						.setNumber(4096.0);
-				}
-				if (i == 18) {
-					device.setSoftwareVersion("15.2.3");
-					device.setSoftwareLevel(ConformanceLevel.UNKNOWN);
-					((ConfigTextAttribute) device.getLastConfig().getAttribute("iosImageFile"))
-						.setText("ciscoios-advanced-15.2.3.bin");
-				}
-				if (i == 19) {
-					device.setSoftwareVersion("15.2.4");
-					device.setSoftwareLevel(ConformanceLevel.BRONZE);
-					((ConfigTextAttribute) device.getLastConfig().getAttribute("iosImageFile"))
-						.setText("ciscoios-advanced-15.2.4.bin");
-				}
-				if (i == 20) {
-					((DeviceBinaryAttribute) device.getAttribute("configurationSaved"))
-						.setAssumption(false);
-				}
-				if (i == 21) {
-					device.removeAttribute("configurationSaved");
-				}
-				if (i == 40) {
-					device.addTag("core");
-					device.addTag("Paris-DC1");
-				}
-				if (i == 41) {
-					device.addTag(" core ");
-					device.addTag("lab");
-				}
-
-				// Add diagnostic results to specific devices
-				if (i == 22) {
-					DiagnosticTextResult textResult = new DiagnosticTextResult(
-						device, testDiagnostics.get(AttributeType.TEXT), "OK");
-					device.addDiagnosticResult(textResult);
-				}
-				if (i == 23) {
-					DiagnosticTextResult textResult = new DiagnosticTextResult(
-						device, testDiagnostics.get(AttributeType.TEXT), "WARNING");
-					device.addDiagnosticResult(textResult);
-				}
-				if (i == 24) {
-					DiagnosticTextResult textResult = new DiagnosticTextResult(
-						device, testDiagnostics.get(AttributeType.TEXT), "CRITICAL");
-					device.addDiagnosticResult(textResult);
-				}
-				if (i == 25) {
-					DiagnosticNumericResult numResult = new DiagnosticNumericResult(
-						device, testDiagnostics.get(AttributeType.NUMERIC), 45.5);
-					device.addDiagnosticResult(numResult);
-				}
-				if (i == 26) {
-					DiagnosticNumericResult numResult = new DiagnosticNumericResult(
-						device, testDiagnostics.get(AttributeType.NUMERIC), 78.2);
-					device.addDiagnosticResult(numResult);
-				}
-				if (i == 27) {
-					DiagnosticNumericResult numResult = new DiagnosticNumericResult(
-						device, testDiagnostics.get(AttributeType.NUMERIC), 92.8);
-					device.addDiagnosticResult(numResult);
-				}
-				if (i == 28) {
-					DiagnosticBinaryResult binResult = new DiagnosticBinaryResult(
-						device, testDiagnostics.get(AttributeType.BINARY), true);
-					device.addDiagnosticResult(binResult);
-				}
-				if (i == 29) {
-					DiagnosticBinaryResult binResult = new DiagnosticBinaryResult(
-						device, testDiagnostics.get(AttributeType.BINARY), false);
-					device.addDiagnosticResult(binResult);
-				}
-				if (i == 30) {
-					DiagnosticBinaryResult binResult = new DiagnosticBinaryResult(
-						device, testDiagnostics.get(AttributeType.BINARY), true);
-					device.addDiagnosticResult(binResult);
-				}
-
-				testDevices.add(device);
-				session.persist(device);
-
-				// Add compliance check results AFTER device is persisted
-				if (i == 31) {
-					CheckResult conformingResult = new CheckResult(
-						testRules.get("Security Policy/Password Check"), device, CheckResult.ResultOption.CONFORMING);
-					session.persist(conformingResult);
-				}
-				if (i == 32) {
-					CheckResult nonconformingResult = new CheckResult(
-						testRules.get("Security Policy/Password Check"), device, CheckResult.ResultOption.NONCONFORMING);
-					session.persist(nonconformingResult);
-				}
-				if (i == 33) {
-					CheckResult conformingResult = new CheckResult(
-						testRules.get("Config Policy/Hostname Standard"), device, CheckResult.ResultOption.CONFORMING);
-					session.persist(conformingResult);
-				}
-				if (i == 34) {
-					CheckResult notapplicableResult = new CheckResult(
-						testRules.get("Security Policy/SNMP Community"), device, CheckResult.ResultOption.NOTAPPLICABLE);
-					session.persist(notapplicableResult);
-				}
-				if (i == 35) {
-					CheckResult exemptedResult = new CheckResult(
-						testRules.get("Security Policy/Password Check"), device, CheckResult.ResultOption.EXEMPTED);
-					session.persist(exemptedResult);
-				}
-				if (i == 36) {
-					CheckResult disabledResult = new CheckResult(
-						testRules.get("Config Policy/Hostname Standard"), device, CheckResult.ResultOption.DISABLED);
-					session.persist(disabledResult);
-				}
+		// Create devices
+		for (int i = 0; i < 100; i++) {
+			Device device = FakeDeviceFactory.getFakeCiscoIosDevice(
+				testDomains.get(0), null, i);
+			Config config = FakeDeviceFactory.getFakeCiscoIosConfig(device);
+			Device.DeviceBuilder builder = device.toBuilder();
+			if (i < 10) {
+				builder.status(Device.Status.DISABLED);
+			}
+			if (i == 10) {
+				List<NetworkInterface> interfaces = new ArrayList<>(device.networkInterfaces());
+				interfaces.set(0, interfaces.get(0).toBuilder().description("Specific description").build());
+				builder.networkInterfaces(interfaces).serialNumber("SERIALNUMBER10");
+			}
+			if (i == 11) {
+				List<Module> modules = new ArrayList<>(device.modules());
+				modules.set(0, modules.get(0).toBuilder().partNumber("SPECSN11").build());
+				builder.modules(modules);
+			}
+			if (i == 12) {
+				builder.driver("JuniperJunos").family("SRX300").networkClass(NetworkClass.FIREWALL);
+			}
+			if (i == 13) {
+				builder.driver("CiscoIOSXR");
+			}
+			if (i == 14) {
+				builder.createdDate(startOfDay("2070-10-10"));
+			}
+			if (i == 15) {
+				builder.createdDate(startOfDay("2023-01-02"));
+			}
+			if (i == 16) {
+				config = withIosImageFile(config, "ciscoios-advanced-16.1.6.bin");
+			}
+			if (i == 17) {
+				builder.attributes(withDeviceAttribute(device, new DeviceNumericAttribute("mainMemorySize", 4096.0)));
+			}
+			if (i == 18) {
+				builder.softwareVersion("15.2.3").softwareLevel(ConformanceLevel.UNKNOWN);
+				config = withIosImageFile(config, "ciscoios-advanced-15.2.3.bin");
+			}
+			if (i == 19) {
+				builder.softwareVersion("15.2.4").softwareLevel(ConformanceLevel.BRONZE);
+				config = withIosImageFile(config, "ciscoios-advanced-15.2.4.bin");
+			}
+			if (i == 20) {
+				builder.attributes(withDeviceAttribute(device, new DeviceBinaryAttribute("configurationSaved", false)));
+			}
+			if (i == 21) {
+				builder.attributes(device.attributes().stream().filter(a -> !"configurationSaved".equals(a.name())).toList());
+			}
+			if (i == 40) {
+				builder.tags(Device.normalizeTags(List.of("core", "Paris-DC1")));
+			}
+			if (i == 41) {
+				builder.tags(Device.normalizeTags(List.of(" core ", "lab")));
 			}
 
-			session.getTransaction().commit();
+			// Add diagnostic results to specific devices
+			List<DiagnosticResult> results = new ArrayList<>();
+			if (i == 22) {
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "OK"));
+			}
+			if (i == 23) {
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "WARNING"));
+			}
+			if (i == 24) {
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "CRITICAL"));
+			}
+			if (i == 25) {
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 45.5));
+			}
+			if (i == 26) {
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 78.2));
+			}
+			if (i == 27) {
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 92.8));
+			}
+			if (i == 28) {
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+			}
+			if (i == 29) {
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), false));
+			}
+			if (i == 30) {
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+			}
+
+			Device stored = TestDevices.add(builder.build(), config, results.toArray(new DiagnosticResult[0]));
+			testDevices.add(stored);
+
+			// Add compliance check results AFTER device is persisted
+			CheckResult checkResult = switch (i) {
+				case 31 -> CheckResult.of(testRules.get("Security Policy/Password Check").id(), stored.id(), CheckResult.ResultOption.CONFORMING);
+				case 32 -> CheckResult.of(testRules.get("Security Policy/Password Check").id(), stored.id(), CheckResult.ResultOption.NONCONFORMING);
+				case 33 -> CheckResult.of(testRules.get("Config Policy/Hostname Standard").id(), stored.id(), CheckResult.ResultOption.CONFORMING);
+				case 34 -> CheckResult.of(testRules.get("Security Policy/SNMP Community").id(), stored.id(), CheckResult.ResultOption.NOTAPPLICABLE);
+				case 35 -> CheckResult.of(testRules.get("Security Policy/Password Check").id(), stored.id(), CheckResult.ResultOption.EXEMPTED);
+				case 36 -> CheckResult.of(testRules.get("Config Policy/Hostname Standard").id(), stored.id(), CheckResult.ResultOption.DISABLED);
+				default -> null;
+			};
+			if (checkResult != null) {
+				new Transactions().runDsl(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
+			}
 		}
 	}
 
@@ -436,20 +412,20 @@ public class FinderTest {
 	@DisplayName("Query device by ID")
 	void queryById() throws Exception {
 		Device device = testDevices.get(1);
-		long id = device.getId();
+		long id = device.id();
 		assertFinder("[ID] is %d".formatted(id),
 			null,
-			List.of(device.getName()));
+			List.of(device.name()));
 	}
 
 	@Test
 	@DisplayName("Query device by serial number")
 	void queryBySerialNumber() throws Exception {
 		Device device = testDevices.get(10);
-		String serial = device.getSerialNumber();
+		String serial = device.serialNumber();
 		assertFinder("[Serial Number] is \"%s\"".formatted(serial),
 			null,
-			List.of(device.getName()));
+			List.of(device.name()));
 	}
 
 	@Test
@@ -842,9 +818,9 @@ public class FinderTest {
 	 */
 	private static List<Entry<String, Integer>> countedQueries() {
 		return List.of(
-			Map.entry("[Domain] is " + testDomains.get(0).getId(), 100),
-			Map.entry("[Domain] is " + testDomains.get(1).getId(), 0),
-			Map.entry("not ([Domain] is " + testDomains.get(0).getId() + ")", 0),
+			Map.entry("[Domain] is " + testDomains.get(0).id(), 100),
+			Map.entry("[Domain] is " + testDomains.get(1).id(), 0),
+			Map.entry("not ([Domain] is " + testDomains.get(0).id() + ")", 0),
 			Map.entry("[MAC] is 0011.2233.4455", 0),
 			Map.entry("[MAC] in 0011.2233.0000/32", 0),
 			Map.entry("[IP] is 2016:1:5:1::1", 1),

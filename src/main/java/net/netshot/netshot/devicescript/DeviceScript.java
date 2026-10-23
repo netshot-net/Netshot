@@ -21,18 +21,15 @@ package net.netshot.netshot.devicescript;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.script.ScriptException;
-
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -57,15 +54,15 @@ public abstract class DeviceScript {
 		this.taskContext = taskContext;
 	}
 
-	protected abstract void run(Session session, Device device, AccessManager accessManager)
+	protected abstract void run(DeviceDraft device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, ScriptException, MissingDeviceDriverException;
 
-	public void connectRun(Session session, Device device)
+	public void connectRun(DeviceDraft device)
 		throws IOException, MissingDeviceDriverException, InvalidCredentialsException, ScriptException, MissingDeviceDriverException {
-		this.connectRun(session, device, null);
+		this.connectRun(device, null);
 	}
 
-	public void connectRun(Session session, Device device, Set<DeviceCredentialSet> oneTimeCredentialSets)
+	public void connectRun(DeviceDraft device, Set<DeviceCredentialSet> oneTimeCredentialSets)
 		throws IOException, MissingDeviceDriverException, InvalidCredentialsException, ScriptException, MissingDeviceDriverException {
 		this.driverRegistry.forDevice(device); // fail fast if the driver is missing
 
@@ -79,10 +76,10 @@ public abstract class DeviceScript {
 		// override. Failure there isn't immediately fatal: an access with its
 		// own override address may still be usable, so it only surfaces as a
 		// warning, not an exception.
-		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, session, device, this.taskContext, credentialSets);
+		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, device, this.taskContext, credentialSets);
 
 		try {
-			this.run(session, device, accessManager);
+			this.run(device, accessManager);
 		}
 		finally {
 			// Whatever the driver script actually connected to (CLI, SNMP, and/or any

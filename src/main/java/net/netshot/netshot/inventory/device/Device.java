@@ -20,76 +20,129 @@ package net.netshot.netshot.inventory.device;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.annotations.SQLRestriction;
-import org.hibernate.annotations.Type;
-import org.hibernate.type.SqlTypes;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Transient;
-import jakarta.persistence.Version;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.Exemption;
-import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
-import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.DeviceGroupMembership;
-import net.netshot.netshot.platform.database.InetAddressUserType;
 
 /**
- * A device.
+ * A device, as it is loaded with everything most of the use cases read: its domain, its
+ * accesses (with their credential sets), its device level attributes, its (current) modules
+ * and its interfaces. Its configurations and diagnostic results are loaded apart.
+ *
+ * @param id the ID (0 for a device which isn't stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the time of the last change
+ * @param name the name (as reported by the device)
+ * @param comments the comments
+ * @param contact the contact (as reported by the device)
+ * @param location the location (as reported by the device)
+ * @param family the family (model, as reported by the device)
+ * @param createdDate when the device was created
+ * @param creator who created the device
+ * @param driver the name of the driver
+ * @param mgmtAddress the management address (IPv4 literal, IPv6 literal, or FQDN, resolved lazily at connect time)
+ * @param cachedIpAddress the last IP address that the management address resolved to, refreshed on every
+ *        successful connection attempt. Used for fast IP-based search/dedup/passive matching, since the
+ *        management address itself may be a hostname.
+ * @param mgmtDomain the management domain
+ * @param networkClass the network class
+ * @param serialNumber the serial number
+ * @param softwareLevel the software conformance level
+ * @param softwareVersion the software version
+ * @param status the status
+ * @param eolDate the end of life date
+ * @param eolModule the module giving the end of life date, if any
+ * @param eosDate the end of sale date
+ * @param eosModule the module giving the end of sale date, if any
+ * @param lastConfigId the ID of the last configuration, or null if there is none
+ * @param compliant whether the device has no non conforming compliance check result (computed)
+ * @param options the user-configured, per-device values for the options declared by the
+ *        device's driver (e.g. "force full backup"). Unlike the attributes, which the driver
+ *        populates during a snapshot, these are set by the user and only read by the driver at
+ *        runtime. Values are typed to match their option's declared type (a real {@code Boolean}
+ *        for a BOOLEAN option, a {@code String} for TEXT), stored as-is in a JSON column.
+ * @param tags the tags (sorted)
+ * @param virtualDevices the virtual devices
+ * @param vrfInstances the VRF instances
+ * @param attributes the device level attributes
+ * @param accesses the per-access configuration (address/port overrides and credential pins),
+ *        one per access name (e.g. "ssh", "telnet", "https") - see {@link DeviceAccess}
+ * @param modules the modules currently in the device (not the removed ones)
+ * @param networkInterfaces the network interfaces
+ * @param ownerGroups the groups the device is a member of, by ID (read only)
  */
-@Entity
-public class Device {
+@Builder(toBuilder = true)
+public record Device(
+	long id,
+	int version,
+	Instant changeDate,
+	String name,
+	String comments,
+	String contact,
+	String location,
+	String family,
+	Instant createdDate,
+	String creator,
+	String driver,
+	String mgmtAddress,
+	InetAddress cachedIpAddress,
+	Domain mgmtDomain,
+	NetworkClass networkClass,
+	String serialNumber,
+	ConformanceLevel softwareLevel,
+	String softwareVersion,
+	Status status,
+	Instant eolDate,
+	Module eolModule,
+	Instant eosDate,
+	Module eosModule,
+	Long lastConfigId,
+	boolean compliant,
+	Map<String, Object> options,
+	Set<String> tags,
+	Set<String> virtualDevices,
+	Set<String> vrfInstances,
+	List<DeviceAttribute> attributes,
+	List<DeviceAccess> accesses,
+	List<Module> modules,
+	List<NetworkInterface> networkInterfaces,
+	List<DeviceGroup> ownerGroups) {
 
+	/**
+	 * Raised when the driver of a device isn't loaded.
+	 */
 	public static class MissingDeviceDriverException extends Exception {
 		private static final long serialVersionUID = -7286042265874166550L;
 
+		/**
+		 * Instantiates the exception.
+		 *
+		 * @param message the message
+		 */
 		public MissingDeviceDriverException(String message) {
 			super(message);
 		}
 	}
 
 	/**
-	 * The Enum NetworkClass.
+	 * The network class of a device.
 	 */
 	public enum NetworkClass implements EnumAttribute {
 
@@ -127,9 +180,8 @@ public class Device {
 		VOICEGATEWAY,
 	}
 
-
 	/**
-	 * The Enum Status.
+	 * The status of a device.
 	 */
 	public enum Status implements EnumAttribute {
 
@@ -143,473 +195,81 @@ public class Device {
 		PREPRODUCTION
 	}
 
-	/** The Constant DEFAULTNAME. */
+	/** The name of a device which hasn't been snapshot yet. */
 	public static final String DEFAULTNAME = "[NONAME]";
 
-
-	/** The attributes. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "device", orphanRemoval = true,
-			cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<DeviceAttribute> attributes = new HashSet<>();
-
-	/**
-	 * User-configured, per-device values for the options declared by the
-	 * device's driver (e.g. "force full backup"). Unlike {@link #attributes},
-	 * which the driver populates during a snapshot, these are set by the
-	 * user and only read by the driver at runtime. Values are typed to match
-	 * their option's declared type (a real {@code Boolean} for a BOOLEAN
-	 * option, a {@code String} for TEXT), stored as-is in the JSON
-	 * column rather than as stringified text.
-	 */
-	@Getter(onMethod = @__({
-		@JdbcTypeCode(SqlTypes.JSON)
-	}))
-	@Setter
-	private Map<String, Object> options = new HashMap<>();
-
-	/** The change date. */
-	@Getter
-	@Setter
-	private Date changeDate;
-
-	@Getter(onMethod = @__({
-		@Version
-	}))
-	@Setter
-	private int version;
-
-	/** The comments. */
-	@Getter
-	@Setter
-	private String comments = "";
-
-	/** Maximum length of a single tag. */
+	/** The maximum length of a tag. */
 	public static final int MAX_TAG_LENGTH = 255;
 
 	/**
-	 * Free-form, user-defined tags attached to the device (e.g. "core", "datacenter-1").
-	 * Set by users (UI/API) or by scripts (compliance rules, diagnostics, run scripts),
-	 * never reset by a snapshot.
+	 * Instantiates a device, the missing collections being empty.
 	 */
-	@Getter(onMethod = @__({
-		@ElementCollection,
-		@CollectionTable(name = "device_tags", joinColumns = @JoinColumn(name = "device")),
-		@Column(name = "tag", length = MAX_TAG_LENGTH)
-	}))
-	@Setter
-	private Set<String> tags = new HashSet<>();
-
-	/** The compliance check results. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.device", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-	}))
-	@Setter
-	private Set<CheckResult> complianceCheckResults = new HashSet<>();
-
-	/** The compliance exemptions. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.device", orphanRemoval = true, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<Exemption> complianceExemptions = new HashSet<>();
-
-	/** The configs. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "device", cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private List<Config> configs = new ArrayList<>();
-
-	/** The diagnostic results. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "device", orphanRemoval = true, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<DiagnosticResult> diagnosticResults = new HashSet<>();
-
-	/** The contact. */
-	@Getter
-	@Setter
-	private String contact = "";
-
-	/** The created date. */
-	@Getter
-	@Setter
-	private Date createdDate = new Date();
-
-	/** The creator. */
-	@Getter
-	@Setter
-	private String creator;
-
-	/** The device deviceDriver name. */
-	@Getter
-	@Setter
-	private String driver;
-
-	/** End of Life Date. */
-	@Getter
-	@Setter
-	private Date eolDate;
-
-	/** End of Life responsible component. */
-	@Getter(onMethod = @__({
-		@OneToOne(fetch = FetchType.LAZY)
-	}))
-	@Setter
-	private Module eolModule;
-
-	/** End of Sale Date. */
-	@Getter
-	@Setter
-	private Date eosDate;
-
-	/** End of Sale responsible component. */
-	@Getter(onMethod = @__({
-		@OneToOne(fetch = FetchType.LAZY)
-	}))
-	@Setter
-	private Module eosModule;
-
-	/** The family. */
-	@Getter
-	@Setter
-	private String family = "";
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id,
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The last config. */
-	@Getter(onMethod = @__({
-		@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Config lastConfig;
-
-	/** The location. */
-	@Getter
-	@Setter
-	private String location = "";
-
-	/** The mgmt address (IPv4 literal, IPv6 literal, or FQDN, resolved lazily at connect time). */
-	@Getter(onMethod = @__({
-		@Column(name = "mgmt_address")
-	}))
-	@Setter
-	private String mgmtAddress;
+	public Device {
+		options = options == null ? Map.of() : Collections.unmodifiableMap(new HashMap<>(options));
+		tags = tags == null ? Set.of() : Collections.unmodifiableSet(new TreeSet<>(tags));
+		virtualDevices = virtualDevices == null ? Set.of() : Collections.unmodifiableSet(new TreeSet<>(virtualDevices));
+		vrfInstances = vrfInstances == null ? Set.of() : Collections.unmodifiableSet(new TreeSet<>(vrfInstances));
+		attributes = attributes == null ? List.of() : List.copyOf(attributes);
+		accesses = accesses == null ? List.of() : List.copyOf(accesses);
+		modules = modules == null ? List.of() : List.copyOf(modules);
+		networkInterfaces = networkInterfaces == null ? List.of() : List.copyOf(networkInterfaces);
+		ownerGroups = ownerGroups == null ? List.of() : List.copyOf(ownerGroups);
+	}
 
 	/**
-	 * The last IP address that {@link #mgmtAddress} resolved to, refreshed on every
-	 * successful connection attempt. Used for fast IP-based search/dedup/passive
-	 * matching, since {@link #mgmtAddress} itself may be a hostname.
-	 */
-	@Getter(onMethod = @__({
-		@Column(name = "cached_ip_address"),
-		@Type(InetAddressUserType.class)
-	}))
-	@Setter
-	private InetAddress cachedIpAddress;
-
-	/**
-	 * String view of {@link #cachedIpAddress}, exposed on the full device REST
-	 * representation only (not on the lightweight device list DTO).
+	 * Builds a new device (not stored yet), with the default values.
 	 *
-	 * @return the cached IP address as a string, or null if not set
+	 * @param driver the name of the driver
+	 * @param address the management address
+	 * @param domain the management domain
+	 * @param creator who creates the device
+	 * @return the device
 	 */
-	@Transient
-	public String getCachedIpAddressAsString() {
-		return this.cachedIpAddress == null ? null : this.cachedIpAddress.getHostAddress();
-	}
-
-	/** The mgmt domain. */
-	@Getter(onMethod = @__({
-		@ManyToOne(fetch = FetchType.LAZY)
-	}))
-	@Setter
-	private Domain mgmtDomain;
-
-	/** The modules. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "device", orphanRemoval = true, cascade = CascadeType.ALL),
-		@SQLRestriction("removed is not true")
-	}))
-	@Setter
-	private List<Module> modules = new ArrayList<>();
-
-	/** The name. */
-	@Getter
-	@Setter
-	private String name = DEFAULTNAME;
-
-	/** The network class. */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING)
-	}))
-	@Setter
-	private NetworkClass networkClass = NetworkClass.UNKNOWN;
-
-	/** The network interfaces. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "device", orphanRemoval = true, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private List<NetworkInterface> networkInterfaces = new ArrayList<>();
-
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.device"),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private Set<DeviceGroupMembership> groupMemberships = new HashSet<>();
-
-	/** The serial number. */
-	@Getter
-	@Setter
-	private String serialNumber = "";
-
-	/** The software level. */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING)
-	}))
-	@Setter
-	private SoftwareRule.ConformanceLevel softwareLevel = ConformanceLevel.UNKNOWN;
-
-	/** The software version. */
-	@Getter
-	@Setter
-	private String softwareVersion = "";
-
-	/** The status. */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING)
-	}))
-	@Setter
-	private Status status = Status.INPRODUCTION;
-
-	/** The virtual devices. */
-	@Getter(onMethod = @__({
-		@ElementCollection
-	}))
-	@Setter
-	private Set<String> virtualDevices = new HashSet<>();
-
-	/** The vrf instances. */
-	@Getter(onMethod = @__({
-		@ElementCollection
-	}))
-	@Setter
-	private Set<String> vrfInstances = new HashSet<>();
-
-	/**
-	 * Per-access configuration (address/port overrides and credential pins),
-	 * keyed by access name (e.g. "ssh", "telnet", "https") - see {@link DeviceAccess}.
-	 */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "key.device", orphanRemoval = true, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<DeviceAccess> accesses = new HashSet<>();
-
-	/**
-	 * Gets the per-access configuration for the given access name, if any.
-	 * @param accessName the access name (e.g. "ssh", "telnet", "https")
-	 * @return the access, or null if none is configured
-	 */
-	@Transient
-	public DeviceAccess getDeviceAccess(String accessName) {
-		for (DeviceAccess access : this.accesses) {
-			if (accessName.equals(access.getAccessName())) {
-				return access;
-			}
-		}
-		return null;
+	public static Device create(String driver, String address, Domain domain, String creator) {
+		return Device.builder()
+			.name(DEFAULTNAME)
+			.comments("")
+			.contact("")
+			.location("")
+			.family("")
+			.serialNumber("")
+			.softwareVersion("")
+			.createdDate(Instant.now().truncatedTo(ChronoUnit.MILLIS))
+			.creator(creator)
+			.driver(driver)
+			.mgmtAddress(address)
+			.cachedIpAddress(resolveIpAddress(address))
+			.mgmtDomain(domain)
+			.networkClass(NetworkClass.UNKNOWN)
+			.softwareLevel(ConformanceLevel.UNKNOWN)
+			.status(Status.INPRODUCTION)
+			.compliant(true)
+			.build();
 	}
 
 	/**
-	 * Gets (creating if necessary) the per-access configuration for the given access name.
-	 * @param accessName the access name
-	 * @return the (possibly newly created) access
-	 */
-	@Transient
-	private DeviceAccess getOrCreateDeviceAccess(String accessName) {
-		DeviceAccess access = this.getDeviceAccess(accessName);
-		if (access == null) {
-			access = new DeviceAccess(this, accessName);
-			this.accesses.add(access);
-		}
-		return access;
-	}
-
-	/**
-	 * Pins the given credential set as the global credential set for the given
-	 * access, creating the per-access row if needed. Used by {@code AccessManager}
-	 * to remember a credential set that successfully authenticated via the
-	 * domain's auto-try pool, so subsequent connections use it directly instead
-	 * of trying the whole pool again.
-	 * @param accessName the access name (e.g. "ssh", "telnet")
-	 * @param credentialSet the credential set to pin
-	 */
-	@Transient
-	public void pinGlobalCredentialSet(String accessName, DeviceCredentialSet credentialSet) {
-		this.getOrCreateDeviceAccess(accessName).setGlobalCredentialSet(credentialSet);
-	}
-
-	/**
-	 * Records a SSH host key learned via trust-on-first-use, creating the per-access row if
-	 * needed. Used by {@code AccessManager} once a connection using a freshly learned host key
-	 * genuinely succeeds.
-	 * @param accessName the access name (e.g. "ssh")
-	 * @param trustedHostKeys the updated (learned-key-appended) trusted keys block
-	 * @param since when the key was learned
-	 */
-	@Transient
-	public void recordLearnedSshHostKeys(String accessName, String trustedHostKeys, Date since) {
-		DeviceAccess access = this.getOrCreateDeviceAccess(accessName);
-		access.setSshTrustedHostKeys(trustedHostKeys);
-		access.setSshTrustedHostKeysSince(since);
-	}
-
-	/**
-	 * Removes the per-access configuration for the given access name, if any -
-	 * an access with no {@code DeviceAccess} row is never used at all (see
-	 * {@code AccessManager}), so this is how an access still lingering from a
-	 * previous configuration gets fully disabled/forgotten. Used by
-	 * {@code AccessManager} to drop sibling accesses once one of them is
-	 * known to work.
-	 * @param accessName the access name
-	 * @return true if a row was actually removed, false if there was none
-	 */
-	@Transient
-	public boolean removeDeviceAccess(String accessName) {
-		return this.accesses.removeIf(access -> accessName.equals(access.getAccessName()));
-	}
-
-	/**
-	 * Replaces the whole set of per-access configurations at once (e.g. from a
-	 * device edit form or a device-creation request submitting the full list
-	 * of accesses to use). An access not present in the incoming list is
-	 * simply not created/kept - since no {@code DeviceAccess} row at all means
-	 * "never use this access" (see {@code AccessManager}), the caller is
-	 * responsible for including an entry for every access it wants usable
-	 * (even a bare one, with nothing set, for plain auto-try). Existing rows
-	 * are updated in place (matched by access name) rather than deleted and
-	 * recreated, so that an owned {@code specificCredentialSet} already
-	 * resolved/updated in place by the caller (see the device service) keeps
-	 * its identity instead of racing with this same access's own orphan removal.
-	 * @param newAccesses the new full list of accesses (may be null, meaning "clear all")
-	 */
-	@Transient
-	public void replaceAccesses(java.util.Collection<DeviceAccess> newAccesses) {
-		if (newAccesses == null) {
-			this.accesses.clear();
-			return;
-		}
-		Map<String, DeviceAccess> incomingByName = new HashMap<>();
-		for (DeviceAccess input : newAccesses) {
-			incomingByName.put(input.getAccessName(), input);
-		}
-		this.accesses.removeIf(existing -> !incomingByName.containsKey(existing.getAccessName()));
-		for (Map.Entry<String, DeviceAccess> entry : incomingByName.entrySet()) {
-			DeviceAccess input = entry.getValue();
-			DeviceAccess access = this.getOrCreateDeviceAccess(entry.getKey());
-			access.setAddress(input.getAddress() != null && !input.getAddress().isEmpty() ? input.getAddress() : null);
-			access.setPort(input.getPort());
-			access.setGlobalCredentialSet(input.getGlobalCredentialSet());
-			access.setSpecificCredentialSet(input.getSpecificCredentialSet());
-			access.setSshHostKeyVerification(input.getSshHostKeyVerification());
-			if (!Objects.equals(access.getSshTrustedHostKeys(), input.getSshTrustedHostKeys())) {
-				access.setSshTrustedHostKeys(input.getSshTrustedHostKeys());
-				access.setSshTrustedHostKeysSince(input.getSshTrustedHostKeys() == null ? null : new Date());
-			}
-			access.setHttpsCaTrustMode(input.getHttpsCaTrustMode());
-			access.setHttpsCustomCaCertificate(input.getHttpsCustomCaCertificate());
-		}
-	}
-
-	/**
-	 * Instantiates a new device.
-	 */
-	protected Device() {
-
-	}
-
-	/**
-	 * Instantiates a new device.
+	 * Resolves a management address (cached as the IP address of the device). Called when the
+	 * device is created or its management address is changed; also refreshed at the start of
+	 * every connection.
 	 *
-	 * @param driver the driver name
-	 * @param address the address
-	 * @param domain the domain
-	 * @param creator the username who is creating the device
+	 * @param address the management address
+	 * @return the IP address, or null if the address can't currently be resolved
 	 */
-	public Device(String driver, String address, Domain domain, String creator) {
-		this.driver = driver;
-		this.mgmtAddress = address;
-		this.mgmtDomain = domain;
-		this.creator = creator;
-		this.refreshCachedIpAddress();
-	}
-
-	/**
-	 * Resolves {@link #mgmtAddress} and updates {@link #cachedIpAddress} accordingly
-	 * (cleared to null if the address can't currently be resolved). Called when the
-	 * device is created or its management address is changed; also refreshed at the
-	 * start of every connection attempt (see {@code AccessManager#forDevice}), which
-	 * is where a stale cache left over from a failed resolution normally gets a
-	 * chance to heal.
-	 */
-	public void refreshCachedIpAddress() {
+	public static InetAddress resolveIpAddress(String address) {
+		if (address == null) {
+			return null;
+		}
 		try {
-			this.cachedIpAddress = InetAddress.getByName(this.mgmtAddress);
+			return InetAddress.getByName(address);
 		}
 		catch (UnknownHostException e) {
-			this.cachedIpAddress = null;
+			return null;
 		}
-	}
-
-	public void addAttribute(DeviceAttribute attribute) {
-		this.attributes.add(attribute);
-	}
-
-	/**
-	 * Adds the compliance exception.
-	 *
-	 * @param rule the rule
-	 * @param expiration the expiration
-	 */
-	public void addComplianceException(Rule rule, Date expiration) {
-		Exemption exemption = new Exemption(rule, this, expiration);
-		this.complianceExemptions.add(exemption);
-	}
-
-
-	/**
-	 * Adds the virtual device.
-	 *
-	 * @param virtualDevice the virtual device
-	 */
-	public void addVirtualDevice(String virtualDevice) {
-		this.virtualDevices.add(virtualDevice);
-	}
-
-	/**
-	 * Adds the vrf instance.
-	 *
-	 * @param vrfInstance the vrf instance
-	 */
-	public void addVrfInstance(String vrfInstance) {
-		this.vrfInstances.add(vrfInstance);
 	}
 
 	/**
 	 * Normalizes a tag value: trims surrounding whitespace.
+	 *
 	 * @param tag the raw tag
 	 * @return the normalized tag, or null if the tag is null, blank or too long
 	 */
@@ -625,33 +285,129 @@ public class Device {
 	}
 
 	/**
-	 * Adds a tag to the device.
-	 * @param tag the tag to add (normalized first, see {@link #normalizeTag})
-	 * @return true if the tag was actually added (valid and not already present)
+	 * Normalizes tags (the invalid ones are ignored).
+	 *
+	 * @param tags the raw tags (null means no tag)
+	 * @return the normalized tags
 	 */
-	public boolean addTag(String tag) {
-		String normalized = Device.normalizeTag(tag);
-		if (normalized == null) {
-			return false;
+	public static Set<String> normalizeTags(Collection<String> tags) {
+		Set<String> normalizedTags = new TreeSet<>();
+		if (tags != null) {
+			for (String tag : tags) {
+				String normalized = Device.normalizeTag(tag);
+				if (normalized != null) {
+					normalizedTags.add(normalized);
+				}
+			}
 		}
-		return this.tags.add(normalized);
+		return normalizedTags;
 	}
 
 	/**
-	 * Removes a tag from the device.
-	 * @param tag the tag to remove
-	 * @return true if the tag was actually removed
+	 * Merges a whole new set of per-access configurations (e.g. from a device edit form or a
+	 * device-creation request submitting the full list of accesses to use) into the current
+	 * ones. An access not present in the incoming list is removed; the others take the incoming
+	 * values (a blank address meaning no override). The SSH trusted host keys keep their
+	 * "since" date unless they change.
+	 *
+	 * @param current the current accesses
+	 * @param incoming the incoming accesses (null means none)
+	 * @return the new accesses
 	 */
-	public boolean removeTag(String tag) {
-		String normalized = Device.normalizeTag(tag);
-		if (normalized == null) {
-			return false;
+	public static List<DeviceAccess> mergeAccesses(List<DeviceAccess> current, Collection<DeviceAccess> incoming) {
+		if (incoming == null) {
+			return List.of();
 		}
-		return this.tags.remove(normalized);
+		Map<String, DeviceAccess> currentByName = new HashMap<>();
+		for (DeviceAccess access : current) {
+			currentByName.put(access.accessName(), access);
+		}
+		Map<String, DeviceAccess> merged = new LinkedHashMap<>();
+		for (DeviceAccess input : incoming) {
+			DeviceAccess existing = currentByName.get(input.accessName());
+			Instant keysSince = existing == null ? null : existing.sshTrustedHostKeysSince();
+			if (existing == null || !Objects.equals(existing.sshTrustedHostKeys(), input.sshTrustedHostKeys())) {
+				keysSince = input.sshTrustedHostKeys() == null ? null : Instant.now().truncatedTo(ChronoUnit.MILLIS);
+			}
+			merged.put(input.accessName(), input.toBuilder()
+				.address(input.address() != null && !input.address().isEmpty() ? input.address() : null)
+				.sshTrustedHostKeysSince(keysSince)
+				.build());
+		}
+		return new ArrayList<>(merged.values());
+	}
+
+	/**
+	 * String view of the cached IP address, exposed on the full device REST representation only
+	 * (not on the lightweight device list DTO).
+	 *
+	 * @return the IP address, or null if it is unknown
+	 */
+	public String getCachedIpAddressAsString() {
+		return this.cachedIpAddress == null ? null : this.cachedIpAddress.getHostAddress();
+	}
+
+	/**
+	 * Gets the per-access configuration for the given access name, if any.
+	 *
+	 * @param accessName the access name (e.g. "ssh", "telnet", "https")
+	 * @return the access, or null if none is configured
+	 */
+	public DeviceAccess getDeviceAccess(String accessName) {
+		for (DeviceAccess access : this.accesses) {
+			if (accessName.equals(access.accessName())) {
+				return access;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Gets the device level attributes, by name.
+	 *
+	 * @return the attributes
+	 */
+	public Map<String, DeviceAttribute> getAttributeMap() {
+		Map<String, DeviceAttribute> map = new HashMap<>();
+		for (DeviceAttribute a : this.attributes) {
+			map.put(a.name(), a);
+		}
+		return map;
+	}
+
+	/**
+	 * Returns a device attribute based on name.
+	 *
+	 * @param attributeName the name of the attribute to find
+	 * @return the found attribute or null if none
+	 */
+	public DeviceAttribute getAttribute(String attributeName) {
+		for (DeviceAttribute attribute : this.attributes) {
+			if (attribute.name().equals(attributeName)) {
+				return attribute;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Gets a network interface based on its name.
+	 *
+	 * @param interfaceName the name of the interface to look for
+	 * @return the found interface or null if none was found
+	 */
+	public NetworkInterface getNetworkInterface(String interfaceName) {
+		for (NetworkInterface networkInterface : this.networkInterfaces) {
+			if (networkInterface.interfaceName().equals(interfaceName)) {
+				return networkInterface;
+			}
+		}
+		return null;
 	}
 
 	/**
 	 * Checks whether the device has the given tag.
+	 *
 	 * @param tag the tag to look for
 	 * @return true if the device has this tag
 	 */
@@ -661,237 +417,25 @@ public class Device {
 	}
 
 	/**
-	 * Replaces all the tags of the device (invalid ones are ignored).
-	 * @param newTags the new tags (null means no tag)
-	 */
-	public void replaceTags(java.util.Collection<String> newTags) {
-		Set<String> normalizedTags = new HashSet<>();
-		if (newTags != null) {
-			for (String tag : newTags) {
-				String normalized = Device.normalizeTag(tag);
-				if (normalized != null) {
-					normalizedTags.add(normalized);
-				}
-			}
-		}
-		this.tags.retainAll(normalizedTags);
-		this.tags.addAll(normalizedTags);
-	}
-
-	public void clearAttributes() {
-		this.attributes.clear();
-	}
-
-	/**
-	 * Clear virtual devices.
-	 */
-	public void clearVirtualDevices() {
-		this.virtualDevices.clear();
-	}
-
-
-	/**
-	 * Clear VRF instance.
-	 */
-	public void clearVrfInstance() {
-		this.vrfInstances.clear();
-	}
-
-	/**
-	 * Set all modules as removed.
-	 */
-	public void setModulesRemoved() {
-		for (Module module : this.modules) {
-			module.setRemoved(true);
-		}
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		Device other = (Device) obj;
-		return id == other.id;
-	}
-
-	@Transient
-	public Map<String, DeviceAttribute> getAttributeMap() {
-		Map<String, DeviceAttribute> map = new HashMap<>();
-		for (DeviceAttribute a : this.attributes) {
-			map.put(a.getName(), a);
-		}
-		return map;
-	}
-
-	/**
-	 * Return a device attribute based on name.
-	 * @param attributeName = name of the attribute to find
-	 * @return the found attribute or null if none
-	 */
-	@Transient
-	public DeviceAttribute getAttribute(String attributeName) {
-		for (DeviceAttribute attribute : this.attributes) {
-			if (attribute.getName().equals(attributeName)) {
-				return attribute;
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Remove the given attribute.
-	 * @param attributeName the name of the attribute to remove
-	 */
-	public void removeAttribute(String attributeName) {
-		Iterator<DeviceAttribute> attributeIt = this.attributes.iterator();
-		while (attributeIt.hasNext()) {
-			if (attributeIt.next().getName().equals(attributeName)) {
-				attributeIt.remove();
-			}
-		}
-		return;
-	}
-
-	@Transient
-	public List<DeviceCredentialSet> getAutoCredentialSetList(Session session) throws HibernateException {
-		return session
-			.createQuery(
-				"from DeviceCredentialSet cs where (cs.mgmtDomain = :domain or cs.mgmtDomain is null) and (not (cs.deviceSpecific))",
-				DeviceCredentialSet.class)
-			.setParameter("domain", this.getMgmtDomain())
-			.list();
-	}
-
-	/**
-	 * Return groups this device is member of.
-	 * @return the groups of this device
-	 */
-	@Transient
-	public Set<DeviceGroup> getOwnerGroups() {
-		HashSet<DeviceGroup> groups = new HashSet<>();
-		for (DeviceGroupMembership membership : this.groupMemberships) {
-			groups.add(membership.getGroup());
-		}
-		return groups;
-	}
-
-	/**
-	 * Get a network interface based on its name.
-	 * @param interfaceName = the name of the interface to look for
-	 * @return the found interface or null if none was found
-	 */
-	@Transient
-	public NetworkInterface getNetworkInterface(String interfaceName) {
-		for (NetworkInterface networkInterface : this.networkInterfaces) {
-			if (networkInterface.getInterfaceName().equals(interfaceName)) {
-				return networkInterface;
-			}
-		}
-		return null;
-	}
-
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (int) (id ^ (id >>> 32));
-		return result;
-	}
-
-
-	/**
-	 * Checks if is compliant.
+	 * Tells whether the device is past its end of life date.
 	 *
-	 * @return true, if is compliant
+	 * @return true if the device is end of life
 	 */
-	@Transient
-	public boolean isCompliant() {
-		for (CheckResult check : this.getComplianceCheckResults()) {
-			if (check.getResult().equals(CheckResult.ResultOption.NONCONFORMING)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	@Transient
 	public boolean isEndOfLife() {
-		return this.eolDate != null && this.eolDate.before(new Date());
-	}
-
-	@Transient
-	public boolean isEndOfSale() {
-		return this.eosDate != null && this.eosDate.before(new Date());
+		return this.eolDate != null && this.eolDate.isBefore(Instant.now());
 	}
 
 	/**
-	 * Checks if is exempted.
+	 * Tells whether the device is past its end of sale date.
 	 *
-	 * @param rule the rule
-	 * @return true, if is exempted
+	 * @return true if the device is end of sale
 	 */
-	public boolean isExempted(Rule rule) {
-		Date now = new Date();
-		for (Exemption exemption : this.getComplianceExemptions()) {
-			if (exemption.getRule().equals(rule) && exemption.getExpirationDate().after(now)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Resets the EoL/EoS status.
-	 */
-	public void resetEoX() {
-		this.eosDate = null;
-		this.eosModule = null;
-		this.eolDate = null;
-		this.eolModule = null;
-	}
-
-
-	public void addDiagnosticResult(DiagnosticResult result) {
-		if (result == null) {
-			return;
-		}
-		boolean doAdd = true;
-		Iterator<DiagnosticResult> existingIterator = this.diagnosticResults.iterator();
-		while (existingIterator.hasNext()) {
-			DiagnosticResult existingResult = existingIterator.next();
-			if (existingResult.getDiagnostic().equals(result.getDiagnostic())) {
-				if (result.equals(existingResult) && result.valueEquals(existingResult)) {
-					existingResult.setLastCheckDate(result.getLastCheckDate());
-					doAdd = false;
-				}
-				else {
-					existingIterator.remove();
-				}
-				break;
-			}
-		}
-		if (doAdd) {
-			this.diagnosticResults.add(result);
-		}
+	public boolean isEndOfSale() {
+		return this.eosDate != null && this.eosDate.isBefore(Instant.now());
 	}
 
 	@Override
 	public String toString() {
 		return "Device " + id + " (name '" + name + "', driver '" + driver + "', IP address " + mgmtAddress + ")";
 	}
-
 }

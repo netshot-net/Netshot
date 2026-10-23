@@ -1,21 +1,5 @@
 [
   {
-    "anyBlock": true,
-    "context": null,
-    "deviceDriver": null,
-    "deviceDriverDescription": "Unknown driver",
-    "enabled": false,
-    "field": "runningConfig",
-    "id": 2,
-    "invert": false,
-    "matchAll": true,
-    "name": "Hostname set",
-    "normalize": false,
-    "regExp": true,
-    "text": "^hostname .+$",
-    "type": "TextRule"
-  },
-  {
     "anyBlock": false,
     "context": "line vty",
     "deviceDriver": "CiscoIOS12",
@@ -29,6 +13,22 @@
     "normalize": true,
     "regExp": false,
     "text": "transport input telnet",
+    "type": "TextRule"
+  },
+  {
+    "anyBlock": true,
+    "context": null,
+    "deviceDriver": null,
+    "deviceDriverDescription": "Unknown driver",
+    "enabled": false,
+    "field": "runningConfig",
+    "id": 2,
+    "invert": false,
+    "matchAll": true,
+    "name": "Hostname set",
+    "normalize": false,
+    "regExp": true,
+    "text": "^hostname .+$",
     "type": "TextRule"
   }
 ]
