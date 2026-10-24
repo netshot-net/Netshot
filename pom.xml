@@ -11,7 +11,7 @@
 		<hibernate.version>6.6.55.Final</hibernate.version>
 		<c3p0.version>0.14.1</c3p0.version>
 		<undertow.version>2.4.2.Final</undertow.version>
-		<jackson.version>2.22.1</jackson.version>
+		<jackson.version>2.22.4</jackson.version>
 		<jersey.version>4.0.2</jersey.version>
 		<swagger.version>2.2.53</swagger.version>
 		<slf4j.version>2.0.18</slf4j.version>
