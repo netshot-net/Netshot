@@ -431,34 +431,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using Compose to run all components">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#using-secret-files-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Using secret files (recommended)
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#running-the-container-without-the-compose-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Running the container without the Compose file
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -619,8 +591,6 @@
       
         
       
-        
-      
     
     
     
@@ -733,33 +703,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1423,34 +1366,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using Compose to run all components">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#using-secret-files-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Using secret files (recommended)
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#running-the-container-without-the-compose-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Running the container without the Compose file
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1575,29 +1490,8 @@
 <h2 id="using-compose-to-run-all-components">Using Compose to run all components<a class="headerlink" href="#using-compose-to-run-all-components" title="Permanent link">&para;</a></h2>
 <p>The fastest way to run Netshot is to use Docker Compose to start all required components.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>wget<span class="w"> </span>https://raw.githubusercontent.com/netshot-net/Netshot/master/dist/compose.yaml
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># Edit compose.yaml to change the passwords (change_this_pass...) before the first start</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
 </span></code></pre></div>
-<h3 id="using-secret-files-recommended">Using secret files (recommended)<a class="headerlink" href="#using-secret-files-recommended" title="Permanent link">&para;</a></h3>
-<p>By default, <code>compose.yaml</code> passes the passwords as environment variables. These are visible to anyone who can inspect the containers (and to user-written Python scripts if <code>netshot.python.allowallaccess</code> is enabled). To pass them as <a href="../../configuration-reference/#secrets-in-files">secret files</a> instead:</p>
-<ol>
-<li>
-<p>Create the secret files next to <code>compose.yaml</code>. If Netshot was already started, use the <strong>same values</strong> as in <code>compose.yaml</code>: a different encryption password would make the device credentials stored in the database unreadable.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mkdir<span class="w"> </span>-m<span class="w"> </span><span class="m">700</span><span class="w"> </span>secrets
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s&#39;</span><span class="w"> </span><span class="s1">&#39;the DB password&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>secrets/db_password
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s&#39;</span><span class="w"> </span><span class="s1">&#39;the encryption password&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>secrets/db_encryption_password
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>chmod<span class="w"> </span><span class="m">644</span><span class="w"> </span>secrets/*
-</span></code></pre></div>
-<p>The <code>secrets</code> folder (mode <code>700</code>) protects the files on the host; the files themselves must be readable by the <code>postgres</code> user of the database container.</p>
-</li>
-<li>
-<p>In <code>compose.yaml</code>, uncomment the lines marked <code>Secret files</code>, and remove the <code>NETSHOT_DB_PASSWORD</code>, <code>NETSHOT_DB_ENCRYPTIONPASSWORD</code> and <code>POSTGRES_PASSWORD</code> variables.</p>
-</li>
-<li>Restart the stack: <code>docker compose up -d</code>.</li>
-</ol>
-<p>Keep a backup of the encryption password: without it, the device credentials stored in the database can't be decrypted.</p>
-<h3 id="running-the-container-without-the-compose-file">Running the container without the Compose file<a class="headerlink" href="#running-the-container-without-the-compose-file" title="Permanent link">&para;</a></h3>
-<p>The Netshot container image has no built-in secrets: at least the encryption password must be passed (<code>NETSHOT_DB_ENCRYPTIONPASSWORD_FILE</code> or <code>NETSHOT_DB_ENCRYPTIONPASSWORD</code>), otherwise Netshot refuses to start. See the <a href="../../configuration-reference/">configuration reference</a> for the other parameters.</p>
 <p>You can try different versions of the Netshot container:</p>
 <ul>
 <li><code>ghcr.io/netshot-net/netshot:latest</code> for the last release</li>
@@ -1607,17 +1501,17 @@
 <h2 id="building-from-the-code-repository">Building from the code repository<a class="headerlink" href="#building-from-the-code-repository" title="Permanent link">&para;</a></h2>
 <h3 id="compose-stack">Compose stack<a class="headerlink" href="#compose-stack" title="Permanent link">&para;</a></h3>
 <p>To fetch the current code, build and start Netshot (along with the DB and reverse proxy containers):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/netshot-net/Netshot
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">cd</span><span class="w"> </span>Netshot
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/netshot-net/Netshot
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>Netshot
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
 </span></code></pre></div>
 <h3 id="local-build-of-the-container">Local build of the container<a class="headerlink" href="#local-build-of-the-container" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Select a specific version</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">VERSION</span><span class="o">=</span><span class="m">0</span>.19.1
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/netshot-net/Netshot
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">cd</span><span class="w"> </span>Netshot
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>git<span class="w"> </span>checkout<span class="w"> </span>v<span class="nv">$VERSION</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>netshot:<span class="nv">$VERSION</span><span class="w"> </span>.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Select a specific version</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">VERSION</span><span class="o">=</span><span class="m">0</span>.19.1
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/netshot-net/Netshot
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">cd</span><span class="w"> </span>Netshot
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>git<span class="w"> </span>checkout<span class="w"> </span>v<span class="nv">$VERSION</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>netshot:<span class="nv">$VERSION</span><span class="w"> </span>.
 </span></code></pre></div>
 
 

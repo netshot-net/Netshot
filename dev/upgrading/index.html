@@ -611,8 +611,6 @@
       
         
       
-        
-      
     
     
     
@@ -725,33 +723,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1551,17 +1522,9 @@
 </span></code></pre></div>
 <h2 id="specific-update-steps">Specific update steps<a class="headerlink" href="#specific-update-steps" title="Permanent link">&para;</a></h2>
 <h3 id="any-version-to-0251">Any version to 0.25.1+<a class="headerlink" href="#any-version-to-0251" title="Permanent link">&para;</a></h3>
-<p><strong>Container image</strong>: the image no longer has built-in secrets (previous images had <code>netshot</code> as DB password and encryption password, and <code>Netsh01</code> as SNMP trap community). If you run the image without setting them yourself (the provided <code>compose.yaml</code> sets the passwords):</p>
-<ul>
-<li>Set the encryption password to <code>netshot</code> (<code>NETSHOT_DB_ENCRYPTIONPASSWORD</code>, or better <code>NETSHOT_DB_ENCRYPTIONPASSWORD_FILE</code>): the image now refuses to start without it, and a different value would make the stored device credentials unreadable.</li>
-<li>Set <code>NETSHOT_SNMPTRAP_COMMUNITY</code> to <code>Netsh01</code> if your devices send SNMP v1/v2c traps with this community: no community is accepted by default anymore. The provided <code>compose.yaml</code> now sets it.</li>
-<li>The DB password still defaults to <code>netshot</code>.</li>
-</ul>
-<p><strong>Kubernetes</strong>: the sample manifest now requires a <code>dbencryption</code> secret. If you deployed Netshot without it, set it to <code>netshot</code>.</p>
 <p><strong>Reverse proxy</strong>: the session cookie is now marked as <code>Secure</code> (only sent over HTTPS) when <code>netshot.http.trustxforwardedfor</code> is enabled (as in the provided <code>compose.yaml</code>), in addition to when Netshot serves HTTPS itself. If users access Netshot over plain HTTP through a reverse proxy, set the new <code>netshot.http.securecookie</code> option to <code>false</code>, otherwise they won't be able to log in. If Netshot is accessed over HTTPS through a reverse proxy without <code>trustxforwardedfor</code>, set <code>netshot.http.securecookie</code> to <code>true</code>.</p>
-<p><strong>Secrets</strong>: secret parameters (DB password, encryption password, AAA secrets...) can now be read from files, see <a href="../configuration-reference/#secrets-in-files">Secrets in files</a>. This is recommended over environment variables, which are visible to anyone who can inspect the process or the container (and were visible to user-written Python scripts in previous versions). See <a href="../installation/docker/#using-secret-files-recommended">Running Netshot in Docker</a> to switch an existing Compose deployment.</p>
-<p><strong>Java/GraalVM</strong>: Netshot now runs on GraalVM for JDK 25 (25.0 LTS line), with the 25.0 GraalVM polyglot libraries (GraalJS, GraalPy). Upgrade the Java environment as described in the <a href="../installation/linux/#2-install-the-graalvm-jre">install guide</a> (the container image already ships it). Oracle GraalVM for JDK 21 updates are no longer provided under the free GraalVM license from October 2026.</p>
-<p><strong>Python</strong>: the embedded Python version moves from 3.11 to 3.12. If you use a <a href="../extending/python-virtualenv/">Python virtualenv</a>, recreate it with the matching GraalPy version (see <a href="../installation/linux/#10-optional-graalpy">GraalPy</a>) and reinstall your packages. Python scripts can no longer see the environment variables of the Netshot process, and Python compliance rules can now import the modules of the Python standard library (such as <code>json</code>) with the default file system filter.</p>
+<p><strong>Static groups</strong>: since 0.25.0, a device was removed from all its static groups each time its dynamic groups were refreshed, that is after a snapshot, a compliance check, diagnostics, a script run, a device type discovery, or a device creation or update through the API (<a href="https://github.com/netshot-net/Netshot/issues/413">#413</a>). This is fixed, but the lost memberships can't be restored automatically: check your static groups after the upgrade, and add the missing devices again (or restore them from a database backup taken before the upgrade to 0.25).</p>
+<p><strong>REST API</strong>: a <code>null</code> name in a domain or group request now answers 400 (<code>NETSHOT_INVALID_DOMAIN_NAME</code>, <code>NETSHOT_INVALID_GROUP_NAME</code>) instead of 500, and a <code>null</code> domain description is stored as empty. Updating a hook with <code>"triggers": null</code> (<code>PUT /hooks/{id}</code>) now removes all its triggers, as on creation, instead of failing with a 500 error.</p>
 <h3 id="any-version-to-020">Any version to 0.20+<a class="headerlink" href="#any-version-to-020" title="Permanent link">&para;</a></h3>
 <p>Java environment must be upgraded to GraalVM for Java 21. Check the <a href="../installation/linux/">install guide</a> for version details.</p>
 <h3 id="any-version-to-019">Any version to 0.19+<a class="headerlink" href="#any-version-to-019" title="Permanent link">&para;</a></h3>

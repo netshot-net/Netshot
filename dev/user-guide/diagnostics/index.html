@@ -494,8 +494,6 @@
       
         
       
-        
-      
     
     
     
@@ -705,33 +703,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1494,8 +1465,6 @@
       
         
       
-        
-      
     
     
     
@@ -1564,9 +1533,7 @@
 </ul>
 </li>
 <li><code>device</code>: an object to retrieve known information about the device.<ul>
-<li><code>device.get(attributeName)</code>: get the current value of a known attribute (including <code>"comments"</code> and <code>"tags"</code>, the array of <a href="../devices/#device-tags">device tags</a>).</li>
-<li><code>device.add("tag", tag)</code> / <code>device.remove("tag", tag)</code>: add or remove a tag on the device.</li>
-<li><code>device.set("comments", text)</code>: replace the device comments.</li>
+<li><code>device.get(attributeName)</code>: get the current value of a known attribute.</li>
 </ul>
 </li>
 <li><code>diagnostic</code>: an object to set the diagnostic result value.<ul>
@@ -1575,7 +1542,6 @@
 </ul>
 </li>
 </ul>
-<p>The <a href="../script-toolbox/">script toolbox</a> is also available, e.g. to parse the output of a <code>show running-config</code> command with <code>Toolbox.ConfigTree.parse(...)</code> (or <code>from netshot.toolbox import ConfigTree</code> in Python diagnostics).</p>
 <p>For example, the following code retrieves the current OSPF router-id from IOS-XR devices:</p>
 <div class="language-javascript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">diagnose</span><span class="p">(</span><span class="nx">cli</span><span class="p">,</span><span class="w"> </span><span class="nx">device</span><span class="p">,</span><span class="w"> </span><span class="nx">diagnostic</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">device</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="s2">&quot;Cisco IOS-XR&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>

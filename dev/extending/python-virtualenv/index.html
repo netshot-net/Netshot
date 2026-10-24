@@ -492,8 +492,6 @@
       
         
       
-        
-      
     
     
     
@@ -606,33 +604,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1205,23 +1176,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Python virtualenv for additional packages
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="././" class="md-nav__link md-nav__link--active">
         
   
@@ -1237,81 +1191,6 @@
   
 
       </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#linux-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Linux installation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Docker
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#using-the-packages" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Using the packages
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Troubleshooting
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#older-versions" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Older versions
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -1368,11 +1247,6 @@
                       
                     
                     
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
-                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1384,69 +1258,6 @@
   
     
   
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#linux-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Linux installation
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Docker
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#using-the-packages" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Using the packages
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Troubleshooting
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#older-versions" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Older versions
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1530,63 +1341,29 @@
 <p class="admonition-title">Experimental</p>
 <p>This feature is experimental. Requires Netshot 0.16.2 or later.</p>
 </div>
-<p>Python compliance rules can import packages which are not part of the Python standard library (e.g. <code>ciscoconfparse</code>), installed in a (GraalPy) Python virtual environment.</p>
-<div class="admonition tip">
-<p class="admonition-title">Parsing configurations</p>
-<p>To parse device configurations, you don't need any additional package: the built-in <a href="../../user-guide/script-toolbox/">script toolbox</a> provides a configuration parser (<code>from netshot.toolbox import ConfigTree</code>) along with a <a href="../../user-guide/script-toolbox/#migrating-from-ciscoconfparse">ciscoconfparse-compatible class</a>.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The virtual environment (and the other <code>netshot.python.*</code> options) only applies to Python <strong>compliance rules</strong>, not to Python diagnostics.</p>
-</div>
-<p>The virtual environment must be created with the GraalPy version matching the one embedded in Netshot (see the <a href="../../installation/linux/#2-install-the-graalvm-jre">compatibility matrix</a> and the <a href="../../installation/linux/#10-optional-graalpy">GraalPy section</a> of the installation guide). After upgrading to a Netshot version embedding a different Python version (e.g. 3.11 to 3.12 with Netshot 0.25.1), recreate the virtual environment and reinstall the packages.</p>
-<h2 id="linux-installation">Linux installation<a class="headerlink" href="#linux-installation" title="Permanent link">&para;</a></h2>
-<p>Check the <a href="../../installation/linux/#10-optional-graalpy">GraalPy section</a> of the installation guide if <code>/usr/lib/graalpy</code> is missing.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>su<span class="w"> </span>-<span class="w"> </span>netshot<span class="w"> </span>-s<span class="w"> </span>/bin/bash
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>/usr/local/netshot/python<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/usr/local/netshot/python
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>/usr/lib/graalpy/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="o">[</span>some<span class="w"> </span>package<span class="o">]</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>/usr/local/netshot
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>mkdir<span class="w"> </span>python<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>python
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># For versions between 0.16.2 and 0.20.0 (excluded):</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>graalpython<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># For versions 0.21.2+</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Please check the GraalPy section of the installation guide if you are missing graalpy</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>/usr/lib/graalpy/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>/usr/local/netshot/python/venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="o">[</span>some<span class="w"> </span>package<span class="o">]</span>
 </span></code></pre></div>
-<p>Add the following line to <code>netshot.conf</code>, then restart Netshot:</p>
+<p>Add the following line to <code>netshot.conf</code>:</p>
 <div class="language-ini highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">netshot.python.virtualenv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">/usr/local/netshot/python/venv</span>
 </span></code></pre></div>
-<h2 id="docker">Docker<a class="headerlink" href="#docker" title="Permanent link">&para;</a></h2>
-<p>The Netshot container image ships the matching GraalPy version in <code>/usr/lib/graalpy</code>. Create the virtual environment in a persistent volume, such as <code>/var/local/netshot</code> with the provided <code>compose.yaml</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>netshot<span class="w"> </span>/usr/lib/graalpy/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>/var/local/netshot/python/venv
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>netshot<span class="w"> </span>/var/local/netshot/python/venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>netshot<span class="w"> </span>/var/local/netshot/python/venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="o">[</span>some<span class="w"> </span>package<span class="o">]</span>
+<p>In your compliance script, you can import the installed package:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">site</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">...</span>
 </span></code></pre></div>
-<p>Then set the virtual environment path in the <code>environment</code> section of the <code>netshot</code> service in <code>compose.yaml</code>, and apply the change with <code>docker compose up -d</code>:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="w">      </span><span class="nt">NETSHOT_PYTHON_VIRTUALENV</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/var/local/netshot/python/venv&quot;</span>
+<p>For packages which require additional access to the system, the two additional configuration options might be useful, but are insecure:</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="na">netshot.python.allowallaccess</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="na">netshot.python.filesystemfilter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
 </span></code></pre></div>
-<h2 id="using-the-packages">Using the packages<a class="headerlink" href="#using-the-packages" title="Permanent link">&para;</a></h2>
-<p>In your compliance script, import the installed packages as usual:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ciscoconfparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">CiscoConfParse</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">check</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  <span class="n">config</span> <span class="o">=</span> <span class="n">device</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;running_config&#39;</span><span class="p">)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  <span class="n">parse</span> <span class="o">=</span> <span class="n">CiscoConfParse</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(),</span> <span class="n">syntax</span><span class="o">=</span><span class="s1">&#39;ios&#39;</span><span class="p">)</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  <span class="k">for</span> <span class="n">intf_obj</span> <span class="ow">in</span> <span class="n">parse</span><span class="o">.</span><span class="n">find_objects_w_child</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^interface&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;^\s+shutdown&#39;</span><span class="p">):</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">debug</span><span class="p">(</span><span class="n">intf_obj</span><span class="o">.</span><span class="n">text</span> <span class="o">+</span> <span class="s2">&quot; is shutdown&quot;</span><span class="p">)</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  <span class="k">return</span> <span class="n">result_option</span><span class="o">.</span><span class="n">CONFORMING</span>
-</span></code></pre></div>
-<p>Use the rule test feature to check that a package works within Netshot before relying on it.</p>
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<p><strong>Installation fails with <code>ModuleNotFoundError</code> in <code>setup.py</code></strong>: some packages import their own dependencies at build time. Install these dependencies first, then the package with the <code>--no-build-isolation</code> option, e.g. for the <a href="https://github.com/SCadilhac/ciscoconfparse">ciscoconfparse fork</a>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>setuptools<span class="w"> </span>wheel<span class="w"> </span><span class="nv">loguru</span><span class="o">==</span><span class="m">0</span>.5.3
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>venv/bin/graalpy<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>git+https://github.com/SCadilhac/ciscoconfparse
-</span></code></pre></div>
-<p><strong><code>Creating threads is not allowed</code></strong>: the package starts threads (e.g. logging libraries with background queues, such as <code>loguru</code> with <code>enqueue=True</code>). Allow thread creation:</p>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">netshot.python.allowcreatethread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
-</span></code></pre></div>
-<p><strong>Some functions fail although the package works in a GraalPy shell</strong>: within Netshot, Python scripts run sandboxed, with an emulated operating system layer. Some low-level functions are not available or behave differently: for example <code>socket.inet_pton</code> fails, so the <code>netaddr</code> package can't parse IP addresses. Prefer the standard library when possible (e.g. the <code>ipaddress</code> module).</p>
-<p><strong>Last resort</strong>: the following options give Python scripts full access to the host (files, processes, network, Java classes), with the privileges of the Netshot process. Only use them if all the users allowed to edit Python rules are fully trusted. Note that disabling the file system filter alone makes the virtual environment unreadable by the scripts.</p>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="na">netshot.python.allowallaccess</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">netshot.python.filesystemfilter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">false</span>
-</span></code></pre></div>
-<h2 id="older-versions">Older versions<a class="headerlink" href="#older-versions" title="Permanent link">&para;</a></h2>
-<p>For Netshot versions between 0.16.2 and 0.20.0 (excluded), Python was part of the GraalVM JDK: create the virtual environment with <code>graalpython -m venv venv</code> instead.</p>
 
 
 

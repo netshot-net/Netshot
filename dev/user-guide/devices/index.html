@@ -494,8 +494,6 @@
       
         
       
-        
-      
     
     
     
@@ -671,17 +669,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#device-tags" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Device tags
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#connection-security" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -765,33 +752,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1513,17 +1473,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#device-tags" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Device tags
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#connection-security" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1614,8 +1563,6 @@
       
         
       
-        
-      
     
     
     
@@ -1656,7 +1603,6 @@
 <li>Select the <a href="../administration/#device-domains">domain</a> for the device.</li>
 <li>Enter the device's management IP address, or a hostname the Netshot server can resolve.</li>
 <li>Check <strong>Autodiscover device type</strong> to have Netshot identify the device via SNMP (requires a valid SNMP credential set); otherwise select the device type manually.</li>
-<li>Optionally enter <strong>Comments</strong> and <a href="#device-tags"><strong>Tags</strong></a> for the device — they are applied as soon as the device is created (after a successful discovery, in autodiscovery mode).</li>
 <li>Once the device type is known, the matching driver is assigned and Netshot starts a snapshot task to capture the device's data, including its current configuration.</li>
 </ul>
 <p>To add many devices at once:</p>
@@ -1669,7 +1615,6 @@
 <h2 id="searching-for-devices">Searching for devices<a class="headerlink" href="#searching-for-devices" title="Permanent link">&para;</a></h2>
 <p>Type a device's name (or virtual name, e.g. a VDC) or IP address in the <strong>Search...</strong> box and press Enter. Click the clear (✕) button to remove the filter.</p>
 <p>For more complex queries, open <strong>Advanced search</strong> and build a logical search expression with the provided buttons. Selecting a device type lets you filter on fields specific to that type.</p>
-<p>To find devices by tag, use the <strong>Tags</strong> attribute in the advanced search (it suggests the existing tags), or type an expression such as <code>[Tag] is "core"</code> directly. All the text operators are supported (<code>is</code>, <code>contains</code>, <code>containsnocase</code>, <code>startswith</code>, <code>endswith</code>, <code>matches</code>); a device matches as soon as one of its tags matches. Clicking a tag badge on a device runs this search for you.</p>
 <h2 id="device-groups">Device groups<a class="headerlink" href="#device-groups" title="Permanent link">&para;</a></h2>
 <p>Groups let you organize devices for filtering, for running tasks over many devices at once, as the target of <a href="../compliance/">compliance policies</a>, and to break down <a href="../reports/">reports</a>. Managing groups requires a read-write role.</p>
 <p>To create a group: <strong>Add devices...</strong> dropdown → <strong>Add a group...</strong>, then choose its type — <strong>static</strong> (devices selected manually) or <strong>dynamic</strong> (devices matched by a saved search expression, automatically re-evaluated whenever the group definition or a device changes). The type can't be changed after creation.</p>
@@ -1723,11 +1668,7 @@
 </tr>
 <tr>
 <td>Comments</td>
-<td>Free text, set manually or by a script (run script, diagnostic, compliance rule)</td>
-</tr>
-<tr>
-<td>Tags</td>
-<td>Free-form labels, set manually or by a script — see <a href="#device-tags">Device tags</a></td>
+<td>Free text, set manually or by a device script</td>
 </tr>
 <tr>
 <td>Member of</td>
@@ -1749,18 +1690,9 @@
 <li><strong>Credential sets</strong> — which set(s) to try, in order, when connecting.</li>
 <li><strong>In case of failure, also try all known credentials</strong> — falls back to every credential set associated with the device's domain (or with no domain) if the selected set(s) fail.</li>
 <li><strong>Comments</strong> — free text.</li>
-<li><strong>Tags</strong> — free-form labels; type a new tag and press Enter (or a comma), or pick one of the tags already used on other devices from the suggestions.</li>
 </ul>
 <p>Depending on the device's driver, extra <strong>driver-defined options</strong> may also be editable here — admin-configurable settings the driver reads back at runtime (for example, a "take full backup archive" toggle). Which options exist, and their type, is defined by the driver — see <a href="../device-drivers/">Device drivers</a>.</p>
 <p>A device can have several <strong>network accesses</strong> (management addresses), each independently configurable — see <a href="#connection-security">Connection security</a> below for the per-access settings. Disabling a device (toolbar button) stops all snapshot tasks against it until re-enabled.</p>
-<h2 id="device-tags">Device tags<a class="headerlink" href="#device-tags" title="Permanent link">&para;</a></h2>
-<p>Tags are free-form, user-defined labels (e.g. <code>core</code>, <code>paris-dc1</code>, <code>to-be-replaced</code>) attached to a device, to classify devices along dimensions the drivers can't know about. A device can carry any number of tags; each tag is up to 255 characters long, surrounding whitespace is trimmed, and tags are case-sensitive.</p>
-<ul>
-<li>Tags are shown on the device's <strong>General</strong> tab; clicking one lists all devices having that tag.</li>
-<li>Tags are set when adding a device or in the device properties, or through the REST API.</li>
-<li>They are never overwritten by snapshots, but scripts can read and change them: <a href="#running-scripts-on-devices">run scripts</a>, <a href="../diagnostics/#javascript-based-diagnostics">JavaScript/Python diagnostics</a> and <a href="../compliance/#script-based-rules">script-based compliance rules</a> can call <code>device.get("tags")</code>, <code>device.add("tag", "name")</code> and <code>device.remove("tag", "name")</code>.</li>
-<li>Tags can be used in device searches (<code>[Tag] is "core"</code>), and therefore as the definition of dynamic groups — e.g. a compliance rule can tag non-compliant devices, and a dynamic group gathers them.</li>
-</ul>
 <h2 id="connection-security">Connection security<a class="headerlink" href="#connection-security" title="Permanent link">&para;</a></h2>
 <p>Each network access on a device — not just the primary one — carries its own connection-security settings, independent of the credential set used.</p>
 <p><strong>SSH host key verification</strong>, for SSH-based access:</p>
@@ -1793,7 +1725,7 @@
 <p>A script must define a <code>run</code> function, its entry point, receiving two arguments:</p>
 <ul>
 <li><code>cli</code> — runs commands on the device and collects output. <code>cli.macro("name")</code> runs a macro defined by the device driver (typically used to switch CLI mode); <code>cli.command("command")</code> runs a single command.</li>
-<li><code>device</code> — represents the device, and can be used to read data collected by the last snapshot (<code>device.get(...)</code>). It can also update the device <a href="#device-tags">tags</a> and comments: <code>device.add("tag", "name")</code>, <code>device.remove("tag", "name")</code>, <code>device.set("comments", "text")</code>.</li>
+<li><code>device</code> — represents the device, and can be used to read data collected by the last snapshot.</li>
 </ul>
 <p>Scripts can declare custom input parameters, requested from the user at run time:</p>
 <div class="language-js highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">Input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>

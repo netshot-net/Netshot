@@ -492,8 +492,6 @@
       
         
       
-        
-      
     
     
     
@@ -606,33 +604,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1301,10 +1272,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#parsing-configurations" class="md-nav__link">
+  <a href="#findsectionstext-regex" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Parsing configurations
+        <code>findSections(text, regex)</code>
       </span>
     </span>
   </a>
@@ -1675,10 +1646,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#parsing-configurations" class="md-nav__link">
+  <a href="#findsectionstext-regex" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Parsing configurations
+        <code>findSections(text, regex)</code>
       </span>
     </span>
   </a>
@@ -2190,8 +2161,8 @@
 </span></code></pre></div>
 <p><code>$$NetshotUsername$$</code>/<code>$$NetshotPassword$$</code> (and <code>$$NetshotSuperPassword$$</code> for an enable secret, not shown here) are placeholders substituted with the resolved credential set's values.</p>
 <p>Calling <code>cli.macro("enable")</code> from <code>telnet</code>'s freshly-connected state chases: <code>username</code> (auto-sends the username, lands on <code>password</code> or <code>usernameAgain</code>) → <code>password</code> (auto-sends the password, lands on <code>usernameAgain</code> on failure — which <code>fail</code>s the whole chain — or <code>disable</code>/<code>enable</code> on success) → if landed on <code>disable</code>, the in-progress <code>enable</code> macro runs again to send <code>enable</code> and reach the <code>enable</code> mode, which is the declared <code>target</code>.</p>
-<h3 id="parsing-configurations">Parsing configurations<a class="headerlink" href="#parsing-configurations" title="Permanent link">&para;</a></h3>
-<p>To parse a configuration or any indented command output (nested blocks, Junos/PAN-OS <code>{ }</code> or FortiOS <code>config</code>/<code>edit</code> syntaxes), drivers can use the global <code>Toolbox.ConfigTree</code> parser, see <a href="../../user-guide/script-toolbox/">Script toolbox</a>. The <code>cli.findSections(text, regex)</code> function is deprecated.</p>
+<h3 id="findsectionstext-regex"><code>findSections(text, regex)</code><a class="headerlink" href="#findsectionstext-regex" title="Permanent link">&para;</a></h3>
+<p>A utility available on every CLI client for splitting a chunk of text (typically a configuration) into indented blocks headed by lines matching <code>regex</code> — e.g. one block per <code>interface ...</code> stanza — without hand-rolling indentation-aware parsing in every driver.</p>
 <h3 id="snmp-poller">SNMP poller<a class="headerlink" href="#snmp-poller" title="Permanent link">&para;</a></h3>
 <p>An SNMP client (<code>client.create("snmp")</code>) exposes:</p>
 <ul>
@@ -2382,11 +2353,7 @@
 </tr>
 <tr>
 <td><code>device.add(collection, value)</code></td>
-<td>Appends to a device collection attribute (e.g. <code>networkInterface</code>, <code>module</code>), or adds a user tag (<code>tag</code>).</td>
-</tr>
-<tr>
-<td><code>device.remove(collection, value)</code></td>
-<td>Removes an item from a device collection — only <code>tag</code> is supported. Tags are user metadata, not reset by <code>snapshot</code>; drivers normally leave them alone.</td>
+<td>Appends to a device collection attribute (e.g. <code>networkInterface</code>, <code>module</code>).</td>
 </tr>
 <tr>
 <td><code>device.get(key, id)</code></td>

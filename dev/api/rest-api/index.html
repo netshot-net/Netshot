@@ -492,8 +492,6 @@
       
         
       
-        
-      
     
     
     
@@ -606,33 +604,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1143,17 +1114,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#device-comments-and-tags" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Device comments and tags
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#diagnostic-results" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1503,17 +1463,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#device-comments-and-tags" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Device comments and tags
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#diagnostic-results" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1654,15 +1603,6 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>POST /api/devices/search?offset=0&amp;limit=100
 </span></code></pre></div>
 <p>Omitting them returns the full result set.</p>
-<h2 id="device-comments-and-tags">Device comments and tags<a class="headerlink" href="#device-comments-and-tags" title="Permanent link">&para;</a></h2>
-<p>Devices carry free-form <code>comments</code> and <code>tags</code> (an array of strings, see <a href="../../user-guide/devices/#device-tags">Device tags</a>):</p>
-<ul>
-<li><code>POST /api/devices</code> (add a device) accepts optional <code>comments</code> and <code>tags</code> fields; in autodiscovery mode, they are applied to the device once discovered.</li>
-<li><code>PUT /api/devices/{id}</code> accepts <code>comments</code> and <code>tags</code>; a <code>tags</code> array replaces all the tags of the device, while omitting the field (or passing <code>null</code>) leaves them unchanged.</li>
-<li><code>GET /api/devicetags</code> lists the distinct tags currently in use, with the number of devices having each one (<code>[{"name": "core", "deviceCount": 12}, ...]</code>).</li>
-<li>Devices can be searched by tag with <code>POST /api/devices/search</code> and a <code>[Tag] is "core"</code> query.</li>
-</ul>
-<p>A tag can't be blank and is limited to 255 characters (surrounding whitespace is trimmed); an invalid tag is rejected with a 400 error.</p>
 <h2 id="diagnostic-results">Diagnostic results<a class="headerlink" href="#diagnostic-results" title="Permanent link">&para;</a></h2>
 <p>Per-device diagnostic results include a <code>diagnosticId</code> field alongside the diagnostic's name and value, so a client can reliably associate a result with its diagnostic definition without matching on name.</p>
 <h2 id="example-scheduling-a-scan-task">Example: scheduling a scan task<a class="headerlink" href="#example-scheduling-a-scan-task" title="Permanent link">&para;</a></h2>

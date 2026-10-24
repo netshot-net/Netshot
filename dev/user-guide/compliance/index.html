@@ -16,7 +16,7 @@
         <link rel="prev" href="../diagnostics/">
       
       
-        <link rel="next" href="../script-toolbox/">
+        <link rel="next" href="../reports/">
       
       
         
@@ -494,8 +494,6 @@
       
         
       
-        
-      
     
     
     
@@ -723,33 +721,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1516,8 +1487,6 @@
       
         
       
-        
-      
     
     
     
@@ -1646,7 +1615,7 @@
 </li>
 </ul>
 <h3 id="script-based-rules">Script-based rules<a class="headerlink" href="#script-based-rules" title="Permanent link">&para;</a></h3>
-<p>The script-based rules are JavaScript or Python code. Both can use the <a href="../script-toolbox/">script toolbox</a>, in particular its ConfigTree configuration parser (<code>Toolbox.ConfigTree</code> in JavaScript, <code>from netshot.toolbox import ConfigTree</code> in Python), to query the device configuration.</p>
+<p>The script-based rules are JavaScript or Python code.</p>
 <p>Click on <em>Edit the script...</em> to open up the code editor. While you are writing your script, you can test it on a specific device by selecting a device at the bottom of the editor and clicking on <em>Test...</em>. Click on the underlined result to see the logs.</p>
 <p>Here is a basic (and useless) JavaScript rule, which will set all devices compliant:</p>
 <div class="language-javascript highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kd">function</span><span class="w"> </span><span class="nx">check</span><span class="p">(</span><span class="nx">device</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1668,16 +1637,13 @@
 <li><code>"networkClass"</code>, the class of the device (e.g. <code>ROUTER</code>, <code>SWITCH</code>, <code>FIREWALL</code>, etc.).</li>
 <li><code>"virtualDevices"</code>, an array of names of the virtual devices embedded in this device (e.g. the list of VDC names for a Cisco Nexus device).</li>
 <li><code>"vrfs"</code>, an array of names of the VRFs configured on the device.</li>
-<li><code>"comments"</code>, the comments of the device.</li>
-<li><code>"tags"</code>, an array of the <a href="../devices/#device-tags">tags</a> of the device.</li>
 <li><code>"interfaces"</code>, the list of interfaces of the device.</li>
 <li>Any other attribute name defined by the driver of the device.</li>
 </ul>
 </li>
 <li><code>device.get(attribute, otherDevice)</code>, where <code>otherDevice</code> is either the ID or the name of another device, will retrieve for you the given attribute value from the specified device instead of the current device. By using this feature, you can compare configurations between devices.</li>
-<li><code>device.add("tag", tag)</code> and <code>device.remove("tag", tag)</code> add or remove a <a href="../devices/#device-tags">tag</a> on the device, and <code>device.set("comments", text)</code> replaces the device comments. These are the only changes a rule can make to a device; they are saved when the compliance check task completes (not when testing the rule from the editor). For example, a rule can tag non-compliant devices, so that they can be gathered in a dynamic group (<code>[Tag] is "non-compliant"</code>).</li>
 <li><code>device.nslookup(host)</code> will return a DNS resolution (either direct or reverse) of the passed name.</li>
-<li><code>device.findSections(configuration, section)</code> is deprecated, use the <a href="../script-toolbox/">ConfigTree</a> parser instead.</li>
+<li><code>device.findSections(configuration, section)</code>, where <code>configuration</code> is a string and <code>section</code> is a JavaScript <code>RegExp</code> object, will find in <code>configuration</code> all lines matching <code>section</code>, and will return them along with their content, i.e. the following lines which are more indented.</li>
 </ul>
 </li>
 <li><code>debug(message)</code> is a function that you can call to log debug messages. These messages will appear in the logs of the <em>Check compliance</em> task.</li>
@@ -1750,13 +1716,13 @@
         
         
           
-          <a href="../script-toolbox/" class="md-footer__link md-footer__link--next" aria-label="Next: Script toolbox">
+          <a href="../reports/" class="md-footer__link md-footer__link--next" aria-label="Next: Reports">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Script toolbox
+                Reports
               </div>
             </div>
             <div class="md-footer__button md-icon">

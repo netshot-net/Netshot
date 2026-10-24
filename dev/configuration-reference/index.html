@@ -492,8 +492,6 @@
       
         
       
-        
-      
     
     
     
@@ -606,33 +604,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -996,17 +967,6 @@
       On this page
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#secrets-in-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Secrets in files
-      </span>
-    </span>
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#logging" class="md-nav__link">
@@ -1544,17 +1504,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#secrets-in-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Secrets in files
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#logging" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1786,26 +1735,6 @@
 <p>Lines starting with <code>#</code> are ignored.</p>
 <p>Some parameters are re-read and applied when Netshot receives a <code>HUP</code> signal; others require a restart to take effect.</p>
 <p>Every parameter can also be passed as an environment variable: replace <code>.</code> with <code>_</code> and upper-case it. For example, <code>netshot.log.file</code> becomes <code>NETSHOT_LOG_FILE</code>.</p>
-<h2 id="secrets-in-files">Secrets in files<a class="headerlink" href="#secrets-in-files" title="Permanent link">&para;</a></h2>
-<p>Secret parameters can be read from a file instead of being set inline: set the parameter name followed by <code>.file</code> (or <code>_FILE</code> for the environment variable) to the path of the file containing the secret. For example, <code>NETSHOT_DB_PASSWORD_FILE=/run/secrets/db_password</code> makes Netshot read the database password from <code>/run/secrets/db_password</code>. This is the recommended way to pass secrets to a container (Docker/Compose secrets, Kubernetes secrets mounted as files).</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Prefer secret files over environment variables: the environment of the Netshot process is visible to anyone who can inspect the process or the container, and to user-written Python scripts if <code>netshot.python.allowallaccess</code> is enabled (or with Netshot versions older than 0.25.1).</p>
-</div>
-<p>This applies to the following parameters:</p>
-<ul>
-<li><code>netshot.db.url</code>, <code>netshot.db.readurl</code>, <code>netshot.db.username</code>, <code>netshot.db.password</code>, <code>netshot.db.encryptionpassword</code></li>
-<li><code>netshot.http.ssl.keystore.pass</code></li>
-<li><code>netshot.snmptrap.community</code>, <code>netshot.snmptrap.user</code></li>
-<li><code>netshot.aaa.radiusN.secret</code>, <code>netshot.aaa.tacacsN.secret</code>, <code>netshot.aaa.oidc.clientsecret</code></li>
-</ul>
-<p>Rules:</p>
-<ul>
-<li>The file takes precedence over the inline parameter. A warning is logged if the parameter is also set as an environment variable, which should then be removed.</li>
-<li>The whole file content is used as the secret, except trailing line breaks.</li>
-<li>If the file is set but can't be read, is empty, or is larger than 64 KB, Netshot fails to start (it doesn't fall back to the inline value or to the default value).</li>
-<li>Secrets are read once: a restart is required to apply a changed secret.</li>
-</ul>
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1833,7 +1762,7 @@
 </tr>
 <tr>
 <td><code>netshot.log.class.&lt;ClassName&gt;</code></td>
-<td>Overrides the log level for a specific class or package logger, e.g. <code>netshot.log.class.org.apache.sshd = DEBUG</code>. Only read from the configuration file, not from environment variables.</td>
+<td>Overrides the log level for a specific internal class.</td>
 </tr>
 <tr>
 <td><code>netshot.log.audit.file</code></td>
@@ -1887,12 +1816,8 @@
 <td>Database password.</td>
 </tr>
 <tr>
-<td><code>netshot.db.encryptionpassword</code></td>
+<td><code>netshot.db.encryptionPassword</code></td>
 <td>Password used to encrypt sensitive data (such as device credentials) stored in the database. Default: <code>NETSHOT</code> — <strong>change this in production</strong>.</td>
-</tr>
-<tr>
-<td><code>netshot.db.encryptionpassword.required</code></td>
-<td>Set to <code>true</code> to prevent Netshot from starting if <code>netshot.db.encryptionpassword</code> isn't set (instead of using the default value). Enabled in the container image. Default: <code>false</code>.</td>
 </tr>
 <tr>
 <td><code>netshot.db.readurl</code></td>
@@ -2079,7 +2004,7 @@
 </tr>
 <tr>
 <td><code>netshot.snmptrap.community</code></td>
-<td>SNMP community (or space-separated list of communities) accepted from devices. No SNMP v1/v2c trap is accepted unless set.</td>
+<td>SNMP community (or space-separated list of communities) accepted from devices. Default: <code>NETSHOT</code>.</td>
 </tr>
 <tr>
 <td><code>netshot.snmptrap.engineid</code></td>
@@ -2239,8 +2164,8 @@
 </thead>
 <tbody>
 <tr>
-<td><code>netshot.aaa.radiusN.ip</code>, <code>.authport</code>, <code>.acctport</code>, <code>.secret</code></td>
-<td>Defines RADIUS server <code>N</code> (up to 3: <code>radius1</code>, <code>radius2</code>, <code>radius3</code>). Ports default to <code>1812</code> (authentication) and <code>1813</code> (accounting).</td>
+<td><code>netshot.aaa.radiusN.ip</code>, <code>.authport</code>, <code>.secret</code></td>
+<td>Defines RADIUS server <code>N</code> (up to 3: <code>radius1</code>, <code>radius2</code>, <code>radius3</code>).</td>
 </tr>
 <tr>
 <td><code>netshot.aaa.radiusN.timeout</code></td>
@@ -2267,11 +2192,15 @@
 <tbody>
 <tr>
 <td><code>netshot.aaa.tacacsN.ip</code>, <code>.port</code>, <code>.secret</code></td>
-<td>Defines TACACS+ server <code>N</code> (up to 3). Port defaults to <code>49</code>. Authentication always uses the ASCII method.</td>
+<td>Defines TACACS+ server <code>N</code> (up to 3).</td>
 </tr>
 <tr>
 <td><code>netshot.aaa.tacacs.timeout</code></td>
 <td>Timeout (seconds) for TACACS+ requests. Default: <code>5</code>.</td>
+</tr>
+<tr>
+<td><code>netshot.aaa.tacacs.method</code></td>
+<td>Inner method: <code>ascii</code> (default), <code>chap</code>, or <code>pap</code>.</td>
 </tr>
 <tr>
 <td><code>netshot.aaa.tacacs.accounting</code></td>
@@ -2282,24 +2211,16 @@
 <td>Name of the server-returned attribute holding the user's role.</td>
 </tr>
 <tr>
-<td><code>netshot.aaa.tacacs.role.readonlyrole</code></td>
-<td>Role value that maps to the Read-only permission level. Default: <code>read-only</code>.</td>
+<td><code>netshot.aaa.tacacs.role.adminlevelrole</code></td>
+<td>Role value that maps to the Admin permission level.</td>
 </tr>
 <tr>
-<td><code>netshot.aaa.tacacs.role.operatorrole</code></td>
-<td>Role value that maps to the Operator permission level. Default: <code>operator</code>.</td>
+<td><code>netshot.aaa.tacacs.role.executereadwritelevelrole</code></td>
+<td>Role value that maps to Execute-scripts.</td>
 </tr>
 <tr>
-<td><code>netshot.aaa.tacacs.role.readwriterole</code></td>
-<td>Role value that maps to the Read-write permission level. Default: <code>read-write</code>.</td>
-</tr>
-<tr>
-<td><code>netshot.aaa.tacacs.role.executereadwriterole</code></td>
-<td>Role value that maps to the Execute-scripts permission level. Default: <code>execute-read-write</code>.</td>
-</tr>
-<tr>
-<td><code>netshot.aaa.tacacs.role.adminrole</code></td>
-<td>Role value that maps to the Admin permission level. Default: <code>admin</code>.</td>
+<td><code>netshot.aaa.tacacs.role.readwritelevelrole</code></td>
+<td>Role value that maps to Read-write.</td>
 </tr>
 </tbody>
 </table>
@@ -2337,24 +2258,12 @@
 <td>Name of the ID token claim carrying the user's role.</td>
 </tr>
 <tr>
-<td><code>netshot.aaa.oidc.role.readonlyrole</code></td>
-<td>Role claim value that maps to the Read-only permission level. Default: <code>read-only</code>.</td>
+<td><code>netshot.aaa.oidc.role.adminlevelrole</code></td>
+<td>Role claim value that maps to Admin.</td>
 </tr>
 <tr>
-<td><code>netshot.aaa.oidc.role.operatorrole</code></td>
-<td>Role claim value that maps to the Operator permission level. Default: <code>operator</code>.</td>
-</tr>
-<tr>
-<td><code>netshot.aaa.oidc.role.readwriterole</code></td>
-<td>Role claim value that maps to the Read-write permission level. Default: <code>read-write</code>.</td>
-</tr>
-<tr>
-<td><code>netshot.aaa.oidc.role.executereadwriterole</code></td>
-<td>Role claim value that maps to the Execute-scripts permission level. Default: <code>execute-read-write</code>.</td>
-</tr>
-<tr>
-<td><code>netshot.aaa.oidc.role.adminrole</code></td>
-<td>Role claim value that maps to the Admin permission level. Default: <code>admin</code>.</td>
+<td><code>netshot.aaa.oidc.role.executereadwritelevelrole</code></td>
+<td>Role claim value that maps to Execute-scripts.</td>
 </tr>
 <tr>
 <td><code>netshot.aaa.oidc.idp.refreshinterval</code></td>
@@ -2406,10 +2315,6 @@
 <tr>
 <td><code>netshot.vault.http.readtimeoutms</code></td>
 <td>HTTP read timeout (ms) for calls to Vault. Default: <code>10000</code>.</td>
-</tr>
-<tr>
-<td><code>netshot.vault.token.refreshpollintervalseconds</code></td>
-<td>How often (seconds) the background daemon checks whether Vault auth tokens need renewing. Default: <code>60</code> (minimum <code>5</code>).</td>
 </tr>
 </tbody>
 </table>
@@ -2472,10 +2377,6 @@
 <td><code>netshot.tasks.devicelock.pollintervalms</code></td>
 <td>Interval (ms) at which a task waiting for its turn on a device checks whether the device is free. Default: <code>3000</code>.</td>
 </tr>
-<tr>
-<td><code>netshot.tasks.sequentialpollintervalms</code></td>
-<td>Interval (ms) at which a group task running its devices sequentially checks whether the current device task has finished. Default: <code>3000</code> (range <code>500</code>–<code>60000</code>).</td>
-</tr>
 </tbody>
 </table>
 <h2 id="cli-ssh-telnet-connections-to-devices">CLI (SSH / Telnet) connections to devices<a class="headerlink" href="#cli-ssh-telnet-connections-to-devices" title="Permanent link">&para;</a></h2>
@@ -2527,26 +2428,6 @@
 <td><code>netshot.cli.ssh.macs</code></td>
 <td>Comma-separated MAC algorithms for device SSH connections.</td>
 </tr>
-<tr>
-<td><code>netshot.cli.ssh.compressionalgorithms</code></td>
-<td>Comma-separated compression algorithms for device SSH connections.</td>
-</tr>
-<tr>
-<td><code>netshot.cli.ssh.rekeytimelimit</code></td>
-<td>Re-key device SSH sessions after this time (ms). Default: <code>3600000</code> (1h). <code>0</code> disables this limit.</td>
-</tr>
-<tr>
-<td><code>netshot.cli.ssh.rekeydatalimit</code></td>
-<td>Re-key device SSH sessions after this amount of data (bytes). Default: <code>1073741824</code> (1 GiB). <code>0</code> disables this limit.</td>
-</tr>
-<tr>
-<td><code>netshot.cli.ssh.rekeyblockslimit</code></td>
-<td>Re-key device SSH sessions after this number of cipher blocks. Default: <code>0</code> (no limit).</td>
-</tr>
-<tr>
-<td><code>netshot.cli.ssh.rekeypacketslimit</code></td>
-<td>Re-key device SSH sessions after this number of packets. Default: <code>2147483648</code> (2³¹). <code>0</code> disables this limit.</td>
-</tr>
 </tbody>
 </table>
 <h2 id="javascript-vm">JavaScript VM<a class="headerlink" href="#javascript-vm" title="Permanent link">&para;</a></h2>
@@ -2560,12 +2441,12 @@
 <tbody>
 <tr>
 <td><code>netshot.javascript.maxexecutiontime</code></td>
-<td>Max time (ms) a JavaScript compliance rule may run. Default: <code>60000</code>.</td>
+<td>Max time (ms) a JavaScript compliance/diagnostic script may run. Default: <code>60000</code>.</td>
 </tr>
 </tbody>
 </table>
 <h2 id="python-vm">Python VM<a class="headerlink" href="#python-vm" title="Permanent link">&para;</a></h2>
-<p>These options apply to Python compliance rules (not to Python diagnostics). To use additional packages, see <a href="../extending/python-virtualenv/">Python virtualenv for additional packages</a>.</p>
+<p>Requires a configured GraalPy virtual environment — see <a href="../extending/python-virtualenv/">Python virtualenv for additional packages</a>.</p>
 <table>
 <thead>
 <tr>
@@ -2580,7 +2461,7 @@
 </tr>
 <tr>
 <td><code>netshot.python.maxexecutiontime</code></td>
-<td>Max time (ms) a Python compliance rule may run. Default: <code>60000</code>.</td>
+<td>Max time (ms) a Python compliance/diagnostic script may run. Default: <code>60000</code>.</td>
 </tr>
 <tr>
 <td><code>netshot.python.allowallaccess</code></td>
@@ -2596,7 +2477,7 @@
 </tr>
 <tr>
 <td><code>netshot.python.allowcreatethread</code></td>
-<td>Allow Python scripts to create threads (needed by some packages, see <a href="../extending/python-virtualenv/#troubleshooting">Python virtualenv</a>). <strong>Insecure</strong> — off by default.</td>
+<td>Allow Python scripts to create threads. <strong>Insecure</strong> — off by default.</td>
 </tr>
 <tr>
 <td><code>netshot.python.allowhostfileaccess</code></td>

@@ -620,34 +620,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Troubleshooting
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#netshot-fails-to-start-with-accessdeniedexception-usrlocalnetshotcache" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Netshot fails to start with <code>AccessDeniedException: /usr/local/netshot/.cache</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -725,8 +697,6 @@
   
     
     
-      
-        
       
         
       
@@ -854,33 +824,6 @@
     
   
   Compliance
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../user-guide/script-toolbox/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Script toolbox
 
     
   </span>
@@ -1706,34 +1649,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#troubleshooting" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Troubleshooting
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Troubleshooting">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#netshot-fails-to-start-with-accessdeniedexception-usrlocalnetshotcache" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Netshot fails to start with <code>AccessDeniedException: /usr/local/netshot/.cache</code>
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1878,41 +1793,33 @@
 <td>24.1.2</td>
 </tr>
 <tr>
-<td>0.24.0 - 0.25.0</td>
+<td>0.24.0 and newer</td>
 <td>21.0.9-graal</td>
 <td>24.1.2</td>
-</tr>
-<tr>
-<td>0.25.1 and newer</td>
-<td>25.0.4-graal (or newer 25.0.x)</td>
-<td>25.0.4.1.1</td>
 </tr>
 </tbody>
 </table>
 <p>For modern GraalVM versions:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">GRAALVM_VERSION</span><span class="o">=</span><span class="s2">&quot;25.0.4&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">GRAALVM_VERSION</span><span class="o">=</span><span class="s2">&quot;21.0.9&quot;</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>wget<span class="w"> </span>--quiet<span class="w"> </span>https://download.oracle.com/graalvm/<span class="si">${</span><span class="nv">GRAALVM_VERSION</span><span class="p">%%.*</span><span class="si">}</span>/archive/graalvm-jdk-<span class="si">${</span><span class="nv">GRAALVM_VERSION</span><span class="si">}</span>_linux-x64_bin.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span>tar<span class="w"> </span>xvzf<span class="w"> </span>graalvm-jdk-<span class="si">${</span><span class="nv">GRAALVM_VERSION</span><span class="si">}</span>_linux-x64_bin.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span>rm<span class="w"> </span>-f<span class="w"> </span>graalvm-jdk-<span class="si">${</span><span class="nv">GRAALVM_VERSION</span><span class="si">}</span>_linux-x64_bin.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nv">JDIR</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-d<span class="w"> </span>graalvm-jdk-<span class="si">${</span><span class="nv">GRAALVM_VERSION</span><span class="si">}</span>*<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="k">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/usr/lib/jvm<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span>sudo<span class="w"> </span>mv<span class="w"> </span><span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span><span class="w"> </span>/usr/lib/jvm/<span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>sudo<span class="w"> </span>update-alternatives<span class="w"> </span>--install<span class="w"> </span>/usr/bin/java<span class="w"> </span>java<span class="w"> </span>/usr/lib/jvm/<span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>/bin/java<span class="w"> </span><span class="m">92200</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>sudo<span class="w"> </span>update-alternatives<span class="w"> </span>--set<span class="w"> </span>java<span class="w"> </span>/usr/lib/jvm/<span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>/bin/java
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># OR</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>sudo<span class="w"> </span>alternatives<span class="w"> </span>--install<span class="w"> </span>/usr/bin/java<span class="w"> </span>java<span class="w"> </span>/usr/lib/jvm/graalvm/bin/java<span class="w"> </span><span class="m">92200</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span>mkdir<span class="w"> </span><span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>/languages<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/usr/lib/jvm<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span>sudo<span class="w"> </span>mv<span class="w"> </span><span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span><span class="w"> </span>/usr/lib/jvm/<span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>sudo<span class="w"> </span>update-alternatives<span class="w"> </span>--install<span class="w"> </span>/usr/bin/java<span class="w"> </span>java<span class="w"> </span>/usr/lib/jvm/<span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>/bin/java<span class="w"> </span><span class="m">92200</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>sudo<span class="w"> </span>update-alternatives<span class="w"> </span>--set<span class="w"> </span>java<span class="w"> </span>/usr/lib/jvm/<span class="si">${</span><span class="nv">JDIR</span><span class="si">}</span>/bin/java
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># OR</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>sudo<span class="w"> </span>alternatives<span class="w"> </span>--install<span class="w"> </span>/usr/bin/java<span class="w"> </span>java<span class="w"> </span>/usr/lib/jvm/graalvm/bin/java<span class="w"> </span><span class="m">92200</span>
 </span></code></pre></div>
 <p>Check that <code>java</code> now points to the GraalVM JRE:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>java<span class="w"> </span>-version<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>Environment<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>GraalVM
 </span></code></pre></div>
 <p>It should return something like:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Java(TM) SE Runtime Environment Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS-jvmci-b01)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Java(TM) SE Runtime Environment Oracle GraalVM 21.0.4+8.1 (build 21.0.4+8-LTS-jvmci-23.1-b41)
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Use the GraalVM version of the 25.0 (LTS) line: the polyglot libraries bundled in Netshot only get the optimizing (JIT) runtime on a GraalVM 25.0.x JDK. GraalVM 25.1+ ("Innovation" releases) is not compatible, and a standard OpenJDK or older GraalVM falls back to a much slower interpreter-only mode (Netshot then logs a warning about the fallback runtime).</p>
-</div>
-<p>For GraalVM 17, install the JS and Python languages from GraalVM (ignore for GraalVM 21+):</p>
+<p>For GraalVM 17, install the JS and Python languages from GraalVM (ignore for GraalVM 21):</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>sudo<span class="w"> </span>/usr/lib/jvm/graalvm/bin/gu<span class="w"> </span>install<span class="w"> </span>js<span class="w"> </span>python
 </span></code></pre></div>
 <h2 id="3-other-prerequisites">3. Other prerequisites<a class="headerlink" href="#3-other-prerequisites" title="Permanent link">&para;</a></h2>
@@ -1959,10 +1866,6 @@
 </span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
 </span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>netshot.service
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>On first start, the GraalVM polyglot engine (used to run drivers and scripts) extracts native libraries into a resource cache folder. The provided systemd unit sets this folder to <code>/var/local/netshot/polyglot-cache</code> (<code>-Dpolyglot.engine.userResourceCache</code> option). Without this option, it defaults to <code>~/.cache/org.graalvm.polyglot</code> in the home folder of the <code>netshot</code> user (<code>/usr/local/netshot</code>). Either way, the <code>netshot</code> user must be able to write there.</p>
-</div>
 <h2 id="7-start-the-netshot-service">7. Start the Netshot service<a class="headerlink" href="#7-start-the-netshot-service" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>netshot
 </span></code></pre></div>
@@ -1991,22 +1894,12 @@
 <p>Although running as a non-root user, Netshot should be able to listen to privileged UDP ports thanks to the <code>CAP_NET_BIND_SERVICE</code> capability set by the systemd launch file.</p>
 <h2 id="10-optional-graalpy">10. Optional - GraalPy<a class="headerlink" href="#10-optional-graalpy" title="Permanent link">&para;</a></h2>
 <p>If you are willing to use Python scripts within Netshot along with extra packages, you may want to install GraalPy locally:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nv">GRAALPY_VERSION</span><span class="o">=</span><span class="s2">&quot;25.0.3&quot;</span><span class="w"> </span><span class="c1"># Closest GraalPy standalone release to the &#39;Polyglot&#39; column of the compatibility matrix above</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>wget<span class="w"> </span>--quiet<span class="w"> </span>https://github.com/oracle/graalpython/releases/download/graal-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>/graalpy-community-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>-linux-amd64.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span>tar<span class="w"> </span>xzf<span class="w"> </span>graalpy-community-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>-linux-amd64.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span>mv<span class="w"> </span>graalpy-community-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>-linux-amd64<span class="w"> </span>/usr/lib/graalpy
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nv">GRAALPY_VERSION</span><span class="o">=</span><span class="s2">&quot;24.1.2&quot;</span><span class="w"> </span><span class="c1"># That&#39;s the &#39;Polyglot&#39; column of the compatibility matrix above</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>wget<span class="w"> </span>--quiet<span class="w"> </span>https://github.com/oracle/graalpython/releases/download/graal-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>/graalpy-jvm-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>-linux-amd64.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span>tar<span class="w"> </span>xvzf<span class="w"> </span>graalpy-jvm-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>-linux-amd64.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span>mv<span class="w"> </span>graalpy-<span class="si">${</span><span class="nv">GRAALPY_VERSION</span><span class="si">}</span>-linux-amd64<span class="w"> </span>/usr/lib/graalpy
 </span></code></pre></div>
-<p>For Netshot 0.24.x - 0.25.0, use <code>GRAALPY_VERSION="24.1.2"</code> and the <code>graalpy-jvm-${GRAALPY_VERSION}-linux-amd64.tar.gz</code> archive (extracted folder <code>graalpy-${GRAALPY_VERSION}-linux-amd64</code>) instead.</p>
 <p>Once GraalPy is installed, you can create a virtualenv to install external packages: see the <a href="../../extending/python-virtualenv/">Python virtualenv</a> page.</p>
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<h3 id="netshot-fails-to-start-with-accessdeniedexception-usrlocalnetshotcache">Netshot fails to start with <code>AccessDeniedException: /usr/local/netshot/.cache</code><a class="headerlink" href="#netshot-fails-to-start-with-accessdeniedexception-usrlocalnetshotcache" title="Permanent link">&para;</a></h3>
-<p>The GraalVM polyglot engine cannot create its resource cache folder, because the home folder of the <code>netshot</code> user is not writable by that user. Either give the folder back to the <code>netshot</code> user:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>sudo<span class="w"> </span>chown<span class="w"> </span>-R<span class="w"> </span>netshot<span class="w"> </span>/usr/local/netshot
-</span></code></pre></div>
-<p>or point the cache to a writable folder, by adding <code>-Dpolyglot.engine.userResourceCache=/var/local/netshot/polyglot-cache</code> to the <code>java</code> command line in <code>/etc/systemd/system/netshot.service</code> (as done in the systemd unit file distributed with recent versions), then:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>netshot
-</span></code></pre></div>
 
 
 
