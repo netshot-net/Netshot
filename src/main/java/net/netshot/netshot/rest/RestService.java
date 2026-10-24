@@ -3489,7 +3489,9 @@ public class RestService extends Thread {
 				}
 				if (cliAccount instanceof DeviceSshKeyAccount sshKeyAccount
 						&& rsCliAccount instanceof DeviceSshKeyAccount rsSshKeyAccount) {
-					sshKeyAccount.setPrivateKey(rsSshKeyAccount.getPrivateKey());
+					if (rsSshKeyAccount.getPrivateKey() != null) {
+						sshKeyAccount.setPrivateKey(rsSshKeyAccount.getPrivateKey());
+					}
 				}
 			}
 			else if (credentialSet instanceof DeviceSnmpv3Community snmp3

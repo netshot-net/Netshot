@@ -76,6 +76,7 @@ import net.netshot.netshot.device.attribute.AttributeDefinition;
 import net.netshot.netshot.device.credentials.DeviceCredentialSet;
 import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
+import net.netshot.netshot.device.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.hooks.Hook;
 import net.netshot.netshot.hooks.WebHook;
 import net.netshot.netshot.rest.NetshotBadRequestException;
@@ -969,6 +970,66 @@ public class RestServiceTest extends WithDatabaseTest {
 					Assertions.assertEquals(
 						targetDomain, dbDomain, "Domain not updated as expected");
 				}
+			}
+		}
+
+		@Nested
+		@DisplayName("Credential set API Tests")
+		class CredentialSetTest {
+
+			@AfterEach
+			void cleanUpData() {
+				try (Session session = Database.getSession()) {
+					session.beginTransaction();
+					session
+						.createMutationQuery("delete from DeviceCredentialSet")
+						.executeUpdate();
+					session.getTransaction().commit();
+				}
+			}
+
+			private DeviceSshKeyAccount getStoredKeyAccount(long id) {
+				try (Session session = Database.getSession()) {
+					return session.get(DeviceSshKeyAccount.class, id);
+				}
+			}
+
+			@Test
+			@DisplayName("Update SSH key credential set keeps the private key when it is not given")
+			@ResourceLock("DB")
+			void updateSshKeyKeepsPrivateKey() throws IOException, InterruptedException {
+				DeviceSshKeyAccount account = new DeviceSshKeyAccount("u", "the-key", "p", null, "SSH key set");
+				try (Session session = Database.getSession()) {
+					session.beginTransaction();
+					session.persist(account);
+					session.getTransaction().commit();
+				}
+				ObjectNode data = JsonNodeFactory.instance.objectNode()
+					.put("type", "SSH Key")
+					.put("name", "SSH key set")
+					.put("username", "u2");
+				{
+					HttpResponse<JsonNode> response = apiClient.put(
+						"/credentialsets/%d".formatted(account.getId()), data);
+					Assertions.assertEquals(
+						Response.Status.OK.getStatusCode(), response.statusCode(),
+						"Not getting 200 response for credential set update");
+				}
+				DeviceSshKeyAccount stored = this.getStoredKeyAccount(account.getId());
+				Assertions.assertEquals("u2", stored.getUsername(), "The username is not updated");
+				Assertions.assertEquals("the-key", stored.getPrivateKey(), "The private key is not kept");
+				Assertions.assertEquals("p", stored.getPassword(), "The passphrase is not kept");
+
+				data.put("privateKey", "new-key");
+				{
+					HttpResponse<JsonNode> response = apiClient.put(
+						"/credentialsets/%d".formatted(account.getId()), data);
+					Assertions.assertEquals(
+						Response.Status.OK.getStatusCode(), response.statusCode(),
+						"Not getting 200 response for credential set update");
+				}
+				Assertions.assertEquals("new-key", this.getStoredKeyAccount(account.getId()).getPrivateKey(),
+					"The private key is not changed");
 			}
 		}
 
