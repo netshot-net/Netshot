@@ -91,6 +91,16 @@ class RunDeviceScriptHandlerTest {
 			runSnapshot, runDiagnostics, checkCompliance), "Test", "tester");
 	}
 
+	/**
+	 * Checks that a task succeeded, showing its log otherwise (such as a connection error to the simulator).
+	 *
+	 * @param id the ID of the task
+	 */
+	private static void assertSucceeded(long id) {
+		Task result = TaskRunner.load(id);
+		Assertions.assertEquals(Status.SUCCESS, result.status(), () -> "The script failed: " + result.log());
+	}
+
 	@Test
 	@DisplayName("Runs the script on the device and saves the device")
 	void runsTheScript() throws Exception {
@@ -111,6 +121,7 @@ class RunDeviceScriptHandlerTest {
 
 		long id = this.runner.run(task);
 
+		assertSucceeded(id);
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
 		TakeSnapshotTask snapshot = (TakeSnapshotTask) submitted.get(0).spec();
@@ -128,8 +139,9 @@ class RunDeviceScriptHandlerTest {
 		Device device = SimulatedRouter.persist(CONTAINER);
 		Task task = this.script(device, SCRIPT, this.driver.getName(), false, true, false);
 
-		this.runner.run(task);
+		long id = this.runner.run(task);
 
+		assertSucceeded(id);
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
 		RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) submitted.get(0).spec();
@@ -143,8 +155,9 @@ class RunDeviceScriptHandlerTest {
 		Device device = SimulatedRouter.persist(CONTAINER);
 		Task task = this.script(device, SCRIPT, this.driver.getName(), false, false, true);
 
-		this.runner.run(task);
+		long id = this.runner.run(task);
 
+		assertSucceeded(id);
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
 		Assertions.assertInstanceOf(CheckComplianceTask.class, submitted.get(0).spec());
