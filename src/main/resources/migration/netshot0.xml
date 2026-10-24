@@ -2128,4 +2128,9 @@
 			<column name="options" type="${JSON}"/>
 		</addColumn>
 	</changeSet>
+	<!-- 0.25.0_18 didn't set cached_ip_address: the devices upgraded from 0.24
+	     couldn't be found by IP until a successful connection. -->
+	<changeSet author="netshot" id="0.25.1_2">
+		<customChange class="net.netshot.netshot.database.migrator.CachedIpAddressMigrator"/>
+	</changeSet>
 </databaseChangeLog>
