@@ -510,6 +510,87 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
+	@DisplayName("0.25.1_2 - CachedIpAddressMigrator (missing cached IP address of the upgraded devices)")
+	class CachedIpAddressMigratorTest {
+
+		private Properties getNetshotConfig(String databaseName) {
+			Properties config = getFreshDatabaseConfig(databaseName);
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "INFO");
+			return config;
+		}
+
+		@Test
+		@DisplayName("A device upgraded from 0.24 gets its cached IP address, so a search by IP finds it before any snapshot")
+		void setsCachedIpAddressOnUpgradeFrom024() throws Exception {
+			TestConfig.init(this.getNetshotConfig("cachedipfrom024test"));
+
+			// Stop right before 0.25.0_18 (MgmtAddressMigrator): the legacy int ipv4_address column is still there.
+			updateToChangeSet("0.25.0_17", "netshot");
+
+			int mgmtIpv4Int = Network4Address.inetAddressToInt(
+				(Inet4Address) InetAddress.getByName("10.1.2.3"));
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				// A device that was never snapshotted: no name, no interface.
+				statement.execute(
+					"insert into device (id, name, auto_try_credentials, version, ssh_port, telnet_port, "
+						+ "ipv4_address, ipv4_pfxlen, ipv4_usage) "
+						+ "values (501, '[NONAME]', false, 0, 22, 23, %d, 0, 0)".formatted(mgmtIpv4Int));
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				assertInetColumn(statement,
+					"select mgmt_address from device where id = 501", "10.1.2.3");
+				assertInetColumn(statement,
+					"select cached_ip_address from device where id = 501", "10.1.2.3");
+			}
+		}
+
+		@Test
+		@DisplayName("On a 0.25.0 database, only the missing cached IP addresses of literal management addresses are set")
+		void setsMissingCachedIpAddressOn0250() throws Exception {
+			TestConfig.init(this.getNetshotConfig("cachedipfrom0250test"));
+
+			// The database of a 0.25.0 installation.
+			updateToChangeSet("0.25.0_41", "netshot");
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				String insert = "insert into device (id, name, version, mgmt_address, cached_ip_address) "
+					+ "values (%d, '[NONAME]', 0, %s, %s)";
+				statement.execute(insert.formatted(601, "'10.1.2.4'", "null"));
+				statement.execute(insert.formatted(602, "'2001:db8::1'", "null"));
+				statement.execute(insert.formatted(603, "'router.example.com'", "null"));
+				statement.execute(insert.formatted(604, "'999.1.2.3'", "null"));
+				statement.execute(insert.formatted(605, "'10.1.2.5'", "'10.9.9.9'"));
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				assertInetColumn(statement,
+					"select cached_ip_address from device where id = 601", "10.1.2.4");
+				assertInetColumn(statement,
+					"select cached_ip_address from device where id = 602", "2001:db8::1");
+				// A host name isn't resolved during the migration
+				assertInetColumn(statement,
+					"select cached_ip_address from device where id = 603", null);
+				assertInetColumn(statement,
+					"select cached_ip_address from device where id = 604", null);
+				// An existing cached IP address is kept
+				assertInetColumn(statement,
+					"select cached_ip_address from device where id = 605", "10.9.9.9");
+			}
+		}
+	}
+
+	@Nested
 	@DisplayName("0.26.0_3 - hooks in one table, with their enumerations stored by name")
 	class HookSingleTableMigrationTest {
 
@@ -730,7 +811,8 @@ public class DatabaseMigrationTest {
 			"0.21.0_1", "9:a346810332ef3abb4e6ca55aeb24f9f3",
 			"0.24.0_2", "9:6fae930e4fda7d19cc20ca232b0ef395",
 			"0.25.0_18", "9:c3fe37ff86d1bf5735e5c8631652f9c0",
-			"0.25.0_24", "9:4319e4962071801f673e8e22fe1f936d");
+			"0.25.0_24", "9:4319e4962071801f673e8e22fe1f936d",
+			"0.25.1_2", "9:36a251399f92c7def86fb996b68fa834");
 
 		private Properties getNetshotConfig() {
 			Properties config = getFreshDatabaseConfig("customchangechecksumtest");
