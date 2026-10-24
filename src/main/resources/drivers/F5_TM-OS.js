@@ -21,7 +21,7 @@ const Info = {
 	name: "F5TMOS",
 	description: "F5 TM-OS, 11.x and newer",
 	author: "Netshot Team",
-	version: "4.1"
+	version: "4.2"
 };
 
 const Config = {
@@ -55,6 +55,17 @@ const Config = {
 		checkable: true,
 		dump: {
 			pre: "# Licensing information:",
+			preLine: "#  "
+		}
+	},
+	"masterKey": {
+		type: "Text",
+		title: "Master key",
+		comparable: true,
+		searchable: false,
+		checkable: true,
+		dump: {
+			pre: "# Master key:",
 			preLine: "#  "
 		}
 	},
@@ -225,8 +236,10 @@ function snapshot(cli, device, config) {
 
 	const license = cli.command("tmsh -q -c 'cd /; show /sys license'");
 	config.set("license", license);
-	
-	
+
+	const masterKey = cli.command("f5mku -K").trim();
+	config.set("masterKey", masterKey);
+
 	const snmpSections = cli.findSections(runningConfig, /^sys snmp \{$/mg);
 	for (const snmpSection of snmpSections) {
 		const snmpConfig = snmpSection.config;
