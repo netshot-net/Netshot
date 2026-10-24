@@ -109,7 +109,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+			(_, _) -> new FakeClient(connectCount, null));
 
 		Assertions.assertEquals(0, connectCount.get(), "No connection attempt should happen before first use");
 		Assertions.assertNull(resolution.getCurrentClient());
@@ -128,7 +128,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(),
 			new LinkedHashSet<>(List.of(credA, credB)));
-		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
+		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 			if (credentialSet == credA) {
 				return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 			}
@@ -157,7 +157,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh"), telnetAccess("telnet")),
-			(accessDef, credentialSet) -> {
+			(accessDef, _) -> {
 				if ("ssh".equals(accessDef.getName())) {
 					return new FakeClient(connectCount, new IOException("connection refused"));
 				}
@@ -181,7 +181,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(),
 			new LinkedHashSet<>(List.of(credA, credB)));
-		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
+		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 			if (credentialSet == credA) {
 				return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 			}
@@ -205,7 +205,7 @@ public class AccessManagerTest {
 		DeviceDraft device = fakeDevice();
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(new AtomicInteger(), null));
+			(_, _) -> new FakeClient(new AtomicInteger(), null));
 
 		Assertions.assertThrows(InvalidCredentialsException.class, () -> resolution.ensureResolved(true));
 	}
@@ -223,7 +223,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+			(_, _) -> new FakeClient(connectCount, null));
 
 		Client client = resolution.ensureResolved(true);
 		Assertions.assertNotNull(client);
@@ -245,7 +245,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+			(_, _) -> new FakeClient(connectCount, null));
 
 		Client client = resolution.ensureResolved(true);
 		Assertions.assertNotNull(client);
@@ -266,7 +266,7 @@ public class AccessManagerTest {
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
-		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
+		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 			if (credentialSet == pinnedCred) {
 				return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 			}
@@ -291,7 +291,7 @@ public class AccessManagerTest {
 
 			AtomicInteger connectCount = new AtomicInteger(0);
 			AccessManager manager = new AccessManager(TestDrivers.registry(), autoPool(device), device, null, new FakeTaskContext(), null);
-			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
+			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 				if (credentialSet.name().equals("autoPoolCredA")) {
 					return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 				}
@@ -322,7 +322,7 @@ public class AccessManagerTest {
 
 			AtomicInteger connectCount = new AtomicInteger(0);
 			AccessManager manager = new AccessManager(TestDrivers.registry(), autoPool(device), device, null, new FakeTaskContext(), null);
-			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (accessDef, credentialSet) -> {
+			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 				if (credentialSet.name().equals("autoPinCredA")) {
 					return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
 				}
@@ -362,7 +362,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+			(_, _) -> new FakeClient(connectCount, null));
 
 		resolution.ensureResolved(true);
 		resolution.confirmCredentialWorks();
@@ -384,7 +384,7 @@ public class AccessManagerTest {
 			AtomicInteger connectCount = new AtomicInteger(0);
 			AccessManager manager = new AccessManager(TestDrivers.registry(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-				(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+				(_, _) -> new FakeClient(connectCount, null));
 
 			Assertions.assertThrows(InvalidCredentialsException.class, () -> resolution.ensureResolved(true),
 				"No DeviceAccess row means the access is never used, regardless of eligible domain-pool credentials");
@@ -406,7 +406,7 @@ public class AccessManagerTest {
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(),
 			new LinkedHashSet<>(List.of(oneTimeCred)));
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+			(_, _) -> new FakeClient(connectCount, null));
 
 		Client client = resolution.ensureResolved(true);
 		Assertions.assertNotNull(client, "A one-time credential set should be tried even with no DeviceAccess row");
@@ -427,7 +427,7 @@ public class AccessManagerTest {
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
-			(accessDef, credentialSet) -> new FakeClient(connectCount, null));
+			(_, _) -> new FakeClient(connectCount, null));
 
 		resolution.ensureResolved(true);
 		Assertions.assertNotNull(device.getDeviceAccess("telnet"), "Sanity check: telnet access exists before confirming");

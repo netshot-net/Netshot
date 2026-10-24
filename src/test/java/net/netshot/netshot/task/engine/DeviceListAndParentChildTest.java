@@ -124,7 +124,7 @@ public class DeviceListAndParentChildTest {
 			"Child's parentTaskId should be cleared (SET NULL), not cascade-deleted");
 	}
 
-	private final ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(child -> {
+	private final ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(_ -> {
 	});
 
 	@Test

@@ -396,21 +396,21 @@ public class TaskRepository {
 					attributes.put(DiscoverDeviceTypeTask.SNAPSHOT_TASK_ID, s.snapshotTaskId());
 				}
 			}
-			case RunDiagnosticsTask s -> {
+			case RunDiagnosticsTask _ -> {
 			}
-			case CheckComplianceTask s -> {
+			case CheckComplianceTask _ -> {
 			}
-			case RunDeviceScriptTask s -> {
+			case RunDeviceScriptTask _ -> {
 			}
-			case ScanSubnetsTask s -> {
+			case ScanSubnetsTask _ -> {
 			}
-			case CheckGroupComplianceTask s -> {
+			case CheckGroupComplianceTask _ -> {
 			}
-			case CheckGroupSoftwareTask s -> {
+			case CheckGroupSoftwareTask _ -> {
 			}
-			case RunGroupDiagnosticsTask s -> {
+			case RunGroupDiagnosticsTask _ -> {
 			}
-			case RunDeviceGroupScriptTask s -> {
+			case RunDeviceGroupScriptTask _ -> {
 			}
 		}
 		return attributes;
@@ -495,15 +495,15 @@ public class TaskRepository {
 				t.setDeviceAddress(s.deviceAddress());
 				t.setDiscoverResultDevice(s.discoverResultDeviceId());
 			}
-			case CheckComplianceTask s -> {
+			case CheckComplianceTask _ -> {
 			}
-			case ScanSubnetsTask s -> {
+			case ScanSubnetsTask _ -> {
 			}
-			case PurgeDatabaseTask s -> {
+			case PurgeDatabaseTask _ -> {
 			}
-			case CheckGroupComplianceTask s -> {
+			case CheckGroupComplianceTask _ -> {
 			}
-			case CheckGroupSoftwareTask s -> {
+			case CheckGroupSoftwareTask _ -> {
 			}
 		}
 		t.store();

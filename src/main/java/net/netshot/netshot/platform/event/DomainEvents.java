@@ -47,7 +47,7 @@ public class DomainEvents {
 	 * @param listener the listener
 	 */
 	public <E> void subscribe(Class<E> type, Consumer<? super E> listener) {
-		this.listeners.computeIfAbsent(type, key -> new CopyOnWriteArrayList<>())
+		this.listeners.computeIfAbsent(type, _ -> new CopyOnWriteArrayList<>())
 			.add(event -> listener.accept(type.cast(event)));
 	}
 

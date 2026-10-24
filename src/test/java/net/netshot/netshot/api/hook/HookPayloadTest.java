@@ -198,7 +198,7 @@ public class HookPayloadTest {
 		String secrets = "zsecret1 zsecret2 zsecret3 zauthsecret zprivsecret zpassword zsuper zkey zpassphrase";
 		for (Format format : FORMATS) {
 			BodyWriter writer = writerFor(format);
-			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(TestDrivers.registry(), task, id -> device)));
+			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(TestDrivers.registry(), task, _ -> device)));
 			// What the entity used to write, with the secrets masked in it
 			this.contract.checkCanonical("devicesWithEveryKindOfCredentialSet", format, actual);
 			for (String secret : secrets.split(" ")) {
