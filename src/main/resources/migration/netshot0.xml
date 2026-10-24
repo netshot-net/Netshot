@@ -2151,6 +2151,12 @@
 			<column name="tag"/>
 		</createIndex>
 	</changeSet>
+	<!-- 0.25.0_18 didn't set cached_ip_address: the devices upgraded from 0.24
+	     couldn't be found by IP until a successful connection. -->
+	<changeSet author="netshot" id="0.25.1_2">
+		<validCheckSum>9:36a251399f92c7def86fb996b68fa834</validCheckSum>
+		<customChange class="net.netshot.netshot.platform.database.migrator.CachedIpAddressMigrator"/>
+	</changeSet>
 	<changeSet author="netshot" id="0.26.0_1">
 		<!-- Name the foreign keys, the unique constraints and the indexes of the foreign keys after their table and
 			columns (fk_/uk_/ix_<table>_<columns>) instead of the random names Hibernate generated (FK_gpsllhlyii8d5...):
