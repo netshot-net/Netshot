@@ -481,6 +481,27 @@ public class FinderTest {
 	}
 
 	@Test
+	@DisplayName("Query device by an IP address its interface subnets contain")
+	void queryByIpContained() throws Exception {
+		// 10.0.5.1/25 and 10.0.5.129/25 on router00005
+		assertFinder("[IP] contains 10.0.5.100",
+			null,
+			List.of("router00005"));
+		assertFinder("[IP] contains 10.0.5.200",
+			null,
+			List.of("router00005"));
+		assertFinder("[IP] contains 2016:1:5:1::abcd",
+			"[IP] contains 2016:1:5:1:0:0:0:abcd",
+			List.of("router00005"));
+		// The management address has no subnet
+		assertFinder("[IP] contains 172.16.0.50",
+			null,
+			List.of());
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 10.0.5.0/24"));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 2016:1:5:1::/64"));
+	}
+
+	@Test
 	@DisplayName("Query device by interface description")
 	void queryByInterfaceDescription() throws Exception {
 		assertFinder("[Interface] is \"Specific description\"",
