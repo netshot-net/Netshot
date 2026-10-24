@@ -72,7 +72,7 @@ public class CredentialSetService {
 	 */
 	public List<DeviceCredentialSet> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findGlobal(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findGlobal(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the credentials.", e);
@@ -95,7 +95,7 @@ public class CredentialSetService {
 		}
 		DeviceCredentialSet created;
 		try {
-			created = this.transactions.writeDsl(dsl -> {
+			created = this.transactions.write(dsl -> {
 				Domain domain = null;
 				if (credentialSet.mgmtDomain() != null) {
 					domain = this.domainRepository.find(dsl, credentialSet.mgmtDomain().id());
@@ -130,7 +130,7 @@ public class CredentialSetService {
 	public DeviceCredentialSet update(long id, DeviceCredentialSet incoming) {
 		DeviceCredentialSet credentialSet;
 		try {
-			credentialSet = this.transactions.writeDsl(dsl -> {
+			credentialSet = this.transactions.write(dsl -> {
 				DeviceCredentialSet existing = this.repository.find(dsl, id);
 				if (existing instanceof DeviceSshKeyAccount && incoming instanceof DeviceSshAccount) {
 					// (The SSH key accounts used to be a kind of SSH accounts, found by the query by type)
@@ -196,7 +196,7 @@ public class CredentialSetService {
 	public boolean delete(long id) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.writeDsl(dsl -> {
+			deleted = this.transactions.write(dsl -> {
 				DeviceCredentialSet credentialSet = this.repository.find(dsl, id);
 				if (credentialSet == null) {
 					log.info("No such credential set of ID {}", id);

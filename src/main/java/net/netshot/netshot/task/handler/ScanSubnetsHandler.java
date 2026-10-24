@@ -86,7 +86,7 @@ public class ScanSubnetsHandler implements TaskHandler<ScanSubnetsTask> {
 					}
 					log.trace("Task {}. Will scan from {} to {}.", task.id(), min, max);
 					run.logger.info("Will scan {} (from {} to {})", subnet.getPrefix(), min, max);
-					List<InetAddress> existingAddresses = this.transactions.readDsl(dsl -> dsl.select(DEVICE.CACHED_IP_ADDRESS)
+					List<InetAddress> existingAddresses = this.transactions.read(dsl -> dsl.select(DEVICE.CACHED_IP_ADDRESS)
 						.from(DEVICE)
 						.where(DSL.condition("{0} <<= cast({1} as inet)", DEVICE.CACHED_IP_ADDRESS, DSL.val(subnet.getPrefix())))
 						.fetch(DEVICE.CACHED_IP_ADDRESS));
@@ -112,7 +112,7 @@ public class ScanSubnetsHandler implements TaskHandler<ScanSubnetsTask> {
 			}
 
 			try {
-				knownCommunities = this.transactions.readDsl(dsl -> new CredentialSetRepository().findAllSnmpCommunities(dsl, spec.domainId()));
+				knownCommunities = this.transactions.read(dsl -> new CredentialSetRepository().findAllSnmpCommunities(dsl, spec.domainId()));
 			}
 			catch (Exception e) {
 				log.error("Task {}. Error while retrieving the communities.", task.id(), e);

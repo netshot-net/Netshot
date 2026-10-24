@@ -149,7 +149,7 @@ class ComplianceServiceTest {
 	void policyUpdate() {
 		Policy policy = this.createPolicy(this.name("To update"), this.groupId);
 		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
-		this.transactions.runDsl(dsl -> new RuleRepository().saveCheckResults(dsl,
+		this.transactions.run(dsl -> new RuleRepository().saveCheckResults(dsl,
 			List.of(CheckResult.of(rule.id(), this.deviceId, ResultOption.NONCONFORMING, "bad"))));
 		Assertions.assertEquals(1, this.countResults(rule.id()));
 		Policy updated = this.policyService.update(policy.id(), new PolicyDefinition("  Renamed " + policy.id() + " ", Set.of(this.otherGroupId))).policy();
@@ -163,14 +163,14 @@ class ComplianceServiceTest {
 	void policyUpdateKeepsResults() {
 		Policy policy = this.createPolicy(this.name("To keep"), this.groupId);
 		Rule rule = this.ruleService.create(textRule(this.name("Rule"), policy.id()));
-		this.transactions.runDsl(dsl -> new RuleRepository().saveCheckResults(dsl,
+		this.transactions.run(dsl -> new RuleRepository().saveCheckResults(dsl,
 			List.of(CheckResult.of(rule.id(), this.deviceId, ResultOption.CONFORMING, "ok"))));
 		this.policyService.update(policy.id(), new PolicyDefinition(policy.name(), Set.of(this.groupId, this.otherGroupId)));
 		Assertions.assertEquals(1, this.countResults(rule.id()));
 	}
 
 	private long countResults(long ruleId) {
-		return this.transactions.readDsl(dsl -> (long) dsl.fetchCount(Tables.CHECK_RESULT, Tables.CHECK_RESULT.RULE.eq(ruleId)));
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.CHECK_RESULT, Tables.CHECK_RESULT.RULE.eq(ruleId)));
 	}
 
 	@Test

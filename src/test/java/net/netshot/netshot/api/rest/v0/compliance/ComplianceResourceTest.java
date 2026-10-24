@@ -60,7 +60,7 @@ public class ComplianceResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.RULE).execute();
 			dsl.deleteFrom(Tables.POLICY).execute();
 			dsl.deleteFrom(Tables.DEVICE_GROUP).execute();

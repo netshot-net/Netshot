@@ -90,15 +90,15 @@ class DiagnosticServiceTest {
 	}
 
 	private long countDiagnostics() {
-		return this.transactions.readDsl(dsl -> (long) dsl.fetchCount(Tables.DIAGNOSTIC));
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.DIAGNOSTIC));
 	}
 
 	private long countResults(long diagnosticId) {
-		return this.transactions.readDsl(dsl -> (long) dsl.fetchCount(Tables.DIAGNOSTIC_RESULT, Tables.DIAGNOSTIC_RESULT.DIAGNOSTIC.eq(diagnosticId)));
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.DIAGNOSTIC_RESULT, Tables.DIAGNOSTIC_RESULT.DIAGNOSTIC.eq(diagnosticId)));
 	}
 
 	private void addResult(long diagnosticId) {
-		this.transactions.runDsl(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
+		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
 			List.of(DiagnosticTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "value"))));
 	}
 

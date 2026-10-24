@@ -67,7 +67,7 @@ public class UserService {
 	 */
 	public List<UiUser> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.list(dsl, page));
+			return this.transactions.read(dsl -> this.repository.list(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to retrieve the users.", e);
@@ -119,7 +119,7 @@ public class UserService {
 
 		UiUser user;
 		try {
-			user = valid.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, valid)));
+			user = valid.withId(this.transactions.write(dsl -> this.repository.add(dsl, valid)));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new user.", e);
@@ -144,7 +144,7 @@ public class UserService {
 	public UiUser update(long id, String currentUsername, UserUpdate update) {
 		UiUser user;
 		try {
-			user = this.transactions.writeDsl(dsl -> {
+			user = this.transactions.write(dsl -> {
 				UiUser existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the user {} to be edited.", id);
@@ -208,7 +208,7 @@ public class UserService {
 	public boolean delete(long id, String currentUsername) {
 		UiUser user;
 		try {
-			user = this.transactions.writeDsl(dsl -> {
+			user = this.transactions.write(dsl -> {
 				UiUser existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.info("No such user of ID {}", id);
@@ -246,7 +246,7 @@ public class UserService {
 		AAA_LOG.warn("Password change request via REST by user {} for user {}.", currentUsername, username);
 		UiUser user;
 		try {
-			user = this.transactions.writeDsl(dsl -> {
+			user = this.transactions.write(dsl -> {
 				UiUser existing = this.repository.findByUsername(dsl, currentUsername);
 				if (existing == null || !existing.username().equals(username) || !existing.local()) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Invalid user.");

@@ -46,13 +46,11 @@ import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.task.type.TaskSpecs;
 
 /**
- * Maps the tasks between the entities (or the projections) of the task package and their REST
+ * Maps the tasks between the records (or the projections) of the task package and their REST
  * representation. All the methods are pure functions.
  *
  * <p>{@link #toDto(Task)} is the single way to represent a task: every endpoint answering with a
- * task uses it. It reads a <em>detached</em> task: it only uses the row of the task and the
- * IDs of the entities it refers to (see {@code TaskRepository.find}), and fails with a
- * {@code LazyInitializationException} if it needs more.</p>
+ * task uses it. It only uses the task record, with the IDs of the objects it refers to.</p>
  */
 public final class TaskMapper {
 

@@ -18,19 +18,29 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.util.List;
-
-import jakarta.persistence.AttributeConverter;
-
 /**
- * The persistent model handed to {@link Database#init(DatabaseModel)}: the
- * platform does not know the entities of the features, whoever initializes
- * the database (the boot code) provides them.
- *
- * @param entityClasses the annotated entity classes, in registration order
- * @param attributeConverters the JPA attribute converters to apply to the whole model
+ * The kinds of database connections, one pool each (see {@link ConnectionPools}).
  */
-public record DatabaseModel(
-	List<Class<?>> entityClasses,
-	List<Class<? extends AttributeConverter<?, ?>>> attributeConverters) {
+public enum PoolKind {
+	/** Queries ({@link Transactions#read}), on the database of {@code netshot.db.readurl} if set. */
+	READ_ONLY("ReadOnly"),
+	/** Read-write transactions ({@link Transactions#write}). */
+	READ_WRITE("ReadWrite"),
+	/** Small dedicated pool for task dispatch and cluster bookkeeping ({@link Transactions#system}). */
+	SYSTEM("System");
+
+	private final String sourceName;
+
+	PoolKind(String sourceName) {
+		this.sourceName = sourceName;
+	}
+
+	/**
+	 * Gets the name of the pool (as c3p0 data source).
+	 *
+	 * @return the name
+	 */
+	public String getSourceName() {
+		return this.sourceName;
+	}
 }

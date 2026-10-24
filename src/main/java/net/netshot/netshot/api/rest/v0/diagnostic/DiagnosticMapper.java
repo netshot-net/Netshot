@@ -39,9 +39,8 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
 /**
- * Maps the diagnostics and their results between the entities and their REST representation.
- * All the methods are pure functions, reading detached entities with the fetch plan of
- * {@code DiagnosticRepository}.
+ * Maps the diagnostics and their results between the records and their REST representation.
+ * All the methods are pure functions.
  */
 public final class DiagnosticMapper {
 

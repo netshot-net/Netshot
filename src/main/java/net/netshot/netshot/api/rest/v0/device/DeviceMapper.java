@@ -43,12 +43,8 @@ import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * Maps the devices between the entities (or the projections) of the inventory and their REST
+ * Maps the devices between the records (or the projections) of the inventory and their REST
  * representation. All the methods are pure functions.
- *
- * <p>{@link #toDto(Device)} reads a <em>detached</em> device: it only uses what the fetch plan of
- * {@code DeviceRepository.findWithDetails} loaded, and fails with a
- * {@code LazyInitializationException} if the device comes from somewhere else.</p>
  */
 public final class DeviceMapper {
 
@@ -74,7 +70,7 @@ public final class DeviceMapper {
 	 * Maps a device to its full representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param device the device, loaded with the fetch plan of {@code DeviceRepository.findWithDetails}
+	 * @param device the device
 	 * @return the DTO
 	 */
 	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device) {

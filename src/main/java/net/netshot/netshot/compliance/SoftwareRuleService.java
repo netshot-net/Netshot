@@ -74,7 +74,7 @@ public class SoftwareRuleService {
 	 */
 	public List<SoftwareRuleView> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				List<SoftwareRuleView> views = new ArrayList<>();
 				for (SoftwareRule rule : this.repository.findAll(dsl, page)) {
 					views.add(new SoftwareRuleView(rule, this.findGroup(dsl, rule.targetGroupId())));
@@ -105,7 +105,7 @@ public class SoftwareRuleService {
 	public SoftwareRuleView create(SoftwareRuleDefinition definition) {
 		SoftwareRuleView rule;
 		try {
-			rule = this.transactions.writeDsl(dsl -> {
+			rule = this.transactions.write(dsl -> {
 				DeviceGroup group = this.findGroup(dsl, definition.groupId());
 				SoftwareRule newRule = this.fromDefinition(0, Double.MAX_VALUE, definition);
 				return new SoftwareRuleView(newRule.withId(this.repository.add(dsl, newRule)), group);
@@ -130,7 +130,7 @@ public class SoftwareRuleService {
 	public SoftwareRuleView update(long id, SoftwareRuleDefinition definition) {
 		SoftwareRuleView rule;
 		try {
-			rule = this.transactions.writeDsl(dsl -> {
+			rule = this.transactions.write(dsl -> {
 				SoftwareRule existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
@@ -159,7 +159,7 @@ public class SoftwareRuleService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.writeDsl(dsl -> {
+			boolean deleted = this.transactions.write(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such software rule of ID {}", id);
 					return false;
@@ -190,7 +190,7 @@ public class SoftwareRuleService {
 		try {
 			record Sorted(SoftwareRule rule, int nextIndex) {
 			}
-			Sorted sorted = this.transactions.writeDsl(dsl -> {
+			Sorted sorted = this.transactions.write(dsl -> {
 				List<SoftwareRule> rules = new ArrayList<>(this.repository.findAll(dsl, Page.ALL));
 				SoftwareRule target = null;
 				int index = -1;

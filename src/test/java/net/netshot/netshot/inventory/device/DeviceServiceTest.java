@@ -402,14 +402,14 @@ class DeviceServiceTest {
 	// ------------------------------------------------------------------
 
 	@Test
-	@DisplayName("get() reports an unknown device, and returns a device usable once the session is closed")
+	@DisplayName("get() reports an unknown device, and returns the complete device")
 	void get() throws Exception {
 		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.get(99999999L));
 		DeviceAccess ssh = access("ssh").toBuilder().specificCredentialSet(DeviceSshAccount.builder().username("u").password("p").superPassword("e").name("n").build()).build();
 		Device created = this.deviceOf(this.service.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
 			"CiscoIOS12", List.of(ssh), null, null, List.of("t"), AUTHOR)));
 		Device device = this.service.get(created.id());
-		// Everything the full representation reads (a LazyInitializationException would show here)
+		// Everything the full representation reads
 		Assertions.assertEquals("Lab", device.mgmtDomain().name());
 		Assertions.assertNull(device.eolModule());
 		Assertions.assertTrue(device.attributes().isEmpty());
@@ -473,6 +473,6 @@ class DeviceServiceTest {
 	}
 
 	private long countDevices(String address) {
-		return this.transactions.readDsl(dsl -> (long) dsl.fetchCount(Tables.DEVICE, Tables.DEVICE.MGMT_ADDRESS.eq(address)));
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.DEVICE, Tables.DEVICE.MGMT_ADDRESS.eq(address)));
 	}
 }

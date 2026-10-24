@@ -26,7 +26,7 @@ import org.jooq.impl.AbstractConverter;
 
 /**
  * jOOQ converter of the {@code timestamp} (without time zone) columns to
- * {@link Instant}: the dates are stored in UTC (Hibernate is configured with
+ * {@link Instant}: the dates are stored in UTC (as Hibernate stored them, with
  * {@code hibernate.jdbc.time_zone = UTC}), so a stored value is the UTC
  * date and time of the instant.
  * Used by the generated classes, see the jOOQ code generation.

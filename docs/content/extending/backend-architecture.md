@@ -11,9 +11,9 @@ Everything lives under `net.netshot.netshot`.
 
 ```text
 Netshot            entry point only (main)
-boot/              composition root (Wiring), persistent model (EntityModel)
+boot/              composition root (Wiring)
 platform/          technical building blocks; depends on no feature
-├── database/      Hibernate and jOOQ set-up, Database, Transactions, Liquibase migrators
+├── database/      connection pools, jOOQ set-up, Database, Transactions, Liquibase migrators
 │   └── schema/    jOOQ classes generated from the schema (committed under src/main/jooq)
 ├── error/         ErrorCode, NetshotException
 ├── event/         DomainEvents: synchronous in-process publish/subscribe
@@ -25,24 +25,24 @@ api/               API channels: how the outside world talks to the core
 └── grpc/          (later)
 inventory/ driver/ access/ credentials/ vault/ devicescript/ userscript/
 compliance/ diagnostic/ task/ report/ hook/ aaa/ cluster/ system/ tools/
-                   features: entities, repositories, services, engines
+                   features: domain records, repositories, services, engines
 ```
 
-- **Feature packages** (`inventory`, `task`, `compliance`...) hold the entities (single JPA model, no separate domain model), and over time the repositories and services of the feature. The features migrated to jOOQ (see [Database access with jOOQ](#database-access-with-jooq); `hook` and `aaa.user` so far) hold plain immutable records instead, a sealed interface for a family of types (`Hook` and `WebHook`; `User` with `UiUser` and `ApiToken`), with no mapping annotation.
-- **Entities** carry the JPA mapping and the invariants on their own state only. No `Session`, no I/O, no static registry lookup, and no Jackson/JAXB serialization annotation (no API channel serializes an entity: the DTOs and the webhook payloads are written by the mappers).
-- **Repositories** contain queries only; the `Session` (or the `DSLContext` for a feature migrated to jOOQ) is passed explicitly as first parameter.
+- **Feature packages** (`inventory`, `task`, `compliance`...) hold the domain model of the feature, its repositories and its services. The domain model is made of plain immutable records (with a Lombok `@Builder(toBuilder = true)` when they have many components), a sealed interface for a family of types (`Hook` and `WebHook`; `User` with `UiUser` and `ApiToken`; `Rule`, `DeviceCredentialSet`, `DeviceAttribute`, `TaskSpec`...), with no mapping annotation (see [Database access with jOOQ](#database-access-with-jooq)).
+- **Domain records** carry the invariants on their own state only. No database access, no I/O, no static registry lookup, and no Jackson/JAXB serialization annotation (no API channel serializes a domain record: the DTOs and the webhook payloads are written by the mappers). Where some code must change an object step by step (the device scripts and drivers on a device or a configuration, a running task), a separate mutable class holds the working state: `DeviceDraft`, `ConfigDraft`, `TaskRun`.
+- **Repositories** contain queries only; the `DSLContext` is passed explicitly as first parameter.
 - **Services** implement the use cases and own the transaction boundaries (see [Transactions](#transactions)). They throw neutral exceptions (see [Errors](#errors)), and know nothing of HTTP.
-- **`api.*`** are the API channels. Each channel owns its DTOs, even when two channels have similar ones (the REST task representation is not the webhook task payload). A channel translates between the wire format and the services. `api.rest` and `api.hook` do not depend on each other; they share services and entities, not DTOs.
-- **`platform`** knows nothing about the features. The persistent model (the list of entity classes) is therefore given to `Database.init()` by `boot`.
+- **`api.*`** are the API channels. Each channel owns its DTOs, even when two channels have similar ones (the REST task representation is not the webhook task payload). A channel translates between the wire format and the services. `api.rest` and `api.hook` do not depend on each other; they share services and domain records, not DTOs.
+- **`platform`** knows nothing about the features.
 - **`boot`** is the only place where everything is assembled.
 
 The REST API must stay byte-for-byte equivalent (JSON, XML, YAML) while it is restructured.
 
 ## Dependency rules
 
-The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; `api` does not use the `Session`; JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; entities, mapped superclasses and embeddables carry no `@JsonView` or JAXB annotation; entities do not use `Session` or `Database`; and there is no cycle between top-level packages.
+The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; `api` does not reach the database (neither jOOQ nor `platform.database`, except the `Page` window); JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; `@JsonView` and the JAXB annotations are only used by the API channels and the cluster wire format; and there is no cycle between top-level packages.
 
-Most rules are *strict*: any violation fails the build. Three rules still have violations, to be removed with the planned ORM change, and are *frozen*: entities using the `Session`, entities using `Database`, and the cycles between top-level packages (mostly due to the reverse collections of `Device`). Their existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
+Most rules are *strict*: any violation fails the build. One rule still has violations and is *frozen*: the cycles between top-level packages. Its existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
 
 ```bash
 ./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
@@ -50,51 +50,52 @@ Most rules are *strict*: any violation fails the build. Three rules still have v
 
 ## Transactions
 
-Services open their transactions through `platform.database.Transactions` (a thin wrapper over Hibernate sessions), never by calling `Database.getSession()` themselves:
+Services open their transactions through `platform.database.Transactions`, never by taking a connection themselves. Each method takes a connection from a pool, gives the work a jOOQ `DSLContext` on it and gives the connection back:
 
-| Method | Session | Transaction |
+| Method | Pool | Transaction |
 |---|---|---|
-| `<T> T read(Function<Session, T>)` | from the read-only pool (`Database.getSession(true)`) | none |
-| `<T> T write(Function<Session, T>)` | read-write | begun, committed on success |
-| `void run(Consumer<Session>)` | read-write | same as `write`, without result |
-| `<T> T readDsl(Function<DSLContext, T>)` | as `read`, with a jOOQ context | none |
-| `<T> T writeDsl(Function<DSLContext, T>)` | as `write`, with a jOOQ context | begun, committed on success |
-| `void runDsl(Consumer<DSLContext>)` | as `run`, with a jOOQ context | same as `writeDsl`, without result |
+| `<T> T read(Function<DSLContext, T>)` | read-only | none committed: rolled back at the end |
+| `<T> T write(Function<DSLContext, T>)` | read-write | committed on success |
+| `void run(Consumer<DSLContext>)` | read-write | same as `write`, without result |
+| `<T> T system(Function<DSLContext, T>)` | system (small) | committed on success; for the task dispatch and the cluster bookkeeping only |
 
-On any exception (including a failing commit) the transaction is rolled back and the exception is rethrown unchanged; the session is always closed. Note that the read-only pool only points to a different database when `netshot.db.readurl` is set: otherwise it is the read-write database and nothing prevents a `read` from writing.
+On any exception (including a failing commit) the transaction is rolled back and the exception is rethrown unchanged. Note that the read-only pool only points to a different database when `netshot.db.readurl` is set: otherwise it is the read-write database, and what a `read` writes is rolled back.
 
 ```java
 public Domain rename(long id, String name) {
-    return transactions.write(session -> {
-        Domain domain = repository.get(session, id);   // throws NetshotException if not found
-        domain.setName(name);
-        return domain;
+    return transactions.write(dsl -> {
+        Domain domain = repository.find(dsl, id);
+        if (domain == null) {
+            throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Unable to find the domain.");
+        }
+        return repository.save(dsl, domain.toBuilder().name(name).build());
     });
 }
 ```
 
 !!! warning
-    Do not hold a transaction across device I/O, hooks or other long operations.
+    Do not hold a transaction across device I/O, hooks or other long operations. A snapshot, a script or diagnostics load the device in one transaction, talk to the device without any, then save it in another one; the save checks the version of the device (`DataChangedException` when it was changed meanwhile).
 
 ## Database access with jOOQ
 
-The persistence moves from Hibernate to [jOOQ](https://www.jooq.org), one feature at a time. Until the last feature is migrated, both work on the same connections and transactions: `Jooq.dsl(session)` gives a jOOQ context on the connection of a Hibernate session, which jOOQ never commits nor rolls back, and which flushes the pending changes of the session before each jOOQ statement, so that the statement sees them. The `*Dsl` methods of `Transactions` are the same as the others, with that context: a migrated service uses them, and its repository takes a `DSLContext` instead of a `Session`. When Hibernate is gone, they are renamed `read`, `write` and `run`.
+The persistence uses [jOOQ](https://www.jooq.org) (it replaced Hibernate, one feature at a time; the history and the pitfalls of that move are kept below). A repository maps the generated records to the domain records itself: there is no mapping layer, no session cache and no lazy loading, so a repository method loads exactly what its domain record holds (a device with its attributes, accesses, modules and interfaces, in one query with nested `multiset`s), and the related aggregates (configurations, diagnostic results, groups) are loaded by their own repositories.
 
 - **Generated classes**: the tables, records and keys are generated from the schema into `net.netshot.netshot.platform.database.schema`, committed under `src/main/jooq` (a source folder of the build, not checked by checkstyle). After a change of the Liquibase changelog, regenerate them with `./mvnw -Pjooq-codegen process-test-classes` (`JooqCodegen`: a PostgreSQL container, migrated by `Database.update()`, then the jOOQ generator) and commit the result: `JooqSchemaTest` fails when they don't match the changelog. The classes are not bound to a schema (the tables are found through the search path).
-- **Types**: the `inet` columns are `InetAddress` (`InetBinding`), the `timestamp` columns are `Instant` (`UtcInstantConverter`: the dates are stored in UTC). The enumerations stay integers (their ordinal) or strings in the generated classes, since the generated package depends on no feature: convert them in the repository (`field.convert(...)`, or an `EnumConverter`).
+- **Types**: the `inet` columns are `InetAddress` (`InetBinding`), the `timestamp` columns are `Instant` (`UtcInstantConverter`: the dates are stored in UTC), the secrets are decrypted and encrypted by `EncryptedStringConverter`. The enumerations are stored by name: they are strings in the generated classes, since the generated package depends on no feature, and the repository converts them (`valueOf`, `name()`).
 - **Names**: the foreign keys, unique constraints and indexes of foreign keys are named `fk_`, `uk_` and `ix_<table>_<columns>`; the generated keys and join paths are named after them. Name the new ones the same way.
-- **Errors**: a failing jOOQ statement throws a `org.jooq.exception.DataAccessException`, not a `HibernateException`: catch it in the migrated services.
+- **Versions and dates**: an update of a versioned row increments its `version` and sets `change_date` to the time of the change, to the second. The save of a device also checks the version it was loaded with (`DataChangedException` when the device was changed meanwhile), since it ends the long device sessions.
+- **Errors**: a failing statement throws a `org.jooq.exception.DataAccessException`: catch it in the services. `DatabaseErrors.isUniqueViolation` and `isForeignKeyViolation` tell the cause from its SQL state.
 - **PostgreSQL versions**: the open source edition of jOOQ only officially supports the latest PostgreSQL version (18 for jOOQ 3.21), while Netshot supports PostgreSQL 15 and later. The database tests therefore run on PostgreSQL 15 by default, and the CI also runs them on the latest version (`-Dnetshot.test.postgres=postgres:18`); the warning jOOQ logs about the version is silenced. Don't use the jOOQ API of features which are more recent than PostgreSQL 15.
 
 ## Errors
 
 `platform.error.ErrorCode` lists the errors reported to API clients: each code has a stable numeric value and the HTTP status the REST API answers with. Services signal them with `platform.error.NetshotException(ErrorCode, message)`, a runtime exception that knows nothing of the transport. The REST exception mapper renders it exactly like the legacy `NetshotBadRequestException`: HTTP status of the code, body `{ "errorMsg": ..., "errorCode": ... }` (`RsErrorBean`). Other API channels translate it to their own error format.
 
-The former REST code threw `NetshotBadRequestException(message, ErrorCode)`, a JAX-RS `WebApplicationException` (it only survives in the tests, as the reference the rendering of the errors is compared with): services must not use JAX-RS types. To detect a duplicate key on persist, use `Database.isDuplicateException()`, unless the rule of an existing use case has to be kept (see the [pitfalls](#pitfalls-met-on-the-credential-set-vault-instance-and-hook-slices)).
+The former REST code threw `NetshotBadRequestException(message, ErrorCode)`, a JAX-RS `WebApplicationException` (it only survives in the tests, as the reference the rendering of the errors is compared with): services must not use JAX-RS types. To detect a duplicate key, use `DatabaseErrors.isUniqueViolation()` on the `DataAccessException`.
 
 A helper shared by several services (for example `credentials.CredentialSets`) throws `NetshotException` too.
 
-Inside a service, a failing query is a `HibernateException`: catch it around the `Transactions` call and report it as `NETSHOT_DATABASE_ACCESS_ERROR` (or a more specific code when the cause is known, like a duplicate key), keeping the message the clients know. Check the failure of the business rules *inside* the transaction (the exception rolls it back) and keep the order of the checks, as it decides which error a client gets when several apply.
+Inside a service, a failing query is a `DataAccessException`: catch it around the `Transactions` call and report it as `NETSHOT_DATABASE_ACCESS_ERROR` (or a more specific code when the cause is known, like a duplicate key), keeping the message the clients know. Check the failure of the business rules *inside* the transaction (the exception rolls it back) and keep the order of the checks, as it decides which error a client gets when several apply.
 
 When adding an error: add the `ErrorCode` (never change an existing numeric value or status; the web UI and the API clients depend on them).
 
@@ -102,56 +103,57 @@ When adding an error: add the `ErrorCode` (never change an existing numeric valu
 
 The device use cases (`inventory.device`) show how the layers fit together.
 
-- **`DeviceRepository`** only holds queries. Every method takes the `Session` first, none opens a transaction or catches an exception. It documents its *fetch plan*: `findWithDetails` loads exactly what the full device representation reads (`left join fetch` for the to-one associations, `Hibernate.initialize` for the collections), and nothing else. Lookups of other aggregates which the use case needs (domain, credential set) are there too, until those get their own repository.
+- **`DeviceRepository`** only holds queries. Every method takes the `DSLContext` first, none opens a transaction or catches an exception. `find` loads the whole `Device` record; the other aggregates the use case needs (domain, credential sets, configurations, groups) are read by their own repositories.
 - **`DeviceService`** has one public method per use case, named after it (`list`, `get`, `create`, `update`, `delete`). It is constructed with its collaborators (`Transactions`, repository, ports): no static lookup, no `Wiring.get()`. Inputs are *command records* (`DeviceCreation`, `DeviceUpdate`): plain data, no `api` type. In a command, a `null` component means "not provided / unchanged".
-- **What a service returns** is a *detached entity loaded with a documented fetch plan* (the caller may read what the plan covers, and nothing else), a service-level record (`DeviceSummary`, a projection), or a primitive (`delete` returns whether there was a device). Never a DTO, never a `Response`.
+- **What a service returns** is a domain record (complete: there is nothing left to load), a service-level record (`DeviceSummary`, a projection), or a primitive (`delete` returns whether there was a device). Never a DTO, never a `Response`.
 - **Side effects** which must not happen if the transaction fails (refresh of the dynamic groups, scheduling of tasks, removal of files) are explicit statements *after* the `Transactions` call. A service reaches the static task engine only through a port, here `task.TaskSubmitter`, which `Wiring` implements with `TaskManager::addTask` and the tests with a recording lambda.
 - **Pagination**: a list use case takes a `platform.database.Page` (offset and limit, validated by its constructor); `PaginationParams.toPage()` builds it in the REST layer.
-- **Input objects which are entities**: some inputs are too rich to duplicate as service records (the accesses of a device and their credential sets). The API mapper builds *transient entities* from the request (`DeviceAccess`, `DeviceSshAccount`...), the command carries them, and the service validates them and resolves them against the persistent ones (global credential set by ID, Vault instance by ID...). They are never persisted as they are.
+- **Input objects which are domain records**: some inputs are too rich to duplicate as service records (the accesses of a device and their credential sets). The API mapper builds the domain records from the request (`DeviceAccess`, `DeviceSshAccount`, a `Domain.reference(id)`...), the command carries them, and the service validates them and resolves them against the stored ones (global credential set by ID, Vault instance by ID...). They are never stored as they are.
 - **Validation** (`DeviceValidation`) is made of static, side-effect free functions which throw `NetshotException`. Other services which need the same checks call them.
 
 ```java
 // DeviceService.update, abridged
-Device device = transactions.write(session -> {
-    Device existing = repository.find(session, id);
+Device device = transactions.write(dsl -> {
+    Device existing = repository.find(dsl, id);
     if (existing == null) {
         throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
     }
-    applyUpdate(session, existing, update);       // validation and changes, in the order of the legacy code
+    Device edited = applyUpdate(dsl, existing, update);   // validation and changes, in the order of the legacy code
     // ... duplicate address check ...
-    return existing;
+    repository.save(dsl, existing, edited);              // version-checked update
+    return edited;
 });
-DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);   // after the commit
-return get(id);                                           // re-read with the documented fetch plan
+DynamicGroups.refreshAllGroupsOfOneDevice(device.id());   // after the commit
+return get(id);
 ```
 
 ## DTO conventions
 
-DTOs are the types written to and read from the wire by an API channel: Java records, mapped from entities (or projections) by mappers in the same channel package. These facts hold today (Jackson 2.22 and swagger-core 2.2; the DTO tests and the contract goldens pin the representation):
+DTOs are the types written to and read from the wire by an API channel: Java records, mapped from the domain records (or projections) by mappers in the same channel package. These facts hold today (Jackson 2.22 and swagger-core 2.2; the DTO tests and the contract goldens pin the representation):
 
 - There are no Jackson views: the providers of the REST API (`NetshotWebApplication`) and of the webhook sender (`WebHookSender`) are plain `JsonMapper`/`XmlMapper`/`YAMLMapper` ones, and a record serializes all its components. What must not be written is left out of the record (or marked `@JsonIgnore`). `RestViews` only holds the views of the cluster wire format (`ClusterMessage`, `ClusterMember`), which is not an API channel.
 - `@XmlRootElement`, `@XmlElement` and `@XmlAccessorType` are no-ops with the real providers (the custom mapper has no XML-bind introspector). The XML root element is the simple class name: a DTO whose name differs from today's class or entity needs `@JacksonXmlRootElement(localName = "<old name>")` (e.g. `DeviceDto` is published as `Device`).
 - A "light" type that used to be a subclass of the full type is a separate record composing the common part with `@JsonUnwrapped` (JSON and YAML are byte-identical, XML identical given the root element name).
 - Polymorphic DTOs use `@JsonTypeInfo(use = Id.NAME, property = "type")` with explicit `@JsonSubTypes.Type(name = "<old simple name>")`, never `SIMPLE_NAME`. List endpoints must declare the concrete generic type (`List<TaskDto>`, not `List<Object>`), otherwise the type id is lost.
-- `Date` values are serialized as epoch milliseconds, like on the entities.
+- Dates are serialized as epoch milliseconds, as the former entities were.
 - OpenAPI: the generated document has no component schemas for the DTOs (`/openapi.json` is pinned by the API goldens); declaring them is a backlog item.
 - **Nested polymorphic types** (device attributes, credential sets, groups) are a `sealed interface` with the `@JsonTypeInfo`/`@JsonSubTypes` annotations and its subtypes as nested records (`DeviceAttributeDto.Text`, `CredentialSetDto.Ssh`...). The `type` property (an attribute in XML) keeps today's values, written explicitly in `@JsonSubTypes.Type(name = ...)`.
 - **Request records** (`NewDeviceRequest`, `UpdateDeviceRequest`, `DeviceAccessDto`) read exactly the JSON the former request classes read: same property names, and an unknown property is refused (a record is strict like the beans were). `@JsonUnwrapped` doesn't work on the properties which are *read*, so a shape which is both read and written (`CredentialSetDto`) repeats the common components in each subtype. The default a bean field had when the property was absent is applied in a compact constructor. When an absent property and an explicit `null` must differ (as they did for a primitive or for a field with an initial value), use a `JsonDeserializer` overriding `getAbsentValue()` and `getNullValue()` (see `DeviceAccessDto.SshHostKeyVerificationDeserializer`); `DeviceDtoTest` pins these defaults.
 - **A record read from XML is read by Jackson, provided it is not annotated with `@XmlRootElement`.** A class annotated with it is read by Jersey's JAXB provider instead, which fails with a 500 since there is no JAXB runtime (that was the behavior of the former request classes). Request classes (and any class read as a request body) must therefore not carry it: the XML root element name of a request is ignored. The XML shape of a request is the one of the responses (wrapped lists, `type` attribute of the polymorphic bodies); the values of `Map<String, Object>` properties are strings in XML.
-- A DTO is mapped from a *detached* entity or a projection by a mapper in the same package (`DeviceMapper`, `DeviceAccessMapper`: final classes of static functions). The mapper only touches what the fetch plan of the service loaded: a `LazyInitializationException` means the plan is incomplete, not that the mapper should open a session. Use `Hibernate.unproxy()` before an `instanceof` on an association, as it can hold a proxy.
-- Entity simple class names are part of the contract (HQL entity names, default discriminators, the `type` values and the XML root names the DTOs reproduce): do not rename entities.
+- A DTO is mapped from a domain record or a projection by a mapper in the same package (`DeviceMapper`, `DeviceAccessMapper`: final classes of static functions). What the DTO shows beside the record (the owner groups of a device, the description of a driver) is given to the mapper by the service or the resource; a mapper never reads the database.
+- The simple class names of the former entities are part of the contract (the discriminators stored in the `type` columns, the `type` values and the XML root names the DTOs reproduce): do not rename the domain records which kept them (the task specifications of `task.type`, the rules, the credential sets...).
 
 Webhook payloads are the DTOs of `api.hook.payload` (a sealed `TaskPayload` family, one record per task type, with the device, groups and credential sets it embeds), written by the plain providers of `WebHookSender`. They hold the same properties as the `Task` entity did when it was serialized; `HookPayloadTest` compares them with stored files. The payload never holds a secret: the CLI/HTTP credential sets only carry their common properties, and the other secrets are written as `=`.
 
 ### Task handlers
 
-A `Task` entity holds the data of a task (target, schedule, status, log, result attributes) and its scheduling metadata (`schedule`, `clone`, `prepare`, `deviceLockPolicy`, `onSchedule`, `onCancel`); it does not run itself. Each concrete task type in `task.type` has one `task.TaskHandler<T>` in `task.handler` (`taskType()` and `run(T task)`). A handler sets the status, the log and the result on the task exactly as the engine expects, and takes its collaborators by constructor (`DriverRegistry`, `ComplianceChecker`, `DiagnosticAdapters`, `TaskSubmitter`, `ChildTaskOrchestrator`). `task.TaskHandlers` is the registry: it refuses to be built when a concrete `Task` subclass found by the package scan has no handler (or has two), and `TaskHandlers.run(task)` dispatches on the real class of the task.
+A `Task` record holds a task as stored: its header (target, schedule, status, log...) and the `TaskSpec` of its type, a sealed interface whose records in `task.type` keep the names of the former task classes (`TakeSnapshotTask`, `RunDeviceScriptTask`...); it does not run itself. While a task runs, its mutable state (status, logs, debug log, result attributes) is a `TaskRun`, saved by the engine at the end. Each task specification has one `task.TaskHandler<S>` in `task.handler` (`taskType()` and `run(Task task, S spec, TaskRun run)`). A handler sets the status, the log and the result on the run exactly as the engine expects, and takes its collaborators by constructor (`DriverRegistry`, `ComplianceChecker`, `DiagnosticAdapters`, `TaskSubmitter`, `ChildTaskOrchestrator`). `task.TaskHandlers` is the registry: it refuses to be built when a permitted subtype of `TaskSpec` has no handler (or has two), and `TaskHandlers.run(task, run)` dispatches on the type of the specification.
 
-`TaskJob` is built by Quartz through `TaskJobFactory` (handed to `TaskManager.init(taskJobFactory)` by `Netshot.main`, built by `Wiring`), which gives it the registry and `DomainEvents`; a test runs a task with `Wiring.get().taskJobFactory().newTaskJob().runTask(id)`. The handler tests (`task.handler.*HandlerTest`) use `TaskRunner` instead: the same task engine and handlers, with the follow-up tasks recorded rather than scheduled, and the child tasks of the group tasks given a terminal status rather than run; the handlers which connect to a device run against the device simulator. The group tasks (`TakeGroupSnapshotTask`, `RunGroupDiagnosticsTask`, `RunDeviceGroupScriptTask`, `ScanSubnetsTask`) delegate the pre-creation, promotion and polling of their child tasks to `task.engine.ChildTaskOrchestrator`; the pure decision functions stay in `Task.SequentialScheduling`. To add a task type: the entity in `task.type`, its handler, its DTO and payload (with their `@JsonSubTypes` entries), and its line in `Wiring`.
+`TaskJob` is built by Quartz through `TaskJobFactory` (handed to `TaskManager.init(taskJobFactory)` by `Netshot.main`, built by `Wiring`), which gives it the registry and `DomainEvents`; a test runs a task with `Wiring.get().taskJobFactory().newTaskJob().runTask(id)`. The handler tests (`task.handler.*HandlerTest`) use `TaskRunner` instead: the same task engine and handlers, with the follow-up tasks recorded rather than scheduled, and the child tasks of the group tasks given a terminal status rather than run; the handlers which connect to a device run against the device simulator. The group tasks (`TakeGroupSnapshotTask`, `RunGroupDiagnosticsTask`, `RunDeviceGroupScriptTask`, `ScanSubnetsTask`) delegate the pre-creation, promotion and polling of their child tasks to `task.engine.ChildTaskOrchestrator`; the pure decision functions stay in `Task.SequentialScheduling`. To add a task type: the specification record in `task.type` (a permitted subtype of `TaskSpec`), its handler, its DTO and payload (with their `@JsonSubTypes` entries), and its line in `Wiring`.
 
 ### Domain events
 
-`platform.event.DomainEvents` is a synchronous, in-process publish/subscribe: `publish(event)` calls the listeners of the event type, in subscription order, in the publisher's thread; an exception thrown by a listener is logged and does not stop the others nor reach the publisher. A feature publishes an event of its own package (`task.event.TaskFinished(taskId, taskType)`, published by `TaskJob` once the result is saved, before the next occurrence is scheduled); a channel subscribes to it in `Wiring` (`HookDispatcher` runs the enabled `POST_TASK` hooks of the task type). `TaskJob` receives the publisher from the `TaskJobFactory`. A listener loads what it needs itself, through services: `TaskService.mapTask(id, mapper)` loads and prepares the task in a read transaction and applies the mapper inside it, so an `api` class maps the entity without touching a `Session`.
+`platform.event.DomainEvents` is a synchronous, in-process publish/subscribe: `publish(event)` calls the listeners of the event type, in subscription order, in the publisher's thread; an exception thrown by a listener is logged and does not stop the others nor reach the publisher. A feature publishes an event of its own package (`task.event.TaskFinished(taskId, taskType)`, published by `TaskJob` once the result is saved, before the next occurrence is scheduled); a channel subscribes to it in `Wiring` (`HookDispatcher` runs the enabled `POST_TASK` hooks of the task type). `TaskJob` receives the publisher from the `TaskJobFactory`. A listener loads what it needs itself, through services: `TaskService.mapTask(id, mapper)` loads and prepares the task in a read transaction and applies the mapper inside it, so an `api` class maps the task without reaching the database.
 
 ## Safety nets
 
@@ -197,20 +199,19 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 
 ## Wiring
 
-`boot.Wiring` is the composition root. `Wiring.init()` initializes the database access (with the persistent model from `boot.EntityModel`) and builds the long-lived objects: `Transactions`, then each repository and service (today `DeviceRepository` and `DeviceService`), in dependency order. `Netshot.main` calls it right after the schema update; tests needing a database call the same method.
+`boot.Wiring` is the composition root. `Wiring.init()` initializes the database access (the connection pools) and builds the long-lived objects: `Transactions`, then each repository and service (today `DeviceRepository` and `DeviceService`), in dependency order. `Netshot.main` calls it right after the schema update; tests needing a database call the same method.
 
-- **Adding an entity**: register it in `boot.EntityModel` (task, rule and diagnostic subclasses are discovered by scanning).
 - **Adding a service**: build it in `Wiring.init()`, give it an accessor, and bind it in `boot.WiringBinder`.
 - **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, `Netshot.main` hands it to `RestServer.init(binder)` which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
 - **Code outside Jersey** receives its dependencies explicitly from `Netshot.main`, which keeps the `Wiring` returned by `Wiring.init()`: `SyslogServer.init(driverRegistry, autoSnapshotScheduler)`, `SnmpTrapReceiver.init(...)`, `ClusterManager.init(...)`, `TaskManager.init(taskJobFactory)`. No static facade is left: the device drivers are looked up in the injected `DriverRegistry` (`forDevice(device)`, `getDriverByName(name)`), which the handlers pass to the device scripts and helpers they create, and the automatic snapshots are scheduled through `AutoSnapshotScheduler`. The static `Wiring.get()` has no caller in `src/main` any more; it remains for the tests, and `Wiring.reloadTaskConfigs()` / `reloadRuleRuntimeConfigs()` (called by `Netshot.loadModuleConfigs()`, which runs before the wiring exists in tests) use the same static instance.
-- **Descriptions of the drivers belong to the mappers.** The description of the driver of a rule, a diagnostic, a script, a discovered type or a device is computed by the mapper (`api/rest/v0`, and `TaskPayloads` for the webhooks) from the `DriverRegistry` it receives as first argument; the resources get the registry by injection and the hook dispatcher by constructor. Entities have no getter that looks a driver up.
-- **Remaining static state.** `Finder` parses its queries with static methods, so it reads the drivers from a static `DriverRegistry` set by `Wiring` (`Finder.setDriverRegistry`); `AutoSnapshotScheduler` holds the process-wide set of the devices with a queued automatic snapshot (marked and cleared by the task lifecycle, which has no access to the scheduler). Both go with the ORM change.
+- **Descriptions of the drivers belong to the mappers.** The description of the driver of a rule, a diagnostic, a script, a discovered type or a device is computed by the mapper (`api/rest/v0`, and `TaskPayloads` for the webhooks) from the `DriverRegistry` it receives as first argument; the resources get the registry by injection and the hook dispatcher by constructor. Domain records have no accessor that looks a driver up.
+- **Remaining static state.** `Finder` parses its queries with static methods, so it reads the drivers from a static `DriverRegistry` set by `Wiring` (`Finder.setDriverRegistry`); `AutoSnapshotScheduler` holds the process-wide set of the devices with a queued automatic snapshot (marked and cleared by the task lifecycle, which has no access to the scheduler). Both remain to be removed.
 
 Resources are discovered by Jersey package scanning of `net.netshot.netshot.api.rest` (sub-packages included): a new `@Path` class is picked up with no registration. Filters, providers and the exception mapper carry no `@Provider` annotation and are registered explicitly in `NetshotWebApplication`.
 
 ## Adding or moving a v0 endpoint
 
-This is the procedure that was followed to move every group of endpoints out of the former `RestService`, starting with `GET /devices`, `GET /devices/{id}`, `POST /devices`, `PUT /devices/{id}` and `DELETE /devices/{id}`. It also tells how to add an endpoint (skip what only concerns the removal of legacy code). Follow the steps in this order, and keep the API contract tests green at each step: **a golden file must never change** (never run the tests with the update flags to make them pass).
+This is the procedure that was followed to move every group of endpoints out of the former `RestService` (while the model was still made of Hibernate entities: read *domain record* for *entity* and `DSLContext` for `Session`), starting with `GET /devices`, `GET /devices/{id}`, `POST /devices`, `PUT /devices/{id}` and `DELETE /devices/{id}`. It also tells how to add an endpoint (skip what only concerns the removal of legacy code). Follow the steps in this order, and keep the API contract tests green at each step: **a golden file must never change** (never run the tests with the update flags to make them pass).
 
 The files of the worked example:
 
@@ -240,11 +241,11 @@ For each endpoint note the status codes and the way they are chosen (`suggestRet
 
 ### 3. Repository
 
-`<feature>/<Entity>Repository`: one method per query, `Session` first, no transaction, no exception handling. For a query building a light object (`select new ...`), project into a record of the feature package (`DeviceSummary`), *never* an `api` type, and use the fully qualified name in the HQL (`DeviceSummary.class.getName()`). For a query whose result is serialized, write the fetch plan in the Javadoc and implement it explicitly (`findWithDetails`): this replaces the `.size()` calls the legacy code made to initialize collections before closing the session.
+`<feature>/<Entity>Repository`: one method per query, `DSLContext` first, no transaction, no exception handling. For a query building a light object, project into a record of the feature package (`DeviceSummary`), *never* an `api` type. Give each list query an `order by` (a unique one: end with the ID), so that the order and the pages are defined.
 
 ### 4. Commands and service
 
-`<feature>/<Entity>Service`, constructed with `Transactions`, the repository and the ports it needs (see [Repositories and services](#repositories-and-services)). One public method per endpoint. Commands are records (`DeviceCreation`); the author of a change (user name) is a component of the command, since the service knows nothing of the security context. Copy the legacy logic *including its order*; replace `NetshotBadRequestException` by `NetshotException` with the same `ErrorCode` and message; replace each `Database.getSession()` block by one `Transactions` call; put the side effects after it. Move the validation helpers the use cases need to a `<Entity>Validation` class (static, throwing `NetshotException`); if other code still has its own copy of one, delete the copy and call the new one. A service method never receives `Session`, a DTO or a JAX-RS type.
+`<feature>/<Entity>Service`, constructed with `Transactions`, the repository and the ports it needs (see [Repositories and services](#repositories-and-services)). One public method per endpoint. Commands are records (`DeviceCreation`); the author of a change (user name) is a component of the command, since the service knows nothing of the security context. Copy the legacy logic *including its order*; replace `NetshotBadRequestException` by `NetshotException` with the same `ErrorCode` and message; make each unit of work one `Transactions` call; put the side effects after it. Move the validation helpers the use cases need to a `<Entity>Validation` class (static, throwing `NetshotException`); if other code still has its own copy of one, delete the copy and call the new one. A service method never receives a `DSLContext`, a DTO or a JAX-RS type.
 
 ### 5. Wiring
 
@@ -252,7 +253,7 @@ In `boot.Wiring.init()` build the repository and the service (a `new` chain, dep
 
 ### 6. Service tests
 
-Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own database, migrated and wired by the extension, the service built in `@BeforeAll` with `new Transactions()`, its repository and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, the side effects, and that what the service returns can be read without a session. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
+Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own database, migrated and wired by the extension, the service built in `@BeforeAll` with `new Transactions()`, its repository and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, and the side effects. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
 
 ### 7. DTOs and mapper
 
@@ -261,11 +262,11 @@ In `api.rest.v0.<feature>`, following the [DTO conventions](#dto-conventions):
 - one record per shape of the goldens, with the components named like the properties (the property names are the contract; the order does not matter, the goldens are normalized). A representation made of several nested types needs one record per nested type: let the golden of every case (and the entity annotations, for the cases the seed data doesn't hold) tell what is there;
 - the full device is `DeviceDto` with `@JacksonXmlRootElement(localName = "Device")` (the XML root element is the simple class name otherwise); a summary is a separate record, not a subclass;
 - the request records replace the request classes: same property names, same defaults (compact constructor or deserializer, see the conventions), without `@XmlRootElement` (see above);
-- the mapper: `toDto(...)` from the detached entity or the projection, `to<Command>(request, author)` for the requests. Compare against the entities, not only against the goldens: write the DTO test (`DeviceDtoTest`) building an in-memory entity with every variant, mapping it to its DTO, writing it with a plain `JsonMapper`/`XmlMapper` and comparing the canonical form (`ApiContractGolden`) with a stored file (`DtoContract`).
+- the mapper: `toDto(...)` from the domain record or the projection, `to<Command>(request, author)` for the requests. Compare against the domain records, not only against the goldens: write the DTO test (`DeviceDtoTest`) building an in-memory record with every variant, mapping it to its DTO, writing it with a plain `JsonMapper`/`XmlMapper` and comparing the canonical form (`ApiContractGolden`) with a stored file (`DtoContract`).
 
 ### 8. Resource
 
-A class in `api.rest.v0.<feature>` annotated `@Path("/")`, with the **full path on each method**, and the service injected by an `@Inject` constructor. Copy for every method: `@RolesAllowed`, `@Consumes`/`@Produces`, `@Operation`, `@Tag`, `@Parameter` (also on the parameters the method ignores, like `details` of `GET /devices`) and the method *name* (it is the OpenAPI `operationId`). Declare concrete generic return types (`List<DeviceSummaryDto>`). The resource only: reads the principal (`SecurityContext`) for the author, builds the command, calls the service, maps the result, and chooses a status code other than 200 with `ResponseCodeFilter.suggest(request, status)`. It has no `Session`, no repository, no `try`/`catch` of its own (a `NetshotException` is rendered by the exception mapper exactly like a `NetshotBadRequestException`). An endpoint which answers with an entity not migrated yet (here the `Task` of `POST /devices`) keeps returning the entity, with a comment: a later wave replaces it.
+A class in `api.rest.v0.<feature>` annotated `@Path("/")`, with the **full path on each method**, and the service injected by an `@Inject` constructor. Copy for every method: `@RolesAllowed`, `@Consumes`/`@Produces`, `@Operation`, `@Tag`, `@Parameter` (also on the parameters the method ignores, like `details` of `GET /devices`) and the method *name* (it is the OpenAPI `operationId`). Declare concrete generic return types (`List<DeviceSummaryDto>`). The resource only: reads the principal (`SecurityContext`) for the author, builds the command, calls the service, maps the result, and chooses a status code other than 200 with `ResponseCodeFilter.suggest(request, status)`. It has no `DSLContext`, no repository, no `try`/`catch` of its own (a `NetshotException` is rendered by the exception mapper exactly like a `NetshotBadRequestException`). It answers with DTOs only.
 
 !!! warning "Do not give the new resource a narrower @Path than the paths it takes over"
     JAX-RS selects the root resource class *before* looking at the methods, with no fallback. A new class annotated `@Path("/devices")` hides every method of the other resources under `/devices/...` (they answer 404 or 405). Use `@Path("/")` with the full path on each method like the existing resources do (several root resources with the same `@Path("/")` and different method paths work fine), or move a whole path prefix at once. Declaring the same method and path in both classes fails at startup.
@@ -274,13 +275,13 @@ A class in `api.rest.v0.<feature>` annotated `@Path("/")`, with the **full path 
 
 In the same change, delete the migrated methods from where they were, the request classes, and every helper nothing uses anymore (the compiler and `checkstyle:check` report the unused imports). Keep what other endpoints still use. Classes only the tests still need (a former response class, the former exception) move to the test tree, as the reference the new code is compared with.
 
-### 10. Entities
+### 10. Domain records
 
-Entities carry no `@JsonView`, JAXB or Jackson annotation: do not add any. If a new endpoint or payload needs a representation, write a DTO and a mapper.
+Domain records carry no `@JsonView`, JAXB or Jackson annotation: do not add any (`ArchitectureTest` refuses `@JsonView` and JAXB outside the API channels and the cluster wire format). If a new endpoint or payload needs a representation, write a DTO and a mapper.
 
 ### 11. Run the checks
 
-`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `API_DOES_NOT_USE_SESSION` entries of the old code disappear and the store only shrinks for this rule. The `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule, on the other hand, gets one entry per dependency of each new class of the feature on the other slices of the entity model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices form one big cycle through the entities, so any class of the entity model that uses another one is counted, until the entities are decoupled. Refreeze and check that the other rules neither grow nor get a new entry:
+`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule gets one entry per dependency of each new class of the feature on the other slices of the model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices still form one big cycle, so any class of the model that uses another one is counted, until the slices are decoupled. Refreeze and check that no new pair of slices appears:
 
 ```bash
 ./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
@@ -291,7 +292,7 @@ The refreeze rewrites the line numbers of the stored entries; compare the entrie
 
 ### 12. Document
 
-Update [REST API](../api/rest-api.md) if the behavior changed (it should not), this page if a convention changed or a pitfall was found, and report what remains: other places which serialize the entities, entities returned by the migrated endpoints (here `Task`), anything deliberately preserved (the XML request quirk).
+Update [REST API](../api/rest-api.md) if the behavior changed (it should not), this page if a convention changed or a pitfall was found, and report what remains: anything deliberately preserved (the XML request quirk).
 
 ### Pitfalls met on the device slice
 

@@ -70,7 +70,7 @@ class ScriptServiceTest {
 	}
 
 	private long count() {
-		return this.transactions.readDsl(dsl -> (long) dsl.fetchCount(net.netshot.netshot.platform.database.schema.Tables.DEVICE_JS_SCRIPT));
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(net.netshot.netshot.platform.database.schema.Tables.DEVICE_JS_SCRIPT));
 	}
 
 	@Test

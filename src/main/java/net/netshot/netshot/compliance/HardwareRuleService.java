@@ -73,7 +73,7 @@ public class HardwareRuleService {
 	 */
 	public List<HardwareRuleView> list() {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				List<HardwareRuleView> views = new ArrayList<>();
 				for (HardwareRule rule : this.repository.findAll(dsl)) {
 					views.add(new HardwareRuleView(rule, this.findGroup(dsl, rule.targetGroupId())));
@@ -107,7 +107,7 @@ public class HardwareRuleService {
 	public HardwareRuleView create(HardwareRuleDefinition definition) {
 		HardwareRuleView rule;
 		try {
-			rule = this.transactions.writeDsl(dsl -> {
+			rule = this.transactions.write(dsl -> {
 				DeviceGroup group = this.findGroup(dsl, definition.groupId());
 				HardwareRule newRule = this.fromDefinition(0, definition);
 				return new HardwareRuleView(newRule.withId(this.repository.add(dsl, newRule)), group);
@@ -132,7 +132,7 @@ public class HardwareRuleService {
 	public HardwareRuleView update(long id, HardwareRuleDefinition definition) {
 		HardwareRuleView rule;
 		try {
-			rule = this.transactions.writeDsl(dsl -> {
+			rule = this.transactions.write(dsl -> {
 				if (this.repository.find(dsl, id) == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
@@ -160,7 +160,7 @@ public class HardwareRuleService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.writeDsl(dsl -> {
+			boolean deleted = this.transactions.write(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such hardware rule of ID {}", id);
 					return false;

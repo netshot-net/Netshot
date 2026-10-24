@@ -78,7 +78,7 @@ public class VaultInstanceService {
 	 */
 	public List<VaultInstance> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the Vault instances.", e);
@@ -100,7 +100,7 @@ public class VaultInstanceService {
 		}
 		VaultInstance created;
 		try {
-			created = this.transactions.writeDsl(dsl -> this.repository.add(dsl, vaultInstance));
+			created = this.transactions.write(dsl -> this.repository.add(dsl, vaultInstance));
 		}
 		catch (DataAccessException e) {
 			log.error("Can't add the Vault instance.", e);
@@ -122,7 +122,7 @@ public class VaultInstanceService {
 	public VaultInstance update(long id, VaultInstance incoming) {
 		VaultInstance vaultInstance;
 		try {
-			vaultInstance = this.transactions.writeDsl(dsl -> {
+			vaultInstance = this.transactions.write(dsl -> {
 				VaultInstance existing = this.repository.find(dsl, id);
 				if (existing == null || !existing.getClass().equals(incoming.getClass())) {
 					// A Vault instance of another type is not found, as with the former query by type
@@ -189,7 +189,7 @@ public class VaultInstanceService {
 	public boolean delete(long id) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.writeDsl(dsl -> {
+			deleted = this.transactions.write(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such Vault instance of ID {}", id);
 					return false;
@@ -234,7 +234,7 @@ public class VaultInstanceService {
 		if (id != null) {
 			// Overlay onto the persisted secrets, so re-testing an already-saved
 			// instance without touching its masked secret field(s) still works.
-			hcInstance = this.transactions.readDsl(dsl -> {
+			hcInstance = this.transactions.read(dsl -> {
 				VaultInstance existing = this.repository.find(dsl, id);
 				if (!(existing instanceof HashicorpVaultKv2Instance existingHc)) {
 					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");

@@ -76,7 +76,7 @@ public class ScriptResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		new Transactions().runDsl(dsl -> dsl.deleteFrom(Tables.DEVICE_JS_SCRIPT).execute());
+		new Transactions().run(dsl -> dsl.deleteFrom(Tables.DEVICE_JS_SCRIPT).execute());
 	}
 
 	@Test
@@ -108,7 +108,7 @@ public class ScriptResourceTest {
 				"Not getting 201 response for created script");
 		}
 		{
-			DeviceJsScript newScript = new Transactions().readDsl(dsl -> new ScriptRepository().findAll(dsl, Page.ALL)).stream()
+			DeviceJsScript newScript = new Transactions().read(dsl -> new ScriptRepository().findAll(dsl, Page.ALL)).stream()
 				.filter(s -> "Test Script".equals(s.name())).findFirst().orElse(null);
 			Assertions.assertNotNull(newScript, "Script not created as expected");
 			Assertions.assertEquals(this.getTestDriver().getName(), newScript.deviceDriver(),
@@ -139,7 +139,7 @@ public class ScriptResourceTest {
 	void getScript() throws IOException, InterruptedException {
 		DeviceJsScript stored = DeviceJsScript.of(
 			"Test Script", this.getTestDriver().getName(), testScriptContent, "author1");
-		DeviceJsScript script = stored.withId(new Transactions().writeDsl(dsl -> new ScriptRepository().add(dsl, stored)));
+		DeviceJsScript script = stored.withId(new Transactions().write(dsl -> new ScriptRepository().add(dsl, stored)));
 		HttpResponse<JsonNode> response = apiClient.get("/scripts/%d".formatted(script.id()));
 		Assertions.assertEquals(
 			Response.Status.OK.getStatusCode(), response.statusCode(),
@@ -161,7 +161,7 @@ public class ScriptResourceTest {
 	void deleteScript() throws IOException, InterruptedException {
 		DeviceJsScript stored = DeviceJsScript.of(
 			"Test Script", this.getTestDriver().getName(), testScriptContent, "author1");
-		DeviceJsScript script = stored.withId(new Transactions().writeDsl(dsl -> new ScriptRepository().add(dsl, stored)));
+		DeviceJsScript script = stored.withId(new Transactions().write(dsl -> new ScriptRepository().add(dsl, stored)));
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
 				"/scripts/%d".formatted(TestServer.UNKNOWN_ID));
@@ -177,7 +177,7 @@ public class ScriptResourceTest {
 				"Not getting 204 response for script deletion");
 		}
 		{
-			DeviceJsScript deletedScript = new Transactions().readDsl(dsl -> new ScriptRepository().find(dsl, script.id()));
+			DeviceJsScript deletedScript = new Transactions().read(dsl -> new ScriptRepository().find(dsl, script.id()));
 			Assertions.assertNull(deletedScript, "Script not deleted as expected");
 		}
 	}

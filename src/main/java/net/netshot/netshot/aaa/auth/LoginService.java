@@ -101,7 +101,7 @@ public class LoginService {
 		if (username != null) {
 			String name = username;
 			try {
-				user = this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, name));
+				user = this.transactions.read(dsl -> this.repository.findByUsername(dsl, name));
 			}
 			catch (DataAccessException e) {
 				log.error("Unable to retrieve the user {}.", username, e);
@@ -188,7 +188,7 @@ public class LoginService {
 	 */
 	private void changePassword(long userId, String newPassword) {
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				UiUser user = this.repository.find(dsl, userId);
 				try {
 					this.repository.save(dsl, user.withPassword(newPassword, PasswordPolicy.getMainPolicy()));

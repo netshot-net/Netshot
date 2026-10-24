@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.platform.database;
 
-import org.hibernate.query.Query;
 import org.jooq.Record;
 import org.jooq.Select;
 import org.jooq.SelectLimitStep;
@@ -52,20 +51,6 @@ public record Page(Integer offset, Integer limit) {
 		}
 		if (limit != null && limit < 1) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, "Invalid limit parameter");
-		}
-	}
-
-	/**
-	 * Restricts a query to this window.
-	 *
-	 * @param query the query being prepared
-	 */
-	public void apply(Query<?> query) {
-		if (this.offset != null) {
-			query.setFirstResult(this.offset);
-		}
-		if (this.limit != null) {
-			query.setMaxResults(this.limit);
 		}
 	}
 

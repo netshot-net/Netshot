@@ -10,10 +10,6 @@
 	<!-- Keep Netshot's own logs visible while running tests. -->
 	<logger name="net.netshot" level="INFO" />
 
-	<!-- Hibernate bootstrap (SessionFactory build, dialect resolution, etc.)
-	     is extremely chatty at DEBUG; WARN keeps only real problems. -->
-	<logger name="org.hibernate" level="WARN" />
-
 	<!-- Connection pooling, schema migration and container startup are
 	     equally noisy at DEBUG and rarely useful in test output. -->
 	<logger name="com.mchange" level="WARN" />

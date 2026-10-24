@@ -24,8 +24,8 @@ import net.netshot.netshot.platform.crypto.Sha2AesPasswordBasedEncryptor;
 
 /**
  * jOOQ converter of the encrypted columns (secrets of the credential sets and Vault instances):
- * the database holds the value encrypted with the DB encryption password, as
- * {@link StringEncryptorConverter} does for Hibernate.
+ * the database holds the value encrypted with the DB encryption password (the format
+ * written by the former Hibernate converter, so the existing values are read).
  *
  * <p>The password is read on the first conversion, not when the generated table classes are
  * loaded (which may happen before the configuration is).</p>
