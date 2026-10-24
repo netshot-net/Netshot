@@ -1630,6 +1630,30 @@ public class RestServiceTest extends WithDatabaseTest {
 			}
 
 			@Test
+			@DisplayName("Update webhook with null triggers")
+			@ResourceLock("DB")
+			void updateWebhookNullTriggers() throws IOException, InterruptedException {
+				ObjectNode data = newWebhookData("Webhook with triggers", "https://example.net/callback");
+				data.putArray("triggers").addObject()
+					.put("type", "POST_TASK")
+					.put("item", "TakeSnapshotTask");
+				HttpResponse<JsonNode> createResponse = apiClient.post("/hooks", data);
+				Assertions.assertEquals(
+					Response.Status.CREATED.getStatusCode(), createResponse.statusCode(),
+					"Not getting 201 response for webhook creation");
+				long id = createResponse.body().get("id").asLong();
+				Assertions.assertEquals(1, this.getWebHookByName("Webhook with triggers").getTriggers().size());
+
+				data.putNull("triggers");
+				HttpResponse<JsonNode> response = apiClient.put("/hooks/%d".formatted(id), data);
+				Assertions.assertEquals(
+					Response.Status.OK.getStatusCode(), response.statusCode(),
+					"Not getting 200 response for webhook update with null triggers");
+				Assertions.assertTrue(this.getWebHookByName("Webhook with triggers").getTriggers().isEmpty(),
+					"The triggers are not removed");
+			}
+
+			@Test
 			@DisplayName("Delete webhook")
 			@ResourceLock("DB")
 			void deleteWebhook() throws IOException, InterruptedException {

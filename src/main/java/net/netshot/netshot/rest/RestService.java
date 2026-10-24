@@ -10987,6 +10987,10 @@ public class RestService extends Thread {
 	public Hook setHook(@PathParam("id") @Parameter(description = "Hook ID") Long id, Hook rsHook) throws WebApplicationException {
 		log.debug("REST request, edit hook {}", id);
 		rsHook.setId(id);
+		if (rsHook.getTriggers() == null) {
+			// No triggers (null) means none, as on creation
+			rsHook.setTriggers(new HashSet<>());
+		}
 		if (rsHook.getName() == null || "".equals(rsHook.getName().trim())) {
 			log.error("Invalid hook name.");
 			throw new NetshotBadRequestException("Invalid name for the hook",
