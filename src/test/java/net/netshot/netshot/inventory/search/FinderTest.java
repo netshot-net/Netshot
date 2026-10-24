@@ -502,6 +502,20 @@ public class FinderTest {
 	}
 
 	@Test
+	@DisplayName("Query device by name with LIKE wildcards, matched literally")
+	void queryByNameWithWildcards() throws Exception {
+		assertFinder("[Name] contains \"r_uter\"",
+			null,
+			List.of());
+		assertFinder("[Name] startswith \"router%5\"",
+			null,
+			List.of());
+		assertFinder("[Name] is \"router0001_\"",
+			null,
+			List.of());
+	}
+
+	@Test
 	@DisplayName("Query device by interface description")
 	void queryByInterfaceDescription() throws Exception {
 		assertFinder("[Interface] is \"Specific description\"",
