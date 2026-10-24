@@ -68,9 +68,7 @@ export function SigninForm() {
             {t("auth.signInWithUsername")}
           </Button>
         </form>
-        {signinWithOidcMutation.isError && (
-          <Text color="red.500">{t("SSO authentication error")}</Text>
-        )}
+        {signinWithOidcMutation.isError && <Text color="red.500">{t("auth.ssoError")}</Text>}
       </Stack>
     )
   }
@@ -82,7 +80,7 @@ export function SigninForm() {
           required
           control={form.control}
           name="username"
-          label="username"
+          label={t("user.username")}
           placeholder={t("auth.enterYourUsername")}
           rules={{
             required: true,
@@ -95,7 +93,7 @@ export function SigninForm() {
           type={FormControlType.Password}
           control={form.control}
           name="password"
-          label="password"
+          label={t("auth.password")}
           placeholder={t("auth.enterPassword")}
           rules={{
             required: true,
@@ -109,7 +107,7 @@ export function SigninForm() {
             type={FormControlType.Password}
             control={form.control}
             name="newPassword"
-            label="New password"
+            label={t("auth.newPassword")}
             placeholder={t("auth.enterNewPassword")}
             rules={{
               required: true,
