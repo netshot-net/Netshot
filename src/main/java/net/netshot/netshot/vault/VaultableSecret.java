@@ -18,82 +18,31 @@
  */
 package net.netshot.netshot.vault;
 
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * A field that can either hold a local (encrypted-at-rest) value, or a
  * reference to a secret stored in an external Vault instance (identified by
- * {@link #vaultInstance} and {@link #vaultPath}, the latter combining the
+ * {@link #vaultInstanceId} and {@link #vaultPath}, the latter combining the
  * KV v2 secret path and the key within it, e.g. {@code "app/creds/username"}
  * - see {@link VaultKeyPath}).
  * <p>
- * This is a plain, non-persisted value object - a convenience view/bundle of
- * 4 values, NOT a JPA {@code @Embeddable}. Each owning credential entity maps
- * its own 4 real columns/association directly (same pattern as any other
- * plain field, e.g. {@code DeviceCredentialSet.mgmtDomain}) and exposes them
- * bundled through {@code getXxxSecret()}/{@code setXxxSecret(VaultableSecret)}
- * for {@link VaultManager} and the REST layer to work with uniformly, without
- * repeating the local/Vault resolution logic per field. (An actual
- * {@code @Embeddable} was tried first but triggered undocumented Hibernate
- * column-binding conflicts when combined with per-field {@code @AttributeOverride}
- * across a {@code SINGLE_TABLE} hierarchy - flattening avoids that risk
- * entirely by only using mapping patterns already proven elsewhere in this
- * codebase.)
+ * This is a value object, not stored as such: each credential set holds the 3 values of
+ * each of its vaultable fields as its own components (as they are stored, in columns of
+ * their own), and gives them bundled through {@code xxxSecret()}, for {@link VaultManager}
+ * to resolve them uniformly.
+ *
+ * @param localValue the local (encrypted-at-rest) value, used when not Vault-backed
+ * @param vaultInstanceId the ID of the Vault instance to read the secret from, or null if not Vault-backed
+ * @param vaultPath the KV v2 secret path and key holding the value, combined as {@code <path>/<key>}
+ *        (the part after the last {@code /} is the key - see {@link VaultKeyPath})
  */
-public class VaultableSecret {
-
-	/** The local (encrypted-at-rest) value, used when not Vault-backed. */
-	@Getter
-	@Setter
-	private String localValue;
-
-	/** The Vault instance to read the secret from, or null if not Vault-backed. */
-	@Getter
-	@Setter
-	private VaultInstance vaultInstance;
+public record VaultableSecret(String localValue, Long vaultInstanceId, String vaultPath) {
 
 	/**
-	 * The KVv2 secret path and key holding the value, combined as
-	 * {@code <path>/<key>} (the part after the last {@code /} is the key -
-	 * see {@link VaultKeyPath}).
+	 * Tells whether the value is read from a Vault instance.
+	 *
+	 * @return true if the value is Vault-backed
 	 */
-	@Getter
-	@Setter
-	private String vaultPath;
-
-	/**
-	 * Staging area for the Vault instance ID, used only while handling a REST
-	 * request: incoming JSON is deserialized with a raw ID before the REST
-	 * layer has a Hibernate {@code Session} to resolve it into an actual
-	 * {@link VaultInstance} reference. Not used once {@link #vaultInstance}
-	 * itself is set (e.g. on a value bundled from a persisted entity).
-	 */
-	private Long pendingVaultInstanceId;
-
 	public boolean isVaultBacked() {
-		return this.vaultInstance != null || this.pendingVaultInstanceId != null;
-	}
-
-	/**
-	 * The Vault instance ID, whether or not the {@link #vaultInstance}
-	 * association has actually been resolved yet (see {@link #pendingVaultInstanceId}).
-	 * @return the Vault instance ID, or null if this field is local (not Vault-backed)
-	 */
-	public Long getVaultInstanceId() {
-		if (this.pendingVaultInstanceId != null) {
-			return this.pendingVaultInstanceId;
-		}
-		return this.vaultInstance == null ? null : this.vaultInstance.getId();
-	}
-
-	/**
-	 * Sets the Vault instance ID as staged from an incoming REST request.
-	 * The REST layer must resolve this into an actual {@link VaultInstance}
-	 * (via {@link #setVaultInstance}) before this change is persisted.
-	 * @param vaultInstanceId the Vault instance ID
-	 */
-	public void setVaultInstanceId(Long vaultInstanceId) {
-		this.pendingVaultInstanceId = vaultInstanceId;
+		return this.vaultInstanceId != null;
 	}
 }

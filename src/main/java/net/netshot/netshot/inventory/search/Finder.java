@@ -18,6 +18,21 @@
  */
 package net.netshot.netshot.inventory.search;
 
+import static net.netshot.netshot.platform.database.schema.Tables.CHECK_RESULT;
+import static net.netshot.netshot.platform.database.schema.Tables.CONFIG;
+import static net.netshot.netshot.platform.database.schema.Tables.CONFIG_ATTRIBUTE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_ATTRIBUTE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_TAGS;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_VIRTUAL_DEVICES;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_VRF_INSTANCES;
+import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;
+import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
+import static net.netshot.netshot.platform.database.schema.Tables.MODULE;
+import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE;
+import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP4ADDRESSES;
+import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP6ADDRESSES;
+
 import java.net.UnknownHostException;
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -28,7 +43,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
@@ -36,16 +50,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.query.MutationQuery;
+import org.jooq.CaseValueStep;
+import org.jooq.CaseWhenStep;
+import org.jooq.Condition;
+import org.jooq.Field;
+import org.jooq.Table;
+import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
@@ -57,8 +78,7 @@ import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.device.PhysicalAddress;
-import net.netshot.netshot.platform.database.Database;
-
+import net.netshot.netshot.platform.database.Transactions;
 
 /**
  * A Finder finds devices based on a text expression.
@@ -582,22 +602,58 @@ public class Finder {
 			}
 		}
 
-		/**
-		 * Builds the hql string.
-		 *
-		 * @param itemPrefix the item prefix
-		 * @return the HQL string
-		 */
-		public abstract String buildHqlString(String itemPrefix);
 
 		/**
-		 * Sets the variables.
+		 * Builds the jOOQ condition on the devices ({@code DEVICE}) matching the expression.
 		 *
-		 * @param query the query
-		 * @param itemPrefix the item prefix
+		 * @param itemPrefix the prefix of the aliases of the subqueries, unique for each expression
+		 * @return the condition
 		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			// Nothing
+		public abstract Condition toCondition(String itemPrefix);
+
+		/**
+		 * Gets the device table of a subquery (with its own alias, as the {@code d} of the HQL subqueries).
+		 *
+		 * @param itemPrefix the prefix of the expression
+		 * @return the aliased device table
+		 */
+		protected static net.netshot.netshot.platform.database.schema.tables.Device subDevice(String itemPrefix) {
+			return DEVICE.as(itemPrefix + "_d");
+		}
+
+		/**
+		 * Gets the LIKE pattern for a text comparison.
+		 *
+		 * @param sign the comparison
+		 * @param value the value to compare with
+		 * @return the pattern (the value itself for an exact or regular expression match)
+		 */
+		protected static String likeTarget(TokenType sign, String value) {
+			return switch (sign) {
+				case CONTAINS -> "%" + value + "%";
+				case CONTAINSNOCASE -> "%" + value.toLowerCase() + "%";
+				case STARTSWITH -> value + "%";
+				case ENDSWITH -> "%" + value;
+				default -> value;
+			};
+		}
+
+		/**
+		 * Compares a text column with a value.
+		 *
+		 * @param sign the comparison (regular expression, case insensitive or plain LIKE)
+		 * @param field the column
+		 * @param value the value to compare with
+		 * @return the condition
+		 */
+		protected static Condition textCondition(TokenType sign, Field<String> field, String value) {
+			if (TokenType.MATCHES.equals(sign)) {
+				return DSL.condition("{0} ~ {1}", field, DSL.val(value));
+			}
+			if (TokenType.CONTAINSNOCASE.equals(sign)) {
+				return DSL.lower(field).like(likeTarget(sign, value));
+			}
+			return field.like(likeTarget(sign, value));
 		}
 	}
 
@@ -624,22 +680,6 @@ public class Finder {
 			StringBuffer buffer = new StringBuffer();
 			buffer.append(TokenType.NOT).append(" (").append(child.toString()).append(")");
 			return buffer.toString();
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			String childHql = this.child.buildHqlString(itemPrefix + "_0");
-			return "not (" + childHql + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			child.setVariables(query, itemPrefix + "_0");
 		}
 
 		/**
@@ -671,6 +711,11 @@ public class Finder {
 			return null;
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			return DSL.not(this.child.toCondition(itemPrefix + "_0"));
+		}
 	}
 
 	/**
@@ -703,30 +748,6 @@ public class Finder {
 			}
 			buffer.append(")");
 			return buffer.toString();
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			List<String> parts = new ArrayList<>();
-			for (Expression child : children) {
-				String childHql = child.buildHqlString(itemPrefix + "_" + parts.size());
-				parts.add("(" + childHql + ")");
-			}
-			return String.join(" and ", parts);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			int i = 0;
-			for (Expression child : children) {
-				child.setVariables(query, itemPrefix + "_" + i);
-				i++;
-			}
 		}
 
 		/**
@@ -764,6 +785,15 @@ public class Finder {
 			return null;
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			List<Condition> parts = new ArrayList<>();
+			for (Expression child : children) {
+				parts.add(child.toCondition(itemPrefix + "_" + parts.size()));
+			}
+			return DSL.and(parts);
+		}
 	}
 
 	/**
@@ -799,30 +829,6 @@ public class Finder {
 			return buffer.toString();
 		}
 
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			List<String> parts = new ArrayList<>();
-			for (Expression child : children) {
-				String childHql = child.buildHqlString(itemPrefix + "_" + parts.size());
-				parts.add("(" + childHql + ")");
-			}
-			return String.join(" or ", parts);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			int i = 0;
-			for (Expression child : children) {
-				child.setVariables(query, itemPrefix + "_" + i);
-				i++;
-			}
-		}
-
 		/**
 		 * Parses the tokens to create an expression.
 		 *
@@ -856,6 +862,15 @@ public class Finder {
 				return orExpr;
 			}
 			return null;
+		}
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			List<Condition> parts = new ArrayList<>();
+			for (Expression child : children) {
+				parts.add(child.toCondition(itemPrefix + "_" + parts.size()));
+			}
+			return DSL.or(parts);
 		}
 	}
 
@@ -914,52 +929,6 @@ public class Finder {
 			return null;
 		}
 
-		private String buildWhere(String itemPrefix) {
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(m.serialNumber, :%s) or regexp_like(m.partNumber, :%s)"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(m.serialNumber) like :%s or lower(m.partNumber) like :%s"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			return "m.serialNumber like :%s or m.partNumber like :%s"
-				.formatted(itemPrefix, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.modules m where m.removed is not true and ("
-				+ this.buildWhere(itemPrefix) + "))";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
-		}
-
 		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
@@ -969,6 +938,15 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var m = MODULE.as(itemPrefix + "_m");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(m).on(m.DEVICE.eq(d.ID))
+				.where(DSL.condition("{0} is not true", m.REMOVED)
+					.and(textCondition(sign, m.SERIAL_NUMBER, value).or(textCondition(sign, m.PART_NUMBER, value)))));
+		}
 	}
 
 	/**
@@ -1026,52 +1004,6 @@ public class Finder {
 			return null;
 		}
 
-		private String buildWhere(String itemPrefix) {
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(ni.interfaceName, :%s) or regexp_like(ni.description, :%s)"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(ni.interfaceName) like :%s or lower(ni.description) like :%s"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			return "ni.interfaceName like :%s or ni.description like :%s"
-				.formatted(itemPrefix, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.networkInterfaces ni where "
-				+ this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
-		}
-
 		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
@@ -1081,6 +1013,14 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var ni = NETWORK_INTERFACE.as(itemPrefix + "_ni");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
+				.where(textCondition(sign, ni.INTERFACE_NAME, value).or(textCondition(sign, ni.DESCRIPTION, value))));
+		}
 	}
 
 	/**
@@ -1124,21 +1064,6 @@ public class Finder {
 		}
 
 		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.id = :%s".formatted(itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			query.setParameter(itemPrefix, value);
-		}
-
-		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
 		@Override
@@ -1146,6 +1071,11 @@ public class Finder {
 			return "[%s] %s %d".formatted(TokenType.ID, TokenType.IS, this.value);
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			return DEVICE.ID.eq(value);
+		}
 	}
 
 	/**
@@ -1181,29 +1111,18 @@ public class Finder {
 		}
 
 		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.mgmtDomain.id = :%s".formatted(itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			query.setParameter(itemPrefix, value);
-		}
-
-		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
 		@Override
 		public String toString() {
 			return "[%s] %s %d".formatted(TokenType.DOMAIN, TokenType.IS, this.value);
 		}
-	}
 
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			return DEVICE.MGMT_DOMAIN.eq(value);
+		}
+	}
 
 	/**
 	 * The Class DriverExpression. Matches a device driver.
@@ -1254,55 +1173,6 @@ public class Finder {
 			return null;
 		}
 
-		public String buildDriverCases() {
-			StringBuilder sb = new StringBuilder();
-			sb.append("case d.driver ");
-			for (DeviceDriver driver : Finder.driverRegistry.getAllDrivers()) {
-				sb.append("when '").append(driver.getName()).append("' then '")
-					.append(driver.getDescription()).append("' ");
-			}
-			sb.append(" end");
-			return sb.toString();
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(%s, :%s)".formatted(this.buildDriverCases(), itemPrefix);
-			}
-			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(%s) like :%s".formatted(this.buildDriverCases(), itemPrefix);
-			}
-			return "%s like :%s".formatted(this.buildDriverCases(), itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
-		}
-
 		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
@@ -1310,6 +1180,19 @@ public class Finder {
 		public String toString() {
 			return "[%s] %s \"%s\"".formatted(TokenType.TYPE, sign,
 				TokenType.escapeValue(value));
+		}
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			CaseValueStep<String> choose = DSL.choose(DEVICE.DRIVER);
+			CaseWhenStep<String, String> cases = null;
+			for (DeviceDriver driver : Finder.driverRegistry.getAllDrivers()) {
+				cases = cases == null
+					? choose.when(DSL.inline(driver.getName()), DSL.inline(driver.getDescription()))
+					: cases.when(DSL.inline(driver.getName()), DSL.inline(driver.getDescription()));
+			}
+			Field<String> description = cases == null ? DSL.inline((String) null, String.class) : cases;
+			return textCondition(sign, description, value);
 		}
 	}
 
@@ -1326,22 +1209,11 @@ public class Finder {
 			return "";
 		}
 
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		@Override
-		public String buildHqlString(String itemPrefix) {
-			return "1 = 1";
-		}
 
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
 		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
+		public Condition toCondition(String itemPrefix) {
+			return DSL.trueCondition();
 		}
-
 	}
 
 	/**
@@ -1418,42 +1290,23 @@ public class Finder {
 			return "[MAC] %s %s".formatted(this.sign, mac);
 		}
 
-		private String buildWhere(String itemPrefix) {
-			if (this.sign == TokenType.IN) {
-				return "mac.address >= :%s_0 and mac.address <= :%s_1"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			return "mac.address = :%s_0"
-				.formatted(itemPrefix);
-		}
 
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
 		@Override
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.networkInterfaces ni "
-				+ "left join ni.physicalAddress mac where " + this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var ni = NETWORK_INTERFACE.as(itemPrefix + "_ni");
+			Condition where;
 			if (this.sign == TokenType.IN) {
 				long mask = 0xFFFFFFFFFFFFFFFFL << (48 - this.prefixLength);
 				long min = this.target.getLongAddress() & mask;
 				long max = this.target.getLongAddress() | ~mask;
-				query.setParameter(itemPrefix + "_0", min);
-				query.setParameter(itemPrefix + "_1", max);
+				where = ni.PHYSICAL_ADDRESS.ge(min).and(ni.PHYSICAL_ADDRESS.le(max));
 			}
 			else {
-				query.setParameter(itemPrefix + "_0", this.target.getLongAddress());
+				where = ni.PHYSICAL_ADDRESS.eq(this.target.getLongAddress());
 			}
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID)).where(where));
 		}
-
 	}
 
 	/**
@@ -1537,55 +1390,33 @@ public class Finder {
 				this.withMask ? this.target.getPrefix() : this.target.getIp());
 		}
 
-		private String buildWhere(String itemPrefix) {
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var ni = NETWORK_INTERFACE.as(itemPrefix + "_ni");
+			var ip4 = NETWORK_INTERFACE_IP4ADDRESSES.as(itemPrefix + "_ip4");
+			Condition where;
 			if (this.sign == TokenType.IN) {
-				return
-					("net_contains(d.cachedIpAddress, :%s_cidr) or "
-						+ "net_contains(ip4.address, :%s_cidr)")
-					.formatted(itemPrefix, itemPrefix);
+				String cidr = this.target.getPrefix();
+				where = DSL.condition("{0} <<= cast({1} as inet)", d.CACHED_IP_ADDRESS, DSL.val(cidr))
+					.or(DSL.condition("{0} <<= cast({1} as inet)", ip4.ADDRESS, DSL.val(cidr)));
 			}
 			else if (this.withMask) {
-				// A mgmt/cached address is a single host, never a subnet with a mask,
-				// so this only makes sense against configured interface addresses.
-				return
-					("ip4.address = :%s_ip and ip4.prefixLength = :%s_1")
-					.formatted(itemPrefix, itemPrefix);
+				where = ip4.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType()))
+					.and(ip4.PREFIX_LENGTH.eq(this.target.getPrefixLength()));
 			}
 			else if (this.sign == TokenType.CONTAINS) {
-				return "net_in_subnet(:%s_ip, ip4.address, ip4.prefixLength)"
-					.formatted(itemPrefix);
-			}
-			return "d.cachedIpAddress = :%s_ip or ip4.address = :%s_ip"
-				.formatted(itemPrefix, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		@Override
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.networkInterfaces ni "
-				+ "left join ni.ip4Addresses ip4 where " + this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			if (this.sign == TokenType.IN) {
-				query.setParameter(itemPrefix + "_cidr", this.target.getPrefix());
-			}
-			else if (this.withMask) {
-				query.setParameter(itemPrefix + "_ip", this.target.getInetAddress());
-				query.setParameter(itemPrefix + "_1", this.target.getPrefixLength());
+				where = DSL.condition("{0} <<= cast((host({1}) || '/' || {2}) as inet)",
+					DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType()), ip4.ADDRESS, ip4.PREFIX_LENGTH);
 			}
 			else {
-				query.setParameter(itemPrefix + "_ip", this.target.getInetAddress());
+				where = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()))
+					.or(ip4.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType())));
 			}
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
+				.leftJoin(ip4).on(ip4.NETWORK_INTERFACE.eq(ni.ID)).where(where));
 		}
-
 	}
 
 	/**
@@ -1661,48 +1492,28 @@ public class Finder {
 				this.withMask ? this.target.getPrefix() : this.target.getIp());
 		}
 
-		private String buildWhere(String itemPrefix) {
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var ni = NETWORK_INTERFACE.as(itemPrefix + "_ni");
+			var ip6 = NETWORK_INTERFACE_IP6ADDRESSES.as(itemPrefix + "_ip6");
+			Condition where;
 			if (this.sign == TokenType.IN) {
-				return
-					("net_contains(d.cachedIpAddress, :%s_cidr) or "
-						+ "net_contains(ip6.address, :%s_cidr)")
-					.formatted(itemPrefix, itemPrefix);
+				String cidr = this.target.getPrefix();
+				where = DSL.condition("{0} <<= cast({1} as inet)", d.CACHED_IP_ADDRESS, DSL.val(cidr))
+					.or(DSL.condition("{0} <<= cast({1} as inet)", ip6.ADDRESS, DSL.val(cidr)));
 			}
 			else if (this.withMask) {
-				// A mgmt/cached address is a single host, never a subnet with a mask,
-				// so this only makes sense against configured interface addresses.
-				return "ip6.address = :%s_ip and ip6.prefixLength = :%s_1"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			return "d.cachedIpAddress = :%s_ip or ip6.address = :%s_ip"
-				.formatted(itemPrefix, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		@Override
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.networkInterfaces ni "
-				+ "left join ni.ip6Addresses ip6 where " + this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			if (this.sign == TokenType.IN) {
-				query.setParameter(itemPrefix + "_cidr", this.target.getPrefix());
-			}
-			else if (this.withMask) {
-				query.setParameter(itemPrefix + "_ip", this.target.getInetAddress());
-				query.setParameter(itemPrefix + "_1", this.target.getPrefixLength());
+				where = ip6.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType()))
+					.and(ip6.PREFIX_LENGTH.eq(this.target.getPrefixLength()));
 			}
 			else {
-				query.setParameter(itemPrefix + "_ip", this.target.getInetAddress());
+				where = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()))
+					.or(ip6.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType())));
 			}
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
+				.leftJoin(ip6).on(ip6.NETWORK_INTERFACE.eq(ni.ID)).where(where));
 		}
 	}
 
@@ -1738,27 +1549,9 @@ public class Finder {
 		public String toString() {
 			return "[%s > %s] %s %s".formatted(
 				TokenType.DIAGNOSTIC,
-				TokenType.escapeKey(this.diagnostic.getName()),
+				TokenType.escapeKey(this.diagnostic.name()),
 				sign,
 				this.getTextValue());
-		}
-
-		/**
-		 * Builds the where clause for this diagnostic expression.
-		 *
-		 * @param itemPrefix the variable prefix
-		 * @param accessor the accessor (e.g., "var_dr")
-		 * @return the where clause string
-		 */
-		protected abstract String buildWhere(String itemPrefix, String accessor);
-
-		@Override
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d "
-				+ "join d.diagnosticResults %s_dr ".formatted(itemPrefix)
-					+ "where %s_dr.diagnostic = :%s_diagnostic and (".formatted(itemPrefix, itemPrefix)
-					+ this.buildWhere(itemPrefix, "%s_dr".formatted(itemPrefix))
-					+ "))";
 		}
 
 		/**
@@ -1784,7 +1577,7 @@ public class Finder {
 					.formatted(token.key2, token.position));
 			}
 
-			switch (diagnostic.getResultType()) {
+			switch (diagnostic.resultType()) {
 			case BINARY:
 				Expression binaryExpression = BinaryDiagnosticExpression.parse(tokens, diagnostic);
 				if (binaryExpression != null) {
@@ -1806,12 +1599,12 @@ public class Finder {
 			default:
 				throw new FinderParseException(
 					"Unsupported diagnostic result type %s (%s).".formatted(
-						diagnostic.getResultType(), diagnostic.getName()));
+						diagnostic.resultType(), diagnostic.name()));
 			}
 
 			// Diagnostic found but syntax doesn't match any type
 			throw new FinderParseException("Invalid expression for diagnostic '%s' at character %d.".formatted(
-				diagnostic.getName(), token.position));
+				diagnostic.name(), token.position));
 		}
 
 		/**
@@ -1823,21 +1616,29 @@ public class Finder {
 		 */
 		private static Diagnostic getDiagnosticByName(Token token) throws FinderParseException {
 			String diagnosticName = token.key2;
-			Session session = Database.getSession();
 			try {
-				Diagnostic diagnostic = session
-					.createQuery("select d from Diagnostic d where d.name = :name", Diagnostic.class)
-					.setParameter("name", diagnosticName)
-					.uniqueResult();
-				return diagnostic;
+				return new Transactions().read(dsl -> new DiagnosticRepository().findByName(dsl, diagnosticName));
 			}
-			catch (HibernateException e) {
+			catch (DataAccessException e) {
 				log.error("Error while retrieving diagnostic '{}'.", diagnosticName, e);
 				throw new FinderParseException("Database error while retrieving diagnostic '%s'.".formatted(diagnosticName));
 			}
-			finally {
-				session.close();
-			}
+		}
+
+		/**
+		 * Builds the condition on the diagnostic result.
+		 *
+		 * @param result the diagnostic result table (aliased)
+		 * @return the condition
+		 */
+		protected abstract Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result);
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var dr = DIAGNOSTIC_RESULT.as(itemPrefix + "_dr");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).join(dr).on(dr.DEVICE.eq(d.ID))
+				.where(dr.DIAGNOSTIC.eq(this.diagnostic.id()).and(this.buildCondition(dr))));
 		}
 	}
 
@@ -1861,39 +1662,6 @@ public class Finder {
 		@Override
 		protected String getTextValue() {
 			return "\"%s\"".formatted(TokenType.escapeValue(value));
-		}
-
-		@Override
-		protected String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.text".formatted(accessor);
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(%s, :%s)".formatted(property, itemPrefix);
-			}
-			if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(%s) like :%s".formatted(property, itemPrefix);
-			}
-			return "%s like :%s".formatted(property, itemPrefix);
-		}
-
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			query.setParameter("%s_diagnostic".formatted(itemPrefix), this.diagnostic);
-			if (TokenType.STARTSWITH.equals(sign)) {
-				query.setParameter(itemPrefix, value + "%");
-			}
-			else if (TokenType.ENDSWITH.equals(sign)) {
-				query.setParameter(itemPrefix, "%" + value);
-			}
-			else if (TokenType.CONTAINS.equals(sign) || TokenType.CONTAINSNOCASE.equals(sign)) {
-				String queryValue = "%" + value + "%";
-				if (TokenType.CONTAINSNOCASE.equals(sign)) {
-					queryValue = queryValue.toLowerCase();
-				}
-				query.setParameter(itemPrefix, queryValue);
-			}
-			else {
-				query.setParameter(itemPrefix, value);
-			}
 		}
 
 		/**
@@ -1920,12 +1688,12 @@ public class Finder {
 				&& sign.type != TokenType.ENDSWITH) {
 				throw new FinderParseException(
 					"Invalid operator for a text diagnostic '%s' at character %d."
-					.formatted(diagnostic.getName(), sign.position));
+					.formatted(diagnostic.name(), sign.position));
 			}
 			if (value.type != TokenType.QUOTEDTEXT) {
 				throw new FinderParseException(
 					"Parsing error, invalid value for text diagnostic '%s' at position %d, should be a quoted text."
-					.formatted(diagnostic.getName(), value.position, TokenType.TRUE, TokenType.FALSE));
+					.formatted(diagnostic.name(), value.position, TokenType.TRUE, TokenType.FALSE));
 			}
 
 			// Build expression
@@ -1936,6 +1704,11 @@ public class Finder {
 			textExpr.value = value.value;
 			textExpr.sign = sign.type;
 			return textExpr;
+		}
+
+		@Override
+		protected Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result) {
+			return textCondition(sign, result.TEXT, value);
 		}
 	}
 
@@ -1964,24 +1737,6 @@ public class Finder {
 		return Double.toString(value);
 		}
 
-		@Override
-		protected String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.number".formatted(accessor);
-			if (TokenType.GREATERTHAN.equals(sign)) {
-				return "%s > :%s".formatted(property, itemPrefix);
-			}
-			else if (TokenType.LESSTHAN.equals(sign)) {
-				return "%s < :%s".formatted(property, itemPrefix);
-			}
-			return "%s = :%s".formatted(property, itemPrefix);
-		}
-
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			query.setParameter("%s_diagnostic".formatted(itemPrefix), this.diagnostic);
-			query.setParameter(itemPrefix, value);
-		}
-
 		/**
 		 * Parses the tokens to create a numeric diagnostic expression.
 		 *
@@ -2002,12 +1757,12 @@ public class Finder {
 						&& sign.type != TokenType.GREATERTHAN) {
 				throw new FinderParseException(
 					"Invalid operator for a numeric diagnostic '%s' at character %d."
-					.formatted(diagnostic.getName(), sign.position));
+					.formatted(diagnostic.name(), sign.position));
 			}
 			if (value.type != TokenType.NUMERICVALUE) {
 				throw new FinderParseException(
 					"Parsing error, invalid value for numeric diagnostic '%s' at position %d."
-					.formatted(diagnostic.getName(), value.position));
+					.formatted(diagnostic.name(), value.position));
 			}
 
 			NumericDiagnosticExpression numExpr = new NumericDiagnosticExpression(diagnostic);
@@ -2020,6 +1775,17 @@ public class Finder {
 			}
 			numExpr.sign = sign.type;
 			return numExpr;
+		}
+
+		@Override
+		protected Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result) {
+			if (TokenType.GREATERTHAN.equals(sign)) {
+				return result.NUMBER.gt(value);
+			}
+			else if (TokenType.LESSTHAN.equals(sign)) {
+				return result.NUMBER.lt(value);
+			}
+			return result.NUMBER.eq(value);
 		}
 	}
 
@@ -2045,17 +1811,6 @@ public class Finder {
 			return value ? "true" : "false";
 		}
 
-		@Override
-		protected String buildWhere(String itemPrefix, String accessor) {
-			return "%s.assumption = :%s".formatted(accessor, itemPrefix);
-		}
-
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			query.setParameter("%s_diagnostic".formatted(itemPrefix), this.diagnostic);
-			query.setParameter(itemPrefix, value);
-		}
-
 		/**
 		 * Parses the tokens to create a binary diagnostic expression.
 		 *
@@ -2075,7 +1830,7 @@ public class Finder {
 			if (sign.type != TokenType.IS) {
 				throw new FinderParseException(
 					"Invalid operator for a binary diagnostic '%s' at character %d."
-					.formatted(diagnostic.getName(), sign.position));
+					.formatted(diagnostic.name(), sign.position));
 			}
 
 			BinaryDiagnosticExpression binExpr = new BinaryDiagnosticExpression(diagnostic);
@@ -2089,9 +1844,14 @@ public class Finder {
 			else {
 				throw new FinderParseException(
 					"Parsing error, invalid value for binary diagnostic '%s' at position %d, should be '%s' or '%s'."
-					.formatted(diagnostic.getName(), value.position, TokenType.TRUE, TokenType.FALSE));
+					.formatted(diagnostic.name(), value.position, TokenType.TRUE, TokenType.FALSE));
 			}
 			return binExpr;
+		}
+
+		@Override
+		protected Condition buildCondition(net.netshot.netshot.platform.database.schema.tables.DiagnosticResult result) {
+			return result.ASSUMPTION.eq(value);
 		}
 	}
 
@@ -2125,24 +1885,10 @@ public class Finder {
 		public String toString() {
 			return "[%s > %s > %s] %s %s".formatted(
 				TokenType.RULE,
-				TokenType.escapeKey(this.policy.getName()),
-				TokenType.escapeKey(this.rule.getName()),
+				TokenType.escapeKey(this.policy.name()),
+				TokenType.escapeKey(this.rule.name()),
 				TokenType.IS,
 				this.value);
-		}
-
-		@Override
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d "
-				+ "join d.complianceCheckResults %s_cr ".formatted(itemPrefix)
-					+ "where %s_cr.key.rule = :%s_rule and %s_cr.result = :%s)".formatted(
-					itemPrefix, itemPrefix, itemPrefix, itemPrefix);
-		}
-
-		@Override
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			query.setParameter("%s_rule".formatted(itemPrefix), this.rule);
-			query.setParameter(itemPrefix, this.value);
 		}
 
 		/**
@@ -2171,7 +1917,7 @@ public class Finder {
 			Rule rule = getRuleByPolicyAndName(policy, token.key2);
 			if (rule == null) {
 				throw new FinderParseException("Unknown rule '%s' for policy '%s' at character %d.".formatted(
-					token.key2, policy.getName(), token.position));
+					token.key2, policy.name(), token.position));
 			}
 
 			// Validate syntax
@@ -2207,20 +1953,12 @@ public class Finder {
 		 * @throws FinderParseException the finder parse exception
 		 */
 		private static Policy getPolicyByName(String policyName) throws FinderParseException {
-			Session session = Database.getSession();
 			try {
-				Policy policy = session
-					.createQuery("select p from Policy p where p.name = :name", Policy.class)
-					.setParameter("name", policyName)
-					.uniqueResult();
-				return policy;
+				return new Transactions().read(dsl -> new PolicyRepository().findByName(dsl, policyName));
 			}
-			catch (HibernateException e) {
+			catch (DataAccessException e) {
 				log.error("Error while retrieving policy '{}'.", policyName, e);
 				throw new FinderParseException("Database error while retrieving policy '%s'.".formatted(policyName));
-			}
-			finally {
-				session.close();
 			}
 		}
 
@@ -2233,22 +1971,21 @@ public class Finder {
 		 * @throws FinderParseException the finder parse exception
 		 */
 		private static Rule getRuleByPolicyAndName(Policy policy, String ruleName) throws FinderParseException {
-			Session session = Database.getSession();
 			try {
-				Rule rule = session
-					.createQuery("select r from Rule r where r.policy = :policy and r.name = :name", Rule.class)
-					.setParameter("policy", policy)
-					.setParameter("name", ruleName)
-					.uniqueResult();
-				return rule;
+				return new Transactions().read(dsl -> new RuleRepository().findOfPolicyByName(dsl, policy.id(), ruleName));
 			}
-			catch (HibernateException e) {
-				log.error("Error while retrieving rule '{}' for policy '{}'.", ruleName, policy.getName(), e);
-				throw new FinderParseException("Database error while retrieving rule '%s' for policy '%s'.".formatted(ruleName, policy.getName()));
+			catch (DataAccessException e) {
+				log.error("Error while retrieving rule '{}' for policy '{}'.", ruleName, policy.name(), e);
+				throw new FinderParseException("Database error while retrieving rule '%s' for policy '%s'.".formatted(ruleName, policy.name()));
 			}
-			finally {
-				session.close();
-			}
+		}
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var cr = CHECK_RESULT.as(itemPrefix + "_cr");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).join(cr).on(cr.DEVICE.eq(d.ID))
+				.where(cr.RULE.eq(this.rule.id()).and(cr.RESULT.eq(this.value.name()))));
 		}
 	}
 
@@ -2311,7 +2048,6 @@ public class Finder {
 			throw new FinderParseException("Unknown configuration field [%s] at character %d.".formatted(tokens.get(0).value, tokens.get(0).position));
 		}
 
-
 		protected static AttributeDefinition getDriverAttributeDefinition(
 				Token itemToken, AttributeType type) throws FinderParseException {
 			return getDriverAttributeDefinition(itemToken, List.of(type));
@@ -2369,49 +2105,71 @@ public class Finder {
 			return "[%s] %s %s".formatted(this.getItemLabel(), sign, this.getTextValue());
 		}
 
-		protected abstract String buildWhere(String itemPrefix, String accessor);
 
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
+		/**
+		 * Gets a column of the table holding the attribute value: the native column (named after the
+		 * attribute) of the device or config, or the given column of the driver attribute table.
+		 *
+		 * @param <T> the type of the column
+		 * @param table the table
+		 * @param driverColumn the column holding the value of a driver attribute
+		 * @param type the type of the column
+		 * @return the column
 		 */
-		public String buildHqlString(String itemPrefix) {
+		protected <T> Field<T> valueField(Table<?> table, String driverColumn, Class<T> type) {
+			String column = this.attribute.getDriver() == null
+				? this.attribute.getName().replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase()
+				: driverColumn;
+			Field<?> field = table.field(column);
+			if (field == null) {
+				// Unknown column: the query fails, as the former HQL one did
+				return DSL.field(DSL.name(table.getName(), column), type);
+			}
+			if (!type.equals(field.getType())) {
+				throw new IllegalStateException("Column %s of %s is a %s, not a %s".formatted(column, table.getName(),
+					field.getType().getSimpleName(), type.getSimpleName()));
+			}
+			// The generated field, with its converter (the coerced one would bind the value with the default type)
+			@SuppressWarnings("unchecked")
+			Field<T> typed = (Field<T>) field;
+			return typed;
+		}
+
+		/**
+		 * Builds the condition on the table holding the attribute value.
+		 *
+		 * @param table the device, config, device attribute or config attribute table (aliased)
+		 * @return the condition
+		 */
+		protected abstract Condition buildCondition(Table<?> table);
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
 			if (this.attribute.getDriver() == null) {
 				if (AttributeLevel.CONFIG.equals(this.attribute.getLevel())) {
 					// Native config property
-					return "d.id in (select d.id from Device d, Config c "
-						+ "where d.lastConfig = c and (" + this.buildWhere(itemPrefix, "c") + "))";
+					var d = subDevice(itemPrefix);
+					var c = CONFIG.as(itemPrefix + "_c");
+					return DEVICE.ID.in(DSL.select(d.ID).from(d, c)
+						.where(d.LAST_CONFIG.eq(c.ID).and(this.buildCondition(c))));
 				}
-				else {
-					// Native device property
-					return this.buildWhere(itemPrefix, "d");
-				}
+				// Native device property
+				return this.buildCondition(DEVICE);
 			}
-			else {
-				if (AttributeLevel.CONFIG.equals(this.attribute.getLevel())) {
-					// Driver-specific config attribute
-					return "d.id in (select d.id from Device d, Config c "
-						+ "join c.attributes %s_ca with %s_ca.name = :%s_name ".formatted(itemPrefix, itemPrefix, itemPrefix)
-							+ "where d.driver = :%s_driver and d.lastConfig = c and (".formatted(itemPrefix)
-							+ this.buildWhere(itemPrefix, "%s_ca".formatted(itemPrefix))
-							+ "))";
-				}
-				else {
-					// Driver-specific device attribute
-					return "d.id in (select d.id from Device d "
-						+ "join d.attributes %s_da with %s_da.name = :%s_name ".formatted(itemPrefix, itemPrefix, itemPrefix)
-							+ "where d.driver = :%s_driver and (".formatted(itemPrefix)
-							+ this.buildWhere(itemPrefix, "%s_da".formatted(itemPrefix))
-							+ "))";
-				}
+			if (AttributeLevel.CONFIG.equals(this.attribute.getLevel())) {
+				// Driver-specific config attribute
+				var d = subDevice(itemPrefix);
+				var c = CONFIG.as(itemPrefix + "_c");
+				var ca = CONFIG_ATTRIBUTE.as(itemPrefix + "_ca");
+				return DEVICE.ID.in(DSL.select(d.ID).from(d, c.join(ca).on(ca.CONFIG.eq(c.ID).and(ca.NAME.eq(this.attribute.getName()))))
+					.where(d.DRIVER.eq(this.attribute.getDriver().getName()).and(d.LAST_CONFIG.eq(c.ID))
+						.and(this.buildCondition(ca))));
 			}
-		}
-
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			if (this.attribute.getDriver() != null) {
-				query.setParameter(itemPrefix + "_driver", this.attribute.getDriver().getName());
-				query.setParameter(itemPrefix + "_name", this.attribute.getName());
-			}
+			// Driver-specific device attribute
+			var d = subDevice(itemPrefix);
+			var da = DEVICE_ATTRIBUTE.as(itemPrefix + "_da");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d.join(da).on(da.DEVICE.eq(d.ID).and(da.NAME.eq(this.attribute.getName()))))
+				.where(d.DRIVER.eq(this.attribute.getDriver().getName()).and(this.buildCondition(da))));
 		}
 	}
 
@@ -2439,27 +2197,6 @@ public class Finder {
 			NumberFormat format = NumberFormat.getInstance(Locale.ENGLISH);
 			format.setGroupingUsed(false);
 			return format.format(value);
-		}
-
-		@Override
-		public String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.%s".formatted(accessor,
-				this.attribute.getDriver() == null ? this.attribute.getName() : "number");
-			if (TokenType.GREATERTHAN.equals(sign)) {
-				return "%s > :%s".formatted(property, itemPrefix);
-			}
-			else if (TokenType.LESSTHAN.equals(sign)) {
-				return "%s < :%s".formatted(property, itemPrefix);
-			}
-			return "%s = :%s".formatted(property, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			query.setParameter(itemPrefix, value);
 		}
 
 		/**
@@ -2506,6 +2243,18 @@ public class Finder {
 			return numExpr;
 		}
 
+
+		@Override
+		protected Condition buildCondition(Table<?> table) {
+			Field<Double> property = this.valueField(table, "number", Double.class);
+			if (TokenType.GREATERTHAN.equals(sign)) {
+				return property.gt(value);
+			}
+			else if (TokenType.LESSTHAN.equals(sign)) {
+				return property.lt(value);
+			}
+			return property.eq(value);
+		}
 	}
 
 	/**
@@ -2531,21 +2280,6 @@ public class Finder {
 		 */
 		protected String getTextValue() {
 			return "%s".formatted(TokenType.escapeValue(value.toString()));
-		}
-
-		@Override
-		public String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.%s".formatted(accessor,
-				this.attribute.getDriver() == null ? this.attribute.getName() : "choice");
-			return "%s = :%s".formatted(property, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			query.setParameter(itemPrefix, value);
 		}
 
 		/**
@@ -2623,6 +2357,12 @@ public class Finder {
 			}
 			return enumExpr;
 		}
+
+		@Override
+		protected Condition buildCondition(Table<?> table) {
+			// The enumerations are stored by name
+			return this.valueField(table, "choice", String.class).eq(((Enum<?>) value).name());
+		}
 	}
 
 	/**
@@ -2647,52 +2387,6 @@ public class Finder {
 		 */
 		protected String getTextValue() {
 			return "\"%s\"".formatted(TokenType.escapeValue(value));
-		}
-
-		@Override
-		public String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.%s".formatted(accessor, this.attribute.getName());
-			if (this.attribute.getDriver() != null) {
-				// Driver-specific attribute
-				if (AttributeType.LONGTEXT.equals(this.attribute.getType())) {
-					property = "%s.longText.text".formatted(accessor);
-				}
-				else {
-					property = "%s.text".formatted(accessor);
-				}
-			}
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(%s, :%s)".formatted(property, itemPrefix);
-			}
-			if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(%s) like :%s".formatted(property, itemPrefix);
-			}
-			return "%s like :%s".formatted(property, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
 		}
 
 		/**
@@ -2795,6 +2489,19 @@ public class Finder {
 			textExpr.value = value.value;
 			textExpr.sign = sign.type;
 			return textExpr;
+		}
+
+		@Override
+		protected Condition buildCondition(Table<?> table) {
+			Field<String> property = this.valueField(table, "text", String.class);
+			if (this.attribute.getDriver() != null && AttributeType.LONGTEXT.equals(this.attribute.getType())) {
+				// The long text is in its own table: an inner join, as the implicit one of the HQL path
+				var lt = LONG_TEXT_CONFIGURATION.as(table.getName() + "_lt");
+				@SuppressWarnings("unchecked")
+				Field<Long> longText = (Field<Long>) table.field("long_text");
+				return DSL.exists(DSL.selectOne().from(lt).where(lt.ID.eq(longText).and(textCondition(sign, lt.TEXT, value))));
+			}
+			return textCondition(sign, property, value);
 		}
 	}
 
@@ -3010,38 +2717,6 @@ public class Finder {
 			return "\"%s\"".formatted(this.value.getText());
 		}
 
-		@Override
-		public String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.%s".formatted(accessor,
-				this.attribute.getDriver() == null ? this.attribute.getName() : "when");
-			if (TokenType.AFTER.equals(sign)) {
-				return "%s >= :%s".formatted(property, itemPrefix);
-			}
-			else if (TokenType.BEFORE.equals(sign)) {
-				return "%s <= :%s".formatted(property, itemPrefix);
-			}
-			return "(%s >= :%s_1 and %s <= :%s_2)"
-				.formatted(property, itemPrefix, property, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			switch (sign) {
-				case AFTER:
-					query.setParameter(itemPrefix, Date.from(this.value.getStart()));
-					break;
-				case BEFORE:
-					query.setParameter(itemPrefix, Date.from(this.value.getEnd()));
-					break;
-				default:
-					query.setParameter(itemPrefix + "_1", Date.from(this.value.getStart()));
-					query.setParameter(itemPrefix + "_2", Date.from(this.value.getEnd()));
-			}
-		}
-
 		/**
 		 * Parses the tokens to create an expression.
 		 *
@@ -3119,8 +2794,20 @@ public class Finder {
 			}
 			return dateExpr;
 		}
-	}
 
+		@Override
+		protected Condition buildCondition(Table<?> table) {
+			Field<Instant> property = this.valueField(table, "when", Instant.class);
+			switch (sign) {
+				case AFTER:
+					return property.ge(this.value.getStart());
+				case BEFORE:
+					return property.le(this.value.getEnd());
+				default:
+					return property.ge(this.value.getStart()).and(property.le(this.value.getEnd()));
+			}
+		}
+	}
 
 	/**
 	 * The Class BinaryAttributeExpression.
@@ -3144,21 +2831,6 @@ public class Finder {
 		 */
 		protected String getTextValue() {
 			return value ? "true" : "false";
-		}
-
-		@Override
-		public String buildWhere(String itemPrefix, String accessor) {
-			String property = "%s.%s".formatted(accessor,
-				this.attribute.getDriver() == null ? this.attribute.getName() : "assumption");
-			return "%s = :%s".formatted(property, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			query.setParameter(itemPrefix, this.value);
 		}
 
 		/**
@@ -3200,8 +2872,12 @@ public class Finder {
 			}
 			return binExpr;
 		}
-	}
 
+		@Override
+		protected Condition buildCondition(Table<?> table) {
+			return this.valueField(table, "assumption", Boolean.class).eq(this.value);
+		}
+	}
 
 	/**
 	 * The Class VrfExpression.
@@ -3251,48 +2927,6 @@ public class Finder {
 			return null;
 		}
 
-		private String buildWhere(String itemPrefix) {
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(v, :%s)".formatted(itemPrefix);
-			}
-			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(v) like :%s".formatted(itemPrefix);
-			}
-			return "v like :%s".formatted(itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.vrfInstances v where "
-				+ this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
-		}
-
 		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
@@ -3302,6 +2936,14 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var v = DEVICE_VRF_INSTANCES.as(itemPrefix + "_v");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(v).on(v.DEVICE.eq(d.ID))
+				.where(textCondition(sign, v.VRF_INSTANCES, value)));
+		}
 	}
 
 	/**
@@ -3352,52 +2994,6 @@ public class Finder {
 			return null;
 		}
 
-		private String buildWhere(String itemPrefix) {
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(v, :%s) or regexp_like(d.name, :%s)"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "(lower(v) like :%s) or (lower(d.name) like :%s)"
-					.formatted(itemPrefix, itemPrefix);
-			}
-			return "(v like :%s) or (d.name like :%s)"
-				.formatted(itemPrefix, itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d left join d.virtualDevices v where "
-				+ this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			super.setVariables(query, itemPrefix);
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
-		}
-
 		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
@@ -3407,6 +3003,14 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var v = DEVICE_VIRTUAL_DEVICES.as(itemPrefix + "_v");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(v).on(v.DEVICE.eq(d.ID))
+				.where(textCondition(sign, v.VIRTUAL_DEVICES, value).or(textCondition(sign, d.NAME, value))));
+		}
 	}
 
 	/**
@@ -3457,48 +3061,6 @@ public class Finder {
 			return null;
 		}
 
-		private String buildWhere(String itemPrefix) {
-			if (TokenType.MATCHES.equals(sign)) {
-				return "regexp_like(t, :%s)".formatted(itemPrefix);
-			}
-			else if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return "lower(t) like :%s".formatted(itemPrefix);
-			}
-			return "t like :%s".formatted(itemPrefix);
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#buildHqlString(java.lang.String)
-		 */
-		public String buildHqlString(String itemPrefix) {
-			return "d.id in (select d.id from Device d join d.tags t where "
-				+ this.buildWhere(itemPrefix) + ")";
-		}
-
-		/*(non-Javadoc)
-		 * @see net.netshot.netshot.inventory.search.Finder.Expression#setVariables(org.hibernate.Query, java.lang.String)
-		 */
-		public void setVariables(MutationQuery query, String itemPrefix) {
-			String target;
-			switch (sign) {
-				case CONTAINS:
-					target = "%" + value + "%";
-					break;
-				case CONTAINSNOCASE:
-					target = "%" + value.toLowerCase() + "%";
-					break;
-				case STARTSWITH:
-					target = value + "%";
-					break;
-				case ENDSWITH:
-					target = "%" + value;
-					break;
-				default:
-					target = value;
-			}
-			query.setParameter(itemPrefix, target);
-		}
-
 		/*(non-Javadoc)
 		 * @see net.netshot.netshot.inventory.search.Finder.Expression#toString()
 		 */
@@ -3508,10 +3070,18 @@ public class Finder {
 				TokenType.escapeValue(value));
 		}
 
+
+		@Override
+		public Condition toCondition(String itemPrefix) {
+			var d = subDevice(itemPrefix);
+			var t = DEVICE_TAGS.as(itemPrefix + "_t");
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).join(t).on(t.DEVICE.eq(d.ID))
+				.where(textCondition(sign, t.TAG, value)));
+		}
 	}
 
-	/** The Constant HQLPREFIX. */
-	private static final String HQLPREFIX = "var";
+	/** The prefix of the aliases of the subqueries. */
+	private static final String ALIAS_PREFIX = "var";
 
 	/** The tokens. */
 	private List<Token> tokens;
@@ -3546,23 +3116,12 @@ public class Finder {
 	}
 
 	/**
-	 * Gets the hql.
+	 * Gets the condition on the devices ({@code DEVICE} table) matching the query.
 	 *
-	 * @return the hql
+	 * @return the condition
 	 */
-	public String getHql() {
-		String subHql = this.expression.buildHqlString(HQLPREFIX);
-		return " from Device d where " + subHql;
+	public Condition getCondition() {
+		return this.expression.toCondition(ALIAS_PREFIX);
 	}
-
-	/**
-	 * Sets the variables.
-	 *
-	 * @param query the variables to set the variables on
-	 */
-	public void setVariables(MutationQuery query) {
-		this.expression.setVariables(query, HQLPREFIX);
-	}
-
 
 }

@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 import org.slf4j.event.Level;
 
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -61,12 +60,11 @@ import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
-import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
+import net.netshot.netshot.credentials.SshAccount;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -363,11 +361,10 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		 * The credential subtype able to authenticate against this access.
 		 * @return the credential class to filter candidate credential sets on
 		 */
-		@Transient
 		public Class<? extends DeviceCredentialSet> getCredentialClass() {
 			switch (this.protocol) {
 				case SSH:
-					return DeviceSshAccount.class;
+					return SshAccount.class;
 				case TELNET:
 					return DeviceTelnetAccount.class;
 				case HTTP:
@@ -436,7 +433,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * @param accessName the access name (JS key)
 	 * @return the access definition, or null if not found
 	 */
-	@Transient
 	public AccessDefinition getAccessDefinition(String accessName) {
 		return this.accessDefinitions.get(accessName);
 	}
@@ -450,7 +446,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * explicit per-access priorities.
 	 * @return the ordered list of default CLI access definitions
 	 */
-	@Transient
 	public List<AccessDefinition> getDefaultCliAccessDefinitions() {
 		return this.getAccessDefinitionsByGroup("cli");
 	}
@@ -461,7 +456,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * descending (by default: SNMPv3, then v2c, then v1).
 	 * @return the ordered list of default SNMP access definitions
 	 */
-	@Transient
 	public List<AccessDefinition> getDefaultSnmpAccessDefinitions() {
 		return this.getAccessDefinitionsByGroup("snmp");
 	}
@@ -473,7 +467,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * @param group the group name
 	 * @return the matching access definitions, priority-sorted
 	 */
-	@Transient
 	public List<AccessDefinition> getAccessDefinitionsByGroup(String group) {
 		List<AccessDefinition> result = new ArrayList<>();
 		for (AccessDefinition def : this.accessDefinitions.values()) {
@@ -490,7 +483,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * @param names the access names (already resolved from JS, literal keys)
 	 * @return the matching access definitions, in the given order
 	 */
-	@Transient
 	public List<AccessDefinition> getAccessDefinitions(List<String> names) {
 		List<AccessDefinition> result = new ArrayList<>();
 		for (String accessName : names) {
@@ -915,7 +907,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		return false;
 	}
 
-	@Transient
 	public final Context getContext() throws IOException {
 		log.debug("Getting context");
 		HostAccess hostAccess = HostAccess
@@ -950,13 +941,12 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 
 	/**
 	 * Asks the driver to analyze SNMP information.
-	 * @param task The auto discovery task
 	 * @param sysObjectId The received sysObjectId
 	 * @param sysDesc The received sysDesc
 	 * @param taskContext The logger from the task
 	 * @return true if the passed SNMP information matches a device of this driver
 	 */
-	public boolean snmpAutoDiscover(Task task, String sysObjectId, String sysDesc, TaskContext taskContext) {
+	public boolean snmpAutoDiscover(String sysObjectId, String sysDesc, TaskContext taskContext) {
 		if (!canSnmpAutodiscover) {
 			return false;
 		}
@@ -983,12 +973,10 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		return false;
 	}
 
-	@Transient
 	public AttributeDefinition getAttributeDefinition(AttributeDefinition.AttributeLevel attributeLevel, String attributeName) {
 		return this.attributesByName.get(attributeLevel).get(attributeName);
 	}
 
-	@Transient
 	public AttributeDefinition getAttributeDefinitionByTitle(String title) {
 		for (AttributeDefinition attribute : this.getAttributes()) {
 			if (attribute.getTitle().equalsIgnoreCase(title)) {

@@ -18,76 +18,32 @@
  */
 package net.netshot.netshot.inventory.group;
 
-import java.util.Iterator;
+import java.time.Instant;
 
-import org.hibernate.Session;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import net.netshot.netshot.inventory.device.Device;
+import lombok.Builder;
 
 /**
  * A static group of devices.
  * The devices are manually listed.
+ *
+ * @param id the ID (0 for a group which isn't stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the time of the last change
+ * @param name the name, unique
+ * @param folder the folder the group is shown in
+ * @param hiddenFromReports whether the group is hidden from the reports
  */
-@Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
-public class StaticDeviceGroup extends DeviceGroup {
+@Builder(toBuilder = true)
+public record StaticDeviceGroup(
+	long id,
+	int version,
+	Instant changeDate,
+	String name,
+	String folder,
+	boolean hiddenFromReports) implements DeviceGroup {
 
-	/**
-	 * Instantiates a new static device group.
-	 */
-	protected StaticDeviceGroup() {
-
-	}
-
-	/**
-	 * Instantiates a new static device group.
-	 *
-	 * @param name the name
-	 */
-	public StaticDeviceGroup(String name) {
-		super(name);
-	}
-
-	/**
-	 * Adds the device at the end of the group's ordered list.
-	 *
-	 * @param device the device
-	 */
-	public void addDevice(Device device) {
-		DeviceGroupMembership membership = new DeviceGroupMembership(device, this, this.cachedMemberships.size());
-		this.cachedMemberships.add(membership);
-	}
-
-	/**
-	 * Removes the device.
-	 *
-	 * @param device the device
-	 */
-	public void removeDevice(Device device) {
-		Iterator<DeviceGroupMembership> membershipIt = this.cachedMemberships.iterator();
-		while (membershipIt.hasNext()) {
-			DeviceGroupMembership membership = membershipIt.next();
-			if (membership.getDevice().equals(device)) {
-				membershipIt.remove();
-			}
-		}
-	}
-
-	/**
-	 * Clear devices.
-	 */
-	public void clearDevices() {
-		this.cachedMemberships.clear();
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.inventory.group.DeviceGroup#refreshCache(org.hibernate.Session)
-	 */
 	@Override
-	public void refreshCache(Session session) throws Exception {
+	public String toString() {
+		return DeviceGroup.describe(this);
 	}
-
 }

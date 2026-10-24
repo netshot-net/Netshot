@@ -20,8 +20,6 @@ package net.netshot.netshot.task.engine;
 
 import java.sql.SQLException;
 
-import org.hibernate.Session;
-import org.hibernate.query.MutationQuery;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -30,12 +28,14 @@ import org.quartz.JobExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.DeviceLockPolicy;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandlers;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.task.type.DeviceBasedTask;
 
@@ -52,6 +52,10 @@ public class TaskJob implements Job {
 	private final TaskHandlers handlers;
 
 	private final DomainEvents domainEvents;
+
+	private final TaskRepository repository = new TaskRepository();
+
+	private final Transactions transactions = new Transactions();
 
 	/**
 	 * Instantiates a new task job. Quartz builds the jobs through the {@link TaskJobFactory}.
@@ -88,7 +92,6 @@ public class TaskJob implements Job {
 	 */
 	public void runTask(long id) throws JobExecutionException {
 		log.trace("The task id is {}.", id);
-
 		// The task lock prevents the same task from running twice at the same time,
 		// on this instance or (cluster mode) on any other cluster member
 		TaskLockManager lockManager = TaskLockManager.get();
@@ -112,134 +115,102 @@ public class TaskJob implements Job {
 	}
 
 	/**
-	 * Claims the task (atomically checks it is still waiting to be run by this instance, and marks it
-	 * as running).
-	 * @param session the DB session (in a transaction)
-	 * @param id the task ID
-	 * @return true if the task was claimed
-	 */
-	private static boolean claimTask(Session session, long id) {
-		String runnerId = ClusterManager.getLocalInstanceId();
-		MutationQuery claimQuery = session
-			.createMutationQuery("update versioned Task t set t.status = :running where t.id = :id "
-				+ "and (t.status = :waiting or t.status = :scheduled)"
-				+ (runnerId == null ? "" : " and t.runnerId = :runnerId"))
-			.setParameter("running", Status.RUNNING)
-			.setParameter("id", id)
-			.setParameter("waiting", Status.WAITING)
-			.setParameter("scheduled", Status.SCHEDULED);
-		if (runnerId != null) {
-			claimQuery.setParameter("runnerId", runnerId);
-		}
-		return claimQuery.executeUpdate() == 1;
-	}
-
-	/**
 	 * Waits (polling) until the given task gets exclusive access to the given device, or
 	 * cancellation of the task is requested.
 	 * No DB connection must be held by the caller while waiting.
-	 * @param task the task
+	 *
+	 * @param run the run of the task
 	 * @param deviceId the device ID
 	 * @param lockManager the lock manager
-	 * @return true if the device lock was acquired, false if cancellation was requested while waiting
-	 * @throws SQLException in case of DB error while trying to lock the device
+	 * @return true if the device was acquired, false if the cancellation was requested
+	 * @throws SQLException if the lock can't be taken
 	 * @throws InterruptedException if interrupted while waiting
 	 */
-	private static boolean waitForDevice(Task task, long deviceId, TaskLockManager lockManager)
+	private boolean waitForDevice(TaskRun run, long deviceId, TaskLockManager lockManager)
 		throws SQLException, InterruptedException {
-		if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, task.getId())) {
+		long taskId = run.getTask().id();
+		if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
 			return true;
 		}
 		Long holderTaskId = lockManager.getLocalOwner(TaskLockManager.NS_DEVICE, deviceId);
 		if (holderTaskId == null) {
-			task.logger.info("Waiting for the device to be released by another task.");
+			run.logger.info("Waiting for the device to be released by another task.");
 		}
 		else {
-			task.logger.info("Waiting for the device to be released by task {}.", holderTaskId);
+			run.logger.info("Waiting for the device to be released by task {}.", holderTaskId);
 		}
 		int pollInterval = Netshot.getConfig("netshot.tasks.devicelock.pollintervalms", 3000, 500, 60000);
 		long startTime = System.currentTimeMillis();
 		while (true) {
 			Thread.sleep(pollInterval);
-			if (task.isCancelRequestedFresh()) {
+			if (this.transactions.read(dsl -> this.repository.isCancelRequested(dsl, taskId))) {
 				return false;
 			}
-			if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, task.getId())) {
-				task.logger.info("Device acquired after {} s.", (System.currentTimeMillis() - startTime) / 1000);
+			if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
+				run.logger.info("Device acquired after {} s.", (System.currentTimeMillis() - startTime) / 1000);
 				return true;
 			}
-			log.trace("Task {} still waiting for device {}.", task.getId(), deviceId);
+			log.trace("Task {} still waiting for device {}.", taskId, deviceId);
 		}
 	}
 
-	/**
-	 * Executes the task, once the task lock is held.
-	 * @param id the task ID
-	 * @param lockManager the lock manager
-	 * @throws JobExecutionException in case of error
-	 */
-	private void executeLocked(long id, TaskLockManager lockManager) throws JobExecutionException {
-		Task task = null;
-		Session session = Database.getSession();
-		try {
-			Thread.sleep(1000);
-			session.beginTransaction();
-			if (!claimTask(session, id)) {
-				Task skippedTask = session.get(Task.class, id);
+	// Claims the task and marks it as started, returns the run (or null if the task was not claimed)
+	private TaskRun start(long id) {
+		return this.transactions.write(dsl -> {
+			if (!this.repository.claim(dsl, id, ClusterManager.getLocalInstanceId())) {
+				Task skippedTask = this.repository.find(dsl, id);
 				if (skippedTask == null) {
 					log.error("The retrieved task {} is null.", id);
 				}
-				else if (skippedTask.getStatus() == Status.CANCELLED) {
+				else if (skippedTask.status() == Status.CANCELLED) {
 					log.debug("Task {} was cancelled before starting, skipping execution.", id);
 				}
 				else {
 					// Already run, or reassigned to another runner
 					log.warn("Task {} is not waiting to be run by this instance anymore (status {}, runner {}), skipping.",
-						id, skippedTask.getStatus(), skippedTask.getRunnerId());
+						id, skippedTask.status(), skippedTask.runnerId());
 				}
-				session.getTransaction().commit();
+				return null;
+			}
+			TaskRun run = new TaskRun(this.repository.find(dsl, id));
+			this.repository.start(dsl, run);
+			log.trace("The task runner ID for {} is {}", id, run.getTask().runnerId());
+			return run;
+		});
+	}
+
+	private void executeLocked(long id, TaskLockManager lockManager) throws JobExecutionException {
+		TaskRun run;
+		try {
+			Thread.sleep(1000);
+			run = this.start(id);
+			if (run == null) {
 				return;
 			}
-			task = session.get(Task.class, id);
-			task.setRunning();
-			log.trace("The task runner ID for {} is {}", task.getId(), task.getRunnerId());
-			log.trace("Got the task.");
-			task.prepare(session);
-			log.trace("The task has prepared its fields.");
-			session.getTransaction().commit();
 		}
 		catch (Exception e) {
 			log.error("Error while retrieving, updating or preparing the task.", e);
-			Database.rollbackSilently(session);
 			try {
-				session.clear();
-				session.beginTransaction();
-				Task eTask = (Task) session.get(Task.class, id);
-				eTask.setRunning();
-				eTask.setFailed();
-				eTask.setLog(e.getMessage());
-				if (task != null) {
-					eTask.setDebugLog(task.getDebugLog());
-				}
-				session.getTransaction().commit();
+				this.transactions.run(dsl -> this.repository.fail(dsl, id, e.getMessage() == null ? "" : e.getMessage()));
 			}
 			catch (Exception e1) {
 				log.error("Error while setting the task {} to FAILED.", id, e1);
 			}
+			if (e instanceof InterruptedException) {
+				Thread.currentThread().interrupt();
+			}
 			throw new JobExecutionException("Unable to access or prepare the task.");
 		}
-		finally {
-			session.close();
-		}
+		Task task = run.getTask();
 
 		// Exclusive access to the target device, according to the task's policy
 		// (no DB session is held from here, as this may wait)
 		DeviceLockPolicy lockPolicy = task.deviceLockPolicy();
 		Long deviceId = null;
-		if (lockPolicy != DeviceLockPolicy.NONE && task instanceof DeviceBasedTask deviceTask
-			&& deviceTask.getDevice() != null) {
-			deviceId = deviceTask.getDevice().getId();
+		if (lockPolicy != DeviceLockPolicy.NONE && task.spec() instanceof DeviceBasedTask deviceTask) {
+			deviceId = deviceTask.deviceId();
 		}
+		int lockTypeNamespace = task.spec().deviceLockTypeNamespace();
 		boolean typeLocked = false;
 		boolean deviceLocked = false;
 		boolean repeat = true;
@@ -247,16 +218,16 @@ public class TaskJob implements Job {
 			boolean runTask = true;
 			if (deviceId != null) {
 				if (lockPolicy == DeviceLockPolicy.CANCEL_IF_SAME_TYPE) {
-					typeLocked = lockManager.tryLock(task.deviceLockTypeNamespace(), deviceId, id);
+					typeLocked = lockManager.tryLock(lockTypeNamespace, deviceId, id);
 					if (!typeLocked) {
-						task.setCancelled("A task of the same type is already running or waiting on this device, cancelling this task.");
+						run.cancel("A task of the same type is already running or waiting on this device, cancelling this task.");
 						runTask = false;
 					}
 				}
 				if (runTask) {
-					deviceLocked = waitForDevice(task, deviceId, lockManager);
+					deviceLocked = this.waitForDevice(run, deviceId, lockManager);
 					if (!deviceLocked) {
-						task.setCancelled("Cancelled while waiting for the device.");
+						run.cancel("Cancelled while waiting for the device.");
 						runTask = false;
 						// Requested by a user: stop the repeat chain, as when cancelling a scheduled task
 						repeat = false;
@@ -264,9 +235,9 @@ public class TaskJob implements Job {
 				}
 			}
 			if (runTask) {
-				log.warn("Running the task {} of type {}", id, task.getClass().getSimpleName());
+				log.warn("Running the task {} of type {}", id, task.typeName());
 				try {
-					this.handlers.run(task);
+					this.handlers.run(task, run);
 				}
 				catch (Error e) {
 					log.error("Error while running the task {}.", id, e);
@@ -275,13 +246,13 @@ public class TaskJob implements Job {
 		}
 		catch (SQLException e) {
 			log.error("Unable to lock the device for task {}.", id, e);
-			task.logger.error("Unable to lock the device: {}", e.getMessage());
-			task.setFailed();
+			run.logger.error("Unable to lock the device: {}", e.getMessage());
+			run.fail();
 		}
 		catch (InterruptedException e) {
 			log.error("Task {} interrupted while waiting for the device.", id, e);
-			task.logger.error("Interrupted while waiting for the device.");
-			task.setFailed();
+			run.logger.error("Interrupted while waiting for the device.");
+			run.fail();
 			Thread.currentThread().interrupt();
 		}
 		finally {
@@ -289,61 +260,34 @@ public class TaskJob implements Job {
 				lockManager.unlock(TaskLockManager.NS_DEVICE, deviceId, id);
 			}
 			if (typeLocked) {
-				lockManager.unlock(task.deviceLockTypeNamespace(), deviceId, id);
+				lockManager.unlock(lockTypeNamespace, deviceId, id);
 			}
 		}
 
-		if (task.getStatus() == Status.RUNNING) {
+		if (run.getStatus() == Status.RUNNING) {
 			log.error("The task {} exited with a status of RUNNING.", id);
-			task.setFailed();
+			run.fail();
 		}
 
 		log.trace("Updating the task with the result.");
-		session = Database.getSession();
 		try {
-			session.beginTransaction();
-			Task persistentTask = session.get(Task.class, id);
-			task.copyResultsTo(persistentTask);
-			session.getTransaction().commit();
+			this.transactions.run(dsl -> this.repository.saveRun(dsl, run));
 		}
 		catch (Exception e) {
 			log.error("Error while updating the task {} after execution.", id, e);
-			Database.rollbackSilently(session);
 			try {
-				session.clear();
-				session.beginTransaction();
-				Task eTask = session.get(Task.class, id);
-				eTask.setFailed();
-				session.getTransaction().commit();
+				this.transactions.run(dsl -> this.repository.fail(dsl, id, null));
 			}
 			catch (Exception e1) {
 				log.error("Error while setting the task {} to FAILED.", id, e1);
 			}
 			throw new JobExecutionException("Unable to save the task.");
 		}
-		finally {
-			session.close();
-		}
 
-
-		log.trace("Looking for post-task hooks.");
-		session = Database.getSession();
-		try {
-			task = (Task) session.get(Task.class, id);
-			// Re-initialize the lazy associations (e.g. device group/list) the task's clone()
-			// will need for repeatTask() below, since that runs after this session is closed.
-			task.prepare(session);
-		}
-		catch (Exception e) {
-			log.error("Error while processing hooks after task {}.", id, e);
-			Database.rollbackSilently(session);
-		}
-		finally {
-			session.close();
-		}
 		// The listeners (such as the post-task hooks) are called here, in this thread
+		log.trace("Looking for post-task hooks.");
 		try {
-			this.domainEvents.publish(new TaskFinished(id, task.getClass().getSimpleName()));
+			this.domainEvents.publish(new TaskFinished(id, task.typeName()));
 		}
 		catch (Exception e) {
 			log.error("Error while processing hooks after task {}.", id, e);
@@ -358,8 +302,6 @@ public class TaskJob implements Job {
 			}
 		}
 
-		log.warn("End of task {} of type {}: {}.", id, task.getClass().getSimpleName(), task.getStatus());
-
+		log.warn("End of task {} of type {}: {}.", id, task.typeName(), run.getStatus());
 	}
-
 }

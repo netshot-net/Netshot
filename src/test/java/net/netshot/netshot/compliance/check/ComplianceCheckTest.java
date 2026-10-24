@@ -18,13 +18,11 @@
  */
 package net.netshot.netshot.compliance.check;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Modifier;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -35,10 +33,13 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.compliance.Exemption;
+import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
@@ -77,14 +78,11 @@ public class ComplianceCheckTest {
 	void everyRuleHasAnEvaluator() throws Exception {
 		Set<Class<? extends Rule>> ruleClasses = concreteSubclasses(Rule.class);
 		Assertions.assertFalse(ruleClasses.isEmpty(), "No rule class found, the scan is broken");
-		Assertions.assertEquals(Rule.getRuleClasses(), ruleClasses, "Rule.getRuleClasses() doesn't list all the rule types");
-		for (Class<? extends Rule> ruleClass : ruleClasses) {
-			Assertions.assertFalse(Modifier.isAbstract(ruleClass.getModifiers()));
-			Constructor<? extends Rule> constructor = ruleClass.getDeclaredConstructor();
-			constructor.setAccessible(true);
-			Rule rule = constructor.newInstance();
+		Assertions.assertEquals(Set.of(Rule.class.getPermittedSubclasses()), new HashSet<Class<?>>(ruleClasses),
+			"Rule doesn't permit all the rule types");
+		for (Rule rule : List.<Rule>of(TextRule.builder("Text", 0).build(), JavaScriptRule.of("JS", 0), PythonRule.of("Python", 0))) {
 			RuleEvaluator<Rule> evaluator = evaluators.forRule(rule);
-			Assertions.assertEquals(ruleClass, evaluator.ruleType(), "Wrong evaluator for " + ruleClass.getSimpleName());
+			Assertions.assertEquals(rule.getClass(), evaluator.ruleType(), "Wrong evaluator for " + rule.getClass().getSimpleName());
 		}
 	}
 
@@ -102,34 +100,34 @@ public class ComplianceCheckTest {
 	}
 
 	@Test
-	@DisplayName("The checker evaluates all the rules of the policy and adds the results to the device")
+	@DisplayName("The checker evaluates all the rules of the policy, one result per rule")
 	void checkerLoopsOverRules() {
-		Policy policy = new Policy("Fake policy", null);
-		TextRule conforming = new TextRule("Conforming", policy);
-		conforming.setId(1);
-		conforming.setEnabled(true);
-		conforming.setDeviceDriver("CiscoIOS12");
-		conforming.setField("runningConfig");
-		conforming.setText("no service pad");
-		policy.addRule(conforming);
-		TextRule nonConforming = new TextRule("Non conforming", policy);
-		nonConforming.setId(2);
-		nonConforming.setEnabled(true);
-		nonConforming.setDeviceDriver("CiscoIOS12");
-		nonConforming.setField("runningConfig");
-		nonConforming.setText("no service mlqksd");
-		policy.addRule(nonConforming);
-		TextRule disabled = new TextRule("Disabled", policy);
-		disabled.setId(3);
-		disabled.setField("runningConfig");
-		disabled.setText("no service pad");
-		policy.addRule(disabled);
+		Policy policy = new Policy(0, "Fake policy", null);
+		TextRule conforming = TextRule.builder("Conforming", 0)
+			.id(1)
+			.enabled(true)
+			.deviceDriver("CiscoIOS12")
+			.field("runningConfig")
+			.text("no service pad")
+			.build();
+		TextRule nonConforming = TextRule.builder("Non conforming", 0)
+			.id(2)
+			.enabled(true)
+			.deviceDriver("CiscoIOS12")
+			.field("runningConfig")
+			.text("no service mlqksd")
+			.build();
+		TextRule disabled = TextRule.builder("Disabled", 0)
+			.id(3)
+			.field("runningConfig")
+			.text("no service pad")
+			.build();
 
-		Device device = FakeDeviceFactory.getFakeCiscoIosDevice();
+		DeviceDraft device = FakeDeviceFactory.getFakeCiscoIosDraft();
 		FakeTaskContext taskContext = new FakeTaskContext();
-		new ComplianceChecker(evaluators).check(policy, device, null, taskContext);
+		List<CheckResult> results = new ComplianceChecker(evaluators).check(policy, List.of(conforming, nonConforming, disabled),
+			device, List.of(), taskContext);
 
-		Set<CheckResult> results = device.getComplianceCheckResults();
 		Assertions.assertEquals(3, results.size());
 		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, resultOf(results, conforming));
 		Assertions.assertEquals(CheckResult.ResultOption.NONCONFORMING, resultOf(results, nonConforming));
@@ -139,26 +137,33 @@ public class ComplianceCheckTest {
 	}
 
 	@Test
-	@DisplayName("The checker does nothing for a policy without target group when checking all its devices")
-	void checkerWithoutTargetGroups() {
-		Policy policy = new Policy("Fake policy", null);
-		new ComplianceChecker(evaluators).check(policy, null, new FakeTaskContext());
+	@DisplayName("A running exemption of the device gives an exempted result, an expired one doesn't")
+	void checkerExemptions() {
+		Policy policy = new Policy(0, "Fake policy", null);
+		TextRule rule = TextRule.builder("Conforming", 0)
+			.id(1)
+			.enabled(true)
+			.deviceDriver("CiscoIOS12")
+			.field("runningConfig")
+			.text("no service pad")
+			.build();
+		DeviceDraft device = FakeDeviceFactory.getFakeCiscoIosDraft();
+		ComplianceChecker checker = new ComplianceChecker(evaluators);
+		Instant now = Instant.now();
+		Assertions.assertEquals(CheckResult.ResultOption.EXEMPTED, checker.check(policy, List.of(rule), device,
+			List.of(new Exemption(1, device.getId(), now.plusSeconds(3600))), new FakeTaskContext()).get(0).result());
+		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, checker.check(policy, List.of(rule), device,
+			List.of(new Exemption(1, device.getId(), now.minusSeconds(3600))), new FakeTaskContext()).get(0).result());
+		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, checker.check(policy, List.of(rule), device,
+			List.of(new Exemption(2, device.getId(), now.plusSeconds(3600))), new FakeTaskContext()).get(0).result());
 	}
 
-	@Test
-	@DisplayName("A proxied rule is evaluated with the evaluator of its real type")
-	void unproxy() {
-		TextRule rule = new TextRule("Rule", null);
-		Assertions.assertSame(rule, Hibernate.unproxy(rule));
-		Assertions.assertEquals(TextRule.class, evaluators.forRule(rule).ruleType());
-	}
-
-	private static CheckResult.ResultOption resultOf(Set<CheckResult> results, Rule rule) {
+	private static CheckResult.ResultOption resultOf(List<CheckResult> results, Rule rule) {
 		return results.stream()
-			.filter(r -> r.getRule() == rule)
+			.filter(r -> r.ruleId() == rule.id())
 			.findFirst()
 			.orElseThrow()
-			.getResult();
+			.result();
 	}
 
 }

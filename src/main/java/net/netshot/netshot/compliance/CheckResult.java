@@ -18,119 +18,22 @@
  */
 package net.netshot.netshot.compliance;
 
-import java.io.Serializable;
-import java.util.Date;
+import java.time.Instant;
 
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
 import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
 
 /**
- * A CheckResult object is the result of a compliance test for a given rule,
- * tested against a given device.
+ * The result of the check of a device against a compliance rule.
+ *
+ * @param ruleId the ID of the rule
+ * @param deviceId the ID of the device
+ * @param checkDate when the check was made
+ * @param comment the comment of the rule (abbreviated to fit in the database)
+ * @param result the result
  */
-@Entity
-public class CheckResult {
-
-	/**
-	 * The Class Key.
-	 */
-	@Embeddable
-	public static class Key implements Serializable {
-
-		/** The Constant serialVersionUID. */
-		private static final long serialVersionUID = 8277228096576043644L;
-
-		@Getter(onMethod = @__({
-			@ManyToOne,
-			@OnDelete(action = OnDeleteAction.CASCADE)
-		}))
-		@Setter
-		private Rule rule;
-
-		/** The device. */
-		@Getter(onMethod = @__({
-			@ManyToOne,
-			@OnDelete(action = OnDeleteAction.CASCADE)
-		}))
-		@Setter
-		private Device device;
-
-		/**
-		 * Instantiates a new key.
-		 */
-		protected Key() {
-
-		}
-
-		/**
-		 * Instantiates a new key.
-		 *
-		 * @param rule the rule
-		 * @param device the device
-		 */
-		public Key(Rule rule, Device device) {
-			this.rule = rule;
-			this.device = device;
-		}
-
-		/*(non-Javadoc)
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + (device == null ? 0 : device.hashCode());
-			result = prime * result + (rule == null ? 0 : rule.hashCode());
-			return result;
-		}
-
-		/*(non-Javadoc)
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (obj == null) {
-				return false;
-			}
-			if (getClass() != obj.getClass()) {
-				return false;
-			}
-			Key other = (Key) obj;
-			if (device == null) {
-				if (other.device != null) {
-					return false;
-				}
-			}
-			else if (!device.equals(other.device)) {
-				return false;
-			}
-			if (rule == null) {
-				if (other.rule != null) {
-					return false;
-				}
-			}
-			else if (!rule.equals(other.rule)) {
-				return false;
-			}
-			return true;
-		}
-
-	}
+public record CheckResult(long ruleId, long deviceId, Instant checkDate, String comment, ResultOption result) {
 
 	/**
 	 * The Enum ResultOption.
@@ -169,146 +72,38 @@ public class CheckResult {
 		}
 	}
 
-	/** The key. */
-	@Getter(onMethod = @__({
-		@EmbeddedId
-	}))
-	@Setter
-	private Key key = new Key();
-
-	/** The check date. */
-	@Getter
-	@Setter
-	private Date checkDate = new Date();
-
-	/** The comment. */
-	@Getter(onMethod = @__({
-		@Column(length = 10000)
-	}))
-	private String comment = "";
-
-	/** The result. */
-	@Getter
-	@Setter
-	private CheckResult.ResultOption result = CheckResult.ResultOption.NOTAPPLICABLE;
+	/** The maximum length of a comment. */
+	public static final int MAX_COMMENT_LENGTH = 9900;
 
 	/**
-	 * Instantiates a new check result.
+	 * Canonical constructor: the comment is abbreviated to fit in the database.
 	 */
-	protected CheckResult() {
+	public CheckResult {
+		comment = StringUtils.abbreviate(comment, MAX_COMMENT_LENGTH);
 	}
 
 	/**
-	 * Instantiates a new check result.
+	 * Builds a result checked now, without comment.
 	 *
-	 * @param rule the rule
-	 * @param device the device
+	 * @param ruleId the ID of the rule
+	 * @param deviceId the ID of the device
 	 * @param result the result
+	 * @return the check result
 	 */
-	public CheckResult(Rule rule, Device device, CheckResult.ResultOption result) {
-		this.key.setRule(rule);
-		this.key.setDevice(device);
-		this.result = result;
-		this.comment = "";
+	public static CheckResult of(long ruleId, long deviceId, ResultOption result) {
+		return new CheckResult(ruleId, deviceId, Instant.now(), "", result);
 	}
 
 	/**
-	 * Instantiates a new check result.
+	 * Builds a result checked now.
 	 *
-	 * @param rule the rule
-	 * @param device the device
+	 * @param ruleId the ID of the rule
+	 * @param deviceId the ID of the device
 	 * @param result the result
-	 * @param comment the comments
+	 * @param comment the comment
+	 * @return the check result
 	 */
-	public CheckResult(Rule rule, Device device, CheckResult.ResultOption result, String comment) {
-		this.key.setRule(rule);
-		this.key.setDevice(device);
-		this.result = result;
-		this.comment = comment;
+	public static CheckResult of(long ruleId, long deviceId, ResultOption result, String comment) {
+		return new CheckResult(ruleId, deviceId, Instant.now(), comment, result);
 	}
-
-	/**
-	 * Sets the comment.
-	 *
-	 * @param comment the new comment
-	 */
-	public void setComment(String comment) {
-		this.comment = StringUtils.abbreviate(comment, 9900);
-	}
-
-	/**
-	 * Gets the rule.
-	 *
-	 * @return the rule
-	 */
-	@Transient
-	public Rule getRule() {
-		return this.key.getRule();
-	}
-
-	/**
-	 * Sets the rule.
-	 *
-	 * @param rule the new rule
-	 */
-	public void setRule(Rule rule) {
-		this.key.setRule(rule);
-	}
-
-	/**
-	 * Gets the device.
-	 *
-	 * @return the device
-	 */
-	@Transient
-	public Device getDevice() {
-		return this.key.getDevice();
-	}
-
-	/**
-	 * Sets the device.
-	 *
-	 * @param device the new device
-	 */
-	public void setDevice(Device device) {
-		this.key.setDevice(device);
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int hashResult = 1;
-		hashResult = prime * hashResult + (key == null ? 0 : key.hashCode());
-		return hashResult;
-	}
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CheckResult other = (CheckResult) obj;
-		if (key == null) {
-			if (other.key != null) {
-				return false;
-			}
-		}
-		else if (!key.equals(other.key)) {
-			return false;
-		}
-		return true;
-	}
-
 }

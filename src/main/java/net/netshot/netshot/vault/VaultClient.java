@@ -65,13 +65,13 @@ final class VaultClient {
 	private static Client buildHttpClient(VaultInstance instance) throws VaultException {
 		try {
 			log.trace("Building HTTP client for Vault instance '{}' (base URL '{}').",
-				instance.getName(), instance.getBaseUrl());
+				instance.name(), instance.baseUrl());
 			ClientBuilder clientBuilder = ClientBuilder.newBuilder();
-			if (instance.getBaseUrl() != null && instance.getBaseUrl().startsWith("https")) {
+			if (instance.baseUrl() != null && instance.baseUrl().startsWith("https")) {
 				SSLContext sslContext = HttpsTrustPolicy.buildSslContext(
-					instance.getHttpsCaTrustMode(), instance.getHttpsCustomCaCertificate());
+					instance.httpsCaTrustMode(), instance.httpsCustomCaCertificate());
 				clientBuilder.sslContext(sslContext);
-				HostnameVerifier hostnameVerifier = HttpsTrustPolicy.buildHostnameVerifier(instance.getHttpsCaTrustMode());
+				HostnameVerifier hostnameVerifier = HttpsTrustPolicy.buildHostnameVerifier(instance.httpsCaTrustMode());
 				if (hostnameVerifier != null) {
 					clientBuilder.hostnameVerifier(hostnameVerifier);
 				}
@@ -85,7 +85,7 @@ final class VaultClient {
 		catch (GeneralSecurityException | java.io.IOException e) {
 			throw new VaultException(
 				"Unable to initialize the HTTPS trust policy for Vault instance '%s': %s"
-					.formatted(instance.getName(), e.getMessage()), e);
+					.formatted(instance.name(), e.getMessage()), e);
 		}
 	}
 
@@ -96,18 +96,18 @@ final class VaultClient {
 	 * @throws VaultException in case of login failure
 	 */
 	static VaultToken login(HashicorpVaultKv2Instance instance) throws VaultException {
-		log.trace("Logging in to Vault instance '{}' using {} auth.", instance.getName(), instance.getAuthMethod());
-		if (instance.getAuthMethod() == AuthMethod.JWT) {
+		log.trace("Logging in to Vault instance '{}' using {} auth.", instance.name(), instance.authMethod());
+		if (instance.authMethod() == AuthMethod.JWT) {
 			String jwt = obtainJwtFromIdp(instance);
-			return loginWithPayload(instance, "%s/login".formatted(instance.getJwtMountPath()), Map.of(
-				"role", instance.getJwtVaultRole(),
+			return loginWithPayload(instance, "%s/login".formatted(instance.jwtMountPath()), Map.of(
+				"role", instance.jwtVaultRole(),
 				"jwt", jwt
 			));
 		}
 		else {
-			return loginWithPayload(instance, "%s/login".formatted(instance.getAppRoleMountPath()), Map.of(
-				"role_id", instance.getAppRoleId(),
-				"secret_id", instance.getAppRoleSecretId()
+			return loginWithPayload(instance, "%s/login".formatted(instance.appRoleMountPath()), Map.of(
+				"role_id", instance.appRoleId(),
+				"secret_id", instance.appRoleSecretId()
 			));
 		}
 	}
@@ -115,24 +115,24 @@ final class VaultClient {
 	private static String obtainJwtFromIdp(HashicorpVaultKv2Instance instance) throws VaultException {
 		try {
 			log.trace("Obtaining a JWT from IdP token endpoint '{}' for Vault instance '{}'.",
-				instance.getJwtIdpTokenEndpoint(), instance.getName());
+				instance.jwtIdpTokenEndpoint(), instance.name());
 			ClientAuthentication clientAuth = new ClientSecretBasic(
-				new ClientID(instance.getJwtClientId()), new Secret(instance.getJwtClientSecret()));
+				new ClientID(instance.jwtClientId()), new Secret(instance.jwtClientSecret()));
 			AuthorizationGrant grant = new ClientCredentialsGrant();
 			TokenRequest.Builder builder = new TokenRequest.Builder(
-				new URI(instance.getJwtIdpTokenEndpoint()), clientAuth, grant);
-			if (instance.getJwtScope() != null && !instance.getJwtScope().isBlank()) {
-				builder.scope(new Scope(instance.getJwtScope()));
+				new URI(instance.jwtIdpTokenEndpoint()), clientAuth, grant);
+			if (instance.jwtScope() != null && !instance.jwtScope().isBlank()) {
+				builder.scope(new Scope(instance.jwtScope()));
 			}
 			HTTPResponse httpResponse = builder.build().toHTTPRequest().send();
 			TokenResponse tokenResponse = TokenResponse.parse(httpResponse);
 			if (!tokenResponse.indicatesSuccess()) {
 				TokenErrorResponse errorResponse = tokenResponse.toErrorResponse();
 				throw new VaultException("Failed to obtain JWT from IdP for Vault instance '%s': %s"
-					.formatted(instance.getName(), errorResponse.getErrorObject().getDescription()));
+					.formatted(instance.name(), errorResponse.getErrorObject().getDescription()));
 			}
 			AccessTokenResponse successResponse = tokenResponse.toSuccessResponse();
-			log.trace("Successfully obtained a JWT from the IdP for Vault instance '{}'.", instance.getName());
+			log.trace("Successfully obtained a JWT from the IdP for Vault instance '{}'.", instance.name());
 			return successResponse.getTokens().getAccessToken().getValue();
 		}
 		catch (VaultException e) {
@@ -140,7 +140,7 @@ final class VaultClient {
 		}
 		catch (Exception e) {
 			throw new VaultException("Error while obtaining JWT from IdP for Vault instance '%s': %s"
-				.formatted(instance.getName(), e.getMessage()), e);
+				.formatted(instance.name(), e.getMessage()), e);
 		}
 	}
 
@@ -148,18 +148,18 @@ final class VaultClient {
 			Map<String, String> payload) throws VaultException {
 		Client client = buildHttpClient(instance);
 		try {
-			String uri = "%s/v1/auth/%s".formatted(stripTrailingSlash(instance.getBaseUrl()), authPath);
+			String uri = "%s/v1/auth/%s".formatted(stripTrailingSlash(instance.baseUrl()), authPath);
 			log.trace("POSTing Vault login request to '{}'.", uri);
 			jakarta.ws.rs.client.Invocation.Builder request = client.target(uri).request(MediaType.APPLICATION_JSON);
-			if (instance.getNamespace() != null && !instance.getNamespace().isBlank()) {
-				request = request.header("X-Vault-Namespace", instance.getNamespace());
+			if (instance.namespace() != null && !instance.namespace().isBlank()) {
+				request = request.header("X-Vault-Namespace", instance.namespace());
 			}
 			String body = JSON.writeValueAsString(payload);
 			Response response = request.post(Entity.entity(body, MediaType.APPLICATION_JSON_TYPE));
 			String responseBody = response.readEntity(String.class);
 			if (response.getStatus() != 200) {
 				throw new VaultException("Vault login failed for instance '%s' (HTTP %d): %s"
-					.formatted(instance.getName(), response.getStatus(), responseBody));
+					.formatted(instance.name(), response.getStatus(), responseBody));
 			}
 			JsonNode root = JSON.readTree(responseBody);
 			JsonNode auth = root.path("auth");
@@ -167,11 +167,11 @@ final class VaultClient {
 			if (clientToken == null) {
 				throw new VaultException(
 					"Vault login response for instance '%s' didn't include a client token"
-						.formatted(instance.getName()));
+						.formatted(instance.name()));
 			}
 			long leaseSeconds = auth.path("lease_duration").asLong(0);
 			long expiresAt = System.currentTimeMillis() + Math.max(leaseSeconds, 1) * 1000;
-			log.trace("Vault login for instance '{}' succeeded, token lease {}s.", instance.getName(), leaseSeconds);
+			log.trace("Vault login for instance '{}' succeeded, token lease {}s.", instance.name(), leaseSeconds);
 			return new VaultToken(clientToken, expiresAt);
 		}
 		catch (VaultException e) {
@@ -179,7 +179,7 @@ final class VaultClient {
 		}
 		catch (Exception e) {
 			throw new VaultException("Error while logging in to Vault instance '%s': %s"
-				.formatted(instance.getName(), e.getMessage()), e);
+				.formatted(instance.name(), e.getMessage()), e);
 		}
 		finally {
 			client.close();
@@ -198,24 +198,24 @@ final class VaultClient {
 			throws VaultException {
 		Client client = buildHttpClient(instance);
 		try {
-			String mount = instance.getKvMountPath() == null || instance.getKvMountPath().isBlank()
-				? "secret" : instance.getKvMountPath();
+			String mount = instance.kvMountPath() == null || instance.kvMountPath().isBlank()
+				? "secret" : instance.kvMountPath();
 			String uri = "%s/v1/%s/data/%s".formatted(
-				stripTrailingSlash(instance.getBaseUrl()), stripSlashes(mount), stripSlashes(path));
+				stripTrailingSlash(instance.baseUrl()), stripSlashes(mount), stripSlashes(path));
 			log.trace("GETting Vault secret data from '{}'.", uri);
 			jakarta.ws.rs.client.Invocation.Builder request = client.target(uri).request(MediaType.APPLICATION_JSON)
 				.header("X-Vault-Token", clientToken);
-			if (instance.getNamespace() != null && !instance.getNamespace().isBlank()) {
-				request = request.header("X-Vault-Namespace", instance.getNamespace());
+			if (instance.namespace() != null && !instance.namespace().isBlank()) {
+				request = request.header("X-Vault-Namespace", instance.namespace());
 			}
 			Response response = request.get();
 			String responseBody = response.readEntity(String.class);
 			if (response.getStatus() != 200) {
 				throw new VaultException("Vault read failed for instance '%s' path '%s' (HTTP %d): %s"
-					.formatted(instance.getName(), path, response.getStatus(), responseBody));
+					.formatted(instance.name(), path, response.getStatus(), responseBody));
 			}
 			JsonNode root = JSON.readTree(responseBody);
-			log.trace("Vault read of path '{}' on instance '{}' succeeded.", path, instance.getName());
+			log.trace("Vault read of path '{}' on instance '{}' succeeded.", path, instance.name());
 			return root.path("data").path("data");
 		}
 		catch (VaultException e) {
@@ -223,7 +223,7 @@ final class VaultClient {
 		}
 		catch (Exception e) {
 			throw new VaultException("Error while reading Vault path '%s' on instance '%s': %s"
-				.formatted(path, instance.getName(), e.getMessage()), e);
+				.formatted(path, instance.name(), e.getMessage()), e);
 		}
 		finally {
 			client.close();

@@ -20,8 +20,7 @@ package net.netshot.netshot.vault;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.exception.ConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,9 +78,9 @@ public class VaultInstanceService {
 	 */
 	public List<VaultInstance> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findAll(session, page));
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the Vault instances.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the Vault instances");
 		}
@@ -90,27 +89,25 @@ public class VaultInstanceService {
 	/**
 	 * Adds a Vault instance.
 	 *
-	 * @param vaultInstance the Vault instance to add (it becomes the persistent one)
+	 * @param vaultInstance the Vault instance to add (its ID is ignored)
 	 * @return the new Vault instance
 	 * @throws NetshotException if the name is blank or already used, or the Vault instance can't be stored
 	 */
 	public VaultInstance create(VaultInstance vaultInstance) {
-		if (vaultInstance.getName() == null || "".equals(vaultInstance.getName().trim())) {
+		if (vaultInstance.name() == null || "".equals(vaultInstance.name().trim())) {
 			log.error("Invalid Vault instance name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, "Invalid name for the Vault instance");
 		}
+		VaultInstance created;
 		try {
-			this.transactions.run(session -> {
-				this.repository.add(session, vaultInstance);
-				this.repository.refresh(session, vaultInstance);
-			});
+			created = this.transactions.write(dsl -> this.repository.add(dsl, vaultInstance));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Can't add the Vault instance.", e);
 			throw saveFailure(e);
 		}
-		AAA_LOG.info("{} has been created.", vaultInstance);
-		return vaultInstance;
+		AAA_LOG.info("{} has been created.", created);
+		return created;
 	}
 
 	/**
@@ -125,49 +122,48 @@ public class VaultInstanceService {
 	public VaultInstance update(long id, VaultInstance incoming) {
 		VaultInstance vaultInstance;
 		try {
-			vaultInstance = this.transactions.write(session -> {
-				VaultInstance existing = this.repository.find(session, incoming.getClass(), id);
-				if (existing == null) {
+			vaultInstance = this.transactions.write(dsl -> {
+				VaultInstance existing = this.repository.find(dsl, id);
+				if (existing == null || !existing.getClass().equals(incoming.getClass())) {
+					// A Vault instance of another type is not found, as with the former query by type
 					log.error("Unable to find the Vault instance {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
 				}
-				if (!existing.getClass().equals(incoming.getClass())) {
-					log.error("Wrong posted Vault instance type for Vault instance {}.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE,
-						"The posted Vault instance type doesn't match the existing one.");
-				}
-				existing.setName(incoming.getName());
-				if (existing.getName() == null || "".equals(existing.getName().trim())) {
+				if (incoming.name() == null || "".equals(incoming.name().trim())) {
 					log.error("Invalid Vault instance name.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, "Invalid name for the Vault instance");
 				}
-				existing.setBaseUrl(incoming.getBaseUrl());
-				existing.setNamespace(incoming.getNamespace());
-				existing.setHttpsCaTrustMode(incoming.getHttpsCaTrustMode());
-				existing.setHttpsCustomCaCertificate(incoming.getHttpsCustomCaCertificate());
-				if (existing instanceof HashicorpVaultKv2Instance hcInstance
-						&& incoming instanceof HashicorpVaultKv2Instance rsHcInstance) {
-					hcInstance.setKvMountPath(rsHcInstance.getKvMountPath());
-					hcInstance.setAuthMethod(rsHcInstance.getAuthMethod());
-					hcInstance.setAppRoleMountPath(rsHcInstance.getAppRoleMountPath());
-					hcInstance.setAppRoleId(rsHcInstance.getAppRoleId());
-					if (rsHcInstance.getAppRoleSecretId() != null) {
-						hcInstance.setAppRoleSecretId(rsHcInstance.getAppRoleSecretId());
+				VaultInstance edited = switch (existing) {
+					case HashicorpVaultKv2Instance hcInstance -> {
+						HashicorpVaultKv2Instance rsHcInstance = (HashicorpVaultKv2Instance) incoming;
+						yield hcInstance.toBuilder()
+							.name(rsHcInstance.name())
+							.baseUrl(rsHcInstance.baseUrl())
+							.namespace(rsHcInstance.namespace())
+							.httpsCaTrustMode(rsHcInstance.httpsCaTrustMode())
+							.httpsCustomCaCertificate(rsHcInstance.httpsCustomCaCertificate())
+							.kvMountPath(rsHcInstance.kvMountPath())
+							.authMethod(rsHcInstance.authMethod())
+							.appRoleMountPath(rsHcInstance.appRoleMountPath())
+							.appRoleId(rsHcInstance.appRoleId())
+							.appRoleSecretId(rsHcInstance.appRoleSecretId() != null ? rsHcInstance.appRoleSecretId() : hcInstance.appRoleSecretId())
+							.jwtMountPath(rsHcInstance.jwtMountPath())
+							.jwtIdpTokenEndpoint(rsHcInstance.jwtIdpTokenEndpoint())
+							.jwtClientId(rsHcInstance.jwtClientId())
+							.jwtClientSecret(rsHcInstance.jwtClientSecret() != null ? rsHcInstance.jwtClientSecret() : hcInstance.jwtClientSecret())
+							.jwtVaultRole(rsHcInstance.jwtVaultRole())
+							.jwtScope(rsHcInstance.jwtScope())
+							.build();
 					}
-					hcInstance.setJwtMountPath(rsHcInstance.getJwtMountPath());
-					hcInstance.setJwtIdpTokenEndpoint(rsHcInstance.getJwtIdpTokenEndpoint());
-					hcInstance.setJwtClientId(rsHcInstance.getJwtClientId());
-					if (rsHcInstance.getJwtClientSecret() != null) {
-						hcInstance.setJwtClientSecret(rsHcInstance.getJwtClientSecret());
-					}
-					hcInstance.setJwtVaultRole(rsHcInstance.getJwtVaultRole());
-					hcInstance.setJwtScope(rsHcInstance.getJwtScope());
+				};
+				VaultInstance saved = this.repository.save(dsl, edited);
+				if (saved == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
 				}
-				this.repository.save(session, existing);
-				return existing;
+				return saved;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the Vault instance {}.", id, e);
 			throw saveFailure(e);
 		}
@@ -176,8 +172,8 @@ public class VaultInstanceService {
 		return vaultInstance;
 	}
 
-	private static NetshotException saveFailure(HibernateException e) {
-		if (DatabaseErrors.causeMentions(e, "uplicate")) {
+	private static NetshotException saveFailure(DataAccessException e) {
+		if (DatabaseErrors.isUniqueViolation(e)) {
 			return new NetshotException(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, "A Vault instance with this name already exists.");
 		}
 		return new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the Vault instance");
@@ -193,13 +189,11 @@ public class VaultInstanceService {
 	public boolean delete(long id) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.write(session -> {
-				VaultInstance vaultInstance = this.repository.find(session, id);
-				if (vaultInstance == null) {
+			deleted = this.transactions.write(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.info("No such Vault instance of ID {}", id);
 					return false;
 				}
-				this.repository.remove(session, vaultInstance);
 				return true;
 			});
 		}
@@ -208,7 +202,7 @@ public class VaultInstanceService {
 			if (e instanceof NetshotException) {
 				throw e;
 			}
-			if (e instanceof ConstraintViolationException) {
+			if (e instanceof DataAccessException dae && DatabaseErrors.isForeignKeyViolation(dae)) {
 				throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_IN_USE,
 					"Unable to delete the Vault instance, it is referenced by one or more credential fields.");
 			}
@@ -240,38 +234,26 @@ public class VaultInstanceService {
 		if (id != null) {
 			// Overlay onto the persisted secrets, so re-testing an already-saved
 			// instance without touching its masked secret field(s) still works.
-			hcInstance = this.transactions.read(session -> {
-				VaultInstance existing = this.repository.find(session, id);
+			hcInstance = this.transactions.read(dsl -> {
+				VaultInstance existing = this.repository.find(dsl, id);
 				if (!(existing instanceof HashicorpVaultKv2Instance existingHc)) {
 					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "Unable to find the Vault instance.");
 				}
-				HashicorpVaultKv2Instance overlaid = new HashicorpVaultKv2Instance(rsHcInstance.getName());
-				overlaid.setBaseUrl(rsHcInstance.getBaseUrl());
-				overlaid.setNamespace(rsHcInstance.getNamespace());
-				overlaid.setHttpsCaTrustMode(rsHcInstance.getHttpsCaTrustMode());
-				overlaid.setHttpsCustomCaCertificate(rsHcInstance.getHttpsCustomCaCertificate());
-				overlaid.setKvMountPath(rsHcInstance.getKvMountPath());
-				overlaid.setAuthMethod(rsHcInstance.getAuthMethod());
-				overlaid.setAppRoleMountPath(rsHcInstance.getAppRoleMountPath());
-				overlaid.setAppRoleId(rsHcInstance.getAppRoleId());
-				overlaid.setAppRoleSecretId(rsHcInstance.getAppRoleSecretId() != null
-					? rsHcInstance.getAppRoleSecretId() : existingHc.getAppRoleSecretId());
-				overlaid.setJwtMountPath(rsHcInstance.getJwtMountPath());
-				overlaid.setJwtIdpTokenEndpoint(rsHcInstance.getJwtIdpTokenEndpoint());
-				overlaid.setJwtClientId(rsHcInstance.getJwtClientId());
-				overlaid.setJwtClientSecret(rsHcInstance.getJwtClientSecret() != null
-					? rsHcInstance.getJwtClientSecret() : existingHc.getJwtClientSecret());
-				overlaid.setJwtVaultRole(rsHcInstance.getJwtVaultRole());
-				overlaid.setJwtScope(rsHcInstance.getJwtScope());
-				return overlaid;
+				return rsHcInstance.toBuilder()
+					.id(0)
+					.version(0)
+					.changeDate(null)
+					.appRoleSecretId(rsHcInstance.appRoleSecretId() != null ? rsHcInstance.appRoleSecretId() : existingHc.appRoleSecretId())
+					.jwtClientSecret(rsHcInstance.jwtClientSecret() != null ? rsHcInstance.jwtClientSecret() : existingHc.jwtClientSecret())
+					.build();
 			});
 		}
 		try {
 			this.connectionTester.test(hcInstance);
-			AAA_LOG.info("Test connection to Vault instance '{}' succeeded.", hcInstance.getName());
+			AAA_LOG.info("Test connection to Vault instance '{}' succeeded.", hcInstance.name());
 		}
 		catch (VaultException e) {
-			AAA_LOG.warn("Test connection to Vault instance '{}' failed: {}", hcInstance.getName(), e.getMessage());
+			AAA_LOG.warn("Test connection to Vault instance '{}' failed: {}", hcInstance.name(), e.getMessage());
 			throw new NetshotException(ErrorCode.NETSHOT_VAULT_CONNECTION_FAILED,
 				"Vault connection test failed: " + e.getMessage());
 		}

@@ -117,18 +117,18 @@ public class JsCliHelper {
 		String host = this.accessManager.resolveHost(accessDef);
 		int port = this.accessManager.resolvePort(accessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
-			accessDef.getName(), accessDef.getProtocol(), credentialSet.getName(), host, port);
+			accessDef.getName(), accessDef.getProtocol(), credentialSet.name(), host, port);
 		if (accessDef.getProtocol() == DriverProtocol.SSH) {
 			Ssh ssh;
 			if (credentialSet instanceof DeviceSshKeyAccount sshKeyAccount) {
-				ssh = new Ssh(host, port, resolveSecret(sshKeyAccount.getUsernameSecret()),
-					resolveSecret(sshKeyAccount.getPrivateKeySecret()),
-					resolveSecret(sshKeyAccount.getPasswordSecret()), this.taskContext);
+				ssh = new Ssh(host, port, resolveSecret(sshKeyAccount.usernameSecret()),
+					resolveSecret(sshKeyAccount.privateKeySecret()),
+					resolveSecret(sshKeyAccount.passwordSecret()), this.taskContext);
 			}
 			else {
 				DeviceSshAccount sshAccount = (DeviceSshAccount) credentialSet;
-				ssh = new Ssh(host, port, resolveSecret(sshAccount.getUsernameSecret()),
-					resolveSecret(sshAccount.getPasswordSecret()), this.taskContext);
+				ssh = new Ssh(host, port, resolveSecret(sshAccount.usernameSecret()),
+					resolveSecret(sshAccount.passwordSecret()), this.taskContext);
 			}
 			ssh.applySshConfig(accessDef.getSshConfig());
 			if (this.sshConfigOverride != null) {
@@ -305,7 +305,7 @@ public class JsCliHelper {
 		}
 		try {
 			command = command.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_USERNAME),
-				Matcher.quoteReplacement(resolveSecret(account.getUsernameSecret())));
+				Matcher.quoteReplacement(resolveSecret(account.usernameSecret())));
 			if (this.taskContext.isTracing()) {
 				// Log before injecting secrets
 				this.taskContext.trace("About to send the following (secrets not inserted):");
@@ -314,9 +314,9 @@ public class JsCliHelper {
 			}
 			log.debug("Command to be sent (secrets not inserted): '{}'.", command);
 			command = command.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_PASSWORD),
-				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.getPasswordSecret()))));
+				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.passwordSecret()))));
 			command = command.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_SUPERPASSWORD),
-				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.getSuperPasswordSecret()))));
+				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.superPasswordSecret()))));
 		}
 		catch (IOException e) {
 			log.error("Unable to resolve a Vault-backed credential.", e);

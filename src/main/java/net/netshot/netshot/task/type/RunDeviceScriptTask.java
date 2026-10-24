@@ -18,100 +18,52 @@
  */
 package net.netshot.netshot.task.type;
 
-import org.quartz.JobKey;
+import java.util.Map;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 
 /**
- * This task runs a JS script on a device.
+ * Runs a user script on a device.
+ *
+ * @param deviceId the ID of the device (null if it was deleted)
+ * @param script the script
+ * @param deviceDriver the name of the driver the script is written for
+ * @param userInputValues the values of the user inputs of the script (or null)
+ * @param runSnapshot true to take a snapshot afterwards
+ * @param runDiagnostics true to run the diagnostics afterwards
+ * @param checkCompliance true to check the compliance afterwards
  */
-@Entity
-@DiscriminatorValue("RunDeviceScriptTask")
-@Slf4j
-public final class RunDeviceScriptTask extends Task implements DeviceBasedTask {
+public record RunDeviceScriptTask(Long deviceId, String script, String deviceDriver, Map<String, String> userInputValues,
+	boolean runSnapshot, boolean runDiagnostics, boolean checkCompliance) implements TaskSpec, DeviceBasedTask {
 
 	/**
-	 * Instantiates a new RunDeviceScriptTask task.
-	 */
-	protected RunDeviceScriptTask() {
-	}
-
-	/**
-	 * Instantiates a new RunDeviceScriptTask task.
+	 * Builds a new script task.
 	 *
 	 * @param device the device
-	 * @param script the script
-	 * @param driver the device driver
+	 * @param spec the specification (its device ID is ignored)
 	 * @param comments the comments
 	 * @param author the author
+	 * @return the new task
 	 */
-	public RunDeviceScriptTask(Device device, String script, DeviceDriver driver, String comments, String author) {
-		super(comments, device.getLastConfig() == null ? device.getMgmtAddress() : device.getName(),
-			author);
-		this.setDevice(device);
-		this.setScript(script);
-		this.setDeviceDriver(driver.getName());
+	public static Task of(Device device, RunDeviceScriptTask spec, String comments, String author) {
+		return Task.of(new RunDeviceScriptTask(device.id(), spec.script, spec.deviceDriver, spec.userInputValues,
+			spec.runSnapshot, spec.runDiagnostics, spec.checkCompliance), comments, DeviceBasedTask.targetOf(device), author);
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#deviceLockPolicy()
-	 */
 	@Override
-	public DeviceLockPolicy deviceLockPolicy() {
-		// Each script run is unique: never cancelled because of another script, waits for its turn
-		return DeviceLockPolicy.WAIT;
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
-	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Device script execution";
 	}
 
-	/**
-	 * Get the ID of the device.
-	 * 
-	 * @return the ID of the device
-	 */
-	@Transient
-	public long getDeviceId() {
-		if (this.device == null) {
-			return 0;
-		}
-		return this.device.getId();
+	@Override
+	public String identityGroup() {
+		return DeviceBasedTask.identityGroup("RunDevice", this.deviceId);
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
 	@Override
-	public Object clone() throws CloneNotSupportedException {
-		RunDeviceScriptTask task = (RunDeviceScriptTask) super.clone();
-		task.setDevice(this.device);
-		task.setDeviceDriver(this.deviceDriver);
-		task.setRunSnapshot(this.runSnapshot);
-		task.setRunDiagnostics(this.runDiagnostics);
-		task.setCheckCompliance(this.checkCompliance);
-		return task;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
-	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()),
-			String.format("RunDevice_%d", this.getDeviceId()));
+	public Task.DeviceLockPolicy deviceLockPolicy() {
+		// Each script run is unique: never cancelled because of another script, waits for its turn
+		return Task.DeviceLockPolicy.WAIT;
 	}
 }

@@ -18,59 +18,28 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import lombok.Getter;
-import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * This is a Javascript-based diagnostic. Declare the diagnostic type along with
- * a script.
- * 
- * @author sylvain.cadilhac
+ * A diagnostic running a JavaScript script on the devices.
+ *
+ * @param id the ID (0 for a diagnostic not stored yet)
+ * @param name the name
+ * @param enabled true if the diagnostic is run
+ * @param targetGroupId the ID of the group of devices the diagnostic is run on
+ * @param resultType the type of result
+ * @param script the script
  */
-@Entity
-@OnDelete(action = OnDeleteAction.CASCADE)
-public class JavaScriptDiagnostic extends Diagnostic {
+public record JavaScriptDiagnostic(long id, String name, boolean enabled, Long targetGroupId, AttributeType resultType,
+	String script) implements Diagnostic {
 
-	/**
-	 * The JS script to execute on the device.
-	 */
-	@Getter(onMethod = @__({
-		@Column(length = 10000000)
-	}))
-	@Setter
-	private String script;
-
-	/**
-	 * Empty constructor. For Hibernate.
-	 */
-	protected JavaScriptDiagnostic() {
+	@Override
+	public JavaScriptDiagnostic withId(long newId) {
+		return new JavaScriptDiagnostic(newId, this.name, this.enabled, this.targetGroupId, this.resultType, this.script);
 	}
 
-	/**
-	 * Instantiates a new diagnostic.
-	 * 
-	 * @param name
-	 *                      The name
-	 * @param enabled
-	 *                      True to enable the diagnostic
-	 * @param targetGroup
-	 *                      The group of devices the diagnostic applies to
-	 * @param resultType
-	 *                      The type of result expected by this diagnostic
-	 * @param script
-	 *                      The Javascript script
-	 */
-	public JavaScriptDiagnostic(String name, boolean enabled, DeviceGroup targetGroup, AttributeType resultType,
-		String script) {
-		super(name, enabled, targetGroup, resultType);
-		this.script = script;
+	@Override
+	public String toString() {
+		return Diagnostic.describe(this);
 	}
-
 }

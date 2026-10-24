@@ -3,13 +3,13 @@
   <author>author-5</author>
   <cancelRequested>true</cancelRequested>
   <changeDate>1600000000005</changeDate>
-  <checkCompliance>true</checkCompliance>
+  <checkCompliance>false</checkCompliance>
   <childOrder>5</childOrder>
   <comments>Comments of 5</comments>
   <creationDate>1500000000005</creationDate>
   <debugEnabled>false</debugEnabled>
   <deviceAddress>10.9.9.9</deviceAddress>
-  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriver/>
   <deviceId>5</deviceId>
   <discoveredDeviceTypeDescription>Cisco IOS and IOS-XE</discoveredDeviceTypeDescription>
   <executionDate>1550000000005</executionDate>
@@ -19,20 +19,18 @@
   <parentTaskId>105</parentTaskId>
   <priority>7</priority>
   <repeating>true</repeating>
-  <runDiagnostics>true</runDiagnostics>
-  <runSnapshot>true</runSnapshot>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
   <runnerId>&lt;runnerId&gt;</runnerId>
   <scheduleFactor>3</scheduleFactor>
   <scheduleMode>SEQUENTIAL</scheduleMode>
   <scheduleReference>1700000000000</scheduleReference>
   <scheduleType>WEEKLY</scheduleType>
-  <script>script of 5</script>
+  <script/>
   <snapshotTaskId>55</snapshotTaskId>
   <status>SUCCESS</status>
   <stopOnFailure>true</stopOnFailure>
   <target>10.9.9.9</target>
   <taskDescription>Device autodiscovery</taskDescription>
-  <userInputValues>
-    <input>value</input>
-  </userInputValues>
+  <userInputValues/>
 </DiscoverDeviceTypeTask>

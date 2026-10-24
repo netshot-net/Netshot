@@ -18,34 +18,31 @@
  */
 package net.netshot.netshot.inventory.search;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+
 import java.util.List;
 
-import org.hibernate.Session;
-import org.hibernate.query.Query;
+import org.jooq.DSLContext;
 
-import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The query running a device search. The {@link Session} is always the first parameter: the
- * caller (the service) owns the session and the transaction.
+ * The query running a device search. The {@link DSLContext} is always the first parameter: the
+ * caller (the service) owns the transaction.
  */
 public class SearchRepository {
 
 	/**
 	 * Finds the devices matching a parsed query, in their summary form.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param finder the parsed query
 	 * @param page the window on the result
 	 * @return the device summaries
 	 */
-	public List<DeviceSummary> findDevices(Session session, Finder finder, Page page) {
-		Query<DeviceSummary> query = session.createQuery(DeviceSummary.SELECT_HQL + finder.getHql(), DeviceSummary.class);
-		finder.setVariables(query);
-		query.setParameter("nonConforming", CheckResult.ResultOption.NONCONFORMING);
-		page.apply(query);
-		return query.list();
+	public List<DeviceSummary> findDevices(DSLContext dsl, Finder finder, Page page) {
+		return page.apply(dsl.select(DeviceSummary.FIELDS).from(DEVICE).where(finder.getCondition()))
+			.fetch(DeviceSummary::fromRecord);
 	}
 }

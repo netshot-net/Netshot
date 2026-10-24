@@ -18,13 +18,13 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.HibernateException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -32,11 +32,10 @@ import org.slf4j.helpers.MessageFormatter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
-import net.netshot.netshot.compliance.rules.JavaScriptRule;
-import net.netshot.netshot.compliance.rules.PythonRule;
-import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -64,6 +63,7 @@ public class RuleService {
 	private final RuleRepository repository;
 	private final PolicyRepository policyRepository;
 	private final RuleEvaluators evaluators;
+	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/**
 	 * Instantiates the service.
@@ -90,9 +90,9 @@ public class RuleService {
 	 */
 	public List<RuleSummary> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findSummaries(session, page));
+			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the rules.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
 		}
@@ -108,15 +108,15 @@ public class RuleService {
 	 */
 	public List<Rule> listOfPolicy(long policyId, Page page) {
 		try {
-			return this.transactions.read(session -> {
-				if (this.policyRepository.find(session, policyId) == null) {
+			return this.transactions.read(dsl -> {
+				if (this.policyRepository.find(dsl, policyId) == null) {
 					log.error("Invalid policy.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy");
 				}
-				return this.repository.findByPolicy(session, policyId, page);
+				return this.repository.findByPolicy(dsl, policyId, page);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the rules.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
 		}
@@ -132,12 +132,12 @@ public class RuleService {
 	 */
 	public Rule getOfPolicy(long policyId, long id) {
 		try {
-			return this.transactions.read(session -> {
-				if (this.policyRepository.find(session, policyId) == null) {
+			return this.transactions.read(dsl -> {
+				if (this.policyRepository.find(dsl, policyId) == null) {
 					log.error("Invalid policy.");
 					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unknown policy");
 				}
-				Rule rule = this.repository.findOfPolicy(session, policyId, id);
+				Rule rule = this.repository.findOfPolicy(dsl, policyId, id);
 				if (rule == null) {
 					log.warn("Unable to find the rule object.");
 					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unknown rule");
@@ -145,7 +145,7 @@ public class RuleService {
 				return rule;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the rule.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rule");
 		}
@@ -167,42 +167,39 @@ public class RuleService {
 		String name = definition.name().trim();
 		Rule rule;
 		try {
-			rule = this.transactions.write(session -> {
-				Policy policy = this.policyRepository.find(session, definition.policyId());
+			rule = this.transactions.write(dsl -> {
+				Policy policy = this.policyRepository.find(dsl, definition.policyId());
 				if (policy == null) {
 					log.error("The policy of ID {} doesn't exist.", definition.policyId());
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy.");
 				}
 				Rule newRule;
 				if (TEXT_RULE.equals(definition.type())) {
-					TextRule textRule = new TextRule(name, policy);
-					applyTextRule(textRule, definition);
-					newRule = textRule;
+					newRule = applyTextRule(TextRule.builder(name, policy.id()), definition).build();
 				}
 				else if (JAVASCRIPT_RULE.equals(definition.type())) {
-					JavaScriptRule jsRule = new JavaScriptRule(name, policy);
+					JavaScriptRule jsRule = JavaScriptRule.of(name, policy.id());
 					if (definition.script() != null) {
-						jsRule.setScript(definition.script().trim());
+						jsRule = new JavaScriptRule(0, name, false, policy.id(), definition.script().trim());
 					}
 					newRule = jsRule;
 				}
 				else if (PYTHON_RULE.equals(definition.type())) {
-					PythonRule pyRule = new PythonRule(name, policy);
+					PythonRule pyRule = PythonRule.of(name, policy.id());
 					if (definition.script() != null) {
-						pyRule.setScript(definition.script().trim());
+						pyRule = new PythonRule(0, name, false, policy.id(), definition.script().trim());
 					}
 					newRule = pyRule;
 				}
 				else {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
 				}
-				session.persist(newRule);
-				return newRule;
+				return newRule.withId(this.repository.add(dsl, newRule));
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new rule.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_RULE, "A rule with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
@@ -228,68 +225,47 @@ public class RuleService {
 	public Rule update(long id, RuleDefinition definition) {
 		Rule rule;
 		try {
-			rule = this.transactions.write(session -> {
-				Rule existing = this.repository.find(session, id);
+			rule = this.transactions.write(dsl -> {
+				Rule existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
 				}
-
+				String name = existing.name();
 				if (definition.name() != null) {
-					String name = definition.name().trim();
+					name = definition.name().trim();
 					if (name.isEmpty()) {
 						log.warn("User posted an empty rule name.");
 						throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
 					}
-					existing.setName(name);
 				}
-				existing.setEnabled(definition.enabled());
-
-				Map<Long, Date> postedExemptions = new HashMap<>();
-				postedExemptions.putAll(definition.exemptions());
-				Iterator<Exemption> i = existing.getExemptions().iterator();
-				while (i.hasNext()) {
-					Exemption exemption = i.next();
-					Long deviceId = exemption.getDevice().getId();
-					if (postedExemptions.containsKey(deviceId)) {
-						exemption.setExpirationDate(postedExemptions.get(deviceId));
-						postedExemptions.remove(deviceId);
-					}
-					else {
-						i.remove();
-					}
-				}
-				for (Map.Entry<Long, Date> postedExemption : postedExemptions.entrySet()) {
-					Device device = this.repository.findDevice(session, postedExemption.getKey());
-					if (device == null) {
+				Map<Long, Instant> exemptions = new HashMap<>();
+				for (Map.Entry<Long, Date> postedExemption : definition.exemptions().entrySet()) {
+					if (!this.repository.deviceExists(dsl, postedExemption.getKey())) {
 						log.warn("Unknown device of ID {}", postedExemption.getKey());
 						throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE,
 							"Unknown device of ID %d.".formatted(postedExemption.getKey()));
 					}
-					existing.addExemption(new Exemption(existing, device, postedExemption.getValue()));
+					exemptions.put(postedExemption.getKey(),
+						postedExemption.getValue() == null ? null : postedExemption.getValue().toInstant());
 				}
-
-				if (existing instanceof JavaScriptRule jsRule) {
-					if (definition.script() != null) {
-						jsRule.setScript(definition.script().trim());
-					}
-				}
-				else if (existing instanceof PythonRule pyRule) {
-					if (definition.script() != null) {
-						pyRule.setScript(definition.script().trim());
-					}
-				}
-				else if (existing instanceof TextRule textRule) {
-					applyTextRule(textRule, definition);
-				}
-
-				session.merge(existing);
-				return existing;
+				final String newName = name;
+				Rule edited = switch (existing) {
+					case JavaScriptRule jsRule -> new JavaScriptRule(id, newName, definition.enabled(), jsRule.policyId(),
+						definition.script() != null ? definition.script().trim() : jsRule.script());
+					case PythonRule pyRule -> new PythonRule(id, newName, definition.enabled(), pyRule.policyId(),
+						definition.script() != null ? definition.script().trim() : pyRule.script());
+					case TextRule textRule -> applyTextRule(textRule.toBuilder().name(newName).enabled(definition.enabled()),
+						definition).build();
+				};
+				this.repository.save(dsl, edited);
+				this.repository.replaceExemptions(dsl, id, exemptions);
+				return edited;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new rule.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_RULE, "A rule with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
@@ -307,13 +283,11 @@ public class RuleService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.write(session -> {
-				Rule rule = this.repository.find(session, id);
-				if (rule == null) {
+			boolean deleted = this.transactions.write(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.info("No such rule of ID {}", id);
 					return false;
 				}
-				session.remove(rule);
 				return true;
 			});
 			if (deleted) {
@@ -321,7 +295,7 @@ public class RuleService {
 			}
 			return deleted;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the rule {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the rule.");
 		}
@@ -339,73 +313,67 @@ public class RuleService {
 	 */
 	public RuleTestResult test(long deviceId, RuleDefinition definition) {
 		try {
-			return this.transactions.read(session -> {
-				Device device = this.repository.findDeviceWithLastConfig(session, deviceId);
-				if (device == null) {
-					log.warn("Unable to find the device {}.", deviceId);
-					return new RuleTestResult(CheckResult.ResultOption.NOTAPPLICABLE, null, "Unable to find the device");
+			Device found = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
+			Device device = found == null || found.lastConfigId() == null ? null : found;
+			if (device == null) {
+				log.warn("Unable to find the device {}.", deviceId);
+				return new RuleTestResult(CheckResult.ResultOption.NOTAPPLICABLE, null, "Unable to find the device");
+			}
+
+			Rule rule;
+			if (TEXT_RULE.equals(definition.type())) {
+				// As on creation, an option which is not given keeps the default value of the rule
+				TextRule.TextRuleBuilder txRule = TextRule.builder("TEST", 0)
+					.deviceDriver(definition.driver())
+					.field(definition.field())
+					.context(definition.context())
+					.text(definition.text());
+				if (definition.invert() != null) {
+					txRule.invert(definition.invert());
+				}
+				if (definition.regExp() != null) {
+					txRule.regExp(definition.regExp());
+				}
+				if (definition.anyBlock() != null) {
+					txRule.anyBlock(definition.anyBlock());
+				}
+				if (definition.matchAll() != null) {
+					txRule.matchAll(definition.matchAll());
+				}
+				if (definition.normalize() != null) {
+					txRule.normalize(definition.normalize());
+				}
+				rule = txRule.enabled(true).build();
+			}
+			else if (JAVASCRIPT_RULE.equals(definition.type())) {
+				rule = new JavaScriptRule(0, "TEST", true, 0, definition.script());
+			}
+			else if (PYTHON_RULE.equals(definition.type())) {
+				rule = new PythonRule(0, "TEST", true, 0, definition.script());
+			}
+			else {
+				log.warn("Invalid rule type {}.", definition.type());
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type");
+			}
+			StringBuilder taskLog = new StringBuilder();
+			TaskContext taskContext = new TaskContext() {
+				@Override
+				public void log(Level level, String message, Object... params) {
+					taskLog.append("[%s] ".formatted(level.toString()));
+					taskLog.append(
+						MessageFormatter.arrayFormat(message, params).getMessage());
+					taskLog.append("\n");
 				}
 
-				Rule rule;
-				if (TEXT_RULE.equals(definition.type())) {
-					TextRule txRule = new TextRule("TEST", null);
-					txRule.setDeviceDriver(definition.driver());
-					txRule.setField(definition.field());
-					txRule.setContext(definition.context());
-					txRule.setText(definition.text());
-					// As on creation, an option which is not given keeps the default value of the rule
-					if (definition.invert() != null) {
-						txRule.setInvert(definition.invert());
-					}
-					if (definition.regExp() != null) {
-						txRule.setRegExp(definition.regExp());
-					}
-					if (definition.anyBlock() != null) {
-						txRule.setAnyBlock(definition.anyBlock());
-					}
-					if (definition.matchAll() != null) {
-						txRule.setMatchAll(definition.matchAll());
-					}
-					if (definition.normalize() != null) {
-						txRule.setNormalize(definition.normalize());
-					}
-					rule = txRule;
+				@Override
+				public String getIdentifier() {
+					return "RuleTest";
 				}
-				else if (JAVASCRIPT_RULE.equals(definition.type())) {
-					JavaScriptRule jsRule = new JavaScriptRule("TEST", null);
-					jsRule.setScript(definition.script());
-					rule = jsRule;
-				}
-				else if (PYTHON_RULE.equals(definition.type())) {
-					PythonRule pyRule = new PythonRule("TEST", null);
-					pyRule.setScript(definition.script());
-					rule = pyRule;
-				}
-				else {
-					log.warn("Invalid rule type {}.", definition.type());
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type");
-				}
+			};
 
-				StringBuilder taskLog = new StringBuilder();
-				TaskContext taskContext = new TaskContext() {
-					@Override
-					public void log(Level level, String message, Object... params) {
-						taskLog.append("[%s] ".formatted(level.toString()));
-						taskLog.append(
-							MessageFormatter.arrayFormat(message, params).getMessage());
-						taskLog.append("\n");
-					}
-
-					@Override
-					public String getIdentifier() {
-						return "RuleTest";
-					}
-				};
-
-				rule.setEnabled(true);
-				CheckResult check = this.evaluators.evaluate(rule, device, session, taskContext);
-				return new RuleTestResult(check.getResult(), taskLog.toString(), check.getComment());
-			});
+			// Dry run: what the rule changes on the device (tags...) is not stored
+			CheckResult check = this.evaluators.evaluate(rule, new DeviceDraft(device), false, taskContext);
+			return new RuleTestResult(check.result(), taskLog.toString(), check.comment());
 		}
 		catch (NetshotException e) {
 			throw e;
@@ -426,9 +394,9 @@ public class RuleService {
 	 */
 	public List<ExemptedDevice> listExemptedDevices(long ruleId, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findExemptedDevices(session, ruleId, page));
+			return this.transactions.read(dsl -> this.repository.findExemptedDevices(dsl, ruleId, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the exemptions.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the exemptions");
 		}
@@ -444,41 +412,42 @@ public class RuleService {
 	 */
 	public List<DeviceRuleResult> listDeviceResults(long deviceId, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findDeviceResults(session, deviceId, page));
+			return this.transactions.read(dsl -> this.repository.findDeviceResults(dsl, deviceId, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the rules.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rules");
 		}
 	}
 
-	private static void applyTextRule(TextRule textRule, RuleDefinition definition) {
+	private static TextRule.TextRuleBuilder applyTextRule(TextRule.TextRuleBuilder textRule, RuleDefinition definition) {
 		if (definition.text() != null) {
-			textRule.setText(definition.text());
+			textRule.text(definition.text());
 		}
 		if (definition.regExp() != null) {
-			textRule.setRegExp(definition.regExp());
+			textRule.regExp(definition.regExp());
 		}
 		if (definition.context() != null) {
-			textRule.setContext(definition.context());
+			textRule.context(definition.context());
 		}
 		if (definition.field() != null) {
-			textRule.setField(definition.field());
+			textRule.field(definition.field());
 		}
 		if (definition.driver() != null) {
-			textRule.setDeviceDriver(definition.driver());
+			textRule.deviceDriver(definition.driver());
 		}
 		if (definition.invert() != null) {
-			textRule.setInvert(definition.invert());
+			textRule.invert(definition.invert());
 		}
 		if (definition.matchAll() != null) {
-			textRule.setMatchAll(definition.matchAll());
+			textRule.matchAll(definition.matchAll());
 		}
 		if (definition.anyBlock() != null) {
-			textRule.setAnyBlock(definition.anyBlock());
+			textRule.anyBlock(definition.anyBlock());
 		}
 		if (definition.normalize() != null) {
-			textRule.setNormalize(definition.normalize());
+			textRule.normalize(definition.normalize());
 		}
+		return textRule;
 	}
 }

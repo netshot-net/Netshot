@@ -21,19 +21,23 @@ package net.netshot.netshot.access;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.hibernate.Session;
+import java.util.function.Supplier;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.NetworkAddress;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.engine.TaskContext;
 
@@ -83,9 +87,9 @@ public class AccessManager {
 	}
 
 	private final DriverRegistry driverRegistry;
-	private final Session session;
+	private final Supplier<List<DeviceCredentialSet>> autoPoolLoader;
 	@Getter
-	private final Device device;
+	private final DeviceDraft device;
 	@Getter
 	private final NetworkAddress address;
 	@Getter
@@ -103,7 +107,8 @@ public class AccessManager {
 	/**
 	 * Instantiates a new access manager for one task attempt.
 	 * @param driverRegistry the loaded device drivers
-	 * @param session the Hibernate session (may be null, e.g. for ad-hoc/test runs)
+	 * @param autoPoolLoader loads the auto-try pool of credential sets of the device (may be null, e.g. for
+	 *        ad-hoc/test runs: no pool then)
 	 * @param device the device being accessed
 	 * @param address the resolved default network address (the device's management
 	 *        address) to connect to, used by any access without its own address
@@ -111,10 +116,10 @@ public class AccessManager {
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 */
-	public AccessManager(DriverRegistry driverRegistry, Session session, Device device, NetworkAddress address, TaskContext taskContext,
-			java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
+	public AccessManager(DriverRegistry driverRegistry, Supplier<List<DeviceCredentialSet>> autoPoolLoader, DeviceDraft device,
+			NetworkAddress address, TaskContext taskContext, java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
 		this.driverRegistry = driverRegistry;
-		this.session = session;
+		this.autoPoolLoader = autoPoolLoader;
 		this.device = device;
 		this.address = address;
 		this.taskContext = taskContext;
@@ -123,20 +128,21 @@ public class AccessManager {
 
 	/**
 	 * Builds a new access manager for one task attempt against a device, resolving
-	 * (and caching, via {@link Device#refreshCachedIpAddress()}) its default
+	 * (and caching, in {@link DeviceDraft#setCachedIpAddress}) its default
 	 * management address along the way - the one entry point production code
 	 * should use, so this resolve-and-cache step lives in one place common to
-	 * every caller instead of being repeated ad hoc.
+	 * every caller instead of being repeated ad hoc. The auto-try pool of credential
+	 * sets (the global ones of the domain of the device) is read from the database
+	 * when needed.
 	 * @param driverRegistry the loaded device drivers
-	 * @param session the Hibernate session (may be null, e.g. for ad-hoc/test runs)
 	 * @param device the device being accessed
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 * @return the new access manager
 	 */
-	public static AccessManager forDevice(DriverRegistry driverRegistry, Session session, Device device, TaskContext taskContext,
+	public static AccessManager forDevice(DriverRegistry driverRegistry, DeviceDraft device, TaskContext taskContext,
 			java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
-		device.refreshCachedIpAddress();
+		device.setCachedIpAddress(Device.resolveIpAddress(device.getMgmtAddress()));
 		NetworkAddress address = null;
 		InetAddress cachedIp = device.getCachedIpAddress();
 		if (cachedIp == null) {
@@ -155,13 +161,16 @@ public class AccessManager {
 					device.getMgmtAddress(), device.getId(), e);
 			}
 		}
-		return new AccessManager(driverRegistry, session, device, address, taskContext, oneTimeCredentialSets);
+		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
+		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> new Transactions().read(
+			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
+		return new AccessManager(driverRegistry, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}
 
 	/**
 	 * Resolves the effective network address to connect to for a given access:
 	 * its own per-access override address if configured (see
-	 * {@link Device#getDeviceAccess(String)}), otherwise the device's default
+	 * {@link DeviceDraft#getDeviceAccess(String)}), otherwise the device's default
 	 * (management) address.
 	 * @param accessDef the access to resolve the address for
 	 * @return the effective address
@@ -170,8 +179,8 @@ public class AccessManager {
 	 */
 	public NetworkAddress resolveAddress(AccessDefinition accessDef) throws IOException {
 		DeviceAccess access = this.device.getDeviceAccess(accessDef.getName());
-		if (access != null && access.getAddress() != null && !access.getAddress().isEmpty()) {
-			return NetworkAddress.getNetworkAddress(InetAddress.getByName(access.getAddress()));
+		if (access != null && access.address() != null && !access.address().isEmpty()) {
+			return NetworkAddress.getNetworkAddress(InetAddress.getByName(access.address()));
 		}
 		if (this.address == null) {
 			throw new UnknownHostException(
@@ -197,8 +206,8 @@ public class AccessManager {
 	 */
 	public String resolveHost(AccessDefinition accessDef) throws IOException {
 		DeviceAccess access = this.device.getDeviceAccess(accessDef.getName());
-		if (access != null && access.getAddress() != null && !access.getAddress().isEmpty()) {
-			return access.getAddress();
+		if (access != null && access.address() != null && !access.address().isEmpty()) {
+			return access.address();
 		}
 		String mgmtAddress = this.device.getMgmtAddress();
 		if (mgmtAddress == null || mgmtAddress.isEmpty()) {
@@ -217,8 +226,8 @@ public class AccessManager {
 	 */
 	public int resolvePort(AccessDefinition accessDef) {
 		DeviceAccess access = this.device.getDeviceAccess(accessDef.getName());
-		if (access != null && access.getPort() != null) {
-			return access.getPort();
+		if (access != null && access.port() != null) {
+			return access.port();
 		}
 		return accessDef.getDefaultPort();
 	}
@@ -285,23 +294,23 @@ public class AccessManager {
 	 */
 	public DeviceHostKeyVerifier resolveSshHostKeyVerifier(AccessDefinition accessDef) {
 		DeviceAccess access = this.device.getDeviceAccess(accessDef.getName());
-		DeviceAccess.SshHostKeyVerification mode = access == null ? null : access.getSshHostKeyVerification();
-		String storedKeys = access == null ? null : access.getSshTrustedHostKeys();
+		DeviceAccess.SshHostKeyVerification mode = access == null ? null : access.sshHostKeyVerification();
+		String storedKeys = access == null ? null : access.sshTrustedHostKeys();
 		return new DeviceHostKeyVerifier(mode, storedKeys, this.taskContext);
 	}
 
 	/**
 	 * Persists a SSH host key learned via TOFU (see {@link Ssh#getLearnedSshHostKeys()}) back
 	 * onto the access's {@link DeviceAccess} row, so later connections check against it. Called
-	 * once a connection genuinely succeeds (see {@link Resolution#tryNext()}) - purely an
-	 * in-memory entity mutation relying on the ambient Hibernate session/transaction, same as
+	 * once a connection genuinely succeeds (see {@link Resolution#tryNext()}) - it only changes
+	 * the device being worked on, which is stored once the task is done, same as
 	 * {@link #pinSuccessfulCredential}.
 	 * @param accessDef the access whose host key was learned
 	 * @param updatedKeys the new (learned-key-appended) trusted keys block
 	 */
 	private void recordLearnedSshHostKey(AccessDefinition accessDef, String updatedKeys) {
 		try {
-			this.device.recordLearnedSshHostKeys(accessDef.getName(), updatedKeys, new java.util.Date());
+			this.device.recordLearnedSshHostKeys(accessDef.getName(), updatedKeys, Instant.now().truncatedTo(ChronoUnit.MILLIS));
 			this.taskContext.info(
 				"New SSH host key accepted and saved for access '{}' - it will be verified on next connections.",
 				accessDef.getName());
@@ -320,8 +329,8 @@ public class AccessManager {
 	 */
 	public void applyHttpsTrustPolicy(AccessDefinition accessDef, Http http) {
 		DeviceAccess access = this.device.getDeviceAccess(accessDef.getName());
-		HttpsCaTrustMode mode = access == null ? null : access.getHttpsCaTrustMode();
-		String customCa = access == null ? null : access.getHttpsCustomCaCertificate();
+		HttpsCaTrustMode mode = access == null ? null : access.httpsCaTrustMode();
+		String customCa = access == null ? null : access.httpsCustomCaCertificate();
 		http.applyTrustPolicy(mode, customCa);
 	}
 
@@ -341,11 +350,11 @@ public class AccessManager {
 			this.device.pinGlobalCredentialSet(accessDef.getName(), credentialSet);
 			this.taskContext.info(
 				"Credential set '{}' worked for access '{}' and has been saved as the account to use for this access.",
-				credentialSet.getName(), accessDef.getName());
+				credentialSet.name(), accessDef.getName());
 		}
 		catch (Exception e) {
 			log.warn("Unable to pin the successful credential set '{}' for access '{}' on device {}.",
-				credentialSet.getName(), accessDef.getName(), this.device.getId(), e);
+				credentialSet.name(), accessDef.getName(), this.device.getId(), e);
 		}
 	}
 
@@ -387,11 +396,11 @@ public class AccessManager {
 	 * currently configured. Otherwise, priority per access: no
 	 * {@code DeviceAccess} row at all for this access yields zero candidates -
 	 * an access is only ever used if it has been explicitly configured (see
-	 * {@code Device.getDeviceAccess}) &gt; a per-access credential pin
+	 * {@code DeviceDraft.getDeviceAccess}) &gt; a per-access credential pin
 	 * ({@code DeviceAccess.specificCredentialSet}/{@code globalCredentialSet}
 	 * - exactly one candidate, no fallback if it fails) &gt; "auto" (no pin
 	 * configured for this access): every credential set in the domain's
-	 * auto-try pool ({@link Device#getAutoCredentialSetList}) compatible with
+	 * auto-try pool (the global credential sets of the domain of the device) compatible with
 	 * this access's credential family. There is no device-wide fallback layer
 	 * - resolution is entirely per access.
 	 * @param accessDefs the accesses to build candidates for
@@ -423,11 +432,11 @@ public class AccessManager {
 			DeviceAccess access = this.device.getDeviceAccess(accessDef.getName());
 			DeviceCredentialSet pinned = null;
 			if (access != null) {
-				if (access.getSpecificCredentialSet() != null) {
-					pinned = access.getSpecificCredentialSet();
+				if (access.specificCredentialSet() != null) {
+					pinned = access.specificCredentialSet();
 				}
-				else if (access.getGlobalCredentialSet() != null) {
-					pinned = access.getGlobalCredentialSet();
+				else if (access.globalCredentialSet() != null) {
+					pinned = access.globalCredentialSet();
 				}
 			}
 			if (pinned != null) {
@@ -436,8 +445,7 @@ public class AccessManager {
 			}
 			if (autoPool == null) {
 				try {
-					autoPool = this.session == null ? Collections.emptyList()
-						: this.device.getAutoCredentialSetList(this.session);
+					autoPool = this.autoPoolLoader == null ? Collections.emptyList() : this.autoPoolLoader.get();
 				}
 				catch (Exception e) {
 					log.warn("Unable to retrieve the auto-try credential set pool.", e);
@@ -564,7 +572,7 @@ public class AccessManager {
 			catch (InvalidCredentialsException e) {
 				this.anyAuthFailureSeen = true;
 				AccessManager.this.taskContext.warn("Authentication failed for access '{}' using credentials '{}'.",
-					candidate.accessDef.getName(), candidate.credentialSet.getName());
+					candidate.accessDef.getName(), candidate.credentialSet.name());
 				AccessManager.this.waitBetweenAttempts();
 				return AttemptOutcome.AUTH_FAILED;
 			}
@@ -572,7 +580,7 @@ public class AccessManager {
 				if (e.getCause() instanceof InvalidCredentialsException) {
 					this.anyAuthFailureSeen = true;
 					AccessManager.this.taskContext.warn("Authentication failed for access '{}' using credentials '{}'.",
-						candidate.accessDef.getName(), candidate.credentialSet.getName());
+						candidate.accessDef.getName(), candidate.credentialSet.name());
 					AccessManager.this.waitBetweenAttempts();
 					return AttemptOutcome.AUTH_FAILED;
 				}

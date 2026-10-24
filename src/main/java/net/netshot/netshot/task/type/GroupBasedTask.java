@@ -18,14 +18,61 @@
  */
 package net.netshot.netshot.task.type;
 
-import net.netshot.netshot.inventory.group.DeviceGroup;
+import java.util.List;
+
+import net.netshot.netshot.task.Task;
 
 /**
- * Define device group specific task.
+ * A task working on the devices of a group, or on a list of devices.
  */
 public interface GroupBasedTask {
-	DeviceGroup getDeviceGroup();
 
-	void setDeviceGroup(DeviceGroup group);
+	/**
+	 * Gets the ID of the target group.
+	 *
+	 * @return the group ID, null for none
+	 */
+	Long deviceGroupId();
 
+	/**
+	 * Gets the IDs of the target devices, in order, when there is no group.
+	 *
+	 * @return the device IDs (empty for none)
+	 */
+	List<Long> deviceIds();
+
+	/**
+	 * Builds a new task working on a group or a list of devices.
+	 *
+	 * @param <S> the type of specification
+	 * @param spec the specification
+	 * @param groupName the name of the target group (null for a device list)
+	 * @param comments the comments
+	 * @param author the author
+	 * @return the new task
+	 */
+	static <S extends TaskSpec & GroupBasedTask> Task of(S spec, String groupName, String comments, String author) {
+		return Task.of(spec, comments, spec.deviceGroupId() == null ? targetOf(spec.deviceIds()) : groupName, author);
+	}
+
+	/**
+	 * Gets the description of a device list as a task target.
+	 *
+	 * @param deviceIds the device IDs
+	 * @return the target description
+	 */
+	static String targetOf(List<Long> deviceIds) {
+		return String.format("%d device(s)", deviceIds.size());
+	}
+
+	/**
+	 * Gets the identity group of a group task, from a prefix.
+	 *
+	 * @param prefix the prefix
+	 * @param deviceGroupId the group ID (or null)
+	 * @return the identity group
+	 */
+	static String identityGroup(String prefix, Long deviceGroupId) {
+		return String.format("%s_%d", prefix, deviceGroupId == null ? 0 : deviceGroupId);
+	}
 }

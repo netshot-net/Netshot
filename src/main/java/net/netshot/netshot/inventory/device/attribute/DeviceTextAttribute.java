@@ -18,33 +18,16 @@
  */
 package net.netshot.netshot.inventory.device.attribute;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@DiscriminatorValue("S")
-public final class DeviceTextAttribute extends DeviceAttribute {
-
-	@Getter
-	@Setter
-	private String text;
-
-	protected DeviceTextAttribute() {
-	}
-
-	public DeviceTextAttribute(Device device, String name, String value) {
-		super(device, name);
-		this.text = value;
-	}
+/**
+ * A text device attribute.
+ *
+ * @param name the name of the attribute
+ * @param text the value
+ */
+public record DeviceTextAttribute(String name, String text) implements DeviceAttribute {
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getText();
+		return this.text;
 	}
-
 }

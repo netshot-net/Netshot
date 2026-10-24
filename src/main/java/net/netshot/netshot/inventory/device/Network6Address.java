@@ -24,16 +24,9 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Transient;
-import net.netshot.netshot.platform.database.InetAddressUserType;
-
-import org.hibernate.annotations.Type;
-
 /**
  * An IPv6 address.
  */
-@Embeddable
 public final class Network6Address extends NetworkAddress {
 
 	/**
@@ -78,6 +71,30 @@ public final class Network6Address extends NetworkAddress {
 	 */
 	protected Network6Address() {
 
+	}
+
+	/**
+	 * Builds an address from the columns it is stored in.
+	 *
+	 * @param address the address (inet column), or null
+	 * @param prefixLength the prefix length, or null for a host address
+	 * @param usage the name of the usage, or null for the default one
+	 * @return the address, or null if there is no address
+	 */
+	public static Network6Address fromColumns(InetAddress address, Integer prefixLength, String usage) {
+		if (address == null) {
+			return null;
+		}
+		try {
+			Network6Address result = new Network6Address((Inet6Address) address, prefixLength == null ? 128 : prefixLength);
+			if (usage != null) {
+				result.setAddressUsage(AddressUsage.valueOf(usage));
+			}
+			return result;
+		}
+		catch (ClassCastException e) {
+			throw new IllegalStateException("Invalid stored address " + address, e);
+		}
 	}
 
 	/**
@@ -156,7 +173,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the address
 	 */
-	@Type(InetAddressUserType.class)
 	public InetAddress getAddress() {
 		return address;
 	}
@@ -175,7 +191,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the address1
 	 */
-	@Transient
 	public long getAddress1() {
 		return this.address == null ? 0 : ByteBuffer.wrap(this.address.getAddress()).getLong(0);
 	}
@@ -185,7 +200,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the address2
 	 */
-	@Transient
 	public long getAddress2() {
 		return this.address == null ? 0 : ByteBuffer.wrap(this.address.getAddress()).getLong(8);
 	}
@@ -194,7 +208,6 @@ public final class Network6Address extends NetworkAddress {
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getInetAddress()
 	 */
 	@Override
-	@Transient
 	public InetAddress getInetAddress() {
 		return this.address;
 	}
@@ -202,7 +215,6 @@ public final class Network6Address extends NetworkAddress {
 	/*(non-Javadoc)
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getIP()
 	 */
-	@Transient
 	@Override
 	public String getIp() {
 		return Network6Address.intToIP(this.getAddress1(), this.getAddress2());
@@ -213,7 +225,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the prefix
 	 */
-	@Transient
 	@Override
 	public String getPrefix() {
 		return getIp() + "/" + prefixLength;
@@ -286,7 +297,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return true, if is multicast
 	 */
-	@Transient
 	public boolean isMulticast() {
 		return ((this.getAddress1() >>> 56) & 0xFF) == 0xFF;
 	}
@@ -296,7 +306,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return true, if is multicast
 	 */
-	@Transient
 	public boolean isLinkLocal() {
 		return ((this.getAddress1() >>> 48) & 0xFE80) == 0xFE80;
 	}
@@ -307,7 +316,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return true, if is normal unicast
 	 */
-	@Transient
 	public boolean isGlobalUnicast() {
 		return ((this.getAddress1() >>> 61) & 0b111) == 0b001;
 	}

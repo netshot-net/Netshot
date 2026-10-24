@@ -18,27 +18,31 @@
  */
 package net.netshot.netshot.task;
 
+import net.netshot.netshot.task.type.TaskSpec;
+
 /**
- * Executes a type of task. The task entity only holds the data of the task; its execution lives in
+ * Executes a type of task. The task only holds the data of the task; its execution lives in
  * a handler which receives its collaborators by constructor. The handler reports the outcome on the
- * task itself (status, log, result attributes), which the task engine then saves.
+ * run (status, log, results), which the task engine then saves.
  *
- * @param <T> the type of task this handler executes
+ * @param <S> the type of task (specification) this handler executes
  */
-public interface TaskHandler<T extends Task> {
+public interface TaskHandler<S extends TaskSpec> {
 
 	/**
-	 * Gets the type of task this handler executes. Each concrete task type has exactly one handler.
+	 * Gets the type of task this handler executes. Each task type has exactly one handler.
 	 *
 	 * @return the task type
 	 */
-	Class<T> taskType();
+	Class<S> taskType();
 
 	/**
-	 * Runs the task. Any status set on the task is kept; a task left in RUNNING status is
+	 * Runs the task. Any status set on the run is kept; a run left in RUNNING status is
 	 * considered failed by the engine.
 	 *
 	 * @param task the task to run
+	 * @param spec the specification of the task
+	 * @param run the run, to report the outcome to
 	 */
-	void run(T task);
+	void run(Task task, S spec, TaskRun run);
 }

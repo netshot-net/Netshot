@@ -21,28 +21,25 @@ package net.netshot.netshot.driver;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.LoggerFactory;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.common.session.SessionListener;
-
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /**
  * Exploration/reproduction tests for the NetScaler SDX SSH rekeying bug: a driver can ask to

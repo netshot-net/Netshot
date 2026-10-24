@@ -18,136 +18,86 @@
  */
 package net.netshot.netshot.vault;
 
-import java.util.Date;
+import java.time.Instant;
 
-import org.hibernate.annotations.NaturalId;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
-import lombok.Getter;
-import lombok.Setter;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
- * A named external Vault instance, used to resolve device credential fields
- * that are configured to be Vault-backed rather than stored locally.
- * <p>
- * Modeled as a discriminated hierarchy (same pattern as
- * {@link net.netshot.netshot.credentials.DeviceCredentialSet}), with
- * a single concrete type implemented today ({@link HashicorpVaultKv2Instance}),
- * so other Vault backend types can be added later without redesign.
+ * An external secret store (Vault server) the secrets of the credential sets can be read from.
  */
-@Entity
-@Table(name = "vault_instance")
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-public abstract class VaultInstance {
-
-	/** The change date. */
-	@Getter
-	@Setter
-	protected Date changeDate;
-
-	@Getter(onMethod = @__({
-		@Version
-	}))
-	@Setter
-	private int version;
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	/** The name. */
-	@Getter(onMethod = @__({
-		@NaturalId(mutable = true)
-	}))
-	@Setter
-	protected String name;
-
-	/** The Vault instance base URL (e.g. https://vault.example.com:8200). */
-	@Getter(onMethod = @__({
-		@Column(name = "base_url", nullable = false)
-	}))
-	@Setter
-	protected String baseUrl;
-
-	/** Optional Vault Enterprise namespace. */
-	@Getter
-	@Setter
-	protected String namespace;
-
-	/** HTTPS certificate CA trust mode for the connection to this Vault instance. */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING),
-		@Column(name = "https_ca_trust_mode", nullable = false)
-	}))
-	@Setter
-	protected HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
+public sealed interface VaultInstance permits HashicorpVaultKv2Instance {
 
 	/**
-	 * PEM-encoded trust anchor certificate (optionally a chain of several
-	 * concatenated PEM certificates) used when {@link #httpsCaTrustMode} is
-	 * {@link HttpsCaTrustMode#CUSTOM_CA}.
+	 * Gets the ID.
+	 *
+	 * @return the ID (0 for an instance not stored yet)
 	 */
-	@Getter(onMethod = @__({
-		@Column(name = "https_custom_ca_certificate", columnDefinition = "TEXT")
-	}))
-	@Setter
-	protected String httpsCustomCaCertificate;
+	long id();
 
 	/**
-	 * Instantiates a new Vault instance.
+	 * Gets the version, incremented at each change (optimistic locking).
+	 *
+	 * @return the version
 	 */
-	protected VaultInstance() {
-		// Reserved for Hibernate
-	}
+	int version();
 
 	/**
-	 * Instantiates a new Vault instance.
-	 * @param name the name
+	 * Gets the date of the last change.
+	 *
+	 * @return the date (null for an instance not stored yet)
 	 */
-	public VaultInstance(String name) {
-		this.name = name;
-	}
+	Instant changeDate();
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof VaultInstance)) {
-			return false;
-		}
-		VaultInstance other = (VaultInstance) obj;
-		if (name == null) {
-			return other.name == null;
-		}
-		return name.equals(other.name);
-	}
+	/**
+	 * Gets the name.
+	 *
+	 * @return the name
+	 */
+	String name();
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (name == null ? 0 : name.hashCode());
-		return result;
-	}
+	/**
+	 * Gets the base URL of the Vault server.
+	 *
+	 * @return the URL
+	 */
+	String baseUrl();
 
-	@Override
-	public String toString() {
-		return "Vault Instance " + id + " (name '" + name + "', type " + this.getClass().getSimpleName() + ")";
-	}
+	/**
+	 * Gets the namespace (Vault Enterprise).
+	 *
+	 * @return the namespace
+	 */
+	String namespace();
 
+	/**
+	 * Gets how the HTTPS certificate of the server is trusted.
+	 *
+	 * @return the trust mode
+	 */
+	HttpsCaTrustMode httpsCaTrustMode();
+
+	/**
+	 * Gets the CA certificate trusted in {@link HttpsCaTrustMode#CUSTOM_CA} mode.
+	 *
+	 * @return the PEM certificate
+	 */
+	String httpsCustomCaCertificate();
+
+	/**
+	 * Gets a copy of the instance with another ID.
+	 *
+	 * @param id the ID
+	 * @return the instance
+	 */
+	VaultInstance withId(long id);
+
+	/**
+	 * Describes the instance, for the logs (without secret).
+	 *
+	 * @param instance the instance
+	 * @return the description
+	 */
+	static String describe(VaultInstance instance) {
+		return "Vault Instance " + instance.id() + " (name '" + instance.name() + "', type " + instance.getClass().getSimpleName() + ")";
+	}
 }

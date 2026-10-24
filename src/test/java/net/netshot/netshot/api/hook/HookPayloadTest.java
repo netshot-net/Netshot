@@ -21,8 +21,8 @@ package net.netshot.netshot.api.hook;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -31,8 +31,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -60,12 +60,13 @@ import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
 import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
 import net.netshot.netshot.testing.contract.DtoContract;
 
 /**
@@ -141,7 +142,8 @@ public class HookPayloadTest {
 			for (Format format : FORMATS) {
 				tests.add(DynamicTest.dynamicTest(task.getKey() + "." + format.extension, () -> {
 					BodyWriter writer = writerFor(format);
-					TaskPayload payload = Wiring.get().taskService().mapTask(task.getValue(), mapped -> TaskPayloads.toPayload(TestDrivers.registry(), mapped));
+					TaskPayload payload = Wiring.get().taskService().mapTask(task.getValue(),
+						(mapped, devices) -> TaskPayloads.toPayload(TestDrivers.registry(), mapped, devices));
 					this.contract.checkCanonical(task.getKey(), format, this.canonical(format, writer.write(payload)));
 				}));
 			}
@@ -166,36 +168,37 @@ public class HookPayloadTest {
 	 */
 	@Test
 	void devicesWithEveryKindOfCredentialSet() throws Exception {
-		Domain domain = new Domain("lab", "The lab", new Network4Address("10.0.0.1"), new Network6Address("2001:db8::1"));
-		Device device = new Device("CiscoIOS12", "192.0.2.50", domain, "tester");
-		device.setName("lab-router");
-		device.setEolDate(new Date(1000));
-		device.setEolModule(new Module("1", "PART", "SERIAL", device));
-		device.setEosModule(new Module("2", "PART2", "SERIAL2", device));
+		Domain domain = Domain.builder().name("lab").description("The lab").server4Address(new Network4Address("10.0.0.1"))
+			.server6Address(new Network6Address("2001:db8::1")).build();
 		List<DeviceCredentialSet> credentialSets = new ArrayList<>();
-		credentialSets.add(new DeviceSnmpv1Community("zsecret1", "v1"));
-		credentialSets.add(new DeviceSnmpv2cCommunity("zsecret2", "v2c"));
-		credentialSets.add(new DeviceSnmpv3Community("zsecret3", "v3", "user", DeviceSnmpv3Community.AuthProtocol.SHA,
-			"zauthsecret", DeviceSnmpv3Community.PrivProtocol.AES128, "zprivsecret"));
-		credentialSets.add(new DeviceSshAccount("user", "zpassword", "zsuper", "ssh"));
-		credentialSets.add(new DeviceSshKeyAccount("user", "zkey", "zpassphrase", "zsuper", "sshkey"));
-		credentialSets.add(new DeviceTelnetAccount("user", "zpassword", "zsuper", "telnet"));
-		credentialSets.add(new DeviceHttpAccount("user", "zpassword", "http"));
+		credentialSets.add(DeviceSnmpv1Community.builder().community("zsecret1").name("v1").build());
+		credentialSets.add(DeviceSnmpv2cCommunity.builder().community("zsecret2").name("v2c").build());
+		credentialSets.add(DeviceSnmpv3Community.builder().community("zsecret3").name("v3").username("user")
+			.authType(DeviceSnmpv3Community.AuthProtocol.SHA).authKey("zauthsecret")
+			.privType(DeviceSnmpv3Community.PrivProtocol.AES128).privKey("zprivsecret").build());
+		credentialSets.add(DeviceSshAccount.builder().username("user").password("zpassword").superPassword("zsuper").name("ssh").build());
+		credentialSets.add(DeviceSshKeyAccount.builder().username("user").privateKey("zkey").password("zpassphrase").superPassword("zsuper").name("sshkey").build());
+		credentialSets.add(DeviceTelnetAccount.builder().username("user").password("zpassword").superPassword("zsuper").name("telnet").build());
+		credentialSets.add(DeviceHttpAccount.builder().username("user").password("zpassword").name("http").build());
+		List<DeviceAccess> accesses = new ArrayList<>();
 		int index = 0;
 		for (DeviceCredentialSet credentialSet : credentialSets) {
-			credentialSet.setMgmtDomain(index % 2 == 0 ? domain : null);
-			DeviceAccess access = new DeviceAccess(device, "access" + index++);
-			access.setAddress("192.0.2." + index);
-			access.setPort(1000 + index);
-			access.setGlobalCredentialSet(credentialSet);
-			device.getAccesses().add(access);
+			DeviceCredentialSet inDomain = credentialSet.withMgmtDomain(index % 2 == 0 ? domain : null);
+			DeviceAccess.DeviceAccessBuilder access = DeviceAccess.of("access" + index++).toBuilder();
+			accesses.add(access.address("192.0.2." + index).port(1000 + index).globalCredentialSet(inDomain).build());
 		}
-		TakeSnapshotTask task = new TakeSnapshotTask(device, "Snapshot", "tester", true, false, true);
-		task.setDevice(device);
+		Device device = Device.create("CiscoIOS12", "192.0.2.50", domain, "tester").toBuilder()
+			.name("lab-router")
+			.eolDate(Instant.ofEpochMilli(1000))
+			.eolModule(Module.builder().slot("1").partNumber("PART").serialNumber("SERIAL").build())
+			.eosModule(Module.builder().slot("2").partNumber("PART2").serialNumber("SERIAL2").build())
+			.accesses(accesses)
+			.build();
+		Task task = TakeSnapshotTask.of(device, "Snapshot", "tester", true, false, true);
 		String secrets = "zsecret1 zsecret2 zsecret3 zauthsecret zprivsecret zpassword zsuper zkey zpassphrase";
 		for (Format format : FORMATS) {
 			BodyWriter writer = writerFor(format);
-			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(TestDrivers.registry(), task)));
+			String actual = this.canonical(format, writer.write(TaskPayloads.toPayload(TestDrivers.registry(), task, id -> device)));
 			// What the entity used to write, with the secrets masked in it
 			this.contract.checkCanonical("devicesWithEveryKindOfCredentialSet", format, actual);
 			for (String secret : secrets.split(" ")) {

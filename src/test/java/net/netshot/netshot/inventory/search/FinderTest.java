@@ -18,50 +18,61 @@
  */
 package net.netshot.netshot.inventory.search;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+
 import java.io.IOException;
-import java.net.InetAddress;
 import java.security.GeneralSecurityException;
-import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
-import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
+import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.inventory.device.NetworkInterface;
+import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
-import net.netshot.netshot.testing.fake.FakeQuery;
-
-import org.hibernate.Session;
-import org.hibernate.query.Query;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 @DatabaseTest
 @DisplayName("Device finder test")
@@ -74,213 +85,180 @@ public class FinderTest {
 	protected static List<Policy> testPolicies = new ArrayList<>();
 	protected static Map<String, Rule> testRules = new HashMap<>();
 
+	private static <A> List<A> withReplaced(List<A> attributes, Function<A, String> nameOf, A attribute) {
+		List<A> result = new ArrayList<>();
+		for (A a : attributes) {
+			result.add(nameOf.apply(a).equals(nameOf.apply(attribute)) ? attribute : a);
+		}
+		return result;
+	}
+
+	private static List<DeviceAttribute> withDeviceAttribute(Device device, DeviceAttribute attribute) {
+		return withReplaced(device.attributes(), DeviceAttribute::name, attribute);
+	}
+
+	private static Config withIosImageFile(Config config, String imageFile) {
+		return config.toBuilder().attributes(withReplaced(config.attributes(), ConfigAttribute::name,
+			new ConfigTextAttribute("iosImageFile", imageFile))).build();
+	}
+
+	private static Instant startOfDay(String day) {
+		return LocalDate.parse(day).atStartOfDay(ZoneId.systemDefault()).toInstant();
+	}
+
 	protected static void createDevices() throws IOException, InterruptedException, GeneralSecurityException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
+		// Create domains
+		for (int i = 1; i < 3; i++) {
+			testDomains.add(TestDevices.addDomain(Domain.builder()
+				.name("Domain %d".formatted(i)).description("Test Domain for devices")
+				.server4Address(new Network4Address("10.%d.1.1".formatted(i))).build()));
+		}
 
-			// Create domains
-			for (int i = 1; i < 3; i++) {
-				Domain domain = new Domain(
-					"Domain %d".formatted(i), "Test Domain for devices",
-					new Network4Address("10.%d.1.1".formatted(i)),
-					null
-				);
-				testDomains.add(domain);
-				session.persist(domain);
-			}
-
+		new Transactions().run(dsl -> {
 			// Create test diagnostics BEFORE devices
-			Diagnostic textDiagnostic = new SimpleDiagnostic(
+			Diagnostic textDiagnostic = new SimpleDiagnostic(0,
 				"System Status", true, null, AttributeType.TEXT,
 				"CiscoIOS12", "enable", "show version", null, null);
-			session.persist(textDiagnostic);
+			textDiagnostic = textDiagnostic.withId(new DiagnosticRepository().add(dsl, textDiagnostic));
 			testDiagnostics.put(AttributeType.TEXT, textDiagnostic);
 
-			Diagnostic numericDiagnostic = new SimpleDiagnostic(
+			Diagnostic numericDiagnostic = new SimpleDiagnostic(0,
 				"CPU Usage", true, null, AttributeType.NUMERIC,
 				"CiscoIOS12", "enable", "show proc cpu", null, null);
-			session.persist(numericDiagnostic);
+			numericDiagnostic = numericDiagnostic.withId(new DiagnosticRepository().add(dsl, numericDiagnostic));
 			testDiagnostics.put(AttributeType.NUMERIC, numericDiagnostic);
 
-			Diagnostic binaryDiagnostic = new SimpleDiagnostic(
+			Diagnostic binaryDiagnostic = new SimpleDiagnostic(0,
 				"Is Reachable", true, null, AttributeType.BINARY,
 				"CiscoIOS12", "enable", "ping 8.8.8.8", null, null);
-			session.persist(binaryDiagnostic);
+			binaryDiagnostic = binaryDiagnostic.withId(new DiagnosticRepository().add(dsl, binaryDiagnostic));
 			testDiagnostics.put(AttributeType.BINARY, binaryDiagnostic);
 
-			Policy securityPolicy = new Policy("Security Policy", null);
-			session.persist(securityPolicy);
+			Policy securityPolicy = new Policy(0, "Security Policy", null);
+			securityPolicy = securityPolicy.withId(new PolicyRepository().add(dsl, securityPolicy));
 			testPolicies.add(securityPolicy);
 
-			Policy configPolicy = new Policy("Config Policy", null);
-			session.persist(configPolicy);
+			Policy configPolicy = new Policy(0, "Config Policy", null);
+			configPolicy = configPolicy.withId(new PolicyRepository().add(dsl, configPolicy));
 			testPolicies.add(configPolicy);
 
-			TextRule passwordRule = new TextRule("Password Check", securityPolicy);
-			passwordRule.setEnabled(true);
-			session.persist(passwordRule);
+			TextRule passwordRuleDraft = TextRule.builder("Password Check", securityPolicy.id()).enabled(true).build();
+			TextRule passwordRule = passwordRuleDraft.withId(new RuleRepository().add(dsl, passwordRuleDraft));
 			testRules.put("Security Policy/Password Check", passwordRule);
 
-			TextRule hostnameRule = new TextRule("Hostname Standard", configPolicy);
-			hostnameRule.setEnabled(true);
-			session.persist(hostnameRule);
+			TextRule hostnameRuleDraft = TextRule.builder("Hostname Standard", configPolicy.id()).enabled(true).build();
+			TextRule hostnameRule = hostnameRuleDraft.withId(new RuleRepository().add(dsl, hostnameRuleDraft));
 			testRules.put("Config Policy/Hostname Standard", hostnameRule);
 
-			TextRule snmpRule = new TextRule("SNMP Community", securityPolicy);
-			snmpRule.setEnabled(true);
-			session.persist(snmpRule);
+			TextRule snmpRuleDraft = TextRule.builder("SNMP Community", securityPolicy.id()).enabled(true).build();
+			TextRule snmpRule = snmpRuleDraft.withId(new RuleRepository().add(dsl, snmpRuleDraft));
 			testRules.put("Security Policy/SNMP Community", snmpRule);
+		});
 
-			// Create devices
-			for (int i = 0; i < 100; i++) {
-				Device device = FakeDeviceFactory.getFakeCiscoIosDevice(
-					testDomains.get(0), null, i);
-				if (i < 10) {
-					device.setStatus(Device.Status.DISABLED);
-				}
-				if (i == 10) {
-					device.getNetworkInterfaces().get(0)
-						.setDescription("Specific description");
-					device.setSerialNumber("SERIALNUMBER10");
-				}
-				if (i == 11) {
-					device.getModules().get(0)
-						.setPartNumber("SPECSN11");
-				}
-				if (i == 12) {
-					device.setDriver("JuniperJunos");
-					device.setFamily("SRX300");
-					device.setNetworkClass(NetworkClass.FIREWALL);
-				}
-				if (i == 13) {
-					device.setDriver("CiscoIOSXR");
-				}
-				if (i == 14) {
-					device.setCreatedDate(Date.from(LocalDate.parse("2070-10-10").atStartOfDay(ZoneId.systemDefault()).toInstant()));
-				}
-				if (i == 15) {
-					device.setCreatedDate(Date.from(LocalDate.parse("2023-01-02").atStartOfDay(ZoneId.systemDefault()).toInstant()));
-				}
-				if (i == 16) {
-					((ConfigTextAttribute) device.getLastConfig().getAttribute("iosImageFile"))
-						.setText("ciscoios-advanced-16.1.6.bin");
-				}
-				if (i == 17) {
-					((DeviceNumericAttribute) device.getAttribute("mainMemorySize"))
-						.setNumber(4096.0);
-				}
-				if (i == 18) {
-					device.setSoftwareVersion("15.2.3");
-					device.setSoftwareLevel(ConformanceLevel.UNKNOWN);
-					((ConfigTextAttribute) device.getLastConfig().getAttribute("iosImageFile"))
-						.setText("ciscoios-advanced-15.2.3.bin");
-				}
-				if (i == 19) {
-					device.setSoftwareVersion("15.2.4");
-					device.setSoftwareLevel(ConformanceLevel.BRONZE);
-					((ConfigTextAttribute) device.getLastConfig().getAttribute("iosImageFile"))
-						.setText("ciscoios-advanced-15.2.4.bin");
-				}
-				if (i == 20) {
-					((DeviceBinaryAttribute) device.getAttribute("configurationSaved"))
-						.setAssumption(false);
-				}
-				if (i == 21) {
-					device.removeAttribute("configurationSaved");
-				}
-				if (i == 40) {
-					device.addTag("core");
-					device.addTag("Paris-DC1");
-				}
-				if (i == 41) {
-					device.addTag(" core ");
-					device.addTag("lab");
-				}
-
-				// Add diagnostic results to specific devices
-				if (i == 22) {
-					DiagnosticTextResult textResult = new DiagnosticTextResult(
-						device, testDiagnostics.get(AttributeType.TEXT), "OK");
-					device.addDiagnosticResult(textResult);
-				}
-				if (i == 23) {
-					DiagnosticTextResult textResult = new DiagnosticTextResult(
-						device, testDiagnostics.get(AttributeType.TEXT), "WARNING");
-					device.addDiagnosticResult(textResult);
-				}
-				if (i == 24) {
-					DiagnosticTextResult textResult = new DiagnosticTextResult(
-						device, testDiagnostics.get(AttributeType.TEXT), "CRITICAL");
-					device.addDiagnosticResult(textResult);
-				}
-				if (i == 25) {
-					DiagnosticNumericResult numResult = new DiagnosticNumericResult(
-						device, testDiagnostics.get(AttributeType.NUMERIC), 45.5);
-					device.addDiagnosticResult(numResult);
-				}
-				if (i == 26) {
-					DiagnosticNumericResult numResult = new DiagnosticNumericResult(
-						device, testDiagnostics.get(AttributeType.NUMERIC), 78.2);
-					device.addDiagnosticResult(numResult);
-				}
-				if (i == 27) {
-					DiagnosticNumericResult numResult = new DiagnosticNumericResult(
-						device, testDiagnostics.get(AttributeType.NUMERIC), 92.8);
-					device.addDiagnosticResult(numResult);
-				}
-				if (i == 28) {
-					DiagnosticBinaryResult binResult = new DiagnosticBinaryResult(
-						device, testDiagnostics.get(AttributeType.BINARY), true);
-					device.addDiagnosticResult(binResult);
-				}
-				if (i == 29) {
-					DiagnosticBinaryResult binResult = new DiagnosticBinaryResult(
-						device, testDiagnostics.get(AttributeType.BINARY), false);
-					device.addDiagnosticResult(binResult);
-				}
-				if (i == 30) {
-					DiagnosticBinaryResult binResult = new DiagnosticBinaryResult(
-						device, testDiagnostics.get(AttributeType.BINARY), true);
-					device.addDiagnosticResult(binResult);
-				}
-
-				testDevices.add(device);
-				session.persist(device);
-
-				// Add compliance check results AFTER device is persisted
-				if (i == 31) {
-					CheckResult conformingResult = new CheckResult(
-						testRules.get("Security Policy/Password Check"), device, CheckResult.ResultOption.CONFORMING);
-					session.persist(conformingResult);
-				}
-				if (i == 32) {
-					CheckResult nonconformingResult = new CheckResult(
-						testRules.get("Security Policy/Password Check"), device, CheckResult.ResultOption.NONCONFORMING);
-					session.persist(nonconformingResult);
-				}
-				if (i == 33) {
-					CheckResult conformingResult = new CheckResult(
-						testRules.get("Config Policy/Hostname Standard"), device, CheckResult.ResultOption.CONFORMING);
-					session.persist(conformingResult);
-				}
-				if (i == 34) {
-					CheckResult notapplicableResult = new CheckResult(
-						testRules.get("Security Policy/SNMP Community"), device, CheckResult.ResultOption.NOTAPPLICABLE);
-					session.persist(notapplicableResult);
-				}
-				if (i == 35) {
-					CheckResult exemptedResult = new CheckResult(
-						testRules.get("Security Policy/Password Check"), device, CheckResult.ResultOption.EXEMPTED);
-					session.persist(exemptedResult);
-				}
-				if (i == 36) {
-					CheckResult disabledResult = new CheckResult(
-						testRules.get("Config Policy/Hostname Standard"), device, CheckResult.ResultOption.DISABLED);
-					session.persist(disabledResult);
-				}
+		// Create devices
+		for (int i = 0; i < 100; i++) {
+			Device device = FakeDeviceFactory.getFakeCiscoIosDevice(
+				testDomains.get(0), null, i);
+			Config config = FakeDeviceFactory.getFakeCiscoIosConfig(device);
+			Device.DeviceBuilder builder = device.toBuilder();
+			if (i < 10) {
+				builder.status(Device.Status.DISABLED);
+			}
+			if (i == 10) {
+				List<NetworkInterface> interfaces = new ArrayList<>(device.networkInterfaces());
+				interfaces.set(0, interfaces.get(0).toBuilder().description("Specific description").build());
+				builder.networkInterfaces(interfaces).serialNumber("SERIALNUMBER10");
+			}
+			if (i == 11) {
+				List<Module> modules = new ArrayList<>(device.modules());
+				modules.set(0, modules.get(0).toBuilder().partNumber("SPECSN11").build());
+				builder.modules(modules);
+			}
+			if (i == 12) {
+				builder.driver("JuniperJunos").family("SRX300").networkClass(NetworkClass.FIREWALL);
+			}
+			if (i == 13) {
+				builder.driver("CiscoIOSXR");
+			}
+			if (i == 14) {
+				builder.createdDate(startOfDay("2070-10-10"));
+			}
+			if (i == 15) {
+				builder.createdDate(startOfDay("2023-01-02"));
+			}
+			if (i == 16) {
+				config = withIosImageFile(config, "ciscoios-advanced-16.1.6.bin");
+			}
+			if (i == 17) {
+				builder.attributes(withDeviceAttribute(device, new DeviceNumericAttribute("mainMemorySize", 4096.0)));
+			}
+			if (i == 18) {
+				builder.softwareVersion("15.2.3").softwareLevel(ConformanceLevel.UNKNOWN);
+				config = withIosImageFile(config, "ciscoios-advanced-15.2.3.bin");
+			}
+			if (i == 19) {
+				builder.softwareVersion("15.2.4").softwareLevel(ConformanceLevel.BRONZE);
+				config = withIosImageFile(config, "ciscoios-advanced-15.2.4.bin");
+			}
+			if (i == 20) {
+				builder.attributes(withDeviceAttribute(device, new DeviceBinaryAttribute("configurationSaved", false)));
+			}
+			if (i == 21) {
+				builder.attributes(device.attributes().stream().filter(a -> !"configurationSaved".equals(a.name())).toList());
+			}
+			if (i == 40) {
+				builder.tags(Device.normalizeTags(List.of("core", "Paris-DC1")));
+			}
+			if (i == 41) {
+				builder.tags(Device.normalizeTags(List.of(" core ", "lab")));
 			}
 
-			session.getTransaction().commit();
+			// Add diagnostic results to specific devices
+			List<DiagnosticResult> results = new ArrayList<>();
+			if (i == 22) {
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "OK"));
+			}
+			if (i == 23) {
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "WARNING"));
+			}
+			if (i == 24) {
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "CRITICAL"));
+			}
+			if (i == 25) {
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 45.5));
+			}
+			if (i == 26) {
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 78.2));
+			}
+			if (i == 27) {
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 92.8));
+			}
+			if (i == 28) {
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+			}
+			if (i == 29) {
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), false));
+			}
+			if (i == 30) {
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+			}
+
+			Device stored = TestDevices.add(builder.build(), config, results.toArray(new DiagnosticResult[0]));
+			testDevices.add(stored);
+
+			// Add compliance check results AFTER device is persisted
+			CheckResult checkResult = switch (i) {
+				case 31 -> CheckResult.of(testRules.get("Security Policy/Password Check").id(), stored.id(), CheckResult.ResultOption.CONFORMING);
+				case 32 -> CheckResult.of(testRules.get("Security Policy/Password Check").id(), stored.id(), CheckResult.ResultOption.NONCONFORMING);
+				case 33 -> CheckResult.of(testRules.get("Config Policy/Hostname Standard").id(), stored.id(), CheckResult.ResultOption.CONFORMING);
+				case 34 -> CheckResult.of(testRules.get("Security Policy/SNMP Community").id(), stored.id(), CheckResult.ResultOption.NOTAPPLICABLE);
+				case 35 -> CheckResult.of(testRules.get("Security Policy/Password Check").id(), stored.id(), CheckResult.ResultOption.EXEMPTED);
+				case 36 -> CheckResult.of(testRules.get("Config Policy/Hostname Standard").id(), stored.id(), CheckResult.ResultOption.DISABLED);
+				default -> null;
+			};
+			if (checkResult != null) {
+				new Transactions().run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
+			}
 		}
 	}
 
@@ -290,70 +268,40 @@ public class FinderTest {
 	}
 
 	/**
-	 * Assert finder HQL and parameters results equal the expected values.
-	 * @param nsQuery = Netshot query
-	 * @param expectedFormattedQuery = the expected formatted query (nsQuery if false)
-	 * @param expectedHql = the expected HQL
-	 * @param expectedParameters = the expected query parameters
+	 * Checks a query: its formatted form, and the devices it finds.
+	 *
+	 * @param nsQuery = the query to test
+	 * @param expectedFormattedQuery = the expected formatted query (null: the query itself)
 	 * @param expectedDeviceNames the names of the devices the query should match
 	 * @throws Exception
 	 */
 	private void assertFinder(String nsQuery, String expectedFormattedQuery,
-			String expectedHql,
-			Map<String, Object> expectedParameters,
 			List<String> expectedDeviceNames) throws Exception {
-		FakeQuery<Device> fakeQuery = new FakeQuery<>();
 		Finder finder = new Finder(nsQuery);
-		finder.setVariables(fakeQuery);
 		Assertions.assertEquals(
 			expectedFormattedQuery == null ? nsQuery : expectedFormattedQuery,
 			finder.getFormattedQuery(),
 			"Unexpected formatted query");
-		String hqlQuery = finder.getHql();
-		if (expectedHql != null) {
-			Assertions.assertEquals(expectedHql, hqlQuery, "Unexpected HQL");
-		}
-		// Skip parameter checking if expectedParameters is null
-		if (expectedParameters != null) {
-			for (Map.Entry<String, Object> actualEntry : fakeQuery.getParameterHash().entrySet()) {
-				if (actualEntry.getValue() instanceof Date) {
-					// For relative dates, as the reference "now" is not passed to finder,
-					// if the expected and actual dates are very close,
-					// we manually override the expected value to let the test pass
-					Date actualDate = (Date) actualEntry.getValue();
-					Object expectedValue = expectedParameters.get(actualEntry.getKey());
-					if (expectedValue instanceof Date) {
-						Date expectedDate = (Date) expectedValue;
-						Duration diff = Duration.between(actualDate.toInstant(), expectedDate.toInstant());
-						if (diff.abs().toMillis() < 500) {
-							actualEntry.setValue(expectedDate);
-						}
-					}
-				}
-			}
-			Assertions.assertEquals(
-				expectedParameters,
-				fakeQuery.getParameterHash(),
-				"Unexpected query parameters");
-		}
-		try (Session session = Database.getSession()) {
-			Query<String> query = session.createQuery(
-				"select d.name " + hqlQuery, String.class);
-			finder.setVariables(query);
-			List<String> deviceNames = query.list();
-			// The generated HQL carries no ORDER BY, so row order is not guaranteed
-			// by the database (unlike H2's incidental insertion-order behavior,
-			// PostgreSQL's query planner is free to return rows in any order) -
-			// compare as sets, sorted only for a readable failure diff.
-			List<String> sortedExpected = new ArrayList<>(expectedDeviceNames);
-			List<String> sortedActual = new ArrayList<>(deviceNames);
-			Collections.sort(sortedExpected);
-			Collections.sort(sortedActual);
-			Assertions.assertArrayEquals(
-				sortedExpected.toArray(new String[0]),
-				sortedActual.toArray(new String[0]),
-				"Unexpected device list");
-		}
+		// The query carries no ORDER BY, so row order is not guaranteed by the database:
+		// compare as sets, sorted only for a readable failure diff.
+		List<String> sortedExpected = new ArrayList<>(expectedDeviceNames);
+		List<String> sortedActual = new ArrayList<>(findDeviceNames(finder));
+		Collections.sort(sortedExpected);
+		Collections.sort(sortedActual);
+		Assertions.assertArrayEquals(
+			sortedExpected.toArray(new String[0]),
+			sortedActual.toArray(new String[0]),
+			"Unexpected device list");
+	}
+
+	/**
+	 * Finds the names of the devices matching a query.
+	 *
+	 * @param finder the parsed query
+	 * @return the device names
+	 */
+	private static List<String> findDeviceNames(Finder finder) {
+		return new Transactions().read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
 	}
 
 	@Test
@@ -365,8 +313,6 @@ public class FinderTest {
 		}
 		assertFinder("",
 			null,
-			" from Device d where 1 = 1",
-			Map.of(),
 			routers0To99);
 	}
 
@@ -379,8 +325,6 @@ public class FinderTest {
 		}
 		assertFinder("[Status] is \"DISABLED\"",
 			"[Status] is DISABLED",
-			" from Device d where d.status = :var",
-			Map.of("var", Device.Status.DISABLED),
 			routers0To9);
 	}
 
@@ -393,8 +337,6 @@ public class FinderTest {
 		}
 		assertFinder("[Status] is DISABLED",
 			null,
-			" from Device d where d.status = :var",
-			Map.of("var", Device.Status.DISABLED),
 			routers0To9);
 	}
 
@@ -403,8 +345,6 @@ public class FinderTest {
 	void queryByFamilyMatch() throws Exception {
 		assertFinder("[Family] matches \"^SRX[0-9]+$\"",
 			null,
-			" from Device d where regexp_like(d.family, :var)",
-			Map.of("var", "^SRX[0-9]+$"),
 			List.of("router00012"));
 	}
 
@@ -413,8 +353,6 @@ public class FinderTest {
 	void queryByNetworkClass() throws Exception {
 		assertFinder("[Network Class] is FIREWALL",
 			null,
-			" from Device d where d.networkClass = :var",
-			Map.of("var", Device.NetworkClass.FIREWALL),
 			List.of("router00012"));
 	}
 
@@ -423,8 +361,6 @@ public class FinderTest {
 	void queryByName() throws Exception {
 		assertFinder("[Name] is \"router00010\"",
 			null,
-			" from Device d where d.name like :var",
-			Map.of("var", "router00010"),
 			List.of("router00010"));
 	}
 
@@ -433,8 +369,6 @@ public class FinderTest {
 	void queryByNameStartingWith() throws Exception {
 		assertFinder("[Name] startswith \"router0001\"",
 			null,
-			" from Device d where d.name like :var",
-			Map.of("var", "router0001%"),
 			List.of("router00010", "router00011", "router00012",
 				"router00013", "router00014", "router00015", "router00016",
 				"router00017", "router00018", "router00019"));
@@ -445,8 +379,6 @@ public class FinderTest {
 	void queryByNameEndingWith() throws Exception {
 		assertFinder("[Name] endswith \"09\"",
 			null,
-			" from Device d where d.name like :var",
-			Map.of("var", "%09"),
 			List.of("router00009"));
 	}
 
@@ -455,8 +387,6 @@ public class FinderTest {
 	void queryByNameContaining() throws Exception {
 		assertFinder("[Name] contains \"ter0001\"",
 			null,
-			" from Device d where d.name like :var",
-			Map.of("var", "%ter0001%"),
 			List.of("router00010", "router00011", "router00012",
 				"router00013", "router00014", "router00015", "router00016",
 				"router00017", "router00018", "router00019"));
@@ -467,8 +397,6 @@ public class FinderTest {
 	void queryByNameContainingNoCase() throws Exception {
 		assertFinder("[Name] containsnocase \"OUter00010\"",
 			null,
-			" from Device d where lower(d.name) like :var",
-			Map.of("var", "%outer00010%"),
 			List.of("router00010"));
 	}
 
@@ -477,8 +405,6 @@ public class FinderTest {
 	void queryByNameMatching() throws Exception {
 		assertFinder("[Name] matches \"^rou.*[12]1$\"",
 			null,
-			" from Device d where regexp_like(d.name, :var)",
-			Map.of("var", "^rou.*[12]1$"),
 			List.of("router00011", "router00021"));
 	}
 
@@ -486,24 +412,20 @@ public class FinderTest {
 	@DisplayName("Query device by ID")
 	void queryById() throws Exception {
 		Device device = testDevices.get(1);
-		long id = device.getId();
+		long id = device.id();
 		assertFinder("[ID] is %d".formatted(id),
 			null,
-			" from Device d where d.id = :var",
-			Map.of("var", id),
-			List.of(device.getName()));
+			List.of(device.name()));
 	}
 
 	@Test
 	@DisplayName("Query device by serial number")
 	void queryBySerialNumber() throws Exception {
 		Device device = testDevices.get(10);
-		String serial = device.getSerialNumber();
+		String serial = device.serialNumber();
 		assertFinder("[Serial Number] is \"%s\"".formatted(serial),
 			null,
-			" from Device d where d.serialNumber like :var",
-			Map.of("var", serial),
-			List.of(device.getName()));
+			List.of(device.name()));
 	}
 
 	@Test
@@ -511,8 +433,6 @@ public class FinderTest {
 	void queryByDriverMatching() throws Exception {
 		assertFinder("[Driver] startswith \"Juniper\"",
 			"[Type] startswith \"Juniper\"",
-			null, // Generated HQL depends on current driver list
-			Map.of("var", "Juniper%"),
 			List.of("router00012"));
 	}
 
@@ -521,8 +441,6 @@ public class FinderTest {
 	void queryByTypeMatching() throws Exception {
 		assertFinder("[Type] startswith \"Juniper\"",
 			null,
-			null, // Generated HQL depends on current driver list
-			Map.of("var", "Juniper%"),
 			List.of("router00012"));
 	}
 
@@ -531,9 +449,6 @@ public class FinderTest {
 	void queryByIp() throws Exception {
 		assertFinder("[IP] is 10.0.2.1",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni left join ni.ip4Addresses ip4"
-			+ " where d.cachedIpAddress = :var_ip or ip4.address = :var_ip)",
-			Map.of("var_ip", InetAddress.getByName("10.0.2.1")),
 			List.of("router00002"));
 	}
 
@@ -542,9 +457,6 @@ public class FinderTest {
 	void queryByIpRange() throws Exception {
 		assertFinder("[IP] in 10.0.0.0/22",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni left join ni.ip4Addresses ip4"
-			+ " where net_contains(d.cachedIpAddress, :var_cidr) or net_contains(ip4.address, :var_cidr))",
-			Map.of("var_cidr", "10.0.0.0/22"),
 			List.of("router00000", "router00001", "router00002", "router00003"));
 	}
 
@@ -557,8 +469,6 @@ public class FinderTest {
 		// the new cachedIpAddress column.
 		assertFinder("[IP] is 172.16.0.50",
 			null,
-			null,
-			null,
 			List.of("router00050"));
 	}
 
@@ -566,8 +476,6 @@ public class FinderTest {
 	@DisplayName("Query device by cached IP subnet (not on any configured interface)")
 	void queryByCachedIpRange() throws Exception {
 		assertFinder("[IP] in 172.16.0.60/30",
-			null,
-			null,
 			null,
 			List.of("router00060", "router00061", "router00062", "router00063"));
 	}
@@ -577,8 +485,6 @@ public class FinderTest {
 	void queryByInterfaceDescription() throws Exception {
 		assertFinder("[Interface] is \"Specific description\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.networkInterfaces ni where ni.interfaceName like :var or ni.description like :var)",
-			Map.of("var", "Specific description"),
 			List.of("router00010"));
 	}
 
@@ -587,9 +493,6 @@ public class FinderTest {
 	void queryByModuleText() throws Exception {
 		assertFinder("[Module] containsnocase \"csn11\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d left join d.modules m"
-			+ " where m.removed is not true and (lower(m.serialNumber) like :var or lower(m.partNumber) like :var))",
-			Map.of("var", "%csn11%"),
 			List.of("router00011"));
 	}
 
@@ -598,8 +501,6 @@ public class FinderTest {
 	void queryByTag() throws Exception {
 		assertFinder("[Tag] is \"core\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.tags t where t like :var)",
-			Map.of("var", "core"),
 			List.of("router00040", "router00041"));
 	}
 
@@ -608,8 +509,6 @@ public class FinderTest {
 	void queryByTagContainsNoCase() throws Exception {
 		assertFinder("[tag] containsnocase \"paris\"",
 			"[Tag] containsnocase \"paris\"",
-			" from Device d where d.id in (select d.id from Device d join d.tags t where lower(t) like :var)",
-			Map.of("var", "%paris%"),
 			List.of("router00040"));
 	}
 
@@ -618,24 +517,15 @@ public class FinderTest {
 	void queryByTagMatches() throws Exception {
 		assertFinder("[Tag] matches \"^(lab|test)$\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.tags t where regexp_like(t, :var))",
-			Map.of("var", "^(lab|test)$"),
 			List.of("router00041"));
 	}
 
 	@Test
 	@DisplayName("Query device without a given tag")
 	void queryByNotTag() throws Exception {
-		FakeQuery<Device> fakeQuery = new FakeQuery<>();
-		Finder finder = new Finder("not ([Tag] is \"core\")");
-		finder.setVariables(fakeQuery);
-		try (Session session = Database.getSession()) {
-			Query<String> query = session.createQuery("select d.name " + finder.getHql(), String.class);
-			finder.setVariables(query);
-			List<String> deviceNames = query.list();
-			Assertions.assertEquals(98, deviceNames.size(), "Unexpected number of devices");
-			Assertions.assertFalse(deviceNames.contains("router00040"));
-		}
+		List<String> deviceNames = findDeviceNames(new Finder("not ([Tag] is \"core\")"));
+		Assertions.assertEquals(98, deviceNames.size(), "Unexpected number of devices");
+		Assertions.assertFalse(deviceNames.contains("router00040"));
 	}
 
 	@Test
@@ -649,13 +539,6 @@ public class FinderTest {
 	void queryByIosImageFile() throws Exception {
 		assertFinder("[Cisco IOS and IOS-XE > IOS image file] is \"ciscoios-advanced-16.1.6.bin\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d, Config c join c.attributes var_ca with var_ca.name = :var_name"
-			+ " where d.driver = :var_driver and d.lastConfig = c and (var_ca.text like :var))",
-			Map.of(
-				"var", "ciscoios-advanced-16.1.6.bin",
-				"var_name", "iosImageFile",
-				"var_driver", "CiscoIOS12"
-			),
 			List.of("router00016"));
 	}
 
@@ -664,12 +547,6 @@ public class FinderTest {
 	void queryByConfigurationSaved1() throws Exception {
 		assertFinder("[Cisco IOS and IOS-XE > Configuration saved] is false",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.attributes var_da with var_da.name = :var_name where d.driver = :var_driver and (var_da.assumption = :var))",
-			Map.of(
-				"var", false,
-				"var_name", "configurationSaved",
-				"var_driver", "CiscoIOS12"
-			),
 			List.of("router00020"));
 	}
 
@@ -678,13 +555,6 @@ public class FinderTest {
 	void queryByConfigurationSaved2() throws Exception {
 		assertFinder("not ([Cisco IOS and IOS-XE > Configuration saved] is true)",
 			null,
-			" from Device d where not (d.id in (select d.id from Device d join d.attributes var_0_da with var_0_da.name = :var_0_name"
-			+ " where d.driver = :var_0_driver and (var_0_da.assumption = :var_0)))",
-			Map.of(
-				"var_0", true,
-				"var_0_name", "configurationSaved",
-				"var_0_driver", "CiscoIOS12"
-			),
 			List.of(
 				"router00012",  // Juniper device
 				"router00013",  // Cisco IOS-XR device
@@ -698,10 +568,6 @@ public class FinderTest {
 	void queryBySoftwareLevel() throws Exception {
 		assertFinder("not ([Software Level] is GOLD)",
 			null,
-			" from Device d where not (d.softwareLevel = :var_0)",
-			Map.of(
-				"var_0", ConformanceLevel.GOLD
-			),
 			List.of("router00018", "router00019"));
 	}
 
@@ -714,12 +580,6 @@ public class FinderTest {
 		}
 		assertFinder("[NAME] STARTSWITH \"router0001\" OR [NAME] STARTSWITH \"router0002\" AND NOT([NAME] IS \"router00010\")",
 			"([Name] startswith \"router0001\") or (([Name] startswith \"router0002\") and (not ([Name] is \"router00010\")))",
-			" from Device d where (d.name like :var_0) or ((d.name like :var_1_0) and (not (d.name like :var_1_1_0)))",
-			Map.of(
-				"var_0", "router0001%",
-				"var_1_0", "router0002%",
-				"var_1_1_0", "router00010"
-			),
 			routers10To29);
 	}
 
@@ -733,12 +593,6 @@ public class FinderTest {
 		routers10To29.remove("router00010");
 		assertFinder("([NAME] STARTSWITH \"router0001\" OR [NAME] STARTSWITH \"router0002\") AND NOT([NAME] IS \"router00010\")",
 			"(([Name] startswith \"router0001\") or ([Name] startswith \"router0002\")) and (not ([Name] is \"router00010\"))",
-			" from Device d where ((d.name like :var_0_0) or (d.name like :var_0_1)) and (not (d.name like :var_1_0))",
-			Map.of(
-				"var_0_0", "router0001%",
-				"var_0_1", "router0002%",
-				"var_1_0", "router00010"
-			),
 			routers10To29);
 	}
 
@@ -747,10 +601,6 @@ public class FinderTest {
 	void queryByChangeDateAbsolute1() throws Exception {
 		assertFinder("[Creation Date] after \"2050-05-15\"",
 			null,
-			" from Device d where d.createdDate >= :var",
-			Map.of(
-				"var", Date.from(LocalDate.parse("2050-05-15").atStartOfDay(ZoneId.systemDefault()).toInstant())
-			),
 			List.of("router00014"));
 	}
 
@@ -759,11 +609,6 @@ public class FinderTest {
 	void queryByChangeDateAbsolute2() throws Exception {
 		assertFinder("[CREATION DATE] IS \"2023-01-02\"",
 			"[Creation Date] is \"2023-01-02\"",
-			" from Device d where (d.createdDate >= :var_1 and d.createdDate <= :var_2)",
-			Map.of(
-				"var_1", Date.from(LocalDate.parse("2023-01-02").atStartOfDay(ZoneId.systemDefault()).toInstant()),
-				"var_2", Date.from(LocalDate.parse("2023-01-02").plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant())
-			),
 			List.of("router00015"));
 	}
 
@@ -772,11 +617,6 @@ public class FinderTest {
 	void queryByChangeDateRelative1() throws Exception {
 		assertFinder("not ([Creation Date] is \"Today\")",
 			null,
-			" from Device d where not ((d.createdDate >= :var_0_1 and d.createdDate <= :var_0_2))",
-			Map.of(
-				"var_0_1", Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()),
-				"var_0_2", Date.from(LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant())
-			),
 			List.of("router00014", "router00015"));
 	}
 
@@ -785,10 +625,6 @@ public class FinderTest {
 	void queryByChangeDateRelative2() throws Exception {
 		assertFinder("[Creation Date] before \"Now -7d\"",
 			null,
-			" from Device d where d.createdDate <= :var",
-			Map.of(
-				"var", Date.from(LocalDateTime.now().minusDays(7).atZone(ZoneId.systemDefault()).toInstant())
-			),
 			List.of("router00015"));
 	}
 
@@ -797,11 +633,6 @@ public class FinderTest {
 	void queryByChangeDateRelative3() throws Exception {
 		assertFinder("[CREATION DATE] IS \"TODAY - 1 D\"",
 			"[Creation Date] is \"Today -1d\"",
-			" from Device d where (d.createdDate >= :var_1 and d.createdDate <= :var_2)",
-			Map.of(
-				"var_1", Date.from(LocalDate.now().minusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()),
-				"var_2", Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant())
-			),
 			List.of());
 	}
 
@@ -810,11 +641,6 @@ public class FinderTest {
 	void queryByTextDiagnosticIs() throws Exception {
 		assertFinder("[Diagnostic > System Status] is \"OK\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.text like :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.TEXT),  // System Status
-				"var", "OK"
-			),
 			List.of("router00022"));
 	}
 
@@ -823,11 +649,6 @@ public class FinderTest {
 	void queryByTextDiagnosticContains() throws Exception {
 		assertFinder("[Diagnostic > System Status] contains \"WARN\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.text like :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.TEXT),
-				"var", "%WARN%"
-			),
 			List.of("router00023"));
 	}
 
@@ -836,11 +657,6 @@ public class FinderTest {
 	void queryByTextDiagnosticStartsWith() throws Exception {
 		assertFinder("[Diagnostic > System Status] startswith \"CRIT\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.text like :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.TEXT),
-				"var", "CRIT%"
-			),
 			List.of("router00024"));
 	}
 
@@ -849,11 +665,6 @@ public class FinderTest {
 	void queryByNumericDiagnosticIs() throws Exception {
 		assertFinder("[Diagnostic > CPU Usage] is 78.2",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.number = :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.NUMERIC),
-				"var", 78.2
-			),
 			List.of("router00026"));
 	}
 
@@ -862,11 +673,6 @@ public class FinderTest {
 	void queryByNumericDiagnosticGreaterThan() throws Exception {
 		assertFinder("[Diagnostic > CPU Usage] greaterthan 80",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.number > :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.NUMERIC),
-				"var", 80.0
-			),
 			List.of("router00027"));
 	}
 
@@ -875,11 +681,6 @@ public class FinderTest {
 	void queryByNumericDiagnosticLessThan() throws Exception {
 		assertFinder("[Diagnostic > CPU Usage] lessthan 50",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.number < :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.NUMERIC),
-				"var", 50.0
-			),
 			List.of("router00025"));
 	}
 
@@ -888,11 +689,6 @@ public class FinderTest {
 	void queryByBinaryDiagnosticTrue() throws Exception {
 		assertFinder("[Diagnostic > Is Reachable] is true",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.assumption = :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.BINARY),  // Is Reachable
-				"var", true
-			),
 			List.of("router00028", "router00030"));
 	}
 
@@ -901,11 +697,6 @@ public class FinderTest {
 	void queryByBinaryDiagnosticFalse() throws Exception {
 		assertFinder("[Diagnostic > Is Reachable] is false",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (var_dr.assumption = :var))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.BINARY),
-				"var", false
-			),
 			List.of("router00029"));
 	}
 
@@ -930,11 +721,6 @@ public class FinderTest {
 	void queryByTextDiagnosticMatches() throws Exception {
 		assertFinder("[Diagnostic > System Status] matches \"^(OK|WARNING)$\"",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.diagnosticResults var_dr where var_dr.diagnostic = :var_diagnostic and (regexp_like(var_dr.text, :var)))",
-			Map.of(
-				"var_diagnostic", testDiagnostics.get(AttributeType.TEXT),
-				"var", "^(OK|WARNING)$"
-			),
 			List.of("router00022", "router00023"));
 	}
 
@@ -943,13 +729,6 @@ public class FinderTest {
 	void queryCombinedDiagnosticAndStatus() throws Exception {
 		assertFinder("[DIAGNOSTIC > CPU Usage] GREATERTHAN 70 AND [STATUS] IS \"INPRODUCTION\"",
 			"([Diagnostic > CPU Usage] greaterthan 70) and ([Status] is INPRODUCTION)",
-			" from Device d where (d.id in (select d.id from Device d join d.diagnosticResults var_0_dr"
-			+ " where var_0_dr.diagnostic = :var_0_diagnostic and (var_0_dr.number > :var_0))) and (d.status = :var_1)",
-			Map.of(
-				"var_0_diagnostic", testDiagnostics.get(AttributeType.NUMERIC),  // CPU Usage
-				"var_0", 70.0,
-				"var_1", Device.Status.INPRODUCTION
-			),
 			List.of("router00026", "router00027"));
 	}
 
@@ -958,11 +737,6 @@ public class FinderTest {
 	void queryByComplianceRuleConforming() throws Exception {
 		assertFinder("[Rule > Security Policy > Password Check] is CONFORMING",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.complianceCheckResults var_cr where var_cr.key.rule = :var_rule and var_cr.result = :var)",
-			Map.of(
-				"var_rule", testRules.get("Security Policy/Password Check"),
-				"var", CheckResult.ResultOption.CONFORMING
-			),
 			List.of("router00031"));
 	}
 
@@ -971,11 +745,6 @@ public class FinderTest {
 	void queryByComplianceRuleNonconforming() throws Exception {
 		assertFinder("[Rule > Security Policy > Password Check] is \"NONCONFORMING\"",
 			"[Rule > Security Policy > Password Check] is NONCONFORMING",
-			" from Device d where d.id in (select d.id from Device d join d.complianceCheckResults var_cr where var_cr.key.rule = :var_rule and var_cr.result = :var)",
-			Map.of(
-				"var_rule", testRules.get("Security Policy/Password Check"),
-				"var", CheckResult.ResultOption.NONCONFORMING
-			),
 			List.of("router00032"));
 	}
 
@@ -984,11 +753,6 @@ public class FinderTest {
 	void queryByComplianceRuleNotapplicable() throws Exception {
 		assertFinder("[Rule > Security Policy > SNMP Community] is NOTAPPLICABLE",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.complianceCheckResults var_cr where var_cr.key.rule = :var_rule and var_cr.result = :var)",
-			Map.of(
-				"var_rule", testRules.get("Security Policy/SNMP Community"),
-				"var", CheckResult.ResultOption.NOTAPPLICABLE
-			),
 			List.of("router00034"));
 	}
 
@@ -997,11 +761,6 @@ public class FinderTest {
 	void queryByComplianceRuleExempted() throws Exception {
 		assertFinder("[Rule > Security Policy > Password Check] is EXEMPTED",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.complianceCheckResults var_cr where var_cr.key.rule = :var_rule and var_cr.result = :var)",
-			Map.of(
-				"var_rule", testRules.get("Security Policy/Password Check"),
-				"var", CheckResult.ResultOption.EXEMPTED
-			),
 			List.of("router00035"));
 	}
 
@@ -1010,11 +769,6 @@ public class FinderTest {
 	void queryByComplianceRuleDisabled() throws Exception {
 		assertFinder("[Rule > Config Policy > Hostname Standard] is DISABLED",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.complianceCheckResults var_cr where var_cr.key.rule = :var_rule and var_cr.result = :var)",
-			Map.of(
-				"var_rule", testRules.get("Config Policy/Hostname Standard"),
-				"var", CheckResult.ResultOption.DISABLED
-			),
 			List.of("router00036"));
 	}
 
@@ -1023,11 +777,6 @@ public class FinderTest {
 	void queryByComplianceRuleDifferentRule() throws Exception {
 		assertFinder("[Rule > Config Policy > Hostname Standard] is CONFORMING",
 			null,
-			" from Device d where d.id in (select d.id from Device d join d.complianceCheckResults var_cr where var_cr.key.rule = :var_rule and var_cr.result = :var)",
-			Map.of(
-				"var_rule", testRules.get("Config Policy/Hostname Standard"),
-				"var", CheckResult.ResultOption.CONFORMING
-			),
 			List.of("router00033"));
 	}
 
@@ -1050,13 +799,6 @@ public class FinderTest {
 	void queryCombinedComplianceAndStatus() throws Exception {
 		assertFinder("[RULE > Security Policy > Password Check] IS \"CONFORMING\" AND [STATUS] IS \"INPRODUCTION\"",
 			"([Rule > Security Policy > Password Check] is CONFORMING) and ([Status] is INPRODUCTION)",
-			" from Device d where (d.id in (select d.id from Device d join d.complianceCheckResults var_0_cr"
-			+ " where var_0_cr.key.rule = :var_0_rule and var_0_cr.result = :var_0)) and (d.status = :var_1)",
-			Map.of(
-				"var_0_rule", testRules.get("Security Policy/Password Check"),
-				"var_0", CheckResult.ResultOption.CONFORMING,
-				"var_1", Device.Status.INPRODUCTION
-			),
 			List.of("router00031"));
 	}
 
@@ -1066,5 +808,78 @@ public class FinderTest {
 		Assertions.assertThrows(FinderParseException.class,
 			() -> new Finder("[INVALID] is true"),
 			"Parser didn't throw exception as expected");
+	}
+
+	/**
+	 * Queries with the number of devices they find, covering every kind of expression and operator
+	 * (the counts were recorded with the former HQL generation, which found the same devices).
+	 *
+	 * @return the queries and the counts
+	 */
+	private static List<Entry<String, Integer>> countedQueries() {
+		return List.of(
+			Map.entry("[Domain] is " + testDomains.get(0).id(), 100),
+			Map.entry("[Domain] is " + testDomains.get(1).id(), 0),
+			Map.entry("not ([Domain] is " + testDomains.get(0).id() + ")", 0),
+			Map.entry("[MAC] is 0011.2233.4455", 0),
+			Map.entry("[MAC] in 0011.2233.0000/32", 0),
+			Map.entry("[IP] is 2016:1:5:1::1", 1),
+			Map.entry("[IP] is 2016:1:5:1::1/64", 1),
+			Map.entry("[IP] in 2016:1:5::/48", 1),
+			Map.entry("[IP] in 2016:1::/32", 100),
+			Map.entry("[IP] is 10.0.5.1/25", 1),
+			Map.entry("[IP] in 10.0.5.0/24", 1),
+			Map.entry("not ([IP] in 10.0.0.0/16)", 0),
+			Map.entry("[VRF] is \"VRF1\"", 100),
+			Map.entry("[VRF] contains \"RF\"", 100),
+			Map.entry("[VRF] containsnocase \"vrf2\"", 100),
+			Map.entry("[VRF] matches \"^VRF[0-9]$\"", 100),
+			Map.entry("[VRF] startswith \"VR\"", 100),
+			Map.entry("[VRF] endswith \"2\"", 100),
+			Map.entry("not ([VRF] is \"VRF1\")", 0),
+			Map.entry("[Virtual Name] is \"router00004\"", 1),
+			Map.entry("[Virtual Name] containsnocase \"ROUTER0001\"", 10),
+			Map.entry("[Virtual Name] matches \"^router0000[1-3]$\"", 3),
+			Map.entry("[Module] containsnocase \"testslot\"", 100),
+			Map.entry("[Module] matches \"^16161616\"", 100),
+			Map.entry("[Module] endswith \"POSD203\"", 100),
+			Map.entry("[Interface] contains \"0/1\"", 100),
+			Map.entry("[Interface] matches \"^Desc\"", 100),
+			Map.entry("[Interface] containsnocase \"GIGABIT\"", 100),
+			Map.entry("[Driver] containsnocase \"cisco ios\"", 99),
+			Map.entry("[Driver] matches \"^Cisco\"", 99),
+			Map.entry("[Cisco IOS and IOS-XE > Running configuration] contains \"hostname\"", 98),
+			Map.entry("[Cisco IOS and IOS-XE > Running configuration] containsnocase \"INTERFACE\"", 98),
+			Map.entry("[Cisco IOS and IOS-XE > Running configuration] matches \"interface\"", 98),
+			Map.entry("not ([Cisco IOS and IOS-XE > Running configuration] contains \"hostname\")", 2),
+			Map.entry("[Cisco IOS and IOS-XE > IOS version] startswith \"16\"", 98),
+			Map.entry("[Cisco IOS and IOS-XE > IOS version] is \"16.1.6\"", 98),
+			Map.entry("[Cisco IOS and IOS-XE > Main memory size (MB)] greaterthan 1000", 98),
+			Map.entry("[Cisco IOS and IOS-XE > Main memory size (MB)] lessthan 1000", 0),
+			Map.entry("[Cisco IOS and IOS-XE > Main memory size (MB)] is 2048", 97),
+			Map.entry("[Cisco IOS and IOS-XE > IOS config register] is \"0x1202\"", 98),
+			Map.entry("[Cisco IOS and IOS-XE > IOS config register] containsnocase \"x12\"", 98),
+			Map.entry("[Software Level] is GOLD", 98),
+			Map.entry("[Network Class] is ROUTER", 99),
+			Map.entry("[Status] is INPRODUCTION or [Status] is DISABLED", 100),
+			Map.entry("[Comments] contains \"testing\"", 100),
+			Map.entry("[Contact] is \"\"", 0),
+			Map.entry("[Location] containsnocase \"x\"", 0),
+			Map.entry("[Software Version] startswith \"16\"", 98),
+			Map.entry("[End of Sale Date] before \"2030-01-01\"", 0),
+			Map.entry("[End of Sale Date] is \"2040-01-01\"", 0),
+			Map.entry("[End of Life Date] after \"2000-01-01\"", 0),
+			Map.entry("[Last Change Date] after \"2000-01-01\"", 100),
+			Map.entry("[Last Change Date] before \"2000-01-01\"", 0),
+			Map.entry("[Tag] is \"core\" or [VRF] is \"VRF1\"", 100),
+			Map.entry("[Rule > Security Policy > Password Check] is CONFORMING or not ([Diagnostic > CPU Usage] greaterthan 80)", 99)
+		);
+	}
+
+	@TestFactory
+	@DisplayName("Query finds the expected number of devices")
+	Stream<DynamicTest> queryCount() {
+		return countedQueries().stream().map(c -> DynamicTest.dynamicTest(c.getKey(),
+			() -> Assertions.assertEquals(c.getValue().intValue(), findDeviceNames(new Finder(c.getKey())).size())));
 	}
 }

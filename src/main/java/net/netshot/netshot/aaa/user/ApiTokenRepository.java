@@ -18,86 +18,93 @@
  */
 package net.netshot.netshot.aaa.user;
 
+import static net.netshot.netshot.platform.database.schema.Tables.API_TOKEN;
+
 import java.util.List;
 
-import org.hibernate.Session;
-import org.hibernate.query.Query;
+import org.jooq.DSLContext;
+import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The queries on the API tokens. The {@link Session} is always the first parameter: the caller
- * (the service) owns the session and the transaction.
+ * The queries on the API tokens. The {@link DSLContext} is always the first parameter: the caller
+ * (the service) owns the transaction.
  */
 public class ApiTokenRepository {
+
+	private static ApiToken toApiToken(Record r) {
+		return new ApiToken(r.get(API_TOKEN.ID), r.get(API_TOKEN.DESCRIPTION), r.get(API_TOKEN.HASHED_TOKEN), r.get(API_TOKEN.LEVEL));
+	}
 
 	/**
 	 * Lists the API tokens.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
-	 * @return the API tokens (all their state is loaded: they hold no association)
+	 * @return the API tokens
 	 */
-	public List<ApiToken> list(Session session, Page page) {
-		Query<ApiToken> query = session.createQuery("from ApiToken", ApiToken.class);
-		page.apply(query);
-		return query.list();
+	public List<ApiToken> list(DSLContext dsl, Page page) {
+		return page.apply(dsl.select(API_TOKEN.fields()).from(API_TOKEN).orderBy(API_TOKEN.ID)).fetch(ApiTokenRepository::toApiToken);
 	}
 
 	/**
 	 * Finds an API token by ID.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param id the token ID
 	 * @return the API token, or null if there is no such token
 	 */
-	public ApiToken find(Session session, long id) {
-		return session.get(ApiToken.class, id);
+	public ApiToken find(DSLContext dsl, long id) {
+		return dsl.select(API_TOKEN.fields()).from(API_TOKEN).where(API_TOKEN.ID.eq(id)).fetchOne(ApiTokenRepository::toApiToken);
 	}
 
 	/**
 	 * Finds an API token by the hash of its value.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param hash the hash of the token value
 	 * @return the API token, or null if there is no such token
 	 */
-	public ApiToken findByHash(Session session, String hash) {
-		return session
-			.createQuery("from ApiToken t where t.hashedToken = :hash", ApiToken.class)
-			.setParameter("hash", hash).uniqueResult();
+	public ApiToken findByHash(DSLContext dsl, String hash) {
+		return dsl.select(API_TOKEN.fields()).from(API_TOKEN).where(API_TOKEN.HASHED_TOKEN.eq(hash)).fetchOne(ApiTokenRepository::toApiToken);
 	}
 
 	/**
 	 * Tells whether an API token with the given hash already exists.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param hash the hash of the token value
 	 * @return true if at least one API token has this hash
 	 */
-	public boolean existsByHash(Session session, String hash) {
-		return session
-			.createQuery("select count(t) from ApiToken t where t.hashedToken = :hash", Long.class)
-			.setParameter("hash", hash).uniqueResult() > 0;
+	public boolean existsByHash(DSLContext dsl, String hash) {
+		return dsl.fetchExists(API_TOKEN, API_TOKEN.HASHED_TOKEN.eq(hash));
 	}
 
 	/**
 	 * Stores a new API token.
 	 *
-	 * @param session the session
-	 * @param apiToken the API token
+	 * @param dsl the jOOQ context
+	 * @param apiToken the API token (its ID is ignored)
+	 * @return the ID of the new API token
 	 */
-	public void persist(Session session, ApiToken apiToken) {
-		session.persist(apiToken);
+	public long add(DSLContext dsl, ApiToken apiToken) {
+		return dsl.insertInto(API_TOKEN)
+			.set(API_TOKEN.DESCRIPTION, apiToken.description())
+			.set(API_TOKEN.HASHED_TOKEN, apiToken.hashedToken())
+			.set(API_TOKEN.LEVEL, apiToken.level())
+			.returning(API_TOKEN.ID)
+			.fetchOne(API_TOKEN.ID);
 	}
 
 	/**
 	 * Removes an API token.
 	 *
-	 * @param session the session
-	 * @param apiToken the (persistent) API token
+	 * @param dsl the jOOQ context
+	 * @param id the ID of the API token
+	 * @return true if the API token was found and removed
 	 */
-	public void remove(Session session, ApiToken apiToken) {
-		session.remove(apiToken);
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(API_TOKEN).where(API_TOKEN.ID.eq(id)).execute() > 0;
 	}
 }

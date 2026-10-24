@@ -24,16 +24,9 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Transient;
-import net.netshot.netshot.platform.database.InetAddressUserType;
-
-import org.hibernate.annotations.Type;
-
 /**
  * An IPv4 address.
  */
-@Embeddable
 public final class Network4Address extends NetworkAddress {
 
 	/**
@@ -154,6 +147,30 @@ public final class Network4Address extends NetworkAddress {
 	}
 
 	/**
+	 * Builds an address from the columns it is stored in.
+	 *
+	 * @param address the address (inet column), or null
+	 * @param prefixLength the prefix length, or null for a host address
+	 * @param usage the name of the usage, or null for the default one
+	 * @return the address, or null if there is no address
+	 */
+	public static Network4Address fromColumns(InetAddress address, Integer prefixLength, String usage) {
+		if (address == null) {
+			return null;
+		}
+		try {
+			Network4Address result = new Network4Address((Inet4Address) address, prefixLength == null ? 32 : prefixLength);
+			if (usage != null) {
+				result.setAddressUsage(AddressUsage.valueOf(usage));
+			}
+			return result;
+		}
+		catch (UnknownHostException | ClassCastException e) {
+			throw new IllegalStateException("Invalid stored address " + address, e);
+		}
+	}
+
+	/**
 	 * Instantiates a new network4 address.
 	 *
 	 * @param address
@@ -263,7 +280,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return the address
 	 */
-	@Type(InetAddressUserType.class)
 	public InetAddress getAddress() {
 		return address;
 	}
@@ -273,7 +289,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getInetAddress()
 	 */
-	@Transient
 	@Override
 	public InetAddress getInetAddress() {
 		return this.address;
@@ -284,7 +299,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return the int address
 	 */
-	@Transient
 	public int getIntAddress() {
 		return this.address == null ? 0 : Network4Address.inetAddressToInt((Inet4Address) this.address);
 	}
@@ -294,7 +308,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getIP()
 	 */
-	@Transient
 	@Override
 	public String getIp() {
 		return intToIP(this.getIntAddress());
@@ -305,7 +318,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return the prefix
 	 */
-	@Transient
 	@Override
 	public String getPrefix() {
 		return intToIP(this.getIntAddress()) + "/" + prefixLength;
@@ -340,7 +352,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return true, if is broadcast
 	 */
-	@Transient
 	public boolean isBroadcast() {
 		return this.getIntAddress() == 0xFFFFFFFF;
 	}
@@ -350,7 +361,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return true, if directed broadcast
 	 */
-	@Transient
 	public boolean isDirectedBroadcast() {
 		if (this.prefixLength > 30 || this.prefixLength == 0) {
 			return false;
@@ -363,7 +373,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return true, if is loopback
 	 */
-	@Transient
 	public boolean isLoopback() {
 		return ((this.getIntAddress() >>> 24) & 255) == 127;
 	}
@@ -373,7 +382,6 @@ public final class Network4Address extends NetworkAddress {
 	 *
 	 * @return true, if is multicast
 	 */
-	@Transient
 	public boolean isMulticast() {
 		return ((this.getIntAddress() >>> 28) & 0b1111) == 0b1110;
 	}
@@ -383,7 +391,6 @@ public final class Network4Address extends NetworkAddress {
 	 * 
 	 * @return true, if is normal unicast
 	 */
-	@Transient
 	public boolean isNormalUnicast() {
 		return !this.isBroadcast() && !this.isLoopback() && !this.isMulticast() && !this
 			.isUndefined() && !this.isDirectedBroadcast();
@@ -394,7 +401,6 @@ public final class Network4Address extends NetworkAddress {
 	 * 
 	 * @return true, if is undefined
 	 */
-	@Transient
 	public boolean isUndefined() {
 		return this.address == null || this.getIntAddress() == 0;
 	}
@@ -415,7 +421,6 @@ public final class Network4Address extends NetworkAddress {
 	 * @param intAddress
 	 *          the new address
 	 */
-	@Transient
 	public void setIntAddress(int intAddress) {
 		try {
 			this.address = Network4Address.intToInetAddress(intAddress);
@@ -439,7 +444,6 @@ public final class Network4Address extends NetworkAddress {
 	 * 
 	 * @return the subnet min
 	 */
-	@Transient
 	public int getSubnetMin() {
 		return this.getIntAddress()
 			& Network4Address.prefixLengthToIntAddress(this.getPrefixLength());
@@ -450,7 +454,6 @@ public final class Network4Address extends NetworkAddress {
 	 * 
 	 * @return the subnet max
 	 */
-	@Transient
 	public int getSubnetMax() {
 		return this.getSubnetMin()
 			| ~Network4Address.prefixLengthToIntAddress(this.getPrefixLength());

@@ -18,61 +18,50 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
 import java.util.Objects;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
+/**
+ * A numeric diagnostic result.
+ *
+ * @param diagnosticId the ID of the diagnostic
+ * @param diagnosticName the name of the diagnostic
+ * @param creationDate when the diagnostic first gave this value
+ * @param lastCheckDate when the diagnostic last gave this value
+ * @param number the value
+ */
+public record DiagnosticNumericResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, Double number)
+	implements DiagnosticResult {
 
-@Entity
-@DiscriminatorValue("N")
-public class DiagnosticNumericResult extends DiagnosticResult {
-
-	@Getter
-	@Setter
-	private Double number;
-
-	protected DiagnosticNumericResult() {
-	}
-
-	public DiagnosticNumericResult(Device device, Diagnostic diagnostic, double value) {
-		super(device, diagnostic);
-		this.number = value;
-	}
-
-	public DiagnosticNumericResult(Device device, Diagnostic diagnostic, String value) {
-		super(device, diagnostic);
-		this.number = Double.parseDouble(value);
+	/**
+	 * Builds a new result of a diagnostic (created and checked now).
+	 *
+	 * @param diagnostic the diagnostic
+	 * @param value the value
+	 * @return the result
+	 */
+	public static DiagnosticNumericResult of(Diagnostic diagnostic, Double value) {
+		Instant now = DiagnosticResult.now();
+		return new DiagnosticNumericResult(diagnostic.id(), diagnostic.name(), now, now, value);
 	}
 
 	@Override
-	@Transient
+	public DiagnosticNumericResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticNumericResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.number);
+	}
+
+	@Override
 	public String getAsText() {
-		if (number == null) {
-			return "";
-		}
-		return number.toString();
+		return this.number == null ? "" : this.number.toString();
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getNumber();
+		return this.number;
 	}
 
 	@Override
-	public boolean valueEquals(DiagnosticResult obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DiagnosticNumericResult)) {
-			return false;
-		}
-		DiagnosticNumericResult other = (DiagnosticNumericResult) obj;
-		return Objects.equals(this.number, other.number);
+	public boolean valueEquals(DiagnosticResult other) {
+		return other instanceof DiagnosticNumericResult o && Objects.equals(this.number, o.number);
 	}
-
 }

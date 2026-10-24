@@ -45,10 +45,9 @@ import net.netshot.netshot.testing.UnitTest;
 /**
  * Architecture rules encoding the TARGET layering (see the layering refactor plan).
  *
- * <p>Most rules are strict. The three rules which still have violations to remove with the planned ORM change
- * (entities using the Session or Database, cycles between feature slices) are frozen with FreezingArchRule:
- * violations existing when the store was generated are recorded in src/test/resources/archunit_store and
- * tolerated; only NEW violations fail the build.</p>
+ * <p>Most rules are strict. The rule which still has violations to remove (cycles between feature slices) is
+ * frozen with FreezingArchRule: violations existing when the store was generated are recorded in
+ * src/test/resources/archunit_store and tolerated; only NEW violations fail the build.</p>
  *
  * <p>Regenerating the store after a planned package move (violation descriptions contain class names, so a
  * rename makes old entries stale and the moved ones "new"): delete src/test/resources/archunit_store and run
@@ -113,44 +112,29 @@ public final class ArchitectureTest {
 			.should().dependOnClassesThat().resideInAPackage(ROOT + "api.rest..")
 			.allowEmptyShould(true);
 
+	/** The API channels call the services: they never reach the database (only the pagination window crosses). */
 	@ArchTest
-	static final ArchRule API_DOES_NOT_USE_SESSION = 
+	static final ArchRule API_DOES_NOT_USE_THE_DATABASE = 
 		noClasses().that().resideInAPackage(ROOT + "api..")
-			.should().dependOnClassesThat().haveFullyQualifiedName("org.hibernate.Session")
+			.should().dependOnClassesThat(
+				DescribedPredicate.or(
+					JavaClass.Predicates.resideInAPackage("org.jooq.."),
+					DescribedPredicate.and(
+						JavaClass.Predicates.resideInAPackage(ROOT + "platform.database.."),
+						DescribedPredicate.not(JavaClass.Predicates.equivalentTo(net.netshot.netshot.platform.database.Page.class)))))
 			.allowEmptyShould(true);
 
 	// ---------------------------------------------------------------------
 	// Rules independent of package names (entities, JAX-RS, cycles)
 	// ---------------------------------------------------------------------
 
+	/** The serialization views and the XML bindings belong to the API channels and to the cluster wire format. */
 	@ArchTest
-	static final ArchRule ENTITIES_DO_NOT_USE_SESSION = freeze(
-		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
-			.should().dependOnClassesThat().haveFullyQualifiedName("org.hibernate.Session")
-			.orShould().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.EntityManager")
-			.allowEmptyShould(true));
-
-	@ArchTest
-	static final ArchRule ENTITIES_DO_NOT_USE_JSON_VIEW = 
-		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
-			.or().areAnnotatedWith("jakarta.persistence.MappedSuperclass")
-			.or().areAnnotatedWith("jakarta.persistence.Embeddable")
+	static final ArchRule SERIALIZATION_ANNOTATIONS_ONLY_IN_CHANNELS = 
+		noClasses().that().resideOutsideOfPackages(ROOT + "api..", ROOT + "cluster..", ROOT + "platform.rest..")
 			.should().dependOnClassesThat().haveFullyQualifiedName("com.fasterxml.jackson.annotation.JsonView")
+			.orShould().dependOnClassesThat().resideInAPackage("jakarta.xml.bind.annotation..")
 			.allowEmptyShould(true);
-
-	@ArchTest
-	static final ArchRule ENTITIES_DO_NOT_USE_JAXB = 
-		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
-			.or().areAnnotatedWith("jakarta.persistence.MappedSuperclass")
-			.or().areAnnotatedWith("jakarta.persistence.Embeddable")
-			.should().dependOnClassesThat().resideInAPackage("jakarta.xml.bind.annotation..")
-			.allowEmptyShould(true);
-
-	@ArchTest
-	static final ArchRule ENTITIES_DO_NOT_USE_DATABASE = freeze(
-		noClasses().that().areAnnotatedWith("jakarta.persistence.Entity")
-			.should().dependOnClassesThat().haveFullyQualifiedName(ROOT + "platform.database.Database")
-			.allowEmptyShould(true));
 
 	/**
 	 * Server-side JAX-RS (annotations such as @Path and @GET, the container filters, the ext providers...) stays in the

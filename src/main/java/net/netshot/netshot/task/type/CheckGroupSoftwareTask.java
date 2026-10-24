@@ -20,116 +20,28 @@ package net.netshot.netshot.task.type;
 
 import java.util.List;
 
-import org.hibernate.Hibernate;
-import org.hibernate.Session;
-import org.quartz.JobKey;
-
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.task.Task;
-
 /**
- * This task checks the compliance of the software version of a given group
- * of devices (either a real device group, or a one-time device list).
+ * Checks the software compliance and the hardware support status, for the devices of a group or a list of devices.
+ *
+ * @param deviceGroupId the ID of the target group (null for a device list)
+ * @param deviceIds the IDs of the target devices, when there is no group
  */
-@Entity
-@DiscriminatorValue("CheckGroupSoftwareTask")
-@Slf4j
-public final class CheckGroupSoftwareTask extends Task implements GroupBasedTask, DeviceListBasedTask {
+public record CheckGroupSoftwareTask(Long deviceGroupId, List<Long> deviceIds) implements TaskSpec, GroupBasedTask {
 
 	/**
-	 * Instantiates a new check group software task.
+	 * Canonical constructor: a null list of devices is replaced by an empty one.
 	 */
-	public CheckGroupSoftwareTask() {
-
+	public CheckGroupSoftwareTask {
+		deviceIds = deviceIds == null ? List.of() : List.copyOf(deviceIds);
 	}
 
-	/**
-	 * Instantiates a new check group software task, targeting a real device group.
-	 *
-	 * @param group the group
-	 * @param comments the comments
-	 * @param author the author
-	 */
-	public CheckGroupSoftwareTask(DeviceGroup group, String comments, String author) {
-		super(comments, group.getName(), author);
-		this.setDeviceGroup(group);
-	}
-
-	/**
-	 * Instantiates a new check group software task, targeting a one-time device list.
-	 *
-	 * @param devices the ordered list of devices
-	 * @param comments the comments
-	 * @param author the author
-	 */
-	public CheckGroupSoftwareTask(List<Device> devices, String comments, String author) {
-		super(comments, String.format("%d device(s)", devices.size()), author);
-		this.setDeviceList(devices);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Group software compliance and hardware support check";
 	}
 
-	/**
-	 * Get the ID of the associate group.
-	 * @return the ID of the group
-	 */
-	@Transient
-	public long getDeviceGroupId() {
-		if (this.getDeviceGroup() == null) {
-			return 0;
-		}
-		return this.getDeviceGroup().getId();
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#prepare()
-	 */
 	@Override
-	public void prepare(Session session) {
-		Hibernate.initialize(this.getDeviceGroup());
-		if (this.getDeviceGroup() == null) {
-			Hibernate.initialize(this.getDeviceListMembers());
-		}
+	public String identityGroup() {
+		return GroupBasedTask.identityGroup("CheckGroupSoftware", this.deviceGroupId);
 	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
-	@Override
-	public Object clone() throws CloneNotSupportedException {
-		CheckGroupSoftwareTask task = (CheckGroupSoftwareTask) super.clone();
-		task.setDeviceGroup(this.getDeviceGroup());
-		if (this.getDeviceGroup() == null) {
-			// Mirrors prepare(), which only initializes the lazy deviceListMembers
-			// collection in this same case -- device group and device list are
-			// mutually exclusive, so there is nothing to copy (and nothing safe to
-			// touch) otherwise.
-			task.setDeviceList(this.getDeviceList());
-		}
-		return task;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
-	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()),
-			String.format("CheckGroupSoftware_%d", this.getDeviceGroupId()));
-	}
-
 }

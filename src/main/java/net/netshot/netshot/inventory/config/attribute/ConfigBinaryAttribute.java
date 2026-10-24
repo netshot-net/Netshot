@@ -18,64 +18,28 @@
  */
 package net.netshot.netshot.inventory.config.attribute;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.Config;
+import java.util.Objects;
 
-@Entity
-@DiscriminatorValue("B")
-public final class ConfigBinaryAttribute extends ConfigAttribute {
-
-	@Getter
-	@Setter
-	private Boolean assumption;
-
-	protected ConfigBinaryAttribute() {
-	}
-
-	public ConfigBinaryAttribute(Config config, String name, boolean value) {
-		super(config, name);
-		this.assumption = value;
-	}
+/**
+ * A binary (true/false) configuration attribute.
+ *
+ * @param name the name of the attribute
+ * @param assumption the value
+ */
+public record ConfigBinaryAttribute(String name, Boolean assumption) implements ConfigAttribute {
 
 	@Override
-	@Transient
 	public String getAsText() {
-		if (Boolean.TRUE.equals(this.assumption)) {
-			return "true";
-		}
-		else {
-			return "false";
-		}
+		return Boolean.TRUE.equals(this.assumption) ? "true" : "false";
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getAssumption();
+		return this.assumption;
 	}
 
 	@Override
-	public boolean valueEquals(ConfigAttribute obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ConfigBinaryAttribute)) {
-			return false;
-		}
-		ConfigBinaryAttribute other = (ConfigBinaryAttribute) obj;
-		if (this.assumption == null) {
-			if (other.assumption != null) {
-				return false;
-			}
-		}
-		else if (!this.assumption.equals(other.assumption)) {
-			return false;
-		}
-		return true;
+	public boolean valueEquals(ConfigAttribute other) {
+		return other instanceof ConfigBinaryAttribute o && Objects.equals(this.assumption, o.assumption);
 	}
-
 }

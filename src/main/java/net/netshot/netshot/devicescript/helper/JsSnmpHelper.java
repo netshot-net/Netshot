@@ -84,7 +84,7 @@ public class JsSnmpHelper {
 		net.netshot.netshot.inventory.device.NetworkAddress address = this.accessManager.resolveAddress(accessDef);
 		int port = this.accessManager.resolvePort(accessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
-			accessDef.getName(), accessDef.getProtocol(), resolvedCommunity.getName(), address.getIp(), port);
+			accessDef.getName(), accessDef.getProtocol(), resolvedCommunity.name(), address.getIp(), port);
 		Snmp snmp = new Snmp(address, port, resolvedCommunity);
 		try {
 			snmp.getAsString("1.3.6.1.2.1.1.3.0"); /* sysUptime.0 */

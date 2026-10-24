@@ -18,24 +18,10 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-import org.hibernate.Session;
-
-import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.Task;
-import net.netshot.netshot.task.type.PurgeDatabaseTask;
-import net.netshot.netshot.task.type.TakeSnapshotTask;
-import net.netshot.netshot.testing.DatabaseTest;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +29,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
+
+import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Module;
+import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.TaskRun;
+import net.netshot.netshot.task.type.PurgeDatabaseTask;
+import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
 public class PurgeTest {
@@ -62,154 +65,112 @@ public class PurgeTest {
 
 	@BeforeEach
 	void createData() throws Exception {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			final Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-			session.persist(domain);
-			group1 = new StaticDeviceGroup(GROUP1_NAME);
-			// Let's create devices with configurations every n hours
-			Calendar now = Calendar.getInstance();
-			for (int i = 0; i < DEVICES; i++) {
-				Device device = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, i);
-				device.getConfigs().clear();
-				for (int h = 0; h < CONFIGS_PER_DAY * DAYS; h++) {
-					Calendar configDate = (Calendar) now.clone();
-					configDate.add(Calendar.HOUR_OF_DAY, -(24 / CONFIGS_PER_DAY) * h);
-					// New configuration
-					Config config = FakeDeviceFactory.getFakeCiscoIosConfig(device);
-					if (i >= DEVICES - DEVICES_WITH_BIG_CONFIG) {
-						// For last devices, increase the size of the config
-						ConfigLongTextAttribute runningConfig = (ConfigLongTextAttribute) config.getAttribute("runningConfig");
-						runningConfig.getLongText().setText(
-							runningConfig.getLongText().getText() + "\n"
-								+ runningConfig.getLongText().getText() + "\n"
-								+ runningConfig.getLongText().getText() + "\n"
-								+ runningConfig.getLongText().getText());
-					}
-					config.setChangeDate(configDate.getTime());
-					device.getConfigs().add(config);
-					if (h == 0) {
-						device.setLastConfig(config);
-					}
-					// Snapshot task
-					Task task = new TakeSnapshotTask(device, "Test", "faker", false, true, true);
-					Calendar taskDate = (Calendar) configDate.clone();
-					taskDate.add(Calendar.SECOND, -20);
-					task.setCreationDate(taskDate.getTime());
-					taskDate.add(Calendar.SECOND, 18);
-					task.setExecutionDate(taskDate.getTime());
-					task.setChangeDate(taskDate.getTime());
-					task.setStatus(Task.Status.SUCCESS);
-					session.persist(task);
-				}
-				// Add old modules
-				{
-					Module oldModule = new Module("chassis", "OLDPART1", "9999999TEST99", device);
-					oldModule.setRemoved(true);
-					Calendar firstSeenDate = (Calendar) now.clone();
-					firstSeenDate.add(Calendar.DATE, -300);
-					oldModule.setFirstSeenDate(firstSeenDate.getTime());
-					Calendar lastSeenDate = (Calendar) now.clone();
-					lastSeenDate.add(Calendar.DATE, -25);
-					oldModule.setLastSeenDate(lastSeenDate.getTime());
-					device.getModules().add(oldModule);
-				}
-				{
-					Module oldModule = new Module("chassis", "OLDPART2", "9999999TEST09", device);
-					oldModule.setRemoved(true);
-					Calendar firstSeenDate = (Calendar) now.clone();
-					firstSeenDate.add(Calendar.DATE, -400);
-					oldModule.setFirstSeenDate(firstSeenDate.getTime());
-					Calendar lastSeenDate = (Calendar) now.clone();
-					lastSeenDate.add(Calendar.DATE, -5);
-					oldModule.setLastSeenDate(lastSeenDate.getTime());
-					device.getModules().add(oldModule);
-				}
-
-				session.persist(device);
-				if (i < DEVICES_IN_GROUP1) {
-					// Add the two first devices only to the group
-					group1.addDevice(device);
-				}
+		final Domain domain = TestDevices.addDomain("Test domain", "Fake domain for tests");
+		group1 = TestDevices.addStaticGroup(GROUP1_NAME);
+		// Let's create devices with configurations every n hours
+		Calendar now = Calendar.getInstance();
+		for (int i = 0; i < DEVICES; i++) {
+			Device fake = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, i);
+			// Add old modules
+			List<Module> modules = new ArrayList<>(fake.modules());
+			{
+				Calendar firstSeenDate = (Calendar) now.clone();
+				firstSeenDate.add(Calendar.DATE, -300);
+				Calendar lastSeenDate = (Calendar) now.clone();
+				lastSeenDate.add(Calendar.DATE, -25);
+				modules.add(Module.builder().slot("chassis").partNumber("OLDPART1").serialNumber("9999999TEST99").removed(true)
+					.firstSeenDate(firstSeenDate.toInstant()).lastSeenDate(lastSeenDate.toInstant()).build());
 			}
-			session.persist(group1);
-			session.getTransaction().commit();
+			{
+				Calendar firstSeenDate = (Calendar) now.clone();
+				firstSeenDate.add(Calendar.DATE, -400);
+				Calendar lastSeenDate = (Calendar) now.clone();
+				lastSeenDate.add(Calendar.DATE, -5);
+				modules.add(Module.builder().slot("chassis").partNumber("OLDPART2").serialNumber("9999999TEST09").removed(true)
+					.firstSeenDate(firstSeenDate.toInstant()).lastSeenDate(lastSeenDate.toInstant()).build());
+			}
+			Device device = TestDevices.add(fake.toBuilder().modules(modules).build());
+			Long lastConfigId = null;
+			for (int h = 0; h < CONFIGS_PER_DAY * DAYS; h++) {
+				Calendar configDate = (Calendar) now.clone();
+				configDate.add(Calendar.HOUR_OF_DAY, -(24 / CONFIGS_PER_DAY) * h);
+				// New configuration
+				Config config = FakeDeviceFactory.getFakeCiscoIosConfig(device);
+				if (i >= DEVICES - DEVICES_WITH_BIG_CONFIG) {
+					// For last devices, increase the size of the config
+					List<ConfigAttribute> attributes = new ArrayList<>(config.attributes());
+					attributes.replaceAll(a -> a instanceof ConfigLongTextAttribute runningConfig
+						? new ConfigLongTextAttribute(runningConfig.name(), runningConfig.text() + "\n" + runningConfig.text() + "\n"
+							+ runningConfig.text() + "\n" + runningConfig.text())
+						: a);
+					config = config.toBuilder().attributes(attributes).build();
+				}
+				long configId = TestDevices.addOldConfig(device.id(), config.toBuilder().changeDate(configDate.toInstant()).build());
+				if (h == 0) {
+					lastConfigId = configId;
+				}
+				// Snapshot task
+				TestTasks.add(TakeSnapshotTask.of(device, "Test", "faker", false, true, true).toBuilder()
+					.creationDate(configDate.toInstant().minusSeconds(20))
+					.executionDate(configDate.toInstant().minusSeconds(2))
+					.changeDate(configDate.toInstant().minusSeconds(2))
+					.status(Task.Status.SUCCESS)
+					.build());
+			}
+			TestDevices.save(TestDevices.find(device.id()).toBuilder().lastConfigId(lastConfigId).build());
+			if (i < DEVICES_IN_GROUP1) {
+				// Add the two first devices only to the group
+				TestDevices.addMembers(group1, device);
+			}
 		}
 	}
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from Config")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from LongTextConfiguration")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Module")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Device")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from DeviceGroup")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Domain")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Task")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		TaskRunner.cleanDatabase();
 	}
 
-	private void assertDeviceCount(Session session, long expected) {
+	private static long count(String sql) {
+		return new Transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
+	}
+
+	private void assertDeviceCount(long expected) {
 		Assertions.assertEquals(
 			expected,
-			session.createNativeQuery("select count(1) from device d", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from device d"),
 			"Unexpected number of device entries");
 	}
 
-	private void assertConfigCount(Session session, long expected) {
+	private void assertConfigCount(long expected) {
 		Assertions.assertEquals(
 			expected,
-			session.createNativeQuery("select count(1) from config c", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from config c"),
 			"Unexpected number of config entries");
 		Assertions.assertEquals(
 			expected * 3, // three attributes per config are created by FakeDeviceFactory
-			session.createNativeQuery("select count(1) from config_attribute ca", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from config_attribute ca"),
 			"Unexpected number of config attribute entries");
 		Assertions.assertEquals(
 			expected * 1, // one attribute is long text configuration
-			session.createNativeQuery("select count(1) from long_text_configuration ltc", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from long_text_configuration ltc"),
 			"Unexpected number of long text configuration entries");
 	}
 
-	private void assertTaskCount(Session session, long expected) {
+	private void assertTaskCount(long expected) {
 		Assertions.assertEquals(
 			expected,
-			session.createNativeQuery("select count(1) from task t", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from task t"),
 			"Unexpected number of task entries");
 		Assertions.assertEquals(
 			expected,
-			session.createNativeQuery("select count(1) from task t where t.dtype = 'TakeSnapshotTask'", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from task t where t.dtype = 'TakeSnapshotTask'"),
 			"Unexpected number of snapshot task entries");
 	}
 
-	private void assertModuleCount(Session session, long expected) {
+	private void assertModuleCount(long expected) {
 		Assertions.assertEquals(
 			expected,
-			session.createNativeQuery("select count(1) from Module m", Long.class)
-				.getSingleResultOrNull(),
+			count("select count(1) from Module m"),
 			"Unexpected number of module entries");
 	}
 
@@ -217,18 +178,13 @@ public class PurgeTest {
 	@DisplayName("Initial count test")
 	@ResourceLock("DB")
 	public void initialCountTest() {
-		try (Session session = Database.getSession()) {
-			// Check number of items before purge task
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 4);
-			Assertions.assertEquals(DEVICES_IN_GROUP1, session
-					.createSelectionQuery("select d from Device d join d.groupMemberships gm where gm.key.group = :group", Device.class)
-					.setParameter("group", group1)
-					.getResultCount(),
-				"The number of devices in group1 is not correct");
-		}
+		// Check number of items before purge task
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 4);
+		Assertions.assertEquals(DEVICES_IN_GROUP1, TestDevices.memberIds(group1.id()).size(),
+			"The number of devices in group1 is not correct");
 	}
 
 	@Test
@@ -236,15 +192,12 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void taskPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", purgeDays, 0, 0, 0, 0, (DeviceGroup) null);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(purgeDays, 0, 0, 0, 0, null, null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * purgeDays);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * purgeDays);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -252,17 +205,14 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perGroupTaskPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", purgeDays, 0, 0, 0, 0, group1);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(purgeDays, 0, 0, 0, 0, group1.id(), null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session,
-				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(
+			(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
+				+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -270,15 +220,12 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void configPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, 0, 0, (DeviceGroup) null);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, purgeDays, 0, 0, 0, null, null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * purgeDays);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * purgeDays);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -286,17 +233,14 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perGroupConfigPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, 0, 0, group1);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, purgeDays, 0, 0, 0, group1.id(), null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session,
-				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(
+			(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
+				+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -304,18 +248,15 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void oversizedConfigPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 2, 0, 0, (DeviceGroup) null);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, purgeDays, 2, 0, 0, null, null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			// Only device #1 has configs bigger than 2KB
-			this.assertConfigCount(session,
-				(DEVICES - DEVICES_WITH_BIG_CONFIG) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_WITH_BIG_CONFIG * CONFIGS_PER_DAY * purgeDays);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertDeviceCount(DEVICES);
+		// Only device #1 has configs bigger than 2KB
+		this.assertConfigCount(
+			(DEVICES - DEVICES_WITH_BIG_CONFIG) * CONFIGS_PER_DAY * DAYS
+				+ DEVICES_WITH_BIG_CONFIG * CONFIGS_PER_DAY * purgeDays);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -324,18 +265,15 @@ public class PurgeTest {
 	public void sparseConfigPurgeTest() {
 		final int purgeDays = 18;
 		final int keepDays = 2; // Keep one config every two days
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, keepDays, 0, (DeviceGroup) null);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, purgeDays, 0, keepDays, 0, null, null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			// Only device #1 has configs bigger than 2KB
-			this.assertConfigCount(session,
-				DEVICES * CONFIGS_PER_DAY * purgeDays     // All configs during purgeDays
-					+ DEVICES * (DAYS - purgeDays) / keepDays);  // One config per device every two days for the rest of time
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertDeviceCount(DEVICES);
+		// Only device #1 has configs bigger than 2KB
+		this.assertConfigCount(
+			DEVICES * CONFIGS_PER_DAY * purgeDays     // All configs during purgeDays
+				+ DEVICES * (DAYS - purgeDays) / keepDays);  // One config per device every two days for the rest of time
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -343,15 +281,12 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void modulePurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, purgeDays, (DeviceGroup) null);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, 0, 0, 0, purgeDays, null, null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 3);
-		}
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 3);
 	}
 
 	@Test
@@ -359,17 +294,14 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perGroupModulePurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, purgeDays, group1);
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, 0, 0, 0, purgeDays, group1.id(), null);
 
-		try (Session session = Database.getSession()) {
-			this.assertDeviceCount(session, DEVICES);
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session,
-				(DEVICES - DEVICES_IN_GROUP1) * 4
-					+ DEVICES_IN_GROUP1 * 3);
-		}
+		this.assertDeviceCount(DEVICES);
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(
+			(DEVICES - DEVICES_IN_GROUP1) * 4
+				+ DEVICES_IN_GROUP1 * 3);
 	}
 
 	/**
@@ -377,13 +309,15 @@ public class PurgeTest {
 	 *
 	 * @return the devices
 	 */
-	private List<Device> group1Devices() {
-		try (Session session = Database.getSession()) {
-			return session
-				.createSelectionQuery("select d from Device d join d.groupMemberships gm where gm.key.group = :group", Device.class)
-				.setParameter("group", group1)
-				.list();
-		}
+	private List<Long> group1Devices() {
+		return TestDevices.memberIds(group1.id());
+	}
+
+	// Runs a purge task
+	private void purge(int days, int configDays, int configSize, int configKeepDays, int moduleDays, Long groupId, List<Long> deviceIds) {
+		PurgeDatabaseTask spec = new PurgeDatabaseTask(groupId, deviceIds, days, configDays, configSize, configKeepDays, moduleDays, false);
+		Task task = Task.of(spec, "Test", "Global", "tester");
+		new PurgeDatabaseHandler().run(task, spec, new TaskRun(task));
 	}
 
 	@Test
@@ -391,16 +325,13 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perDeviceListTaskPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", purgeDays, 0, 0, 0, 0, this.group1Devices());
-		new PurgeDatabaseHandler().run(task);
+		this.purge(purgeDays, 0, 0, 0, 0, null, this.group1Devices());
 
-		try (Session session = Database.getSession()) {
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session,
-				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(
+			(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
+				+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -408,16 +339,13 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perDeviceListConfigPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 0, 0, 0, this.group1Devices());
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, purgeDays, 0, 0, 0, null, this.group1Devices());
 
-		try (Session session = Database.getSession()) {
-			this.assertConfigCount(session,
-				(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
-					+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session, DEVICES * 4);
-		}
+		this.assertConfigCount(
+			(DEVICES - DEVICES_IN_GROUP1) * CONFIGS_PER_DAY * DAYS
+				+ DEVICES_IN_GROUP1 * CONFIGS_PER_DAY * purgeDays);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(DEVICES * 4);
 	}
 
 	@Test
@@ -425,13 +353,10 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perDeviceListOversizedConfigPurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, purgeDays, 2, 0, 0, this.group1Devices());
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, purgeDays, 2, 0, 0, null, this.group1Devices());
 
-		try (Session session = Database.getSession()) {
-			// The devices with big configs are the last ones, out of group1: nothing is purged
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-		}
+		// The devices with big configs are the last ones, out of group1: nothing is purged
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
 	}
 
 	@Test
@@ -439,15 +364,12 @@ public class PurgeTest {
 	@ResourceLock("DB")
 	public void perDeviceListModulePurgeTest() {
 		final int purgeDays = 18;
-		PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 0, 0, 0, 0, purgeDays, this.group1Devices());
-		new PurgeDatabaseHandler().run(task);
+		this.purge(0, 0, 0, 0, purgeDays, null, this.group1Devices());
 
-		try (Session session = Database.getSession()) {
-			this.assertConfigCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertTaskCount(session, DEVICES * CONFIGS_PER_DAY * DAYS);
-			this.assertModuleCount(session,
-				(DEVICES - DEVICES_IN_GROUP1) * 4
-					+ DEVICES_IN_GROUP1 * 3);
-		}
+		this.assertConfigCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
+		this.assertModuleCount(
+			(DEVICES - DEVICES_IN_GROUP1) * 4
+				+ DEVICES_IN_GROUP1 * 3);
 	}
 }

@@ -21,8 +21,11 @@ package net.netshot.netshot.platform.database.migrator;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
@@ -502,6 +505,214 @@ public class DatabaseMigrationTest {
 				assertDeviceAccess(statement, 112, "ssh", null, null);
 				assertDeviceAccessPortAddress(statement, 112, "ssh", 2222, null);
 				assertDeviceAccess(statement, 112, "telnet", null, null);
+			}
+		}
+	}
+
+	@Nested
+	@DisplayName("0.26.0_3 - hooks in one table, with their enumerations stored by name")
+	class HookSingleTableMigrationTest {
+
+		@Test
+		@DisplayName("The Web hooks and their triggers are kept, the ordinals become names, a hook without a type is dropped")
+		void migratesHooks() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("hooksingletablemigrationtest"));
+			updateToChangeSet("0.26.0_2", "netshot");
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into hook (id, enabled, name) values (401, true, 'json hook'), (402, false, 'yaml hook'), "
+					+ "(403, true, 'orphan')");
+				statement.execute("insert into web_hook (id, action, url, https_ca_trust_mode, https_custom_ca_certificate) "
+					+ "values (401, 1, 'https://example.net/a', 'TRUST_ANY', null), (402, 2, 'https://example.net/b', 'CUSTOM_CA', 'PEM')");
+				statement.execute("insert into hook_trigger (type, item, hook) values (0, 'TakeSnapshotTask', 401), "
+					+ "(0, 'CheckComplianceTask', 401), (0, 'TakeSnapshotTask', 402)");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				try (var rows = statement.executeQuery("select id, type, name, enabled, action, url, https_ca_trust_mode, "
+						+ "https_custom_ca_certificate from hook order by id")) {
+					Assertions.assertTrue(rows.next());
+					Assertions.assertEquals(List.of("401", "WEB", "json hook", "t", "POST_JSON", "https://example.net/a", "TRUST_ANY", "null"),
+						row(rows, 8));
+					Assertions.assertTrue(rows.next());
+					Assertions.assertEquals(List.of("402", "WEB", "yaml hook", "f", "POST_YAML", "https://example.net/b", "CUSTOM_CA", "PEM"),
+						row(rows, 8));
+					Assertions.assertFalse(rows.next(), "The hook without a type is dropped");
+				}
+				try (var rows = statement.executeQuery("select hook, type, item from hook_trigger order by hook, item")) {
+					List<List<String>> triggers = new ArrayList<>();
+					while (rows.next()) {
+						triggers.add(row(rows, 3));
+					}
+					Assertions.assertEquals(List.of(
+						List.of("401", "POST_TASK", "CheckComplianceTask"),
+						List.of("401", "POST_TASK", "TakeSnapshotTask"),
+						List.of("402", "POST_TASK", "TakeSnapshotTask")), triggers);
+				}
+				try (var rows = statement.executeQuery("select count(*) from information_schema.tables "
+						+ "where table_schema = current_schema() and table_name = 'web_hook'")) {
+					rows.next();
+					Assertions.assertEquals(0, rows.getInt(1), "The web_hook table is dropped");
+				}
+				// The triggers now follow the hook table
+				statement.execute("delete from hook where id = 401");
+				try (var rows = statement.executeQuery("select count(*) from hook_trigger where hook = 401")) {
+					rows.next();
+					Assertions.assertEquals(0, rows.getInt(1));
+				}
+			}
+		}
+	}
+
+	private static List<String> row(ResultSet rows, int columns) throws SQLException {
+		List<String> values = new ArrayList<>();
+		for (int i = 1; i <= columns; i++) {
+			values.add(String.valueOf(rows.getString(i)));
+		}
+		return values;
+	}
+
+	private static List<List<String>> rows(Statement statement, String query, int columns) throws SQLException {
+		List<List<String>> result = new ArrayList<>();
+		try (ResultSet rows = statement.executeQuery(query)) {
+			while (rows.next()) {
+				result.add(row(rows, columns));
+			}
+		}
+		return result;
+	}
+
+	private static boolean tableExists(Statement statement, String table) throws SQLException {
+		try (ResultSet rows = statement.executeQuery("select count(*) from information_schema.tables "
+				+ "where table_schema = current_schema() and table_name = '%s'".formatted(table))) {
+			rows.next();
+			return rows.getInt(1) > 0;
+		}
+	}
+
+	@Nested
+	@DisplayName("0.26.0_4 to 0.26.0_6 - rules, diagnostics and device groups in one table each")
+	class SingleTableHierarchiesMigrationTest {
+
+		@Test
+		@DisplayName("The rows of the subclass tables move to the parent table, with their type; a row without subclass is dropped")
+		void migratesHierarchies() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("singletablehierarchiesmigrationtest"));
+			updateToChangeSet("0.26.0_3", "netshot");
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into rule (id, enabled, name) values (501, true, 'text'), (502, false, 'js'), "
+					+ "(503, true, 'python'), (504, true, 'orphan')");
+				statement.execute("insert into text_rule (id, any_block, context, device_driver, field, invert, match_all, normalize, reg_exp, text) "
+					+ "values (501, true, 'interface .*', 'CiscoIOS12', 'runningConfig', false, true, true, false, 'shutdown')");
+				statement.execute("insert into java_script_rule (id, script) values (502, 'function check() {}')");
+				statement.execute("insert into python_rule (id, script) values (503, 'def check(): pass')");
+
+				statement.execute("insert into diagnostic (id, enabled, name, result_type) values (601, true, 'simple', 1), "
+					+ "(602, true, 'js', 2), (603, false, 'python', 3), (604, true, 'orphan', 1)");
+				statement.execute("insert into simple_diagnostic (id, cli_mode, command, device_driver, modifier_pattern, modifier_replacement) "
+					+ "values (601, 'enable', 'show version', 'CiscoIOS12', '^.*(Version .*)$', '$1')");
+				statement.execute("insert into java_script_diagnostic (id, script) values (602, 'function diagnose() {}')");
+				statement.execute("insert into python_diagnostic (id, script) values (603, 'def diagnose(): pass')");
+
+				statement.execute("insert into device_group (id, name, folder, hidden_from_reports, version) values "
+					+ "(701, 'static', 'a/b', false, 0), (702, 'dynamic', '', true, 3), (703, 'orphan', '', false, 0)");
+				statement.execute("insert into static_device_group (id) values (701)");
+				statement.execute("insert into dynamic_device_group (id, query) values (702, '[Name] contains \"r\"')");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(List.of(
+					List.of("501", "TEXT", "text", "t", "null", "t", "interface .*", "CiscoIOS12", "runningConfig", "f", "t", "t", "f", "shutdown"),
+					List.of("502", "JAVASCRIPT", "js", "f", "function check() {}", "null", "null", "null", "null", "null", "null", "null", "null", "null"),
+					List.of("503", "PYTHON", "python", "t", "def check(): pass", "null", "null", "null", "null", "null", "null", "null", "null", "null")),
+					rows(statement, "select id, type, name, enabled, script, any_block, context, device_driver, field, invert, match_all, "
+						+ "normalize, reg_exp, text from rule order by id", 14), "The rules are migrated, the orphan is dropped");
+				Assertions.assertEquals(List.of(
+					List.of("601", "SIMPLE", "simple", "TEXT", "null", "enable", "show version", "CiscoIOS12", "^.*(Version .*)$", "$1"),
+					List.of("602", "JAVASCRIPT", "js", "LONGTEXT", "function diagnose() {}", "null", "null", "null", "null", "null"),
+					List.of("603", "PYTHON", "python", "DATE", "def diagnose(): pass", "null", "null", "null", "null", "null")),
+					rows(statement, "select id, type, name, result_type, script, cli_mode, command, device_driver, modifier_pattern, "
+						+ "modifier_replacement from diagnostic order by id", 10), "The diagnostics are migrated, the orphan is dropped");
+				Assertions.assertEquals(List.of(
+					List.of("701", "STATIC", "static", "a/b", "f", "0", "null"),
+					List.of("702", "DYNAMIC", "dynamic", "", "t", "3", "[Name] contains \"r\"")),
+					rows(statement, "select id, type, name, folder, hidden_from_reports, version, query from device_group order by id", 7),
+					"The groups are migrated, the orphan is dropped");
+				for (String table : List.of("text_rule", "java_script_rule", "python_rule", "simple_diagnostic", "java_script_diagnostic",
+						"python_diagnostic", "static_device_group", "dynamic_device_group")) {
+					Assertions.assertFalse(tableExists(statement, table), "The table " + table + " is dropped");
+				}
+				Assertions.assertThrows(SQLException.class,
+					() -> statement.execute("insert into rule (id, enabled, name, type) values (505, true, 'bad', 'OTHER')"));
+				Assertions.assertThrows(SQLException.class,
+					() -> statement.execute("insert into rule (id, enabled, name, type) values (506, true, 'flagless', 'TEXT')"),
+					"A text rule needs its flags");
+			}
+		}
+	}
+
+	@Nested
+	@DisplayName("0.26.0_7 - enumerations stored by name instead of ordinal")
+	class EnumNamesMigrationTest {
+
+		@Test
+		@DisplayName("Each ordinal becomes the name of the constant at that position")
+		void migratesOrdinals() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("enumnamesmigrationtest"));
+			updateToChangeSet("0.26.0_6", "netshot");
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into device (id, version, name, status, network_class, software_level) values "
+					+ "(801, 0, 'r1', 1, 2, 1), (802, 0, 'r2', 2, 10, 3)");
+				statement.execute("insert into domain (id, version, name, ipv4_usage, ipv6_usage) values (811, 0, 'd', 0, 3)");
+				statement.execute("insert into network_interface (id, enabled, level3, device) values (821, true, true, 801)");
+				statement.execute("insert into network_interface_ip4addresses (network_interface, address, prefix_length, address_usage) values (821, '192.0.2.1', 24, 2)");
+				statement.execute("insert into network_interface_ip6addresses (network_interface, address, prefix_length, address_usage) values (821, '2001:db8::1', 64, 5)");
+				statement.execute("insert into rule (id, enabled, name, type) values (901, true, 'r', 'JAVASCRIPT')");
+				statement.execute("insert into check_result (device, rule, result) values (801, 901, 4)");
+				statement.execute("insert into software_rule (id, family_reg_exp, priority, version_reg_exp, part_number_reg_exp, level) "
+					+ "values (902, false, 1, false, false, 2)");
+				statement.execute("insert into diagnostic (id, type, enabled, name, result_type) values (903, 'SIMPLE', true, 'd', 6)");
+				statement.execute("insert into task (id, version, debug_enabled, priority, dtype, run_snapshot, run_diagnostics, check_compliance, "
+					+ "dont_run_diagnostics, dont_check_compliance, child_order, stop_on_failure, cancel_requested, status, schedule_type, schedule_mode) "
+					+ "values (951, 0, false, 5, 'ScanSubnetsTask', false, false, false, false, false, 0, false, false, 7, 5, 1), "
+					+ "(952, 0, false, 5, 'PurgeDatabaseTask', false, false, false, false, false, 0, false, false, 0, 0, 0)");
+				statement.execute("insert into scan_subnets_task_subnets (scan_subnets_task, ipv4usage) values (951, 5)");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(List.of(
+					List.of("801", "INPRODUCTION", "ROUTER", "SILVER"),
+					List.of("802", "PREPRODUCTION", "VOICEGATEWAY", "UNKNOWN")),
+					rows(statement, "select id, status, network_class, software_level from device order by id", 4));
+				Assertions.assertEquals(List.of(List.of("PRIMARY", "HSRP")),
+					rows(statement, "select ipv4_usage, ipv6_usage from domain", 2));
+				Assertions.assertEquals(List.of(List.of("VRRP")),
+					rows(statement, "select address_usage from network_interface_ip4addresses", 1));
+				Assertions.assertEquals(List.of(List.of("SECONDARYHSRP")),
+					rows(statement, "select address_usage from network_interface_ip6addresses", 1));
+				Assertions.assertEquals(List.of(List.of("NONCONFORMING")), rows(statement, "select result from check_result", 1));
+				Assertions.assertEquals(List.of(List.of("BRONZE")), rows(statement, "select level from software_rule", 1));
+				Assertions.assertEquals(List.of(List.of("ENUM")), rows(statement, "select result_type from diagnostic", 1));
+				Assertions.assertEquals(List.of(
+					List.of("951", "DELAYED", "HOURLY", "SEQUENTIAL"),
+					List.of("952", "CANCELLED", "ASAP", "PARALLEL")),
+					rows(statement, "select id, status, schedule_type, schedule_mode from task order by id", 4));
+				Assertions.assertEquals(List.of(List.of("SECONDARYHSRP")),
+					rows(statement, "select ipv4usage from scan_subnets_task_subnets", 1));
 			}
 		}
 	}

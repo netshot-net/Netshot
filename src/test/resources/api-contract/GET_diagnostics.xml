@@ -1,26 +1,5 @@
 <?xml version="1.0"?>
 <ArrayList>
-  <item type="JavaScriptDiagnostic">
-    <enabled>true</enabled>
-    <id>2</id>
-    <name>Full inventory</name>
-    <resultType>LONGTEXT</resultType>
-    <script>function diagnose(cli, device, diagnostic) {&#10;  diagnostic.set('x');&#10;}</script>
-    <targetGroup/>
-  </item>
-  <item type="SimpleDiagnostic">
-    <cliMode>enable</cliMode>
-    <command>show startup-config</command>
-    <deviceDriver>CiscoIOS12</deviceDriver>
-    <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
-    <enabled>true</enabled>
-    <id>4</id>
-    <modifierPattern/>
-    <modifierReplacement/>
-    <name>Config saved</name>
-    <resultType>BINARY</resultType>
-    <targetGroup/>
-  </item>
   <item type="SimpleDiagnostic">
     <cliMode>enable</cliMode>
     <command>show version | include reason</command>
@@ -41,6 +20,14 @@
       <query>[Family] contains &quot;Cisco&quot;</query>
     </targetGroup>
   </item>
+  <item type="JavaScriptDiagnostic">
+    <enabled>true</enabled>
+    <id>2</id>
+    <name>Full inventory</name>
+    <resultType>LONGTEXT</resultType>
+    <script>function diagnose(cli, device, diagnostic) {&#10;  diagnostic.set('x');&#10;}</script>
+    <targetGroup/>
+  </item>
   <item type="PythonDiagnostic">
     <enabled>false</enabled>
     <id>3</id>
@@ -54,5 +41,18 @@
       <id>1</id>
       <name>Core routers</name>
     </targetGroup>
+  </item>
+  <item type="SimpleDiagnostic">
+    <cliMode>enable</cliMode>
+    <command>show startup-config</command>
+    <deviceDriver>CiscoIOS12</deviceDriver>
+    <deviceDriverDescription>Cisco IOS and IOS-XE</deviceDriverDescription>
+    <enabled>true</enabled>
+    <id>4</id>
+    <modifierPattern/>
+    <modifierReplacement/>
+    <name>Config saved</name>
+    <resultType>BINARY</resultType>
+    <targetGroup/>
   </item>
 </ArrayList>

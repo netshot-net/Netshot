@@ -21,20 +21,21 @@ package net.netshot.netshot.api.rest.v0.script;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 
-import org.hibernate.Session;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import net.netshot.netshot.userscript.DeviceJsScript;
+import net.netshot.netshot.userscript.ScriptRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,13 +76,7 @@ public class ScriptResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from DeviceJsScript")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		new Transactions().run(dsl -> dsl.deleteFrom(Tables.DEVICE_JS_SCRIPT).execute());
 	}
 
 	@Test
@@ -112,15 +107,13 @@ public class ScriptResourceTest {
 				Response.Status.CREATED.getStatusCode(), response.statusCode(),
 				"Not getting 201 response for created script");
 		}
-		try (Session session = Database.getSession()) {
-			DeviceJsScript newScript = session
-				.createQuery("from DeviceJsScript s where s.name = :name", DeviceJsScript.class)
-				.setParameter("name", "Test Script")
-				.uniqueResult();
+		{
+			DeviceJsScript newScript = new Transactions().read(dsl -> new ScriptRepository().findAll(dsl, Page.ALL)).stream()
+				.filter(s -> "Test Script".equals(s.name())).findFirst().orElse(null);
 			Assertions.assertNotNull(newScript, "Script not created as expected");
-			Assertions.assertEquals(this.getTestDriver().getName(), newScript.getDeviceDriver(),
+			Assertions.assertEquals(this.getTestDriver().getName(), newScript.deviceDriver(),
 				"Script not created as expected");
-			Assertions.assertEquals(testScriptContent, newScript.getScript(),
+			Assertions.assertEquals(testScriptContent, newScript.script(),
 				"Script not created as expected");
 		}
 		{
@@ -144,25 +137,21 @@ public class ScriptResourceTest {
 	@DisplayName("Get script")
 	@ResourceLock("DB")
 	void getScript() throws IOException, InterruptedException {
-		DeviceJsScript script = new DeviceJsScript(
+		DeviceJsScript stored = DeviceJsScript.of(
 			"Test Script", this.getTestDriver().getName(), testScriptContent, "author1");
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(script);
-			session.getTransaction().commit();
-		}
-		HttpResponse<JsonNode> response = apiClient.get("/scripts/%d".formatted(script.getId()));
+		DeviceJsScript script = stored.withId(new Transactions().write(dsl -> new ScriptRepository().add(dsl, stored)));
+		HttpResponse<JsonNode> response = apiClient.get("/scripts/%d".formatted(script.id()));
 		Assertions.assertEquals(
 			Response.Status.OK.getStatusCode(), response.statusCode(),
 			"Not getting 200 response for script");
 		JsonNode scriptNode = response.body();
-		Assertions.assertEquals(script.getName(), scriptNode.get("name").asText(),
+		Assertions.assertEquals(script.name(), scriptNode.get("name").asText(),
 			"Retrieved script doesn't match expected object");
-		Assertions.assertEquals(script.getDeviceDriver(), scriptNode.get("deviceDriver").asText(),
+		Assertions.assertEquals(script.deviceDriver(), scriptNode.get("deviceDriver").asText(),
 			"Retrieved script doesn't match expected object");
-		Assertions.assertEquals(script.getScript(), scriptNode.get("script").asText(),
+		Assertions.assertEquals(script.script(), scriptNode.get("script").asText(),
 			"Retrieved script doesn't match expected object");
-		Assertions.assertEquals(script.getAuthor(), scriptNode.get("author").asText(),
+		Assertions.assertEquals(script.author(), scriptNode.get("author").asText(),
 			"Retrieved script doesn't match expected object");
 	}
 
@@ -170,13 +159,9 @@ public class ScriptResourceTest {
 	@DisplayName("Delete script")
 	@ResourceLock("DB")
 	void deleteScript() throws IOException, InterruptedException {
-		DeviceJsScript script = new DeviceJsScript(
+		DeviceJsScript stored = DeviceJsScript.of(
 			"Test Script", this.getTestDriver().getName(), testScriptContent, "author1");
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(script);
-			session.getTransaction().commit();
-		}
+		DeviceJsScript script = stored.withId(new Transactions().write(dsl -> new ScriptRepository().add(dsl, stored)));
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
 				"/scripts/%d".formatted(TestServer.UNKNOWN_ID));
@@ -186,13 +171,13 @@ public class ScriptResourceTest {
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
-				"/scripts/%d".formatted(script.getId()));
+				"/scripts/%d".formatted(script.id()));
 			Assertions.assertEquals(
 				Response.Status.NO_CONTENT.getStatusCode(), response.statusCode(),
 				"Not getting 204 response for script deletion");
 		}
-		try (Session session = Database.getSession()) {
-			DeviceJsScript deletedScript = session.get(DeviceJsScript.class, script.getId());
+		{
+			DeviceJsScript deletedScript = new Transactions().read(dsl -> new ScriptRepository().find(dsl, script.id()));
 			Assertions.assertNull(deletedScript, "Script not deleted as expected");
 		}
 	}

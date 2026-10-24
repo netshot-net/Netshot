@@ -18,21 +18,25 @@
  */
 package net.netshot.netshot.task.engine;
 
+import static net.netshot.netshot.platform.database.schema.Tables.TASK;
+
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
@@ -49,9 +53,12 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 /**
  * The TaskManager schedules and runs the tasks.
@@ -122,6 +129,12 @@ public final class TaskManager {
 
 	/** Available runners (replaced as a whole by the cluster thread, never mutated after publication). */
 	private static volatile RunnerSet runnerSet;
+
+	/** The task queries. */
+	private static final TaskRepository REPOSITORY = new TaskRepository();
+
+	/** The transactions on the main pools. */
+	private static final Transactions TRANSACTIONS = new Transactions();
 
 	/**
 	 * Initializes the task manager.
@@ -196,48 +209,75 @@ public final class TaskManager {
 	}
 
 	/**
+	 * Runs some work in a transaction of the system pool (the cluster and master tasks
+	 * don't compete with the task threads for the main pool).
+	 *
+	 * @param <T> the type of the result
+	 * @param work the work
+	 * @return the result
+	 */
+	private static <T> T inSystemTransaction(Function<DSLContext, T> work) {
+		return TRANSACTIONS.system(work);
+	}
+
+	/**
+	 * Called when a task gets scheduled.
+	 *
+	 * @param task the task
+	 */
+	private static void onSchedule(Task task) {
+		if (task.spec() instanceof TakeSnapshotTask snapshot && snapshot.automatic() && snapshot.deviceId() != null) {
+			AutoSnapshotScheduler.checkAutoSnapshot(snapshot.deviceId());
+		}
+	}
+
+	/**
+	 * Called when a task gets cancelled.
+	 *
+	 * @param task the task
+	 */
+	private static void onCancel(Task task) {
+		if (task.spec() instanceof TakeSnapshotTask snapshot && snapshot.deviceId() != null) {
+			AutoSnapshotScheduler.clearScheduledAutoSnapshot(snapshot.deviceId());
+		}
+	}
+
+	/**
 	 * Add new tasks to master scheduler.
 	 */
 	public static void scheduleNewTasks() {
-		log.debug("Looking for new tasks to assign to available runners");
-		Session session = Database.getSystemSession();
 		try {
-			session.beginTransaction();
-			List<Task> tasks = session.createQuery("select t from Task t where t.status = :new", Task.class)
-				.setParameter("new", Task.Status.NEW)
-				.list();
-			for (Task task : tasks) {
-				task.onSchedule();
-				task.setScheduled();
-				session.persist(task);
-				try {
-					addTaskToScheduler(task, false, true, false);
+			inSystemTransaction(dsl -> {
+				for (Task task : REPOSITORY.findByStatus(dsl, Task.Status.NEW)) {
+					log.trace("Scheduling new task {}.", task.id());
+					onSchedule(task);
+					REPOSITORY.changeStatus(dsl, task.id(), Status.SCHEDULED);
+					try {
+						addTaskToScheduler(task, false, true, false);
+					}
+					catch (SchedulerException e) {
+						log.error("Error while scheduling new task", e);
+					}
 				}
-				catch (SchedulerException e) {
-					log.error("Error while scheduling new task", e);
-				}
-			}
-			session.getTransaction().commit();
+				return null;
+			});
 		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
+		catch (DataAccessException e) {
 			log.error("Database error while scheduling new tasks (master scheduler)", e);
-		}
-		finally {
-			session.close();
 		}
 	}
 
 	/**
 	 * Assigns a runner to a task and sets the task as waiting.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param task the task
 	 */
-	public static void assignTaskRunner(Task task) {
-		long hash = task.getRunnerHash();
+	public static void assignTaskRunner(DSLContext dsl, Task task) {
+		long hash = task.runnerHash();
 		String runnerId = TaskManager.runnerSet.getNextRunnerId();
-		log.info("Task {} (hash {}) is being assigned to runner {}.", task.getId(), hash, runnerId);
-		task.setRunnerId(runnerId);
-		task.setWaiting();
+		log.info("Task {} (hash {}) is being assigned to runner {}.", task.id(), hash, runnerId);
+		REPOSITORY.assignRunner(dsl, task.id(), runnerId);
 	}
 
 	/**
@@ -272,33 +312,24 @@ public final class TaskManager {
 		}
 	}
 
+
 	/**
-	 * Requests cancellation of a task that is already RUNNING in sequential mode. Unlike
+	 * Requests cancellation of a task that is already RUNNING. Unlike
 	 * {@link #cancelTask}, this doesn't touch the Quartz scheduler (the job is genuinely
 	 * running, not sitting in the scheduler waiting to fire) -- it just flags the task so
-	 * that its own sequential scheduling loop stops scheduling further child tasks the
-	 * next time it polls (the currently in-flight child is left to finish naturally).
+	 * that its own scheduling loop (or device wait) stops the next time it polls
+	 * (the currently in-flight child is left to finish naturally).
 	 *
 	 * @param taskId the ID of the task to request cancellation of
-	 * @throws HibernateException the Hibernate exception
+	 * @throws DataAccessException if the task can't be updated
 	 */
-	public static void requestCancel(long taskId) throws HibernateException {
-		log.debug("Requesting cancellation of running sequential task {}.", taskId);
-		Session session = Database.getSession();
+	public static void requestCancel(long taskId) {
 		try {
-			session.beginTransaction();
-			session.createMutationQuery("update Task t set t.cancelRequested = true where t.id = :id")
-				.setParameter("id", taskId)
-				.executeUpdate();
-			session.getTransaction().commit();
+			TRANSACTIONS.run(dsl -> REPOSITORY.requestCancel(dsl, taskId));
 		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
+		catch (DataAccessException e) {
 			log.error("Error while requesting cancellation of task {}.", taskId, e);
 			throw e;
-		}
-		finally {
-			session.close();
 		}
 	}
 
@@ -308,29 +339,20 @@ public final class TaskManager {
 	 * @param task the task
 	 * @param reason the reason
 	 * @throws SchedulerException the scheduler exception
-	 * @throws HibernateException the hibernate exception
+	 * @throws DataAccessException if the task can't be updated
 	 */
-	public static void cancelTask(Task task, String reason) throws SchedulerException, HibernateException {
-		log.debug("Cancelling task {}.", task);
-		TaskManager.runnerScheduler.deleteJob(task.getIdentity());
-		TaskManager.masterScheduler.deleteJob(task.getIdentity());
-		log.trace("The task has been deleted from the scheduler(s).");
-		Session session = Database.getSession();
+	public static void cancelTask(Task task, String reason) throws SchedulerException {
+		TaskManager.runnerScheduler.deleteJob(task.identity());
+		TaskManager.masterScheduler.deleteJob(task.identity());
 		try {
-			session.beginTransaction();
-			task.onCancel();
-			task.setCancelled(reason);
-			session.merge(task);
-			session.getTransaction().commit();
-			log.trace("Task successfully cancelled.");
+			TRANSACTIONS.run(dsl -> {
+				onCancel(task);
+				REPOSITORY.cancel(dsl, task.id(), reason);
+			});
 		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
+		catch (DataAccessException e) {
 			log.error("Error while updating the cancelled task.", e);
 			throw e;
-		}
-		finally {
-			session.close();
 		}
 	}
 
@@ -346,21 +368,21 @@ public final class TaskManager {
 		boolean checkExistence, boolean forceNow) throws SchedulerException {
 		Scheduler scheduler = runnerTask ? runnerScheduler : masterScheduler;
 		if (checkExistence) {
-			if (scheduler.checkExists(task.getIdentity())) {
-				log.debug("Task already in the scheduler");
+			if (scheduler.checkExists(task.identity())) {
+				log.debug("Task {} is already present in the scheduler.", task.id());
 				return;
 			}
 		}
 		Class<? extends Job> jobClass = runnerTask ? TaskJob.class : MasterJob.class;
 		JobDetail job = JobBuilder
 			.newJob(jobClass)
-			.withIdentity(task.getIdentity())
+			.withIdentity(task.identity())
 			.build();
-		job.getJobDataMap().put(TaskJob.NETSHOT_TASK, task.getId());
+		job.getJobDataMap().put(TaskJob.NETSHOT_TASK, task.id());
 		TriggerBuilder<Trigger> triggerBuilder = TriggerBuilder
 			.newTrigger()
-			.withPriority(task.getPriority());
-		Date when = task.getNextExecutionDate();
+			.withPriority(task.priority());
+		Date when = task.nextExecutionDate();
 		if (when == null || forceNow) {
 			triggerBuilder.startNow();
 		}
@@ -368,183 +390,96 @@ public final class TaskManager {
 			triggerBuilder.startAt(when);
 		}
 		scheduler.scheduleJob(job, triggerBuilder.build());
-		log.trace("Task successfully added to the scheduler.");
 	}
 
 	/**
-	 * Adds a task to the database in single mode (no clustering).
-	 * @param task The task to add
-	 * @throws SchedulerException scheduler exception
-	 * @throws HibernateException Hibernate exception
+	 * Stores a task (if new) with a status, or changes the status of the stored task.
+	 *
+	 * @param task the task
+	 * @param status the status
+	 * @param schedule true to call the schedule hook
+	 * @return the stored task
 	 */
-	private static void addTaskSingleMode(Task task) throws SchedulerException, HibernateException {
-		Session session = Database.getSession();
+	private static Task store(Task task, Status status, boolean schedule) {
 		try {
-			session.beginTransaction();
-			task.onSchedule();
-			task.setScheduled();
-			if (task.getId() == 0) {
-				session.persist(task);
-			}
-			else {
-				Task persistentTask = session.get(Task.class, task.getId());
-				persistentTask.setScheduled();
-				session.merge(persistentTask);
-			}
-			session.getTransaction().commit();
-			session.evict(task);
-			log.trace("Task successfully added to the database.");
+			return TRANSACTIONS.write(dsl -> {
+				if (schedule) {
+					onSchedule(task);
+				}
+				if (task.id() == 0) {
+					return REPOSITORY.add(dsl, task.withStatus(status));
+				}
+				REPOSITORY.changeStatus(dsl, task.id(), status);
+				return task.withStatus(status);
+			});
 		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
+		catch (RuntimeException e) {
 			log.error("Error while saving the new task.", e);
 			throw e;
 		}
-		finally {
-			session.close();
-		}
-		addTaskToScheduler(task, true, false, false);
-	}
-
-	/**
-	 * Adds a task to the system in cluster master mode.
-	 * @param task The task to add
-	 * @throws SchedulerException scheduler exception
-	 * @throws HibernateException Hibernate exception
-	 */
-	private static void addTaskMasterMode(Task task) throws SchedulerException, HibernateException {
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			task.onSchedule();
-			task.setScheduled();
-			if (task.getId() == 0) {
-				session.persist(task);
-			}
-			else {
-				session.merge(task);
-			}
-			session.getTransaction().commit();
-			session.evict(task);
-			log.trace("Task successfully added to the database.");
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Error while saving the new task.", e);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
-		addTaskToScheduler(task, false, false, false);
-	}
-
-	/**
-	 * Adds a task to the system in cluster member mode.
-	 * @param task The task to add
-	 * @throws SchedulerException scheduler exception
-	 * @throws HibernateException Hibernate exception
-	 */
-	private static void addTaskMemberMode(Task task) throws SchedulerException, HibernateException {
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			task.setStatus(Status.NEW);
-			if (task.getId() == 0) {
-				session.persist(task);
-			}
-			else {
-				session.merge(task);
-			}
-			session.getTransaction().commit();
-			session.evict(task);
-			log.trace("Task successfully added to the database.");
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Error while saving the new task.", e);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
-		ClusterManager.requestTasksAssignment();
 	}
 
 	/**
 	 * Adds a task to the system.
 	 *
-	 * @param task the task
+	 * @param task the task (stored if its ID is 0)
+	 * @return the stored task
 	 * @throws SchedulerException the scheduler exception
-	 * @throws HibernateException the Hibernate exception
+	 * @throws DataAccessException if the task can't be stored
 	 */
-	public static void addTask(Task task) throws SchedulerException, HibernateException {
-		log.debug("Adding task {} to the system.", task.getId());
-
+	public static Task addTask(Task task) throws SchedulerException {
+		log.debug("Adding the task {} (mode {}).", task.id(), TaskManager.mode);
 		switch (TaskManager.mode) {
+			case CLUSTER_MASTER: {
+				Task stored = store(task, Status.SCHEDULED, true);
+				addTaskToScheduler(stored, false, false, false);
+				return stored;
+			}
+			case CLUSTER_MEMBER: {
+				Task stored = store(task, Status.NEW, false);
+				ClusterManager.requestTasksAssignment();
+				return stored;
+			}
 			case SINGLE:
-				addTaskSingleMode(task);
-				break;
-			case CLUSTER_MASTER:
-				addTaskMasterMode(task);
-				break;
-			case CLUSTER_MEMBER:
-				addTaskMemberMode(task);
-				break;
-			default:
+			default: {
+				Task stored = store(task, Status.SCHEDULED, true);
+				addTaskToScheduler(stored, true, false, false);
+				return stored;
+			}
 		}
 	}
 
 	/**
-	 * Repeat task.
+	 * Repeats a task: adds its next occurrence, if it is repeating.
 	 *
 	 * @param task the task
 	 * @throws SchedulerException the scheduler exception
-	 * @throws HibernateException the hibernate exception
+	 * @throws DataAccessException if the task can't be stored
 	 */
-	public static void repeatTask(Task task) throws SchedulerException, HibernateException {
-		log.debug("Repeating task {} if necessary.", task.getId());
+	public static void repeatTask(Task task) throws SchedulerException {
 		if (!task.isRepeating()) {
-			log.trace("Not necessary.");
 			return;
 		}
-		Task newTask;
-		try {
-			newTask = (Task) task.clone();
-			log.trace("Got a clone, will schedule it.");
-			TaskManager.addTask(newTask);
-		}
-		catch (CloneNotSupportedException e) {
-			log.error("Unable to clone the task {}.", task.getId(), e);
-		}
+		TaskManager.addTask(task.nextOccurrence());
 	}
 
 	/**
 	 * Retrieve the tasks assigned to the local instance and add them to the runner scheduler.
 	 */
 	public static void scheduleLocalTasks() {
-		log.debug("Will retrieve the waiting tasks assigned to the local cluster member.");
-		Session session = Database.getSystemSession();
 		try {
-			List<Task> tasks = session.createQuery(
-				"select t from Task t where t.status = :waiting and t.runnerId = :myId", Task.class)
-				.setParameter("waiting", Task.Status.WAITING)
-				.setParameter("myId", ClusterManager.getLocalInstanceId())
-				.list();
+			List<Task> tasks = TRANSACTIONS.read(dsl -> REPOSITORY.findWhere(dsl,
+				TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(ClusterManager.getLocalInstanceId()))));
 			for (Task task : tasks) {
-				log.trace("Found task {}, assigned to local cluster member {}", task.getId(),
-					task.getRunnerId());
+				log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
 				addTaskToScheduler(task, true, true, true);
 			}
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to retrieve the waiting tasks from the database", e);
 		}
 		catch (SchedulerException e) {
 			log.error("Unable to schedule the task", e);
-		}
-		finally {
-			session.close();
 		}
 	}
 
@@ -553,76 +488,49 @@ public final class TaskManager {
 	 */
 	public static void reassignOrphanTasks() {
 		if (!Mode.CLUSTER_MASTER.equals(TaskManager.mode)) {
-			log.debug("Skipping reassignment of orphan tasks (not in MASTER mode)");
 			return;
 		}
 		RunnerSet currentRunnerSet = TaskManager.runnerSet;
 		if (currentRunnerSet == null || currentRunnerSet.map.isEmpty()) {
-			log.debug("Skipping reassignment of orphan tasks (no available runner)");
 			return;
 		}
-		log.debug("Looking for orphan tasks.");
-		Session session = Database.getSystemSession();
-		int reassignedCount = 0;
+		int reassignedCount;
 		try {
-			session.beginTransaction();
-			List<String> runnerIds = session.createQuery(
-				"select distinct t.runnerId from Task t where (t.status = :waiting or t.status = :running) and t.runnerId is not null",
-				String.class)
-				.setParameter("waiting", Task.Status.WAITING)
-				.setParameter("running", Task.Status.RUNNING)
-				.list();
-			Iterator<String> runnerIdIt = runnerIds.iterator();
-			while (runnerIdIt.hasNext()) {
-				String runnerId = runnerIdIt.next();
-				if (currentRunnerSet.map.values().contains(runnerId)) {
-					runnerIdIt.remove();
+			reassignedCount = inSystemTransaction(dsl -> {
+				Condition active = TaskRepository.statusIn(Status.WAITING, Status.RUNNING);
+				List<String> runnerIds = new ArrayList<>(dsl.selectDistinct(TASK.RUNNER_ID).from(TASK)
+					.where(active.and(TASK.RUNNER_ID.isNotNull())).fetch(TASK.RUNNER_ID));
+				runnerIds.removeIf(runnerId -> currentRunnerSet.map.values().contains(runnerId));
+				if (runnerIds.isEmpty()) {
+					return 0;
 				}
-				else {
-					log.debug("The runner of ID {} doesn't exist anymore", runnerId);
-				}
-			}
-			if (runnerIds.size() > 0) {
-				List<Task> tasks = session.createQuery(
-					"select t from Task t where (t.status = :waiting or t.status = :running) and "
-						+ "(t.runnerId in :runnerIds or t.runnerId is null)",
-					Task.class)
-					.setParameter("waiting", Task.Status.WAITING)
-					.setParameter("running", Task.Status.RUNNING)
-					.setParameterList("runnerIds", runnerIds)
-					.list();
+				int count = 0;
 				TaskLockManager lockManager = TaskLockManager.get();
-				for (Task task : tasks) {
+				for (Task task : REPOSITORY.findWhere(dsl, active.and(TASK.RUNNER_ID.in(runnerIds).or(TASK.RUNNER_ID.isNull())))) {
 					// A member considered as gone may actually still be running the task (e.g. it was
 					// just unable to send hello messages for a while): only reassign the task if its
 					// lock isn't held anymore (released by the database when the member really died)
 					try {
-						if (lockManager.isHeld(TaskLockManager.NS_TASK, task.getId())) {
+						if (lockManager.isHeld(TaskLockManager.NS_TASK, task.id())) {
 							log.info("Task {} (runner {}) is still being executed, not reassigning it.",
-								task.getId(), task.getRunnerId());
+								task.id(), task.runnerId());
 							continue;
 						}
 					}
 					catch (SQLException e) {
-						log.error("Unable to check whether task {} is still running, not reassigning it.", task.getId(), e);
+						log.error("Unable to check whether task {} is still running, not reassigning it.", task.id(), e);
 						continue;
 					}
-					log.debug("Task {} will be reassigned as its previously assigned runner {} has disappeared.",
-						task.getId(), task.getRunnerId());
-					assignTaskRunner(task);
-					session.merge(task);
-					reassignedCount += 1;
+					log.debug("Reassigning task {} (formerly assigned to runner {}).", task.id(), task.runnerId());
+					assignTaskRunner(dsl, task);
+					count += 1;
 				}
-			}
-			session.getTransaction().commit();
+				return count;
+			});
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
 			log.error("Database error while re-assigning orphan tasks", e);
 			reassignedCount = 0;
-		}
-		finally {
-			session.close();
 		}
 		if (reassignedCount > 0) {
 			log.info("{} orphan task(s) reassigned", reassignedCount);
@@ -634,59 +542,31 @@ public final class TaskManager {
 	 * Reschedules all tasks. To be executed at startup.
 	 */
 	public static void rescheduleAll() {
-		log.debug("Will re-schedule the existing tasks from the database.");
-
-		Session session = Database.getSystemSession();
 		List<Task> tasks;
 		try {
-			switch (TaskManager.mode) {
-				case CLUSTER_MASTER:
-					tasks = session.createQuery(
-						"select t from Task t where t.status = :new or t.status = :scheduled or ((t.status = :waiting or t.status = :running) and t.runnerId = :myId)",
-						Task.class)
-						.setParameter("new", Task.Status.NEW)
-						.setParameter("scheduled", Task.Status.SCHEDULED)
-						.setParameter("waiting", Task.Status.WAITING)
-						.setParameter("running", Task.Status.RUNNING)
-						.setParameter("myId", ClusterManager.getLocalInstanceId())
-						.list();
-					break;
-				case CLUSTER_MEMBER:
-					tasks = session.createQuery(
-						"select t from Task t where (t.status = :waiting or t.status = :running) and t.runnerId = :myId", Task.class)
-						.setParameter("waiting", Task.Status.WAITING)
-						.setParameter("running", Task.Status.RUNNING)
-						.setParameter("myId", ClusterManager.getLocalInstanceId())
-						.list();
-					break;
-				default:
-					tasks = session.createQuery(
-						"select t from Task t where t.status = :scheduled or t.status = :waiting or t.status = :running", Task.class)
-						.setParameter("scheduled", Task.Status.SCHEDULED)
-						.setParameter("waiting", Task.Status.WAITING)
-						.setParameter("running", Task.Status.RUNNING)
-						.list();
-			}
+			String myId = ClusterManager.getLocalInstanceId();
+			Condition condition = switch (TaskManager.mode) {
+				case CLUSTER_MASTER -> TaskRepository.statusIn(Status.NEW, Status.SCHEDULED)
+					.or(TaskRepository.statusIn(Status.WAITING, Status.RUNNING).and(TASK.RUNNER_ID.eq(myId)));
+				case CLUSTER_MEMBER -> TaskRepository.statusIn(Status.WAITING, Status.RUNNING).and(TASK.RUNNER_ID.eq(myId));
+				default -> TaskRepository.statusIn(Status.SCHEDULED, Status.WAITING, Status.RUNNING);
+			};
+			tasks = inSystemTransaction(dsl -> REPOSITORY.findWhere(dsl, condition));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to retrieve the tasks from the database.", e);
 			throw e;
 		}
-		finally {
-			session.close();
-		}
-
-		log.trace("Found {} task(s) to reschedule.", tasks.size());
 		Calendar inThirtySeconds = Calendar.getInstance();
 		inThirtySeconds.add(Calendar.SECOND, 30);
 		for (Task task : tasks) {
 			try {
-				if (masterScheduler.checkExists(task.getIdentity())) {
-					log.trace("The task {} is already in the master scheduler.", task.getId());
+				if (masterScheduler.checkExists(task.identity())) {
+					log.trace("The task {} already exists in the master scheduler.", task.id());
 					continue;
 				}
-				if (runnerScheduler.checkExists(task.getIdentity())) {
-					log.trace("The task {} is already in the runner scheduler.", task.getId());
+				if (runnerScheduler.checkExists(task.identity())) {
+					log.trace("The task {} already exists in the runner scheduler.", task.id());
 					continue;
 				}
 			}
@@ -694,7 +574,7 @@ public final class TaskManager {
 				log.error("Error while checking task existence in the scheduler", e);
 			}
 			try {
-				Date when = task.getNextExecutionDate();
+				Date when = task.nextExecutionDate();
 				if (when == null || when.after(inThirtySeconds.getTime())) {
 					TaskManager.addTask(task);
 				}
@@ -703,42 +583,29 @@ public final class TaskManager {
 				}
 			}
 			catch (SchedulerException e) {
-				log.error("Unable to schedule the task {}.", task.getId(), e);
+				log.error("Unable to schedule the task {}.", task.id(), e);
 			}
 		}
 	}
 
 	/**
 	 * Cancels any DELAYED task left with no parent -- a pre-created child of a group-based task
-	 * whose parent no longer exists (deletion clears a child's {@code parentTaskId} rather than
-	 * cascading, see {@link Task}), so nothing will ever promote it. To be called once at
+	 * whose parent no longer exists (deletion clears a child's {@code parent_task_id} rather than
+	 * cascading), so nothing will ever promote it. To be called once at
 	 * startup, on every node regardless of clustering mode: it's a plain, idempotent bulk update,
 	 * so no cross-node coordination is needed the way {@link #reassignOrphanTasks()} needs.
 	 */
 	public static void cancelOrphanedDelayedTasks() {
-		log.debug("Looking for orphaned DELAYED tasks (no parent) to cancel.");
-		Session session = Database.getSession();
 		try {
-			session.beginTransaction();
-			int count = session
-				.createMutationQuery(
-					"update Task t set t.status = :cancelled where t.status = :delayed and t.parentTaskId is null")
-				.setParameter("cancelled", Task.Status.CANCELLED)
-				.setParameter("delayed", Task.Status.DELAYED)
-				.executeUpdate();
-			session.getTransaction().commit();
+			int count = TRANSACTIONS.write(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
+				Status.CANCELLED, Status.DELAYED));
 			log.info("{} orphaned DELAYED task(s) cancelled at startup", count);
 		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
+		catch (DataAccessException e) {
 			log.error("Error while cancelling orphaned DELAYED tasks", e);
-		}
-		finally {
-			session.close();
 		}
 	}
 
 	private TaskManager() {
 	}
-
 }

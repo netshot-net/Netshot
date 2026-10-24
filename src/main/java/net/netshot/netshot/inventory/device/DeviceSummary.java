@@ -18,6 +18,17 @@
  */
 package net.netshot.netshot.inventory.device;
 
+import static net.netshot.netshot.platform.database.schema.Tables.CHECK_RESULT;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+
+import java.util.List;
+
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.SelectField;
+import org.jooq.impl.DSL;
+
+import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.SoftwareRule;
 
 /**
@@ -49,21 +60,37 @@ public record DeviceSummary(
 	SoftwareRule.ConformanceLevel softwareLevel,
 	Device.NetworkClass networkClass) {
 
+	/** Whether the device is past its end of life date (jOOQ). */
+	private static final Field<Boolean> EOL = DSL.when(DSL.condition("{0} < current_date", DEVICE.EOL_DATE), DSL.inline(true))
+		.otherwise(DSL.inline(false)).as("eol");
+
+	/** Whether the device is past its end of sale date (jOOQ). */
+	private static final Field<Boolean> EOS = DSL.when(DSL.condition("{0} < current_date", DEVICE.EOS_DATE), DSL.inline(true))
+		.otherwise(DSL.inline(false)).as("eos");
+
+	/** Whether the device has no non-conforming configuration compliance result (jOOQ). */
+	private static final Field<Boolean> CONFIG_COMPLIANT = DSL.when(DSL.field(DSL.selectCount().from(CHECK_RESULT)
+			.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name()))).eq(0),
+		DSL.inline(true)).otherwise(DSL.inline(false)).as("config_compliant");
+
+	/** The columns projecting the devices ({@code DEVICE} table) into summaries, read by {@link #fromRecord}. */
+	public static final List<SelectField<?>> FIELDS = List.of(DEVICE.ID, DEVICE.NAME, DEVICE.FAMILY, DEVICE.MGMT_ADDRESS,
+		DEVICE.STATUS, DEVICE.DRIVER, EOL, EOS, CONFIG_COMPLIANT, DEVICE.SOFTWARE_LEVEL, DEVICE.NETWORK_CLASS);
+
+	private static <E extends Enum<E>> E toEnum(Class<E> type, String name) {
+		return name == null ? null : Enum.valueOf(type, name);
+	}
+
 	/**
-	 * The select clause projecting the devices (aliased {@code d}) into summaries. The query has to
-	 * bind the {@code nonConforming} parameter to {@code CheckResult.ResultOption.NONCONFORMING}.
+	 * Reads a summary from a row selected with {@link #FIELDS}.
+	 *
+	 * @param r the row
+	 * @return the summary
 	 */
-	public static final String SELECT_HQL = "select new " + DeviceSummary.class.getName() + "("
-		+ "d.id, "
-		+ "d.name, "
-		+ "d.family, "
-		+ "d.mgmtAddress, "
-		+ "d.status, "
-		+ "d.driver, "
-		+ "case when (d.eolDate < current_date()) then true else false end,  "
-		+ "case when (d.eosDate < current_date()) then true else false end, "
-		+ "case when (select count(cr) from CheckResult cr where cr.key.device = d and cr.result = :nonConforming) = 0 then true else false end, "
-		+ "d.softwareLevel, "
-		+ "d.networkClass"
-		+ ")";
+	public static DeviceSummary fromRecord(Record r) {
+		return new DeviceSummary(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(DEVICE.FAMILY), r.get(DEVICE.MGMT_ADDRESS),
+			toEnum(Device.Status.class, r.get(DEVICE.STATUS)), r.get(DEVICE.DRIVER), r.get(EOL), r.get(EOS), r.get(CONFIG_COMPLIANT),
+			toEnum(SoftwareRule.ConformanceLevel.class, r.get(DEVICE.SOFTWARE_LEVEL)),
+			toEnum(Device.NetworkClass.class, r.get(DEVICE.NETWORK_CLASS)));
+	}
 }

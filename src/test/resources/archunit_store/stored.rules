@@ -1,5 +1,3 @@
 #
 #Sat Oct 17 12:44:41 CEST 2026
 classes\ should\ not\ depend\ on\ a\ class\ of\ another\ top-level\ slice\ involved\ in\ a\ dependency\ cycle\ with\ its\ own\ slice=8e1e2fb6-18e6-47fe-95e0-845d18c40aa8
-no\ classes\ that\ are\ annotated\ with\ @Entity\ should\ depend\ on\ classes\ that\ have\ fully\ qualified\ name\ 'net.netshot.netshot.platform.database.Database'=1c2cdee9-1dd7-437c-bd1e-10ee6768d09b
-no\ classes\ that\ are\ annotated\ with\ @Entity\ should\ depend\ on\ classes\ that\ have\ fully\ qualified\ name\ 'org.hibernate.Session'\ or\ should\ depend\ on\ classes\ that\ have\ fully\ qualified\ name\ 'jakarta.persistence.EntityManager'=49398b3e-3e56-4951-9b07-7d057e87038c

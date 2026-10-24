@@ -18,62 +18,28 @@
  */
 package net.netshot.netshot.inventory.config.attribute;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.Config;
+import java.util.Objects;
 
-@Entity
-@DiscriminatorValue("N")
-public final class ConfigNumericAttribute extends ConfigAttribute {
-
-	@Getter
-	@Setter
-	private Double number;
-
-	protected ConfigNumericAttribute() {
-	}
-
-	public ConfigNumericAttribute(Config config, String name, double value) {
-		super(config, name);
-		this.number = value;
-	}
+/**
+ * A numeric configuration attribute.
+ *
+ * @param name the name of the attribute
+ * @param number the value
+ */
+public record ConfigNumericAttribute(String name, Double number) implements ConfigAttribute {
 
 	@Override
-	@Transient
 	public String getAsText() {
-		if (this.number == null) {
-			return "";
-		}
-		return this.number.toString();
+		return this.number == null ? "" : this.number.toString();
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getNumber();
+		return this.number;
 	}
 
 	@Override
-	public boolean valueEquals(ConfigAttribute obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ConfigNumericAttribute)) {
-			return false;
-		}
-		ConfigNumericAttribute other = (ConfigNumericAttribute) obj;
-		if (this.number == null) {
-			if (other.number != null) {
-				return false;
-			}
-		}
-		else if (!this.number.equals(other.number)) {
-			return false;
-		}
-		return true;
+	public boolean valueEquals(ConfigAttribute other) {
+		return other instanceof ConfigNumericAttribute o && Objects.equals(this.number, o.number);
 	}
-
 }

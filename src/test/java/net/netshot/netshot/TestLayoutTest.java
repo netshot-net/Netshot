@@ -86,7 +86,7 @@ public class TestLayoutTest {
 
 	/** The methods of {@link Database} which need a database (the others only read the configuration). */
 	private static final Set<String> DATABASE_METHODS = Set.of(
-		"update", "init", "getSession", "getSystemSession", "getStalessSession", "getConnection");
+		"update", "init", "getConnection");
 
 	/** The package of the containers, which the tests of the fast kinds must not use. */
 	private static final String CONTAINER_PACKAGE = "org.testcontainers";

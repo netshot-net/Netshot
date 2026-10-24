@@ -23,21 +23,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.inventory.config.Config;
-import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.testing.UnitTest;
+
 /**
  * Tests for {@link ConfigBinaryFileAttribute}'s pending-to-final storage
  * lifecycle: filenames before/after the owning config is "persisted"
- * (simulated here via setId(), without a real database).
+ * (given here as IDs, without a real database).
  */
 @UnitTest
 @DisplayName("ConfigBinaryFileAttribute storage lifecycle test")
@@ -52,45 +50,44 @@ public class ConfigBinaryFileAttributeStorageTest {
 		ConfigBinaryFileAttribute.loadConfig();
 	}
 
-	private ConfigBinaryFileAttribute newPersistedAttribute(long deviceId, long configId) {
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("HttpDownloadTestDriver", null, domain, "test");
-		device.setId(deviceId);
-		Config config = new Config(device);
-		config.setId(configId);
-		ConfigBinaryFileAttribute attribute = new ConfigBinaryFileAttribute(config, "backupArchive", "backup.tar.gz");
-		attribute.setId(1); // Simulate a persisted attribute row
-		return attribute;
+	/** The ID of the device of the attribute. */
+	private static final long DEVICE_ID = 12;
+
+	/** The ID of the configuration of the attribute, once it is stored. */
+	private static final long CONFIG_ID = 483;
+
+	private static ConfigBinaryFileAttribute newAttribute() {
+		return ConfigBinaryFileAttribute.create("backupArchive", "backup.tar.gz");
 	}
 
 	@Test
 	@DisplayName("finalizeStorage() renames the pending file to its final name once the config has a real id")
 	void finalizeStorageRenamesPendingToFinal() throws IOException {
-		ConfigBinaryFileAttribute attribute = newPersistedAttribute(12, 483);
-		Path pendingPath = attribute.getPendingFilePath();
+		ConfigBinaryFileAttribute attribute = newAttribute();
+		Path pendingPath = attribute.getPendingFilePath(DEVICE_ID);
 		Files.write(pendingPath, "hello".getBytes());
 
-		attribute.finalizeStorage();
+		attribute.finalizeStorage(DEVICE_ID, CONFIG_ID);
 
 		Path expectedFinalPath = pendingPath.getParent()
-			.resolve("12_cfg483_backupArchive_%s.data".formatted(attribute.getUid()));
+			.resolve("12_cfg483_backupArchive_%s.data".formatted(attribute.uid()));
 		Assertions.assertFalse(Files.exists(pendingPath), "The pending file should have been renamed away");
 		Assertions.assertTrue(Files.exists(expectedFinalPath), "The final file should now exist");
-		Assertions.assertEquals(expectedFinalPath, attribute.getFilePath());
+		Assertions.assertEquals(expectedFinalPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID));
 	}
 
 	@Test
 	@DisplayName("finalizeStorage() is a no-op when called again after already finalizing")
 	void finalizeStorageIsIdempotent() throws IOException {
-		ConfigBinaryFileAttribute attribute = newPersistedAttribute(12, 483);
-		Path pendingPath = attribute.getPendingFilePath();
+		ConfigBinaryFileAttribute attribute = newAttribute();
+		Path pendingPath = attribute.getPendingFilePath(DEVICE_ID);
 		Files.write(pendingPath, "hello".getBytes());
 
-		attribute.finalizeStorage();
-		Path finalPath = attribute.getFilePath();
+		attribute.finalizeStorage(DEVICE_ID, CONFIG_ID);
+		Path finalPath = attribute.getFilePath(DEVICE_ID, CONFIG_ID);
 
-		Assertions.assertDoesNotThrow(attribute::finalizeStorage);
-		Assertions.assertEquals(finalPath, attribute.getFilePath());
+		Assertions.assertDoesNotThrow(() -> attribute.finalizeStorage(DEVICE_ID, CONFIG_ID));
+		Assertions.assertEquals(finalPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID));
 		Assertions.assertTrue(Files.exists(finalPath));
 	}
 
@@ -101,23 +98,23 @@ public class ConfigBinaryFileAttributeStorageTest {
 		// (e.g. process crash between commit() and finalizeStorage()), or
 		// whose rename attempt failed - either way, nothing exists yet at
 		// the final path, only at the pending one.
-		ConfigBinaryFileAttribute attribute = newPersistedAttribute(12, 483);
-		Path pendingPath = attribute.getPendingFilePath();
+		ConfigBinaryFileAttribute attribute = newAttribute();
+		Path pendingPath = attribute.getPendingFilePath(DEVICE_ID);
 		Files.write(pendingPath, "hello".getBytes());
 
-		Assertions.assertEquals(pendingPath, attribute.getFilePath(),
+		Assertions.assertEquals(pendingPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID),
 			"getFilePath() should resolve to the pending path when the final one doesn't exist yet");
 	}
 
 	@Test
 	@DisplayName("getFilePath() falls back to the legacy <uid>.data name for a pre-feature row")
 	void getFilePathFallsBackToLegacyName() throws IOException {
-		ConfigBinaryFileAttribute attribute = newPersistedAttribute(12, 483);
-		Path legacyPath = attribute.getPendingFilePath().getParent()
-			.resolve("%s.data".formatted(attribute.getUid()));
+		ConfigBinaryFileAttribute attribute = newAttribute();
+		Path legacyPath = attribute.getPendingFilePath(DEVICE_ID).getParent()
+			.resolve("%s.data".formatted(attribute.uid()));
 		Files.write(legacyPath, "hello".getBytes());
 
-		Assertions.assertEquals(legacyPath, attribute.getFilePath(),
+		Assertions.assertEquals(legacyPath, attribute.getFilePath(DEVICE_ID, CONFIG_ID),
 			"With neither the final nor pending file present, getFilePath() should fall back to the legacy name");
 	}
 }

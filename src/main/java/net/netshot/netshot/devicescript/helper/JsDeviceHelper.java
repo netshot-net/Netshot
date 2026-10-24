@@ -22,21 +22,20 @@ import java.io.ByteArrayOutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 
 import org.graalvm.polyglot.HostAccess.Export;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyArray;
 import org.graalvm.polyglot.proxy.ProxyObject;
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.Cli;
@@ -48,10 +47,12 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.OptionDefinition;
+import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
@@ -74,14 +75,14 @@ import net.netshot.netshot.task.engine.TaskContext;
 public final class JsDeviceHelper {
 
 	private final DriverRegistry driverRegistry;
-	private Device device;
+	private DeviceDraft device;
 	private JsCliHelper defaultCliHelper;
-	private Session session;
+	private final DeviceLookup lookup = new DeviceLookup();
 	private TaskContext taskContext;
 	private boolean readOnly;
 
 	/** Common update date for modules and other items. */
-	private Date updateDate;
+	private Instant updateDate;
 
 	public static String getStringMember(Value value, String key, String defaultResult) {
 		Value result = value.getMember(key);
@@ -99,15 +100,14 @@ public final class JsDeviceHelper {
 		return defaultResult;
 	}
 
-	public JsDeviceHelper(DriverRegistry driverRegistry, Device device, JsCliHelper defaultCliHelper, Session session,
+	public JsDeviceHelper(DriverRegistry driverRegistry, DeviceDraft device, JsCliHelper defaultCliHelper,
 		TaskContext taskContext, boolean readOnly) throws MissingDeviceDriverException {
 		this.driverRegistry = driverRegistry;
 		this.device = device;
 		this.defaultCliHelper = defaultCliHelper;
-		this.session = session;
 		this.taskContext = taskContext;
 		this.readOnly = readOnly;
-		this.updateDate = new Date();
+		this.updateDate = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 	}
 
 	/**
@@ -164,42 +164,25 @@ public final class JsDeviceHelper {
 		}
 		try {
 			if ("module".equals(key)) {
-				boolean found = false;
-				Module module = new Module(
-					getStringMember(data, "slot", ""),
-					getStringMember(data, "partNumber", ""),
-					getStringMember(data, "serialNumber", ""),
-					device
-				);
-				for (Module existingModule : device.getModules()) {
-					if (existingModule.isRemoved()
-						&& Objects.equals(existingModule.getSlot(), module.getSlot())
-						&& Objects.equals(existingModule.getPartNumber(), module.getPartNumber())
-						&& Objects.equals(existingModule.getSerialNumber(), module.getSerialNumber())) {
-						existingModule.setRemoved(false);
-						existingModule.setLastSeenDate(this.updateDate);
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
-					module.setFirstSeenDate(this.updateDate);
-					module.setLastSeenDate(this.updateDate);
-					device.getModules().add(module);
-				}
+				Module module = Module.builder()
+					.slot(getStringMember(data, "slot", ""))
+					.partNumber(getStringMember(data, "partNumber", ""))
+					.serialNumber(getStringMember(data, "serialNumber", ""))
+					.build();
+				device.seeModule(module, this.updateDate);
 			}
 			else if ("networkInterface".equals(key)) {
-				NetworkInterface networkInterface = new NetworkInterface(
-					device,
-					data.getMember("name").asString(),
-					getStringMember(data, "virtualDevice", ""),
-					getStringMember(data, "vrf", ""),
-					getBooleanMember(data, "enabled", true),
-					getBooleanMember(data, "level3", true),
-					getStringMember(data, "description", "")
-				);
-				networkInterface.setPhysicalAddress(new PhysicalAddress(
-					getStringMember(data, "mac", "0000.0000.0000")));
+				NetworkInterface.NetworkInterfaceBuilder networkInterface = NetworkInterface.builder()
+					.interfaceName(data.getMember("name").asString())
+					.virtualDevice(getStringMember(data, "virtualDevice", ""))
+					.vrfInstance(getStringMember(data, "vrf", ""))
+					.enabled(getBooleanMember(data, "enabled", true))
+					.level3(getBooleanMember(data, "level3", true))
+					.description(getStringMember(data, "description", ""))
+					.physicalAddress(new PhysicalAddress(
+						getStringMember(data, "mac", "0000.0000.0000")));
+				Set<Network4Address> ip4Addresses = new LinkedHashSet<>();
+				Set<Network6Address> ip6Addresses = new LinkedHashSet<>();
 				Value ipAddresses = data.getMember("ip");
 				if (ipAddresses != null) {
 					for (long i = 0; i < ipAddresses.getArraySize(); i++) {
@@ -218,11 +201,11 @@ public final class JsDeviceHelper {
 						if (usage != null) {
 							address.setAddressUsage(AddressUsage.valueOf(usage.asString()));
 						}
-						networkInterface.addIpAddress(address);
+						NetworkInterface.addIpAddress(ip4Addresses, ip6Addresses, address);
 					}
 				}
 
-				device.getNetworkInterfaces().add(networkInterface);
+				device.addNetworkInterface(networkInterface.ip4Addresses(ip4Addresses).ip6Addresses(ip6Addresses).build());
 			}
 			else if ("vrf".equals(key)) {
 				device.addVrfInstance(data.asString());
@@ -268,10 +251,10 @@ public final class JsDeviceHelper {
 		device.setSoftwareVersion("");
 		device.setNetworkClass(NetworkClass.UNKNOWN);
 		device.clearAttributes();
-		device.clearVrfInstance();
+		device.clearVrfInstances();
 		device.clearVirtualDevices();
 		device.setModulesRemoved();
-		device.getNetworkInterfaces().clear();
+		device.clearNetworkInterfaces();
 		device.setEolModule(null);
 		device.setEosModule(null);
 		device.setEolDate(null);
@@ -294,7 +277,7 @@ public final class JsDeviceHelper {
 				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 					switch (attribute.getType()) {
 						case BINARY:
-							device.addAttribute(new DeviceBinaryAttribute(device, key, value));
+							device.addAttribute(new DeviceBinaryAttribute(key, value));
 							taskContext.trace("Setting device attribute '{}' to {}.", key, value);
 							break;
 						default:
@@ -326,7 +309,7 @@ public final class JsDeviceHelper {
 				if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 					switch (attribute.getType()) {
 						case NUMERIC:
-							device.addAttribute(new DeviceNumericAttribute(device, key, value));
+							device.addAttribute(new DeviceNumericAttribute(key, value));
 							taskContext.trace("Setting device attribute '{}' to {}.", key, value);
 							break;
 						default:
@@ -393,11 +376,11 @@ public final class JsDeviceHelper {
 					if (attribute.getLevel().equals(AttributeLevel.DEVICE) && attribute.getName().equals(key)) {
 						switch (attribute.getType()) {
 							case LONGTEXT:
-								device.addAttribute(new DeviceLongTextAttribute(device, key, value));
+								device.addAttribute(new DeviceLongTextAttribute(key, value));
 								taskContext.trace("Setting device attribute '{}' to '{}'.", key, value);
 								break;
 							case TEXT:
-								device.addAttribute(new DeviceTextAttribute(device, key, value));
+								device.addAttribute(new DeviceTextAttribute(key, value));
 								taskContext.trace("Setting device attribute '{}' to '{}'.", key, value);
 								break;
 							default:
@@ -432,77 +415,77 @@ public final class JsDeviceHelper {
 			return driver.getDescription();
 		}
 		else if ("name".equals(item)) {
-			return targetDevice.getName();
+			return targetDevice.name();
 		}
 		else if ("family".equals(item)) {
-			return targetDevice.getFamily();
+			return targetDevice.family();
 		}
 		else if ("managementIpAddress".equals(item)) {
-			return targetDevice.getMgmtAddress();
+			return targetDevice.mgmtAddress();
 		}
 		else if ("managementDomain".equals(item)) {
-			return targetDevice.getMgmtDomain().getName();
+			return targetDevice.mgmtDomain().name();
 		}
 		else if ("location".equals(item)) {
-			return targetDevice.getLocation();
+			return targetDevice.location();
 		}
 		else if ("contact".equals(item)) {
-			return targetDevice.getContact();
+			return targetDevice.contact();
 		}
 		else if ("softwareVersion".equals(item)) {
-			return targetDevice.getSoftwareVersion();
+			return targetDevice.softwareVersion();
 		}
 		else if ("serialNumber".equals(item)) {
-			return targetDevice.getSerialNumber();
+			return targetDevice.serialNumber();
 		}
 		else if ("comments".equals(item)) {
-			return targetDevice.getComments();
+			return targetDevice.comments();
 		}
 		else if ("networkClass".equals(item)) {
-			return targetDevice.getNetworkClass() == null ? null : targetDevice.getNetworkClass().toString();
+			return targetDevice.networkClass() == null ? null : targetDevice.networkClass().toString();
 		}
 		else if ("virtualDevices".equals(item)) {
-			return ProxyArray.fromList(List.copyOf(targetDevice.getVirtualDevices()));
+			return ProxyArray.fromList(List.copyOf(targetDevice.virtualDevices()));
 		}
 		else if ("vrfs".equals(item)) {
-			return ProxyArray.fromList(List.copyOf(targetDevice.getVrfInstances()));
+			return ProxyArray.fromList(List.copyOf(targetDevice.vrfInstances()));
 		}
 		else if ("tags".equals(item)) {
-			List<String> tags = new ArrayList<>(targetDevice.getTags());
+			List<String> tags = new ArrayList<>(targetDevice.tags());
 			Collections.sort(tags);
 			return ProxyArray.fromList(new ArrayList<Object>(tags));
 		}
 		else if ("modules".equals(item)) {
 			List<Object> modules = new ArrayList<>();
-			for (Module m : targetDevice.getModules()) {
+			for (Module m : targetDevice.modules()) {
 				Map<String, Object> module = new HashMap<>();
-				module.put("slot", Value.asValue(m.getSlot()));
-				module.put("partNumber", Value.asValue(m.getPartNumber()));
-				module.put("serialNumber", Value.asValue(m.getSerialNumber()));
+				module.put("slot", Value.asValue(m.slot()));
+				module.put("partNumber", Value.asValue(m.partNumber()));
+				module.put("serialNumber", Value.asValue(m.serialNumber()));
 				modules.add(ProxyObject.fromMap(module));
 			}
 			return ProxyArray.fromList(modules);
 		}
 		else if ("interfaces".equals(item)) {
 			List<Object> networkInterfaces = new ArrayList<>();
-			for (NetworkInterface ni : targetDevice.getNetworkInterfaces()) {
+			for (NetworkInterface ni : targetDevice.networkInterfaces()) {
 				Map<String, Object> networkInterface = new HashMap<>();
-				networkInterface.put("name", ni.getInterfaceName());
-				networkInterface.put("description", ni.getDescription());
+				networkInterface.put("name", ni.interfaceName());
+				networkInterface.put("description", ni.description());
 				networkInterface.put("mac", ni.getMacAddress());
-				networkInterface.put("virtualDevice", ni.getVirtualDevice());
-				networkInterface.put("vrf", ni.getVrfInstance());
-				networkInterface.put("enabled", ni.isEnabled());
-				networkInterface.put("level3", ni.isLevel3());
+				networkInterface.put("virtualDevice", ni.virtualDevice());
+				networkInterface.put("vrf", ni.vrfInstance());
+				networkInterface.put("enabled", ni.enabled());
+				networkInterface.put("level3", ni.level3());
 				List<Object> ips = new ArrayList<>();
-				for (Network4Address address : ni.getIp4Addresses()) {
+				for (Network4Address address : ni.ip4Addresses()) {
 					Map<String, Object> ip = new HashMap<>();
 					ip.put("ip", address.getIp());
 					ip.put("mask", Integer.toString(address.getPrefixLength()));
 					ip.put("usage", address.getAddressUsage().toString());
 					ips.add(ProxyObject.fromMap(ip));
 				}
-				for (Network6Address address : ni.getIp6Addresses()) {
+				for (Network6Address address : ni.ip6Addresses()) {
 					Map<String, Object> ip = new HashMap<>();
 					ip.put("ipv6", address.getIp());
 					ip.put("mask", Integer.toString(address.getPrefixLength()));
@@ -517,24 +500,25 @@ public final class JsDeviceHelper {
 		else {
 			for (AttributeDefinition definition : driver.getAttributes()) {
 				if ((definition.getName().equals(item) || definition.getTitle().equals(item)) && definition.isCheckable()) {
-					if (definition.getLevel() == AttributeLevel.CONFIG && targetDevice.getLastConfig() != null) {
-						for (ConfigAttribute attribute : targetDevice.getLastConfig().getAttributes()) {
-							if (attribute.getName().equals(item)) {
+					Config lastConfig = definition.getLevel() == AttributeLevel.CONFIG ? this.lastConfigOf(targetDevice) : null;
+					if (definition.getLevel() == AttributeLevel.CONFIG && lastConfig != null) {
+						for (ConfigAttribute attribute : lastConfig.attributes()) {
+							if (attribute.name().equals(item)) {
 								return attribute.getData();
 							}
 						}
 					}
 					else if (definition.getLevel() == AttributeLevel.DEVICE) {
-						for (DeviceAttribute attribute : targetDevice.getAttributes()) {
-							if (attribute.getName().equals(item)) {
+						for (DeviceAttribute attribute : targetDevice.attributes()) {
+							if (attribute.name().equals(item)) {
 								return attribute.getData();
 							}
 						}
 					}
 				}
 			}
-			for (DiagnosticResult diagnosticResult : targetDevice.getDiagnosticResults()) {
-				String diagnosticName = diagnosticResult.getDiagnosticName();
+			for (DiagnosticResult diagnosticResult : this.diagnosticResultsOf(targetDevice)) {
+				String diagnosticName = diagnosticResult.diagnosticName();
 				if (diagnosticName != null && diagnosticName.equals(item)) {
 					return diagnosticResult.getData();
 				}
@@ -552,7 +536,7 @@ public final class JsDeviceHelper {
 	@Export
 	public Object get(String item) {
 		log.debug("JavaScript request for item {} on current device.", item);
-		return this.getDeviceItem(this.device, item);
+		return this.getDeviceItem(this.device.toDevice(), item);
 	}
 
 	/**
@@ -560,7 +544,7 @@ public final class JsDeviceHelper {
 	 * back to each option's default value when the device has no stored
 	 * value for it. Read-only: options are user-set, not driver-written.
 	 *
-	 * <p>Values are already correctly typed in {@link Device#getOptions()}
+	 * <p>Values are already correctly typed in {@link Device#options()}
 	 * (a real {@code Boolean} for a BOOLEAN option, a {@code String} for
 	 * TEXT) and passed through as-is.</p>
 	 *
@@ -607,26 +591,66 @@ public final class JsDeviceHelper {
 	}
 
 	/**
-	 * Load device.
+	 * Loads another device (it has to have a configuration).
 	 *
-	 * @param id the id
+	 * @param id the device ID
 	 * @return the device
-	 * @throws HibernateException the hibernate exception
+	 * @throws IllegalStateException if there is no such device, or it has no configuration
 	 */
-	private Device loadDevice(long id) throws HibernateException {
-		Device foundDevice = session
-			.createQuery("from Device d join fetch d.lastConfig where d.id = :id", Device.class)
-			.setParameter("id", id)
-			.uniqueResult();
+	private Device loadDevice(long id) {
+		Device foundDevice = this.lookup.findDevice(id);
+		if (foundDevice == null || foundDevice.lastConfigId() == null) {
+			throw new IllegalStateException("No device %d with a configuration".formatted(id));
+		}
 		return foundDevice;
 	}
 
-	private Device loadDevice(String name) throws HibernateException {
-		Device foundDevice = session
-			.createQuery("from Device d join fetch d.lastConfig where d.name = :name", Device.class)
-			.setParameter("name", name)
-			.uniqueResult();
+	/**
+	 * Loads another device by name (it has to have a configuration).
+	 *
+	 * @param name the device name
+	 * @return the device
+	 * @throws IllegalStateException if there is no such device, or it has no configuration
+	 */
+	private Device loadDevice(String name) {
+		Device foundDevice = this.lookup.findDevice(name);
+		if (foundDevice == null || foundDevice.lastConfigId() == null) {
+			throw new IllegalStateException("No device named '%s' with a configuration".formatted(name));
+		}
 		return foundDevice;
+	}
+
+	/**
+	 * Gets the last configuration of a device (the one of the device the script runs on, if it
+	 * was loaded already).
+	 *
+	 * @param targetDevice the device
+	 * @return the configuration, or null if the device has none
+	 */
+	private Config lastConfigOf(Device targetDevice) {
+		if (targetDevice.id() == this.device.getId() && this.device.getLastConfig() != null) {
+			return this.device.getLastConfig();
+		}
+		return this.lookup.lastConfig(targetDevice);
+	}
+
+	/**
+	 * Gets the diagnostic results of a device: for the device the script runs on, the results
+	 * given by the script so far replace the stored ones.
+	 *
+	 * @param targetDevice the device
+	 * @return the diagnostic results
+	 */
+	private List<DiagnosticResult> diagnosticResultsOf(Device targetDevice) {
+		boolean current = targetDevice.id() == this.device.getId();
+		List<DiagnosticResult> results = new ArrayList<>(current && this.device.getStoredDiagnosticResults() != null
+			? this.device.getStoredDiagnosticResults() : this.lookup.diagnosticResults(targetDevice.id()));
+		if (current) {
+			Map<Long, DiagnosticResult> given = this.device.getDiagnosticResults();
+			results.removeIf(result -> given.containsKey(result.diagnosticId()));
+			results.addAll(given.values());
+		}
+		return results;
 	}
 
 	/**
@@ -651,14 +675,7 @@ public final class JsDeviceHelper {
 		}
 		try {
 			Device targetDevice = loadDevice(deviceId);
-			Object result = this.getDeviceItem(targetDevice, item);
-			session.evict(targetDevice);
-			return result;
-		}
-		catch (ObjectNotFoundException e) {
-			log.error("Device not found on JavaScript get, item {}, device {}.",
-				item, deviceId, e);
-			this.taskContext.warn("Unable to find the device {}.", deviceId);
+			return this.getDeviceItem(targetDevice, item);
 		}
 		catch (Exception e) {
 			log.error("Error on JavaScript get, item {}, device {}.", item,
@@ -677,14 +694,7 @@ public final class JsDeviceHelper {
 				return this.get(item);
 			}
 			Device targetDevice = loadDevice(deviceName);
-			Object result = this.getDeviceItem(targetDevice, item);
-			session.evict(targetDevice);
-			return result;
-		}
-		catch (ObjectNotFoundException e) {
-			log.error("Device not found on JavaScript get, item {}, device named {}.",
-				item, deviceName, e);
-			this.taskContext.warn("Unable to find the device named {}.", deviceName);
+			return this.getDeviceItem(targetDevice, item);
 		}
 		catch (Exception e) {
 			log.error("Error on JavaScript get, item {}, device named {}.", item,

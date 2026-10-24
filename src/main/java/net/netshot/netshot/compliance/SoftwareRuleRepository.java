@@ -18,64 +18,107 @@
  */
 package net.netshot.netshot.compliance;
 
+import static net.netshot.netshot.platform.database.schema.Tables.SOFTWARE_RULE;
+
 import java.util.List;
 
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.Record;
 
-import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The queries on software rules. The {@link Session} is always the first parameter: the caller
- * (the service) owns the session and the transaction. None of these methods catches an exception.
+ * The queries on the software compliance rules. The {@link DSLContext} is always the first
+ * parameter: the caller (the service) owns the transaction.
  */
 public class SoftwareRuleRepository {
 
+	private static SoftwareRule toRule(Record r) {
+		return new SoftwareRule(r.get(SOFTWARE_RULE.ID), r.get(SOFTWARE_RULE.PRIORITY), r.get(SOFTWARE_RULE.TARGET_GROUP),
+			r.get(SOFTWARE_RULE.DRIVER), r.get(SOFTWARE_RULE.FAMILY), r.get(SOFTWARE_RULE.FAMILY_REG_EXP),
+			r.get(SOFTWARE_RULE.VERSION), r.get(SOFTWARE_RULE.VERSION_REG_EXP), r.get(SOFTWARE_RULE.PART_NUMBER),
+			r.get(SOFTWARE_RULE.PART_NUMBER_REG_EXP),
+			r.get(SOFTWARE_RULE.LEVEL) == null ? null : ConformanceLevel.valueOf(r.get(SOFTWARE_RULE.LEVEL)));
+	}
+
 	/**
-	 * Finds the software rules, by priority.
+	 * Lists the rules, by priority.
 	 *
-	 * <p>Fetch plan: the target group is fetched with the rule.</p>
-	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
 	 * @return the rules
 	 */
-	public List<SoftwareRule> findAllWithGroup(Session session, Page page) {
-		var query = session.createQuery(
-			"from SoftwareRule r left join fetch r.targetGroup g order by r.priority asc", SoftwareRule.class);
-		page.apply(query);
-		return query.list();
+	public List<SoftwareRule> findAll(DSLContext dsl, Page page) {
+		return page.apply(dsl.select(SOFTWARE_RULE.fields()).from(SOFTWARE_RULE).orderBy(SOFTWARE_RULE.PRIORITY.asc()))
+			.fetch(SoftwareRuleRepository::toRule);
 	}
 
 	/**
-	 * Finds all the software rules, by priority, without any association.
+	 * Gets a rule.
 	 *
-	 * @param session the session
-	 * @return the rules
-	 */
-	public List<SoftwareRule> findAllByPriority(Session session) {
-		return session.createQuery("from SoftwareRule r order by r.priority asc", SoftwareRule.class).list();
-	}
-
-	/**
-	 * Finds a software rule, without any of its associations.
-	 *
-	 * @param session the session
-	 * @param id the rule ID
+	 * @param dsl the jOOQ context
+	 * @param id the ID
 	 * @return the rule, or null if there is no such rule
 	 */
-	public SoftwareRule find(Session session, long id) {
-		return session.get(SoftwareRule.class, id);
+	public SoftwareRule find(DSLContext dsl, long id) {
+		return dsl.select(SOFTWARE_RULE.fields()).from(SOFTWARE_RULE).where(SOFTWARE_RULE.ID.eq(id)).fetchOne(SoftwareRuleRepository::toRule);
 	}
 
 	/**
-	 * Finds a device group, to be the target of a rule.
+	 * Stores a new rule.
 	 *
-	 * @param session the session
-	 * @param id the group ID
-	 * @return the group, or null if there is no such group
+	 * @param dsl the jOOQ context
+	 * @param rule the rule (its ID is ignored)
+	 * @return the ID of the new rule
 	 */
-	public DeviceGroup findGroup(Session session, long id) {
-		return session.get(DeviceGroup.class, id);
+	public long add(DSLContext dsl, SoftwareRule rule) {
+		return dsl.insertInto(SOFTWARE_RULE)
+			.set(SOFTWARE_RULE.PRIORITY, rule.priority())
+			.set(SOFTWARE_RULE.TARGET_GROUP, rule.targetGroupId())
+			.set(SOFTWARE_RULE.DRIVER, rule.driver())
+			.set(SOFTWARE_RULE.FAMILY, rule.family())
+			.set(SOFTWARE_RULE.FAMILY_REG_EXP, rule.familyRegExp())
+			.set(SOFTWARE_RULE.VERSION, rule.version())
+			.set(SOFTWARE_RULE.VERSION_REG_EXP, rule.versionRegExp())
+			.set(SOFTWARE_RULE.PART_NUMBER, rule.partNumber())
+			.set(SOFTWARE_RULE.PART_NUMBER_REG_EXP, rule.partNumberRegExp())
+			.set(SOFTWARE_RULE.LEVEL, rule.level() == null ? null : rule.level().name())
+			.returning(SOFTWARE_RULE.ID)
+			.fetchOne(SOFTWARE_RULE.ID);
+	}
+
+	/**
+	 * Saves an existing rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param rule the rule
+	 * @return true if the rule was found and saved
+	 */
+	public boolean save(DSLContext dsl, SoftwareRule rule) {
+		return dsl.update(SOFTWARE_RULE)
+			.set(SOFTWARE_RULE.PRIORITY, rule.priority())
+			.set(SOFTWARE_RULE.TARGET_GROUP, rule.targetGroupId())
+			.set(SOFTWARE_RULE.DRIVER, rule.driver())
+			.set(SOFTWARE_RULE.FAMILY, rule.family())
+			.set(SOFTWARE_RULE.FAMILY_REG_EXP, rule.familyRegExp())
+			.set(SOFTWARE_RULE.VERSION, rule.version())
+			.set(SOFTWARE_RULE.VERSION_REG_EXP, rule.versionRegExp())
+			.set(SOFTWARE_RULE.PART_NUMBER, rule.partNumber())
+			.set(SOFTWARE_RULE.PART_NUMBER_REG_EXP, rule.partNumberRegExp())
+			.set(SOFTWARE_RULE.LEVEL, rule.level() == null ? null : rule.level().name())
+			.where(SOFTWARE_RULE.ID.eq(rule.id()))
+			.execute() > 0;
+	}
+
+	/**
+	 * Removes a rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return true if the rule was found and removed
+	 */
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(SOFTWARE_RULE).where(SOFTWARE_RULE.ID.eq(id)).execute() > 0;
 	}
 }

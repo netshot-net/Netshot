@@ -27,9 +27,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
 
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.OptionDefinition;
@@ -131,86 +132,88 @@ public final class DeviceValidation {
 	 * present. If a credential is pinned (at most one of globalCredentialSet/
 	 * specificCredentialSet may be set - both is rejected), the access name
 	 * must be a real access declared by the driver and the credential's
-	 * runtime class must match that access's declared credential family. A
-	 * submitted {@code globalCredentialSet} is resolved here (by id, through the
-	 * repository) to the managed, persistent entity and written back onto the same
-	 * {@link DeviceAccess} instance, so the caller can pass the list straight into
-	 * {@link Device#replaceAccesses} afterwards.
-	 * @param repository the repository used to resolve a submitted globalCredentialSet id
-	 * @param session the Hibernate session of the repository lookups
+	 * type must match that access's declared credential family. A submitted
+	 * {@code globalCredentialSet} is resolved here (by id, through the
+	 * repository) to the stored credential set.
+	 * @param credentialSetRepository the repository used to resolve a submitted globalCredentialSet id
+	 * @param dsl the jOOQ context of the repository lookups
 	 * @param driver the device's driver, or null if not known yet (e.g. an
 	 *        autodiscovering device) - credential pins are rejected in that case
 	 * @param accesses the accesses to validate (may be null)
+	 * @return the accesses, normalized (default modes, normalized SSH host keys, resolved global
+	 *         credential sets), or null if none was given
 	 * @throws NetshotException if any entry is invalid
 	 */
-	public static void validateAccesses(DeviceRepository repository, Session session,
+	public static List<DeviceAccess> validateAccesses(CredentialSetRepository credentialSetRepository, DSLContext dsl,
 			DeviceDriver driver, List<DeviceAccess> accesses) {
 		if (accesses == null) {
-			return;
+			return null;
 		}
-		for (DeviceAccess access : accesses) {
-			if (access.getAccessName() == null || access.getAccessName().isEmpty()) {
+		List<DeviceAccess> validated = new ArrayList<>(accesses.size());
+		for (DeviceAccess input : accesses) {
+			if (input.accessName() == null || input.accessName().isEmpty()) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
 					"Missing access name in one of the device accesses.");
 			}
-			if (access.getAddress() != null && !access.getAddress().isEmpty()) {
-				validateMgmtAddress(access.getAddress(), true);
+			if (input.address() != null && !input.address().isEmpty()) {
+				validateMgmtAddress(input.address(), true);
 			}
-			if (access.getPort() != null && (access.getPort() < 1 || access.getPort() > 65535)) {
+			if (input.port() != null && (input.port() < 1 || input.port() > 65535)) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_PORT,
-					"Invalid port for access '" + access.getAccessName() + "'.");
+					"Invalid port for access '" + input.accessName() + "'.");
 			}
-			if (access.getSshHostKeyVerification() == null) {
-				access.setSshHostKeyVerification(DeviceAccess.SshHostKeyVerification.TRUST_KNOWN);
-			}
-			access.setSshTrustedHostKeys(
-				normalizeSshTrustedHostKeys(access.getSshTrustedHostKeys(), access.getAccessName()));
-			if (access.getHttpsCaTrustMode() == null) {
-				access.setHttpsCaTrustMode(HttpsCaTrustMode.SYSTEM_TRUSTSTORE);
-			}
-			if (access.getHttpsCaTrustMode() == HttpsCaTrustMode.CUSTOM_CA) {
-				if (access.getHttpsCustomCaCertificate() == null || access.getHttpsCustomCaCertificate().isBlank()) {
+			DeviceAccess access = input.toBuilder()
+				.sshHostKeyVerification(input.sshHostKeyVerification() == null
+					? DeviceAccess.SshHostKeyVerification.TRUST_KNOWN : input.sshHostKeyVerification())
+				.sshTrustedHostKeys(normalizeSshTrustedHostKeys(input.sshTrustedHostKeys(), input.accessName()))
+				.httpsCaTrustMode(input.httpsCaTrustMode() == null ? HttpsCaTrustMode.SYSTEM_TRUSTSTORE : input.httpsCaTrustMode())
+				.build();
+			if (access.httpsCaTrustMode() == HttpsCaTrustMode.CUSTOM_CA) {
+				if (access.httpsCustomCaCertificate() == null || access.httpsCustomCaCertificate().isBlank()) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
-						"Access '" + access.getAccessName() + "' requires a custom CA certificate "
+						"Access '" + access.accessName() + "' requires a custom CA certificate "
 							+ "when the HTTPS trust mode is CUSTOM_CA.");
 				}
-				CaCertificates.validateCustomCa(access.getHttpsCustomCaCertificate(),
-					"access '" + access.getAccessName() + "'");
+				CaCertificates.validateCustomCa(access.httpsCustomCaCertificate(),
+					"access '" + access.accessName() + "'");
 			}
-			if (access.getGlobalCredentialSet() == null && access.getSpecificCredentialSet() == null) {
+			if (access.globalCredentialSet() == null && access.specificCredentialSet() == null) {
+				validated.add(access);
 				continue;
 			}
-			if (access.getGlobalCredentialSet() != null && access.getSpecificCredentialSet() != null) {
+			if (access.globalCredentialSet() != null && access.specificCredentialSet() != null) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
-					"Cannot set both a global and a specific credential set for access '" + access.getAccessName() + "'.");
+					"Cannot set both a global and a specific credential set for access '" + access.accessName() + "'.");
 			}
 			if (driver == null) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
-					"Cannot pin credentials for access '" + access.getAccessName() + "' without a known device type.");
+					"Cannot pin credentials for access '" + access.accessName() + "' without a known device type.");
 			}
-			DeviceDriver.AccessDefinition accessDef = driver.getAccessDefinition(access.getAccessName());
+			DeviceDriver.AccessDefinition accessDef = driver.getAccessDefinition(access.accessName());
 			if (accessDef == null) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
-					"Unknown access '" + access.getAccessName() + "' for this device type.");
+					"Unknown access '" + access.accessName() + "' for this device type.");
 			}
 			Class<? extends DeviceCredentialSet> credentialClass = accessDef.getCredentialClass();
-			if (access.getGlobalCredentialSet() != null) {
-				DeviceCredentialSet global = repository.findCredentialSet(session, access.getGlobalCredentialSet().getId());
-				if (global == null || global.isDeviceSpecific()) {
+			if (access.globalCredentialSet() != null) {
+				DeviceCredentialSet global = credentialSetRepository.find(dsl, access.globalCredentialSet().id());
+				if (global == null || global.deviceSpecific()) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
-						"Invalid global credential set for access '" + access.getAccessName() + "'.");
+						"Invalid global credential set for access '" + access.accessName() + "'.");
 				}
 				if (!credentialClass.isInstance(global)) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
-						"The selected credential set is not compatible with access '" + access.getAccessName() + "'.");
+						"The selected credential set is not compatible with access '" + access.accessName() + "'.");
 				}
-				access.setGlobalCredentialSet(global);
+				access = access.toBuilder().globalCredentialSet(global).build();
 			}
-			else if (!credentialClass.isInstance(access.getSpecificCredentialSet())) {
+			else if (!credentialClass.isInstance(access.specificCredentialSet())) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
-					"The specific credential set is not compatible with access '" + access.getAccessName() + "'.");
+					"The specific credential set is not compatible with access '" + access.accessName() + "'.");
 			}
+			validated.add(access);
 		}
+		return validated;
 	}
 
 	/**
@@ -218,7 +221,7 @@ public final class DeviceValidation {
 	 * {@link OptionDefinition}s: every key must be a known option, and the value
 	 * must be properly typed for it (a boolean for BOOLEAN, a string for
 	 * TEXT - one of {@code choices} when declared) - values are stored as real JSON,
-	 * not stringified (see {@link Device#getOptions()}). A BOOLEAN option may also be
+	 * not stringified (see {@link Device#options()}). A BOOLEAN option may also be
 	 * given as the text {@code true} or {@code false} (the only way in XML, where all
 	 * the values are text): it is then converted to a boolean.
 	 * @param driver the device's driver, or null if not known yet - a non-empty

@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.task.engine;
 
-import org.hibernate.Session;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -26,8 +25,9 @@ import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.TaskRepository;
 
 /**
  * A Quartz job which runs a Netshot task.
@@ -53,31 +53,26 @@ public class MasterJob implements Job {
 		Long id = (Long) context.getJobDetail().getJobDataMap()
 			.get(NETSHOT_TASK);
 		log.trace("The task id is {}.", id);
-		Task task = null;
-		Session session = Database.getSystemSession();
 		try {
 			Thread.sleep(500);
-			session.beginTransaction();
-			task = (Task) session.get(Task.class, id);
-			if (task == null) {
-				log.error("The retrieved task {} is null.", id);
-			}
-			if (task != null && task.getStatus() == Task.Status.CANCELLED) {
-				log.debug("Task {} was cancelled before being assigned to a runner, skipping.", id);
-			}
-			else {
-				TaskManager.assignTaskRunner(task);
-				session.merge(task);
-			}
-			session.getTransaction().commit();
+			new Transactions().system(dsl -> {
+				Task task = new TaskRepository().find(dsl, id);
+				if (task == null) {
+					log.error("The retrieved task {} is null.", id);
+					throw new IllegalStateException("No such task " + id);
+				}
+				if (task.status() == Task.Status.CANCELLED) {
+					log.debug("Task {} was cancelled before being assigned to a runner, skipping.", id);
+				}
+				else {
+					TaskManager.assignTaskRunner(dsl, task);
+				}
+				return null;
+			});
 		}
 		catch (Exception e) {
 			log.error("Error while retrieving and assigning the task to a runner.", e);
-			Database.rollbackSilently(session);
 			throw new JobExecutionException("Unable to assign the task to a runner.");
-		}
-		finally {
-			session.close();
 		}
 		ClusterManager.requestTasksLoad();
 	}

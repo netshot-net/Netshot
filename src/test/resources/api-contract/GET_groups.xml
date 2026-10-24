@@ -7,13 +7,6 @@
     <id>1</id>
     <name>Core routers</name>
   </item>
-  <item type="StaticDeviceGroup">
-    <changeDate>&lt;now&gt;</changeDate>
-    <folder/>
-    <hiddenFromReports>false</hiddenFromReports>
-    <id>4</id>
-    <name>Empty group</name>
-  </item>
   <item type="DynamicDeviceGroup">
     <changeDate>&lt;now&gt;</changeDate>
     <folder>Production</folder>
@@ -29,5 +22,12 @@
     <id>3</id>
     <name>Everything</name>
     <query>[Name] contains &quot;&quot;</query>
+  </item>
+  <item type="StaticDeviceGroup">
+    <changeDate>&lt;now&gt;</changeDate>
+    <folder/>
+    <hiddenFromReports>false</hiddenFromReports>
+    <id>4</id>
+    <name>Empty group</name>
   </item>
 </ArrayList>

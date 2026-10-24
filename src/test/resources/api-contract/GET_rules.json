@@ -1,10 +1,10 @@
 [
   {
-    "enabled": false,
-    "id": 3,
-    "name": "JS check",
-    "policyId": 2,
-    "type": "JavaScriptRule"
+    "enabled": true,
+    "id": 1,
+    "name": "No telnet",
+    "policyId": 1,
+    "type": "TextRule"
   },
   {
     "enabled": false,
@@ -15,16 +15,16 @@
   },
   {
     "enabled": false,
+    "id": 3,
+    "name": "JS check",
+    "policyId": 2,
+    "type": "JavaScriptRule"
+  },
+  {
+    "enabled": false,
     "id": 4,
     "name": "Python check",
     "policyId": 2,
     "type": "PythonRule"
-  },
-  {
-    "enabled": true,
-    "id": 1,
-    "name": "No telnet",
-    "policyId": 1,
-    "type": "TextRule"
   }
 ]

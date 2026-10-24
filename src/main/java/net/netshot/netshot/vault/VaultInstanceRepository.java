@@ -18,92 +18,153 @@
  */
 package net.netshot.netshot.vault;
 
+import static net.netshot.netshot.platform.database.schema.Tables.VAULT_INSTANCE;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import org.hibernate.Session;
-import org.hibernate.query.Query;
+import org.jooq.DSLContext;
+import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
 /**
- * The queries on Vault instances. The {@link Session} is always the first parameter: the
- * caller (the service) owns the session and the transaction.
+ * The queries on the Vault instances. The {@link DSLContext} is always the first parameter: the
+ * caller (the service) owns the transaction.
  */
 public class VaultInstanceRepository {
 
+	/** The type (discriminator) of the HashiCorp Vault KV v2 instances. */
+	static final String HASHICORP_KV2 = "HashicorpVaultKv2Instance";
+
+	private static VaultInstance toVaultInstance(Record r) {
+		String type = r.get(VAULT_INSTANCE.DTYPE);
+		if (HASHICORP_KV2.equals(type)) {
+			return new HashicorpVaultKv2Instance(r.get(VAULT_INSTANCE.ID), r.get(VAULT_INSTANCE.VERSION), r.get(VAULT_INSTANCE.CHANGE_DATE),
+				r.get(VAULT_INSTANCE.NAME), r.get(VAULT_INSTANCE.BASE_URL), r.get(VAULT_INSTANCE.NAMESPACE),
+				HttpsCaTrustMode.valueOf(r.get(VAULT_INSTANCE.HTTPS_CA_TRUST_MODE)), r.get(VAULT_INSTANCE.HTTPS_CUSTOM_CA_CERTIFICATE),
+				r.get(VAULT_INSTANCE.KV_MOUNT_PATH),
+				r.get(VAULT_INSTANCE.AUTH_METHOD) == null ? null : AuthMethod.valueOf(r.get(VAULT_INSTANCE.AUTH_METHOD)),
+				r.get(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH), r.get(VAULT_INSTANCE.APP_ROLE_ID), r.get(VAULT_INSTANCE.APP_ROLE_SECRET_ID),
+				r.get(VAULT_INSTANCE.JWT_MOUNT_PATH), r.get(VAULT_INSTANCE.JWT_IDP_TOKEN_ENDPOINT), r.get(VAULT_INSTANCE.JWT_CLIENT_ID),
+				r.get(VAULT_INSTANCE.JWT_CLIENT_SECRET), r.get(VAULT_INSTANCE.JWT_VAULT_ROLE), r.get(VAULT_INSTANCE.JWT_SCOPE));
+		}
+		throw new IllegalStateException("Unknown type of Vault instance '%s'".formatted(type));
+	}
+
 	/**
-	 * Lists the Vault instances, in the order of the database.
+	 * The time of a change, to the second (as the former Hibernate interceptor did).
 	 *
-	 * @param session the session
+	 * @return the time
+	 */
+	static Instant now() {
+		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+
+	/**
+	 * Lists the Vault instances, by ID.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
-	 * @return the Vault instances (they have no association to load)
+	 * @return the instances
 	 */
-	public List<VaultInstance> findAll(Session session, Page page) {
-		Query<VaultInstance> query = session.createQuery("select v from VaultInstance v", VaultInstance.class);
-		page.apply(query);
-		return query.list();
+	public List<VaultInstance> findAll(DSLContext dsl, Page page) {
+		return page.apply(dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE).orderBy(VAULT_INSTANCE.ID))
+			.fetch(VaultInstanceRepository::toVaultInstance);
 	}
 
 	/**
-	 * Finds a Vault instance.
+	 * Gets a Vault instance.
 	 *
-	 * @param session the session
-	 * @param id the Vault instance ID
-	 * @return the Vault instance, or null if there is no such Vault instance
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the instance, or null if there is no such instance
 	 */
-	public VaultInstance find(Session session, long id) {
-		return session.get(VaultInstance.class, id);
+	public VaultInstance find(DSLContext dsl, long id) {
+		return dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE).where(VAULT_INSTANCE.ID.eq(id))
+			.fetchOne(VaultInstanceRepository::toVaultInstance);
 	}
 
 	/**
-	 * Finds a Vault instance of a given kind.
+	 * Stores a new Vault instance (version 0, changed now).
 	 *
-	 * @param session the session
-	 * @param type the class of Vault instance
-	 * @param id the Vault instance ID
-	 * @return the Vault instance, or null if there is none of this ID and kind
+	 * @param dsl the jOOQ context
+	 * @param vaultInstance the instance (its ID, version and change date are ignored)
+	 * @return the stored instance
 	 */
-	public VaultInstance find(Session session, Class<? extends VaultInstance> type, long id) {
-		return session.get(type, id);
+	public VaultInstance add(DSLContext dsl, VaultInstance vaultInstance) {
+		long id = switch (vaultInstance) {
+			case HashicorpVaultKv2Instance hc -> dsl.insertInto(VAULT_INSTANCE)
+				.set(VAULT_INSTANCE.DTYPE, HASHICORP_KV2)
+				.set(VAULT_INSTANCE.VERSION, 0)
+				.set(VAULT_INSTANCE.CHANGE_DATE, now())
+				.set(VAULT_INSTANCE.NAME, hc.name())
+				.set(VAULT_INSTANCE.BASE_URL, hc.baseUrl())
+				.set(VAULT_INSTANCE.NAMESPACE, hc.namespace())
+				.set(VAULT_INSTANCE.HTTPS_CA_TRUST_MODE, hc.httpsCaTrustMode() == null ? null : hc.httpsCaTrustMode().name())
+				.set(VAULT_INSTANCE.HTTPS_CUSTOM_CA_CERTIFICATE, hc.httpsCustomCaCertificate())
+				.set(VAULT_INSTANCE.KV_MOUNT_PATH, hc.kvMountPath())
+				.set(VAULT_INSTANCE.AUTH_METHOD, hc.authMethod() == null ? null : hc.authMethod().name())
+				.set(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH, hc.appRoleMountPath())
+				.set(VAULT_INSTANCE.APP_ROLE_ID, hc.appRoleId())
+				.set(VAULT_INSTANCE.APP_ROLE_SECRET_ID, hc.appRoleSecretId())
+				.set(VAULT_INSTANCE.JWT_MOUNT_PATH, hc.jwtMountPath())
+				.set(VAULT_INSTANCE.JWT_IDP_TOKEN_ENDPOINT, hc.jwtIdpTokenEndpoint())
+				.set(VAULT_INSTANCE.JWT_CLIENT_ID, hc.jwtClientId())
+				.set(VAULT_INSTANCE.JWT_CLIENT_SECRET, hc.jwtClientSecret())
+				.set(VAULT_INSTANCE.JWT_VAULT_ROLE, hc.jwtVaultRole())
+				.set(VAULT_INSTANCE.JWT_SCOPE, hc.jwtScope())
+				.returning(VAULT_INSTANCE.ID)
+				.fetchOne(VAULT_INSTANCE.ID);
+		};
+		return this.find(dsl, id);
 	}
 
 	/**
-	 * Stores a new Vault instance.
+	 * Saves an existing Vault instance (its version is incremented, its change date set).
 	 *
-	 * @param session the session
-	 * @param vaultInstance the Vault instance
+	 * @param dsl the jOOQ context
+	 * @param vaultInstance the instance
+	 * @return the saved instance, or null if no instance of this ID, type and version exists
 	 */
-	public void add(Session session, VaultInstance vaultInstance) {
-		session.persist(vaultInstance);
-	}
-
-	/**
-	 * Reloads a Vault instance from the database.
-	 *
-	 * @param session the session
-	 * @param vaultInstance the Vault instance
-	 */
-	public void refresh(Session session, VaultInstance vaultInstance) {
-		session.refresh(vaultInstance);
-	}
-
-	/**
-	 * Saves the changes of a Vault instance.
-	 *
-	 * @param session the session
-	 * @param vaultInstance the Vault instance
-	 */
-	public void save(Session session, VaultInstance vaultInstance) {
-		session.merge(vaultInstance);
+	public VaultInstance save(DSLContext dsl, VaultInstance vaultInstance) {
+		int updated = switch (vaultInstance) {
+			case HashicorpVaultKv2Instance hc -> dsl.update(VAULT_INSTANCE)
+				.set(VAULT_INSTANCE.VERSION, VAULT_INSTANCE.VERSION.plus(1))
+				.set(VAULT_INSTANCE.CHANGE_DATE, now())
+				.set(VAULT_INSTANCE.NAME, hc.name())
+				.set(VAULT_INSTANCE.BASE_URL, hc.baseUrl())
+				.set(VAULT_INSTANCE.NAMESPACE, hc.namespace())
+				.set(VAULT_INSTANCE.HTTPS_CA_TRUST_MODE, hc.httpsCaTrustMode() == null ? null : hc.httpsCaTrustMode().name())
+				.set(VAULT_INSTANCE.HTTPS_CUSTOM_CA_CERTIFICATE, hc.httpsCustomCaCertificate())
+				.set(VAULT_INSTANCE.KV_MOUNT_PATH, hc.kvMountPath())
+				.set(VAULT_INSTANCE.AUTH_METHOD, hc.authMethod() == null ? null : hc.authMethod().name())
+				.set(VAULT_INSTANCE.APP_ROLE_MOUNT_PATH, hc.appRoleMountPath())
+				.set(VAULT_INSTANCE.APP_ROLE_ID, hc.appRoleId())
+				.set(VAULT_INSTANCE.APP_ROLE_SECRET_ID, hc.appRoleSecretId())
+				.set(VAULT_INSTANCE.JWT_MOUNT_PATH, hc.jwtMountPath())
+				.set(VAULT_INSTANCE.JWT_IDP_TOKEN_ENDPOINT, hc.jwtIdpTokenEndpoint())
+				.set(VAULT_INSTANCE.JWT_CLIENT_ID, hc.jwtClientId())
+				.set(VAULT_INSTANCE.JWT_CLIENT_SECRET, hc.jwtClientSecret())
+				.set(VAULT_INSTANCE.JWT_VAULT_ROLE, hc.jwtVaultRole())
+				.set(VAULT_INSTANCE.JWT_SCOPE, hc.jwtScope())
+				.where(VAULT_INSTANCE.ID.eq(hc.id()), VAULT_INSTANCE.DTYPE.eq(HASHICORP_KV2), VAULT_INSTANCE.VERSION.eq(hc.version()))
+				.execute();
+		};
+		return updated == 0 ? null : this.find(dsl, vaultInstance.id());
 	}
 
 	/**
 	 * Removes a Vault instance.
 	 *
-	 * @param session the session
-	 * @param vaultInstance the Vault instance
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return true if the instance was found and removed
 	 */
-	public void remove(Session session, VaultInstance vaultInstance) {
-		session.remove(vaultInstance);
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(VAULT_INSTANCE).where(VAULT_INSTANCE.ID.eq(id)).execute() > 0;
 	}
 }

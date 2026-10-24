@@ -2151,4 +2151,209 @@
 			<column name="tag"/>
 		</createIndex>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_1">
+		<!-- Name the foreign keys, the unique constraints and the indexes of the foreign keys after their table and
+			columns (fk_/uk_/ix_<table>_<columns>) instead of the random names Hibernate generated (FK_gpsllhlyii8d5...):
+			the jOOQ classes generated from the schema are named after them. Names longer than 63 characters are
+			truncated by PostgreSQL. -->
+		<sql splitStatements="false">
+			DO $$
+			DECLARE
+				r record;
+			BEGIN
+				FOR r IN
+					SELECT c.conrelid::regclass AS tbl, t.relname AS tblname, c.conname, c.contype,
+						(SELECT string_agg(a.attname, '_' ORDER BY k.ord)
+							FROM unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord)
+							JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum) AS cols
+					FROM pg_constraint c
+					JOIN pg_class t ON t.oid = c.conrelid
+					WHERE c.connamespace = current_schema()::regnamespace AND c.contype IN ('f', 'u')
+				LOOP
+					IF r.conname &lt;&gt; left(CASE r.contype WHEN 'f' THEN 'fk_' ELSE 'uk_' END || r.tblname || '_' || r.cols, 63) THEN
+						EXECUTE format('ALTER TABLE %s RENAME CONSTRAINT %I TO %I', r.tbl, r.conname,
+							left(CASE r.contype WHEN 'f' THEN 'fk_' ELSE 'uk_' END || r.tblname || '_' || r.cols, 63));
+					END IF;
+				END LOOP;
+				FOR r IN
+					SELECT i.indexrelid::regclass AS idx, ic.relname AS idxname, t.relname AS tbl,
+						(SELECT string_agg(a.attname, '_' ORDER BY k.ord)
+							FROM unnest(i.indkey::smallint[]) WITH ORDINALITY AS k(attnum, ord)
+							JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = k.attnum) AS cols
+					FROM pg_index i
+					JOIN pg_class ic ON ic.oid = i.indexrelid
+					JOIN pg_class t ON t.oid = i.indrelid
+					WHERE t.relnamespace = current_schema()::regnamespace
+						AND ic.relname ~ '^FK_[a-z0-9]{25}$'
+						AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = i.indexrelid)
+				LOOP
+					EXECUTE format('ALTER INDEX %s RENAME TO %I', r.idx, left('ix_' || r.tbl || '_' || r.cols, 63));
+				END LOOP;
+			END $$;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_2">
+		<!-- Deleting the last configuration of a device deleted the device (ON DELETE CASCADE on device.last_config):
+			only clear the reference. -->
+		<dropForeignKeyConstraint baseTableName="device" constraintName="fk_device_last_config"/>
+		<addForeignKeyConstraint baseColumnNames="last_config" baseTableName="device"
+			constraintName="fk_device_last_config" onDelete="SET NULL" onUpdate="NO ACTION"
+			referencedColumnNames="id" referencedTableName="config" validate="true"/>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_3">
+		<!-- Hooks: one table, with the type of hook (JOINED inheritance hook + web_hook before), and the enumerations
+			(web hook action, trigger type) stored by name instead of ordinal. -->
+		<sql splitStatements="false">
+			ALTER TABLE hook
+				ADD COLUMN type varchar(16),
+				ADD COLUMN action varchar(16),
+				ADD COLUMN url varchar(255),
+				ADD COLUMN https_ca_trust_mode varchar(255),
+				ADD COLUMN https_custom_ca_certificate text;
+			UPDATE hook h SET
+				type = 'WEB',
+				action = CASE w.action WHEN 0 THEN 'POST_XML' WHEN 1 THEN 'POST_JSON' WHEN 2 THEN 'POST_YAML' END,
+				url = w.url,
+				https_ca_trust_mode = w.https_ca_trust_mode,
+				https_custom_ca_certificate = w.https_custom_ca_certificate
+				FROM web_hook w WHERE w.id = h.id;
+			-- A hook without a web_hook row could not be loaded (Hook is abstract)
+			DELETE FROM hook WHERE type IS NULL;
+			ALTER TABLE hook
+				ALTER COLUMN type SET NOT NULL,
+				ADD CONSTRAINT ck_hook_type CHECK (type IN ('WEB')),
+				ADD CONSTRAINT ck_hook_web_https_ca_trust_mode CHECK (type &lt;&gt; 'WEB' OR https_ca_trust_mode IS NOT NULL);
+			ALTER TABLE hook_trigger DROP CONSTRAINT fk_hook_trigger_hook;
+			ALTER TABLE hook_trigger ADD CONSTRAINT fk_hook_trigger_hook FOREIGN KEY (hook) REFERENCES hook (id) ON DELETE CASCADE;
+			ALTER TABLE hook_trigger ALTER COLUMN type TYPE varchar(16) USING CASE type WHEN 0 THEN 'POST_TASK' END;
+			DROP TABLE web_hook;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_4">
+		<!-- Rules: one table, with the type of rule (JOINED inheritance rule + text_rule, java_script_rule,
+			python_rule before). The scripts of the JavaScript and Python rules share the script column. -->
+		<sql splitStatements="false">
+			ALTER TABLE rule
+				ADD COLUMN type varchar(16),
+				ADD COLUMN script text,
+				ADD COLUMN any_block boolean,
+				ADD COLUMN context varchar(10000),
+				ADD COLUMN device_driver varchar(255),
+				ADD COLUMN field varchar(255),
+				ADD COLUMN invert boolean,
+				ADD COLUMN match_all boolean,
+				ADD COLUMN normalize boolean,
+				ADD COLUMN reg_exp boolean,
+				ADD COLUMN text text;
+			UPDATE rule r SET
+				type = 'TEXT',
+				any_block = t.any_block,
+				context = t.context,
+				device_driver = t.device_driver,
+				field = t.field,
+				invert = t.invert,
+				match_all = t.match_all,
+				normalize = t.normalize,
+				reg_exp = t.reg_exp,
+				text = t.text
+				FROM text_rule t WHERE t.id = r.id;
+			UPDATE rule r SET type = 'JAVASCRIPT', script = j.script FROM java_script_rule j WHERE j.id = r.id;
+			UPDATE rule r SET type = 'PYTHON', script = p.script FROM python_rule p WHERE p.id = r.id;
+			-- A rule without a subclass row could not be loaded (Rule is abstract)
+			DELETE FROM rule WHERE type IS NULL;
+			ALTER TABLE rule
+				ALTER COLUMN type SET NOT NULL,
+				ADD CONSTRAINT ck_rule_type CHECK (type IN ('TEXT', 'JAVASCRIPT', 'PYTHON')),
+				ADD CONSTRAINT ck_rule_text_flags CHECK (type &lt;&gt; 'TEXT'
+					OR (any_block IS NOT NULL AND invert IS NOT NULL AND match_all IS NOT NULL AND normalize IS NOT NULL AND reg_exp IS NOT NULL));
+			DROP TABLE text_rule;
+			DROP TABLE java_script_rule;
+			DROP TABLE python_rule;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_5">
+		<!-- Diagnostics: one table, with the type of diagnostic (JOINED inheritance diagnostic + simple_diagnostic,
+			java_script_diagnostic, python_diagnostic before). -->
+		<sql splitStatements="false">
+			ALTER TABLE diagnostic
+				ADD COLUMN type varchar(16),
+				ADD COLUMN script text,
+				ADD COLUMN cli_mode varchar(255),
+				ADD COLUMN command varchar(255),
+				ADD COLUMN device_driver varchar(255),
+				ADD COLUMN modifier_pattern varchar(255),
+				ADD COLUMN modifier_replacement varchar(255);
+			UPDATE diagnostic d SET
+				type = 'SIMPLE',
+				cli_mode = s.cli_mode,
+				command = s.command,
+				device_driver = s.device_driver,
+				modifier_pattern = s.modifier_pattern,
+				modifier_replacement = s.modifier_replacement
+				FROM simple_diagnostic s WHERE s.id = d.id;
+			UPDATE diagnostic d SET type = 'JAVASCRIPT', script = j.script FROM java_script_diagnostic j WHERE j.id = d.id;
+			UPDATE diagnostic d SET type = 'PYTHON', script = p.script FROM python_diagnostic p WHERE p.id = d.id;
+			-- A diagnostic without a subclass row could not be loaded (Diagnostic is abstract)
+			DELETE FROM diagnostic WHERE type IS NULL;
+			ALTER TABLE diagnostic
+				ALTER COLUMN type SET NOT NULL,
+				ADD CONSTRAINT ck_diagnostic_type CHECK (type IN ('SIMPLE', 'JAVASCRIPT', 'PYTHON'));
+			DROP TABLE simple_diagnostic;
+			DROP TABLE java_script_diagnostic;
+			DROP TABLE python_diagnostic;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_6">
+		<!-- Device groups: one table, with the type of group (JOINED inheritance device_group + static_device_group,
+			dynamic_device_group before). -->
+		<sql splitStatements="false">
+			ALTER TABLE device_group
+				ADD COLUMN type varchar(16),
+				ADD COLUMN query varchar(1000);
+			UPDATE device_group g SET type = 'STATIC' FROM static_device_group s WHERE s.id = g.id;
+			UPDATE device_group g SET type = 'DYNAMIC', query = d.query FROM dynamic_device_group d WHERE d.id = g.id;
+			-- A group without a subclass row could not be loaded (DeviceGroup is abstract)
+			DELETE FROM device_group WHERE type IS NULL;
+			ALTER TABLE device_group
+				ALTER COLUMN type SET NOT NULL,
+				ADD CONSTRAINT ck_device_group_type CHECK (type IN ('STATIC', 'DYNAMIC'));
+			DROP TABLE static_device_group;
+			DROP TABLE dynamic_device_group;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_7">
+		<!-- The enumerations stored by ordinal (position in the Java declaration) are stored by name: adding a value
+			in the middle of an enumeration doesn't change the meaning of the stored rows any more. -->
+		<sql splitStatements="false">
+			ALTER TABLE check_result
+				ALTER COLUMN result TYPE varchar(32) USING CASE result WHEN 0 THEN 'CONFORMING' WHEN 1 THEN 'EXEMPTED' WHEN 2 THEN 'INVALIDRULE' WHEN 3 THEN 'DISABLED' WHEN 4 THEN 'NONCONFORMING' WHEN 5 THEN 'NOTAPPLICABLE' END;
+			ALTER TABLE diagnostic
+				ALTER COLUMN result_type TYPE varchar(32) USING CASE result_type WHEN 0 THEN 'NUMERIC' WHEN 1 THEN 'TEXT' WHEN 2 THEN 'LONGTEXT' WHEN 3 THEN 'DATE' WHEN 4 THEN 'BINARY' WHEN 5 THEN 'BINARYFILE' WHEN 6 THEN 'ENUM' END;
+			ALTER TABLE device
+				ALTER COLUMN network_class TYPE varchar(32) USING CASE network_class WHEN 0 THEN 'FIREWALL' WHEN 1 THEN 'LOADBALANCER' WHEN 2 THEN 'ROUTER' WHEN 3 THEN 'SERVER' WHEN 4 THEN 'SWITCH' WHEN 5 THEN 'SWITCHROUTER' WHEN 6 THEN 'ACCESSPOINT' WHEN 7 THEN 'WIRELESSCONTROLLER' WHEN 8 THEN 'CONSOLESERVER' WHEN 9 THEN 'UNKNOWN' WHEN 10 THEN 'VOICEGATEWAY' END,
+				ALTER COLUMN software_level TYPE varchar(32) USING CASE software_level WHEN 0 THEN 'GOLD' WHEN 1 THEN 'SILVER' WHEN 2 THEN 'BRONZE' WHEN 3 THEN 'UNKNOWN' END,
+				ALTER COLUMN status TYPE varchar(32) USING CASE status WHEN 0 THEN 'DISABLED' WHEN 1 THEN 'INPRODUCTION' WHEN 2 THEN 'PREPRODUCTION' END;
+			ALTER TABLE software_rule
+				ALTER COLUMN level TYPE varchar(32) USING CASE level WHEN 0 THEN 'GOLD' WHEN 1 THEN 'SILVER' WHEN 2 THEN 'BRONZE' WHEN 3 THEN 'UNKNOWN' END;
+			ALTER TABLE task
+				ALTER COLUMN schedule_type TYPE varchar(32) USING CASE schedule_type WHEN 0 THEN 'ASAP' WHEN 1 THEN 'AT' WHEN 2 THEN 'DAILY' WHEN 3 THEN 'MONTHLY' WHEN 4 THEN 'WEEKLY' WHEN 5 THEN 'HOURLY' END,
+				ALTER COLUMN status TYPE varchar(32) USING CASE status WHEN 0 THEN 'CANCELLED' WHEN 1 THEN 'FAILURE' WHEN 2 THEN 'NEW' WHEN 3 THEN 'RUNNING' WHEN 4 THEN 'SCHEDULED' WHEN 5 THEN 'SUCCESS' WHEN 6 THEN 'WAITING' WHEN 7 THEN 'DELAYED' END,
+				ALTER COLUMN schedule_mode TYPE varchar(32) USING CASE schedule_mode WHEN 0 THEN 'PARALLEL' WHEN 1 THEN 'SEQUENTIAL' END;
+			ALTER TABLE domain
+				ALTER COLUMN ipv4_usage TYPE varchar(32) USING CASE ipv4_usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END,
+				ALTER COLUMN ipv6_usage TYPE varchar(32) USING CASE ipv6_usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END;
+			ALTER TABLE network_interface_ip4addresses
+				ALTER COLUMN address_usage TYPE varchar(32) USING CASE address_usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END;
+			ALTER TABLE network_interface_ip6addresses
+				ALTER COLUMN address_usage TYPE varchar(32) USING CASE address_usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END;
+			ALTER TABLE scan_subnets_task_subnets
+				ALTER COLUMN ipv4usage TYPE varchar(32) USING CASE ipv4usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END;
+		</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_8">
+		<!-- A HashiCorp Vault instance needs its authentication method (checked by Hibernate before, from the
+			nullable = false mapping). -->
+		<sql>ALTER TABLE vault_instance ADD CONSTRAINT ck_vault_instance_hashicorp_auth_method
+			CHECK (dtype &lt;&gt; 'HashicorpVaultKv2Instance' OR auth_method IS NOT NULL)</sql>
+	</changeSet>
 </databaseChangeLog>

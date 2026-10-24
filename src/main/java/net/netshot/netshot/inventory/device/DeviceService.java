@@ -20,31 +20,36 @@ package net.netshot.netshot.inventory.device;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.exception.ConstraintViolationException;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.CredentialSets;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device.Status;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -58,8 +63,8 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  * use case (refresh of the dynamic groups, scheduling of the tasks, removal of files) explicitly,
  * after the transaction has been committed. It knows nothing of HTTP.</p>
  *
- * <p>The devices it returns are detached entities loaded with the fetch plan of
- * {@link DeviceRepository#findWithDetails}: the caller may read what that plan covers, and nothing else.</p>
+ * <p>The devices it returns are records loaded with everything their representation reads
+ * (see {@link DeviceRepository}).</p>
  */
 @Slf4j
 public class DeviceService {
@@ -82,13 +87,15 @@ public class DeviceService {
 	 * @param device the new device
 	 * @param snapshotTask the initial snapshot task of the device
 	 */
-	private record CreatedDevice(Device device, TakeSnapshotTask snapshotTask) {
+	private record CreatedDevice(Device device, Task snapshotTask) {
 	}
 
 	private final Transactions transactions;
 	private final DeviceRepository repository;
 	private final TaskSubmitter taskSubmitter;
 	private final DriverRegistry driverRegistry;
+	private final DomainRepository domainRepository = new DomainRepository();
+	private final CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
 
 	/**
 	 * Instantiates the service.
@@ -116,51 +123,50 @@ public class DeviceService {
 	 */
 	public List<DeviceSummary> list(Long groupId, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findSummaries(session, groupId, page));
+			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, groupId, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the devices", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the devices");
 		}
 	}
 
 	/**
-	 * Gets a device with all its details (see {@link DeviceRepository#findWithDetails} for what is loaded).
+	 * Gets a device with all its details (see {@link DeviceRepository} for what is loaded).
 	 *
 	 * @param id the device ID
-	 * @return the detached device
+	 * @return the device
 	 * @throws NetshotException if the device doesn't exist, or can't be read
 	 */
 	public Device get(long id) {
 		try {
-			return this.transactions.read(session -> {
-				Device device = this.repository.findWithDetails(session, id);
+			return this.transactions.read(dsl -> {
+				Device device = this.repository.find(dsl, id);
 				if (device == null) {
 					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "Can't find this device");
 				}
 				return device;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the device", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the device");
 		}
 	}
 
 	/**
-	 * Lists the network interfaces of a device, with their IP addresses (see
-	 * {@link DeviceRepository#findInterfaces} for what is loaded).
+	 * Lists the network interfaces of a device, with their IP addresses.
 	 *
 	 * @param deviceId the device ID
 	 * @param page the window on the result
-	 * @return the detached interfaces (none if there is no such device)
+	 * @return the interfaces (none if there is no such device)
 	 * @throws NetshotException if the interfaces can't be read
 	 */
 	public List<NetworkInterface> getInterfaces(long deviceId, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findInterfaces(session, deviceId, page));
+			return this.transactions.read(dsl -> this.repository.findInterfaces(dsl, deviceId, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the interfaces.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the interfaces");
 		}
@@ -172,14 +178,14 @@ public class DeviceService {
 	 * @param deviceId the device ID
 	 * @param includeHistory whether to include the modules which have been removed
 	 * @param page the window on the result
-	 * @return the detached modules (none if there is no such device)
+	 * @return the modules (none if there is no such device)
 	 * @throws NetshotException if the modules can't be read
 	 */
 	public List<Module> getModules(long deviceId, boolean includeHistory, Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findModules(session, deviceId, includeHistory, page));
+			return this.transactions.read(dsl -> this.repository.findModules(dsl, deviceId, includeHistory, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the modules.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the modules");
 		}
@@ -210,22 +216,22 @@ public class DeviceService {
 
 	private CreationContext loadCreationContext(DeviceCreation creation) {
 		try {
-			// Read-write session on purpose (the duplicate check must see the latest data)
-			return this.transactions.write(session -> {
+			// Read-write transaction on purpose (the duplicate check must see the latest data)
+			return this.transactions.write(dsl -> {
 				log.debug("Looking for an active device with this IP address.");
-				Device duplicate = this.repository.findActiveByMgmtAddress(session, creation.ipAddress(), null);
+				DeviceSummary duplicate = this.repository.findActiveByMgmtAddress(dsl, creation.ipAddress(), null);
 				if (duplicate != null) {
-					log.error("Device {} is already present with this IP address.", duplicate.getId());
+					log.error("Device {} is already present with this IP address.", duplicate.id());
 					throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, String.format(
 						"The device '%s' (%d) already exists with this IP address.",
-						duplicate.getName(), duplicate.getId()));
+						duplicate.name(), duplicate.id()));
 				}
-				Domain domain = this.repository.findDomain(session, creation.domainId());
+				Domain domain = this.domainRepository.find(dsl, creation.domainId());
 				if (domain == null) {
 					log.error("No such domain of ID {}.", creation.domainId());
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "No such domain");
 				}
-				List<DeviceCredentialSet> snmpCommunities = this.repository.findSnmpCommunities(session, domain);
+				List<DeviceCredentialSet> snmpCommunities = this.credentialSetRepository.findSnmpCommunities(dsl, domain.id());
 				if (snmpCommunities.isEmpty() && creation.autoDiscover()) {
 					log.error("No available SNMP community");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
@@ -234,7 +240,7 @@ public class DeviceService {
 				return new CreationContext(domain, snmpCommunities);
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while loading domain or communities.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
@@ -242,15 +248,19 @@ public class DeviceService {
 
 	private Task createDiscoveryTask(DeviceCreation creation, CreationContext context) {
 		try {
-			DiscoverDeviceTypeTask task = new DiscoverDeviceTypeTask(creation.ipAddress(), context.domain(),
-				String.format("Device added by %s", creation.author()), creation.author());
-			task.setComments(String.format("Autodiscover device %s", creation.ipAddress()));
-			task.setDeviceComments(creation.comments());
-			task.setDeviceTags(creation.tags());
+			Set<Long> credentialSetIds = new HashSet<>();
 			for (DeviceCredentialSet credentialSet : context.snmpCommunities()) {
-				task.addCredentialSet(credentialSet);
+				credentialSetIds.add(credentialSet.id());
 			}
-			this.taskSubmitter.submit(task);
+			DiscoverDeviceTypeTask spec = DiscoverDeviceTypeTask.builder()
+				.deviceAddress(creation.ipAddress())
+				.domainId(context.domain().id())
+				.credentialSetIds(credentialSetIds)
+				.deviceComments(creation.comments())
+				.deviceTags(creation.tags())
+				.build();
+			Task task = this.taskSubmitter.submit(Task.of(spec, String.format("Autodiscover device %s", creation.ipAddress()),
+				creation.ipAddress(), creation.author()));
 			AAA_LOG.info("{} has been added.", task);
 			return task;
 		}
@@ -258,7 +268,7 @@ public class DeviceService {
 			log.error("Unable to schedule the discovery task.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_SCHEDULE_ERROR, "Unable to schedule the task");
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while adding the discovery task.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
@@ -272,26 +282,24 @@ public class DeviceService {
 		}
 		CreatedDevice created;
 		try {
-			created = this.transactions.write(session -> {
-				DeviceValidation.validateAccesses(this.repository, session, driver, creation.accesses());
+			created = this.transactions.write(dsl -> {
+				List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, creation.accesses());
 				Map<String, Object> options = DeviceValidation.validateOptions(driver, creation.options());
-				Device newDevice = new Device(driver.getName(), creation.ipAddress(), domain, creation.author());
-				if (creation.accesses() != null) {
-					resolveSpecificCredentials(session, newDevice, creation.accesses());
-					newDevice.replaceAccesses(creation.accesses());
+				Device.DeviceBuilder newDevice = Device.create(driver.getName(), creation.ipAddress(), domain, creation.author()).toBuilder();
+				if (accesses != null) {
+					newDevice.accesses(Device.mergeAccesses(List.of(), this.resolveSpecificCredentials(dsl, List.of(), accesses)));
 				}
 				if (options != null) {
-					newDevice.setOptions(options);
+					newDevice.options(options);
 				}
 				if (creation.comments() != null) {
-					newDevice.setComments(creation.comments());
+					newDevice.comments(creation.comments());
 				}
-				newDevice.replaceTags(creation.tags());
-				session.persist(newDevice);
-				TakeSnapshotTask task = new TakeSnapshotTask(newDevice, "Initial snapshot after device creation",
-					creation.author(), true, false, false);
-				session.persist(task);
-				return new CreatedDevice(newDevice, task);
+				newDevice.tags(Device.normalizeTags(creation.tags()));
+				Device added = this.repository.add(dsl, newDevice.build());
+				Task task = new TaskRepository().add(dsl, TakeSnapshotTask.of(added, "Initial snapshot after device creation",
+					creation.author(), true, false, false));
+				return new CreatedDevice(added, task);
 			});
 		}
 		catch (NetshotException e) {
@@ -302,12 +310,11 @@ public class DeviceService {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
 		AAA_LOG.info("{} has been created.", created.device());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(created.device());
+		DynamicGroups.refreshAllGroupsOfOneDevice(created.device().id());
 		try {
-			this.taskSubmitter.submit(created.snapshotTask());
-			return created.snapshotTask();
+			return this.taskSubmitter.submit(created.snapshotTask());
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to add the task.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the task to the database.");
 		}
@@ -329,34 +336,34 @@ public class DeviceService {
 	public Device update(long id, DeviceUpdate update) {
 		Device device;
 		try {
-			device = this.transactions.write(session -> {
-				Device existing = this.repository.find(session, id);
+			device = this.transactions.write(dsl -> {
+				Device existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("The device of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
 				}
-				this.applyUpdate(session, existing, update);
-				if (!Device.Status.DISABLED.equals(existing.getStatus())) {
+				Device edited = this.applyUpdate(dsl, existing, update);
+				if (!Device.Status.DISABLED.equals(edited.status())) {
 					log.debug("Looking for an active device with this IP address.");
-					Device duplicate = this.repository.findActiveByMgmtAddress(session, existing.getMgmtAddress(), existing.getId());
+					DeviceSummary duplicate = this.repository.findActiveByMgmtAddress(dsl, edited.mgmtAddress(), edited.id());
 					if (duplicate != null) {
-						log.error("Device {} is already present with this IP address.", duplicate.getId());
+						log.error("Device {} is already present with this IP address.", duplicate.id());
 						throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, String.format(
 							"The device '%s' (%d) already exists with this IP address.",
-							duplicate.getName(), duplicate.getId()));
+							duplicate.name(), duplicate.id()));
 					}
 				}
-				return existing;
+				this.repository.save(dsl, existing, edited);
+				return edited;
 			});
 			AAA_LOG.info("{} has been edited.", device);
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Cannot edit the device.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, "A device with this IP address already exists.");
 			}
-			Throwable t = e.getCause();
-			if (t != null && t.getMessage() != null && t.getMessage().contains("domain")) {
+			if (DatabaseErrors.isForeignKeyViolation(e) && e.getMessage() != null && e.getMessage().contains("domain")) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Unable to find the domain");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the device.");
@@ -365,43 +372,44 @@ public class DeviceService {
 			log.error("Cannot edit the device.", e);
 			throw e;
 		}
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
+		DynamicGroups.refreshAllGroupsOfOneDevice(device.id());
 		return this.get(id);
 	}
 
-	private void applyUpdate(Session session, Device device, DeviceUpdate update) {
+	private Device applyUpdate(DSLContext dsl, Device device, DeviceUpdate update) {
+		Device.DeviceBuilder edited = device.toBuilder();
 		if (update.enabled() != null) {
-			device.setStatus(update.enabled() ? Status.INPRODUCTION : Status.DISABLED);
+			edited.status(update.enabled() ? Status.INPRODUCTION : Status.DISABLED);
 		}
 		if (update.ipAddress() != null) {
 			DeviceValidation.validateMgmtAddress(update.ipAddress(), false);
-			device.setMgmtAddress(update.ipAddress());
-			device.refreshCachedIpAddress();
+			edited.mgmtAddress(update.ipAddress());
+			edited.cachedIpAddress(Device.resolveIpAddress(update.ipAddress()));
 		}
 		if (update.accesses() != null) {
-			DeviceDriver driver = this.driverRegistry.getDriverByName(device.getDriver());
-			DeviceValidation.validateAccesses(this.repository, session, driver, update.accesses());
-			resolveSpecificCredentials(session, device, update.accesses());
-			device.replaceAccesses(update.accesses());
+			DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
+			List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, update.accesses());
+			edited.accesses(Device.mergeAccesses(device.accesses(), this.resolveSpecificCredentials(dsl, device.accesses(), accesses)));
 		}
 		if (update.options() != null) {
-			DeviceDriver driver = this.driverRegistry.getDriverByName(device.getDriver());
-			device.setOptions(DeviceValidation.validateOptions(driver, update.options()));
+			DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
+			edited.options(DeviceValidation.validateOptions(driver, update.options()));
 		}
 		if (update.comments() != null) {
-			device.setComments(update.comments());
+			edited.comments(update.comments());
 		}
 		if (update.tags() != null) {
 			DeviceValidation.validateTags(update.tags());
-			device.replaceTags(update.tags());
+			edited.tags(Device.normalizeTags(update.tags()));
 		}
 		if (update.mgmtDomainId() != null) {
-			Domain domain = this.repository.findDomain(session, update.mgmtDomainId());
+			Domain domain = this.domainRepository.find(dsl, update.mgmtDomainId());
 			if (domain == null) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
 			}
-			device.setMgmtDomain(domain);
+			edited.mgmtDomain(domain);
 		}
+		return edited.build();
 	}
 
 	/**
@@ -414,22 +422,18 @@ public class DeviceService {
 	public boolean delete(long id) {
 		List<Path> filesToDelete;
 		try {
-			filesToDelete = this.transactions.write(session -> {
-				Device device = this.repository.find(session, id);
-				if (device == null) {
+			filesToDelete = this.transactions.write(dsl -> {
+				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
+				if (!this.repository.remove(dsl, id)) {
 					log.info("No such device of ID {}", id);
 					return null;
 				}
-				List<Path> paths = this.repository.findConfigBinaryFilePaths(session, device);
-				// Remove the long text values first (due to delete cascade constraint)
-				this.repository.deleteLongTexts(session, device);
-				session.remove(device);
 				return paths;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the device {}.", id, e);
-			if (e instanceof ConstraintViolationException) {
+			if (DatabaseErrors.isForeignKeyViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DEVICE_IN_USE,
 					"Unable to delete the device, there must be other objects using it.");
 			}
@@ -451,23 +455,31 @@ public class DeviceService {
 	}
 
 	/**
-	 * Resolves each submitted access's specific credential set against the
-	 * device's current state before {@link Device#replaceAccesses} is
-	 * called, reusing {@link CredentialSets#applySpecificCredentialSet}. Mutates each
-	 * {@link DeviceAccess} in the list in place.
-	 * @param session the Hibernate session
-	 * @param device the device being edited (may be a brand-new, not-yet-persisted device)
+	 * Stores the specific credential set of each submitted access (created, or merged into the
+	 * current one of the access, see {@link CredentialSets#applySpecificCredentialSet}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param current the current accesses of the device (none for a new device)
 	 * @param accesses the submitted accesses (already validated)
+	 * @return the accesses, with their stored specific credential sets
 	 */
-	private static void resolveSpecificCredentials(Session session, Device device, List<DeviceAccess> accesses) {
+	private List<DeviceAccess> resolveSpecificCredentials(DSLContext dsl, List<DeviceAccess> current, List<DeviceAccess> accesses) {
+		List<DeviceAccess> resolved = new ArrayList<>(accesses.size());
 		for (DeviceAccess input : accesses) {
-			if (input.getSpecificCredentialSet() == null) {
+			if (input.specificCredentialSet() == null) {
+				resolved.add(input);
 				continue;
 			}
-			DeviceAccess existingAccess = device.getDeviceAccess(input.getAccessName());
-			DeviceCredentialSet existingSpecific = existingAccess == null ? null : existingAccess.getSpecificCredentialSet();
-			DeviceCredentialSet resolved = CredentialSets.applySpecificCredentialSet(session, existingSpecific, input.getSpecificCredentialSet());
-			input.setSpecificCredentialSet(resolved);
+			DeviceCredentialSet existingSpecific = null;
+			for (DeviceAccess access : current) {
+				if (access.accessName().equals(input.accessName())) {
+					existingSpecific = access.specificCredentialSet();
+				}
+			}
+			DeviceCredentialSet stored = CredentialSets.applySpecificCredentialSet(dsl, this.credentialSetRepository,
+				existingSpecific, input.specificCredentialSet());
+			resolved.add(input.toBuilder().specificCredentialSet(stored).build());
 		}
+		return resolved;
 	}
 }

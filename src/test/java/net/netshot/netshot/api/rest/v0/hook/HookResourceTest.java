@@ -21,16 +21,15 @@ package net.netshot.netshot.api.rest.v0.hook;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 
-import org.hibernate.Session;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.WebHook;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.ApiTest;
@@ -86,16 +85,7 @@ public class HookResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from HookTrigger")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Hook")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		Wiring.get().hookService().list(Page.ALL).forEach(hook -> Wiring.get().hookService().delete(hook.id()));
 	}
 
 	private ObjectNode newWebhookData(String name, String url) {
@@ -108,12 +98,8 @@ public class HookResourceTest {
 	}
 
 	private WebHook getWebHookByName(String name) {
-		try (Session session = Database.getSession()) {
-			return (WebHook) session
-				.createQuery("from Hook h where h.name = :name", Hook.class)
-				.setParameter("name", name)
-				.uniqueResult();
-		}
+		return (WebHook) Wiring.get().hookService().list(Page.ALL).stream()
+			.filter(hook -> name.equals(hook.name())).findFirst().orElse(null);
 	}
 
 	@Test
@@ -158,9 +144,9 @@ public class HookResourceTest {
 
 		WebHook newHook = this.getWebHookByName("Webhook default trust");
 		Assertions.assertNotNull(newHook, "Webhook not created as expected");
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, newHook.getHttpsCaTrustMode(),
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, newHook.httpsCaTrustMode(),
 			"Default HTTPS CA trust mode not applied");
-		Assertions.assertNull(newHook.getHttpsCustomCaCertificate(),
+		Assertions.assertNull(newHook.httpsCustomCaCertificate(),
 			"Custom CA certificate should not be set by default");
 	}
 
@@ -177,7 +163,7 @@ public class HookResourceTest {
 
 		WebHook newHook = this.getWebHookByName("Webhook explicit trust");
 		Assertions.assertNotNull(newHook, "Webhook not created as expected");
-		Assertions.assertEquals(HttpsCaTrustMode.TRUST_ANY, newHook.getHttpsCaTrustMode());
+		Assertions.assertEquals(HttpsCaTrustMode.TRUST_ANY, newHook.httpsCaTrustMode());
 	}
 
 	@Test
@@ -254,8 +240,8 @@ public class HookResourceTest {
 
 		WebHook newHook = this.getWebHookByName("Webhook valid CA cert");
 		Assertions.assertNotNull(newHook, "Webhook not created as expected");
-		Assertions.assertEquals(HttpsCaTrustMode.CUSTOM_CA, newHook.getHttpsCaTrustMode());
-		Assertions.assertEquals(VALID_CUSTOM_CA_CERTIFICATE, newHook.getHttpsCustomCaCertificate());
+		Assertions.assertEquals(HttpsCaTrustMode.CUSTOM_CA, newHook.httpsCaTrustMode());
+		Assertions.assertEquals(VALID_CUSTOM_CA_CERTIFICATE, newHook.httpsCustomCaCertificate());
 	}
 
 	@Test
@@ -310,11 +296,11 @@ public class HookResourceTest {
 
 		WebHook updatedHook = this.getWebHookByName("Webhook updated");
 		Assertions.assertNotNull(updatedHook, "Webhook not updated as expected");
-		Assertions.assertFalse(updatedHook.isEnabled());
-		Assertions.assertEquals(WebHook.Action.POST_XML, updatedHook.getAction());
-		Assertions.assertEquals("https://example.net/updated", updatedHook.getUrl());
-		Assertions.assertEquals(HttpsCaTrustMode.CUSTOM_CA, updatedHook.getHttpsCaTrustMode());
-		Assertions.assertEquals(VALID_CUSTOM_CA_CERTIFICATE, updatedHook.getHttpsCustomCaCertificate());
+		Assertions.assertFalse(updatedHook.enabled());
+		Assertions.assertEquals(WebHook.Action.POST_XML, updatedHook.action());
+		Assertions.assertEquals("https://example.net/updated", updatedHook.url());
+		Assertions.assertEquals(HttpsCaTrustMode.CUSTOM_CA, updatedHook.httpsCaTrustMode());
+		Assertions.assertEquals(VALID_CUSTOM_CA_CERTIFICATE, updatedHook.httpsCustomCaCertificate());
 	}
 
 	@Test

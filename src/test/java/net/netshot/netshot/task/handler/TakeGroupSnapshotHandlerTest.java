@@ -22,7 +22,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import org.hibernate.LazyInitializationException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,11 +35,13 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestProperty;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.TestTasks;
 
 /**
  * Characterization of {@link TakeGroupSnapshotHandler}, run through the task engine (the child tasks are
@@ -67,15 +68,14 @@ class TakeGroupSnapshotHandlerTest {
 
 	@BeforeEach
 	void createDevices() {
-		Domain domain = new Domain("Lab", "Test domain", null, null);
-		this.recent = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
-		this.recent.setChangeDate(new Date());
-		this.old = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 2);
-		this.old.setChangeDate(hoursAgo(48));
-		this.group = new StaticDeviceGroup("Routers");
-		this.group.addDevice(this.recent);
-		this.group.addDevice(this.old);
-		TaskRunner.persist(domain, this.recent, this.old, this.group);
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		this.recent = TestDevices.addFakeCiscoIos(domain, 1);
+		TestDevices.setChangeDate(this.recent.id(), new Date().toInstant());
+		this.old = TestDevices.addFakeCiscoIos(domain, 2);
+		TestDevices.setChangeDate(this.old.id(), hoursAgo(48).toInstant());
+		this.group = TestDevices.addStaticGroup("Routers");
+		TestDevices.addMembers(this.group, this.recent);
+		TestDevices.addMembers(this.group, this.old);
 	}
 
 	@AfterEach
@@ -90,47 +90,47 @@ class TakeGroupSnapshotHandlerTest {
 	}
 
 	private static List<Long> deviceIds(List<Task> children) {
-		return TaskRunner.inSession(session -> children.stream()
-			.map(child -> session.get(TakeSnapshotTask.class, child.getId()).getDevice().getId())
-			.toList());
+		return children.stream()
+			.map(child -> ((TakeSnapshotTask) child.spec()).deviceId())
+			.toList();
 	}
 
 	@Test
 	@DisplayName("Creates and schedules one snapshot task per device of the group")
 	void snapshotsTheGroup() throws Exception {
-		long id = this.runner.run(new TakeGroupSnapshotTask(this.group, "Test", "tester", -1, true, false));
+		long id = this.runner.run(GroupBasedTask.of(new TakeGroupSnapshotTask(this.group.id(), null, -1, true, false), this.group.name(), "Test", "tester"));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(TakeGroupSnapshotTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		List<Task> children = TaskRunner.children(id);
-		Assertions.assertEquals(List.of(this.recent.getId(), this.old.getId()), deviceIds(children));
-		Assertions.assertEquals(children.stream().map(Task::getId).toList(), this.runner.scheduledChildIds());
+		Assertions.assertEquals(List.of(this.recent.id(), this.old.id()), deviceIds(children));
+		Assertions.assertEquals(children.stream().map(Task::id).toList(), this.runner.scheduledChildIds());
 		for (Task child : children) {
-			TakeSnapshotTask snapshot = (TakeSnapshotTask) child;
-			Assertions.assertEquals("Started due to group Routers snapshot", snapshot.getComments());
-			Assertions.assertEquals("tester", snapshot.getAuthor());
-			Assertions.assertTrue(snapshot.isDontRunDiagnostics());
-			Assertions.assertFalse(snapshot.isDontCheckCompliance());
-			Assertions.assertFalse(snapshot.isAutomatic());
+			TakeSnapshotTask snapshot = (TakeSnapshotTask) child.spec();
+			Assertions.assertEquals("Started due to group Routers snapshot", child.comments());
+			Assertions.assertEquals("tester", child.author());
+			Assertions.assertTrue(snapshot.dontRunDiagnostics());
+			Assertions.assertFalse(snapshot.dontCheckCompliance());
+			Assertions.assertFalse(snapshot.automatic());
 		}
 	}
 
 	@Test
 	@DisplayName("Ignores the devices changed less than the given number of hours ago")
 	void ignoresRecentlyChangedDevices() throws Exception {
-		long id = this.runner.run(new TakeGroupSnapshotTask(this.group, "Test", "tester", 24, false, false));
+		long id = this.runner.run(GroupBasedTask.of(new TakeGroupSnapshotTask(this.group.id(), null, 24, false, false), this.group.name(), "Test", "tester"));
 
-		Assertions.assertEquals(List.of(this.old.getId()), deviceIds(TaskRunner.children(id)));
-		Assertions.assertTrue(TaskRunner.load(TakeGroupSnapshotTask.class, id).getLog().contains("Ignoring device " + this.recent.getName()));
+		Assertions.assertEquals(List.of(this.old.id()), deviceIds(TaskRunner.children(id)));
+		Assertions.assertTrue(TaskRunner.load(id).log().contains("Ignoring device " + this.recent.name()));
 	}
 
 	@Test
 	@DisplayName("Snapshots the devices of a list")
 	void snapshotsAList() throws Exception {
-		long id = this.runner.run(new TakeGroupSnapshotTask(List.of(this.old), "Test", "tester", -1, false, false));
+		long id = this.runner.run(TaskRunner.forDevices(new TakeGroupSnapshotTask(null, TaskRunner.ids(this.old), -1, false, false), "Test", "tester"));
 
 		List<Task> children = TaskRunner.children(id);
-		Assertions.assertEquals(List.of(this.old.getId()), deviceIds(children));
-		Assertions.assertEquals("Started due to 1-device snapshot list", children.get(0).getComments());
+		Assertions.assertEquals(List.of(this.old.id()), deviceIds(children));
+		Assertions.assertEquals("Started due to 1-device snapshot list", children.get(0).comments());
 	}
 
 	@Test
@@ -138,43 +138,43 @@ class TakeGroupSnapshotHandlerTest {
 	void succeedsWhenChildrenFail() throws Exception {
 		this.runner.setChildStatus(Status.FAILURE);
 
-		long id = this.runner.run(new TakeGroupSnapshotTask(this.group, "Test", "tester", -1, false, false));
+		long id = this.runner.run(GroupBasedTask.of(new TakeGroupSnapshotTask(this.group.id(), null, -1, false, false), this.group.name(), "Test", "tester"));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(TakeGroupSnapshotTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 	}
 
 	/**
-	 * Resuming from the child tasks already created (after a restart) currently fails: the children are
-	 * reloaded in a closed session, and describing the device of a child to schedule it reads an
-	 * uninitialized proxy. The exception escapes the task engine, which leaves the task running.
-	 * Pinned as is; the expected behavior is to schedule the existing children without creating others.
+	 * Resuming from the child tasks already created (after a restart): the existing children are scheduled,
+	 * no other is created. (With the former Hibernate entities, this failed on a lazy device of the children,
+	 * and left the task running.)
 	 */
 	@Test
-	@DisplayName("Resuming from the child tasks already created fails (lazy device of the children)")
+	@DisplayName("Resumes from the child tasks already created")
 	void resumesFromExistingChildren() throws Exception {
-		TakeGroupSnapshotTask task = new TakeGroupSnapshotTask(this.group, "Test", "tester", -1, false, false);
+		Task task = GroupBasedTask.of(new TakeGroupSnapshotTask(this.group.id(), null, -1, false, false), this.group.name(),
+			"Test", "tester");
 		long id = TaskRunner.save(task);
-		TakeSnapshotTask existing = new TakeSnapshotTask(this.old, "Earlier run", "tester", false, false, false);
-		existing.setParentTaskId(id);
-		existing.setChildOrder(0);
-		existing.setStatus(Status.DELAYED);
-		TaskRunner.persist(existing);
+		Task existing = TestTasks.add(TakeSnapshotTask.of(this.old, "Earlier run", "tester", false, false, false).toBuilder()
+			.parentTaskId(id)
+			.childOrder(0)
+			.status(Status.DELAYED)
+			.build());
 
-		Assertions.assertThrows(LazyInitializationException.class, () -> this.runner.run(id));
+		this.runner.run(id);
 
-		Assertions.assertEquals(Status.RUNNING, TaskRunner.load(TakeGroupSnapshotTask.class, id).getStatus());
-		Assertions.assertEquals(List.of(existing.getId()), TaskRunner.children(id).stream().map(Task::getId).toList(),
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
+		Assertions.assertEquals(List.of(existing.id()), TaskRunner.children(id).stream().map(Task::id).toList(),
 			"No child task is created for the other devices");
-		Assertions.assertEquals(List.of(), this.runner.scheduledChildIds());
+		Assertions.assertEquals(List.of(existing.id()), this.runner.scheduledChildIds());
 	}
 
 	@Test
 	@DisplayName("Is cancelled without group nor device")
 	void cancelledWithoutTarget() throws Exception {
-		long id = this.runner.run(new TakeGroupSnapshotTask(List.of(), "Test", "tester", -1, false, false));
+		long id = this.runner.run(TaskRunner.forDevices(new TakeGroupSnapshotTask(null, TaskRunner.ids(), -1, false, false), "Test", "tester"));
 
-		TakeGroupSnapshotTask task = TaskRunner.load(TakeGroupSnapshotTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Neither a device group nor a device list is set"), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, task.status());
+		Assertions.assertTrue(task.log().contains("Neither a device group nor a device list is set"), task.log());
 	}
 }

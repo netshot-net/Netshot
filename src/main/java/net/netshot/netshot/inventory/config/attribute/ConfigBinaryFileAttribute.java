@@ -22,23 +22,31 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.UUID;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.inventory.config.Config;
 
+/**
+ * A configuration attribute holding a binary file, stored in the storage folder (not in the
+ * database). The name of the stored file is made of the IDs of the device and of the
+ * configuration: while the configuration isn't stored yet, the file has a pending name.
+ *
+ * @param name the name of the attribute
+ * @param uid the unique ID of the file
+ * @param originalName the original name of the file
+ * @param fileSize the size of the file, in bytes
+ * @param checksum the checksum of the file ({@code sha256:<hex>})
+ */
 @Slf4j
-@Entity
-@DiscriminatorValue("F")
-public final class ConfigBinaryFileAttribute extends ConfigAttribute {
-
+public record ConfigBinaryFileAttribute(
+	String name,
+	String uid,
+	String originalName,
+	long fileSize,
+	String checksum) implements ConfigAttribute {
 
 	/**
 	 * Settings/config for the current class.
@@ -71,7 +79,7 @@ public final class ConfigBinaryFileAttribute extends ConfigAttribute {
 		}
 	}
 
-	/** Settings for this class. */
+	/** Settings. */
 	public static final Settings SETTINGS = new Settings();
 
 	/**
@@ -82,10 +90,11 @@ public final class ConfigBinaryFileAttribute extends ConfigAttribute {
 	}
 
 	/**
-	 * Create a temporary folder for binary file attributes based on given prefix.
-	 * @param prefix the prefix for the temporary folder
-	 * @return the path to the temporary folder
-	 * @throws IOException if the folder cannot be created
+	 * Create a temporary folder, within the storage folder.
+	 *
+	 * @param prefix prefix for the folder name
+	 * @return the created folder
+	 * @throws IOException if the folder can't be created
 	 */
 	public static Path makeTempFolder(String prefix) throws IOException {
 		if (ConfigBinaryFileAttribute.SETTINGS.storageFolderPath == null) {
@@ -98,162 +107,108 @@ public final class ConfigBinaryFileAttribute extends ConfigAttribute {
 		return folder;
 	}
 
-	/** Unique ID generated before saving. */
-	@Getter(onMethod = @__({
-		@Column(unique = true)
-	}))
-	@Setter
-	private String uid;
-
-	/** Original name of the file. */
-	@Getter
-	@Setter
-	private String originalName;
-
-	/** File size (in bytes). */
-	@Getter
-	@Setter
-	private long fileSize;
-
-	/** File checksum (SHA256). */
-	@Getter
-	@Setter
-	private String checksum;
-
-	protected ConfigBinaryFileAttribute() {
-	}
-
-	public ConfigBinaryFileAttribute(Config config, String name, String originalName) {
-		super(config, name);
-		this.uid = UUID.randomUUID().toString();
-		this.originalName = originalName;
+	/**
+	 * Builds a new binary file attribute (with a new unique ID), its file still to be stored.
+	 *
+	 * @param name the name of the attribute
+	 * @param originalName the original name of the file
+	 * @return the attribute
+	 */
+	public static ConfigBinaryFileAttribute create(String name, String originalName) {
+		return new ConfigBinaryFileAttribute(name, UUID.randomUUID().toString(), originalName, 0, null);
 	}
 
 	/**
-	 * Format the visible/final on-disk name for this attribute, given a config ID.
-	 * @param configId the ID of the owning config (0 while still pending/transient)
-	 * @return the formatted file name (no folder, no dot prefix)
+	 * Gets the same attribute, with the size and checksum of its file.
+	 *
+	 * @param newFileSize the size of the file
+	 * @param newChecksum the checksum of the file
+	 * @return the attribute
 	 */
-	private String finalName(long configId) {
-		return "%d_cfg%d_%s_%s.data".formatted(
-			this.getConfig().getDevice().getId(), configId, this.getName(), this.getUid());
+	public ConfigBinaryFileAttribute withFile(long newFileSize, String newChecksum) {
+		return new ConfigBinaryFileAttribute(this.name, this.uid, this.originalName, newFileSize, newChecksum);
 	}
 
-	/**
-	 * Get the full filename where to store data of the configuration attribute.
-	 * @return a File object, where to store data of the attribute
-	 * @throws IllegalAccessException
-	 */
-	@Transient
-	public Path getFilePath() {
+	private String finalName(long deviceId, long configId) {
+		return "%d_cfg%d_%s_%s.data".formatted(deviceId, configId, this.name, this.uid);
+	}
+
+	private static Path storageFolder() {
 		if (ConfigBinaryFileAttribute.SETTINGS.storageFolderPath == null) {
 			throw new IllegalStateException(
 				"Cannot get a file path to save binary file attribute. "
 				+ "Is netshot.snapshots.binary.path defined?");
 		}
-		if (this.getId() == 0) {
-			// Not yet persisted (mid-snapshot): the owning config has no DB id yet.
-			return this.getPendingFilePath();
+		return ConfigBinaryFileAttribute.SETTINGS.storageFolderPath;
+	}
+
+	/**
+	 * Gets the path of the file. For historical reasons, a file may be found under its
+	 * pending name, or under its unique ID only.
+	 *
+	 * @param deviceId the ID of the device
+	 * @param configId the ID of the configuration, or 0 if it isn't stored yet
+	 * @return the path of the file
+	 */
+	public Path getFilePath(long deviceId, long configId) {
+		Path folder = storageFolder();
+		if (configId == 0) {
+			return this.getPendingFilePath(deviceId);
 		}
-		Path finalPath = ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
-			.resolve(this.finalName(this.getConfig().getId()))
-			.normalize();
+		Path finalPath = folder.resolve(this.finalName(deviceId, configId)).normalize();
 		if (Files.exists(finalPath)) {
 			return finalPath;
 		}
-		Path pendingPath = this.getPendingFilePath();
+		Path pendingPath = this.getPendingFilePath(deviceId);
 		if (Files.exists(pendingPath)) {
-			// Persisted, but not renamed yet (e.g. crash between commit and finalizeStorage()).
 			return pendingPath;
 		}
-		// Pre-feature (legacy) row, or the file is genuinely missing.
-		return ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
-			.resolve("%s.data".formatted(this.getUid()))
-			.normalize();
+		return folder.resolve("%s.data".formatted(this.uid)).normalize();
 	}
 
 	/**
-	 * Get the path where this attribute's data lives while its owning config is
-	 * still transient (not yet persisted), dot-prefixed so it stays hidden from
-	 * a plain directory listing. This is also where SCP/SFTP/HTTP downloads and
-	 * device-pushed ticket uploads write the file directly.
-	 * @return the pending file path
+	 * Gets the path of the file while its configuration isn't stored yet.
+	 *
+	 * @param deviceId the ID of the device
+	 * @return the pending path of the file
 	 */
-	@Transient
-	public Path getPendingFilePath() {
-		if (ConfigBinaryFileAttribute.SETTINGS.storageFolderPath == null) {
-			throw new IllegalStateException(
-				"Cannot get a file path to save binary file attribute. "
-				+ "Is netshot.snapshots.binary.path defined?");
-		}
-		return ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
-			.resolve(".tmp.%s".formatted(this.finalName(0)))
-			.normalize();
+	public Path getPendingFilePath(long deviceId) {
+		return storageFolder().resolve(".tmp.%s".formatted(this.finalName(deviceId, 0))).normalize();
 	}
 
 	/**
-	 * Rename this attribute's data file from its pending name to its final name,
-	 * now that the owning config has been persisted and has a real ID. Safe to
-	 * call more than once (a no-op once already finalized).
+	 * Gives the file its final name, once its configuration is stored.
+	 *
+	 * @param deviceId the ID of the device
+	 * @param configId the ID of the configuration
 	 */
-	public void finalizeStorage() {
-		Path pendingPath = this.getPendingFilePath();
+	public void finalizeStorage(long deviceId, long configId) {
+		Path pendingPath = this.getPendingFilePath(deviceId);
 		if (!Files.exists(pendingPath)) {
-			// Already finalized in an earlier run, or nothing was ever written.
 			return;
 		}
-		Path finalPath = ConfigBinaryFileAttribute.SETTINGS.storageFolderPath
-			.resolve(this.finalName(this.getConfig().getId()))
-			.normalize();
+		Path finalPath = storageFolder().resolve(this.finalName(deviceId, configId)).normalize();
 		try {
 			Files.move(pendingPath, finalPath);
 		}
 		catch (IOException e) {
-			log.warn("Unable to rename binary file attribute {} to its final storage name.", this.getUid(), e);
+			log.warn("Unable to rename binary file attribute {} to its final storage name.", this.uid, e);
 		}
 	}
 
 	@Override
-	@Transient
 	public String getAsText() {
 		return "";
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
 		return null;
 	}
 
 	@Override
-	public boolean valueEquals(ConfigAttribute obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ConfigBinaryFileAttribute)) {
-			return false;
-		}
-		ConfigBinaryFileAttribute other = (ConfigBinaryFileAttribute) obj;
-		if (this.fileSize != other.fileSize) {
-			return false;
-		}
-		if (originalName == null) {
-			if (other.originalName != null) {
-				return false;
-			}
-		}
-		else if (!this.originalName.equals(other.originalName)) {
-			return false;
-		}
-		if (this.uid == null) {
-			if (other.uid != null) {
-				return false;
-			}
-		}
-		else if (!this.uid.equals(other.uid)) {
-			return false;
-		}
-		return true;
+	public boolean valueEquals(ConfigAttribute other) {
+		return other instanceof ConfigBinaryFileAttribute o && this.fileSize == o.fileSize
+			&& Objects.equals(this.originalName, o.originalName) && Objects.equals(this.uid, o.uid);
 	}
-
 }

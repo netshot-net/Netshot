@@ -21,30 +21,29 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import org.hibernate.Session;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.rules.JavaScriptRule;
-import net.netshot.netshot.compliance.rules.PythonRule;
-import net.netshot.netshot.compliance.rules.TextRule;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.testing.ApiTest;
-import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import jakarta.ws.rs.core.Response;
+import net.netshot.netshot.compliance.JavaScriptRule;
+import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PythonRule;
+import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
+import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestCompliance;
+import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.api.NetshotApiClient;
 
 @ApiTest
 @DisplayName("Compliance tests")
@@ -61,13 +60,11 @@ public class ComplianceResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.createMutationQuery("delete from Rule").executeUpdate();
-			session.createMutationQuery("delete from Policy").executeUpdate();
-			session.createMutationQuery("delete from DeviceGroup").executeUpdate();
-			session.getTransaction().commit();
-		}
+		new Transactions().run(dsl -> {
+			dsl.deleteFrom(Tables.RULE).execute();
+			dsl.deleteFrom(Tables.POLICY).execute();
+			dsl.deleteFrom(Tables.DEVICE_GROUP).execute();
+		});
 	}
 
 	@Test
@@ -82,17 +79,8 @@ public class ComplianceResourceTest {
 				"Policy list is not empty");
 		}
 
-		StaticDeviceGroup group = new StaticDeviceGroup("Test group");
-		Policy policy;
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(group);
-			Set<DeviceGroup> groups = new HashSet<>();
-			groups.add(group);
-			policy = new Policy("Test policy", groups);
-			session.persist(policy);
-			session.getTransaction().commit();
-		}
+		StaticDeviceGroup group = TestDevices.addStaticGroup("Test group");
+		Policy policy = TestCompliance.policy("Test policy", group.id());
 
 		HttpResponse<JsonNode> response = apiClient.get("/policies");
 		Assertions.assertEquals(
@@ -102,13 +90,13 @@ public class ComplianceResourceTest {
 			"Policy list doesn't have 1 element");
 
 		JsonNode policyNode = response.body().get(0);
-		Assertions.assertEquals(policy.getId(), policyNode.get("id").asLong(),
+		Assertions.assertEquals(policy.id(), policyNode.get("id").asLong(),
 			"The returned policy doesn't have the right ID");
-		Assertions.assertEquals(policy.getName(), policyNode.get("name").asText(),
+		Assertions.assertEquals(policy.name(), policyNode.get("name").asText(),
 			"The returned policy doesn't have the right name");
 		Assertions.assertEquals(1, policyNode.get("targetGroups").size(),
 			"The returned policy doesn't have the right number of target groups");
-		Assertions.assertEquals(group.getId(), policyNode.get("targetGroups").get(0).get("id").asLong(),
+		Assertions.assertEquals(group.id(), policyNode.get("targetGroups").get(0).get("id").asLong(),
 			"The returned policy target group doesn't have the right ID");
 		Assertions.assertFalse(policyNode.has("rules"),
 			"The policy list response should not embed the rules of each policy");
@@ -126,23 +114,10 @@ public class ComplianceResourceTest {
 				"Rule list is not empty");
 		}
 
-		Policy policy;
-		TextRule textRule;
-		JavaScriptRule jsRule;
-		PythonRule pyRule;
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			policy = new Policy("Test policy", new HashSet<>());
-			session.persist(policy);
-			textRule = new TextRule("Text rule", policy);
-			jsRule = new JavaScriptRule("JS rule", policy);
-			jsRule.setEnabled(true);
-			pyRule = new PythonRule("Python rule", policy);
-			session.persist(textRule);
-			session.persist(jsRule);
-			session.persist(pyRule);
-			session.getTransaction().commit();
-		}
+		Policy policy = TestCompliance.policy("Test policy");
+		TextRule textRule = TestCompliance.rule(TextRule.builder("Text rule", policy.id()).build());
+		JavaScriptRule jsRule = TestCompliance.rule(JavaScriptRule.of("JS rule", policy.id()).toBuilder().enabled(true).build());
+		PythonRule pyRule = TestCompliance.rule(PythonRule.of("Python rule", policy.id()));
 
 		HttpResponse<JsonNode> response = apiClient.get("/rules");
 		Assertions.assertEquals(
@@ -156,30 +131,30 @@ public class ComplianceResourceTest {
 			rulesById.put(ruleNode.get("id").asLong(), ruleNode);
 		}
 
-		JsonNode textNode = rulesById.get(textRule.getId());
+		JsonNode textNode = rulesById.get(textRule.id());
 		Assertions.assertNotNull(textNode, "The text rule is missing from the rule list");
 		Assertions.assertEquals("Text rule", textNode.get("name").asText());
 		Assertions.assertEquals("TextRule", textNode.get("type").asText());
 		Assertions.assertFalse(textNode.get("enabled").asBoolean());
-		Assertions.assertEquals(policy.getId(), textNode.get("policyId").asLong());
+		Assertions.assertEquals(policy.id(), textNode.get("policyId").asLong());
 		Assertions.assertFalse(textNode.has("script"),
 			"The rule list response should not expose the heavier rule fields");
 
-		JsonNode jsNode = rulesById.get(jsRule.getId());
+		JsonNode jsNode = rulesById.get(jsRule.id());
 		Assertions.assertNotNull(jsNode, "The JavaScript rule is missing from the rule list");
 		Assertions.assertEquals("JS rule", jsNode.get("name").asText());
 		Assertions.assertEquals("JavaScriptRule", jsNode.get("type").asText());
 		Assertions.assertTrue(jsNode.get("enabled").asBoolean());
-		Assertions.assertEquals(policy.getId(), jsNode.get("policyId").asLong());
+		Assertions.assertEquals(policy.id(), jsNode.get("policyId").asLong());
 		Assertions.assertFalse(jsNode.has("script"),
 			"The rule list response should not expose the heavier rule fields");
 
-		JsonNode pyNode = rulesById.get(pyRule.getId());
+		JsonNode pyNode = rulesById.get(pyRule.id());
 		Assertions.assertNotNull(pyNode, "The Python rule is missing from the rule list");
 		Assertions.assertEquals("Python rule", pyNode.get("name").asText());
 		Assertions.assertEquals("PythonRule", pyNode.get("type").asText());
 		Assertions.assertFalse(pyNode.get("enabled").asBoolean());
-		Assertions.assertEquals(policy.getId(), pyNode.get("policyId").asLong());
+		Assertions.assertEquals(policy.id(), pyNode.get("policyId").asLong());
 	}
 
 }

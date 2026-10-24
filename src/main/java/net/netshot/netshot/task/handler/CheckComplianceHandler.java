@@ -19,20 +19,31 @@
 package net.netshot.netshot.task.handler;
 
 import java.util.List;
-
-import org.hibernate.Session;
+import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.HardwareRule;
+import net.netshot.netshot.compliance.HardwareRuleRepository;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyRepository;
+import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.check.ComplianceChecker;
+import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.group.DynamicGroups;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 
 /**
@@ -42,6 +53,18 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 public class CheckComplianceHandler implements TaskHandler<CheckComplianceTask> {
 
 	private final ComplianceChecker complianceChecker;
+
+	private final PolicyRepository policyRepository = new PolicyRepository();
+
+	private final RuleRepository ruleRepository = new RuleRepository();
+
+	private final SoftwareRuleRepository softwareRuleRepository = new SoftwareRuleRepository();
+
+	private final HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
+
+	private final DeviceRepository deviceRepository = new DeviceRepository();
+
+	private final Transactions transactions = new Transactions();
 
 	/**
 	 * Creates the handler.
@@ -57,85 +80,94 @@ public class CheckComplianceHandler implements TaskHandler<CheckComplianceTask> 
 	}
 
 	@Override
-	public void run(CheckComplianceTask task) {
-		Device device = task.getDevice();
-		log.debug("Task {}. Starting check compliance task for device {}.", task.getId(),
-			device == null ? "null" : device.getId());
-		if (device == null) {
-			task.logger.info("The device doesn't exist, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, CheckComplianceTask spec, TaskRun run) {
+		Long deviceId = spec.deviceId();
+		log.debug("Task {}. Starting check compliance task for device {}.", task.id(),
+			deviceId);
+		if (deviceId == null) {
+			run.logger.info("The device doesn't exist, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
 
-		Session session = Database.getSession();
 		try {
-			session.beginTransaction();
-			// Delete previous results
-			session
-				.createMutationQuery("delete from CheckResult c where c.key.device.id = :id")
-				.setParameter("id", device.getId())
-				.executeUpdate();
-			// Start over from a fresh device from DB
-			device = session.get(Device.class, device.getId());
-			task.setDevice(device);
-			task.logger.info("Check compliance task for device {} ({}).",
-				device.getName(), device.getMgmtAddress());
-			if (device.getLastConfig() == null) {
-				log.info("Task {}. Unable to fetch the device with its last config... has it been captured at least once?",
-					task.getId());
-				throw new Exception("No last config for this device. Has it been captured at least once?");
-			}
-			List<Policy> policies = session
-				.createQuery("select distinct p from Policy p join p.targetGroups g "
-					+ "join g.cachedMemberships dm with dm.key.device.id = :id", Policy.class)
-				.setParameter("id", device.getId())
-				.list();
-
-			task.logger.info("Checking configuration compliance of device {} ({})...",
-				device.getName(), device.getId());
-			for (Policy policy : policies) {
-				this.complianceChecker.check(policy, device, session, task.logger);
-			}
-			session.persist(device);
-			session.flush();
-			List<SoftwareRule> softwareRules = session
-				.createQuery("select sr from SoftwareRule sr where (sr.targetGroup is null) or "
-					+ "sr.targetGroup in (select g from DeviceGroup g join g.cachedMemberships dm "
-					+ "with dm.key.device.id = :id) order by sr.priority asc", SoftwareRule.class)
-				.setParameter("id", device.getId())
-				.list();
-			device.setSoftwareLevel(ConformanceLevel.UNKNOWN);
-			for (SoftwareRule rule : softwareRules) {
-				rule.check(device);
-				if (device.getSoftwareLevel() != ConformanceLevel.UNKNOWN) {
-					break;
+			this.transactions.run(dsl -> {
+				// Delete previous results
+				this.ruleRepository.deleteCheckResultsOfDevice(dsl, deviceId);
+				// Start over from a fresh device from DB
+				Device device = this.deviceRepository.find(dsl, deviceId);
+				if (device == null) {
+					throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
 				}
-			}
-			session.persist(device);
-			List<HardwareRule> hardwareRules = session
-				.createQuery("select hr from HardwareRule hr", HardwareRule.class)
-				.list();
-			device.resetEoX();
-			for (HardwareRule rule : hardwareRules) {
-				rule.check(device);
-			}
-			session.persist(device);
-			session.getTransaction().commit();
-			task.setStatus(Status.SUCCESS);
+				run.logger.info("Check compliance task for device {} ({}).",
+					device.name(), device.mgmtAddress());
+				if (device.lastConfigId() == null) {
+					log.info("Task {}. Unable to fetch the device with its last config... has it been captured at least once?",
+						task.id());
+					throw new IllegalStateException("No last config for this device. Has it been captured at least once?");
+				}
+				List<Policy> policies = this.policyRepository.findOfDevice(dsl, device.id());
+				List<Exemption> exemptions = this.ruleRepository.findExemptionsOfDevice(dsl, device.id());
+
+				run.logger.info("Checking configuration compliance of device {} ({})...",
+					device.name(), device.id());
+				DeviceDraft draft = new DeviceDraft(device);
+				draft.setLastConfig(device.lastConfigId() == null ? null : new ConfigRepository().find(dsl, device.lastConfigId(), true));
+				for (Policy policy : policies) {
+					this.ruleRepository.saveCheckResults(dsl, this.complianceChecker.check(policy,
+						this.ruleRepository.findByPolicy(dsl, policy.id(), Page.ALL), draft, exemptions, run.logger));
+				}
+				Set<Long> groupIds = GroupRepository.findGroupIdsOfDevice(dsl, device.id());
+				List<SoftwareRule> softwareRules = this.softwareRuleRepository.findAll(dsl, Page.ALL).stream()
+					.filter(rule -> rule.targetGroupId() == null || groupIds.contains(rule.targetGroupId()))
+					.toList();
+				List<HardwareRule> hardwareRules = this.hardwareRuleRepository.findAll(dsl);
+				Device edited = checkSoftwareAndHardware(draft.toDevice(), groupIds, softwareRules, hardwareRules);
+				this.deviceRepository.save(dsl, device, edited);
+			});
+			run.setStatus(Status.SUCCESS);
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while checking compliance.", task.getId(), e);
-			task.logger.error("Error while checking compliance: {}", e.getMessage());
-			task.setStatus(Status.FAILURE);
+			log.error("Task {}. Error while checking compliance.", task.id(), e);
+			run.logger.error("Error while checking compliance: {}", e.getMessage());
+			run.setStatus(Status.FAILURE);
 			return;
 		}
-		finally {
-			session.close();
-		}
 
-		log.debug("Task {}. Request to refresh all the groups for the device after compliance check.", task.getId());
-		DynamicDeviceGroup.refreshAllGroupsOfOneDevice(device);
+		log.debug("Task {}. Request to refresh all the groups for the device after compliance check.", task.id());
+		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+	}
+
+	/**
+	 * Checks the software compliance (the first matching software rule gives the level) and the
+	 * hardware support status (the earliest dates of the matching hardware rules) of a device.
+	 *
+	 * @param device the device
+	 * @param groupIds the IDs of the groups of the device
+	 * @param softwareRules the software rules, by priority
+	 * @param hardwareRules the hardware rules
+	 * @return the device, with its software level and its end of sale and end of life dates
+	 */
+	static Device checkSoftwareAndHardware(Device device, Set<Long> groupIds, List<SoftwareRule> softwareRules,
+			List<HardwareRule> hardwareRules) {
+		ConformanceLevel level = ConformanceLevel.UNKNOWN;
+		for (SoftwareRule rule : softwareRules) {
+			level = rule.check(device, groupIds);
+			if (level != ConformanceLevel.UNKNOWN) {
+				break;
+			}
+		}
+		Device checked = device.toBuilder()
+			.softwareLevel(level)
+			.eolDate(null)
+			.eolModule(null)
+			.eosDate(null)
+			.eosModule(null)
+			.build();
+		for (HardwareRule rule : hardwareRules) {
+			checked = rule.check(checked, groupIds);
+		}
+		return checked;
 	}
 
 }

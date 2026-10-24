@@ -21,11 +21,8 @@ package net.netshot.netshot.api.rest.v0.credentials;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.Hibernate;
-
 import net.netshot.netshot.api.rest.v0.domain.DomainDto;
 import net.netshot.netshot.api.rest.v0.domain.DomainMapper;
-import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -37,12 +34,12 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.inventory.domain.Domain;
 
 /**
- * Maps the credential sets between the entities and their REST representation, in both directions.
+ * Maps the credential sets between the records and their REST representation, in both directions.
  * It serves the credential set endpoints and the credential sets nested in the device accesses.
  *
- * <p>The mapping to an entity builds the <em>incoming</em> objects of a request: transient
- * entities which hold what the client sent, and which the services validate, then resolve against
- * the persistent ones (domain by ID, Vault instance by ID...). The secrets read as {@code =}
+ * <p>The mapping to a record builds the <em>incoming</em> objects of a request: records which
+ * hold what the client sent, and which the services validate, then resolve against the stored
+ * ones (domain by ID, Vault instance by ID...). The secrets read as {@code =}
  * (unchanged) are already {@code null} in the DTO. The secrets are never written: the DTO masks them.</p>
  */
 public final class CredentialSetMapper {
@@ -63,15 +60,13 @@ public final class CredentialSetMapper {
 		return dtos;
 	}
 
-	private static Domain toEntity(DomainDto dto) {
+	private static Domain toReference(DomainDto dto) {
 		if (dto == null) {
 			return null;
 		}
-		// Only a reference to the domain: the addresses of the server are not read
-		Domain domain = new Domain(dto.name(), dto.description(), null, null);
-		domain.setId(dto.id());
-		domain.setChangeDate(dto.changeDate());
-		return domain;
+		// Only a reference to the domain (the service reads it by ID): the addresses of the server are not read
+		return Domain.builder().id(dto.id()).name(dto.name()).description(dto.description())
+			.changeDate(dto.changeDate() == null ? null : dto.changeDate().toInstant()).build();
 	}
 
 
@@ -86,52 +81,38 @@ public final class CredentialSetMapper {
 		if (credentialSet == null) {
 			return null;
 		}
-		DeviceCredentialSet cs = (DeviceCredentialSet) Hibernate.unproxy(credentialSet);
-		DomainDto domain = DomainMapper.toDto(cs.getMgmtDomain());
-		if (cs instanceof DeviceSnmpv3Community c) {
-			return new CredentialSetDto.SnmpV3(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getCommunity(), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath(),
-				c.getUsername(), c.getResolvedUsernameVaultInstanceId(), c.getUsernameVaultPath(),
-				c.getAuthType(), c.getAuthKey(), c.getResolvedAuthKeyVaultInstanceId(), c.getAuthKeyVaultPath(),
-				c.getPrivType(), c.getPrivKey(), c.getResolvedPrivKeyVaultInstanceId(), c.getPrivKeyVaultPath());
-		}
-		else if (cs instanceof DeviceSnmpv2cCommunity c) {
-			return new CredentialSetDto.SnmpV2c(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getCommunity(), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath());
-		}
-		else if (cs instanceof DeviceSnmpv1Community c) {
-			return new CredentialSetDto.SnmpV1(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getCommunity(), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath());
-		}
-		else if (cs instanceof DeviceSshKeyAccount c) {
-			return new CredentialSetDto.SshKey(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getUsername(), c.getResolvedUsernameVaultInstanceId(), c.getUsernameVaultPath(),
-				c.getPassword(), c.getResolvedPasswordVaultInstanceId(), c.getPasswordVaultPath(),
-				c.getSuperPassword(), c.getResolvedSuperPasswordVaultInstanceId(), c.getSuperPasswordVaultPath(),
-				c.getPrivateKey(), c.getResolvedPrivateKeyVaultInstanceId(), c.getPrivateKeyVaultPath());
-		}
-		else if (cs instanceof DeviceSshAccount c) {
-			return new CredentialSetDto.Ssh(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getUsername(), c.getResolvedUsernameVaultInstanceId(), c.getUsernameVaultPath(),
-				c.getPassword(), c.getResolvedPasswordVaultInstanceId(), c.getPasswordVaultPath(),
-				c.getSuperPassword(), c.getResolvedSuperPasswordVaultInstanceId(), c.getSuperPasswordVaultPath());
-		}
-		else if (cs instanceof DeviceTelnetAccount c) {
-			return new CredentialSetDto.Telnet(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getUsername(), c.getResolvedUsernameVaultInstanceId(), c.getUsernameVaultPath(),
-				c.getPassword(), c.getResolvedPasswordVaultInstanceId(), c.getPasswordVaultPath(),
-				c.getSuperPassword(), c.getResolvedSuperPasswordVaultInstanceId(), c.getSuperPasswordVaultPath());
-		}
-		else if (cs instanceof DeviceHttpAccount c) {
-			return new CredentialSetDto.Http(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				c.getUsername(), c.getResolvedUsernameVaultInstanceId(), c.getUsernameVaultPath(),
-				c.getPassword(), c.getResolvedPasswordVaultInstanceId(), c.getPasswordVaultPath());
-		}
-		throw new IllegalArgumentException("Unknown kind of credential set: " + cs.getClass().getName());
+		DomainDto domain = DomainMapper.toDto(credentialSet.mgmtDomain());
+		return switch (credentialSet) {
+			case DeviceSnmpv3Community c -> new CredentialSetDto.SnmpV3(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.community(), c.communityVaultInstanceId(), c.communityVaultPath(),
+				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
+				c.authType(), c.authKey(), c.authKeyVaultInstanceId(), c.authKeyVaultPath(),
+				c.privType(), c.privKey(), c.privKeyVaultInstanceId(), c.privKeyVaultPath());
+			case DeviceSnmpv2cCommunity c -> new CredentialSetDto.SnmpV2c(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.community(), c.communityVaultInstanceId(), c.communityVaultPath());
+			case DeviceSnmpv1Community c -> new CredentialSetDto.SnmpV1(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.community(), c.communityVaultInstanceId(), c.communityVaultPath());
+			case DeviceSshKeyAccount c -> new CredentialSetDto.SshKey(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
+				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath(),
+				c.superPassword(), c.superPasswordVaultInstanceId(), c.superPasswordVaultPath(),
+				c.privateKey(), c.privateKeyVaultInstanceId(), c.privateKeyVaultPath());
+			case DeviceSshAccount c -> new CredentialSetDto.Ssh(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
+				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath(),
+				c.superPassword(), c.superPasswordVaultInstanceId(), c.superPasswordVaultPath());
+			case DeviceTelnetAccount c -> new CredentialSetDto.Telnet(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
+				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath(),
+				c.superPassword(), c.superPasswordVaultInstanceId(), c.superPasswordVaultPath());
+			case DeviceHttpAccount c -> new CredentialSetDto.Http(c.id(), c.name(), domain, c.deviceSpecific(),
+				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
+				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath());
+		};
 	}
 
 	/**
-	 * Maps an incoming credential set to a transient entity of the matching kind.
+	 * Maps an incoming credential set to a record of the matching kind.
 	 *
 	 * @param dto the DTO (may be null)
 	 * @return the credential set, or null if there is none
@@ -140,75 +121,33 @@ public final class CredentialSetMapper {
 		if (dto == null) {
 			return null;
 		}
-		DeviceCredentialSet credentialSet = switch (dto) {
-			case CredentialSetDto.SnmpV1 d -> {
-				DeviceSnmpv1Community c = new DeviceSnmpv1Community(d.community(), d.name());
-				c.setResolvedCommunityVaultInstanceId(d.communityVaultInstanceId());
-				c.setCommunityVaultPath(d.communityVaultPath());
-				yield c;
-			}
-			case CredentialSetDto.SnmpV2c d -> {
-				DeviceSnmpv2cCommunity c = new DeviceSnmpv2cCommunity(d.community(), d.name());
-				c.setResolvedCommunityVaultInstanceId(d.communityVaultInstanceId());
-				c.setCommunityVaultPath(d.communityVaultPath());
-				yield c;
-			}
-			case CredentialSetDto.SnmpV3 d -> {
-				DeviceSnmpv3Community c = new DeviceSnmpv3Community(d.community(), d.name(), d.username(), d.authType(),
-					d.authKey(), d.privType(), d.privKey());
-				c.setResolvedCommunityVaultInstanceId(d.communityVaultInstanceId());
-				c.setCommunityVaultPath(d.communityVaultPath());
-				c.setResolvedUsernameVaultInstanceId(d.usernameVaultInstanceId());
-				c.setUsernameVaultPath(d.usernameVaultPath());
-				c.setResolvedAuthKeyVaultInstanceId(d.authKeyVaultInstanceId());
-				c.setAuthKeyVaultPath(d.authKeyVaultPath());
-				c.setResolvedPrivKeyVaultInstanceId(d.privKeyVaultInstanceId());
-				c.setPrivKeyVaultPath(d.privKeyVaultPath());
-				yield c;
-			}
-			case CredentialSetDto.Ssh d -> {
-				DeviceSshAccount c = new DeviceSshAccount(d.username(), d.password(), d.superPassword(), d.name());
-				setCliVaultReferences(c, d.usernameVaultInstanceId(), d.usernameVaultPath(), d.passwordVaultInstanceId(),
-					d.passwordVaultPath(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
-				yield c;
-			}
-			case CredentialSetDto.SshKey d -> {
-				DeviceSshKeyAccount c = new DeviceSshKeyAccount(d.username(), d.privateKey(), d.password(), d.superPassword(), d.name());
-				setCliVaultReferences(c, d.usernameVaultInstanceId(), d.usernameVaultPath(), d.passwordVaultInstanceId(),
-					d.passwordVaultPath(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
-				c.setResolvedPrivateKeyVaultInstanceId(d.privateKeyVaultInstanceId());
-				c.setPrivateKeyVaultPath(d.privateKeyVaultPath());
-				yield c;
-			}
-			case CredentialSetDto.Telnet d -> {
-				DeviceTelnetAccount c = new DeviceTelnetAccount(d.username(), d.password(), d.superPassword(), d.name());
-				setCliVaultReferences(c, d.usernameVaultInstanceId(), d.usernameVaultPath(), d.passwordVaultInstanceId(),
-					d.passwordVaultPath(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
-				yield c;
-			}
-			case CredentialSetDto.Http d -> {
-				DeviceHttpAccount c = new DeviceHttpAccount(d.username(), d.password(), d.name());
-				c.setResolvedUsernameVaultInstanceId(d.usernameVaultInstanceId());
-				c.setUsernameVaultPath(d.usernameVaultPath());
-				c.setResolvedPasswordVaultInstanceId(d.passwordVaultInstanceId());
-				c.setPasswordVaultPath(d.passwordVaultPath());
-				yield c;
-			}
+		Domain domain = toReference(dto.mgmtDomain());
+		return switch (dto) {
+			case CredentialSetDto.SnmpV1 d -> new DeviceSnmpv1Community(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.community(), d.communityVaultInstanceId(), d.communityVaultPath());
+			case CredentialSetDto.SnmpV2c d -> new DeviceSnmpv2cCommunity(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.community(), d.communityVaultInstanceId(), d.communityVaultPath());
+			case CredentialSetDto.SnmpV3 d -> new DeviceSnmpv3Community(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.community(), d.communityVaultInstanceId(), d.communityVaultPath(),
+				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
+				d.authType(), d.authKey(), d.authKeyVaultInstanceId(), d.authKeyVaultPath(),
+				d.privType(), d.privKey(), d.privKeyVaultInstanceId(), d.privKeyVaultPath());
+			case CredentialSetDto.Ssh d -> new DeviceSshAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
+				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath(),
+				d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
+			case CredentialSetDto.SshKey d -> new DeviceSshKeyAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
+				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath(),
+				d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath(),
+				d.privateKey(), d.privateKeyVaultInstanceId(), d.privateKeyVaultPath());
+			case CredentialSetDto.Telnet d -> new DeviceTelnetAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
+				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath(),
+				d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
+			case CredentialSetDto.Http d -> new DeviceHttpAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
+				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
+				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath());
 		};
-		credentialSet.setId(dto.id());
-		credentialSet.setDeviceSpecific(dto.deviceSpecific());
-		credentialSet.setMgmtDomain(toEntity(dto.mgmtDomain()));
-		return credentialSet;
-	}
-
-	private static void setCliVaultReferences(DeviceCliAccount account,
-			Long usernameInstanceId, String usernamePath, Long passwordInstanceId, String passwordPath,
-			Long superPasswordInstanceId, String superPasswordPath) {
-		account.setResolvedUsernameVaultInstanceId(usernameInstanceId);
-		account.setUsernameVaultPath(usernamePath);
-		account.setResolvedPasswordVaultInstanceId(passwordInstanceId);
-		account.setPasswordVaultPath(passwordPath);
-		account.setResolvedSuperPasswordVaultInstanceId(superPasswordInstanceId);
-		account.setSuperPasswordVaultPath(superPasswordPath);
 	}
 }

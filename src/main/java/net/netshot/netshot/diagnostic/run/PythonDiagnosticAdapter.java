@@ -41,20 +41,20 @@ public class PythonDiagnosticAdapter implements DiagnosticAdapter<PythonDiagnost
 
 	@Override
 	public Value toJsObject(PythonDiagnostic diagnostic, Device device, Context context) throws ScriptException {
-		Source diagSource = Source.newBuilder("python", diagnostic.getScript(),
-			"_diag%d.py".formatted(diagnostic.getId())).buildLiteral();
+		Source diagSource = Source.newBuilder("python", diagnostic.script(),
+			"_diag%d.py".formatted(diagnostic.id())).buildLiteral();
 		ScriptToolbox.loadPython(context);
 		context.eval(diagSource);
 		Value diagnose = context.getBindings("python").getMember("diagnose");
 		if (!diagnose.canExecute()) {
-			throw new ScriptException(String.format("Unable to find 'diagnose' function in '%s' Python diagnostic", diagnostic.getName()));
+			throw new ScriptException(String.format("Unable to find 'diagnose' function in '%s' Python diagnostic", diagnostic.name()));
 		}
 		return diagnose;
 	}
 
 	@Override
-	public DiagnosticResult makeResult(PythonDiagnostic diagnostic, Device device, Value value) {
-		return DiagnosticResults.make(diagnostic, device, value);
+	public DiagnosticResult makeResult(PythonDiagnostic diagnostic, Value value) {
+		return DiagnosticResults.make(diagnostic, value);
 	}
 
 }

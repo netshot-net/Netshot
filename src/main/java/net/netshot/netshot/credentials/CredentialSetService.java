@@ -20,13 +20,13 @@ package net.netshot.netshot.credentials;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.exception.ConstraintViolationException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.domain.DomainRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -36,13 +36,11 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * The use cases of the global credential sets: list, add, edit and delete.
  *
- * <p>The inputs of {@link #create} and {@link #update} are <em>transient</em> credential sets
+ * <p>The inputs of {@link #create} and {@link #update} are <em>incoming</em> credential sets
  * holding what the client sent (the API mapper builds them): they are validated, then either
- * persisted (create) or copied onto the persistent credential set (update). The secrets the client
- * left out or masked are {@code null} in them, which means "unchanged".</p>
- *
- * <p>The credential sets it returns are detached: the associations their representation reads
- * (domain, Vault instances) are eager.</p>
+ * stored (create) or merged into the stored credential set (update). The secrets the client
+ * left out or masked are {@code null} in them, which means "unchanged". Their domain is only a
+ * reference (by ID).</p>
  */
 @Slf4j
 public class CredentialSetService {
@@ -52,6 +50,7 @@ public class CredentialSetService {
 
 	private final Transactions transactions;
 	private final CredentialSetRepository repository;
+	private final DomainRepository domainRepository = new DomainRepository();
 
 	/**
 	 * Instantiates the service.
@@ -68,14 +67,14 @@ public class CredentialSetService {
 	 * Lists the global credential sets.
 	 *
 	 * @param page the window on the result
-	 * @return the credential sets
+	 * @return the credential sets, by ID
 	 * @throws NetshotException if the credential sets can't be read
 	 */
 	public List<DeviceCredentialSet> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findGlobal(session, page));
+			return this.transactions.read(dsl -> this.repository.findGlobal(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the credentials.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the credentials");
 		}
@@ -84,39 +83,37 @@ public class CredentialSetService {
 	/**
 	 * Adds a global credential set.
 	 *
-	 * @param credentialSet the credential set to add (it becomes the persistent one)
+	 * @param credentialSet the credential set to add (its ID is ignored)
 	 * @return the new credential set
 	 * @throws NetshotException if the name is blank, the domain or a Vault instance doesn't exist,
 	 *         the name is already used, or the credential set can't be stored
 	 */
 	public DeviceCredentialSet create(DeviceCredentialSet credentialSet) {
-		if (credentialSet.getName() == null || "".equals(credentialSet.getName().trim())) {
+		if (credentialSet.name() == null || "".equals(credentialSet.name().trim())) {
 			log.error("Invalid credential set name.");
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, "Invalid name for the credential set");
 		}
+		DeviceCredentialSet created;
 		try {
-			this.transactions.run(session -> {
-				if (credentialSet.getMgmtDomain() != null) {
-					Domain domain = this.repository.findDomain(session, credentialSet.getMgmtDomain().getId());
+			created = this.transactions.write(dsl -> {
+				Domain domain = null;
+				if (credentialSet.mgmtDomain() != null) {
+					domain = this.domainRepository.find(dsl, credentialSet.mgmtDomain().id());
 					if (domain == null) {
 						throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
 					}
-					credentialSet.setMgmtDomain(domain);
 				}
-				credentialSet.setDeviceSpecific(false);
 				// The ID is assigned by the database: a posted one is ignored
-				credentialSet.setId(0);
-				CredentialSets.applyVaultableFields(session, credentialSet, credentialSet);
-				this.repository.add(session, credentialSet);
-				this.repository.refresh(session, credentialSet);
+				DeviceCredentialSet global = credentialSet.withIdentity(0, credentialSet.name(), false).withMgmtDomain(domain);
+				return this.repository.add(dsl, CredentialSets.resolveVaultableFields(dsl, global, global));
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Can't add the credentials.", e);
 			throw saveFailure(e);
 		}
-		AAA_LOG.info("{} has been created.", credentialSet);
-		return credentialSet;
+		AAA_LOG.info("{} has been created.", created);
+		return created;
 	}
 
 	/**
@@ -133,42 +130,44 @@ public class CredentialSetService {
 	public DeviceCredentialSet update(long id, DeviceCredentialSet incoming) {
 		DeviceCredentialSet credentialSet;
 		try {
-			credentialSet = this.transactions.write(session -> {
-				DeviceCredentialSet existing = this.repository.find(session, incoming.getClass(), id);
-				if (existing == null) {
-					log.error("Unable to find the credential set {}.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS, "Unable to find the credential set.");
-				}
-				if (!existing.getClass().equals(incoming.getClass())) {
+			credentialSet = this.transactions.write(dsl -> {
+				DeviceCredentialSet existing = this.repository.find(dsl, id);
+				if (existing instanceof DeviceSshKeyAccount && incoming instanceof DeviceSshAccount) {
+					// (The SSH key accounts used to be a kind of SSH accounts, found by the query by type)
 					log.error("Wrong posted credential type for credential set {}.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
 						"The posted credential type doesn't match the existing one.");
 				}
-				if (incoming.getMgmtDomain() == null) {
-					existing.setMgmtDomain(null);
+				if (existing == null || !existing.getClass().equals(incoming.getClass())) {
+					// A credential set of another type is not found, as with the former query by type
+					log.error("Unable to find the credential set {}.", id);
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS, "Unable to find the credential set.");
 				}
-				else {
-					Domain domain = this.repository.findDomain(session, incoming.getMgmtDomain().getId());
+				Domain domain = null;
+				if (incoming.mgmtDomain() != null) {
+					domain = this.domainRepository.find(dsl, incoming.mgmtDomain().id());
 					if (domain == null) {
-						log.error("Unknown domain {} for credential set {}.", incoming.getMgmtDomain().getId(), id);
+						log.error("Unknown domain {} for credential set {}.", incoming.mgmtDomain().id(), id);
 						throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "The domain doesn't exist.");
 					}
-					existing.setMgmtDomain(domain);
 				}
-				existing.setName(incoming.getName());
-				if (existing.getName() == null || "".equals(existing.getName().trim())) {
+				if (incoming.name() == null || "".equals(incoming.name().trim())) {
 					log.error("Invalid credential set name.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_NAME, "Invalid name for the credential set");
 				}
-				applyChanges(existing, incoming);
+				DeviceCredentialSet merged = CredentialSets.merge(existing, incoming, false)
+					.withIdentity(existing.id(), incoming.name(), existing.deviceSpecific())
+					.withMgmtDomain(domain);
 				// Applied last so that switching a field to Vault mode always wins over
-				// the unconditional local-value copies above (e.g. setUsername(...)).
-				CredentialSets.applyVaultableFields(session, existing, incoming);
-				this.repository.save(session, existing);
-				return existing;
+				// the unconditional local value copies of the merge (e.g. the username).
+				DeviceCredentialSet saved = this.repository.save(dsl, CredentialSets.resolveVaultableFields(dsl, merged, incoming));
+				if (saved == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS, "Unable to find the credential set.");
+				}
+				return saved;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the credentials {}.", id, e);
 			throw saveFailure(e);
 		}
@@ -176,63 +175,11 @@ public class CredentialSetService {
 		return credentialSet;
 	}
 
-	/**
-	 * Copies the local values of a new definition onto the credential set. A secret which is
-	 * {@code null} in the definition is left as it is.
-	 *
-	 * @param existing the persistent credential set
-	 * @param incoming the new definition
-	 */
-	private static void applyChanges(DeviceCredentialSet existing, DeviceCredentialSet incoming) {
-		if (existing instanceof DeviceCliAccount cliAccount
-				&& incoming instanceof DeviceCliAccount rsCliAccount) {
-			cliAccount.setUsername(rsCliAccount.getUsername());
-			if (rsCliAccount.getPassword() != null) {
-				cliAccount.setPassword(rsCliAccount.getPassword());
-			}
-			if (rsCliAccount.getSuperPassword() != null) {
-				cliAccount.setSuperPassword(rsCliAccount.getSuperPassword());
-			}
-			if (cliAccount instanceof DeviceSshKeyAccount sshKeyAccount
-					&& rsCliAccount instanceof DeviceSshKeyAccount rsSshKeyAccount) {
-				if (rsSshKeyAccount.getPrivateKey() != null) {
-					sshKeyAccount.setPrivateKey(rsSshKeyAccount.getPrivateKey());
-				}
-			}
-		}
-		else if (existing instanceof DeviceSnmpv3Community snmp3
-				&& incoming instanceof DeviceSnmpv3Community rsSnmp3) {
-			snmp3.setUsername(rsSnmp3.getUsername());
-			snmp3.setAuthType(rsSnmp3.getAuthType());
-			if (rsSnmp3.getAuthKey() != null) {
-				snmp3.setAuthKey(rsSnmp3.getAuthKey());
-			}
-			snmp3.setPrivType(rsSnmp3.getPrivType());
-			if (rsSnmp3.getPrivKey() != null) {
-				snmp3.setPrivKey(rsSnmp3.getPrivKey());
-			}
-		}
-		else if (existing instanceof DeviceSnmpCommunity snmpCommunity
-				&& incoming instanceof DeviceSnmpCommunity rsSnmpCommunity) {
-			String community = rsSnmpCommunity.getCommunity();
-			if (community != null) {
-				snmpCommunity.setCommunity(community);
-			}
-		}
-		else if (existing instanceof DeviceHttpAccount httpAccount
-				&& incoming instanceof DeviceHttpAccount rsHttpAccount) {
-			httpAccount.setUsername(rsHttpAccount.getUsername());
-			if (rsHttpAccount.getPassword() != null) {
-				httpAccount.setPassword(rsHttpAccount.getPassword());
-			}
-		}
-	}
-
-	private static NetshotException saveFailure(HibernateException e) {
-		if (DatabaseErrors.causeMentions(e, "uplicate")) {
+	private static NetshotException saveFailure(DataAccessException e) {
+		if (DatabaseErrors.isUniqueViolation(e)) {
 			return new NetshotException(ErrorCode.NETSHOT_DUPLICATE_CREDENTIALS, "A credential set with this name already exists.");
 		}
-		else if (DatabaseErrors.causeMentions(e, "mgmt_domain")) {
+		else if (DatabaseErrors.isForeignKeyViolation(e)) {
 			return new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "The domain doesn't exist.");
 		}
 		return new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the credential set");
@@ -249,17 +196,16 @@ public class CredentialSetService {
 	public boolean delete(long id) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.write(session -> {
-				DeviceCredentialSet credentialSet = this.repository.find(session, id);
+			deleted = this.transactions.write(dsl -> {
+				DeviceCredentialSet credentialSet = this.repository.find(dsl, id);
 				if (credentialSet == null) {
 					log.info("No such credential set of ID {}", id);
 					return false;
 				}
-				if (credentialSet.isDeviceSpecific()) {
+				if (credentialSet.deviceSpecific()) {
 					throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, "Can't delete a device-specific credential set.");
 				}
-				this.repository.remove(session, credentialSet);
-				return true;
+				return this.repository.remove(dsl, id);
 			});
 		}
 		catch (NetshotException e) {
@@ -268,7 +214,7 @@ public class CredentialSetService {
 		}
 		catch (RuntimeException e) {
 			log.error("Unable to delete the credentials {}", id, e);
-			if (e instanceof ConstraintViolationException) {
+			if (e instanceof DataAccessException dae && DatabaseErrors.isForeignKeyViolation(dae)) {
 				throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_IN_USE,
 					"Unable to delete the credential set, there must be devices or tasks using it.");
 			}

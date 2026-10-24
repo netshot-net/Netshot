@@ -18,132 +18,65 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import org.hibernate.annotations.NaturalId;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.ManyToOne;
-import lombok.Getter;
-import lombok.Setter;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
- * A diagnostic describes how to get some data from a group of devices, and to store
- * an history of this data.
- * @author sylvain.cadilhac
- *
+ * A diagnostic: a command or a script run on the devices (of a group), whose result is stored
+ * with the device.
  */
-@Entity
-@Inheritance(strategy = InheritanceType.JOINED)
-public abstract class Diagnostic {
-
-	/** The set of real rule types. */
-	private static final Set<Class<? extends Diagnostic>> DIAGNOSTIC_CLASSES;
-
-	static {
-		DIAGNOSTIC_CLASSES = new HashSet<>();
-		DIAGNOSTIC_CLASSES.add(SimpleDiagnostic.class);
-		DIAGNOSTIC_CLASSES.add(JavaScriptDiagnostic.class);
-		DIAGNOSTIC_CLASSES.add(PythonDiagnostic.class);
-	}
+public sealed interface Diagnostic permits SimpleDiagnostic, JavaScriptDiagnostic, PythonDiagnostic {
 
 	/**
-	 * Gets the concrete implementations of Diagnostic.
+	 * Gets the ID.
 	 *
-	 * @return the Diagnostic classes
+	 * @return the ID (0 for a diagnostic not stored yet)
 	 */
-	public static final Set<Class<? extends Diagnostic>> getDiagnosticClasses() {
-		return DIAGNOSTIC_CLASSES;
-	}
-
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The name of the diagnostic. */
-	@Getter(onMethod = @__({
-		@NaturalId(mutable = true)
-	}))
-	@Setter
-	private String name;
-
-	/** The target group. */
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.SET_NULL)
-	}))
-	@Setter
-	private DeviceGroup targetGroup;
-
-	/** Is the diagnostic enabled? */
-	@Getter
-	@Setter
-	protected boolean enabled;
-
-	/** The type of data returned by the diagnostic. */
-	@Getter
-	@Setter
-	protected AttributeType resultType;
+	long id();
 
 	/**
-	 * Instantiate a new diagnostic.
+	 * Gets the name.
+	 *
+	 * @return the name
 	 */
-	protected Diagnostic() {
-	}
+	String name();
 
 	/**
-	 * Instantiates a new diagnostic.
-	 * @param name The name
-	 * @param enabled True to enable the diagnostic
-	 * @param targetGroup The group of devices the diagnostic applies to
-	 * @param resultType The type of result expected by this diagnostic
+	 * Tells whether the diagnostic is run.
+	 *
+	 * @return true if enabled
 	 */
-	public Diagnostic(String name, boolean enabled, DeviceGroup targetGroup, AttributeType resultType) {
-		this.name = name;
-		this.enabled = enabled;
-		this.targetGroup = targetGroup;
-		this.resultType = resultType;
-	}
+	boolean enabled();
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (int) (id ^ (id >>> 32));
-		return result;
-	}
+	/**
+	 * Gets the ID of the group of devices the diagnostic is run on.
+	 *
+	 * @return the group ID, or null for no group
+	 */
+	Long targetGroupId();
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof Diagnostic)) {
-			return false;
-		}
-		Diagnostic other = (Diagnostic) obj;
-		return id == other.id;
-	}
+	/**
+	 * Gets the type of result.
+	 *
+	 * @return the type of result
+	 */
+	AttributeType resultType();
 
-	@Override
-	public String toString() {
-		return "Diagnostic " + id + " (name '" + name + "', type " + this.getClass().getSimpleName() + ")";
-	}
+	/**
+	 * Gets a copy of the diagnostic with another ID.
+	 *
+	 * @param id the ID
+	 * @return the diagnostic
+	 */
+	Diagnostic withId(long id);
 
+	/**
+	 * Describes the diagnostic, for the logs.
+	 *
+	 * @param diagnostic the diagnostic
+	 * @return the description
+	 */
+	static String describe(Diagnostic diagnostic) {
+		return "Diagnostic " + diagnostic.id() + " (name '" + diagnostic.name() + "', type "
+			+ diagnostic.getClass().getSimpleName() + ")";
+	}
 }

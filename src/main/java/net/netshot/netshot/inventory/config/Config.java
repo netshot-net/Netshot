@@ -18,44 +18,54 @@
  */
 package net.netshot.netshot.inventory.config;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-import jakarta.persistence.Version;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
-import net.netshot.netshot.inventory.device.Device;
 
 /**
- * A device configuration.
+ * A device configuration: the configuration level attributes gathered by a snapshot.
+ *
+ * @param id the ID (0 for a configuration which isn't stored yet)
+ * @param version the version
+ * @param changeDate when the configuration was gathered
+ * @param deviceId the ID of the device
+ * @param author the author of the last change of the configuration, as reported by the device
+ * @param customHash the hash the driver computed to tell whether the configuration has changed, if any
+ * @param attributes the attributes (one per name)
  */
-@Entity
-@Table(indexes = {
-	@Index(name = "changeDateIndex", columnList = "changeDate")
-})
-public class Config {
+@Builder(toBuilder = true)
+public record Config(
+	long id,
+	int version,
+	Instant changeDate,
+	long deviceId,
+	String author,
+	String customHash,
+	List<ConfigAttribute> attributes) {
+
+	/**
+	 * Instantiates a configuration, the missing attributes being none.
+	 */
+	public Config {
+		attributes = attributes == null ? List.of() : List.copyOf(attributes);
+	}
+
+	/**
+	 * Builds an empty configuration of a device (not stored).
+	 *
+	 * @param deviceId the ID of the device
+	 * @return the configuration
+	 */
+	public static Config empty(long deviceId) {
+		return Config.builder().deviceId(deviceId).author("").build();
+	}
 
 	/**
 	 * From a list of config lines, get an array of pointers to the parent line,
@@ -81,111 +91,31 @@ public class Config {
 		return lineParents;
 	}
 
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	@Getter(onMethod = @__({
-		@Version
-	}))
-	@Setter
-	private int version;
-
-	/** The device. */
-	@Getter(onMethod = @__({
-		@ManyToOne(fetch = FetchType.LAZY),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	protected Device device;
-
-	/** The change date. */
-	@Getter
-	@Setter
-	protected Date changeDate;
-
-	/** The author. */
-	@Getter
-	@Setter
-	private String author = "";
-
-	/** The attributes. */
-	@Getter(onMethod = @__({
-		@OneToMany(mappedBy = "config", orphanRemoval = true, cascade = CascadeType.ALL)
-	}))
-	@Setter
-	private Set<ConfigAttribute> attributes = new HashSet<ConfigAttribute>();
-
-	/** Hash value, optionally set by the driver, to forcely consider the config changed or not. */
-	@Getter
-	@Setter
-	private String customHash;
-
 	/**
-	 * Instantiates a new config.
-	 */
-	public Config() {
-	}
-
-	/**
-	 * Instantiates a new config.
+	 * Gets the attributes, by name.
 	 *
-	 * @param device the device
+	 * @return the attributes
 	 */
-	public Config(Device device) {
-		this.device = device;
-	}
-
-	public void addAttribute(ConfigAttribute attribute) {
-		this.attributes.add(attribute);
-	}
-
-	public void clearAttributes() {
-		attributes.clear();
-	}
-
-	@Transient
 	public Map<String, ConfigAttribute> getAttributeMap() {
-		Map<String, ConfigAttribute> map = new HashMap<String, ConfigAttribute>();
+		Map<String, ConfigAttribute> map = new HashMap<>();
 		for (ConfigAttribute a : this.attributes) {
-			map.put(a.getName(), a);
+			map.put(a.name(), a);
 		}
 		return map;
 	}
 
 	/**
-	 * Return a config attribute based on name.
-	 * @param name = name of the attribute to find
-	 * @return the found attribute or null if none
+	 * Gets an attribute by name.
+	 *
+	 * @param name the name of the attribute
+	 * @return the attribute, or null if there is none of this name
 	 */
-	@Transient
 	public ConfigAttribute getAttribute(String name) {
 		for (ConfigAttribute attribute : this.attributes) {
-			if (attribute.getName().equals(name)) {
+			if (attribute.name().equals(name)) {
 				return attribute;
 			}
 		}
 		return null;
 	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(id);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof Config)) {
-			return false;
-		}
-		Config other = (Config) obj;
-		return id == other.id;
-	}
-
 }

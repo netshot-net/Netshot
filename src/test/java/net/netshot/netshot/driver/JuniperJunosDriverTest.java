@@ -21,10 +21,14 @@ package net.netshot.netshot.driver;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
-
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
@@ -34,8 +38,9 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
-import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
@@ -43,9 +48,6 @@ import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 @SimulatorTest
 @DisplayName("JuniperJunos driver test")
@@ -60,37 +62,38 @@ public class JuniperJunosDriverTest {
 	@DisplayName("JuniperJunos Snapshot")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
-		Session nullSession = null;
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("JuniperJunos", null, domain, "test");
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(CONTAINER.getHost());
-		sshAccess.setPort(CONTAINER.getMappedPort(22));
-		device.getAccesses().add(sshAccess);
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("admin/admin").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("JuniperJunos", null, domain, "test").toBuilder();
+		List<DeviceAccess> deviceAccesses = new ArrayList<>();
+		Set<String> deviceTags = new HashSet<>();
+		DeviceAccess.DeviceAccessBuilder sshAccess = DeviceAccess.of("ssh").toBuilder();
+		sshAccess.address(CONTAINER.getHost());
+		sshAccess.port(CONTAINER.getMappedPort(22));
+		deviceAccesses.add(sshAccess.build());
+		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
-		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-			Device.class, AccessManager.class);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, this.taskContext, Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {
-			runMethod.invoke(script, nullSession, device, accessManager);
+			runMethod.invoke(script, device, accessManager);
 			Assertions.assertEquals("mx1", device.getName(), "The device name is incorrect");
 			Assertions.assertEquals("21.4R3.15", device.getSoftwareVersion(), "The software version is incorrect");
 			Assertions.assertEquals("Juniper MX240", device.getFamily(), "The device family is incorrect");
 			Assertions.assertEquals("Room 42", device.getLocation(), "The location is incorrect");
 			Assertions.assertEquals("netshot@example.com", device.getContact(), "The contact is incorrect");
 			Assertions.assertEquals(NetworkClass.ROUTER, device.getNetworkClass(), "The network class is incorrect");
-			Config config = device.getLastConfig();
+			Config config = device.getNewConfig();
 			Assertions.assertNotNull(config, "The config doesn't exist");
-			Assertions.assertEquals("admin", config.getAuthor(), "The config author is incorrect");
+			Assertions.assertEquals("admin", config.author(), "The config author is incorrect");
 			Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("configuration"))
-				.getLongText().getText().contains("host-name mx1"), "The configuration is not correct");
+				.text().contains("host-name mx1"), "The configuration is not correct");
 			Assertions.assertEquals(2, device.getModules().size(), "The number of modules is incorrect");
-			Assertions.assertEquals("JN123F456789", device.getModules().get(0).getSerialNumber(),
+			Assertions.assertEquals("JN123F456789", device.getModules().get(0).serialNumber(),
 				"The chassis module serial number is incorrect");
 			Assertions.assertEquals(Network4Address.getNetworkAddress("10.0.0.1", 30),
-				device.getNetworkInterface("ge-0/0/0.0").getIp4Addresses().iterator().next(),
+				device.getNetworkInterface("ge-0/0/0.0").ip4Addresses().iterator().next(),
 				"The ge-0/0/0.0 interface IP address is incorrect");
 		}
 		finally {

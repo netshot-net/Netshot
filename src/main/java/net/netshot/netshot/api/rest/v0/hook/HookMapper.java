@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Hibernate;
 
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
@@ -48,21 +47,19 @@ public final class HookMapper {
 	 * @throws IllegalArgumentException if the kind of hook is unknown
 	 */
 	public static HookDto toDto(Hook hook) {
-		Hook unproxied = (Hook) Hibernate.unproxy(hook);
-		if (unproxied instanceof WebHook webHook) {
-			List<HookTriggerDto> triggers = null;
-			if (webHook.getTriggers() != null) {
-				// The triggers are a set: they are listed by type, then item
-				triggers = new ArrayList<>(webHook.getTriggers().stream()
-					.sorted(Comparator.comparing(HookTrigger::getType, Comparator.nullsFirst(Comparator.naturalOrder()))
-						.thenComparing(HookTrigger::getItem, Comparator.nullsFirst(Comparator.naturalOrder())))
-					.map(trigger -> new HookTriggerDto(trigger.getType(), trigger.getItem()))
-					.toList());
-			}
-			return new HookDto.Web(webHook.getId(), webHook.getName(), webHook.isEnabled(), triggers, webHook.getAction(),
-				webHook.getUrl(), webHook.getHttpsCaTrustMode(), webHook.getHttpsCustomCaCertificate());
+		List<HookTriggerDto> triggers = null;
+		if (hook.triggers() != null) {
+			// The triggers are a set: they are listed by type, then item
+			triggers = new ArrayList<>(hook.triggers().stream()
+				.sorted(Comparator.comparing(HookTrigger::type, Comparator.nullsFirst(Comparator.naturalOrder()))
+					.thenComparing(HookTrigger::item, Comparator.nullsFirst(Comparator.naturalOrder())))
+				.map(trigger -> new HookTriggerDto(trigger.type(), trigger.item()))
+				.toList());
 		}
-		throw new IllegalArgumentException("Unknown kind of hook: " + unproxied.getClass().getName());
+		return switch (hook) {
+			case WebHook webHook -> new HookDto.Web(webHook.id(), webHook.name(), webHook.enabled(), triggers, webHook.action(),
+				webHook.url(), webHook.httpsCaTrustMode(), webHook.httpsCustomCaCertificate());
+		};
 	}
 
 	/**
@@ -90,16 +87,8 @@ public final class HookMapper {
 	 */
 	public static Hook toEntity(HookRequest request) {
 		if (request instanceof HookRequest.Web web) {
-			WebHook hook = new WebHook();
-			hook.setId(web.getId());
-			hook.setName(web.getName());
-			hook.setEnabled(web.isEnabled());
-			hook.setTriggers(toTriggers(web.getTriggers()));
-			hook.setAction(web.getAction());
-			hook.setUrl(web.getUrl());
-			hook.setHttpsCaTrustMode(web.getHttpsCaTrustMode());
-			hook.setHttpsCustomCaCertificate(web.getHttpsCustomCaCertificate());
-			return hook;
+			return new WebHook(web.getId(), web.getName(), web.isEnabled(), toTriggers(web.getTriggers()), web.getAction(),
+				web.getUrl(), web.getHttpsCaTrustMode(), web.getHttpsCustomCaCertificate());
 		}
 		throw new IllegalArgumentException("Unknown kind of hook request: " + request.getClass().getName());
 	}
@@ -115,10 +104,7 @@ public final class HookMapper {
 				triggers.add(null);
 				continue;
 			}
-			HookTrigger trigger = new HookTrigger();
-			trigger.setType(dto.type());
-			trigger.setItem(dto.item());
-			triggers.add(trigger);
+			triggers.add(new HookTrigger(dto.type(), dto.item()));
 		}
 		return triggers;
 	}

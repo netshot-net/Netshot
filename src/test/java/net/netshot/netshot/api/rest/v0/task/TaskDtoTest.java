@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v0.task;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +45,7 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
@@ -52,6 +54,7 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.contract.ApiContractGolden;
@@ -73,94 +76,87 @@ class TaskDtoTest {
 	private final DtoContract contract = new DtoContract(TaskDtoTest.class);
 
 	private static Domain domain() throws Exception {
-		Domain domain = new Domain("Paris DC", "Description", new Network4Address("10.255.0.1"), null);
-		domain.setId(3);
-		return domain;
+		return Domain.builder().id(3).name("Paris DC").description("Description").server4Address(new Network4Address("10.255.0.1")).build();
 	}
 
 	private static Device device(long id) throws Exception {
-		Device device = new Device("CiscoIOS12", "10.1.1." + id, domain(), "seed");
-		device.setId(id);
-		device.setName("router-" + id);
-		return device;
+		return Device.create("CiscoIOS12", "10.1.1." + id, domain(), "seed").toBuilder().id(id).name("router-" + id).build();
 	}
 
 	private static DeviceGroup group(long id) {
-		StaticDeviceGroup group = new StaticDeviceGroup("Group " + id);
-		group.setId(id);
-		return group;
+		return StaticDeviceGroup.builder().id(id).name("Group " + id).folder("").build();
 	}
 
 	/**
 	 * Gives every property shared by the tasks a distinctive value.
-	 * @param <T> the type of the task
 	 * @param task the task to fill
 	 * @param id the ID to give
 	 * @param status the status to give
-	 * @return the given task
+	 * @return the filled task
 	 */
-	private static <T extends Task> T filled(T task, long id, Task.Status status) {
-		task.setId(id);
-		task.setAuthor("author-" + id);
-		task.setChangeDate(new Date(1_600_000_000_000L + id));
-		task.setCreationDate(new Date(1_500_000_000_000L + id));
-		task.setExecutionDate(status == Task.Status.NEW ? null : new Date(1_550_000_000_000L + id));
-		task.setComments("Comments of " + id);
-		task.setDebugEnabled(id % 2 == 0);
-		task.setStatus(status);
-		task.setScheduleType(Task.ScheduleType.WEEKLY);
-		task.setScheduleReference(new Date(1_700_000_000_000L));
-		task.setScheduleFactor(3);
-		task.setPriority(7);
-		task.setRunnerId("runner-" + id);
-		task.setParentTaskId(id + 100);
-		task.setChildOrder((int) id);
-		task.setScheduleMode(Task.ScheduleMode.SEQUENTIAL);
-		task.setStopOnFailure(true);
-		task.setCancelRequested(true);
-		task.setDeviceDriver("CiscoIOS12");
-		task.setScript("script of " + id);
-		task.setUserInputValues(Map.of("input", "value"));
-		task.setRunSnapshot(true);
-		task.setRunDiagnostics(true);
-		task.setCheckCompliance(true);
-		task.setLog("line 1\nline 2 <&>");
-		return task;
+	private static Task filled(Task task, long id, Task.Status status) {
+		return task.toBuilder()
+			.id(id)
+			.author("author-" + id)
+			.changeDate(Instant.ofEpochMilli(1_600_000_000_000L + id))
+			.creationDate(Instant.ofEpochMilli(1_500_000_000_000L + id))
+			.executionDate(status == Task.Status.NEW ? null : Instant.ofEpochMilli(1_550_000_000_000L + id))
+			.comments("Comments of " + id)
+			.debugEnabled(id % 2 == 0)
+			.status(status)
+			.scheduleType(Task.ScheduleType.WEEKLY)
+			.scheduleReference(Instant.ofEpochMilli(1_700_000_000_000L))
+			.scheduleFactor(3)
+			.priority(7)
+			.runnerId("runner-" + id)
+			.parentTaskId(id + 100)
+			.childOrder((int) id)
+			.scheduleMode(Task.ScheduleMode.SEQUENTIAL)
+			.stopOnFailure(true)
+			.cancelRequested(true)
+			.log("line 1\nline 2 <&>")
+			.build();
+	}
+
+	// The script parameters given to the script tasks
+	private static RunDeviceScriptTask scriptSpec(long deviceId, long id) {
+		return new RunDeviceScriptTask(deviceId, "script of " + id, "CiscoIOS12", Map.of("input", "value"), true, true, true);
 	}
 
 	private List<Task> allTasks() throws Exception {
 		List<Task> tasks = new ArrayList<>();
-		tasks.add(filled(new TakeSnapshotTask(device(1), "snap", "tester", false, true, true), 1, Task.Status.SUCCESS));
-		tasks.add(filled(new CheckComplianceTask(device(2), "check", "tester"), 2, Task.Status.FAILURE));
-		tasks.add(filled(new RunDiagnosticsTask(device(3), "diag", "tester", true), 3, Task.Status.RUNNING));
-		tasks.add(filled(new RunDeviceScriptTask(device(4), "script", TestDrivers.registry().getDriverByName("CiscoIOS12"), "script", "tester"),
-			4, Task.Status.SCHEDULED));
-		DiscoverDeviceTypeTask discover = new DiscoverDeviceTypeTask("10.9.9.9", domain(), "discover", "tester");
-		discover.setDiscoveredDeviceType("CiscoIOS12");
-		discover.setDiscoverResultDevice(device(5));
-		discover.getAttributes().put("snapshotTaskId", 55L);
-		tasks.add(filled(discover, 5, Task.Status.SUCCESS));
-		tasks.add(filled(new DiscoverDeviceTypeTask("10.9.9.10", domain(), "discover without device", "tester"), 6, Task.Status.NEW));
-		TakeGroupSnapshotTask groupSnapshot = new TakeGroupSnapshotTask(group(10), "group snap", "tester", 12, false, true);
-		tasks.add(filled(groupSnapshot, 7, Task.Status.WAITING));
-		tasks.add(filled(new CheckGroupComplianceTask(group(11), "group check", "tester"), 8, Task.Status.DELAYED));
-		tasks.add(filled(new CheckGroupSoftwareTask(group(12), "group software", "tester"), 9, Task.Status.CANCELLED));
-		tasks.add(filled(new RunGroupDiagnosticsTask(group(13), "group diag", "tester", false), 10, Task.Status.SUCCESS));
-		RunDeviceGroupScriptTask groupScript = new RunDeviceGroupScriptTask();
-		groupScript.setDeviceGroup(group(14));
-		groupScript.setTarget("Group 14");
-		tasks.add(filled(groupScript, 11, Task.Status.RUNNING));
-		PurgeDatabaseTask purge = new PurgeDatabaseTask("purge", "tester", 30, 60, 10, 5, 20, group(15));
-		purge.setRemoveOrphanFiles(true);
-		tasks.add(filled(purge, 12, Task.Status.SCHEDULED));
-		tasks.add(filled(new PurgeDatabaseTask("purge all", "tester", 90, -1, 0, 0, -1, (DeviceGroup) null), 13, Task.Status.NEW));
-		tasks.add(filled(new PurgeDatabaseTask("purge devices", "tester", 90, -1, 0, 0, -1, List.of(device(6))), 14, Task.Status.NEW));
-		tasks.add(filled(new ScanSubnetsTask(Set.of(new Network4Address("10.8.0.0", 24)), domain(), "scan", "{10.8.0.0/24}", "tester"),
+		tasks.add(filled(TakeSnapshotTask.of(device(1), "snap", "tester", false, true, true), 1, Task.Status.SUCCESS));
+		tasks.add(filled(CheckComplianceTask.of(device(2), "check", "tester"), 2, Task.Status.FAILURE));
+		tasks.add(filled(RunDiagnosticsTask.of(device(3), "diag", "tester", true), 3, Task.Status.RUNNING));
+		tasks.add(filled(RunDeviceScriptTask.of(device(4), scriptSpec(4, 4), "script", "tester"), 4, Task.Status.SCHEDULED));
+		tasks.add(filled(Task.of(DiscoverDeviceTypeTask.builder().deviceAddress("10.9.9.9").domainId(3L)
+			.discoveredDeviceType("CiscoIOS12").discoverResultDeviceId(5L).snapshotTaskId(55L).build(), "discover", "10.9.9.9", "tester"),
+			5, Task.Status.SUCCESS));
+		tasks.add(filled(DiscoverDeviceTypeTask.of("10.9.9.10", 3L, Set.of(), "discover without device", "tester"), 6, Task.Status.NEW));
+		tasks.add(filled(GroupBasedTask.of(new TakeGroupSnapshotTask(10L, null, 12, false, true), group(10).name(), "group snap", "tester"),
+			7, Task.Status.WAITING));
+		tasks.add(filled(GroupBasedTask.of(new CheckGroupComplianceTask(11L, null), group(11).name(), "group check", "tester"),
+			8, Task.Status.DELAYED));
+		tasks.add(filled(GroupBasedTask.of(new CheckGroupSoftwareTask(12L, null), group(12).name(), "group software", "tester"),
+			9, Task.Status.CANCELLED));
+		tasks.add(filled(GroupBasedTask.of(new RunGroupDiagnosticsTask(13L, null, false), group(13).name(), "group diag", "tester"),
+			10, Task.Status.SUCCESS));
+		RunDeviceScriptTask script = scriptSpec(0, 11);
+		tasks.add(filled(Task.of(new RunDeviceGroupScriptTask(14L, null, script.script(), script.deviceDriver(), script.userInputValues(),
+			true, true, true), "", "Group 14", ""), 11, Task.Status.RUNNING));
+		tasks.add(filled(Task.of(PurgeDatabaseTask.builder().deviceGroupId(15L).days(30).configDays(60).configSize(10).configKeepDays(5)
+			.moduleDays(20).removeOrphanFiles(true).build(), "purge", "Global", "tester"), 12, Task.Status.SCHEDULED));
+		tasks.add(filled(Task.of(PurgeDatabaseTask.builder().days(90).build(), "purge all", "Global", "tester"), 13, Task.Status.NEW));
+		tasks.add(filled(Task.of(PurgeDatabaseTask.builder().deviceIds(List.of(6L)).days(90).build(), "purge devices", "Global", "tester"),
+			14, Task.Status.NEW));
+		tasks.add(filled(ScanSubnetsTask.of(Set.of(new Network4Address("10.8.0.0", 24)), 3L, "scan", "{10.8.0.0/24}", "tester"),
 			15, Task.Status.SUCCESS));
 		// The tasks which target nothing
-		tasks.add(filled(new TakeGroupSnapshotTask(), 16, Task.Status.NEW));
-		tasks.add(filled(new CheckGroupComplianceTask(), 17, Task.Status.NEW));
-		tasks.add(filled(new RunDeviceGroupScriptTask(), 18, Task.Status.NEW));
+		tasks.add(filled(Task.of(new TakeGroupSnapshotTask(null, null, -1, false, false), "", "None", ""), 16, Task.Status.NEW));
+		tasks.add(filled(Task.of(new CheckGroupComplianceTask(null, null), "", "None", ""), 17, Task.Status.NEW));
+		RunDeviceScriptTask script18 = scriptSpec(0, 18);
+		tasks.add(filled(Task.of(new RunDeviceGroupScriptTask(null, null, script18.script(), script18.deviceDriver(),
+			script18.userInputValues(), true, true, true), "", "None", ""), 18, Task.Status.NEW));
 		return tasks;
 	}
 
@@ -183,15 +179,15 @@ class TaskDtoTest {
 		Set<Class<?>> covered = new java.util.HashSet<>();
 		for (Task task : this.allTasks()) {
 			TaskDto dto = TaskMapper.toDto(TestDrivers.registry(), task);
-			this.assertRepresentation(dto, task.getClass().getSimpleName() + " " + task.getId());
-			covered.add(task.getClass());
+			this.assertRepresentation(dto, task.typeName() + " " + task.id());
+			covered.add(task.spec().getClass());
 			// Make sure the check is meaningful
 			String json = new String(json(dto));
-			Assertions.assertTrue(json.contains("\"type\":\"" + task.getClass().getSimpleName() + "\""), json);
+			Assertions.assertTrue(json.contains("\"type\":\"" + task.typeName() + "\""), json);
 			Assertions.assertTrue(json.contains("\"log\":\"line 1\\nline 2 <&>\""), json);
-			Assertions.assertTrue(new String(xml(dto)).contains("<" + task.getClass().getSimpleName() + " type=\""), new String(xml(dto)));
+			Assertions.assertTrue(new String(xml(dto)).contains("<" + task.typeName() + " type=\""), new String(xml(dto)));
 		}
-		Assertions.assertEquals(Task.getTaskClasses(), covered, "every type of task is tested");
+		Assertions.assertEquals(Set.of(TaskSpec.class.getPermittedSubclasses()), covered, "every type of task is tested");
 	}
 
 	@Test

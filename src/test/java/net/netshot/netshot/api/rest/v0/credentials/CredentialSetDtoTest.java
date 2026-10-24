@@ -18,10 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.credentials;
 
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.RecordComponent;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -43,9 +41,9 @@ import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
@@ -81,10 +79,8 @@ class CredentialSetDtoTest {
 	}
 
 	private static Domain domain() throws Exception {
-		Domain domain = new Domain("Paris DC", "Paris data center", new Network4Address("10.255.0.1"), new Network6Address("2001:db8::1"));
-		domain.setId(1);
-		domain.setChangeDate(new Date(1_600_000_000_000L));
-		return domain;
+		return Domain.builder().id(1).name("Paris DC").description("Paris data center").changeDate(Instant.ofEpochMilli(1_600_000_000_000L))
+			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("2001:db8::1")).build();
 	}
 
 	/**
@@ -93,21 +89,17 @@ class CredentialSetDtoTest {
 	 */
 	private static List<DeviceCredentialSet> localCredentialSets() throws Exception {
 		SECRETS.clear();
-		DeviceSnmpv1Community v1 = new DeviceSnmpv1Community(secret("v1-community"), "SNMP v1");
-		DeviceSnmpv2cCommunity v2 = new DeviceSnmpv2cCommunity(secret("v2-community"), "SNMP v2");
-		v2.setMgmtDomain(domain());
-		DeviceSnmpv3Community v3 = new DeviceSnmpv3Community(secret("v3-context"), "SNMP v3", "snmpuser", AuthProtocol.SHA,
-			secret("v3-auth"), PrivProtocol.AES128, secret("v3-priv"));
-		DeviceSshAccount ssh = new DeviceSshAccount("sshuser", secret("ssh-password"), secret("ssh-super"), "SSH");
-		DeviceSshKeyAccount key = new DeviceSshKeyAccount("keyuser", secret("key-private"), secret("key-password"), secret("key-super"), "SSH Key");
-		key.setMgmtDomain(domain());
-		DeviceTelnetAccount telnet = new DeviceTelnetAccount("telnetuser", secret("telnet-password"), secret("telnet-super"), "Telnet");
-		DeviceHttpAccount http = new DeviceHttpAccount("httpuser", secret("http-password"), "HTTP");
-		List<DeviceCredentialSet> all = List.of(v1, v2, v3, ssh, key, telnet, http);
-		long id = 1;
-		for (DeviceCredentialSet credentialSet : all) {
-			credentialSet.setId(id++);
-		}
+		List<DeviceCredentialSet> all = List.of(
+			DeviceSnmpv1Community.builder().id(1).community(secret("v1-community")).name("SNMP v1").build(),
+			DeviceSnmpv2cCommunity.builder().id(2).community(secret("v2-community")).name("SNMP v2").mgmtDomain(domain()).build(),
+			DeviceSnmpv3Community.builder().id(3).community(secret("v3-context")).name("SNMP v3").username("snmpuser").authType(AuthProtocol.SHA)
+				.authKey(secret("v3-auth")).privType(PrivProtocol.AES128).privKey(secret("v3-priv")).build(),
+			DeviceSshAccount.builder().id(4).username("sshuser").password(secret("ssh-password")).superPassword(secret("ssh-super")).name("SSH").build(),
+			DeviceSshKeyAccount.builder().id(5).username("keyuser").privateKey(secret("key-private")).password(secret("key-password"))
+				.superPassword(secret("key-super")).name("SSH Key").mgmtDomain(domain()).build(),
+			DeviceTelnetAccount.builder().id(6).username("telnetuser").password(secret("telnet-password")).superPassword(secret("telnet-super"))
+				.name("Telnet").build(),
+			DeviceHttpAccount.builder().id(7).username("httpuser").password(secret("http-password")).name("HTTP").build());
 		return all;
 	}
 
@@ -116,32 +108,27 @@ class CredentialSetDtoTest {
 	 * @return the credential sets
 	 */
 	private static List<DeviceCredentialSet> vaultCredentialSets() throws Exception {
-		List<DeviceCredentialSet> all = localCredentialSets();
-		DeviceSnmpv1Community v1 = (DeviceSnmpv1Community) all.get(0);
-		v1.setResolvedCommunityVaultInstanceId(11L);
-		v1.setCommunityVaultPath("netshot/v1");
-		DeviceSnmpv3Community v3 = (DeviceSnmpv3Community) all.get(2);
-		v3.setResolvedCommunityVaultInstanceId(12L);
-		v3.setCommunityVaultPath("netshot/v3/community");
-		v3.setResolvedUsernameVaultInstanceId(12L);
-		v3.setUsernameVaultPath("netshot/v3/username");
-		v3.setResolvedAuthKeyVaultInstanceId(12L);
-		v3.setAuthKeyVaultPath("netshot/v3/auth");
-		v3.setResolvedPrivKeyVaultInstanceId(12L);
-		v3.setPrivKeyVaultPath("netshot/v3/priv");
-		DeviceSshKeyAccount key = (DeviceSshKeyAccount) all.get(4);
-		key.setResolvedUsernameVaultInstanceId(13L);
-		key.setUsernameVaultPath("netshot/key/username");
-		key.setResolvedPasswordVaultInstanceId(13L);
-		key.setPasswordVaultPath("netshot/key/password");
-		key.setResolvedSuperPasswordVaultInstanceId(13L);
-		key.setSuperPasswordVaultPath("netshot/key/super");
-		key.setResolvedPrivateKeyVaultInstanceId(13L);
-		key.setPrivateKeyVaultPath("netshot/key/private");
-		DeviceHttpAccount http = (DeviceHttpAccount) all.get(6);
-		http.setResolvedUsernameVaultInstanceId(14L);
-		http.setUsernameVaultPath("netshot/http/username");
-		all.get(1).setDeviceSpecific(true);
+		List<DeviceCredentialSet> local = localCredentialSets();
+		DeviceSnmpv1Community v1 = (DeviceSnmpv1Community) local.get(0);
+		DeviceSnmpv3Community v3 = (DeviceSnmpv3Community) local.get(2);
+		DeviceSshKeyAccount key = (DeviceSshKeyAccount) local.get(4);
+		DeviceHttpAccount http = (DeviceHttpAccount) local.get(6);
+		List<DeviceCredentialSet> all = new ArrayList<>(local);
+		all.set(0, v1.toBuilder().communityVaultInstanceId(11L).communityVaultPath("netshot/v1").build());
+		all.set(1, local.get(1).withIdentity(local.get(1).id(), local.get(1).name(), true));
+		all.set(2, v3.toBuilder()
+			.communityVaultInstanceId(12L).communityVaultPath("netshot/v3/community")
+			.usernameVaultInstanceId(12L).usernameVaultPath("netshot/v3/username")
+			.authKeyVaultInstanceId(12L).authKeyVaultPath("netshot/v3/auth")
+			.privKeyVaultInstanceId(12L).privKeyVaultPath("netshot/v3/priv")
+			.build());
+		all.set(4, key.toBuilder()
+			.usernameVaultInstanceId(13L).usernameVaultPath("netshot/key/username")
+			.passwordVaultInstanceId(13L).passwordVaultPath("netshot/key/password")
+			.superPasswordVaultInstanceId(13L).superPasswordVaultPath("netshot/key/super")
+			.privateKeyVaultInstanceId(13L).privateKeyVaultPath("netshot/key/private")
+			.build());
+		all.set(6, http.toBuilder().usernameVaultInstanceId(14L).usernameVaultPath("netshot/http/username").build());
 		return all;
 	}
 
@@ -196,8 +183,9 @@ class CredentialSetDtoTest {
 	@Test
 	@DisplayName("A credential set without any value has the same representation as the entity")
 	void emptyRepresentation() throws Exception {
-		for (DeviceCredentialSet credentialSet : List.of(new DeviceSnmpv1Community(null, null), new DeviceSnmpv3Community(null, "n", null, null, null, null, null),
-			new DeviceSshAccount(null, null, null, "n"), new DeviceSshKeyAccount(null, null, null, null, "n"), new DeviceHttpAccount(null, null, "n"))) {
+		for (DeviceCredentialSet credentialSet : List.of(DeviceSnmpv1Community.builder().community(null).name(null).build(), DeviceSnmpv3Community.builder().name("n").build(),
+			DeviceSshAccount.builder().username(null).password(null).superPassword(null).name("n").build(), DeviceSshKeyAccount.builder().username(null).privateKey(null).password(null)
+				.superPassword(null).name("n").build(), DeviceHttpAccount.builder().username(null).password(null).name("n").build())) {
 			this.assertRepresentation(CredentialSetMapper.toDto(credentialSet));
 		}
 	}
@@ -224,7 +212,7 @@ class CredentialSetDtoTest {
 			Assertions.assertTrue(text.contains("\"superPassword\":\"=\""), text);
 			Assertions.assertTrue(text.contains("\"username\":\"sshuser\""), "the username is not a secret: " + text);
 		}
-		String empty = new String(json(CredentialSetMapper.toDto(new DeviceSshAccount(null, null, null, "n"))));
+		String empty = new String(json(CredentialSetMapper.toDto(DeviceSshAccount.builder().username(null).password(null).superPassword(null).name("n").build())));
 		Assertions.assertTrue(empty.contains("\"password\":null"), "a missing secret stays null: " + empty);
 	}
 
@@ -250,30 +238,37 @@ class CredentialSetDtoTest {
 	// Requests
 	// ------------------------------------------------------------------
 
-	private static Map<String, Object> describe(Object bean) throws IntrospectionException, ReflectiveOperationException {
+	/**
+	 * Describes what a request was read as, the way the former entities exposed it (bean properties):
+	 * the Vault instance given by a request was a pending one ({@code resolvedXxxVaultInstanceId}),
+	 * the stored one ({@code xxxVaultInstanceId}) being unset.
+	 *
+	 * @param bean the credential set
+	 * @return the property values, by property name
+	 */
+	private static Map<String, Object> describe(Object bean) throws ReflectiveOperationException {
 		Map<String, Object> description = new TreeMap<>();
-		for (PropertyDescriptor property : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
-			if (property.getReadMethod() == null || "class".equals(property.getName())) {
-				continue;
+		for (RecordComponent component : bean.getClass().getRecordComponents()) {
+			String name = component.getName();
+			Object value = component.getAccessor().invoke(bean);
+			if (name.endsWith("VaultInstanceId")) {
+				description.put("resolved" + Character.toUpperCase(name.charAt(0)) + name.substring(1), value);
+				description.put(name, null);
 			}
-			Object value;
-			try {
-				value = property.getReadMethod().invoke(bean);
-			}
-			catch (InvocationTargetException e) {
-				continue;
-			}
-			if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean
+			else if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean
 					|| value instanceof Enum || value instanceof Date) {
-				description.put(property.getName(), value);
+				description.put(name, value);
+			}
+			else if (value instanceof Instant instant) {
+				description.put(name, Date.from(instant));
 			}
 			else if (value instanceof Domain domain) {
 				// Only the identity of the domain is read
 				Map<String, Object> reference = new TreeMap<>();
-				reference.put("id", domain.getId());
-				reference.put("name", domain.getName());
-				reference.put("description", domain.getDescription());
-				description.put(property.getName(), reference);
+				reference.put("id", domain.id());
+				reference.put("name", domain.name());
+				reference.put("description", domain.description());
+				description.put(name, reference);
 			}
 		}
 		return description;

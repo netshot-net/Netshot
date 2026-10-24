@@ -18,20 +18,20 @@
  */
 package net.netshot.netshot.api.rest.v0.diagnostic;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-
-import org.hibernate.Hibernate;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
-import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
+import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
@@ -39,9 +39,8 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
 /**
- * Maps the diagnostics and their results between the entities and their REST representation.
- * All the methods are pure functions, reading detached entities with the fetch plan of
- * {@code DiagnosticRepository}.
+ * Maps the diagnostics and their results between the records and their REST representation.
+ * All the methods are pure functions.
  */
 public final class DiagnosticMapper {
 
@@ -49,12 +48,16 @@ public final class DiagnosticMapper {
 		// Static helpers only
 	}
 
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
+	}
+
 	// The description of the driver of the diagnostic: empty for any driver, "Unknown driver" when it isn't loaded
 	private static String deviceDriverDescription(DriverRegistry driverRegistry, SimpleDiagnostic diagnostic) {
-		if ("".equals(diagnostic.getDeviceDriver())) {
+		if ("".equals(diagnostic.deviceDriver())) {
 			return "";
 		}
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(diagnostic.getDeviceDriver());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(diagnostic.deviceDriver());
 		if (deviceDriver == null) {
 			return "Unknown driver";
 		}
@@ -65,25 +68,19 @@ public final class DiagnosticMapper {
 	 * Maps a diagnostic to its representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param diagnosticOrProxy the diagnostic (or a proxy of it), with its target group loaded
+	 * @param view the diagnostic, with its target group
 	 * @return the DTO, of the kind of the diagnostic
 	 */
-	public static DiagnosticDto toDto(DriverRegistry driverRegistry, Diagnostic diagnosticOrProxy) {
-		Diagnostic diagnostic = (Diagnostic) Hibernate.unproxy(diagnosticOrProxy);
-		DeviceGroupDto group = diagnostic.getTargetGroup() == null ? null : GroupMapper.toDto(diagnostic.getTargetGroup());
-		if (diagnostic instanceof SimpleDiagnostic simple) {
-			return new DiagnosticDto.Simple(simple.getCliMode(), simple.getCommand(), simple.getDeviceDriver(),
-				deviceDriverDescription(driverRegistry, simple), simple.isEnabled(), simple.getId(), simple.getModifierPattern(),
-				simple.getModifierReplacement(), simple.getName(), simple.getResultType(), group);
-		}
-		else if (diagnostic instanceof JavaScriptDiagnostic js) {
-			return new DiagnosticDto.JavaScript(js.isEnabled(), js.getId(), js.getName(), js.getResultType(), js.getScript(), group);
-		}
-		else if (diagnostic instanceof PythonDiagnostic python) {
-			return new DiagnosticDto.Python(python.isEnabled(), python.getId(), python.getName(), python.getResultType(),
-				python.getScript(), group);
-		}
-		throw new IllegalArgumentException("Unknown kind of diagnostic: " + diagnostic.getClass().getName());
+	public static DiagnosticDto toDto(DriverRegistry driverRegistry, DiagnosticView view) {
+		DeviceGroupDto group = view.targetGroup() == null ? null : GroupMapper.toDto(view.targetGroup());
+		return switch (view.diagnostic()) {
+			case SimpleDiagnostic simple -> new DiagnosticDto.Simple(simple.cliMode(), simple.command(), simple.deviceDriver(),
+				deviceDriverDescription(driverRegistry, simple), simple.enabled(), simple.id(), simple.modifierPattern(),
+				simple.modifierReplacement(), simple.name(), simple.resultType(), group);
+			case JavaScriptDiagnostic js -> new DiagnosticDto.JavaScript(js.enabled(), js.id(), js.name(), js.resultType(), js.script(), group);
+			case PythonDiagnostic python -> new DiagnosticDto.Python(python.enabled(), python.id(), python.name(), python.resultType(),
+				python.script(), group);
+		};
 	}
 
 	/**
@@ -93,7 +90,7 @@ public final class DiagnosticMapper {
 	 * @param diagnostics the diagnostics, with their target group loaded
 	 * @return the DTOs, in the same order
 	 */
-	public static List<DiagnosticDto> toDtos(DriverRegistry driverRegistry, List<Diagnostic> diagnostics) {
+	public static List<DiagnosticDto> toDtos(DriverRegistry driverRegistry, List<DiagnosticView> diagnostics) {
 		List<DiagnosticDto> dtos = new ArrayList<>(diagnostics.size());
 		diagnostics.forEach(diagnostic -> dtos.add(toDto(driverRegistry, diagnostic)));
 		return dtos;
@@ -102,28 +99,20 @@ public final class DiagnosticMapper {
 	/**
 	 * Maps a diagnostic result to its representation.
 	 *
-	 * @param resultOrProxy the result (or a proxy of it), with its diagnostic loaded
+	 * @param result the result
 	 * @return the DTO, of the type of the result
 	 */
-	public static DiagnosticResultDto toDto(DiagnosticResult resultOrProxy) {
-		DiagnosticResult result = (DiagnosticResult) Hibernate.unproxy(resultOrProxy);
-		if (result instanceof DiagnosticTextResult text) {
-			return new DiagnosticResultDto.Text(text.getCreationDate(), text.getDiagnosticId(), text.getDiagnosticName(),
-				text.getLastCheckDate(), text.getText());
-		}
-		else if (result instanceof DiagnosticLongTextResult longText) {
-			return new DiagnosticResultDto.LongText(longText.getCreationDate(), longText.getDiagnosticId(),
-				longText.getDiagnosticName(), longText.getLastCheckDate());
-		}
-		else if (result instanceof DiagnosticNumericResult numeric) {
-			return new DiagnosticResultDto.Numeric(numeric.getCreationDate(), numeric.getDiagnosticId(),
-				numeric.getDiagnosticName(), numeric.getLastCheckDate(), numeric.getNumber());
-		}
-		else if (result instanceof DiagnosticBinaryResult binary) {
-			return new DiagnosticResultDto.Binary(binary.getAssumption(), binary.getCreationDate(), binary.getDiagnosticId(),
-				binary.getDiagnosticName(), binary.getLastCheckDate());
-		}
-		throw new IllegalArgumentException("Unknown kind of diagnostic result: " + result.getClass().getName());
+	public static DiagnosticResultDto toDto(DiagnosticResult result) {
+		return switch (result) {
+			case DiagnosticTextResult text -> new DiagnosticResultDto.Text(date(text.creationDate()), text.diagnosticId(),
+				text.diagnosticName(), date(text.lastCheckDate()), text.text());
+			case DiagnosticLongTextResult longText -> new DiagnosticResultDto.LongText(date(longText.creationDate()),
+				longText.diagnosticId(), longText.diagnosticName(), date(longText.lastCheckDate()));
+			case DiagnosticNumericResult numeric -> new DiagnosticResultDto.Numeric(date(numeric.creationDate()),
+				numeric.diagnosticId(), numeric.diagnosticName(), date(numeric.lastCheckDate()), numeric.number());
+			case DiagnosticBinaryResult binary -> new DiagnosticResultDto.Binary(binary.assumption(), date(binary.creationDate()),
+				binary.diagnosticId(), binary.diagnosticName(), date(binary.lastCheckDate()));
+		};
 	}
 
 	/**
