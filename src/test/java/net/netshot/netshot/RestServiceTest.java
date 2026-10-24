@@ -971,6 +971,52 @@ public class RestServiceTest extends WithDatabaseTest {
 						targetDomain, dbDomain, "Domain not updated as expected");
 				}
 			}
+
+			@Test
+			@DisplayName("Refuse a null domain name, store a null description as empty")
+			@ResourceLock("DB")
+			void nullDomainNameAndDescription() throws IOException, InterruptedException {
+				ObjectNode noName = JsonNodeFactory.instance.objectNode()
+					.putNull("name")
+					.put("description", "Domain without name")
+					.put("ipAddress", "10.1.1.1");
+				{
+					HttpResponse<JsonNode> response = apiClient.post("/domains", noName);
+					Assertions.assertEquals(
+						Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
+						"Not getting 400 response for a domain without name");
+					Assertions.assertEquals(
+						NetshotBadRequestException.Reason.NETSHOT_INVALID_DOMAIN_NAME.getCode(),
+						response.body().get("errorCode").asInt());
+				}
+				ObjectNode noDescription = JsonNodeFactory.instance.objectNode()
+					.put("name", "Test")
+					.putNull("description")
+					.put("ipAddress", "10.1.1.1");
+				HttpResponse<JsonNode> createResponse = apiClient.post("/domains", noDescription);
+				Assertions.assertEquals(
+					Response.Status.CREATED.getStatusCode(), createResponse.statusCode(),
+					"Not getting 201 response for a domain without description");
+				long id = createResponse.body().get("id").asLong();
+				try (Session session = Database.getSession()) {
+					Assertions.assertEquals("", session.get(Domain.class, id).getDescription());
+				}
+				{
+					HttpResponse<JsonNode> response = apiClient.put("/domains/%d".formatted(id), noName);
+					Assertions.assertEquals(
+						Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
+						"Not getting 400 response for a domain update without name");
+					Assertions.assertEquals(
+						NetshotBadRequestException.Reason.NETSHOT_INVALID_DOMAIN_NAME.getCode(),
+						response.body().get("errorCode").asInt());
+				}
+				{
+					HttpResponse<JsonNode> response = apiClient.put("/domains/%d".formatted(id), noDescription);
+					Assertions.assertEquals(
+						Response.Status.OK.getStatusCode(), response.statusCode(),
+						"Not getting 200 response for a domain update without description");
+				}
+			}
 		}
 
 		@Nested
@@ -1610,6 +1656,53 @@ public class RestServiceTest extends WithDatabaseTest {
 			}
 		}
 
+	}
+
+	@Nested
+	@DisplayName("Group tests")
+	@ResourceLock("DB")
+	class GroupTest {
+
+		@AfterEach
+		void cleanUpData() {
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.createMutationQuery("delete from DeviceGroup").executeUpdate();
+				session.getTransaction().commit();
+			}
+		}
+
+		@Test
+		@DisplayName("Refuse a null group name")
+		void nullGroupName() throws IOException, InterruptedException {
+			ObjectNode noName = JsonNodeFactory.instance.objectNode()
+				.putNull("name")
+				.put("type", "StaticDeviceGroup");
+			{
+				HttpResponse<JsonNode> response = apiClient.post("/groups", noName);
+				Assertions.assertEquals(
+					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
+					"Not getting 400 response for a group without name");
+				Assertions.assertEquals(
+					NetshotBadRequestException.Reason.NETSHOT_INVALID_GROUP_NAME.getCode(),
+					response.body().get("errorCode").asInt());
+			}
+			StaticDeviceGroup group = new StaticDeviceGroup("Test group");
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.persist(group);
+				session.getTransaction().commit();
+			}
+			{
+				HttpResponse<JsonNode> response = apiClient.put("/groups/%d".formatted(group.getId()), noName);
+				Assertions.assertEquals(
+					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
+					"Not getting 400 response for a group update without name");
+				Assertions.assertEquals(
+					NetshotBadRequestException.Reason.NETSHOT_INVALID_GROUP_NAME.getCode(),
+					response.body().get("errorCode").asInt());
+			}
+		}
 	}
 
 	@Nested

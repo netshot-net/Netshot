@@ -694,13 +694,13 @@ public class RestService extends Thread {
 	@Tag(name = "Admin", description = "Administrative actions")
 	public RsDomain addDomain(RsDomain newDomain) throws WebApplicationException {
 		log.debug("REST request, add a domain");
-		String name = newDomain.getName().trim();
+		String name = newDomain.getName() == null ? "" : newDomain.getName().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an empty domain name.");
 			throw new NetshotBadRequestException("Invalid domain name.",
 				NetshotBadRequestException.Reason.NETSHOT_INVALID_DOMAIN_NAME);
 		}
-		String description = newDomain.getDescription().trim();
+		String description = newDomain.getDescription() == null ? "" : newDomain.getDescription().trim();
 		try {
 			Network4Address v4Address = newDomain.getIpAddress();
 			Network6Address v6Address = new Network6Address("::");
@@ -764,13 +764,13 @@ public class RestService extends Thread {
 	public RsDomain setDomain(@PathParam("id") @Parameter(description = "Domain ID") Long id, RsDomain rsDomain)
 		throws WebApplicationException {
 		log.debug("REST request, edit domain {}.", id);
-		String name = rsDomain.getName().trim();
+		String name = rsDomain.getName() == null ? "" : rsDomain.getName().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an invalid domain name.");
 			throw new NetshotBadRequestException("Invalid domain name.",
 				NetshotBadRequestException.Reason.NETSHOT_INVALID_DOMAIN_NAME);
 		}
-		String description = rsDomain.getDescription().trim();
+		String description = rsDomain.getDescription() == null ? "" : rsDomain.getDescription().trim();
 		Network4Address v4Address = rsDomain.getIpAddress();
 		if (!v4Address.isNormalUnicast()) {
 			log.warn("User posted an invalid IP address");
@@ -3990,7 +3990,7 @@ public class RestService extends Thread {
 	public DeviceGroup addGroup(RsDeviceGroup rsGroup)
 		throws WebApplicationException {
 		log.debug("REST request, add group.");
-		String name = rsGroup.getName().trim();
+		String name = rsGroup.getName() == null ? "" : rsGroup.getName().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an empty group name.");
 			throw new NetshotBadRequestException("Invalid group name.",
@@ -4306,7 +4306,7 @@ public class RestService extends Thread {
 				throw new NetshotBadRequestException("Unknown group type.",
 					NetshotBadRequestException.Reason.NETSHOT_INCOMPATIBLE_GROUP_TYPE);
 			}
-			String name = rsGroup.getName().trim();
+			String name = rsGroup.getName() == null ? "" : rsGroup.getName().trim();
 			if (name.isEmpty()) {
 				log.warn("User posted an empty group name.");
 				throw new NetshotBadRequestException("Invalid group name.",
