@@ -32,6 +32,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
+import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
@@ -257,6 +258,33 @@ public class PurgeTest {
 				+ DEVICES_WITH_BIG_CONFIG * CONFIGS_PER_DAY * purgeDays);
 		this.assertTaskCount(DEVICES * CONFIGS_PER_DAY * DAYS);
 		this.assertModuleCount(DEVICES * 4);
+	}
+
+	@Test
+	@DisplayName("Oversized config purge test, on the size of a binary file")
+	@ResourceLock("DB")
+	public void oversizedBinaryFileConfigPurgeTest() {
+		// A device with small configurations gets an old one with a big binary file
+		long deviceId = this.group1Devices().get(0);
+		Config config = FakeDeviceFactory.getFakeCiscoIosConfig(TestDevices.find(deviceId));
+		List<ConfigAttribute> attributes = new ArrayList<>(config.attributes());
+		attributes.add(new ConfigBinaryFileAttribute("backupFile", "00000000-0000-0000-0000-000000000001", "backup.tar.gz",
+			5 * 1024 * 1024, null));
+		Calendar configDate = Calendar.getInstance();
+		configDate.add(Calendar.DATE, -(DAYS + 1));
+		long bigConfigId = TestDevices.addOldConfig(deviceId,
+			config.toBuilder().attributes(attributes).changeDate(configDate.toInstant()).build());
+
+		final int purgeDays = 18;
+		this.purge(0, purgeDays, 2, 0, 0, null, null);
+
+		Assertions.assertEquals(0, count("select count(1) from config c where c.id = " + bigConfigId),
+			"The configuration with a binary file bigger than the size should be purged");
+		Assertions.assertEquals(
+			(DEVICES - DEVICES_WITH_BIG_CONFIG) * CONFIGS_PER_DAY * DAYS
+				+ DEVICES_WITH_BIG_CONFIG * CONFIGS_PER_DAY * purgeDays,
+			count("select count(1) from config c"),
+			"Unexpected number of config entries");
 	}
 
 	@Test
