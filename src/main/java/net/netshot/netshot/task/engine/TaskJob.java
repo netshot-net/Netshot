@@ -239,8 +239,11 @@ public class TaskJob implements Job {
 				try {
 					this.handlers.run(task, run);
 				}
-				catch (Error e) {
+				catch (RuntimeException | Error e) {
+					// Must not escape: the task would never be saved and would stay RUNNING
 					log.error("Error while running the task {}.", id, e);
+					run.logger.error("Error while running the task: {}", e.toString());
+					run.fail();
 				}
 			}
 		}
