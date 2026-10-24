@@ -47,8 +47,6 @@
 
 **Static groups**: since 0.25.0, a device was removed from all its static groups each time its dynamic groups were refreshed, that is after a snapshot, a compliance check, diagnostics, a script run, a device type discovery, or a device creation or update through the API ([#413](https://github.com/netshot-net/Netshot/issues/413)). This is fixed, but the lost memberships can't be restored automatically: check your static groups after the upgrade, and add the missing devices again (or restore them from a database backup taken before the upgrade to 0.25).
 
-**Search by IP**: since the upgrade to 0.25.0, the devices created with an earlier version were missing their resolved management IP address until their next successful snapshot. Until then, a search by IP (such as typing an address in the device search box) couldn't find them by their management address, and an SNMP trap or a syslog message from that address didn't trigger an automatic snapshot. A device that is never successfully snapshotted, such as a `[NONAME]` device, stayed in that state. The upgrade sets the missing address of all the devices whose management address is an IP address.
-
 **REST API**: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty. Updating a hook with `"triggers": null` (`PUT /hooks/{id}`) now removes all its triggers, as on creation, instead of failing with a 500 error.
 
 ### Any version to 0.20+

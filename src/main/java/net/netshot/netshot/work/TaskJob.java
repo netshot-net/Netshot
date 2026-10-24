@@ -164,22 +164,6 @@ public class TaskJob implements Job {
 	}
 
 	/**
-	 * Runs the task, failing it if it throws: the exception must not escape the
-	 * task job, or the task would never be saved and would stay RUNNING.
-	 * @param task the task
-	 */
-	static void runSafely(Task task) {
-		try {
-			task.run();
-		}
-		catch (RuntimeException | Error e) {
-			log.error("Error while running the task {}.", task.getId(), e);
-			task.logger.error("Error while running the task: {}", e.toString());
-			task.setFailed();
-		}
-	}
-
-	/**
 	 * Executes the task, once the task lock is held.
 	 * @param id the task ID
 	 * @param lockManager the lock manager
@@ -272,7 +256,12 @@ public class TaskJob implements Job {
 			}
 			if (runTask) {
 				log.warn("Running the task {} of type {}", id, task.getClass().getSimpleName());
-				runSafely(task);
+				try {
+					task.run();
+				}
+				catch (Error e) {
+					log.error("Error while running the task {}.", id, e);
+				}
 			}
 		}
 		catch (SQLException e) {
