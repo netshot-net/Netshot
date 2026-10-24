@@ -18,11 +18,10 @@
  */
 package net.netshot.netshot.compliance.check;
 
-import org.hibernate.Session;
 
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -45,10 +44,10 @@ public interface RuleEvaluator<R extends Rule> {
 	 *
 	 * @param rule the rule
 	 * @param device the device
-	 * @param session the session
+	 * @param exempted true if the device is exempted from the rule
 	 * @param taskContext the task context
 	 * @return the result of the check
 	 */
-	CheckResult evaluate(R rule, Device device, Session session, TaskContext taskContext);
+	CheckResult evaluate(R rule, DeviceDraft device, boolean exempted, TaskContext taskContext);
 
 }

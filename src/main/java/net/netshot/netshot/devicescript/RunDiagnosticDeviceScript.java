@@ -26,7 +26,6 @@ import java.util.Map;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
@@ -42,8 +41,8 @@ import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 @Slf4j
@@ -70,7 +69,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 	}
 
 	@Override
-	protected void run(Session session, Device device, AccessManager accessManager)
+	protected void run(DeviceDraft device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, UnsupportedOperationException, MissingDeviceDriverException {
 		DeviceDriver driver = this.driverRegistry.forDevice(device);
 		JsCliHelper jsCliHelper = new JsCliHelper(accessManager, driver.getDefaultCliAccessDefinitions(), true, this.taskContext);
@@ -82,21 +81,21 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
 			clientFactory.setOptions(options);
-			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, null, this.taskContext, false));
+			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, this.taskContext, false));
 
 			Map<String, Object> jsDiagnostics = new HashMap<String, Object>();
 			for (Diagnostic diagnostic : this.diagnostics) {
 				try {
-					Value jsObject = this.adapters.toJsObject(diagnostic, device, context);
+					Value jsObject = this.adapters.toJsObject(diagnostic, device.getOriginal(), context);
 					if (jsObject == null) {
 						continue;
 					}
-					jsDiagnostics.put(diagnostic.getName(), jsObject);
+					jsDiagnostics.put(diagnostic.name(), jsObject);
 				}
 				catch (Exception e1) {
-					log.error("Error while preparing the diagnostic {} for JS", diagnostic.getName(), e1);
+					log.error("Error while preparing the diagnostic {} for JS", diagnostic.name(), e1);
 					this.taskContext.error("Error while preparing the diagnostic {} for JS: '{}'.",
-						diagnostic.getName(), e1.getMessage());
+						diagnostic.name(), e1.getMessage());
 				}
 			}
 			options.setDiagnosticHelper(new JsDiagnosticHelper(device, diagnostics, this.adapters, jsDiagnostics, this.taskContext));

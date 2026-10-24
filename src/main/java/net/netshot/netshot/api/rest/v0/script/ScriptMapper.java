@@ -41,7 +41,7 @@ public final class ScriptMapper {
 
 	// The description of the driver of the script
 	private static String realDeviceType(DriverRegistry driverRegistry, DeviceJsScript script) {
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(script.getDeviceDriver());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(script.deviceDriver());
 		if (deviceDriver == null) {
 			return "Unknown driver";
 		}
@@ -57,16 +57,16 @@ public final class ScriptMapper {
 	 */
 	public static ScriptDto toDto(DriverRegistry driverRegistry, DeviceJsScript script) {
 		Map<String, UserInputDefinitionDto> definitions = null;
-		if (script.getUserInputDefinitions() != null) {
+		if (script.userInputDefinitions() != null) {
 			definitions = new LinkedHashMap<>();
-			for (Map.Entry<String, UserInputDefinition> entry : script.getUserInputDefinitions().entrySet()) {
+			for (Map.Entry<String, UserInputDefinition> entry : script.userInputDefinitions().entrySet()) {
 				UserInputDefinition definition = entry.getValue();
 				definitions.put(entry.getKey(), new UserInputDefinitionDto(definition.getName(), definition.getType(),
 					definition.getLabel(), definition.getDescription(), definition.getChoices(), definition.getDefaultValue()));
 			}
 		}
-		return new ScriptDto(script.getAuthor(), script.getDeviceDriver(), script.getFolder(), script.getId(), script.getName(),
-			realDeviceType(driverRegistry, script), script.getScript(), definitions);
+		return new ScriptDto(script.author(), script.deviceDriver(), script.folder(), script.id(), script.name(),
+			realDeviceType(driverRegistry, script), script.script(), definitions);
 	}
 
 	/**

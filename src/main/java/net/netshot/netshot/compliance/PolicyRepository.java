@@ -18,71 +18,154 @@
  */
 package net.netshot.netshot.compliance;
 
+import static net.netshot.netshot.platform.database.schema.Tables.CHECK_RESULT;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+import static net.netshot.netshot.platform.database.schema.Tables.POLICY;
+import static net.netshot.netshot.platform.database.schema.Tables.POLICY_TARGET_GROUPS;
+import static net.netshot.netshot.platform.database.schema.Tables.RULE;
+
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.hibernate.Session;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 
-import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The queries on compliance policies. The {@link Session} is always the first parameter: the
- * caller (the service) owns the session and the transaction. None of these methods catches an
- * exception.
+ * The queries on the compliance policies. The {@link DSLContext} is always the first parameter:
+ * the caller (the service) owns the transaction.
  */
 public class PolicyRepository {
 
+	/** The IDs of the target groups of the policy. */
+	private static final Field<Set<Long>> TARGET_GROUPS = DSL.multiset(
+			DSL.select(POLICY_TARGET_GROUPS.TARGET_GROUPS).from(POLICY_TARGET_GROUPS).where(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID)))
+		.convertFrom(r -> (Set<Long>) new HashSet<>(r.map(t -> t.value1())))
+		.as("target_groups");
+
+	private static Policy toPolicy(Record r) {
+		return new Policy(r.get(POLICY.ID), r.get(POLICY.NAME), r.get(TARGET_GROUPS));
+	}
+
+	private static List<Policy> query(DSLContext dsl, Condition condition, Page page) {
+		return page.apply(dsl.select(POLICY.ID, POLICY.NAME, TARGET_GROUPS).from(POLICY).where(condition).orderBy(POLICY.ID))
+			.fetch(PolicyRepository::toPolicy);
+	}
+
 	/**
-	 * Finds the policies with their target groups.
+	 * Lists the policies, by ID.
 	 *
-	 * <p>Fetch plan: the target groups are fetched with the policies (the page is applied by
-	 * the database to the joined rows, not to the policies).</p>
-	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
 	 * @return the policies
 	 */
-	public List<Policy> findAllWithGroups(Session session, Page page) {
-		var query = session.createQuery("select distinct p from Policy p left join fetch p.targetGroups", Policy.class);
-		page.apply(query);
-		return query.list();
+	public List<Policy> findAll(DSLContext dsl, Page page) {
+		return query(dsl, DSL.noCondition(), page);
 	}
 
 	/**
-	 * Finds a policy, without any of its associations.
+	 * Gets a policy.
 	 *
-	 * @param session the session
-	 * @param id the policy ID
+	 * @param dsl the jOOQ context
+	 * @param id the ID
 	 * @return the policy, or null if there is no such policy
 	 */
-	public Policy find(Session session, long id) {
-		return session.get(Policy.class, id);
+	public Policy find(DSLContext dsl, long id) {
+		List<Policy> policies = query(dsl, POLICY.ID.eq(id), Page.ALL);
+		return policies.isEmpty() ? null : policies.get(0);
 	}
 
 	/**
-	 * Finds a device group, to be a target of a policy.
+	 * Gets a policy by name.
 	 *
-	 * @param session the session
-	 * @param id the group ID
-	 * @return the group, or null if there is no such group
+	 * @param dsl the jOOQ context
+	 * @param name the name
+	 * @return the policy, or null if there is no such policy
 	 */
-	public DeviceGroup findGroup(Session session, long id) {
-		return session.get(DeviceGroup.class, id);
+	public Policy findByName(DSLContext dsl, String name) {
+		List<Policy> policies = query(dsl, POLICY.NAME.eq(name), Page.ALL);
+		return policies.isEmpty() ? null : policies.get(0);
 	}
 
 	/**
-	 * Deletes the compliance results of the devices of a group, for all the rules of a policy.
+	 * Lists the policies which apply to a device (through the groups of the device).
 	 *
-	 * @param session the session
-	 * @param policyId the policy ID
-	 * @param groupId the group ID
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @return the policies, by ID
 	 */
-	public void deleteCheckResults(Session session, long policyId, long groupId) {
-		session.createMutationQuery(
-			"delete CheckResult cr where cr.key.rule in (select r from Rule r where r.policy.id = :policyId) "
-				+ "and cr.key.device in (select dm.key.device from DeviceGroup g join g.cachedMemberships dm where g.id = :groupId)")
-			.setParameter("policyId", policyId)
-			.setParameter("groupId", groupId)
-			.executeUpdate();
+	public List<Policy> findOfDevice(DSLContext dsl, long deviceId) {
+		return query(dsl, POLICY.ID.in(DSL.select(POLICY_TARGET_GROUPS.POLICY).from(POLICY_TARGET_GROUPS)
+			.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(POLICY_TARGET_GROUPS.TARGET_GROUPS))
+			.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId))), Page.ALL);
+	}
+
+	private static void insertTargetGroups(DSLContext dsl, long policyId, Set<Long> groupIds) {
+		for (Long groupId : groupIds) {
+			dsl.insertInto(POLICY_TARGET_GROUPS)
+				.set(POLICY_TARGET_GROUPS.POLICY, policyId)
+				.set(POLICY_TARGET_GROUPS.TARGET_GROUPS, groupId)
+				.execute();
+		}
+	}
+
+	/**
+	 * Stores a new policy and its target groups.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param policy the policy (its ID is ignored)
+	 * @return the ID of the new policy
+	 */
+	public long add(DSLContext dsl, Policy policy) {
+		long id = dsl.insertInto(POLICY).set(POLICY.NAME, policy.name()).returning(POLICY.ID).fetchOne(POLICY.ID);
+		insertTargetGroups(dsl, id, policy.targetGroupIds());
+		return id;
+	}
+
+	/**
+	 * Saves an existing policy and replaces its target groups.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param policy the policy
+	 * @return true if the policy was found and saved
+	 */
+	public boolean save(DSLContext dsl, Policy policy) {
+		if (dsl.update(POLICY).set(POLICY.NAME, policy.name()).where(POLICY.ID.eq(policy.id())).execute() == 0) {
+			return false;
+		}
+		dsl.deleteFrom(POLICY_TARGET_GROUPS).where(POLICY_TARGET_GROUPS.POLICY.eq(policy.id())).execute();
+		insertTargetGroups(dsl, policy.id(), policy.targetGroupIds());
+		return true;
+	}
+
+	/**
+	 * Removes a policy (with its rules, their exemptions and check results).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return true if the policy was found and removed
+	 */
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(POLICY).where(POLICY.ID.eq(id)).execute() > 0;
+	}
+
+	/**
+	 * Deletes the check results of the rules of a policy for the devices of a group.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param policyId the ID of the policy
+	 * @param groupId the ID of the group
+	 */
+	public void deleteCheckResults(DSLContext dsl, long policyId, long groupId) {
+		dsl.deleteFrom(CHECK_RESULT)
+			.where(CHECK_RESULT.RULE.in(DSL.select(RULE.ID).from(RULE).where(RULE.POLICY.eq(policyId))))
+			.and(CHECK_RESULT.DEVICE.in(DSL.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))))
+			.execute();
 	}
 }

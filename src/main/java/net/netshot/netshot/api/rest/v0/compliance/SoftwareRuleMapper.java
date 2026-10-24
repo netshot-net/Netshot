@@ -24,6 +24,7 @@ import java.util.List;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleDefinition;
+import net.netshot.netshot.compliance.SoftwareRuleView;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -41,7 +42,7 @@ public final class SoftwareRuleMapper {
 
 	// The description of the driver of the rule, empty when there is no such driver
 	private static String deviceType(DriverRegistry driverRegistry, SoftwareRule rule) {
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.getDriver());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.driver());
 		if (deviceDriver == null) {
 			return "";
 		}
@@ -52,22 +53,23 @@ public final class SoftwareRuleMapper {
 	 * Maps a software rule to its representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param rule the rule, with its target group loaded
+	 * @param view the rule, with its target group
 	 * @return the DTO
 	 */
-	public static SoftwareRuleDto toDto(DriverRegistry driverRegistry, SoftwareRule rule) {
+	public static SoftwareRuleDto toDto(DriverRegistry driverRegistry, SoftwareRuleView view) {
+		SoftwareRule rule = view.rule();
 		return new SoftwareRuleDto(
 			deviceType(driverRegistry, rule),
-			rule.getDriver(),
-			rule.getFamily(),
-			rule.isFamilyRegExp(),
-			rule.getId(),
-			rule.getLevel(),
-			rule.getPartNumber(),
-			rule.isPartNumberRegExp(),
-			rule.getTargetGroup() == null ? null : GroupMapper.toDto(rule.getTargetGroup()),
-			rule.getVersion(),
-			rule.isVersionRegExp());
+			rule.driver(),
+			rule.family(),
+			rule.familyRegExp(),
+			rule.id(),
+			rule.level(),
+			rule.partNumber(),
+			rule.partNumberRegExp(),
+			view.targetGroup() == null ? null : GroupMapper.toDto(view.targetGroup()),
+			rule.version(),
+			rule.versionRegExp());
 	}
 
 	/**
@@ -77,7 +79,7 @@ public final class SoftwareRuleMapper {
 	 * @param rules the rules, with their target group loaded
 	 * @return the DTOs, in the same order
 	 */
-	public static List<SoftwareRuleDto> toDtos(DriverRegistry driverRegistry, List<SoftwareRule> rules) {
+	public static List<SoftwareRuleDto> toDtos(DriverRegistry driverRegistry, List<SoftwareRuleView> rules) {
 		List<SoftwareRuleDto> dtos = new ArrayList<>(rules.size());
 		rules.forEach(rule -> dtos.add(toDto(driverRegistry, rule)));
 		return dtos;

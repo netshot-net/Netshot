@@ -19,129 +19,37 @@
 package net.netshot.netshot.task.type;
 
 import java.util.List;
-
-import org.hibernate.Hibernate;
-import org.hibernate.Session;
-import org.quartz.JobKey;
-
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.task.Task;
+import java.util.Map;
 
 /**
- * This task schedules new tasks to run a script on each device of the given
- * group (either a real device group, or a one-time device list), either in
- * parallel or sequentially.
+ * Runs a user script (one child task per device), for the devices of a group or a list of devices.
+ *
+ * @param deviceGroupId the ID of the target group (null for a device list)
+ * @param deviceIds the IDs of the target devices, when there is no group
+ * @param script the script
+ * @param deviceDriver the name of the driver the script is written for
+ * @param userInputValues the values of the user inputs of the script (or null)
+ * @param runSnapshot true to take a snapshot of each device afterwards
+ * @param runDiagnostics true to run the diagnostics on each device afterwards
+ * @param checkCompliance true to check the compliance of each device afterwards
  */
-@Entity
-@DiscriminatorValue("RunDeviceGroupScriptTask")
-@Slf4j
-public final class RunDeviceGroupScriptTask extends Task
-	implements GroupBasedTask, DeviceListBasedTask, ChildOrchestratingTask {
-
-	public RunDeviceGroupScriptTask() {
-
-	}
+public record RunDeviceGroupScriptTask(Long deviceGroupId, List<Long> deviceIds, String script, String deviceDriver, Map<String, String> userInputValues,
+	boolean runSnapshot, boolean runDiagnostics, boolean checkCompliance) implements TaskSpec, GroupBasedTask, ChildOrchestratingTask {
 
 	/**
-	 * Instantiates a new run device group script task, targeting a real device group.
-	 *
-	 * @param group the device group to target
-	 * @param script the script to run
-	 * @param driver the device driver the script applies to
-	 * @param comments the task comments
-	 * @param author the task author
+	 * Canonical constructor: a null list of devices is replaced by an empty one.
 	 */
-	public RunDeviceGroupScriptTask(DeviceGroup group, String script, DeviceDriver driver,
-		String comments, String author) {
-		super(comments, group.getName(), author);
-		this.setDeviceGroup(group);
-		this.setScript(script);
-		this.setDeviceDriver(driver.getName());
+	public RunDeviceGroupScriptTask {
+		deviceIds = deviceIds == null ? List.of() : List.copyOf(deviceIds);
 	}
 
-	/**
-	 * Instantiates a new run device group script task, targeting a one-time device list.
-	 *
-	 * @param devices the devices to target
-	 * @param script the script to run
-	 * @param driver the device driver the script applies to
-	 * @param comments the task comments
-	 * @param author the task author
-	 */
-	public RunDeviceGroupScriptTask(List<Device> devices, String script, DeviceDriver driver,
-		String comments, String author) {
-		super(comments, String.format("%d device(s)", devices.size()), author);
-		this.setDeviceList(devices);
-		this.setScript(script);
-		this.setDeviceDriver(driver.getName());
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getTaskDescription()
-	 */
 	@Override
-	@Transient
-	public String getTaskDescription() {
+	public String description() {
 		return "Group script execution";
 	}
 
-	/**
-	 * Get the ID of the associate group.
-	 * @return the ID of the group
-	 */
-	@Transient
-	public long getDeviceGroupId() {
-		if (this.getDeviceGroup() == null) {
-			return 0;
-		}
-		return this.getDeviceGroup().getId();
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#prepare()
-	 */
 	@Override
-	public void prepare(Session session) {
-		Hibernate.initialize(this.getDeviceGroup());
-		if (this.getDeviceGroup() != null) {
-			Hibernate.initialize(this.getDeviceGroup().getCachedDevices());
-		}
-		else {
-			Hibernate.initialize(this.getDeviceListMembers());
-		}
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#clone()
-	 */
-	@Override
-	public Object clone() throws CloneNotSupportedException {
-		RunDeviceGroupScriptTask task = (RunDeviceGroupScriptTask) super.clone();
-		task.setDeviceGroup(this.getDeviceGroup());
-		if (this.getDeviceGroup() == null) {
-			// Mirrors prepare(), which only initializes the lazy deviceListMembers
-			// collection in this same case -- device group and device list are
-			// mutually exclusive, so there is nothing to copy (and nothing safe to
-			// touch) otherwise.
-			task.setDeviceList(this.getDeviceList());
-		}
-		return task;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see net.netshot.netshot.task.Task#getIdentity()
-	 */
-	@Override
-	@Transient
-	public JobKey getIdentity() {
-		return new JobKey(String.format("Task_%d", this.getId()),
-			String.format("RunDeviceGroupScript_%d", this.getDeviceGroupId()));
+	public String identityGroup() {
+		return GroupBasedTask.identityGroup("RunDeviceGroupScript", this.deviceGroupId);
 	}
 }

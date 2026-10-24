@@ -1,28 +1,5 @@
 [
   {
-    "enabled": true,
-    "id": 2,
-    "name": "Full inventory",
-    "resultType": "LONGTEXT",
-    "script": "function diagnose(cli, device, diagnostic) {\n  diagnostic.set('x');\n}",
-    "targetGroup": null,
-    "type": "JavaScriptDiagnostic"
-  },
-  {
-    "cliMode": "enable",
-    "command": "show startup-config",
-    "deviceDriver": "CiscoIOS12",
-    "deviceDriverDescription": "Cisco IOS and IOS-XE",
-    "enabled": true,
-    "id": 4,
-    "modifierPattern": "",
-    "modifierReplacement": "",
-    "name": "Config saved",
-    "resultType": "BINARY",
-    "targetGroup": null,
-    "type": "SimpleDiagnostic"
-  },
-  {
     "cliMode": "enable",
     "command": "show version | include reason",
     "deviceDriver": "CiscoIOS12",
@@ -45,6 +22,15 @@
     "type": "SimpleDiagnostic"
   },
   {
+    "enabled": true,
+    "id": 2,
+    "name": "Full inventory",
+    "resultType": "LONGTEXT",
+    "script": "function diagnose(cli, device, diagnostic) {\n  diagnostic.set('x');\n}",
+    "targetGroup": null,
+    "type": "JavaScriptDiagnostic"
+  },
+  {
     "enabled": false,
     "id": 3,
     "name": "CPU load",
@@ -59,5 +45,19 @@
       "type": "StaticDeviceGroup"
     },
     "type": "PythonDiagnostic"
+  },
+  {
+    "cliMode": "enable",
+    "command": "show startup-config",
+    "deviceDriver": "CiscoIOS12",
+    "deviceDriverDescription": "Cisco IOS and IOS-XE",
+    "enabled": true,
+    "id": 4,
+    "modifierPattern": "",
+    "modifierReplacement": "",
+    "name": "Config saved",
+    "resultType": "BINARY",
+    "targetGroup": null,
+    "type": "SimpleDiagnostic"
   }
 ]

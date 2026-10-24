@@ -21,6 +21,7 @@ package net.netshot.netshot.vault;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.function.LongFunction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
 /**
@@ -110,7 +112,16 @@ public final class VaultManager {
 		}
 	}
 
-	private static final ConcurrentHashMap<Long, VaultToken> TOKEN_CACHE = new ConcurrentHashMap<>();
+	/**
+	 * The Vault instances, by ID, read from the database on first use (dropped by {@link #invalidate}).
+	 */
+	private static final ConcurrentHashMap<Long, VaultInstance> INSTANCE_CACHE = new ConcurrentHashMap<>();
+
+	/** Reads a Vault instance from the database (null if it doesn't exist). */
+	private static volatile LongFunction<VaultInstance> instanceLoader =
+		id -> new Transactions().read(dsl -> new VaultInstanceRepository().find(dsl, id));
+
+		private static final ConcurrentHashMap<Long, VaultToken> TOKEN_CACHE = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Long, CompletableFuture<VaultToken>> LOGIN_IN_FLIGHT = new ConcurrentHashMap<>();
 
 	private static final ConcurrentHashMap<SecretCacheKey, CachedSecretData> SECRET_CACHE = new ConcurrentHashMap<>();
@@ -129,6 +140,34 @@ public final class VaultManager {
 	}
 
 	/**
+	 * Gets a Vault instance, from the cache or the database.
+	 *
+	 * @param id the ID of the Vault instance
+	 * @return the instance, or null if there is no such instance
+	 */
+	static VaultInstance instance(long id) {
+		VaultInstance cached = INSTANCE_CACHE.get(id);
+		if (cached != null) {
+			return cached;
+		}
+		VaultInstance instance = instanceLoader.apply(id);
+		if (instance != null) {
+			INSTANCE_CACHE.put(id, instance);
+		}
+		return instance;
+	}
+
+	/**
+	 * Replaces the reader of the Vault instances (tests).
+	 *
+	 * @param loader the reader, by ID
+	 */
+	static void setInstanceLoader(LongFunction<VaultInstance> loader) {
+		instanceLoader = loader;
+		INSTANCE_CACHE.clear();
+	}
+
+	/**
 	 * Resolves a field's actual value: the local value if it isn't
 	 * Vault-backed, or the value read (possibly from cache) from Vault.
 	 * @param secret the field to resolve
@@ -140,27 +179,27 @@ public final class VaultManager {
 	public static String resolve(VaultableSecret secret) throws VaultException {
 		if (!secret.isVaultBacked()) {
 			log.trace("Resolving a non-Vault-backed field, returning its local value.");
-			return secret.getLocalValue();
+			return secret.localValue();
 		}
-		VaultInstance instance = secret.getVaultInstance();
+		VaultInstance instance = instance(secret.vaultInstanceId());
 		if (!(instance instanceof HashicorpVaultKv2Instance hcInstance)) {
 			throw new VaultException(
 				"Vault-backed field references an unsupported or unresolved Vault instance");
 		}
-		if (secret.getVaultPath() == null || secret.getVaultPath().isBlank()) {
+		if (secret.vaultPath() == null || secret.vaultPath().isBlank()) {
 			throw new VaultException(
-				"Vault-backed field on instance '%s' is missing a path".formatted(hcInstance.getName()));
+				"Vault-backed field on instance '%s' is missing a path".formatted(hcInstance.name()));
 		}
-		VaultKeyPath keyPath = VaultKeyPath.parse(secret.getVaultPath());
+		VaultKeyPath keyPath = VaultKeyPath.parse(secret.vaultPath());
 		String token = getToken(hcInstance).clientToken();
 		JsonNode data = getSecretData(hcInstance, keyPath.getKvPath(), token);
 		JsonNode value = keyPath.resolve(data);
 		if (value.isMissingNode()) {
 			throw new VaultException("Key '%s' not found at Vault path '%s' on instance '%s'"
-				.formatted(keyPath, keyPath.getKvPath(), hcInstance.getName()));
+				.formatted(keyPath, keyPath.getKvPath(), hcInstance.name()));
 		}
 		AAA_LOG.info("Resolved a secret from Vault instance '{}', path '{}', key '{}'",
-			hcInstance.getName(), keyPath.getKvPath(), keyPath);
+			hcInstance.name(), keyPath.getKvPath(), keyPath);
 		return value.isTextual() ? value.asText() : value.toString();
 	}
 
@@ -172,47 +211,47 @@ public final class VaultManager {
 	 * @throws VaultException in case of login failure
 	 */
 	static VaultToken getToken(HashicorpVaultKv2Instance instance) throws VaultException {
-		VaultToken cached = TOKEN_CACHE.get(instance.getId());
+		VaultToken cached = TOKEN_CACHE.get(instance.id());
 		if (cached != null && cached.isValid(SETTINGS.getTokenRenewMarginMs())) {
-			log.trace("Using cached Vault client token for instance '{}'.", instance.getName());
+			log.trace("Using cached Vault client token for instance '{}'.", instance.name());
 			return cached;
 		}
-		log.trace("No valid cached Vault client token for instance '{}', logging in.", instance.getName());
+		log.trace("No valid cached Vault client token for instance '{}', logging in.", instance.name());
 		CompletableFuture<VaultToken> myFuture = new CompletableFuture<>();
-		CompletableFuture<VaultToken> raceWinner = LOGIN_IN_FLIGHT.putIfAbsent(instance.getId(), myFuture);
+		CompletableFuture<VaultToken> raceWinner = LOGIN_IN_FLIGHT.putIfAbsent(instance.id(), myFuture);
 		if (raceWinner == null) {
 			// We're the one responsible for actually logging in; everyone else waits on myFuture.
 			try {
 				VaultToken token = VaultClient.login(instance);
-				TOKEN_CACHE.put(instance.getId(), token);
+				TOKEN_CACHE.put(instance.id(), token);
 				AAA_LOG.info("Logged in to Vault instance '{}' (auth method {})",
-					instance.getName(), instance.getAuthMethod());
+					instance.name(), instance.authMethod());
 				myFuture.complete(token);
 				return token;
 			}
 			catch (VaultException e) {
-				AAA_LOG.warn("Failed to log in to Vault instance '{}': {}", instance.getName(), e.getMessage());
+				AAA_LOG.warn("Failed to log in to Vault instance '{}': {}", instance.name(), e.getMessage());
 				myFuture.completeExceptionally(e);
 				throw e;
 			}
 			finally {
-				LOGIN_IN_FLIGHT.remove(instance.getId(), myFuture);
+				LOGIN_IN_FLIGHT.remove(instance.id(), myFuture);
 			}
 		}
-		log.trace("A login to Vault instance '{}' is already in flight, waiting for it.", instance.getName());
-		return awaitFuture(raceWinner, "Vault login for instance '%s'".formatted(instance.getName()));
+		log.trace("A login to Vault instance '{}' is already in flight, waiting for it.", instance.name());
+		return awaitFuture(raceWinner, "Vault login for instance '%s'".formatted(instance.name()));
 	}
 
 	private static JsonNode getSecretData(HashicorpVaultKv2Instance instance, String path, String token)
 			throws VaultException {
-		SecretCacheKey key = new SecretCacheKey(instance.getId(), path);
+		SecretCacheKey key = new SecretCacheKey(instance.id(), path);
 		CachedSecretData cached = SECRET_CACHE.get(key);
 		if (cached != null && cached.isValid()) {
-			log.trace("Using cached Vault secret data for instance '{}', path '{}'.", instance.getName(), path);
+			log.trace("Using cached Vault secret data for instance '{}', path '{}'.", instance.name(), path);
 			return cached.data();
 		}
 		log.trace("No valid cached Vault secret data for instance '{}', path '{}', reading from Vault.",
-			instance.getName(), path);
+			instance.name(), path);
 		CompletableFuture<JsonNode> myFuture = new CompletableFuture<>();
 		CompletableFuture<JsonNode> raceWinner = READ_IN_FLIGHT.putIfAbsent(key, myFuture);
 		if (raceWinner == null) {
@@ -231,8 +270,8 @@ public final class VaultManager {
 			}
 		}
 		log.trace("A read of Vault path '{}' on instance '{}' is already in flight, waiting for it.",
-			path, instance.getName());
-		return awaitFuture(raceWinner, "Vault read of path '%s' on instance '%s'".formatted(path, instance.getName()));
+			path, instance.name());
+		return awaitFuture(raceWinner, "Vault read of path '%s' on instance '%s'".formatted(path, instance.name()));
 	}
 
 	private static <T> T awaitFuture(CompletableFuture<T> future, String description) throws VaultException {
@@ -259,16 +298,16 @@ public final class VaultManager {
 	 * @throws VaultException if the login fails
 	 */
 	public static void testConnection(HashicorpVaultKv2Instance instance) throws VaultException {
-		if (instance.getAuthMethod() == null) {
+		if (instance.authMethod() == null) {
 			throw new VaultException("No authentication method configured");
 		}
-		if (instance.getAuthMethod() == AuthMethod.JWT
-				&& (instance.getJwtIdpTokenEndpoint() == null || instance.getJwtClientId() == null
-					|| instance.getJwtVaultRole() == null)) {
+		if (instance.authMethod() == AuthMethod.JWT
+				&& (instance.jwtIdpTokenEndpoint() == null || instance.jwtClientId() == null
+					|| instance.jwtVaultRole() == null)) {
 			throw new VaultException("Incomplete JWT authentication configuration");
 		}
-		if (instance.getAuthMethod() == AuthMethod.APPROLE
-				&& (instance.getAppRoleId() == null || instance.getAppRoleSecretId() == null)) {
+		if (instance.authMethod() == AuthMethod.APPROLE
+				&& (instance.appRoleId() == null || instance.appRoleSecretId() == null)) {
 			throw new VaultException("Incomplete AppRole authentication configuration");
 		}
 		VaultClient.login(instance);
@@ -282,6 +321,7 @@ public final class VaultManager {
 	 * @param vaultInstanceId the ID of the Vault instance
 	 */
 	public static void invalidate(long vaultInstanceId) {
+		INSTANCE_CACHE.remove(vaultInstanceId);
 		TOKEN_CACHE.remove(vaultInstanceId);
 		SECRET_CACHE.keySet().removeIf(key -> key.vaultInstanceId() == vaultInstanceId);
 		AAA_LOG.info("Invalidated local Vault cache for instance ID {}", vaultInstanceId);

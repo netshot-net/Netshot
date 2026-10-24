@@ -18,20 +18,17 @@
  */
 package net.netshot.netshot.inventory.group;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.persistence.PersistenceException;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -40,9 +37,9 @@ import net.netshot.netshot.platform.error.NetshotException;
 /**
  * The device group use cases: list, read, add, edit and delete the groups.
  *
- * <p>The groups it returns are detached entities loaded without their members, which a group
- * representation doesn't read. The membership of a group is computed (and stored) when it is
- * added or edited: the members of a static group are the devices the client gives, the ones of a
+ * <p>The groups it returns are loaded without their members, which a group representation
+ * doesn't read. The membership of a group is computed (and stored) when it is added or
+ * edited: the members of a static group are the devices the client gives, the ones of a
  * dynamic group are the result of its query.</p>
  */
 @Slf4j
@@ -69,14 +66,14 @@ public class GroupService {
 	 * Lists the groups.
 	 *
 	 * @param page the window on the result
-	 * @return the groups
+	 * @return the groups, by ID
 	 * @throws NetshotException if the groups can't be read
 	 */
 	public List<DeviceGroup> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.findAll(session, page));
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the groups.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the groups");
 		}
@@ -91,8 +88,8 @@ public class GroupService {
 	 */
 	public DeviceGroup get(long id) {
 		try {
-			return this.transactions.read(session -> {
-				DeviceGroup group = this.repository.findById(session, id);
+			return this.transactions.read(dsl -> {
+				DeviceGroup group = this.repository.find(dsl, id);
 				if (group == null) {
 					log.warn("Unable to find the device group.");
 					throw new NetshotException(ErrorCode.NETSHOT_GROUP_NOT_FOUND, "Unable to find the device group");
@@ -100,7 +97,7 @@ public class GroupService {
 				return group;
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to fetch the group.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the group");
 		}
@@ -124,33 +121,34 @@ public class GroupService {
 		}
 		DeviceGroup group;
 		try {
-			group = this.transactions.write(session -> {
-				DeviceGroup deviceGroup;
+			group = this.transactions.write(dsl -> {
 				if ("StaticDeviceGroup".equals(definition.type())) {
-					StaticDeviceGroup staticGroup = new StaticDeviceGroup(name);
-					staticGroup.updateCachedDevices(this.findDevices(session, definition.staticDevices()));
-					deviceGroup = staticGroup;
+					List<Long> deviceIds = this.checkDevices(dsl, definition.staticDevices());
+					DeviceGroup added = this.repository.add(dsl, StaticDeviceGroup.builder()
+						.name(name)
+						.folder(definition.folder())
+						.hiddenFromReports(definition.hiddenFromReports())
+						.build());
+					this.repository.setMembers(dsl, added.id(), deviceIds);
+					return added;
 				}
 				else if ("DynamicDeviceGroup".equals(definition.type())) {
-					DynamicDeviceGroup dynamicGroup = new DynamicDeviceGroup(name);
-					if (definition.query() != null) {
-						dynamicGroup.setQuery(definition.query());
-					}
-					refreshMembers(session, dynamicGroup);
-					deviceGroup = dynamicGroup;
+					String query = formatQuery(definition.query() == null ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
+					DynamicDeviceGroup added = (DynamicDeviceGroup) this.repository.add(dsl, DynamicDeviceGroup.builder()
+						.name(name)
+						.folder(definition.folder())
+						.hiddenFromReports(definition.hiddenFromReports())
+						.query(query)
+						.build());
+					refreshMembers(dsl, added);
+					return added;
 				}
-				else {
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group type.");
-				}
-				deviceGroup.setFolder(definition.folder());
-				deviceGroup.setHiddenFromReports(definition.hiddenFromReports());
-				this.repository.add(session, deviceGroup);
-				return deviceGroup;
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "Invalid group type.");
 			});
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new device group.", e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_GROUP, "A group with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the group to the database");
@@ -173,41 +171,51 @@ public class GroupService {
 	public DeviceGroup update(long id, GroupDefinition definition) {
 		DeviceGroup group;
 		try {
-			group = this.transactions.write(session -> {
-				DeviceGroup existing = this.repository.find(session, id);
+			group = this.transactions.write(dsl -> {
+				DeviceGroup existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the group {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_GROUP_NOT_FOUND, "Unable to find this group.");
 				}
-				if (existing instanceof StaticDeviceGroup staticGroup) {
-					staticGroup.updateCachedDevices(this.findDevices(session, definition.staticDevices()));
+				List<Long> deviceIds = null;
+				String query = null;
+				if (existing instanceof StaticDeviceGroup) {
+					deviceIds = this.checkDevices(dsl, definition.staticDevices());
 				}
-				else if (existing instanceof DynamicDeviceGroup dynamicGroup) {
-					dynamicGroup.setQuery(definition.query());
-					refreshMembers(session, dynamicGroup);
-				}
-				else {
-					throw new NetshotException(ErrorCode.NETSHOT_INCOMPATIBLE_GROUP_TYPE, "Unknown group type.");
+				else if (existing instanceof DynamicDeviceGroup) {
+					query = formatQuery(definition.query());
 				}
 				String name = definition.name() == null ? "" : definition.name().trim();
 				if (name.isEmpty()) {
 					log.warn("User posted an empty group name.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP_NAME, "Invalid group name.");
 				}
-				existing.setName(name);
-				existing.setFolder(definition.folder());
-				existing.setHiddenFromReports(definition.hiddenFromReports());
-				return existing;
+				DeviceGroup edited = switch (existing) {
+					case StaticDeviceGroup staticGroup -> staticGroup.toBuilder()
+						.name(name)
+						.folder(definition.folder())
+						.hiddenFromReports(definition.hiddenFromReports())
+						.build();
+					case DynamicDeviceGroup dynamicGroup -> dynamicGroup.toBuilder()
+						.name(name)
+						.folder(definition.folder())
+						.hiddenFromReports(definition.hiddenFromReports())
+						.query(query)
+						.build();
+				};
+				DeviceGroup saved = this.repository.save(dsl, edited);
+				if (saved instanceof DynamicDeviceGroup dynamicGroup) {
+					refreshMembers(dsl, dynamicGroup);
+				}
+				else {
+					this.repository.setMembers(dsl, id, deviceIds);
+				}
+				return saved;
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("Unable to find a device while editing group {}.", id, e);
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE_IN_STATICGROUP,
-				"Unable to find a device. Refresh and try again.");
-		}
-		catch (PersistenceException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to save the group {}.", id, e);
-			if (Database.isDuplicateException(e)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_GROUP, "A group with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the group.");
@@ -225,13 +233,11 @@ public class GroupService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.write(session -> {
-				DeviceGroup group = this.repository.find(session, id);
-				if (group == null) {
+			boolean deleted = this.transactions.write(dsl -> {
+				if (!this.repository.remove(dsl, id)) {
 					log.info("No such device group of ID {}", id);
 					return false;
 				}
-				this.repository.remove(session, group);
 				return true;
 			});
 			if (deleted) {
@@ -239,29 +245,37 @@ public class GroupService {
 			}
 			return deleted;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to delete the group {}.", id, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the group");
 		}
 	}
 
-	private List<Device> findDevices(Session session, List<Long> deviceIds) {
-		List<Device> devices = new ArrayList<>();
-		for (Long deviceId : deviceIds) {
-			Device device = this.repository.findDevice(session, deviceId);
-			if (device == null) {
+	private List<Long> checkDevices(DSLContext dsl, List<Long> deviceIds) {
+		List<Long> ids = deviceIds == null ? List.of() : deviceIds;
+		Set<Long> existing = this.repository.findExistingDeviceIds(dsl, ids);
+		for (Long deviceId : ids) {
+			if (!existing.contains(deviceId)) {
 				log.warn("Device of ID {} doesn't exist.", deviceId);
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DEVICE,
 					"Device of ID %d doesn't exist.".formatted(deviceId));
 			}
-			devices.add(device);
 		}
-		return devices;
+		return ids;
 	}
 
-	private static void refreshMembers(Session session, DynamicDeviceGroup group) {
+	private static String formatQuery(String query) {
 		try {
-			group.refreshCache(session);
+			return DynamicGroups.formatQuery(query);
+		}
+		catch (FinderParseException e) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, "Invalid query for the group definition.");
+		}
+	}
+
+	private static void refreshMembers(DSLContext dsl, DynamicDeviceGroup group) {
+		try {
+			DynamicGroups.refresh(dsl, group);
 		}
 		catch (FinderParseException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, "Invalid query for the group definition.");

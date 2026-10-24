@@ -18,33 +18,16 @@
  */
 package net.netshot.netshot.inventory.device.attribute;
 
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@DiscriminatorValue("B")
-public final class DeviceBinaryAttribute extends DeviceAttribute {
-
-	@Getter
-	@Setter
-	private Boolean assumption;
-
-	protected DeviceBinaryAttribute() {
-	}
-
-	public DeviceBinaryAttribute(Device device, String name, boolean value) {
-		super(device, name);
-		this.assumption = value;
-	}
+/**
+ * A binary (true/false) device attribute.
+ *
+ * @param name the name of the attribute
+ * @param assumption the value
+ */
+public record DeviceBinaryAttribute(String name, Boolean assumption) implements DeviceAttribute {
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getAssumption();
+		return this.assumption;
 	}
-
 }

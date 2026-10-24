@@ -18,17 +18,16 @@
  */
 package net.netshot.netshot.credentials;
 
-import org.hibernate.Session;
+import org.jooq.DSLContext;
 
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
-import net.netshot.netshot.vault.VaultInstance;
+import net.netshot.netshot.vault.VaultInstanceRepository;
 import net.netshot.netshot.vault.VaultableSecret;
 
 /**
- * Applies incoming (deserialized, transient) credential sets onto persistent ones: resolves
- * the Local/Vault state of the vaultable fields, and creates or updates the owned,
- * device-and-access-specific credential sets.
+ * Applies incoming (deserialized) credential sets onto stored ones: merges the values (a secret
+ * left out means "unchanged") and resolves the Local/Vault state of the vaultable fields.
  */
 public final class CredentialSets {
 
@@ -37,149 +36,210 @@ public final class CredentialSets {
 	}
 
 	/**
-	 * Resolves an incoming vaultable field's Local/Vault state into a fresh
-	 * {@link VaultableSecret} bundle: either the referenced {@link VaultInstance}
-	 * is resolved and the local value cleared, or any Vault reference is
-	 * cleared and the local value is carried over from {@code current}
-	 * (respecting the usual "null = unchanged" masking convention for the
-	 * genuinely secret fields) or from {@code incoming} if it was changed.
-	 * <p>
-	 * Callers must apply the result back onto the owning entity via its
-	 * {@code setXxxSecret(...)} setter - each vaultable field is backed by
-	 * plain, individually mapped columns/association on the entity (not a
-	 * JPA embeddable), so mutating a bundle returned by a getter has no
-	 * effect on its own.
-	 * @param session the Hibernate session, used to resolve the Vault instance ID
-	 * @param incoming the incoming (deserialized) field
-	 * @param current the field's current value on the target entity, used to preserve
-	 *        the local value when unchanged (pass the same object as {@code incoming}
-	 *        when resolving a brand-new, not-yet-persisted entity's own references)
-	 * @return the resolved bundle to apply via {@code setXxxSecret(...)}
+	 * Resolves an incoming vaultable field's Local/Vault state: either the referenced
+	 * {@link net.netshot.netshot.vault.VaultInstance} is checked and the local value cleared,
+	 * or any Vault reference is cleared and the local value is taken from {@code incoming}
+	 * if it was given, or kept from {@code current} otherwise (the usual "null = unchanged"
+	 * masking convention for the secret fields).
+	 *
+	 * @param dsl the jOOQ context, used to check the Vault instance
+	 * @param incoming the incoming field
+	 * @param current the current value of the field (the same as {@code incoming} for a new credential set)
+	 * @return the resolved field
 	 * @throws NetshotException if the referenced Vault instance doesn't exist
 	 */
-	private static VaultableSecret resolveVaultableField(Session session, VaultableSecret incoming, VaultableSecret current) {
-		VaultableSecret result = new VaultableSecret();
-		Long vaultInstanceId = incoming.getVaultInstanceId();
+	private static VaultableSecret resolve(DSLContext dsl, VaultableSecret incoming, VaultableSecret current) {
+		Long vaultInstanceId = incoming.vaultInstanceId();
 		if (vaultInstanceId != null) {
-			VaultInstance vaultInstance = session.get(VaultInstance.class, vaultInstanceId);
-			if (vaultInstance == null) {
+			if (new VaultInstanceRepository().find(dsl, vaultInstanceId) == null) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE, "Invalid Vault instance.");
 			}
-			result.setVaultInstance(vaultInstance);
-			result.setVaultPath(incoming.getVaultPath());
-			result.setLocalValue(null);
+			return new VaultableSecret(null, vaultInstanceId, incoming.vaultPath());
 		}
-		else {
-			result.setVaultInstance(null);
-			result.setVaultPath(null);
-			result.setLocalValue(incoming.getLocalValue() != null ? incoming.getLocalValue() : current.getLocalValue());
-		}
-		return result;
+		return new VaultableSecret(incoming.localValue() != null ? incoming.localValue() : current.localValue(), null, null);
 	}
 
 	/**
-	 * Applies {@link #resolveVaultableField} to every vaultable field of a
-	 * credential set, dispatching by concrete type (most-specific first,
-	 * since {@link DeviceSnmpv3Community} is itself a {@link DeviceSnmpCommunity}).
-	 * @param session the Hibernate session
+	 * Resolves every vaultable field of a credential set (see {@link #resolve}).
+	 *
+	 * @param dsl the jOOQ context
 	 * @param target the credential set to update (may be the same object as {@code source})
-	 * @param source the incoming (deserialized) credential set
+	 * @param source the incoming credential set, of the same type
+	 * @return the credential set, with its vaultable fields resolved
 	 * @throws NetshotException if a referenced Vault instance doesn't exist
 	 */
-	public static void applyVaultableFields(Session session, DeviceCredentialSet target, DeviceCredentialSet source) {
-		if (target instanceof DeviceCliAccount cliTarget && source instanceof DeviceCliAccount cliSource) {
-			cliTarget.setUsernameSecret(resolveVaultableField(session, cliSource.getUsernameSecret(), cliTarget.getUsernameSecret()));
-			cliTarget.setPasswordSecret(resolveVaultableField(session, cliSource.getPasswordSecret(), cliTarget.getPasswordSecret()));
-			cliTarget.setSuperPasswordSecret(resolveVaultableField(session, cliSource.getSuperPasswordSecret(), cliTarget.getSuperPasswordSecret()));
-			if (cliTarget instanceof DeviceSshKeyAccount keyTarget && cliSource instanceof DeviceSshKeyAccount keySource) {
-				keyTarget.setPrivateKeySecret(resolveVaultableField(session, keySource.getPrivateKeySecret(), keyTarget.getPrivateKeySecret()));
+	public static DeviceCredentialSet resolveVaultableFields(DSLContext dsl, DeviceCredentialSet target, DeviceCredentialSet source) {
+		return switch (target) {
+			case DeviceSshAccount t -> {
+				DeviceSshAccount s = (DeviceSshAccount) source;
+				VaultableSecret u = resolve(dsl, s.usernameSecret(), t.usernameSecret());
+				VaultableSecret p = resolve(dsl, s.passwordSecret(), t.passwordSecret());
+				VaultableSecret sp = resolve(dsl, s.superPasswordSecret(), t.superPasswordSecret());
+				yield t.toBuilder()
+					.username(u.localValue()).usernameVaultInstanceId(u.vaultInstanceId()).usernameVaultPath(u.vaultPath())
+					.password(p.localValue()).passwordVaultInstanceId(p.vaultInstanceId()).passwordVaultPath(p.vaultPath())
+					.superPassword(sp.localValue()).superPasswordVaultInstanceId(sp.vaultInstanceId()).superPasswordVaultPath(sp.vaultPath())
+					.build();
 			}
-		}
-		else if (target instanceof DeviceSnmpv3Community snmp3Target && source instanceof DeviceSnmpv3Community snmp3Source) {
-			snmp3Target.setCommunitySecret(resolveVaultableField(session, snmp3Source.getCommunitySecret(), snmp3Target.getCommunitySecret()));
-			snmp3Target.setUsernameSecret(resolveVaultableField(session, snmp3Source.getUsernameSecret(), snmp3Target.getUsernameSecret()));
-			snmp3Target.setAuthKeySecret(resolveVaultableField(session, snmp3Source.getAuthKeySecret(), snmp3Target.getAuthKeySecret()));
-			snmp3Target.setPrivKeySecret(resolveVaultableField(session, snmp3Source.getPrivKeySecret(), snmp3Target.getPrivKeySecret()));
-		}
-		else if (target instanceof DeviceSnmpCommunity communityTarget && source instanceof DeviceSnmpCommunity communitySource) {
-			communityTarget.setCommunitySecret(resolveVaultableField(session, communitySource.getCommunitySecret(), communityTarget.getCommunitySecret()));
-		}
-		else if (target instanceof DeviceHttpAccount httpTarget && source instanceof DeviceHttpAccount httpSource) {
-			httpTarget.setUsernameSecret(resolveVaultableField(session, httpSource.getUsernameSecret(), httpTarget.getUsernameSecret()));
-			httpTarget.setPasswordSecret(resolveVaultableField(session, httpSource.getPasswordSecret(), httpTarget.getPasswordSecret()));
-		}
+			case DeviceSshKeyAccount t -> {
+				DeviceSshKeyAccount s = (DeviceSshKeyAccount) source;
+				VaultableSecret u = resolve(dsl, s.usernameSecret(), t.usernameSecret());
+				VaultableSecret p = resolve(dsl, s.passwordSecret(), t.passwordSecret());
+				VaultableSecret sp = resolve(dsl, s.superPasswordSecret(), t.superPasswordSecret());
+				VaultableSecret k = resolve(dsl, s.privateKeySecret(), t.privateKeySecret());
+				yield t.toBuilder()
+					.username(u.localValue()).usernameVaultInstanceId(u.vaultInstanceId()).usernameVaultPath(u.vaultPath())
+					.password(p.localValue()).passwordVaultInstanceId(p.vaultInstanceId()).passwordVaultPath(p.vaultPath())
+					.superPassword(sp.localValue()).superPasswordVaultInstanceId(sp.vaultInstanceId()).superPasswordVaultPath(sp.vaultPath())
+					.privateKey(k.localValue()).privateKeyVaultInstanceId(k.vaultInstanceId()).privateKeyVaultPath(k.vaultPath())
+					.build();
+			}
+			case DeviceTelnetAccount t -> {
+				DeviceTelnetAccount s = (DeviceTelnetAccount) source;
+				VaultableSecret u = resolve(dsl, s.usernameSecret(), t.usernameSecret());
+				VaultableSecret p = resolve(dsl, s.passwordSecret(), t.passwordSecret());
+				VaultableSecret sp = resolve(dsl, s.superPasswordSecret(), t.superPasswordSecret());
+				yield t.toBuilder()
+					.username(u.localValue()).usernameVaultInstanceId(u.vaultInstanceId()).usernameVaultPath(u.vaultPath())
+					.password(p.localValue()).passwordVaultInstanceId(p.vaultInstanceId()).passwordVaultPath(p.vaultPath())
+					.superPassword(sp.localValue()).superPasswordVaultInstanceId(sp.vaultInstanceId()).superPasswordVaultPath(sp.vaultPath())
+					.build();
+			}
+			case DeviceHttpAccount t -> {
+				DeviceHttpAccount s = (DeviceHttpAccount) source;
+				VaultableSecret u = resolve(dsl, s.usernameSecret(), t.usernameSecret());
+				VaultableSecret p = resolve(dsl, s.passwordSecret(), t.passwordSecret());
+				yield t.toBuilder()
+					.username(u.localValue()).usernameVaultInstanceId(u.vaultInstanceId()).usernameVaultPath(u.vaultPath())
+					.password(p.localValue()).passwordVaultInstanceId(p.vaultInstanceId()).passwordVaultPath(p.vaultPath())
+					.build();
+			}
+			case DeviceSnmpv1Community t -> {
+				VaultableSecret c = resolve(dsl, ((DeviceSnmpCommunity) source).communitySecret(), t.communitySecret());
+				yield t.toBuilder().community(c.localValue()).communityVaultInstanceId(c.vaultInstanceId()).communityVaultPath(c.vaultPath()).build();
+			}
+			case DeviceSnmpv2cCommunity t -> {
+				VaultableSecret c = resolve(dsl, ((DeviceSnmpCommunity) source).communitySecret(), t.communitySecret());
+				yield t.toBuilder().community(c.localValue()).communityVaultInstanceId(c.vaultInstanceId()).communityVaultPath(c.vaultPath()).build();
+			}
+			case DeviceSnmpv3Community t -> {
+				DeviceSnmpv3Community s = (DeviceSnmpv3Community) source;
+				VaultableSecret c = resolve(dsl, s.communitySecret(), t.communitySecret());
+				VaultableSecret u = resolve(dsl, s.usernameSecret(), t.usernameSecret());
+				VaultableSecret a = resolve(dsl, s.authKeySecret(), t.authKeySecret());
+				VaultableSecret p = resolve(dsl, s.privKeySecret(), t.privKeySecret());
+				yield t.toBuilder()
+					.community(c.localValue()).communityVaultInstanceId(c.vaultInstanceId()).communityVaultPath(c.vaultPath())
+					.username(u.localValue()).usernameVaultInstanceId(u.vaultInstanceId()).usernameVaultPath(u.vaultPath())
+					.authKey(a.localValue()).authKeyVaultInstanceId(a.vaultInstanceId()).authKeyVaultPath(a.vaultPath())
+					.privKey(p.localValue()).privKeyVaultInstanceId(p.vaultInstanceId()).privKeyVaultPath(p.vaultPath())
+					.build();
+			}
+		};
 	}
 
 	/**
-	 * Creates or updates an owned, per-access specific credential set: if
-	 * {@code existing} is null or of a different concrete class than
-	 * {@code incoming}, the old one (if any) is deleted and {@code incoming}
-	 * is persisted as the new owned credential set (stamped
-	 * {@code deviceSpecific=true}, given a synthetic name); otherwise
-	 * {@code incoming}'s fields are copied onto {@code existing} in place,
-	 * preserving secret fields submitted as the unchanged sentinel ("="),
-	 * matching the convention already used for the device-wide singleton.
-	 * @param session the Hibernate session
-	 * @param existing the currently persisted specific credential set, or null if none yet
-	 * @param incoming the incoming (deserialized, not yet persisted) credential set payload
-	 * @return the resulting persisted credential set
+	 * Tells whether an incoming secret replaces the stored one: a secret left out ({@code null})
+	 * is unchanged, and so is the {@code "="} sentinel for a device specific credential set.
+	 *
+	 * @param secret the incoming secret
+	 * @param specific whether the credential set is specific to a device
+	 * @return true if the incoming secret replaces the stored one
 	 */
-	public static DeviceCredentialSet applySpecificCredentialSet(Session session, DeviceCredentialSet existing,
-			DeviceCredentialSet incoming) {
-		if (existing != null && !existing.getClass().equals(incoming.getClass())) {
-			session.remove(existing);
-			existing = null;
+	private static boolean changes(String secret, boolean specific) {
+		return secret != null && !(specific && "=".equals(secret));
+	}
+
+	/**
+	 * Copies the local values of an incoming credential set onto a stored one of the same type,
+	 * the secrets which are left out being kept. The identity (ID, name, domain...) of the stored
+	 * credential set is kept, and so are its Vault references (see {@link #resolveVaultableFields},
+	 * to apply afterwards).
+	 *
+	 * @param existing the stored credential set
+	 * @param incoming the incoming credential set, of the same type
+	 * @param specific whether this is a device specific credential set (the {@code "="} sentinel
+	 *        then means "unchanged" too, and the private key is always replaced)
+	 * @return the merged credential set
+	 */
+	public static DeviceCredentialSet merge(DeviceCredentialSet existing, DeviceCredentialSet incoming, boolean specific) {
+		return switch (existing) {
+			case DeviceSshAccount e -> {
+				DeviceSshAccount i = (DeviceSshAccount) incoming;
+				yield e.toBuilder()
+					.username(i.username())
+					.password(changes(i.password(), specific) ? i.password() : e.password())
+					.superPassword(changes(i.superPassword(), specific) ? i.superPassword() : e.superPassword())
+					.build();
+			}
+			case DeviceSshKeyAccount e -> {
+				DeviceSshKeyAccount i = (DeviceSshKeyAccount) incoming;
+				yield e.toBuilder()
+					.username(i.username())
+					.password(changes(i.password(), specific) ? i.password() : e.password())
+					.superPassword(changes(i.superPassword(), specific) ? i.superPassword() : e.superPassword())
+					.privateKey(specific || i.privateKey() != null ? i.privateKey() : e.privateKey())
+					.build();
+			}
+			case DeviceTelnetAccount e -> {
+				DeviceTelnetAccount i = (DeviceTelnetAccount) incoming;
+				yield e.toBuilder()
+					.username(i.username())
+					.password(changes(i.password(), specific) ? i.password() : e.password())
+					.superPassword(changes(i.superPassword(), specific) ? i.superPassword() : e.superPassword())
+					.build();
+			}
+			case DeviceHttpAccount e -> {
+				DeviceHttpAccount i = (DeviceHttpAccount) incoming;
+				yield e.toBuilder()
+					.username(i.username())
+					.password(changes(i.password(), specific) ? i.password() : e.password())
+					.build();
+			}
+			case DeviceSnmpv1Community e -> {
+				String community = ((DeviceSnmpCommunity) incoming).community();
+				yield e.toBuilder().community(community != null ? community : e.community()).build();
+			}
+			case DeviceSnmpv2cCommunity e -> {
+				String community = ((DeviceSnmpCommunity) incoming).community();
+				yield e.toBuilder().community(community != null ? community : e.community()).build();
+			}
+			case DeviceSnmpv3Community e -> {
+				DeviceSnmpv3Community i = (DeviceSnmpv3Community) incoming;
+				yield e.toBuilder()
+					.username(i.username())
+					.authType(i.authType())
+					.authKey(changes(i.authKey(), specific) ? i.authKey() : e.authKey())
+					.privType(i.privType())
+					.privKey(changes(i.privKey(), specific) ? i.privKey() : e.privKey())
+					.build();
+			}
+		};
+	}
+
+	/**
+	 * Creates or updates the credential set specific to a device access: if {@code existing}
+	 * is null or of another type than {@code incoming}, {@code incoming} is stored as a new
+	 * specific credential set (with a generated name); otherwise its values are copied onto
+	 * {@code existing}, the secrets submitted as unchanged being kept. A replaced credential set
+	 * is not removed: the caller removes it once the access doesn't reference it anymore.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param repository the credential set repository
+	 * @param existing the current specific credential set of the access, or null if there is none
+	 * @param incoming the incoming credential set
+	 * @return the stored credential set
+	 * @throws NetshotException if a referenced Vault instance doesn't exist
+	 */
+	public static DeviceCredentialSet applySpecificCredentialSet(DSLContext dsl, CredentialSetRepository repository,
+			DeviceCredentialSet existing, DeviceCredentialSet incoming) {
+		if (existing == null || !existing.getClass().equals(incoming.getClass())) {
+			DeviceCredentialSet created = incoming.withIdentity(0, DeviceCredentialSet.generateSpecificName(), true);
+			return repository.add(dsl, resolveVaultableFields(dsl, created, created));
 		}
-		if (existing == null) {
-			incoming.setDeviceSpecific(true);
-			incoming.setName(DeviceCredentialSet.generateSpecificName());
-			applyVaultableFields(session, incoming, incoming);
-			session.persist(incoming);
-			return incoming;
-		}
-		if (DeviceCliAccount.class.isInstance(existing)) {
-			DeviceCliAccount cliAccount = (DeviceCliAccount) existing;
-			DeviceCliAccount rsCliAccount = (DeviceCliAccount) incoming;
-			cliAccount.setUsername(rsCliAccount.getUsername());
-			if (rsCliAccount.getPassword() != null && !"=".equals(rsCliAccount.getPassword())) {
-				cliAccount.setPassword(rsCliAccount.getPassword());
-			}
-			if (rsCliAccount.getSuperPassword() != null && !"=".equals(rsCliAccount.getSuperPassword())) {
-				cliAccount.setSuperPassword(rsCliAccount.getSuperPassword());
-			}
-			if (DeviceSshKeyAccount.class.isInstance(existing)) {
-				((DeviceSshKeyAccount) cliAccount).setPrivateKey(((DeviceSshKeyAccount) rsCliAccount).getPrivateKey());
-			}
-		}
-		else if (DeviceSnmpv3Community.class.isInstance(existing)) {
-			DeviceSnmpv3Community rsSnmp3 = (DeviceSnmpv3Community) incoming;
-			((DeviceSnmpv3Community) existing).setUsername(rsSnmp3.getUsername());
-			((DeviceSnmpv3Community) existing).setAuthType(rsSnmp3.getAuthType());
-			if (rsSnmp3.getAuthKey() != null && !"=".equals(rsSnmp3.getAuthKey())) {
-				((DeviceSnmpv3Community) existing).setAuthKey(rsSnmp3.getAuthKey());
-			}
-			((DeviceSnmpv3Community) existing).setPrivType(rsSnmp3.getPrivType());
-			if (rsSnmp3.getPrivKey() != null && !"=".equals(rsSnmp3.getPrivKey())) {
-				((DeviceSnmpv3Community) existing).setPrivKey(rsSnmp3.getPrivKey());
-			}
-		}
-		else if (DeviceSnmpCommunity.class.isInstance(existing)) {
-			String community = ((DeviceSnmpCommunity) incoming).getCommunity();
-			if (community != null) {
-				((DeviceSnmpCommunity) existing).setCommunity(community);
-			}
-		}
-		else if (DeviceHttpAccount.class.isInstance(existing)) {
-			DeviceHttpAccount httpAccount = (DeviceHttpAccount) existing;
-			DeviceHttpAccount rsHttpAccount = (DeviceHttpAccount) incoming;
-			httpAccount.setUsername(rsHttpAccount.getUsername());
-			if (rsHttpAccount.getPassword() != null && !"=".equals(rsHttpAccount.getPassword())) {
-				httpAccount.setPassword(rsHttpAccount.getPassword());
-			}
-		}
-		// Applied last so that switching a field to Vault mode always wins over
-		// the unconditional local-value copies above (e.g. setUsername(...)).
-		applyVaultableFields(session, existing, incoming);
-		return existing;
+		// The Vault references are applied last, so that switching a field to Vault mode always
+		// wins over the unconditional local value copies of the merge (e.g. the username)
+		DeviceCredentialSet merged = resolveVaultableFields(dsl, merge(existing, incoming, true), incoming);
+		return repository.save(dsl, merged);
 	}
 }

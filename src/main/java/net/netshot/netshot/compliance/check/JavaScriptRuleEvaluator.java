@@ -28,17 +28,16 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.hibernate.Session;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.compliance.rules.JavaScriptRule;
+import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -84,7 +83,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	 */
 	private static Source getSource(JavaScriptRule rule) {
 		return Source
-			.newBuilder("js", rule.getScript(), "_rule%d.js".formatted(rule.getId()))
+			.newBuilder("js", rule.script(), "_rule%d.js".formatted(rule.id()))
 			.cached(false).buildLiteral();
 	}
 
@@ -118,9 +117,9 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	}
 
 	@Override
-	public CheckResult evaluate(JavaScriptRule rule, Device device, Session session, TaskContext taskContext) {
-		if (!rule.isEnabled()) {
-			return new CheckResult(rule, device, ResultOption.DISABLED);
+	public CheckResult evaluate(JavaScriptRule rule, DeviceDraft device, boolean exempted, TaskContext taskContext) {
+		if (!rule.enabled()) {
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.DISABLED);
 		}
 
 		// Both the script top-level code and the check function run on the executor, within the
@@ -138,12 +137,12 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 				}, deadline);
 				boolean jsValid = this.prepare(rule, context, taskContext);
 				if (!jsValid) {
-					return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+					return CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE);
 				}
-				if (device.isExempted(rule)) {
-					return new CheckResult(rule, device, ResultOption.EXEMPTED);
+				if (exempted) {
+					return CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 				}
-				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, session, taskContext, true);
+				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, taskContext, true);
 				result = runBeforeDeadline(executor,
 					() -> context.getBindings("js").getMember("_check").execute(deviceHelper), deadline);
 			}
@@ -156,7 +155,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 				}
 				taskContext.error(
 					"The rule took too long to execute (check for endless loop in the script or adjust netshot.javascript.maxexecutiontime value)");
-				return new CheckResult(rule, device, CheckResult.ResultOption.INVALIDRULE,
+				return CheckResult.of(rule.id(), device.getId(), CheckResult.ResultOption.INVALIDRULE,
 					"The rule took too long to execute");
 			}
 			String txtResult = null;
@@ -178,7 +177,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 				if (allowedResult.toString().equals(txtResult)) {
 					taskContext.info("The script returned {} ({}), comment '{}'.",
 						allowedResult.toString(), allowedResult.getValue(), comment);
-					return new CheckResult(rule, device, allowedResult, comment);
+					return CheckResult.of(rule.id(), device.getId(), allowedResult, comment);
 				}
 			}
 		}
@@ -190,7 +189,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 			executor.shutdownNow();
 			taskContext.debug("End of check");
 		}
-		return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+		return CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE);
 	}
 
 }

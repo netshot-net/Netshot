@@ -22,10 +22,14 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
-
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
@@ -36,8 +40,9 @@ import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.PhysicalAddress;
 import net.netshot.netshot.inventory.domain.Domain;
@@ -46,9 +51,6 @@ import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 @SimulatorTest
 @DisplayName("Palo Alto PAN-OS driver test")
@@ -63,60 +65,61 @@ public class PaloAltoPANOSDriverTest {
 	@DisplayName("Palo Alto PAN-OS Snapshot")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException {
-		DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
-		Session nullSession = null;
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("PaloAltoPANOS", null, domain, "test");
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(CONTAINER.getHost());
-		sshAccess.setPort(CONTAINER.getMappedPort(22));
-		device.getAccesses().add(sshAccess);
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("admin/admin").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("PaloAltoPANOS", null, domain, "test").toBuilder();
+		List<DeviceAccess> deviceAccesses = new ArrayList<>();
+		Set<String> deviceTags = new HashSet<>();
+		DeviceAccess.DeviceAccessBuilder sshAccess = DeviceAccess.of("ssh").toBuilder();
+		sshAccess.address(CONTAINER.getHost());
+		sshAccess.port(CONTAINER.getMappedPort(22));
+		deviceAccesses.add(sshAccess.build());
+		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
-		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-			Device.class, AccessManager.class);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, this.taskContext, Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {
-			runMethod.invoke(script, nullSession, device, accessManager);
+			runMethod.invoke(script, device, accessManager);
 			Assertions.assertEquals("fw1", device.getName(), "The device name is incorrect");
 			Assertions.assertEquals("11.1.6-h3", device.getSoftwareVersion(), "The software version is incorrect");
 			Assertions.assertEquals("400", device.getFamily(), "The device family is incorrect");
 			Assertions.assertEquals(NetworkClass.FIREWALL, device.getNetworkClass(), "The network class is incorrect");
 			Assertions.assertEquals("012345678901", device.getSerialNumber(), "The serial number is incorrect");
-			Config config = device.getLastConfig();
+			Config config = device.getNewConfig();
 			Assertions.assertNotNull(config, "The config doesn't exist");
 			Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("configuration"))
-				.getLongText().getText().startsWith("config {"), "The configuration is not correct");
+				.text().startsWith("config {"), "The configuration is not correct");
 			Assertions.assertTrue(((ConfigLongTextAttribute) config.getAttribute("mergedConfiguration"))
-				.getLongText().getText().contains("PANORAMA-NTP"), "The merged configuration is not correct");
-			Assertions.assertEquals("11.1.6-h3", ((ConfigTextAttribute) config.getAttribute("panOsVersion")).getText(),
+				.text().contains("PANORAMA-NTP"), "The merged configuration is not correct");
+			Assertions.assertEquals("11.1.6-h3", ((ConfigTextAttribute) config.getAttribute("panOsVersion")).text(),
 				"The PAN-OS version config attribute is incorrect");
 			Assertions.assertEquals(1, device.getModules().size(), "The number of modules is incorrect");
-			Assertions.assertEquals("012345678901", device.getModules().get(0).getSerialNumber(),
+			Assertions.assertEquals("012345678901", device.getModules().get(0).serialNumber(),
 				"The chassis module serial number is incorrect");
 			Assertions.assertEquals(8, device.getNetworkInterfaces().size(), "The number of interfaces is incorrect");
 			// First row of the table, used to be skipped
 			Assertions.assertEquals(Network4Address.getNetworkAddress("198.51.100.2", 29),
-				device.getNetworkInterface("ethernet1/1").getIp4Addresses().iterator().next(),
+				device.getNetworkInterface("ethernet1/1").ip4Addresses().iterator().next(),
 				"The ethernet1/1 interface IP address is incorrect");
 			Assertions.assertEquals(new PhysicalAddress("00:00:5e:00:53:11"),
-				device.getNetworkInterface("ethernet1/1").getPhysicalAddress(),
+				device.getNetworkInterface("ethernet1/1").physicalAddress(),
 				"The ethernet1/1 interface MAC address is incorrect");
-			Assertions.assertEquals("1", device.getNetworkInterface("ethernet1/1").getVirtualDevice(),
+			Assertions.assertEquals("1", device.getNetworkInterface("ethernet1/1").virtualDevice(),
 				"The ethernet1/1 interface vsys is incorrect");
-			Assertions.assertTrue(device.getNetworkInterface("ethernet1/2").getIp4Addresses().isEmpty(),
+			Assertions.assertTrue(device.getNetworkInterface("ethernet1/2").ip4Addresses().isEmpty(),
 				"The ethernet1/2 interface shouldn't have any IP address");
 			Assertions.assertEquals(Network4Address.getNetworkAddress("172.16.10.1", 26),
-				device.getNetworkInterface("ethernet1/2.810").getIp4Addresses().iterator().next(),
+				device.getNetworkInterface("ethernet1/2.810").ip4Addresses().iterator().next(),
 				"The ethernet1/2.810 interface IP address is incorrect");
 			// Interface without zone (empty column), used to lose its IP address
 			Assertions.assertEquals(Network4Address.getNetworkAddress("10.0.0.11", 24),
-				device.getNetworkInterface("ethernet1/7").getIp4Addresses().iterator().next(),
+				device.getNetworkInterface("ethernet1/7").ip4Addresses().iterator().next(),
 				"The ethernet1/7 interface IP address is incorrect");
 			Assertions.assertEquals(new PhysicalAddress("00:00:5e:00:53:17"),
-				device.getNetworkInterface("ethernet1/7").getPhysicalAddress(),
+				device.getNetworkInterface("ethernet1/7").physicalAddress(),
 				"The ethernet1/7 interface MAC address is incorrect");
-			Assertions.assertTrue(device.getNetworkInterface("tunnel").getIp4Addresses().isEmpty(),
+			Assertions.assertTrue(device.getNetworkInterface("tunnel").ip4Addresses().isEmpty(),
 				"The tunnel interface shouldn't have any IP address");
 		}
 		finally {

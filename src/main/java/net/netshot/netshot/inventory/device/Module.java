@@ -18,81 +18,47 @@
  */
 package net.netshot.netshot.inventory.device;
 
-import java.util.Date;
+import java.time.Instant;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 
 /**
  * A network device line module.
+ *
+ * @param id the ID (0 for a module which isn't stored yet)
+ * @param slot the slot
+ * @param partNumber the part number
+ * @param serialNumber the serial number
+ * @param firstSeenDate when the module was seen for the first time
+ * @param lastSeenDate when the module was seen for the last time
+ * @param removed whether the module isn't in the device anymore (kept for the history)
  */
-@Entity
-public class Module {
+@Builder(toBuilder = true)
+public record Module(
+	long id,
+	String slot,
+	String partNumber,
+	String serialNumber,
+	Instant firstSeenDate,
+	Instant lastSeenDate,
+	boolean removed) {
 
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The slot. */
-	@Getter
-	@Setter
-	protected String slot;
-
-	/** The part number. */
-	@Getter
-	@Setter
-	protected String partNumber;
-
-	/** The serial number. */
-	@Getter
-	@Setter
-	protected String serialNumber;
-
-	/** The device. */
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	protected Device device;
-
-	/** When the module was first seen. */
-	@Getter
-	@Setter
-	protected Date firstSeenDate;
-
-	/** When the module was last seen. */
-	@Getter
-	@Setter
-	protected Date lastSeenDate;
-
-	/** Whether the module was removed or is still present. */
-	@Getter
-	@Setter
-	protected boolean removed;
-
-
-	public Module() {
-
+	/**
+	 * Instantiates a module, the missing values being empty.
+	 */
+	public Module {
+		slot = slot == null ? "" : slot;
+		partNumber = partNumber == null ? "" : partNumber;
+		serialNumber = serialNumber == null ? "" : serialNumber;
 	}
 
-	public Module(String slot, String partNumber, String serialNumber, Device device) {
-		this.slot = slot == null ? "" : slot;
-		this.partNumber = partNumber == null ? "" : partNumber;
-		this.serialNumber = serialNumber == null ? "" : serialNumber;
-		this.device = device;
-		this.removed = false;
+	/**
+	 * Tells whether this is the same physical module as another one (same slot, part number and serial number).
+	 *
+	 * @param other the other module
+	 * @return true if this is the same module
+	 */
+	public boolean sameAs(Module other) {
+		return this.slot.equals(other.slot) && this.partNumber.equals(other.partNumber) && this.serialNumber.equals(other.serialNumber);
 	}
-
 }

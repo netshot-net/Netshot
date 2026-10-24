@@ -23,14 +23,12 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import org.hibernate.Session;
-
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -68,7 +66,7 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 
 	private static Prepared prepare(TextRule rule) {
 		List<Pattern> hierarchy = new ArrayList<Pattern>();
-		String context = rule.getContext();
+		String context = rule.context();
 		if (context != null && context.length() > 0) {
 			String[] lines = context.split("\\r?\\n");
 			for (String line : lines) {
@@ -80,13 +78,13 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 				}
 			}
 		}
-		if (rule.getText() == null || rule.getField() == null) {
+		if (rule.text() == null || rule.field() == null) {
 			return new Prepared(hierarchy, false, null);
 		}
 		Pattern pattern = null;
-		if (rule.isRegExp()) {
+		if (rule.regExp()) {
 			try {
-				pattern = Pattern.compile(rule.getText());
+				pattern = Pattern.compile(rule.text());
 			}
 			catch (Exception e) {
 				return new Prepared(hierarchy, false, null);
@@ -144,31 +142,31 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 	}
 
 	@Override
-	public CheckResult evaluate(TextRule rule, Device device, Session session, TaskContext taskContext) {
-		if (!rule.isEnabled()) {
-			return new CheckResult(rule, device, ResultOption.DISABLED);
+	public CheckResult evaluate(TextRule rule, DeviceDraft device, boolean exempted, TaskContext taskContext) {
+		if (!rule.enabled()) {
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.DISABLED);
 		}
 		Prepared compiled = this.prepared.get(rule, TextRuleEvaluator::prepare);
 		if (!compiled.valid()) {
-			return new CheckResult(rule, device, ResultOption.INVALIDRULE);
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE);
 		}
-		String deviceDriver = rule.getDeviceDriver();
+		String deviceDriver = rule.deviceDriver();
 		if (deviceDriver != null && !"".equals(deviceDriver) && !deviceDriver.equals(device.getDriver())) {
-			return new CheckResult(rule, device, ResultOption.NOTAPPLICABLE, "The rule doesn't apply to the device's driver");
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.NOTAPPLICABLE, "The rule doesn't apply to the device's driver");
 		}
-		if (device.isExempted(rule)) {
-			return new CheckResult(rule, device, ResultOption.EXEMPTED);
+		if (exempted) {
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 		}
-		String field = rule.getField();
-		String text = rule.getText();
-		boolean regExp = rule.isRegExp();
-		boolean matchAll = rule.isMatchAll();
+		String field = rule.field();
+		String text = rule.text();
+		boolean regExp = rule.regExp();
+		boolean matchAll = rule.matchAll();
 		Pattern pattern = compiled.pattern();
 		try {
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, session, taskContext, true);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, taskContext, true);
 			String content = deviceHelper.get(field).toString();
 			content = content.replace("\r", "");
-			if (rule.isNormalize()) {
+			if (rule.normalize()) {
 				content = this.normalizeText(content);
 			}
 			List<String[]> blocks = new ArrayList<String[]>();
@@ -186,25 +184,25 @@ public class TextRuleEvaluator implements RuleEvaluator<TextRule> {
 				boolean doesMatch =
 					regExp && (matchAll && pattern.matcher(block[1]).matches() || !matchAll && pattern.matcher(block[1]).find())
 						|| !regExp && (matchAll && block[1].equals(text) || !matchAll && block[1].contains(text));
-				doesMatch = doesMatch ^ rule.isInvert();
+				doesMatch = doesMatch ^ rule.invert();
 				if (!doesMatch) {
 					taskContext.debug("Non matching block, number {} (in [{}])", b++, block[0]);
-					return new CheckResult(rule, device, ResultOption.NONCONFORMING);
+					return CheckResult.of(rule.id(), device.getId(), ResultOption.NONCONFORMING);
 				}
-				else if (rule.isAnyBlock()) {
+				else if (rule.anyBlock()) {
 					taskContext.debug("Matching block, number {} (in [{}])", b++, block[0]);
-					return new CheckResult(rule, device, ResultOption.CONFORMING);
+					return CheckResult.of(rule.id(), device.getId(), ResultOption.CONFORMING);
 				}
 			}
-			return new CheckResult(rule, device, ResultOption.CONFORMING);
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.CONFORMING);
 		}
 		catch (StackOverflowError e) {
 			taskContext.info("Overflow error (you might want to rewrite the regular expression)");
-			return new CheckResult(rule, device, ResultOption.INVALIDRULE, "Overflow error.");
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.INVALIDRULE, "Overflow error.");
 		}
 		catch (Exception e) {
 			taskContext.info("No such field '" + field + "' on this device");
-			return new CheckResult(rule, device, ResultOption.NOTAPPLICABLE, "No such field.");
+			return CheckResult.of(rule.id(), device.getId(), ResultOption.NOTAPPLICABLE, "No such field.");
 		}
 		finally {
 			taskContext.debug("End of check");

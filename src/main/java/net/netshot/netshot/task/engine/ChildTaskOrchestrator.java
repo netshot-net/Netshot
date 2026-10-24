@@ -23,17 +23,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.Session;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.TASK;
+
 import org.quartz.SchedulerException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.ScheduleMode;
 import net.netshot.netshot.task.Task.SequentialScheduling;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.TaskRun;
+import net.netshot.netshot.task.type.DeviceBasedTask;
 
 /**
  * Orchestrates the child tasks of a group-based (or otherwise fan-out) parent task: pre-creates
@@ -58,6 +62,10 @@ public class ChildTaskOrchestrator {
 
 	private final ChildScheduler scheduler;
 
+	private final TaskRepository repository = new TaskRepository();
+
+	private final Transactions transactions = new Transactions();
+
 	/**
 	 * Creates the orchestrator.
 	 * @param scheduler the scheduler to promote children with
@@ -76,18 +84,9 @@ public class ChildTaskOrchestrator {
 	 * @param parent the parent task
 	 * @return the ordered list of already-persisted children, empty if none exist yet
 	 */
-	public List<Task> reloadExistingChildren(Task parent) {
-		Session session = Database.getSession(true);
-		List<Task> children;
-		try {
-			children = session
-				.createQuery("from Task t where t.parentTaskId = :id order by t.childOrder asc", Task.class)
-				.setParameter("id", parent.getId())
-				.list();
-		}
-		finally {
-			session.close();
-		}
+	public List<Task> reloadExistingChildren(TaskRun parent) {
+		List<Task> children = new ArrayList<>(
+			this.transactions.read(dsl -> this.repository.findChildren(dsl, parent.getTask().id())));
 		if (!children.isEmpty()) {
 			parent.logger.info("Resuming from {} previously pre-created child task(s) "
 				+ "(this run was interrupted, e.g. by a Netshot restart).", children.size());
@@ -109,30 +108,26 @@ public class ChildTaskOrchestrator {
 	 *
 	 * @param children the children to pre-create, in order (not yet persisted)
 	 * @param parent the parent task
+	 * @return the stored children, in order
 	 */
-	public void preCreateChildren(Task parent, List<Task> children) {
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
+	public List<Task> preCreateChildren(TaskRun parent, List<Task> children) {
+		Task parentTask = parent.getTask();
+		List<Task> stored = this.transactions.write(dsl -> {
+			List<Task> added = new ArrayList<>();
 			int order = 0;
 			for (Task child : children) {
-				child.setParentTaskId(parent.getId());
-				child.setChildOrder(order);
-				child.setPriority(parent.getPriority());
-				child.setStatus(Status.DELAYED);
-				session.persist(child);
+				added.add(this.repository.add(dsl, child.toBuilder()
+					.parentTaskId(parentTask.id())
+					.childOrder(order)
+					.priority(parentTask.priority())
+					.status(Status.DELAYED)
+					.build()));
 				order++;
 			}
-			session.getTransaction().commit();
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
+			return added;
+		});
 		parent.logger.info("Pre-created {} child task(s), in DELAYED status.", children.size());
+		return new ArrayList<>(stored);
 	}
 
 	/**
@@ -146,7 +141,7 @@ public class ChildTaskOrchestrator {
 	 */
 	public Status promoteChildAndWait(Task child) throws SchedulerException, InterruptedException {
 		this.scheduler.schedule(child);
-		return this.pollChildUntilTerminal(child.getId());
+		return this.pollChildUntilTerminal(child.id());
 	}
 
 	/**
@@ -160,34 +155,17 @@ public class ChildTaskOrchestrator {
 	 * @param fromIndex the index (inclusive) to start cancelling from
 	 * @param parent the parent task
 	 */
-	public void cancelRemainingDelayedChildren(Task parent, List<Task> children, int fromIndex) {
+	public void cancelRemainingDelayedChildren(TaskRun parent, List<Task> children, int fromIndex) {
 		List<Long> ids = new ArrayList<>();
 		for (int i = fromIndex; i < children.size(); i++) {
-			if (children.get(i).getStatus() == Status.DELAYED) {
-				ids.add(children.get(i).getId());
+			if (children.get(i).status() == Status.DELAYED) {
+				ids.add(children.get(i).id());
 			}
 		}
 		if (ids.isEmpty()) {
 			return;
 		}
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			session.createMutationQuery(
-				"update Task t set t.status = :cancelled where t.id in :ids and t.status = :delayed")
-				.setParameter("cancelled", Status.CANCELLED)
-				.setParameter("delayed", Status.DELAYED)
-				.setParameter("ids", ids)
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
-		catch (Exception e) {
-			Database.rollbackSilently(session);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
+		this.transactions.write(dsl -> this.repository.setStatus(dsl, TASK.ID.in(ids), Status.CANCELLED, Status.DELAYED));
 		parent.logger.info("Cancelled {} remaining child task(s) that hadn't started yet.", ids.size());
 	}
 
@@ -200,12 +178,21 @@ public class ChildTaskOrchestrator {
 	 * @param child the child task
 	 * @return a human-readable description of the device the child targets
 	 */
-	private static String describeChildDevice(Task child) {
-		Device device = child.getDevice();
-		if (device == null) {
-			return child.getTarget();
+	private String describeChildDevice(Task child) {
+		if (!(child.spec() instanceof DeviceBasedTask deviceTask) || deviceTask.deviceId() == null) {
+			return child.target();
 		}
-		return String.format("%s (device #%d)", device.getName(), device.getId());
+		String name = this.transactions.read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE)
+			.where(DEVICE.ID.eq(deviceTask.deviceId())).fetchOne(DEVICE.NAME));
+		if (name == null) {
+			return child.target();
+		}
+		return String.format("%s (device #%d)", name, deviceTask.deviceId());
+	}
+
+	// Gets whether the cancellation of the parent task was requested (fresh from the database)
+	private boolean isCancelRequested(TaskRun parent) {
+		return this.transactions.read(dsl -> this.repository.isCancelRequested(dsl, parent.getTask().id()));
 	}
 
 	/**
@@ -222,8 +209,8 @@ public class ChildTaskOrchestrator {
 	 * @param parent the parent task
 	 * @return the final status this task should report
 	 */
-	public Status orchestrateChildren(Task parent, List<Task> children) {
-		if (parent.getScheduleMode() == ScheduleMode.SEQUENTIAL) {
+	public Status orchestrateChildren(TaskRun parent, List<Task> children) {
+		if (parent.getTask().scheduleMode() == ScheduleMode.SEQUENTIAL) {
 			return this.orchestrateSequentialChildren(parent, children);
 		}
 		return this.orchestrateParallelChildren(parent, children);
@@ -237,28 +224,17 @@ public class ChildTaskOrchestrator {
 	 *
 	 * @param child the child task that failed to schedule
 	 * @param parent the parent task
+	 * @return the child task, failed
 	 */
-	private void markChildAsSchedulingFailure(Task parent, Task child) {
-		Session session = Database.getSession();
+	private Task markChildAsSchedulingFailure(TaskRun parent, Task child) {
 		try {
-			session.beginTransaction();
-			session.createMutationQuery(
-				"update Task t set t.status = :failure where t.id = :id and t.status = :delayed")
-				.setParameter("failure", Status.FAILURE)
-				.setParameter("delayed", Status.DELAYED)
-				.setParameter("id", child.getId())
-				.executeUpdate();
-			session.getTransaction().commit();
+			this.transactions.write(dsl -> this.repository.setStatus(dsl, child.id(), Status.FAILURE, Status.DELAYED));
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
 			log.error("Task {}. Error while marking child task {} as failed after a scheduling error.",
-				parent.getId(), child.getId(), e);
+				parent.getTask().id(), child.id(), e);
 		}
-		finally {
-			session.close();
-		}
-		child.setStatus(Status.FAILURE);
+		return child.withStatus(Status.FAILURE);
 	}
 
 	/**
@@ -281,33 +257,33 @@ public class ChildTaskOrchestrator {
 	 * @param parent the parent task
 	 * @return the final status this task should report
 	 */
-	private Status orchestrateParallelChildren(Task parent, List<Task> children) {
+	private Status orchestrateParallelChildren(TaskRun parent, List<Task> children) {
 		parent.logger.info("Orchestrating {} child task(s) in parallel mode.", children.size());
 		boolean cancelHonored = false;
 		boolean schedulingError = false;
 		for (int i = 0; i < children.size(); i++) {
 			Task child = children.get(i);
-			if (child.getStatus() != Status.DELAYED) {
+			if (child.status() != Status.DELAYED) {
 				continue;
 			}
-			if (parent.isCancelRequestedFresh()) {
+			if (this.isCancelRequested(parent)) {
 				parent.logger.info("Cancellation requested: not scheduling the remaining {} device(s).",
 					children.size() - i);
 				this.cancelRemainingDelayedChildren(parent, children, i);
 				cancelHonored = true;
 				break;
 			}
-			parent.logger.info("Scheduling child task {} for {}.", child.getId(), describeChildDevice(child));
+			parent.logger.info("Scheduling child task {} for {}.", child.id(), this.describeChildDevice(child));
 			try {
 				this.scheduler.schedule(child);
 			}
 			catch (Exception e) {
 				log.error("Task {}. Error while scheduling child task {} for {}.",
-					parent.getId(), child.getId(), describeChildDevice(child), e);
+					parent.getTask().id(), child.id(), this.describeChildDevice(child), e);
 				parent.logger.error("Error while scheduling child task {} for {}.",
-					child.getId(), describeChildDevice(child));
+					child.id(), this.describeChildDevice(child));
 				schedulingError = true;
-				this.markChildAsSchedulingFailure(parent, child);
+				children.set(i, this.markChildAsSchedulingFailure(parent, child));
 			}
 		}
 
@@ -315,17 +291,17 @@ public class ChildTaskOrchestrator {
 		int succeeded = 0;
 		int failed = 0;
 		for (Task child : children) {
-			if (isTerminalStatus(child.getStatus())) {
-				if (child.getStatus() == Status.FAILURE) {
+			if (isTerminalStatus(child.status())) {
+				if (child.status() == Status.FAILURE) {
 					failed++;
 				}
-				else if (child.getStatus() == Status.SUCCESS) {
+				else if (child.status() == Status.SUCCESS) {
 					succeeded++;
 				}
 			}
-			else if (child.getStatus() != Status.DELAYED) {
+			else if (child.status() != Status.DELAYED) {
 				// Promoted above (or already running from before a restart) -- wait for it.
-				pending.put(child.getId(), child);
+				pending.put(child.id(), child);
 			}
 			// A still-DELAYED child here was left un-promoted due to cancellation above, and
 			// already marked CANCELLED by cancelRemainingDelayedChildren -- nothing to wait for.
@@ -336,40 +312,31 @@ public class ChildTaskOrchestrator {
 		try {
 			while (!pending.isEmpty() && !cancelHonored) {
 				Thread.sleep(intervalMs);
-				if (parent.isCancelRequestedFresh()) {
+				if (this.isCancelRequested(parent)) {
 					parent.logger.info("Cancellation requested: no longer waiting for the {} still-running "
 						+ "device(s) (they will keep running to completion independently).", pending.size());
 					cancelHonored = true;
 					break;
 				}
-				Session session = Database.getSession(true);
-				try {
-					List<Object[]> rows = session
-						.createQuery("select t.id, t.status from Task t where t.id in :ids", Object[].class)
-						.setParameter("ids", pending.keySet())
-						.list();
-					for (Object[] row : rows) {
-						Status childStatus = (Status) row[1];
-						if (isTerminalStatus(childStatus)) {
-							Long childId = (Long) row[0];
-							Task child = pending.remove(childId);
-							if (childStatus == Status.FAILURE) {
-								failed++;
-								parent.logger.warn("Child task {} for {} failed.", childId, describeChildDevice(child));
-							}
-							else if (childStatus == Status.SUCCESS) {
-								succeeded++;
-							}
+				Map<Long, Status> statuses = this.transactions.read(dsl -> this.repository.findStatuses(dsl, pending.keySet()));
+				for (Map.Entry<Long, Status> row : statuses.entrySet()) {
+					Status childStatus = row.getValue();
+					if (isTerminalStatus(childStatus)) {
+						Long childId = row.getKey();
+						Task child = pending.remove(childId);
+						if (childStatus == Status.FAILURE) {
+							failed++;
+							parent.logger.warn("Child task {} for {} failed.", childId, this.describeChildDevice(child));
+						}
+						else if (childStatus == Status.SUCCESS) {
+							succeeded++;
 						}
 					}
-				}
-				finally {
-					session.close();
 				}
 			}
 		}
 		catch (InterruptedException e) {
-			log.error("Task {}. Interrupted while waiting for child tasks.", parent.getId(), e);
+			log.error("Task {}. Interrupted while waiting for child tasks.", parent.getTask().id(), e);
 			parent.logger.error("Interrupted while waiting for child tasks.");
 		}
 
@@ -380,9 +347,9 @@ public class ChildTaskOrchestrator {
 		return finalStatus;
 	}
 
-	private Status orchestrateSequentialChildren(Task parent, List<Task> children) {
+	private Status orchestrateSequentialChildren(TaskRun parent, List<Task> children) {
 		parent.logger.info("Orchestrating {} child task(s) in sequential mode (stop on failure: {}).",
-			children.size(), parent.isStopOnFailure());
+			children.size(), parent.getTask().stopOnFailure());
 		boolean anyFailed = false;
 		boolean cancelHonored = false;
 		boolean schedulingError = false;
@@ -392,20 +359,20 @@ public class ChildTaskOrchestrator {
 		try {
 			for (int i = 0; i < children.size(); i++) {
 				Task child = children.get(i);
-				if (isTerminalStatus(child.getStatus())) {
-					if (child.getStatus() == Status.FAILURE) {
+				if (isTerminalStatus(child.status())) {
+					if (child.status() == Status.FAILURE) {
 						anyFailed = true;
 						failed++;
-						lastFailedChildId = child.getId();
+						lastFailedChildId = child.id();
 					}
-					else if (child.getStatus() == Status.SUCCESS) {
+					else if (child.status() == Status.SUCCESS) {
 						succeeded++;
 					}
 					continue;
 				}
-				boolean cancellationRequested = parent.isCancelRequestedFresh();
+				boolean cancellationRequested = this.isCancelRequested(parent);
 				SequentialScheduling.NextAction next =
-					SequentialScheduling.decideNextAction(anyFailed, parent.isStopOnFailure(), cancellationRequested);
+					SequentialScheduling.decideNextAction(anyFailed, parent.getTask().stopOnFailure(), cancellationRequested);
 				if (next == SequentialScheduling.NextAction.STOP) {
 					cancelHonored = cancelHonored || cancellationRequested;
 					if (cancellationRequested) {
@@ -420,21 +387,21 @@ public class ChildTaskOrchestrator {
 					break;
 				}
 				Status childStatus;
-				if (child.getStatus() == Status.DELAYED) {
+				if (child.status() == Status.DELAYED) {
 					parent.logger.info("Scheduling child task {} for {} (sequential mode, {}/{}).",
-						child.getId(), describeChildDevice(child), i + 1, children.size());
+						child.id(), this.describeChildDevice(child), i + 1, children.size());
 					childStatus = this.promoteChildAndWait(child);
 				}
 				else {
 					parent.logger.info("Resuming tracking of child task {} for {} (sequential mode, after restart).",
-						child.getId(), describeChildDevice(child));
-					childStatus = this.pollChildUntilTerminal(child.getId());
+						child.id(), this.describeChildDevice(child));
+					childStatus = this.pollChildUntilTerminal(child.id());
 				}
 				if (childStatus == Status.FAILURE) {
 					anyFailed = true;
 					failed++;
-					lastFailedChildId = child.getId();
-					parent.logger.warn("Child task {} for {} failed.", child.getId(), describeChildDevice(child));
+					lastFailedChildId = child.id();
+					parent.logger.warn("Child task {} for {} failed.", child.id(), this.describeChildDevice(child));
 				}
 				else if (childStatus == Status.SUCCESS) {
 					succeeded++;
@@ -442,11 +409,11 @@ public class ChildTaskOrchestrator {
 			}
 		}
 		catch (Exception e) {
-			log.error("Task {}. Error during sequential child scheduling.", parent.getId(), e);
+			log.error("Task {}. Error during sequential child scheduling.", parent.getTask().id(), e);
 			parent.logger.error("Error during sequential scheduling: {}", e.getMessage());
 			schedulingError = true;
 		}
-		Status finalStatus = SequentialScheduling.decideFinalStatus(anyFailed, parent.isStopOnFailure(), cancelHonored, schedulingError);
+		Status finalStatus = SequentialScheduling.decideFinalStatus(anyFailed, parent.getTask().stopOnFailure(), cancelHonored, schedulingError);
 		parent.logger.info("Sequential scheduling finished: {} succeeded, {} failed, out of {} device(s). Final status: {}.",
 			succeeded, failed, children.size(), finalStatus);
 		return finalStatus;
@@ -465,18 +432,9 @@ public class ChildTaskOrchestrator {
 			"netshot.tasks.sequentialpollintervalms", 3000, 500, 60000);
 		while (true) {
 			Thread.sleep(intervalMs);
-			Session session = Database.getSession(true);
-			try {
-				Status childStatus = session
-					.createQuery("select t.status from Task t where t.id = :id", Status.class)
-					.setParameter("id", taskId)
-					.uniqueResult();
-				if (childStatus == null || isTerminalStatus(childStatus)) {
-					return childStatus;
-				}
-			}
-			finally {
-				session.close();
+			Status childStatus = this.transactions.read(dsl -> this.repository.findStatus(dsl, taskId));
+			if (childStatus == null || isTerminalStatus(childStatus)) {
+				return childStatus;
 			}
 		}
 	}

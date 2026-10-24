@@ -3,12 +3,12 @@
   <author>author-2</author>
   <cancelRequested>true</cancelRequested>
   <changeDate>1600000000002</changeDate>
-  <checkCompliance>true</checkCompliance>
+  <checkCompliance>false</checkCompliance>
   <childOrder>2</childOrder>
   <comments>Comments of 2</comments>
   <creationDate>1500000000002</creationDate>
   <debugEnabled>true</debugEnabled>
-  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriver/>
   <deviceId>2</deviceId>
   <executionDate>1550000000002</executionDate>
   <id>2</id>
@@ -17,19 +17,17 @@
   <parentTaskId>102</parentTaskId>
   <priority>7</priority>
   <repeating>true</repeating>
-  <runDiagnostics>true</runDiagnostics>
-  <runSnapshot>true</runSnapshot>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
   <runnerId>&lt;runnerId&gt;</runnerId>
   <scheduleFactor>3</scheduleFactor>
   <scheduleMode>SEQUENTIAL</scheduleMode>
   <scheduleReference>1700000000000</scheduleReference>
   <scheduleType>WEEKLY</scheduleType>
-  <script>script of 2</script>
+  <script/>
   <status>FAILURE</status>
   <stopOnFailure>true</stopOnFailure>
   <target>10.1.1.2</target>
   <taskDescription>Device compliance check</taskDescription>
-  <userInputValues>
-    <input>value</input>
-  </userInputValues>
+  <userInputValues/>
 </CheckComplianceTask>

@@ -18,86 +18,39 @@
  */
 package net.netshot.netshot.inventory.config.attribute;
 
-import java.util.Objects;
+/**
+ * A configuration level attribute, as defined by the driver and set by the snapshots.
+ * Its type is stored as a one letter discriminator.
+ */
+public sealed interface ConfigAttribute
+	permits ConfigTextAttribute, ConfigNumericAttribute, ConfigBinaryAttribute, ConfigLongTextAttribute, ConfigBinaryFileAttribute {
 
-import jakarta.persistence.DiscriminatorColumn;
-import jakarta.persistence.DiscriminatorType;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.config.Config;
-
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.CHAR)
-@DiscriminatorValue("A")
-public abstract class ConfigAttribute {
-
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	@Getter
-	@Setter
-	protected String name;
-
-	@Getter(onMethod = @__({
-		@ManyToOne
-	}))
-	@Setter
-	protected Config config;
-
-	protected ConfigAttribute() {
-
-	}
-
-	public ConfigAttribute(Config config, String name) {
-		this.config = config;
-		this.name = name;
-	}
-
-
-	@Transient
-	public abstract String getAsText();
-
-
-	@Transient
-	public abstract Object getData();
-
-	public abstract boolean valueEquals(ConfigAttribute other);
-
-	/*(non-Javadoc)
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * Gets the name of the attribute.
+	 *
+	 * @return the name
 	 */
-	@Override
-	public int hashCode() {
-		return Objects.hash(this.name, this.config);
-	}
+	String name();
 
-	/*(non-Javadoc)
-	 * @see java.lang.Object#equals()
+	/**
+	 * Gets the value of the attribute, as text.
+	 *
+	 * @return the text (empty when there is no value)
 	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ConfigAttribute)) {
-			return false;
-		}
-		ConfigAttribute other = (ConfigAttribute) obj;
-		return Objects.equals(this.name, other.name)
-			&& Objects.equals(this.config, other.config);
-	}
+	String getAsText();
 
+	/**
+	 * Gets the value of the attribute.
+	 *
+	 * @return the value
+	 */
+	Object getData();
+
+	/**
+	 * Tells whether another attribute has the same type and value (whatever its name).
+	 *
+	 * @param other the other attribute (may be null)
+	 * @return true if the value is the same
+	 */
+	boolean valueEquals(ConfigAttribute other);
 }

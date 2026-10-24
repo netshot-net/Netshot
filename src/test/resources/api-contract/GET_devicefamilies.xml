@@ -1,10 +1,6 @@
 <?xml version="1.0"?>
 <ArrayList>
   <item>
-    <deviceFamily/>
-    <driver>CiscoIOS12</driver>
-  </item>
-  <item>
     <deviceFamily>Cisco 2900</deviceFamily>
     <driver>CiscoIOS12</driver>
   </item>
@@ -15,5 +11,9 @@
   <item>
     <deviceFamily>Web gateway</deviceFamily>
     <driver>SkyhighSWG</driver>
+  </item>
+  <item>
+    <deviceFamily/>
+    <driver>CiscoIOS12</driver>
   </item>
 </ArrayList>

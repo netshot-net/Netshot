@@ -21,10 +21,14 @@ package net.netshot.netshot.driver;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
-
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
@@ -34,15 +38,13 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 @SimulatorTest
 @DisplayName("Cisco AsyncOS driver test")
@@ -57,22 +59,23 @@ public class CiscoAsyncOSDriverTest {
 	@DisplayName("Cisco AsyncOS Snapshot")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
-		Session nullSession = null;
-		Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-		Device device = new Device("CiscoAsyncOS", null, domain, "test");
-		DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
-		sshAccess.setAddress(CONTAINER.getHost());
-		sshAccess.setPort(CONTAINER.getMappedPort(22));
-		device.getAccesses().add(sshAccess);
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("admin/admin").build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("CiscoAsyncOS", null, domain, "test").toBuilder();
+		List<DeviceAccess> deviceAccesses = new ArrayList<>();
+		Set<String> deviceTags = new HashSet<>();
+		DeviceAccess.DeviceAccessBuilder sshAccess = DeviceAccess.of("ssh").toBuilder();
+		sshAccess.address(CONTAINER.getHost());
+		sshAccess.port(CONTAINER.getMappedPort(22));
+		deviceAccesses.add(sshAccess.build());
+		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
 		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), nullSession, device, null, this.taskContext, Set.of(credentials));
-		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", Session.class,
-			Device.class, AccessManager.class);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, this.taskContext, Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {
-			runMethod.invoke(script, nullSession, device, accessManager);
-			Config config = device.getLastConfig();
+			runMethod.invoke(script, device, accessManager);
+			Config config = device.getNewConfig();
 			Assertions.assertNotNull(config, "The config doesn't exist");
 			Assertions.assertEquals("esa.netshot.lab", device.getName(), "The device name is incorrect");
 		}

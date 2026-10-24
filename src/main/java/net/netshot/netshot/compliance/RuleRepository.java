@@ -18,166 +18,347 @@
  */
 package net.netshot.netshot.compliance;
 
+import static net.netshot.netshot.platform.database.schema.Tables.CHECK_RESULT;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+import static net.netshot.netshot.platform.database.schema.Tables.EXEMPTION;
+import static net.netshot.netshot.platform.database.schema.Tables.POLICY;
+import static net.netshot.netshot.platform.database.schema.Tables.POLICY_TARGET_GROUPS;
+import static net.netshot.netshot.platform.database.schema.Tables.RULE;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
-import org.hibernate.Session;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.SelectField;
 
-import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The queries on compliance rules (script and text rules, the rules of the policies) and on
- * their results. The {@link Session} is always the first parameter: the caller (the service)
- * owns the session and the transaction. None of these methods catches an exception.
+ * The queries on the compliance rules, their exemptions and their check results. The
+ * {@link DSLContext} is always the first parameter: the caller (the service) owns the transaction.
  */
 public class RuleRepository {
 
+	/** The types (discriminator) of the rules. */
+	static final String TEXT = "TEXT";
+	static final String JAVASCRIPT = "JAVASCRIPT";
+	static final String PYTHON = "PYTHON";
+
+	private static Rule toRule(Record r) {
+		String type = r.get(RULE.TYPE);
+		long id = r.get(RULE.ID);
+		String name = r.get(RULE.NAME);
+		boolean enabled = r.get(RULE.ENABLED);
+		long policyId = r.get(RULE.POLICY);
+		return switch (type) {
+			case TEXT -> new TextRule(id, name, enabled, policyId, r.get(RULE.FIELD), r.get(RULE.CONTEXT), r.get(RULE.TEXT),
+				r.get(RULE.REG_EXP), r.get(RULE.INVERT), r.get(RULE.ANY_BLOCK), r.get(RULE.MATCH_ALL), r.get(RULE.NORMALIZE),
+				r.get(RULE.DEVICE_DRIVER));
+			case JAVASCRIPT -> new JavaScriptRule(id, name, enabled, policyId, r.get(RULE.SCRIPT));
+			case PYTHON -> new PythonRule(id, name, enabled, policyId, r.get(RULE.SCRIPT));
+			default -> throw new IllegalStateException("Unknown type of rule '%s'".formatted(type));
+		};
+	}
+
 	/**
-	 * Finds all the rules, across all the policies, with minimal details.
+	 * Gets the name of the type of rule stored in the database, as the API publishes it.
 	 *
-	 * @param session the session
+	 * @param type the stored type
+	 * @return the type name
+	 */
+	static String typeName(String type) {
+		return switch (type) {
+			case TEXT -> TextRule.class.getSimpleName();
+			case JAVASCRIPT -> JavaScriptRule.class.getSimpleName();
+			case PYTHON -> PythonRule.class.getSimpleName();
+			default -> type;
+		};
+	}
+
+	private static List<Rule> query(DSLContext dsl, Condition condition, Page page) {
+		return page.apply(dsl.select(RULE.fields()).from(RULE).where(condition).orderBy(RULE.ID)).fetch(RuleRepository::toRule);
+	}
+
+	/**
+	 * Lists all the rules, with minimal details, by ID.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
 	 * @return the rule summaries
 	 */
-	public List<RuleSummary> findSummaries(Session session, Page page) {
-		var query = session.createQuery(
-			"select new " + RuleSummary.class.getName() + "(r.id, r.name, type(r), r.enabled, r.policy.id) from Rule r",
-			RuleSummary.class);
-		page.apply(query);
-		return query.list();
+	public List<RuleSummary> findSummaries(DSLContext dsl, Page page) {
+		return page.apply(dsl.select(RULE.ID, RULE.NAME, RULE.TYPE, RULE.ENABLED, RULE.POLICY).from(RULE).orderBy(RULE.ID))
+			.fetch(r -> new RuleSummary(r.value1(), r.value2(), typeName(r.value3()), r.value4(), r.value5()));
 	}
 
 	/**
-	 * Finds the rules of a policy.
+	 * Lists the rules of a policy, by ID.
 	 *
-	 * <p>Fetch plan: the rules are loaded with all their own properties, and nothing else
-	 * (not the policy, not the exemptions).</p>
-	 *
-	 * @param session the session
-	 * @param policyId the policy ID
+	 * @param dsl the jOOQ context
+	 * @param policyId the ID of the policy
 	 * @param page the window on the result
 	 * @return the rules
 	 */
-	public List<Rule> findByPolicy(Session session, long policyId, Page page) {
-		var query = session
-			.createQuery("from Rule r where r.policy.id = :pid", Rule.class)
-			.setParameter("pid", policyId);
-		page.apply(query);
-		return query.list();
+	public List<Rule> findByPolicy(DSLContext dsl, long policyId, Page page) {
+		return query(dsl, RULE.POLICY.eq(policyId), page);
 	}
 
 	/**
-	 * Finds a rule of a given policy (same fetch plan as {@link #findByPolicy}).
+	 * Gets a rule of a policy.
 	 *
-	 * @param session the session
-	 * @param policyId the policy ID
-	 * @param id the rule ID
+	 * @param dsl the jOOQ context
+	 * @param policyId the ID of the policy
+	 * @param id the ID of the rule
 	 * @return the rule, or null if the policy has no such rule
 	 */
-	public Rule findOfPolicy(Session session, long policyId, long id) {
-		return session
-			.createQuery("from Rule r where r.policy.id = :pid and r.id = :rid", Rule.class)
-			.setParameter("pid", policyId)
-			.setParameter("rid", id)
-			.uniqueResult();
+	public Rule findOfPolicy(DSLContext dsl, long policyId, long id) {
+		List<Rule> rules = query(dsl, RULE.POLICY.eq(policyId).and(RULE.ID.eq(id)), Page.ALL);
+		return rules.isEmpty() ? null : rules.get(0);
 	}
 
 	/**
-	 * Finds a rule, without any of its associations.
+	 * Gets a rule of a policy by name.
 	 *
-	 * @param session the session
-	 * @param id the rule ID
+	 * @param dsl the jOOQ context
+	 * @param policyId the ID of the policy
+	 * @param name the name of the rule
+	 * @return the rule, or null if the policy has no such rule
+	 */
+	public Rule findOfPolicyByName(DSLContext dsl, long policyId, String name) {
+		List<Rule> rules = query(dsl, RULE.POLICY.eq(policyId).and(RULE.NAME.eq(name)), Page.ALL);
+		return rules.isEmpty() ? null : rules.get(0);
+	}
+
+	/**
+	 * Gets a rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID of the rule
 	 * @return the rule, or null if there is no such rule
 	 */
-	public Rule find(Session session, long id) {
-		return session.get(Rule.class, id);
+	public Rule find(DSLContext dsl, long id) {
+		List<Rule> rules = query(dsl, RULE.ID.eq(id), Page.ALL);
+		return rules.isEmpty() ? null : rules.get(0);
 	}
 
 	/**
-	 * Finds a device (to be exempted from a rule).
-	 * (Lookup of a related aggregate: to move to the device repository when the compliance needs it elsewhere.)
+	 * Stores a new rule.
 	 *
-	 * @param session the session
-	 * @param id the device ID
-	 * @return the device, or null if there is no such device
+	 * @param dsl the jOOQ context
+	 * @param rule the rule (its ID is ignored)
+	 * @return the ID of the new rule
 	 */
-	public Device findDevice(Session session, long id) {
-		return session.get(Device.class, id);
+	public long add(DSLContext dsl, Rule rule) {
+		var insert = dsl.insertInto(RULE)
+			.set(RULE.NAME, rule.name())
+			.set(RULE.ENABLED, rule.enabled())
+			.set(RULE.POLICY, rule.policyId());
+		var full = switch (rule) {
+			case TextRule t -> insert.set(RULE.TYPE, TEXT)
+				.set(RULE.FIELD, t.field())
+				.set(RULE.CONTEXT, t.context())
+				.set(RULE.TEXT, t.text())
+				.set(RULE.REG_EXP, t.regExp())
+				.set(RULE.INVERT, t.invert())
+				.set(RULE.ANY_BLOCK, t.anyBlock())
+				.set(RULE.MATCH_ALL, t.matchAll())
+				.set(RULE.NORMALIZE, t.normalize())
+				.set(RULE.DEVICE_DRIVER, t.deviceDriver());
+			case JavaScriptRule j -> insert.set(RULE.TYPE, JAVASCRIPT).set(RULE.SCRIPT, j.script());
+			case PythonRule p -> insert.set(RULE.TYPE, PYTHON).set(RULE.SCRIPT, p.script());
+		};
+		return full.returning(RULE.ID).fetchOne(RULE.ID);
 	}
 
 	/**
-	 * Finds a device along with its last configuration, to check a rule against it.
+	 * Saves an existing rule (its type and policy are not changed).
 	 *
-	 * @param session the session
-	 * @param id the device ID
-	 * @return the device, or null if there is no such device (or it has no configuration)
+	 * @param dsl the jOOQ context
+	 * @param rule the rule
+	 * @return true if the rule was found and saved
 	 */
-	public Device findDeviceWithLastConfig(Session session, long id) {
-		return session
-			.createQuery("from Device d join fetch d.lastConfig where d.id = :id", Device.class)
-			.setParameter("id", id)
-			.uniqueResult();
+	public boolean save(DSLContext dsl, Rule rule) {
+		var update = dsl.update(RULE)
+			.set(RULE.NAME, rule.name())
+			.set(RULE.ENABLED, rule.enabled());
+		var full = switch (rule) {
+			case TextRule t -> update
+				.set(RULE.FIELD, t.field())
+				.set(RULE.CONTEXT, t.context())
+				.set(RULE.TEXT, t.text())
+				.set(RULE.REG_EXP, t.regExp())
+				.set(RULE.INVERT, t.invert())
+				.set(RULE.ANY_BLOCK, t.anyBlock())
+				.set(RULE.MATCH_ALL, t.matchAll())
+				.set(RULE.NORMALIZE, t.normalize())
+				.set(RULE.DEVICE_DRIVER, t.deviceDriver());
+			case JavaScriptRule j -> update.set(RULE.SCRIPT, j.script());
+			case PythonRule p -> update.set(RULE.SCRIPT, p.script());
+		};
+		return full.where(RULE.ID.eq(rule.id())).execute() > 0;
 	}
 
 	/**
-	 * Finds the devices exempted from a rule.
+	 * Removes a rule (with its exemptions and check results).
 	 *
-	 * @param session the session
-	 * @param ruleId the rule ID
+	 * @param dsl the jOOQ context
+	 * @param id the ID of the rule
+	 * @return true if the rule was found and removed
+	 */
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(RULE).where(RULE.ID.eq(id)).execute() > 0;
+	}
+
+	// ------------------------------------------------------------------
+	// Exemptions
+	// ------------------------------------------------------------------
+
+	private static Exemption toExemption(Record r) {
+		return new Exemption(r.get(EXEMPTION.RULE), r.get(EXEMPTION.DEVICE), r.get(EXEMPTION.EXPIRATION_DATE));
+	}
+
+	/**
+	 * Lists the exemptions of a rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param ruleId the ID of the rule
+	 * @return the exemptions
+	 */
+	public List<Exemption> findExemptions(DSLContext dsl, long ruleId) {
+		return dsl.select(EXEMPTION.fields()).from(EXEMPTION).where(EXEMPTION.RULE.eq(ruleId)).fetch(RuleRepository::toExemption);
+	}
+
+	/**
+	 * Lists the exemptions of a device.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @return the exemptions
+	 */
+	public List<Exemption> findExemptionsOfDevice(DSLContext dsl, long deviceId) {
+		return dsl.select(EXEMPTION.fields()).from(EXEMPTION).where(EXEMPTION.DEVICE.eq(deviceId)).fetch(RuleRepository::toExemption);
+	}
+
+	/**
+	 * Replaces the exemptions of a rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param ruleId the ID of the rule
+	 * @param expirations the expiration dates, by device ID
+	 */
+	public void replaceExemptions(DSLContext dsl, long ruleId, Map<Long, Instant> expirations) {
+		dsl.deleteFrom(EXEMPTION).where(EXEMPTION.RULE.eq(ruleId)).execute();
+		for (Map.Entry<Long, Instant> expiration : expirations.entrySet()) {
+			dsl.insertInto(EXEMPTION)
+				.set(EXEMPTION.RULE, ruleId)
+				.set(EXEMPTION.DEVICE, expiration.getKey())
+				.set(EXEMPTION.EXPIRATION_DATE, expiration.getValue())
+				.execute();
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// Check results
+	// ------------------------------------------------------------------
+
+	/**
+	 * Deletes the check results of a device.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 */
+	public void deleteCheckResultsOfDevice(DSLContext dsl, long deviceId) {
+		dsl.deleteFrom(CHECK_RESULT).where(CHECK_RESULT.DEVICE.eq(deviceId)).execute();
+	}
+
+	/**
+	 * Stores check results (replacing the existing results of the same rules and devices).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param results the results
+	 */
+	public void saveCheckResults(DSLContext dsl, Collection<CheckResult> results) {
+		for (CheckResult result : results) {
+			dsl.insertInto(CHECK_RESULT)
+				.set(CHECK_RESULT.RULE, result.ruleId())
+				.set(CHECK_RESULT.DEVICE, result.deviceId())
+				.set(CHECK_RESULT.CHECK_DATE, result.checkDate())
+				.set(CHECK_RESULT.COMMENT, result.comment())
+				.set(CHECK_RESULT.RESULT, result.result() == null ? null : result.result().name())
+				.onConflict(CHECK_RESULT.RULE, CHECK_RESULT.DEVICE)
+				.doUpdate()
+				.set(CHECK_RESULT.CHECK_DATE, result.checkDate())
+				.set(CHECK_RESULT.COMMENT, result.comment())
+				.set(CHECK_RESULT.RESULT, result.result() == null ? null : result.result().name())
+				.execute();
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// Devices
+	// ------------------------------------------------------------------
+
+	/**
+	 * Tells whether a device exists.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @return true if the device exists
+	 */
+	public boolean deviceExists(DSLContext dsl, long deviceId) {
+		return dsl.fetchExists(DEVICE, DEVICE.ID.eq(deviceId));
+	}
+
+	/**
+	 * Lists the devices exempted from a rule, by device ID.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param ruleId the ID of the rule
 	 * @param page the window on the result
 	 * @return the exempted devices
 	 */
-	public List<ExemptedDevice> findExemptedDevices(Session session, long ruleId, Page page) {
-		var query = session.createQuery(
-			"select new " + ExemptedDevice.class.getName() + "(new " + DeviceSummary.class.getName() + "("
-				+ "d.id, "
-				+ "d.name, "
-				+ "d.family, "
-				+ "d.mgmtAddress, "
-				+ "d.status, "
-				+ "d.driver, "
-				+ "case when (d.eolDate < current_date()) then true else false end,  "
-				+ "case when (d.eosDate < current_date()) then true else false end, "
-				+ "case when (select count(cr) from CheckResult cr where cr.key.device = d and cr.result = :nonConforming) = 0 then true else false end, "
-				+ "d.softwareLevel, "
-				+ "d.networkClass), "
-				+ "e.expirationDate"
-				+ ") from Exemption e join e.key.device d where e.key.rule.id = :id",
-			ExemptedDevice.class)
-			.setParameter("nonConforming", CheckResult.ResultOption.NONCONFORMING)
-			.setParameter("id", ruleId);
-		page.apply(query);
-		return query.list();
+	public List<ExemptedDevice> findExemptedDevices(DSLContext dsl, long ruleId, Page page) {
+		List<SelectField<?>> fields = new ArrayList<>(DeviceSummary.FIELDS);
+		fields.add(EXEMPTION.EXPIRATION_DATE);
+		return page.apply(dsl.select(fields).from(EXEMPTION).join(DEVICE).on(DEVICE.ID.eq(EXEMPTION.DEVICE))
+				.where(EXEMPTION.RULE.eq(ruleId)).orderBy(DEVICE.ID))
+			.fetch(r -> new ExemptedDevice(DeviceSummary.fromRecord(r), toDate(r.get(EXEMPTION.EXPIRATION_DATE))));
+	}
+
+	private static Date toDate(Instant instant) {
+		return instant == null ? null : Date.from(instant);
 	}
 
 	/**
-	 * Finds the compliance state of a device: for each rule of the policies applying to the groups
-	 * of the device, the last result and the exemption of the device.
+	 * Lists the compliance state of a device: the rules of the policies applying to it (through
+	 * its groups), with their last result and exemption.
 	 *
-	 * @param session the session
-	 * @param deviceId the device ID
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
 	 * @param page the window on the result
-	 * @return the compliance states
+	 * @return the rule results, by policy and rule ID
 	 */
-	public List<DeviceRuleResult> findDeviceResults(Session session, long deviceId, Page page) {
-		var query = session.createQuery(
-			"select new " + DeviceRuleResult.class.getName() + "("
-				+ "r.id as ruleId, "
-				+ "r.name as ruleName, "
-				+ "p.id as policyId, "
-				+ "p.name as policyName, "
-				+ "cr.result as result, "
-				+ "cr.comment as comment, "
-				+ "cr.checkDate as checkDate, "
-				+ "e.expirationDate as expirationDate "
-				+ ") from Rule r "
-				+ "join r.policy p join p.targetGroups g join g.cachedMemberships dm with dm.key.device.id = :id "
-				+ "left join CheckResult cr with cr.key.rule.id = r.id and cr.key.device.id = :id "
-				+ "left join r.exemptions e with e.key.device.id = :id",
-			DeviceRuleResult.class)
-			.setParameter("id", deviceId);
-		page.apply(query);
-		return query.list();
+	public List<DeviceRuleResult> findDeviceResults(DSLContext dsl, long deviceId, Page page) {
+		return page.apply(dsl.select(RULE.ID, RULE.NAME, POLICY.ID, POLICY.NAME, CHECK_RESULT.RESULT, CHECK_RESULT.COMMENT,
+					CHECK_RESULT.CHECK_DATE, EXEMPTION.EXPIRATION_DATE)
+				.from(RULE)
+				.join(POLICY).on(POLICY.ID.eq(RULE.POLICY))
+				.join(POLICY_TARGET_GROUPS).on(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID))
+				.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(POLICY_TARGET_GROUPS.TARGET_GROUPS)
+					.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId)))
+				.leftJoin(CHECK_RESULT).on(CHECK_RESULT.RULE.eq(RULE.ID).and(CHECK_RESULT.DEVICE.eq(deviceId)))
+				.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(RULE.ID).and(EXEMPTION.DEVICE.eq(deviceId)))
+				.orderBy(POLICY.ID, RULE.ID))
+			.fetch(r -> new DeviceRuleResult(r.value1(), r.value2(), r.value3(), r.value4(),
+				r.value5() == null ? null : ResultOption.valueOf(r.value5()), r.value6(), toDate(r.value7()), toDate(r.value8())));
 	}
 }

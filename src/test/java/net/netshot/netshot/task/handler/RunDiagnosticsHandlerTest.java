@@ -32,12 +32,15 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
@@ -79,21 +82,18 @@ class RunDiagnosticsHandlerTest {
 	 */
 	private Device routerWithDiagnostic(String name, boolean enabled) {
 		Device device = SimulatedRouter.persist(CONTAINER);
-		StaticDeviceGroup group = new StaticDeviceGroup("Routers");
-		group.addDevice(device);
-		SimpleDiagnostic diagnostic = new SimpleDiagnostic(name, enabled, group, AttributeType.TEXT, "CiscoIOS12",
+		StaticDeviceGroup group = TestDevices.addStaticGroup("Routers");
+		TestDevices.addMembers(group, device);
+		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, name, enabled, group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(?s).*, Version ([^,]+), RELEASE.*", "$1");
-		TaskRunner.persist(group, diagnostic);
+		new Transactions().run(dsl -> new DiagnosticRepository().add(dsl, diagnostic));
 		return device;
 	}
 
 	private static Map<String, String> results(Device device) {
-		return TaskRunner.inSession(session -> session
-			.createQuery("select r from DiagnosticResult r join fetch r.diagnostic where r.device.id = :id", DiagnosticResult.class)
-			.setParameter("id", device.getId())
-			.list()
+		return TestDevices.diagnosticResults(device.id())
 			.stream()
-			.collect(Collectors.toMap(DiagnosticResult::getDiagnosticName, DiagnosticResult::getAsText)));
+			.collect(Collectors.toMap(DiagnosticResult::diagnosticName, DiagnosticResult::getAsText));
 	}
 
 	@Test
@@ -101,9 +101,9 @@ class RunDiagnosticsHandlerTest {
 	void runsTheDiagnostics() throws Exception {
 		Device device = this.routerWithDiagnostic("Version", true);
 
-		long id = this.runner.run(new RunDiagnosticsTask(device, "Test", "tester", true));
+		long id = this.runner.run(RunDiagnosticsTask.of(device, "Test", "tester", true));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(RunDiagnosticsTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		Assertions.assertEquals(Map.of("Version", "15.5(3)S7b"), results(device));
 		Assertions.assertEquals(List.of(), this.runner.submitted(), "No compliance check when disabled");
 	}
@@ -112,18 +112,18 @@ class RunDiagnosticsHandlerTest {
 	@DisplayName("Submits the compliance check afterwards")
 	void submitsTheComplianceCheck() throws Exception {
 		Device device = this.routerWithDiagnostic("Version", true);
-		RunDiagnosticsTask task = new RunDiagnosticsTask(device, "Test", "tester", false);
-		task.setPriority(7);
+		Task task = RunDiagnosticsTask.of(device, "Test", "tester", false).toBuilder().priority(7).build();
 
 		long id = this.runner.run(task);
 
 		List<Task> submitted = this.runner.submitted();
 		Assertions.assertEquals(1, submitted.size());
-		CheckComplianceTask check = (CheckComplianceTask) submitted.get(0);
-		Assertions.assertEquals("Check compliance after device diagnostics", check.getComments());
-		Assertions.assertEquals("Auto", check.getAuthor());
-		Assertions.assertEquals(7, check.getPriority());
-		Assertions.assertEquals(id, check.getParentTaskId());
+		Task check = submitted.get(0);
+		Assertions.assertInstanceOf(CheckComplianceTask.class, check.spec());
+		Assertions.assertEquals("Check compliance after device diagnostics", check.comments());
+		Assertions.assertEquals("Auto", check.author());
+		Assertions.assertEquals(7, check.priority());
+		Assertions.assertEquals(id, check.parentTaskId());
 	}
 
 	@Test
@@ -131,11 +131,11 @@ class RunDiagnosticsHandlerTest {
 	void succeedsWithoutDiagnostic() throws Exception {
 		Device device = this.routerWithDiagnostic("Disabled", false);
 
-		long id = this.runner.run(new RunDiagnosticsTask(device, "Test", "tester", false));
+		long id = this.runner.run(RunDiagnosticsTask.of(device, "Test", "tester", false));
 
-		RunDiagnosticsTask task = TaskRunner.load(RunDiagnosticsTask.class, id);
-		Assertions.assertEquals(Status.SUCCESS, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("No diagnostic was found that apply to this device."), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.SUCCESS, task.status());
+		Assertions.assertTrue(task.log().contains("No diagnostic was found that apply to this device."), task.log());
 		Assertions.assertEquals(Map.of(), results(device));
 		Assertions.assertEquals(1, this.runner.submitted().size());
 	}
@@ -144,18 +144,13 @@ class RunDiagnosticsHandlerTest {
 	@DisplayName("Is cancelled for a disabled device")
 	void cancelledForDisabledDevice() throws Exception {
 		Device device = this.routerWithDiagnostic("Version", true);
-		TaskRunner.inSession(session -> {
-			session.beginTransaction();
-			session.get(Device.class, device.getId()).setStatus(Device.Status.DISABLED);
-			session.getTransaction().commit();
-			return null;
-		});
+		TestDevices.save(TestDevices.find(device.id()).toBuilder().status(Device.Status.DISABLED).build());
 
-		long id = this.runner.run(new RunDiagnosticsTask(device, "Test", "tester", false));
+		long id = this.runner.run(RunDiagnosticsTask.of(device, "Test", "tester", false));
 
-		RunDiagnosticsTask task = TaskRunner.load(RunDiagnosticsTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("The device is not enabled (not in production)."), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, task.status());
+		Assertions.assertTrue(task.log().contains("The device is not enabled (not in production)."), task.log());
 		Assertions.assertEquals(List.of(), this.runner.submitted());
 	}
 }

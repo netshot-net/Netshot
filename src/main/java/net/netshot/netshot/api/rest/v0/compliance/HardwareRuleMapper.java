@@ -19,11 +19,13 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleDefinition;
+import net.netshot.netshot.compliance.HardwareRuleView;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -41,7 +43,7 @@ public final class HardwareRuleMapper {
 
 	// The description of the driver of the rule, empty when there is no such driver
 	private static String deviceType(DriverRegistry driverRegistry, HardwareRule rule) {
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.getDriver());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.driver());
 		if (deviceDriver == null) {
 			return "";
 		}
@@ -52,21 +54,22 @@ public final class HardwareRuleMapper {
 	 * Maps a hardware rule to its representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param rule the rule, with its target group loaded
+	 * @param view the rule, with its target group
 	 * @return the DTO
 	 */
-	public static HardwareRuleDto toDto(DriverRegistry driverRegistry, HardwareRule rule) {
+	public static HardwareRuleDto toDto(DriverRegistry driverRegistry, HardwareRuleView view) {
+		HardwareRule rule = view.rule();
 		return new HardwareRuleDto(
 			deviceType(driverRegistry, rule),
-			rule.getDriver(),
-			rule.getEndOfLife(),
-			rule.getEndOfSale(),
-			rule.getFamily(),
-			rule.isFamilyRegExp(),
-			rule.getId(),
-			rule.getPartNumber(),
-			rule.isPartNumberRegExp(),
-			rule.getTargetGroup() == null ? null : GroupMapper.toDto(rule.getTargetGroup()));
+			rule.driver(),
+			rule.endOfLife() == null ? null : Date.from(rule.endOfLife()),
+			rule.endOfSale() == null ? null : Date.from(rule.endOfSale()),
+			rule.family(),
+			rule.familyRegExp(),
+			rule.id(),
+			rule.partNumber(),
+			rule.partNumberRegExp(),
+			view.targetGroup() == null ? null : GroupMapper.toDto(view.targetGroup()));
 	}
 
 	/**
@@ -76,7 +79,7 @@ public final class HardwareRuleMapper {
 	 * @param rules the rules, with their target group loaded
 	 * @return the DTOs, in the same order
 	 */
-	public static List<HardwareRuleDto> toDtos(DriverRegistry driverRegistry, List<HardwareRule> rules) {
+	public static List<HardwareRuleDto> toDtos(DriverRegistry driverRegistry, List<HardwareRuleView> rules) {
 		List<HardwareRuleDto> dtos = new ArrayList<>(rules.size());
 		rules.forEach(rule -> dtos.add(toDto(driverRegistry, rule)));
 		return dtos;

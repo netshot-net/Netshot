@@ -85,15 +85,15 @@ public class HookDispatcher {
 				return;
 			}
 			// Mapped once, in the transaction which loads the task, for all the hooks
-			TaskPayload payload = this.taskService.mapTask(id, mapped -> TaskPayloads.toPayload(this.driverRegistry, mapped));
+			TaskPayload payload = this.taskService.mapTask(id, (mapped, devices) -> TaskPayloads.toPayload(this.driverRegistry, mapped, devices));
 			for (Hook hook : hooks) {
-				log.trace("Executing post-task hook {}", hook.getName());
+				log.trace("Executing post-task hook {}", hook.name());
 				try {
 					String result = this.execute(hook, payload);
-					log.info("Result of post-task hook '{}' after task {} is: {}", hook.getName(), id, result);
+					log.info("Result of post-task hook '{}' after task {} is: {}", hook.name(), id, result);
 				}
 				catch (Exception e) {
-					log.warn("Error while executing hook {} after task {}", hook.getName(), id, e);
+					log.warn("Error while executing hook {} after task {}", hook.name(), id, e);
 				}
 			}
 		}
@@ -103,9 +103,8 @@ public class HookDispatcher {
 	}
 
 	private String execute(Hook hook, TaskPayload payload) throws Exception {
-		if (hook instanceof WebHook webHook) {
-			return this.webHookSender.send(webHook, payload);
-		}
-		throw new Exception("Unsupported kind of hook");
+		return switch (hook) {
+			case WebHook webHook -> this.webHookSender.send(webHook, payload);
+		};
 	}
 }

@@ -33,11 +33,12 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestProperty;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 /**
  * Characterization of {@link RunGroupDiagnosticsHandler}, run through the task engine (the child tasks
@@ -64,13 +65,12 @@ class RunGroupDiagnosticsHandlerTest {
 
 	@BeforeEach
 	void createDevices() {
-		Domain domain = new Domain("Lab", "Test domain", null, null);
-		this.first = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
-		this.second = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 2);
-		this.group = new StaticDeviceGroup("Routers");
-		this.group.addDevice(this.first);
-		this.group.addDevice(this.second);
-		TaskRunner.persist(domain, this.first, this.second, this.group);
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		this.first = TestDevices.addFakeCiscoIos(domain, 1);
+		this.second = TestDevices.addFakeCiscoIos(domain, 2);
+		this.group = TestDevices.addStaticGroup("Routers");
+		TestDevices.addMembers(this.group, this.first);
+		TestDevices.addMembers(this.group, this.second);
 	}
 
 	@AfterEach
@@ -79,46 +79,46 @@ class RunGroupDiagnosticsHandlerTest {
 	}
 
 	private static List<Long> deviceIds(List<Task> children) {
-		return TaskRunner.inSession(session -> children.stream()
-			.map(child -> session.get(RunDiagnosticsTask.class, child.getId()).getDevice().getId())
-			.toList());
+		return children.stream()
+			.map(child -> ((RunDiagnosticsTask) child.spec()).deviceId())
+			.toList();
 	}
 
 	@Test
 	@DisplayName("Creates and schedules one diagnostics task per device of the group")
 	void runsOnTheGroup() throws Exception {
-		long id = this.runner.run(new RunGroupDiagnosticsTask(this.group, "Test", "tester", true));
+		long id = this.runner.run(GroupBasedTask.of(new RunGroupDiagnosticsTask(this.group.id(), null, true), this.group.name(), "Test", "tester"));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(RunGroupDiagnosticsTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		List<Task> children = TaskRunner.children(id);
-		Assertions.assertEquals(List.of(this.first.getId(), this.second.getId()), deviceIds(children));
-		Assertions.assertEquals(children.stream().map(Task::getId).toList(), this.runner.scheduledChildIds());
+		Assertions.assertEquals(List.of(this.first.id(), this.second.id()), deviceIds(children));
+		Assertions.assertEquals(children.stream().map(Task::id).toList(), this.runner.scheduledChildIds());
 		for (Task child : children) {
-			RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) child;
-			Assertions.assertEquals("Started due to group Routers diagnostics", diagnostics.getComments());
-			Assertions.assertEquals("tester", diagnostics.getAuthor());
-			Assertions.assertTrue(diagnostics.isDontCheckCompliance());
+			RunDiagnosticsTask diagnostics = (RunDiagnosticsTask) child.spec();
+			Assertions.assertEquals("Started due to group Routers diagnostics", child.comments());
+			Assertions.assertEquals("tester", child.author());
+			Assertions.assertTrue(diagnostics.dontCheckCompliance());
 		}
 	}
 
 	@Test
 	@DisplayName("Runs on the devices of a list")
 	void runsOnAList() throws Exception {
-		long id = this.runner.run(new RunGroupDiagnosticsTask(List.of(this.second), "Test", "tester", false));
+		long id = this.runner.run(TaskRunner.forDevices(new RunGroupDiagnosticsTask(null, TaskRunner.ids(this.second), false), "Test", "tester"));
 
 		List<Task> children = TaskRunner.children(id);
-		Assertions.assertEquals(List.of(this.second.getId()), deviceIds(children));
-		Assertions.assertEquals("Started due to 1-device diagnostics list", children.get(0).getComments());
-		Assertions.assertFalse(((RunDiagnosticsTask) children.get(0)).isDontCheckCompliance());
+		Assertions.assertEquals(List.of(this.second.id()), deviceIds(children));
+		Assertions.assertEquals("Started due to 1-device diagnostics list", children.get(0).comments());
+		Assertions.assertFalse(((RunDiagnosticsTask) children.get(0).spec()).dontCheckCompliance());
 	}
 
 	@Test
 	@DisplayName("Is cancelled without group nor device")
 	void cancelledWithoutTarget() throws Exception {
-		long id = this.runner.run(new RunGroupDiagnosticsTask(List.of(), "Test", "tester", false));
+		long id = this.runner.run(TaskRunner.forDevices(new RunGroupDiagnosticsTask(null, TaskRunner.ids(), false), "Test", "tester"));
 
-		RunGroupDiagnosticsTask task = TaskRunner.load(RunGroupDiagnosticsTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Neither a device group nor a device list is set"), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, task.status());
+		Assertions.assertTrue(task.log().contains("Neither a device group nor a device list is set"), task.log());
 	}
 }

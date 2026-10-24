@@ -18,19 +18,22 @@
  */
 package net.netshot.netshot.task;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE;
+import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP4ADDRESSES;
+
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.hibernate.Session;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 
@@ -119,33 +122,30 @@ public class AutoSnapshotScheduler {
 		log.debug("Request to take a snapshot of device with IP {}, if necessary.",
 			address.getIp());
 		Device device;
-		Session session = Database.getSession();
 		try {
 			log.trace("Retrieving the device.");
-			device = session.createQuery(
-				"select d from Device d where d.status = :inprod and d.cachedIpAddress = :ip",
-				Device.class)
-				.setParameter("inprod", Device.Status.INPRODUCTION)
-				.setParameter("ip", address.getInetAddress())
-				.uniqueResult();
-			if (device == null && this.settings.isAutoSnapshotAnyIp()) {
-				log.warn("No device with such management IP {} in the database. Looking for this address in the interface table.",
-					address.getIp());
-				device = session
-					.createQuery(
-						"select d from Device d join d.networkInterfaces ni join ni.ip4Addresses a where d.status = :inprod and a.address = :ip",
-						Device.class)
-					.setParameter("inprod", Device.Status.INPRODUCTION)
-					.setParameter("ip", address.getAddress())
-					.uniqueResult();
-			}
+			device = new Transactions().read(dsl -> {
+				Long deviceId = dsl.select(DEVICE.ID).from(DEVICE)
+					.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name()), DEVICE.CACHED_IP_ADDRESS.eq(address.getInetAddress()))
+					.fetchOne(DEVICE.ID);
+				if (deviceId == null && this.settings.isAutoSnapshotAnyIp()) {
+					log.warn("No device with such management IP {} in the database. Looking for this address in the interface table.",
+						address.getIp());
+					deviceId = dsl.selectDistinct(DEVICE.ID).from(DEVICE)
+						.join(NETWORK_INTERFACE).on(NETWORK_INTERFACE.DEVICE.eq(DEVICE.ID))
+						.join(NETWORK_INTERFACE_IP4ADDRESSES).on(NETWORK_INTERFACE_IP4ADDRESSES.NETWORK_INTERFACE.eq(NETWORK_INTERFACE.ID))
+						.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name()), NETWORK_INTERFACE_IP4ADDRESSES.ADDRESS.eq(address.getAddress()))
+						.fetchOne(DEVICE.ID);
+				}
+				return deviceId == null ? null : new DeviceRepository().find(dsl, deviceId);
+			});
 			if (device == null) {
 				log.warn("No device with such IP address {} in the database.", address.getIp());
 				return false;
 			}
-			if (!drivers.contains(device.getDriver())) {
+			if (!drivers.contains(device.driver())) {
 				log.warn("The driver {} of the device {} in database isn't in the list of drivers requesting a snapshot (address {}).",
-					device.getDriver(), device.getId(), device.getMgmtAddress());
+					device.driver(), device.id(), device.mgmtAddress());
 				return false;
 			}
 		}
@@ -153,13 +153,10 @@ public class AutoSnapshotScheduler {
 			log.error("Error while checking whether the snapshot is needed or not.", e);
 			return true;
 		}
-		finally {
-			session.close();
-		}
 
 		if (TaskManager.Mode.CLUSTER_MEMBER.equals(TaskManager.getMode())) {
-			log.debug("The local instance is cluster member: sending notification to master for an auto snapshot of device ID {}", device.getId());
-			ClusterManager.requestAutoSnapshot(device.getId());
+			log.debug("The local instance is cluster member: sending notification to master for an auto snapshot of device ID {}", device.id());
+			ClusterManager.requestAutoSnapshot(device.id());
 			return true;
 		}
 
@@ -169,10 +166,9 @@ public class AutoSnapshotScheduler {
 	public boolean scheduleSnapshotIfNeeded(long deviceId) {
 		log.debug("Request to take a snapshot of device ID {}.", deviceId);
 		Device device;
-		Session session = Database.getSession();
 		try {
 			log.trace("Retrieving the device.");
-			device = session.get(Device.class, deviceId);
+			device = new Transactions().read(dsl -> new DeviceRepository().find(dsl, deviceId));
 			if (device == null) {
 				log.warn("No device with such ID {} in the database.", deviceId);
 				return false;
@@ -182,21 +178,18 @@ public class AutoSnapshotScheduler {
 			log.error("Error while checking whether the snapshot is needed or not.", e);
 			return true;
 		}
-		finally {
-			session.close();
-		}
 
 		return this.scheduleSnapshotIfNeeded(device);
 	}
 
 	private boolean scheduleSnapshotIfNeeded(Device device) {
-		if (!checkAutoSnapshot(device.getId())) {
+		if (!checkAutoSnapshot(device.id())) {
 			log.debug("A snapshot task is already scheduled.");
 			return true;
 		}
 		try {
-			Task snapshot = new TakeSnapshotTask(device, "Automatic snapshot after config change", "Auto", true, false, false);
-			snapshot.schedule(this.settings.getAutoSnapshotInterval());
+			Task snapshot = TakeSnapshotTask.of(device, "Automatic snapshot after config change", "Auto", true, false, false)
+				.scheduledIn(this.settings.getAutoSnapshotInterval());
 			this.taskSubmitter.submit(snapshot);
 		}
 		catch (Exception e) {

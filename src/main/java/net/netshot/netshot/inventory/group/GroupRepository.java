@@ -18,90 +18,252 @@
  */
 package net.netshot.netshot.inventory.group;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.hibernate.Session;
-import org.hibernate.query.Query;
+import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep3;
+import org.jooq.Record;
 
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.schema.tables.records.DeviceGroupCachedDevicesRecord;
 
 /**
- * The queries on device groups. The {@link Session} is always the first parameter: the caller
- * (the service) owns the session and the transaction.
+ * The queries on device groups and their members. The {@link DSLContext} is always the first
+ * parameter: the caller (the service) owns the transaction.
  *
  * <p>The groups are returned without their members: a group representation only reads its own
- * attributes.</p>
+ * attributes. The members are stored in order (the position of each device).</p>
  */
 public class GroupRepository {
 
+	/** The type (discriminator) of the static groups. */
+	static final String STATIC = "STATIC";
+
+	/** The type (discriminator) of the dynamic groups. */
+	static final String DYNAMIC = "DYNAMIC";
+
 	/**
-	 * Lists the groups.
+	 * Builds a group from the columns of a (possibly aliased) group table.
 	 *
-	 * @param session the session
+	 * @param r the record
+	 * @param g the group table the record was read from
+	 * @return the group
+	 * @throws IllegalStateException if the type of the group is unknown
+	 */
+	public static DeviceGroup toGroup(Record r, net.netshot.netshot.platform.database.schema.tables.DeviceGroup g) {
+		String type = r.get(g.TYPE);
+		return switch (type) {
+			case STATIC -> new StaticDeviceGroup(r.get(g.ID), r.get(g.VERSION), r.get(g.CHANGE_DATE), r.get(g.NAME),
+				r.get(g.FOLDER), Boolean.TRUE.equals(r.get(g.HIDDEN_FROM_REPORTS)));
+			case DYNAMIC -> new DynamicDeviceGroup(r.get(g.ID), r.get(g.VERSION), r.get(g.CHANGE_DATE), r.get(g.NAME),
+				r.get(g.FOLDER), Boolean.TRUE.equals(r.get(g.HIDDEN_FROM_REPORTS)), r.get(g.QUERY));
+			default -> throw new IllegalStateException("Unknown type of device group '%s'".formatted(type));
+		};
+	}
+
+	private static DeviceGroup toGroup(Record r) {
+		return toGroup(r, DEVICE_GROUP);
+	}
+
+	/**
+	 * The time of a change, to the second (as the former Hibernate interceptor did).
+	 *
+	 * @return the time
+	 */
+	private static Instant now() {
+		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+
+	/**
+	 * Lists the groups, by ID.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
 	 * @return the groups
 	 */
-	public List<DeviceGroup> findAll(Session session, Page page) {
-		Query<DeviceGroup> query = session.createQuery("select g from DeviceGroup g", DeviceGroup.class);
-		page.apply(query);
-		return query.list();
+	public List<DeviceGroup> findAll(DSLContext dsl, Page page) {
+		return page.apply(dsl.select(DEVICE_GROUP.fields()).from(DEVICE_GROUP).orderBy(DEVICE_GROUP.ID.asc()))
+			.fetch(GroupRepository::toGroup);
 	}
 
 	/**
-	 * Finds a group by query, so as to get the real group (never a proxy).
+	 * Lists the dynamic groups, by ID.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
+	 * @return the dynamic groups
+	 */
+	public List<DynamicDeviceGroup> findDynamic(DSLContext dsl) {
+		return dsl.select(DEVICE_GROUP.fields()).from(DEVICE_GROUP).where(DEVICE_GROUP.TYPE.eq(DYNAMIC)).orderBy(DEVICE_GROUP.ID.asc())
+			.fetch(r -> (DynamicDeviceGroup) toGroup(r));
+	}
+
+	/**
+	 * Finds a group.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param id the group ID
 	 * @return the group, or null if there is no such group
 	 */
-	public DeviceGroup findById(Session session, long id) {
-		return session
-			.createQuery("select g from DeviceGroup g where g.id = :id", DeviceGroup.class)
-			.setParameter("id", id)
-			.uniqueResult();
+	public DeviceGroup find(DSLContext dsl, long id) {
+		return dsl.select(DEVICE_GROUP.fields()).from(DEVICE_GROUP).where(DEVICE_GROUP.ID.eq(id)).fetchOne(GroupRepository::toGroup);
 	}
 
 	/**
-	 * Finds a group, to change it.
+	 * Lists the groups a device is a member of, by ID.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
+	 * @param deviceId the device ID
+	 * @return the groups
+	 */
+	public List<DeviceGroup> findOfDevice(DSLContext dsl, long deviceId) {
+		return dsl.select(DEVICE_GROUP.fields()).from(DEVICE_GROUP)
+			.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(DEVICE_GROUP.ID))
+			.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId))
+			.orderBy(DEVICE_GROUP.ID.asc())
+			.fetch(GroupRepository::toGroup);
+	}
+
+	/**
+	 * Stores a new group (version 0, changed now), without members.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param group the group (its ID, version and change date are ignored)
+	 * @return the stored group
+	 */
+	public DeviceGroup add(DSLContext dsl, DeviceGroup group) {
+		long id = dsl.insertInto(DEVICE_GROUP)
+			.set(DEVICE_GROUP.TYPE, group instanceof DynamicDeviceGroup ? DYNAMIC : STATIC)
+			.set(DEVICE_GROUP.VERSION, 0)
+			.set(DEVICE_GROUP.CHANGE_DATE, now())
+			.set(DEVICE_GROUP.NAME, group.name())
+			.set(DEVICE_GROUP.FOLDER, group.folder())
+			.set(DEVICE_GROUP.HIDDEN_FROM_REPORTS, group.hiddenFromReports())
+			.set(DEVICE_GROUP.QUERY, group instanceof DynamicDeviceGroup dynamic ? dynamic.query() : null)
+			.returning(DEVICE_GROUP.ID)
+			.fetchOne(DEVICE_GROUP.ID);
+		return this.find(dsl, id);
+	}
+
+	/**
+	 * Saves an existing group (its version is incremented, its change date set), not its members.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param group the group
+	 * @return the saved group, or null if there is no such group
+	 */
+	public DeviceGroup save(DSLContext dsl, DeviceGroup group) {
+		int updated = dsl.update(DEVICE_GROUP)
+			.set(DEVICE_GROUP.VERSION, DEVICE_GROUP.VERSION.plus(1))
+			.set(DEVICE_GROUP.CHANGE_DATE, now())
+			.set(DEVICE_GROUP.NAME, group.name())
+			.set(DEVICE_GROUP.FOLDER, group.folder())
+			.set(DEVICE_GROUP.HIDDEN_FROM_REPORTS, group.hiddenFromReports())
+			.set(DEVICE_GROUP.QUERY, group instanceof DynamicDeviceGroup dynamic ? dynamic.query() : null)
+			.where(DEVICE_GROUP.ID.eq(group.id()))
+			.execute();
+		return updated == 0 ? null : this.find(dsl, group.id());
+	}
+
+	/**
+	 * Removes a group, with its memberships (the devices are kept).
+	 *
+	 * @param dsl the jOOQ context
 	 * @param id the group ID
-	 * @return the group, or null if there is no such group
+	 * @return true if the group was found and removed
 	 */
-	public DeviceGroup find(Session session, long id) {
-		return session.get(DeviceGroup.class, id);
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(DEVICE_GROUP).where(DEVICE_GROUP.ID.eq(id)).execute() > 0;
 	}
 
 	/**
-	 * Finds a device, to put it into a static group.
-	 * (Lookup of a related aggregate: to move to the device repository when it is the one to be used.)
+	 * Lists the IDs of the members of a group, in their order.
 	 *
-	 * @param session the session
-	 * @param id the device ID
-	 * @return the device, or null if there is no such device
+	 * @param dsl the jOOQ context
+	 * @param groupId the group ID
+	 * @return the device IDs
 	 */
-	public Device findDevice(Session session, long id) {
-		return session.get(Device.class, id);
+	public List<Long> findMemberIds(DSLContext dsl, long groupId) {
+		return dsl.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))
+			.orderBy(DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION.asc(), DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.asc())
+			.fetch(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES);
 	}
 
 	/**
-	 * Stores a new group.
+	 * Replaces the members of a group (a device given twice is a member once, at its first position).
 	 *
-	 * @param session the session
-	 * @param group the group
+	 * @param dsl the jOOQ context
+	 * @param groupId the group ID
+	 * @param deviceIds the IDs of the devices, in their order
 	 */
-	public void add(Session session, DeviceGroup group) {
-		session.persist(group);
+	public void setMembers(DSLContext dsl, long groupId, List<Long> deviceIds) {
+		dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES).where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId)).execute();
+		if (deviceIds.isEmpty()) {
+			return;
+		}
+		InsertValuesStep3<DeviceGroupCachedDevicesRecord, Long, Long, Integer> insert = dsl.insertInto(DEVICE_GROUP_CACHED_DEVICES,
+			DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES, DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION);
+		Set<Long> seen = new HashSet<>();
+		int position = 0;
+		for (Long deviceId : deviceIds) {
+			if (seen.add(deviceId)) {
+				insert = insert.values(groupId, deviceId, position);
+			}
+			position++;
+		}
+		insert.execute();
 	}
 
 	/**
-	 * Removes a group, with its memberships.
+	 * Adds a device at the end of a group (nothing if it is already a member).
 	 *
-	 * @param session the session
-	 * @param group the group
+	 * @param dsl the jOOQ context
+	 * @param groupId the group ID
+	 * @param deviceId the device ID
 	 */
-	public void remove(Session session, DeviceGroup group) {
-		session.remove(group);
+	public void addMember(DSLContext dsl, long groupId, long deviceId) {
+		Integer last = dsl.select(org.jooq.impl.DSL.max(DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION)).from(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId)).fetchOne(0, Integer.class);
+		dsl.insertInto(DEVICE_GROUP_CACHED_DEVICES, DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES,
+				DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION)
+			.values(groupId, deviceId, last == null ? 0 : last + 1)
+			.onConflictDoNothing()
+			.execute();
+	}
+
+	/**
+	 * Finds which of the given devices exist.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceIds the device IDs
+	 * @return the IDs of the devices which exist
+	 */
+	public Set<Long> findExistingDeviceIds(DSLContext dsl, Collection<Long> deviceIds) {
+		if (deviceIds.isEmpty()) {
+			return Set.of();
+		}
+		return new HashSet<>(dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.ID.in(deviceIds)).fetch(DEVICE.ID));
+	}
+
+	/**
+	 * Gets the IDs of the groups of a device.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @return the IDs of the groups
+	 */
+	public static Set<Long> findGroupIdsOfDevice(DSLContext dsl, long deviceId) {
+		return new HashSet<>(dsl.select(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS).from(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId))
+			.fetch(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS));
 	}
 }

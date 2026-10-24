@@ -18,97 +18,181 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC;
+import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;
+
 import java.util.List;
 
-import org.hibernate.Session;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.impl.DSL;
 
-import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.platform.database.Page;
 
 /**
- * The queries on the diagnostics and their results. No method opens a transaction or catches an
- * exception.
+ * The queries on the diagnostics. The {@link DSLContext} is always the first parameter: the
+ * caller (the service) owns the transaction. The results are queried by {@link DiagnosticResultRepository}.
  */
 public class DiagnosticRepository {
 
+	/** The types (discriminator) of the diagnostics. */
+	static final String SIMPLE = "SIMPLE";
+	static final String JAVASCRIPT = "JAVASCRIPT";
+	static final String PYTHON = "PYTHON";
+
+	private static Diagnostic toDiagnostic(Record r) {
+		String type = r.get(DIAGNOSTIC.TYPE);
+		long id = r.get(DIAGNOSTIC.ID);
+		String name = r.get(DIAGNOSTIC.NAME);
+		boolean enabled = r.get(DIAGNOSTIC.ENABLED);
+		Long targetGroupId = r.get(DIAGNOSTIC.TARGET_GROUP);
+		AttributeType resultType = r.get(DIAGNOSTIC.RESULT_TYPE) == null ? null : AttributeType.valueOf(r.get(DIAGNOSTIC.RESULT_TYPE));
+		return switch (type) {
+			case SIMPLE -> new SimpleDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.DEVICE_DRIVER),
+				r.get(DIAGNOSTIC.CLI_MODE), r.get(DIAGNOSTIC.COMMAND), r.get(DIAGNOSTIC.MODIFIER_PATTERN),
+				r.get(DIAGNOSTIC.MODIFIER_REPLACEMENT));
+			case JAVASCRIPT -> new JavaScriptDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
+			case PYTHON -> new PythonDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
+			default -> throw new IllegalStateException("Unknown type of diagnostic '%s'".formatted(type));
+		};
+	}
+
+	private static List<Diagnostic> query(DSLContext dsl, Condition condition, Page page) {
+		return page.apply(dsl.select(DIAGNOSTIC.fields()).from(DIAGNOSTIC).where(condition).orderBy(DIAGNOSTIC.ID))
+			.fetch(DiagnosticRepository::toDiagnostic);
+	}
+
 	/**
-	 * Finds the diagnostics with their target group.
+	 * Lists the diagnostics, by ID.
 	 *
-	 * <p>Fetch plan: the target group is fetched with the diagnostic (to-one association).</p>
-	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param page the window on the result
 	 * @return the diagnostics
 	 */
-	public List<Diagnostic> findAllWithGroup(Session session, Page page) {
-		var query = session.createQuery("select d from Diagnostic d left join fetch d.targetGroup", Diagnostic.class);
-		page.apply(query);
-		return query.list();
+	public List<Diagnostic> findAll(DSLContext dsl, Page page) {
+		return query(dsl, DSL.noCondition(), page);
 	}
 
 	/**
-	 * Finds a diagnostic with its target group (same fetch plan as {@link #findAllWithGroup}).
+	 * Lists the enabled diagnostics, by ID.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
+	 * @return the diagnostics
+	 */
+	public List<Diagnostic> findEnabled(DSLContext dsl) {
+		return query(dsl, DIAGNOSTIC.ENABLED.isTrue(), Page.ALL);
+	}
+
+	/**
+	 * Lists the enabled diagnostics run on a device (through the target groups the device is in), by ID.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @return the diagnostics
+	 */
+	public List<Diagnostic> findEnabledForDevice(DSLContext dsl, long deviceId) {
+		return query(dsl, DIAGNOSTIC.ENABLED.isTrue().and(DIAGNOSTIC.TARGET_GROUP.in(
+			DSL.select(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS).from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId)))), Page.ALL);
+	}
+
+	/**
+	 * Gets a diagnostic.
+	 *
+	 * @param dsl the jOOQ context
 	 * @param id the diagnostic ID
 	 * @return the diagnostic, or null if there is no such diagnostic
 	 */
-	public Diagnostic findWithGroup(Session session, long id) {
-		return session
-			.createQuery("select d from Diagnostic d left join fetch d.targetGroup where d.id = :id", Diagnostic.class)
-			.setParameter("id", id)
-			.uniqueResult();
+	public Diagnostic find(DSLContext dsl, long id) {
+		List<Diagnostic> diagnostics = query(dsl, DIAGNOSTIC.ID.eq(id), Page.ALL);
+		return diagnostics.isEmpty() ? null : diagnostics.get(0);
 	}
 
 	/**
-	 * Finds a diagnostic, with only its eager associations.
+	 * Gets a diagnostic by name.
 	 *
-	 * @param session the session
-	 * @param id the diagnostic ID
+	 * @param dsl the jOOQ context
+	 * @param name the name
 	 * @return the diagnostic, or null if there is no such diagnostic
 	 */
-	public Diagnostic find(Session session, long id) {
-		return session.get(Diagnostic.class, id);
+	public Diagnostic findByName(DSLContext dsl, String name) {
+		List<Diagnostic> diagnostics = query(dsl, DIAGNOSTIC.NAME.eq(name), Page.ALL);
+		return diagnostics.isEmpty() ? null : diagnostics.get(0);
 	}
 
 	/**
-	 * Finds a device group, to be the target of a diagnostic.
+	 * Stores a new diagnostic.
 	 *
-	 * @param session the session
-	 * @param id the group ID
-	 * @return the group, or null if there is no such group
+	 * @param dsl the jOOQ context
+	 * @param diagnostic the diagnostic (its ID is ignored)
+	 * @return the ID of the new diagnostic
 	 */
-	public DeviceGroup findGroup(Session session, long id) {
-		return session.get(DeviceGroup.class, id);
+	public long add(DSLContext dsl, Diagnostic diagnostic) {
+		var insert = dsl.insertInto(DIAGNOSTIC)
+			.set(DIAGNOSTIC.NAME, diagnostic.name())
+			.set(DIAGNOSTIC.ENABLED, diagnostic.enabled())
+			.set(DIAGNOSTIC.TARGET_GROUP, diagnostic.targetGroupId())
+			.set(DIAGNOSTIC.RESULT_TYPE, diagnostic.resultType() == null ? null : diagnostic.resultType().name());
+		var full = switch (diagnostic) {
+			case SimpleDiagnostic simple -> insert.set(DIAGNOSTIC.TYPE, SIMPLE)
+				.set(DIAGNOSTIC.DEVICE_DRIVER, simple.deviceDriver())
+				.set(DIAGNOSTIC.CLI_MODE, simple.cliMode())
+				.set(DIAGNOSTIC.COMMAND, simple.command())
+				.set(DIAGNOSTIC.MODIFIER_PATTERN, simple.modifierPattern())
+				.set(DIAGNOSTIC.MODIFIER_REPLACEMENT, simple.modifierReplacement());
+			case JavaScriptDiagnostic js -> insert.set(DIAGNOSTIC.TYPE, JAVASCRIPT).set(DIAGNOSTIC.SCRIPT, js.script());
+			case PythonDiagnostic python -> insert.set(DIAGNOSTIC.TYPE, PYTHON).set(DIAGNOSTIC.SCRIPT, python.script());
+		};
+		return full.returning(DIAGNOSTIC.ID).fetchOne(DIAGNOSTIC.ID);
+	}
+
+	/**
+	 * Saves an existing diagnostic (its type is not changed).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param diagnostic the diagnostic
+	 * @return true if the diagnostic was found and saved
+	 */
+	public boolean save(DSLContext dsl, Diagnostic diagnostic) {
+		var update = dsl.update(DIAGNOSTIC)
+			.set(DIAGNOSTIC.NAME, diagnostic.name())
+			.set(DIAGNOSTIC.ENABLED, diagnostic.enabled())
+			.set(DIAGNOSTIC.TARGET_GROUP, diagnostic.targetGroupId())
+			.set(DIAGNOSTIC.RESULT_TYPE, diagnostic.resultType() == null ? null : diagnostic.resultType().name());
+		var full = switch (diagnostic) {
+			case SimpleDiagnostic simple -> update
+				.set(DIAGNOSTIC.DEVICE_DRIVER, simple.deviceDriver())
+				.set(DIAGNOSTIC.CLI_MODE, simple.cliMode())
+				.set(DIAGNOSTIC.COMMAND, simple.command())
+				.set(DIAGNOSTIC.MODIFIER_PATTERN, simple.modifierPattern())
+				.set(DIAGNOSTIC.MODIFIER_REPLACEMENT, simple.modifierReplacement());
+			case JavaScriptDiagnostic js -> update.set(DIAGNOSTIC.SCRIPT, js.script());
+			case PythonDiagnostic python -> update.set(DIAGNOSTIC.SCRIPT, python.script());
+		};
+		return full.where(DIAGNOSTIC.ID.eq(diagnostic.id())).execute() > 0;
+	}
+
+	/**
+	 * Removes a diagnostic.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the diagnostic ID
+	 * @return true if the diagnostic was found and removed
+	 */
+	public boolean remove(DSLContext dsl, long id) {
+		return dsl.deleteFrom(DIAGNOSTIC).where(DIAGNOSTIC.ID.eq(id)).execute() > 0;
 	}
 
 	/**
 	 * Deletes all the results of a diagnostic.
 	 *
-	 * @param session the session
+	 * @param dsl the jOOQ context
 	 * @param diagnosticId the diagnostic ID
 	 */
-	public void deleteResults(Session session, long diagnosticId) {
-		session.createMutationQuery("delete from DiagnosticResult dr where dr.diagnostic.id = :id")
-			.setParameter("id", diagnosticId)
-			.executeUpdate();
-	}
-
-	/**
-	 * Finds the diagnostic results of a device.
-	 *
-	 * <p>Fetch plan: the diagnostic of each result is fetched with it (its ID and name are read).</p>
-	 *
-	 * @param session the session
-	 * @param deviceId the device ID
-	 * @param page the window on the result
-	 * @return the results
-	 */
-	public List<DiagnosticResult> findResultsOfDevice(Session session, long deviceId, Page page) {
-		var query = session
-			.createQuery("from DiagnosticResult dr join fetch dr.diagnostic where dr.device.id = :id", DiagnosticResult.class)
-			.setParameter("id", deviceId);
-		page.apply(query);
-		return query.list();
+	public void deleteResults(DSLContext dsl, long diagnosticId) {
+		dsl.deleteFrom(DIAGNOSTIC_RESULT).where(DIAGNOSTIC_RESULT.DIAGNOSTIC.eq(diagnosticId)).execute();
 	}
 }

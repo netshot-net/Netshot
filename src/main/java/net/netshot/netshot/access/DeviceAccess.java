@@ -18,30 +18,10 @@
  */
 package net.netshot.netshot.access;
 
-import java.io.Serializable;
-import java.util.Date;
-import java.util.Objects;
+import java.time.Instant;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Builder;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -52,20 +32,44 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * used at all - an access with no {@code DeviceAccess} row is never tried
  * (see {@code AccessManager}).
  * <p>
- * This replaces the historical device-wide {@code sshPort}/{@code telnetPort}/
- * {@code connectAddress} fields, which were removed entirely from {@link Device}.
- * <p>
  * Credential pinning is derived purely from which of {@link #globalCredentialSet}
  * / {@link #specificCredentialSet} is set (never both - REST-side validation
  * rejects that): if neither is set, the access falls through to the device's
- * own default credential resolution (unchanged, see {@code AccessManager}).
+ * own default credential resolution (see {@code AccessManager}).
  * <p>
  * (device, accessName) is naturally unique and is used directly as the
  * primary key - no separate surrogate id.
+ *
+ * @param accessName the name of the access, as declared by the driver
+ * @param address the address to connect to instead of the management address of the device, or null
+ * @param port the TCP port to connect to instead of the default port of the access, or null
+ * @param globalCredentialSet a pinned, existing, shared credential set for this access only; removing
+ *        the access never removes it
+ * @param specificCredentialSet a pinned credential set owned by this access (removed with it)
+ * @param sshHostKeyVerification the SSH host key verification mode (only meaningful for a SSH access)
+ * @param sshTrustedHostKeys the trusted SSH host keys for this access, known_hosts-style: one
+ *        "{@code <algorithm> <base64-key>}" entry per line (e.g.
+ *        {@code ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...}), no hostname prefix.
+ *        When empty, the first host key presented is learned and appended
+ *        automatically; once at least one line is present (whether learned or
+ *        entered manually), only a matching key is ever accepted - a key for a
+ *        not-yet-seen algorithm is rejected rather than silently added.
+ * @param sshTrustedHostKeysSince when the trusted SSH host keys were last learned or edited (display only)
+ * @param httpsCaTrustMode how the TLS certificate of the device is checked (for a HTTPS access)
+ * @param httpsCustomCaCertificate the CA certificate(s) to trust, PEM, in the custom CA mode
  */
-@Entity
-@Table(name = "device_access")
-public final class DeviceAccess {
+@Builder(toBuilder = true)
+public record DeviceAccess(
+	String accessName,
+	String address,
+	Integer port,
+	DeviceCredentialSet globalCredentialSet,
+	DeviceCredentialSet specificCredentialSet,
+	SshHostKeyVerification sshHostKeyVerification,
+	String sshTrustedHostKeys,
+	Instant sshTrustedHostKeysSince,
+	HttpsCaTrustMode httpsCaTrustMode,
+	String httpsCustomCaCertificate) {
 
 	/**
 	 * SSH server host key verification mode for this access (meaningful only
@@ -75,9 +79,9 @@ public final class DeviceAccess {
 		/** No verification - any presented host key is accepted (historical behavior). */
 		TRUST_ANY,
 		/**
-		 * Only host keys listed in {@link #sshTrustedHostKeys} are accepted - whether that
+		 * Only host keys listed in {@link DeviceAccess#sshTrustedHostKeys} are accepted - whether that
 		 * list was learned automatically or entered manually is not tracked as a separate
-		 * setting: as long as {@link #sshTrustedHostKeys} is empty, the first host key
+		 * setting: as long as {@link DeviceAccess#sshTrustedHostKeys} is empty, the first host key
 		 * presented is learned and stored; once at least one key is on record, only a
 		 * matching key is ever accepted (a key for a not-yet-seen algorithm is never
 		 * silently learned in addition to an existing one).
@@ -85,203 +89,18 @@ public final class DeviceAccess {
 		TRUST_KNOWN
 	}
 
-	/** The composite primary key: (device, accessName). */
-	@Embeddable
-	private static class Key implements Serializable {
-
-		private static final long serialVersionUID = 1L;
-
-		/** The device this access belongs to. */
-		@Getter(onMethod = @__({
-			@ManyToOne,
-			@OnDelete(action = OnDeleteAction.CASCADE)
-		}))
-		@Setter
-		private Device device;
-
-		/** The access name (matches the driver's declared access, e.g. "ssh", "telnet", "https"). */
-		@Getter(onMethod = @__({
-			@Column(name = "access_name")
-		}))
-		@Setter
-		private String accessName;
-
-		protected Key() {
-			// Reserved for Hibernate
-		}
-
-		Key(Device device, String accessName) {
-			this.device = device;
-			this.accessName = accessName;
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(device, accessName);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (!(obj instanceof Key)) {
-				return false;
-			}
-			Key other = (Key) obj;
-			return Objects.equals(device, other.device) && Objects.equals(accessName, other.accessName);
-		}
+	/**
+	 * Builds a bare access (no override, no pinned credentials, default modes: any SSH host key,
+	 * the system trust store).
+	 *
+	 * @param accessName the name of the access
+	 * @return the access
+	 */
+	public static DeviceAccess of(String accessName) {
+		return DeviceAccess.builder()
+			.accessName(accessName)
+			.sshHostKeyVerification(SshHostKeyVerification.TRUST_ANY)
+			.httpsCaTrustMode(HttpsCaTrustMode.SYSTEM_TRUSTSTORE)
+			.build();
 	}
-
-	/** The key. */
-	@Getter(onMethod = @__({
-		@EmbeddedId
-	}))
-	@Setter
-	private Key key = new Key();
-
-	/** Optional connection address override (IPv4/IPv6 literal or FQDN). Null = use the device's management address. */
-	@Getter
-	@Setter
-	private String address;
-
-	/** Optional TCP port override. Null = use the driver's/protocol's default port for this access. */
-	@Getter
-	@Setter
-	private Integer port;
-
-	/**
-	 * A pinned, existing, shared credential set for this access only. A bare
-	 * reference (no cascade) - deleting this {@link DeviceAccess} row (or the
-	 * device) must never delete the referenced (shared) credential set.
-	 */
-	@Getter(onMethod = @__({
-		@ManyToOne
-	}))
-	@Setter
-	private DeviceCredentialSet globalCredentialSet;
-
-	/**
-	 * A pinned, owned, device-and-access-specific credential set. Owned
-	 * (cascade all + orphan removal), mirroring {@code Device.specificCredentialSet}'s
-	 * lifecycle exactly.
-	 */
-	@Getter(onMethod = @__({
-		@OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-	}))
-	@Setter
-	private DeviceCredentialSet specificCredentialSet;
-
-	/** SSH host key verification mode (only meaningful for a SSH-protocol access). */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING),
-		@Column(name = "ssh_host_key_verification", nullable = false)
-	}))
-	@Setter
-	private SshHostKeyVerification sshHostKeyVerification = SshHostKeyVerification.TRUST_ANY;
-
-	/**
-	 * Trusted SSH host keys for this access, known_hosts-style: one
-	 * "{@code <algorithm> <base64-key>}" entry per line (e.g.
-	 * {@code ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...}), no hostname prefix.
-	 * When empty, the first host key presented is learned and appended
-	 * automatically; once at least one line is present (whether learned or
-	 * entered manually), only a matching key is ever accepted - a key for a
-	 * not-yet-seen algorithm is rejected rather than silently added.
-	 */
-	@Getter(onMethod = @__({
-		@Column(name = "ssh_trusted_host_keys", columnDefinition = "TEXT")
-	}))
-	@Setter
-	private String sshTrustedHostKeys;
-
-	/** When {@link #sshTrustedHostKeys} was last learned or edited (display only). */
-	@Getter(onMethod = @__({
-		@Temporal(TemporalType.TIMESTAMP),
-		@Column(name = "ssh_trusted_host_keys_since")
-	}))
-	@Setter
-	private Date sshTrustedHostKeysSince;
-
-	/** HTTPS certificate CA trust mode (only meaningful for a HTTPS-protocol access). */
-	@Getter(onMethod = @__({
-		@Enumerated(EnumType.STRING),
-		@Column(name = "https_ca_trust_mode", nullable = false)
-	}))
-	@Setter
-	private HttpsCaTrustMode httpsCaTrustMode = HttpsCaTrustMode.SYSTEM_TRUSTSTORE;
-
-	/**
-	 * PEM-encoded trust anchor certificate (optionally a chain of several
-	 * concatenated PEM certificates) used when {@link #httpsCaTrustMode} is
-	 * {@link HttpsCaTrustMode#CUSTOM_CA}.
-	 */
-	@Getter(onMethod = @__({
-		@Column(name = "https_custom_ca_certificate", columnDefinition = "TEXT")
-	}))
-	@Setter
-	private String httpsCustomCaCertificate;
-
-	/**
-	 * Instantiates a new device access.
-	 */
-	protected DeviceAccess() {
-		// Reserved for Hibernate
-	}
-
-	/**
-	 * Instantiates a new device access.
-	 * @param device the device
-	 * @param accessName the access name
-	 */
-	public DeviceAccess(Device device, String accessName) {
-		this.key = new Key(device, accessName);
-	}
-
-	/**
-	 * Gets the device this access belongs to.
-	 * @return the device
-	 */
-	@Transient
-	public Device getDevice() {
-		return this.key.getDevice();
-	}
-
-	/**
-	 * Gets the access name (matches the driver's declared access, e.g. "ssh", "telnet", "https").
-	 * @return the access name
-	 */
-	@Transient
-	public String getAccessName() {
-		return this.key.getAccessName();
-	}
-
-	/**
-	 * Sets the access name. Only meant for REST deserialization of an
-	 * incoming (not-yet-attached) payload object - see the device mapper and
-	 * {@code Device.replaceAccesses}, which reads it back off via
-	 * {@link #getAccessName()} rather than persisting this instance as-is.
-	 * @param accessName the access name
-	 */
-	public void setAccessName(String accessName) {
-		this.key.setAccessName(accessName);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DeviceAccess)) {
-			return false;
-		}
-		DeviceAccess other = (DeviceAccess) obj;
-		return Objects.equals(this.key, other.key);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hashCode(this.key);
-	}
-
 }

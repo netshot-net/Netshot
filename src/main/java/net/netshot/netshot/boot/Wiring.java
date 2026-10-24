@@ -267,7 +267,7 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring init(DriverRegistry driverRegistry) {
-		Database.init(EntityModel.build());
+		Database.init();
 		instance = new Wiring(driverRegistry);
 		return instance;
 	}

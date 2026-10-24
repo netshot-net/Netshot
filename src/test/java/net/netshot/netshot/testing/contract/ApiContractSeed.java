@@ -18,6 +18,9 @@
  */
 package net.netshot.netshot.testing.contract;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEBUG_LOG;
+import static net.netshot.netshot.platform.database.schema.Tables.TASK;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -25,37 +28,44 @@ import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hibernate.Session;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.Assertions;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import net.netshot.netshot.aaa.user.ApiToken;
+import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.diagnostic.DiagnosticRepository;
+import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.config.Config;
+import net.netshot.netshot.inventory.config.ConfigRepository;
+import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
@@ -63,21 +73,29 @@ import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.device.NetworkInterface;
+import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.task.DebugLog;
+import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.task.Task;
+import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
@@ -203,10 +221,10 @@ public final class ApiContractSeed {
 	}
 
 	private void seedAuth() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
+		ApiTokenRepository repository = new ApiTokenRepository();
+		new Transactions().run(dsl -> {
 			// Remove default admin account
-			session.createMutationQuery("delete from net.netshot.netshot.aaa.user.UiUser").executeUpdate();
+			dsl.deleteFrom(Tables.USER).execute();
 			Object[][] tokens = {
 				{UiUser.LEVEL_READONLY, READONLY_TOKEN},
 				{UiUser.LEVEL_OPERATOR, OPERATOR_TOKEN},
@@ -215,11 +233,10 @@ public final class ApiContractSeed {
 				{UiUser.LEVEL_ADMIN, ADMIN_TOKEN},
 			};
 			for (Object[] token : tokens) {
-				session.persist(new ApiToken("Test Token - level %d".formatted((Integer) token[0]),
+				repository.add(dsl, ApiToken.of("Test Token - level %d".formatted((Integer) token[0]),
 					(String) token[1], (Integer) token[0]));
 			}
-			session.getTransaction().commit();
-		}
+		});
 	}
 
 	private void seedDomains() {
@@ -291,190 +308,168 @@ public final class ApiContractSeed {
 		}
 	}
 
-	private Config addConfig(Session session, Device device, long date, String author, String runningConfig,
-		boolean full) {
-		Config config = new Config(device);
-		config.setAuthor(author);
-		config.setChangeDate(new Date(date));
-		device.getConfigs().add(config);
-		session.persist(config);
-		ConfigLongTextAttribute running = new ConfigLongTextAttribute(config, "runningConfig", runningConfig);
-		config.addAttribute(running);
-		session.persist(running);
-		ConfigTextAttribute version = new ConfigTextAttribute(config, "iosVersion", "16.1.6");
-		config.addAttribute(version);
-		session.persist(version);
+	private static Config config(long date, String author, String runningConfig, boolean full) {
+		List<ConfigAttribute> attributes = new ArrayList<>();
+		attributes.add(new ConfigLongTextAttribute("runningConfig", runningConfig));
+		attributes.add(new ConfigTextAttribute("iosVersion", "16.1.6"));
 		if (full) {
-			ConfigNumericAttribute size = new ConfigNumericAttribute(config, "configSize", 1234.5);
-			config.addAttribute(size);
-			session.persist(size);
-			ConfigBinaryAttribute saved = new ConfigBinaryAttribute(config, "configSaved", true);
-			config.addAttribute(saved);
-			session.persist(saved);
-			ConfigBinaryFileAttribute file = new ConfigBinaryFileAttribute(config, "backupFile", "backup-%d.tar.gz".formatted(date));
-			file.setUid("00000000-0000-0000-0000-%012d".formatted(date % 1000000000000L));
-			file.setFileSize(4096);
-			file.setChecksum("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-			config.addAttribute(file);
-			session.persist(file);
+			attributes.add(new ConfigNumericAttribute("configSize", 1234.5));
+			attributes.add(new ConfigBinaryAttribute("configSaved", true));
+			attributes.add(new ConfigBinaryFileAttribute("backupFile", "00000000-0000-0000-0000-%012d".formatted(date % 1000000000000L),
+				"backup-%d.tar.gz".formatted(date), 4096, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"));
 		}
-		return config;
+		return Config.builder().author(author).changeDate(Instant.ofEpochMilli(date)).attributes(attributes).build();
 	}
 
-	private void addDeviceAttributes(Session session, Device device, boolean full) {
-		DeviceNumericAttribute memory = new DeviceNumericAttribute(device, "mainMemorySize", 2048);
-		device.addAttribute(memory);
-		session.persist(memory);
-		DeviceTextAttribute register = new DeviceTextAttribute(device, "configRegister", "0x1202");
-		device.addAttribute(register);
-		session.persist(register);
-		DeviceBinaryAttribute saved = new DeviceBinaryAttribute(device, "configurationSaved", true);
-		device.addAttribute(saved);
-		session.persist(saved);
+	private static List<DeviceAttribute> deviceAttributes(boolean full) {
+		List<DeviceAttribute> attributes = new ArrayList<>(List.of(
+			new DeviceNumericAttribute("mainMemorySize", 2048.0),
+			new DeviceTextAttribute("configRegister", "0x1202"),
+			new DeviceBinaryAttribute("configurationSaved", true)));
 		if (full) {
-			DeviceLongTextAttribute notes = new DeviceLongTextAttribute(device, "inventoryNotes",
-				"Line 1 of a long text attribute\nLine 2 with special chars: <>&\"' éè\n" + "x".repeat(300));
-			device.addAttribute(notes);
-			session.persist(notes);
+			attributes.add(new DeviceLongTextAttribute("inventoryNotes",
+				"Line 1 of a long text attribute\nLine 2 with special chars: <>&\"' éè\n" + "x".repeat(300)));
 		}
+		return attributes;
 	}
 
-	private Device createDevice(Session session, String name, String driver, String address, Domain domain,
-		long createdAt) {
-		Device device = new Device(driver, address, domain, "seed");
-		device.setName(name);
-		device.setCreatedDate(new Date(createdAt));
-		device.setChangeDate(new Date(createdAt));
-		session.persist(device);
-		return device;
+	private static Device.DeviceBuilder device(String name, String driver, String address, Domain domain, long createdAt) {
+		return Device.create(driver, address, domain, "seed").toBuilder()
+			.name(name)
+			.createdDate(Instant.ofEpochMilli(createdAt))
+			.changeDate(Instant.ofEpochMilli(createdAt));
+	}
+
+	private static Module module(String slot, String partNumber, String serialNumber) {
+		// (No first and last seen dates, as the former seed)
+		return Module.builder().slot(slot).partNumber(partNumber).serialNumber(serialNumber).build();
+	}
+
+	private static NetworkInterface networkInterface(String name, String vrf, boolean enabled, boolean level3, String description,
+			NetworkAddress... addresses) {
+		Set<Network4Address> ip4Addresses = new LinkedHashSet<>();
+		Set<Network6Address> ip6Addresses = new LinkedHashSet<>();
+		for (NetworkAddress address : addresses) {
+			NetworkInterface.addIpAddress(ip4Addresses, ip6Addresses, address);
+		}
+		return NetworkInterface.builder().interfaceName(name).virtualDevice("").vrfInstance(vrf).enabled(enabled).level3(level3)
+			.description(description).ip4Addresses(ip4Addresses).ip6Addresses(ip6Addresses).build();
+	}
+
+	// Stores the configurations of a device (the last given one becoming its last configuration)
+	private static List<Long> addConfigs(DSLContext dsl, Device device, Config... configs) {
+		ConfigRepository configRepository = new ConfigRepository();
+		List<Long> ids = new ArrayList<>();
+		for (Config config : configs) {
+			ids.add(configRepository.add(dsl, config.toBuilder().deviceId(device.id()).build()));
+		}
+		DeviceRepository deviceRepository = new DeviceRepository();
+		Device stored = deviceRepository.find(dsl, device.id());
+		deviceRepository.save(dsl, stored, stored.toBuilder().lastConfigId(ids.get(ids.size() - 1)).build());
+		return ids;
 	}
 
 	private void seedDevices() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Domain paris = session.get(Domain.class, this.id("domain.paris"));
-			Domain lyon = session.get(Domain.class, this.id("domain.lyon"));
+		new Transactions().run(dsl -> {
+			DomainRepository domainRepository = new DomainRepository();
+			CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+			DeviceRepository deviceRepository = new DeviceRepository();
+			Domain paris = domainRepository.find(dsl, this.id("domain.paris"));
+			Domain lyon = domainRepository.find(dsl, this.id("domain.lyon"));
 
 			// Device 1: complete device
-			Device router1 = this.createDevice(session, "router-paris-1", "CiscoIOS12", "10.1.1.1", paris, D2020);
-			router1.setFamily("Cisco 2900");
-			router1.setNetworkClass(NetworkClass.ROUTER);
-			router1.setLocation("Paris, rack A1");
-			router1.setContact("noc@example.net");
-			router1.setComments("Main Paris router");
-			router1.setSoftwareVersion("16.1.6");
-			router1.setSoftwareLevel(ConformanceLevel.GOLD);
-			router1.setSerialNumber("FTX1234ABCD");
-			router1.setStatus(Device.Status.INPRODUCTION);
-			router1.setEosDate(new Date(D2040));
-			router1.setEolDate(new Date(D2040 + 365L * 24 * 3600 * 1000));
-			router1.setVrfInstances(new HashSet<>(Set.of("VRF1", "VRF2")));
-			router1.setVirtualDevices(new HashSet<>(Set.of("vdc1")));
-			router1.replaceTags(List.of("core", "production"));
-			{
-				DeviceSshAccount specific = new DeviceSshAccount("specific-user", "specific-pass", "specific-enable",
-					DeviceCredentialSet.generateSpecificName());
-				specific.setDeviceSpecific(true);
-				session.persist(specific);
-				DeviceAccess ssh = new DeviceAccess(router1, "ssh");
-				ssh.setSpecificCredentialSet(specific);
-				ssh.setPort(2222);
-				ssh.setAddress("192.0.2.10");
-				router1.getAccesses().add(ssh);
-				session.persist(ssh);
-				DeviceAccess telnet = new DeviceAccess(router1, "telnet");
-				telnet.setGlobalCredentialSet(session.get(DeviceCredentialSet.class, this.id("cred.telnet")));
-				router1.getAccesses().add(telnet);
-				session.persist(telnet);
-			}
-			Module chassis = new Module("chassis", "CISCO2911/K9", "FTX1234ABCD", router1);
-			router1.getModules().add(chassis);
-			session.persist(chassis);
-			Module slot = new Module("slot 1", "HWIC-4ESW", "FOC5678WXYZ", router1);
-			router1.getModules().add(slot);
-			session.persist(slot);
-			Module removed = new Module("slot 2", "HWIC-1T", "FOC0001AAAA", router1);
-			removed.setRemoved(true);
-			router1.getModules().add(removed);
-			session.persist(removed);
-			{
-				NetworkInterface gi0 = new NetworkInterface(router1, "GigabitEthernet0/0", "", "VRF1", true, true, "Uplink");
-				gi0.addIpAddress(ip4("10.0.0.1", 24));
-				gi0.addIpAddress(ip6("2001:db8:1::1", 64));
-				router1.getNetworkInterfaces().add(gi0);
-				session.persist(gi0);
-				NetworkInterface gi1 = new NetworkInterface(router1, "GigabitEthernet0/1", "", "VRF2", false, true, "Downlink");
-				gi1.addIpAddress(ip4("10.0.1.1", 25));
-				router1.getNetworkInterfaces().add(gi1);
-				session.persist(gi1);
-				NetworkInterface lo0 = new NetworkInterface(router1, "Loopback0", "", "", true, false, "");
-				router1.getNetworkInterfaces().add(lo0);
-				session.persist(lo0);
-			}
-			this.addDeviceAttributes(session, router1, true);
+			DeviceCredentialSet specific = credentialSetRepository.add(dsl, DeviceSshAccount.builder()
+				.username("specific-user").password("specific-pass").superPassword("specific-enable")
+				.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build());
+			Device router1 = deviceRepository.add(dsl, device("router-paris-1", "CiscoIOS12", "10.1.1.1", paris, D2020)
+				.family("Cisco 2900")
+				.networkClass(NetworkClass.ROUTER)
+				.location("Paris, rack A1")
+				.contact("noc@example.net")
+				.comments("Main Paris router")
+				.softwareVersion("16.1.6")
+				.softwareLevel(ConformanceLevel.GOLD)
+				.serialNumber("FTX1234ABCD")
+				.status(Device.Status.INPRODUCTION)
+				.eosDate(Instant.ofEpochMilli(D2040))
+				.eolDate(Instant.ofEpochMilli(D2040 + 365L * 24 * 3600 * 1000))
+				.vrfInstances(Set.of("VRF1", "VRF2"))
+				.virtualDevices(Set.of("vdc1"))
+				.tags(Device.normalizeTags(List.of("core", "production")))
+				.accesses(List.of(
+					DeviceAccess.of("ssh").toBuilder().specificCredentialSet(specific).port(2222).address("192.0.2.10").build(),
+					DeviceAccess.of("telnet").toBuilder().globalCredentialSet(credentialSetRepository.find(dsl, this.id("cred.telnet"))).build()))
+				.modules(List.of(
+					module("chassis", "CISCO2911/K9", "FTX1234ABCD"),
+					module("slot 1", "HWIC-4ESW", "FOC5678WXYZ"),
+					module("slot 2", "HWIC-1T", "FOC0001AAAA").toBuilder().removed(true).build()))
+				.networkInterfaces(List.of(
+					networkInterface("GigabitEthernet0/0", "VRF1", true, true, "Uplink", ip4("10.0.0.1", 24), ip6("2001:db8:1::1", 64)),
+					networkInterface("GigabitEthernet0/1", "VRF2", false, true, "Downlink", ip4("10.0.1.1", 25)),
+					networkInterface("Loopback0", "", true, false, "")))
+				.attributes(deviceAttributes(true))
+				.build());
 			String head = "hostname router-paris-1\n!\ninterface Gi0/0\n ip address 10.0.0.1 255.255.255.0\n";
-			this.addConfig(session, router1, D2020, "tester", head + "!\nend\n", false);
-			this.addConfig(session, router1, D2021, "tester", head + "!\ninterface Gi0/1\n shutdown\n!\nend\n", true);
-			Config last = this.addConfig(session, router1, D2022, "snapshot",
-				head + " description \"Uplink\"\n!\ninterface Gi0/1\n shutdown\n!\nline vty 0 4\n password secret\n!\nend\n", true);
-			router1.setLastConfig(last);
-			this.remember("device.router1", router1.getId());
-			this.writeBinaryFiles(router1);
-			this.remember("config.router1.first", router1.getConfigs().get(0).getId());
-			this.remember("config.router1.second", router1.getConfigs().get(1).getId());
-			this.remember("config.router1.last", last.getId());
+			List<Long> configIds = addConfigs(dsl, router1,
+				config(D2020, "tester", head + "!\nend\n", false),
+				config(D2021, "tester", head + "!\ninterface Gi0/1\n shutdown\n!\nend\n", true),
+				config(D2022, "snapshot",
+					head + " description \"Uplink\"\n!\ninterface Gi0/1\n shutdown\n!\nline vty 0 4\n password secret\n!\nend\n", true));
+			this.remember("device.router1", router1.id());
+			this.remember("config.router1.first", configIds.get(0));
+			this.remember("config.router1.second", configIds.get(1));
+			this.remember("config.router1.last", configIds.get(2));
 
 			// Device 2: another domain, other family, disabled
-			Device router2 = this.createDevice(session, "router-lyon-1", "CiscoIOS12", "10.2.1.1", lyon, D2021);
-			router2.setFamily("Cisco 1900");
-			router2.setNetworkClass(NetworkClass.SWITCHROUTER);
-			router2.setLocation("Lyon");
-			router2.setSoftwareVersion("15.2.4");
-			router2.setSoftwareLevel(ConformanceLevel.SILVER);
-			router2.setSerialNumber("FTX9999ZZZZ");
-			router2.setStatus(Device.Status.DISABLED);
-			router2.replaceTags(List.of("branch"));
-			Module chassis2 = new Module("chassis", "CISCO1921/K9", "FTX9999ZZZZ", router2);
-			router2.getModules().add(chassis2);
-			session.persist(chassis2);
-			this.addDeviceAttributes(session, router2, false);
-			Config last2 = this.addConfig(session, router2, D2021, "tester", "hostname router-lyon-1\n!\nend\n", false);
-			router2.setLastConfig(last2);
-			this.remember("device.router2", router2.getId());
+			Device router2 = deviceRepository.add(dsl, device("router-lyon-1", "CiscoIOS12", "10.2.1.1", lyon, D2021)
+				.family("Cisco 1900")
+				.networkClass(NetworkClass.SWITCHROUTER)
+				.location("Lyon")
+				.softwareVersion("15.2.4")
+				.softwareLevel(ConformanceLevel.SILVER)
+				.serialNumber("FTX9999ZZZZ")
+				.status(Device.Status.DISABLED)
+				.tags(Device.normalizeTags(List.of("branch")))
+				.modules(List.of(module("chassis", "CISCO1921/K9", "FTX9999ZZZZ")))
+				.attributes(deviceAttributes(false))
+				.build());
+			addConfigs(dsl, router2, config(D2021, "tester", "hostname router-lyon-1\n!\nend\n", false));
+			this.remember("device.router2", router2.id());
 
-			// Device 3: other driver, with options, in preproduction, never snapshot
-			Device other = this.createDevice(session, "proxy-paris-1", "SkyhighSWG", "10.1.2.2", paris, D2022);
-			other.setFamily("Web gateway");
-			other.setNetworkClass(NetworkClass.SERVER);
-			other.setStatus(Device.Status.PREPRODUCTION);
-			other.setOptions(new LinkedHashMap<>(Map.of("fullBackup", false)));
-			other.replaceTags(List.of("production"));
-			DeviceAccess otherSsh = new DeviceAccess(other, "ssh");
-			otherSsh.setGlobalCredentialSet(session.get(DeviceCredentialSet.class, this.id("cred.ssh")));
-			other.getAccesses().add(otherSsh);
-			session.persist(otherSsh);
-			this.remember("device.proxy", other.getId());
+			// Device 3: other driver, with options, in preproduction, never snapshot (changed after its creation)
+			Device other = deviceRepository.add(dsl, device("proxy-paris-1", "SkyhighSWG", "10.1.2.2", paris, D2022)
+				.changeDate(null)
+				.family("Web gateway")
+				.networkClass(NetworkClass.SERVER)
+				.status(Device.Status.PREPRODUCTION)
+				.options(new LinkedHashMap<>(Map.of("fullBackup", false)))
+				.tags(Device.normalizeTags(List.of("production")))
+				.accesses(List.of(DeviceAccess.of("ssh").toBuilder()
+					.globalCredentialSet(credentialSetRepository.find(dsl, this.id("cred.ssh"))).build()))
+				.build());
+			this.remember("device.proxy", other.id());
 
 			// Device 4: bare IPv6 device
-			Device bare = this.createDevice(session, "bare-1", "CiscoIOS12", "2001:db8::4", paris, D2022);
-			bare.setNetworkClass(NetworkClass.UNKNOWN);
-			this.remember("device.bare", bare.getId());
-
-			session.getTransaction().commit();
-		}
+			Device bare = deviceRepository.add(dsl, device("bare-1", "CiscoIOS12", "2001:db8::4", paris, D2022)
+				.networkClass(NetworkClass.UNKNOWN)
+				.build());
+			this.remember("device.bare", bare.id());
+		});
+		this.writeBinaryFiles(this.id("device.router1"));
 	}
 
 	/**
 	 * Creates the content of the seeded binary file attributes.
-	 * @param device the device holding the attributes
+	 * @param deviceId the ID of the device holding the attributes
 	 */
-	private void writeBinaryFiles(Device device) {
+	private void writeBinaryFiles(long deviceId) {
 		Path folder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
-		for (Config config : device.getConfigs()) {
-			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.getAttributes()) {
+		List<Config> configs = new Transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
+		for (Config config : configs) {
+			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {
 				if (attribute instanceof ConfigBinaryFileAttribute file) {
 					try {
-						Files.writeString(folder.resolve(file.getUid() + ".data"), "binary content of " + file.getOriginalName());
+						Files.writeString(folder.resolve(file.uid() + ".data"), "binary content of " + file.originalName());
 					}
 					catch (IOException e) {
 						throw new UncheckedIOException(e);
@@ -605,127 +600,128 @@ public final class ApiContractSeed {
 			 "context": "line vty", "field": "runningConfig", "driver": "CiscoIOS12", "enabled": true,
 			 "exemptions": {"%d": %d}}"""
 			.formatted(this.id("rule.text"), this.id("policy.security"), this.id("device.router2"), D2040));
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Device router1 = session.get(Device.class, this.id("device.router1"));
-			Device router2 = session.get(Device.class, this.id("device.router2"));
-			Device proxy = session.get(Device.class, this.id("device.proxy"));
-			Rule text = session.get(Rule.class, this.id("rule.text"));
-			Rule regex = session.get(Rule.class, this.id("rule.regex"));
-			Rule js = session.get(Rule.class, this.id("rule.js"));
-			Rule python = session.get(Rule.class, this.id("rule.python"));
+		new Transactions().run(dsl -> {
+			DeviceRepository deviceRepository = new DeviceRepository();
+			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
+			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
+			Device proxy = deviceRepository.find(dsl, this.id("device.proxy"));
+			long text = this.id("rule.text");
+			long regex = this.id("rule.regex");
+			long js = this.id("rule.js");
+			long python = this.id("rule.python");
 			Object[][] results = {
-				{text, router1, ResultOption.NONCONFORMING, "Found text 'transport input telnet'"},
-				{regex, router1, ResultOption.CONFORMING, ""},
-				{js, router1, ResultOption.INVALIDRULE, "Script error"},
-				{python, router1, ResultOption.NOTAPPLICABLE, ""},
-				{text, router2, ResultOption.EXEMPTED, ""},
-				{regex, router2, ResultOption.CONFORMING, "Matched"},
-				{js, router2, ResultOption.DISABLED, ""},
-				{regex, proxy, ResultOption.NOTAPPLICABLE, ""},
+				{text, router1.id(), ResultOption.NONCONFORMING, "Found text 'transport input telnet'"},
+				{regex, router1.id(), ResultOption.CONFORMING, ""},
+				{js, router1.id(), ResultOption.INVALIDRULE, "Script error"},
+				{python, router1.id(), ResultOption.NOTAPPLICABLE, ""},
+				{text, router2.id(), ResultOption.EXEMPTED, ""},
+				{regex, router2.id(), ResultOption.CONFORMING, "Matched"},
+				{js, router2.id(), ResultOption.DISABLED, ""},
+				{regex, proxy.id(), ResultOption.NOTAPPLICABLE, ""},
 			};
 			long checkDate = D2021;
+			List<CheckResult> checkResults = new ArrayList<>();
 			for (Object[] result : results) {
-				CheckResult checkResult = new CheckResult((Rule) result[0], (Device) result[1], (ResultOption) result[2],
-					(String) result[3]);
-				checkResult.setCheckDate(new Date(checkDate));
+				checkResults.add(new CheckResult((Long) result[0], (Long) result[1], Instant.ofEpochMilli(checkDate),
+					(String) result[3], (ResultOption) result[2]));
 				checkDate += 1000;
-				session.persist(checkResult);
 			}
+			new RuleRepository().saveCheckResults(dsl, checkResults);
 
-			Diagnostic text1 = session.get(Diagnostic.class, this.id("diag.simple.text"));
-			Diagnostic longText = session.get(Diagnostic.class, this.id("diag.js.longtext"));
-			Diagnostic numeric = session.get(Diagnostic.class, this.id("diag.python.numeric"));
-			Diagnostic binary = session.get(Diagnostic.class, this.id("diag.simple.binary"));
-			List<net.netshot.netshot.diagnostic.DiagnosticResult> diagResults = List.of(
-				new DiagnosticTextResult(router1, text1, "Reload Command"),
-				new DiagnosticLongTextResult(router1, longText, "Long diagnostic\nresult\n" + "y".repeat(200)),
-				new DiagnosticNumericResult(router1, numeric, 42.5),
-				new DiagnosticBinaryResult(router1, binary, true),
-				new DiagnosticTextResult(router2, text1, "Power failure"),
-				new DiagnosticBinaryResult(router2, binary, false));
+			Diagnostic text1 = new DiagnosticRepository().find(dsl, this.id("diag.simple.text"));
+			Diagnostic longText = new DiagnosticRepository().find(dsl, this.id("diag.js.longtext"));
+			Diagnostic numeric = new DiagnosticRepository().find(dsl, this.id("diag.python.numeric"));
+			Diagnostic binary = new DiagnosticRepository().find(dsl, this.id("diag.simple.binary"));
+			List<net.netshot.netshot.diagnostic.DiagnosticResult> results1 = List.of(
+				DiagnosticTextResult.of(text1, "Reload Command"),
+				DiagnosticLongTextResult.of(longText, "Long diagnostic\nresult\n" + "y".repeat(200)),
+				DiagnosticNumericResult.of(numeric, 42.5),
+				DiagnosticBinaryResult.of(binary, true));
+			List<net.netshot.netshot.diagnostic.DiagnosticResult> results2 = List.of(
+				DiagnosticTextResult.of(text1, "Power failure"),
+				DiagnosticBinaryResult.of(binary, false));
 			long date = D2021;
-			for (net.netshot.netshot.diagnostic.DiagnosticResult diagResult : diagResults) {
-				diagResult.setCreationDate(new Date(date));
-				diagResult.setLastCheckDate(new Date(date + 500));
-				date += 1000;
-				session.persist(diagResult);
+			DiagnosticResultRepository resultRepository = new DiagnosticResultRepository();
+			for (Device device : List.of(router1, router2)) {
+				List<net.netshot.netshot.diagnostic.DiagnosticResult> dated = new ArrayList<>();
+				for (net.netshot.netshot.diagnostic.DiagnosticResult result : device == router1 ? results1 : results2) {
+					dated.add(result.withDates(Instant.ofEpochMilli(date), Instant.ofEpochMilli(date + 500)));
+					date += 1000;
+				}
+				resultRepository.save(dsl, device.id(), dated);
 			}
-			session.getTransaction().commit();
-		}
+		});
 	}
 
-	private <T extends Task> T taskData(Session session, T task, Task.Status status, long created, String log) {
-		task.setStatus(status);
-		task.setCreationDate(new Date(created));
-		task.setChangeDate(new Date(created + 2000));
-		task.setScheduleReference(new Date(created));
+	private Task taskData(DSLContext dsl, Task task, Task.Status status, long created, String log) {
+		Task.TaskBuilder builder = task.toBuilder()
+			.status(status)
+			.creationDate(Instant.ofEpochMilli(created))
+			.changeDate(Instant.ofEpochMilli(created + 2000))
+			.scheduleReference(Instant.ofEpochMilli(created));
 		if (status == Task.Status.SUCCESS || status == Task.Status.FAILURE || status == Task.Status.RUNNING) {
-			task.setExecutionDate(new Date(created + 1000));
+			builder.executionDate(Instant.ofEpochMilli(created + 1000));
 		}
 		if (log != null) {
-			task.setLogs(log);
+			builder.log(log);
 		}
-		session.persist(task);
-		return task;
+		return new TaskRepository().add(dsl, builder.build());
 	}
 
 	private void seedTasks() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			Device router1 = session.get(Device.class, this.id("device.router1"));
-			Device router2 = session.get(Device.class, this.id("device.router2"));
-			Domain paris = session.get(Domain.class, this.id("domain.paris"));
-			net.netshot.netshot.inventory.group.DeviceGroup group = session.get(net.netshot.netshot.inventory.group.DeviceGroup.class,
-				this.id("group.static"));
+		new Transactions().run(dsl -> {
+			DeviceRepository deviceRepository = new DeviceRepository();
+			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
+			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
+			long paris = this.id("domain.paris");
+			net.netshot.netshot.inventory.group.DeviceGroup group = new GroupRepository().find(dsl, this.id("group.static"));
 
-			TakeSnapshotTask snapshot = new TakeSnapshotTask(router1, "Daily snapshot", "tester", true, false, false);
-			snapshot.setDebugLog(new DebugLog("[10:00:00] Connecting\n[10:00:01] Done\n"));
-			snapshot.setDebugEnabled(true);
-			this.taskData(session, snapshot, Task.Status.SUCCESS, D2021, "Snapshot done\nConfig 1 saved");
-			this.remember("task.snapshot", snapshot.getId());
+			Task snapshot = this.taskData(dsl, TakeSnapshotTask.of(router1, "Daily snapshot", "tester", true, false, false)
+				.toBuilder().debugEnabled(true).build(), Task.Status.SUCCESS, D2021, "Snapshot done\nConfig 1 saved");
+			long debugLogId = dsl.insertInto(DEBUG_LOG).set(DEBUG_LOG.TEXT, "[10:00:00] Connecting\n[10:00:01] Done\n")
+				.returning(DEBUG_LOG.ID).fetchOne(DEBUG_LOG.ID);
+			dsl.update(TASK).set(TASK.DEBUG_LOG, debugLogId).where(TASK.ID.eq(snapshot.id())).execute();
+			this.remember("task.snapshot", snapshot.id());
 
-			TakeSnapshotTask failedSnapshot = new TakeSnapshotTask(router2, "Failing snapshot", "tester", false, true, true);
-			this.taskData(session, failedSnapshot, Task.Status.FAILURE, D2021 + 10000, "Unable to connect");
-			this.remember("task.failed", failedSnapshot.getId());
+			Task failedSnapshot = this.taskData(dsl, TakeSnapshotTask.of(router2, "Failing snapshot", "tester", false, true, true),
+				Task.Status.FAILURE, D2021 + 10000, "Unable to connect");
+			this.remember("task.failed", failedSnapshot.id());
 
-			CheckComplianceTask compliance = new CheckComplianceTask(router1, "Check compliance", "tester");
-			this.taskData(session, compliance, Task.Status.SUCCESS, D2021 + 20000, "Done");
-			this.remember("task.compliance", compliance.getId());
+			Task compliance = this.taskData(dsl, CheckComplianceTask.of(router1, "Check compliance", "tester"),
+				Task.Status.SUCCESS, D2021 + 20000, "Done");
+			this.remember("task.compliance", compliance.id());
 
-			RunDiagnosticsTask diagnostics = new RunDiagnosticsTask(router1, "Run diagnostics", "tester", false);
-			this.taskData(session, diagnostics, Task.Status.CANCELLED, D2021 + 30000, "Cancelled by user");
-			this.remember("task.diagnostics", diagnostics.getId());
+			Task diagnostics = this.taskData(dsl, RunDiagnosticsTask.of(router1, "Run diagnostics", "tester", false),
+				Task.Status.CANCELLED, D2021 + 30000, "Cancelled by user");
+			this.remember("task.diagnostics", diagnostics.id());
 
-			RunDeviceScriptTask script = new RunDeviceScriptTask(router1, "function run(cli, device) {}",
-				TestDrivers.registry().getDriverByName("CiscoIOS12"), "Run script", "tester");
-			this.taskData(session, script, Task.Status.SUCCESS, D2021 + 40000, "Script output");
-			this.remember("task.script", script.getId());
+			Task script = this.taskData(dsl, RunDeviceScriptTask.of(router1, new RunDeviceScriptTask(null, "function run(cli, device) {}",
+				TestDrivers.registry().getDriverByName("CiscoIOS12").getName(), null, false, false, false), "Run script", "tester"),
+				Task.Status.SUCCESS, D2021 + 40000, "Script output");
+			this.remember("task.script", script.id());
 
-			DiscoverDeviceTypeTask discover = new DiscoverDeviceTypeTask("10.9.9.9", paris, "Discover device", "tester");
-			this.taskData(session, discover, Task.Status.WAITING, D2021 + 50000, null);
-			this.remember("task.discover", discover.getId());
+			Task discover = this.taskData(dsl, DiscoverDeviceTypeTask.of("10.9.9.9", paris, Set.of(), "Discover device", "tester"),
+				Task.Status.WAITING, D2021 + 50000, null);
+			this.remember("task.discover", discover.id());
 
-			ScanSubnetsTask scan = new ScanSubnetsTask(Set.of(ip4("10.9.0.0", 24)), paris, "Scan subnet", "10.9.0.0/24", "tester");
-			this.taskData(session, scan, Task.Status.SUCCESS, D2021 + 60000, "No device found");
-			this.remember("task.scan", scan.getId());
+			Task scan = this.taskData(dsl, ScanSubnetsTask.of(Set.of(ip4("10.9.0.0", 24)), paris, "Scan subnet", "10.9.0.0/24", "tester"),
+				Task.Status.SUCCESS, D2021 + 60000, "No device found");
+			this.remember("task.scan", scan.id());
 
-			PurgeDatabaseTask purge = new PurgeDatabaseTask("Purge", "tester", 90, 365, 0, 0, 30, (net.netshot.netshot.inventory.group.DeviceGroup) null);
-			purge.setScheduleType(Task.ScheduleType.DAILY);
-			this.taskData(session, purge, Task.Status.SCHEDULED, D2022, null);
-			purge.setScheduleReference(new Date(D2040));
-			this.remember("task.purge", purge.getId());
+			Task purge = this.taskData(dsl, Task.of(PurgeDatabaseTask.builder().days(90).configDays(365).moduleDays(30).build(),
+				"Purge", "Global", "tester").toBuilder().scheduleType(Task.ScheduleType.DAILY).build(), Task.Status.SCHEDULED, D2022, null);
+			// Changed afterwards, as the former seed did (the change date is then now)
+			dsl.update(TASK).set(TASK.SCHEDULE_REFERENCE, Instant.ofEpochMilli(D2040)).set(TASK.CHANGE_DATE, Instant.now())
+				.where(TASK.ID.eq(purge.id())).execute();
+			this.remember("task.purge", purge.id());
 
-			TakeGroupSnapshotTask groupSnapshot = new TakeGroupSnapshotTask(group, "Group snapshot", "tester",
-				-1, false, false);
-			this.taskData(session, groupSnapshot, Task.Status.RUNNING, D2022 + 1000, "Running");
-			this.remember("task.group", groupSnapshot.getId());
+			Task groupSnapshot = this.taskData(dsl, GroupBasedTask.of(new TakeGroupSnapshotTask(group.id(), null, -1, false, false),
+				group.name(), "Group snapshot", "tester"), Task.Status.RUNNING, D2022 + 1000, "Running");
+			this.remember("task.group", groupSnapshot.id());
 
-			CheckGroupComplianceTask groupCompliance = new CheckGroupComplianceTask(group, "Group compliance", "tester");
-			this.taskData(session, groupCompliance, Task.Status.NEW, D2022 + 2000, null);
-			this.remember("task.groupcompliance", groupCompliance.getId());
-
-			session.getTransaction().commit();
-		}
+			Task groupCompliance = this.taskData(dsl, GroupBasedTask.of(new CheckGroupComplianceTask(group.id(), null),
+				group.name(), "Group compliance", "tester"), Task.Status.NEW, D2022 + 2000, null);
+			this.remember("task.groupcompliance", groupCompliance.id());
+		});
 	}
 }

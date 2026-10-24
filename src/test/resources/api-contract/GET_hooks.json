@@ -1,16 +1,5 @@
 [
   {
-    "action": "POST_XML",
-    "enabled": false,
-    "httpsCaTrustMode": "TRUST_ANY",
-    "httpsCustomCaCertificate": null,
-    "id": 2,
-    "name": "Disabled XML hook",
-    "triggers": [ ],
-    "type": "Web",
-    "url": "http://example.net/callback2"
-  },
-  {
     "action": "POST_JSON",
     "enabled": true,
     "httpsCaTrustMode": "SYSTEM_TRUSTSTORE",
@@ -29,5 +18,16 @@
     ],
     "type": "Web",
     "url": "https://example.net/callback1"
+  },
+  {
+    "action": "POST_XML",
+    "enabled": false,
+    "httpsCaTrustMode": "TRUST_ANY",
+    "httpsCustomCaCertificate": null,
+    "id": 2,
+    "name": "Disabled XML hook",
+    "triggers": [ ],
+    "type": "Web",
+    "url": "http://example.net/callback2"
   }
 ]

@@ -18,23 +18,25 @@
  */
 package net.netshot.netshot.tools;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.Session;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultableSecret;
@@ -56,7 +58,7 @@ public class DeviceListExtractor extends Netshot {
 			return value == null ? "" : value;
 		}
 		catch (VaultException e) {
-			log.warn("Unable to resolve a Vault-backed credential for device {}: {}", device.getName(), e.getMessage());
+			log.warn("Unable to resolve a Vault-backed credential for device {}: {}", device.name(), e.getMessage());
 			return "";
 		}
 	}
@@ -103,11 +105,8 @@ public class DeviceListExtractor extends Netshot {
 			Wiring.init();
 
 			log.info("Requesting data from the DB...");
-			Session session = Database.getSession();
-			List<Device> devices = session
-				.createQuery("select d from Device d where d.status = :enabled", Device.class)
-				.setParameter("enabled", Device.Status.INPRODUCTION)
-				.list();
+			List<Device> devices = new Transactions().read(dsl -> new DeviceRepository().findAll(dsl,
+				dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
 			for (Device device : devices) {
 				DeviceCliAccount cliAccount = null;
 				DeviceSnmpCommunity community = null;
@@ -117,8 +116,8 @@ public class DeviceListExtractor extends Netshot {
 					if (access == null) {
 						continue;
 					}
-					DeviceCredentialSet pinned = access.getSpecificCredentialSet() != null
-						? access.getSpecificCredentialSet() : access.getGlobalCredentialSet();
+					DeviceCredentialSet pinned = access.specificCredentialSet() != null
+						? access.specificCredentialSet() : access.globalCredentialSet();
 					if (pinned instanceof DeviceCliAccount ca) {
 						cliAccount = ca;
 					}
@@ -128,35 +127,35 @@ public class DeviceListExtractor extends Netshot {
 					if (access == null) {
 						continue;
 					}
-					DeviceCredentialSet pinned = access.getSpecificCredentialSet() != null
-						? access.getSpecificCredentialSet() : access.getGlobalCredentialSet();
+					DeviceCredentialSet pinned = access.specificCredentialSet() != null
+						? access.specificCredentialSet() : access.globalCredentialSet();
 					if (pinned instanceof DeviceSnmpCommunity sc) {
 						community = sc;
 					}
 				}
 				if (cliAccount == null) {
-					log.warn("No CLI account found for device {}.", device.getName());
+					log.warn("No CLI account found for device {}.", device.name());
 				}
 				if (community == null) {
-					log.warn("No SNMP community found for device {}.", device.getName());
+					log.warn("No SNMP community found for device {}.", device.name());
 				}
 				List<String> fields = new ArrayList<>();
 				String ipAddress;
 				try {
-					ipAddress = InetAddress.getByName(device.getMgmtAddress()).getHostAddress();
+					ipAddress = InetAddress.getByName(device.mgmtAddress()).getHostAddress();
 				}
 				catch (UnknownHostException e) {
-					ipAddress = device.getMgmtAddress();
+					ipAddress = device.mgmtAddress();
 				}
 				fields.add(ipAddress);					// Col. 1 = IP Address <<<
-				fields.add(device.getName());			// Col. 2 = Host Name <<<
+				fields.add(device.name());			// Col. 2 = Host Name <<<
 				fields.add("");							// Col. 3 = Domain Name
 				fields.add("");							// Col. 4 = Device Identity
 				fields.add("");							// Col. 5 = Display Name
 				fields.add("");							// Col. 6 = SysObjectID
 				fields.add("");							// Col. 7 = DCR Device Type
 				fields.add("");							// Col. 8 = MDF Type
-				fields.add(community == null ? "" : resolveSecret(community.getCommunitySecret(), device));			// Col. 9 = SNMP RO <<<
+				fields.add(community == null ? "" : resolveSecret(community.communitySecret(), device));			// Col. 9 = SNMP RO <<<
 				fields.add("");							// Col. 10 = SNMP RW
 				fields.add("");							// Col. 11 = SNMPv3 User Name
 				fields.add("");							// Col. 12 = SNMPv3 Auth Pass 
@@ -164,9 +163,9 @@ public class DeviceListExtractor extends Netshot {
 				fields.add("");							// Col. 14 = SNMPv3 Auth Algorithm
 				fields.add("");							// Col. 15 = RX Boot Mode User
 				fields.add("");							// Col. 16 = RX Boot Mode Pass
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.getUsernameSecret(), device));			// Col. 17 = Primary User <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.getPasswordSecret(), device));			// Col. 18 = Primary Pass <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.getSuperPasswordSecret(), device));	// Col. 19 = Primary Enable Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.usernameSecret(), device));			// Col. 17 = Primary User <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.passwordSecret(), device));			// Col. 18 = Primary Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPasswordSecret(), device));	// Col. 19 = Primary Enable Pass <<<
 				fields.add("");							// Col. 20 = HTTP User
 				fields.add("");							// Col. 21 = HTTP Pass
 				fields.add("");							// Col. 22 = HTTP Mode

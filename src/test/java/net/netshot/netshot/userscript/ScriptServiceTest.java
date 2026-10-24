@@ -70,7 +70,7 @@ class ScriptServiceTest {
 	}
 
 	private long count() {
-		return this.transactions.read(session -> session.createQuery("select count(s) from DeviceJsScript s", Long.class).uniqueResult());
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(net.netshot.netshot.platform.database.schema.Tables.DEVICE_JS_SCRIPT));
 	}
 
 	@Test
@@ -78,25 +78,25 @@ class ScriptServiceTest {
 	void create() {
 		String name = " " + this.name("Script") + " ";
 		DeviceJsScript script = this.service.create(this.creation(name));
-		Assertions.assertTrue(script.getId() > 0);
-		Assertions.assertEquals(name, script.getName(), "the name is stored as posted");
-		Assertions.assertEquals("CiscoIOS12", script.getDeviceDriver());
-		Assertions.assertEquals("tester", script.getAuthor());
-		Assertions.assertEquals("Folder", script.getFolder());
-		Assertions.assertEquals(SCRIPT, script.getScript());
-		Assertions.assertNotNull(script.getUserInputDefinitions(), "the definitions are extracted on creation");
-		Assertions.assertTrue(script.getUserInputDefinitions().isEmpty());
-		Assertions.assertEquals("Cisco IOS and IOS-XE", TestDrivers.registry().getDriverByName(script.getDeviceDriver()).getDescription());
-		DeviceJsScript read = this.service.get(script.getId());
-		Assertions.assertEquals(name, read.getName());
-		Assertions.assertNull(read.getUserInputDefinitions(), "the definitions are never stored: known quirk, null once read back");
+		Assertions.assertTrue(script.id() > 0);
+		Assertions.assertEquals(name, script.name(), "the name is stored as posted");
+		Assertions.assertEquals("CiscoIOS12", script.deviceDriver());
+		Assertions.assertEquals("tester", script.author());
+		Assertions.assertEquals("Folder", script.folder());
+		Assertions.assertEquals(SCRIPT, script.script());
+		Assertions.assertNotNull(script.userInputDefinitions(), "the definitions are extracted on creation");
+		Assertions.assertTrue(script.userInputDefinitions().isEmpty());
+		Assertions.assertEquals("Cisco IOS and IOS-XE", TestDrivers.registry().getDriverByName(script.deviceDriver()).getDescription());
+		DeviceJsScript read = this.service.get(script.id());
+		Assertions.assertEquals(name, read.name());
+		Assertions.assertNull(read.userInputDefinitions(), "the definitions are never stored: known quirk, null once read back");
 	}
 
 	@Test
 	@DisplayName("create() keeps a null folder as posted")
 	void createNullFolder() {
 		DeviceJsScript script = this.service.create(new ScriptCreation(this.name("No folder"), "CiscoIOS12", SCRIPT, "tester", null));
-		Assertions.assertNull(script.getFolder());
+		Assertions.assertNull(script.folder());
 	}
 
 	@Test
@@ -104,8 +104,8 @@ class ScriptServiceTest {
 	void validate() {
 		long before = this.count();
 		DeviceJsScript script = this.service.validate(this.creation(this.name("Validated")));
-		Assertions.assertEquals(0, script.getId());
-		Assertions.assertNotNull(script.getUserInputDefinitions());
+		Assertions.assertEquals(0, script.id());
+		Assertions.assertNotNull(script.userInputDefinitions());
 		Assertions.assertEquals(before, this.count());
 		assertError(ErrorCode.NETSHOT_INVALID_SCRIPT, () -> this.service.validate(this.creation(" ")));
 	}
@@ -152,20 +152,20 @@ class ScriptServiceTest {
 		this.service.create(this.creation(this.name("Listed")));
 		var listed = this.service.list(Page.ALL);
 		Assertions.assertTrue(listed.size() >= 2);
-		DeviceJsScript item = listed.stream().filter(s -> s.getId() == first.getId()).findFirst().orElseThrow();
-		Assertions.assertNull(item.getScript());
-		Assertions.assertEquals(first.getName(), item.getName());
+		DeviceJsScript item = listed.stream().filter(s -> s.id() == first.id()).findFirst().orElseThrow();
+		Assertions.assertNull(item.script());
+		Assertions.assertEquals(first.name(), item.name());
 		Assertions.assertEquals(1, this.service.list(new Page(0, 1)).size());
-		Assertions.assertEquals(SCRIPT, this.service.get(first.getId()).getScript(), "the stored script is untouched");
+		Assertions.assertEquals(SCRIPT, this.service.get(first.id()).script(), "the stored script is untouched");
 	}
 
 	@Test
 	@DisplayName("delete() removes the script, and reports an unknown script")
 	void delete() {
 		DeviceJsScript script = this.service.create(this.creation(this.name("To delete")));
-		this.service.delete(script.getId());
-		Assertions.assertNull(this.service.get(script.getId()));
-		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.getId()));
+		this.service.delete(script.id());
+		Assertions.assertNull(this.service.get(script.id()));
+		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(script.id()));
 		assertError(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, () -> this.service.delete(99999999L));
 	}
 }

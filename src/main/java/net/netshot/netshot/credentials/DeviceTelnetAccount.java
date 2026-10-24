@@ -18,70 +18,60 @@
  */
 package net.netshot.netshot.credentials;
 
-import jakarta.persistence.Entity;
+import java.time.Instant;
 
+import lombok.Builder;
+import net.netshot.netshot.inventory.domain.Domain;
 
 /**
  * A Telnet account.
+ *
+ * @param id the ID (0 for a credential set which isn't stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the time of the last change
+ * @param name the name, unique
+ * @param mgmtDomain the domain the credential set is restricted to, or null for all the domains
+ * @param deviceSpecific whether the credential set belongs to one access of one device (rather than being global)
+ * @param username the username
+ * @param usernameVaultInstanceId the ID of the Vault instance the username is read from, or null if it is local
+ * @param usernameVaultPath the Vault path (and key) of the username
+ * @param password the password
+ * @param passwordVaultInstanceId the ID of the Vault instance the password is read from, or null if it is local
+ * @param passwordVaultPath the Vault path (and key) of the password
+ * @param superPassword the super (enable) password
+ * @param superPasswordVaultInstanceId the ID of the Vault instance the super (enable) password is read from, or null if it is local
+ * @param superPasswordVaultPath the Vault path (and key) of the super (enable) password
  */
-@Entity
-public class DeviceTelnetAccount extends DeviceCliAccount {
+@Builder(toBuilder = true)
+public record DeviceTelnetAccount(
+	long id,
+	int version,
+	Instant changeDate,
+	String name,
+	Domain mgmtDomain,
+	boolean deviceSpecific,
+	String username,
+	Long usernameVaultInstanceId,
+	String usernameVaultPath,
+	String password,
+	Long passwordVaultInstanceId,
+	String passwordVaultPath,
+	String superPassword,
+	Long superPasswordVaultInstanceId,
+	String superPasswordVaultPath) implements DeviceCliAccount {
 
-	/**
-	 * Instantiates a new device telnet account.
-	 */
-	protected DeviceTelnetAccount() {
-
-	}
-
-	/**
-	 * Instantiates a new device telnet account.
-	 *
-	 * @param username the username
-	 * @param password the password
-	 * @param superPassword the super password
-	 * @param name the name
-	 */
-	public DeviceTelnetAccount(String username, String password,
-		String superPassword, String name) {
-		super(username, password, superPassword, name);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.credentials.DeviceCliAccount#hashCode()
-	 */
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + (name == null ? 0 : name.hashCode());
-		return result;
+	public DeviceTelnetAccount withIdentity(long newId, String newName, boolean newDeviceSpecific) {
+		return this.toBuilder().id(newId).name(newName).deviceSpecific(newDeviceSpecific).build();
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.credentials.DeviceCliAccount#equals(java.lang.Object)
-	 */
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!super.equals(obj)) {
-			return false;
-		}
-		if (!(obj instanceof DeviceTelnetAccount)) {
-			return false;
-		}
-		DeviceTelnetAccount other = (DeviceTelnetAccount) obj;
-		if (name == null) {
-			if (other.name != null) {
-				return false;
-			}
-		}
-		else if (!name.equals(other.name)) {
-			return false;
-		}
-		return true;
+	public DeviceTelnetAccount withMgmtDomain(Domain newMgmtDomain) {
+		return this.toBuilder().mgmtDomain(newMgmtDomain).build();
 	}
 
+	@Override
+	public String toString() {
+		return DeviceCredentialSet.describe(this);
+	}
 }
