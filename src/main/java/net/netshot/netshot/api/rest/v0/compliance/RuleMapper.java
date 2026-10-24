@@ -21,8 +21,6 @@ package net.netshot.netshot.api.rest.v0.compliance;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.Hibernate;
-
 import net.netshot.netshot.api.rest.v0.device.DeviceMapper;
 import net.netshot.netshot.compliance.DeviceRuleResult;
 import net.netshot.netshot.compliance.ExemptedDevice;
@@ -30,9 +28,9 @@ import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleSummary;
 import net.netshot.netshot.compliance.RuleTestResult;
-import net.netshot.netshot.compliance.rules.JavaScriptRule;
-import net.netshot.netshot.compliance.rules.PythonRule;
-import net.netshot.netshot.compliance.rules.TextRule;
+import net.netshot.netshot.compliance.JavaScriptRule;
+import net.netshot.netshot.compliance.PythonRule;
+import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -48,10 +46,10 @@ public final class RuleMapper {
 
 	// The description of the driver of the rule: empty for any driver, "Unknown driver" when it isn't loaded
 	private static String deviceDriverDescription(DriverRegistry driverRegistry, TextRule rule) {
-		if ("".equals(rule.getDeviceDriver())) {
+		if ("".equals(rule.deviceDriver())) {
 			return "";
 		}
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.getDeviceDriver());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(rule.deviceDriver());
 		if (deviceDriver == null) {
 			return "Unknown driver";
 		}
@@ -62,23 +60,17 @@ public final class RuleMapper {
 	 * Maps a rule to its representation.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param ruleOrProxy the rule (or a proxy of it)
+	 * @param rule the rule
 	 * @return the DTO, of the kind of the rule
 	 */
-	public static RuleDto toDto(DriverRegistry driverRegistry, Rule ruleOrProxy) {
-		Rule rule = (Rule) Hibernate.unproxy(ruleOrProxy);
-		if (rule instanceof TextRule text) {
-			return new RuleDto.Text(text.isAnyBlock(), text.getContext(), text.getDeviceDriver(),
-				deviceDriverDescription(driverRegistry, text), text.isEnabled(), text.getField(), text.getId(), text.isInvert(),
-				text.isMatchAll(), text.getName(), text.isNormalize(), text.isRegExp(), text.getText());
-		}
-		else if (rule instanceof JavaScriptRule js) {
-			return new RuleDto.JavaScript(js.isEnabled(), js.getId(), js.getName(), js.getScript());
-		}
-		else if (rule instanceof PythonRule python) {
-			return new RuleDto.Python(python.isEnabled(), python.getId(), python.getName(), python.getScript());
-		}
-		throw new IllegalArgumentException("Unknown kind of rule: " + rule.getClass().getName());
+	public static RuleDto toDto(DriverRegistry driverRegistry, Rule rule) {
+		return switch (rule) {
+			case TextRule text -> new RuleDto.Text(text.anyBlock(), text.context(), text.deviceDriver(),
+				deviceDriverDescription(driverRegistry, text), text.enabled(), text.field(), text.id(), text.invert(),
+				text.matchAll(), text.name(), text.normalize(), text.regExp(), text.text());
+			case JavaScriptRule js -> new RuleDto.JavaScript(js.enabled(), js.id(), js.name(), js.script());
+			case PythonRule python -> new RuleDto.Python(python.enabled(), python.id(), python.name(), python.script());
+		};
 	}
 
 	/**

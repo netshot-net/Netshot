@@ -1267,7 +1267,7 @@ public class ToolboxTest {
 		@DisplayName("Toolbox module available to Python diagnostics")
 		void pythonDiagnosticToolbox() throws Exception {
 			DeviceDriver driver = TestDrivers.registry().getDriverByName("CiscoIOS12");
-			PythonDiagnostic diagnostic = new PythonDiagnostic("Toolbox diagnostic", true, null, AttributeType.TEXT, ""
+			PythonDiagnostic diagnostic = new PythonDiagnostic(0, "Toolbox diagnostic", true, null, AttributeType.TEXT, ""
 				+ "from netshot.toolbox import ConfigTree\n"
 				+ "def diagnose(cli, device, diagnostic):\n"
 				+ "  return ConfigTree.parse('config system global\\n  set hostname \"fw\"\\nend', syntax='fortios')"

@@ -18,15 +18,16 @@
  */
 package net.netshot.netshot.compliance.check;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
-import org.hibernate.Session;
-
+import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -46,38 +47,25 @@ public class ComplianceChecker {
 	}
 
 	/**
-	 * Check all devices of the target groups against the policy.
+	 * Checks a given device against the rules of a policy.
 	 *
 	 * @param policy the policy
-	 * @param session the session
-	 * @param taskContext the task context
-	 */
-	public void check(Policy policy, Session session, TaskContext taskContext) {
-		if (policy.getTargetGroups() == null) {
-			return;
-		}
-		Set<Device> devices = new HashSet<>();
-		for (DeviceGroup group : policy.getTargetGroups()) {
-			devices.addAll(group.getCachedDevices());
-		}
-		for (Device device : devices) {
-			this.check(policy, device, session, taskContext);
-		}
-	}
-
-	/**
-	 * Check a given device against the policy.
-	 *
-	 * @param policy the policy
+	 * @param rules the rules of the policy
 	 * @param device the device
-	 * @param session the session
+	 * @param exemptions the exemptions of the device
 	 * @param taskContext the task context
+	 * @return the results, one per rule
 	 */
-	public void check(Policy policy, Device device, Session session, TaskContext taskContext) {
-		for (Rule rule : policy.getRules()) {
-			taskContext.info("Evaluating rule {} (policy {})...", rule.getName(), policy.getName());
-			device.getComplianceCheckResults().add(this.evaluators.evaluate(rule, device, session, taskContext));
+	public List<CheckResult> check(Policy policy, List<Rule> rules, DeviceDraft device, Collection<Exemption> exemptions,
+		TaskContext taskContext) {
+		Instant now = Instant.now();
+		List<CheckResult> results = new ArrayList<>();
+		for (Rule rule : rules) {
+			taskContext.info("Evaluating rule {} (policy {})...", rule.name(), policy.name());
+			boolean exempted = exemptions.stream().anyMatch(e -> e.ruleId() == rule.id() && e.isActive(now));
+			results.add(this.evaluators.evaluate(rule, device, exempted, taskContext));
 		}
+		return results;
 	}
 
 }

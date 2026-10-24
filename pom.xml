@@ -8,7 +8,6 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<polyglot.version>25.0.4.1.1</polyglot.version>
-		<hibernate.version>6.6.55.Final</hibernate.version>
 		<c3p0.version>0.14.1</c3p0.version>
 		<undertow.version>2.4.2.Final</undertow.version>
 		<jackson.version>2.22.4</jackson.version>
@@ -22,6 +21,7 @@
 		<bouncycastle.version>1.85</bouncycastle.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
 		<archunit.version>1.5.1</archunit.version>
+		<jooq.version>3.21.9</jooq.version>
 	</properties>
 	<build>
 		<finalName>netshot</finalName>
@@ -42,6 +42,27 @@
 			</resource>
 		</resources>
 		<plugins>
+			<plugin>
+				<!-- The jOOQ classes generated from the schema are committed under src/main/jooq
+					(regenerated with the jooq-codegen profile, checked by JooqSchemaTest) -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.6.1</version>
+				<executions>
+					<execution>
+						<id>add-jooq-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>src/main/jooq</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -190,27 +211,7 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-core</artifactId>
-			<version>${hibernate.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>jakarta.xml.bind</groupId>
-					<artifactId>jakarta.xml.bind-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.glassfish.jaxb</groupId>
-					<artifactId>jaxb-runtime</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-c3p0</artifactId>
-			<version>${hibernate.version}</version>
-		</dependency>
-		<dependency>
-			<!-- c3p0 dependency with compile scope -->
+			<!-- Connection pools (platform.database.ConnectionPools) -->
 			<groupId>com.mchange</groupId>
 			<artifactId>c3p0</artifactId>
 			<version>${c3p0.version}</version>
@@ -409,6 +410,11 @@
 			<version>3.20.0</version>
 		</dependency>
 		<dependency>
+			<groupId>org.jooq</groupId>
+			<artifactId>jooq</artifactId>
+			<version>${jooq.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>org.liquibase</groupId>
 			<artifactId>liquibase-core</artifactId>
 			<version>5.0.3</version>
@@ -472,6 +478,13 @@
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-launcher</artifactId>
 			<version>6.1.2</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<!-- Generation of the jOOQ classes (JooqCodegen, JooqSchemaTest) -->
+			<groupId>org.jooq</groupId>
+			<artifactId>jooq-codegen</artifactId>
+			<version>${jooq.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -582,6 +595,38 @@
 			<properties>
 				<groups>db,api,contract,simulator</groups>
 			</properties>
+		</profile>
+		<profile>
+			<!-- Regenerates the jOOQ classes (src/main/jooq) from a PostgreSQL migrated by Liquibase, in a container:
+				./mvnw -Pjooq-codegen process-test-classes -->
+			<id>jooq-codegen</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>3.5.0</version>
+						<executions>
+							<execution>
+								<id>jooq-codegen</id>
+								<phase>process-test-classes</phase>
+								<goals>
+									<goal>java</goal>
+								</goals>
+								<configuration>
+									<mainClass>net.netshot.netshot.platform.database.JooqCodegen</mainClass>
+									<classpathScope>test</classpathScope>
+									<!-- The threads of Testcontainers outlive the generation -->
+									<cleanupDaemonThreads>false</cleanupDaemonThreads>
+									<arguments>
+										<argument>${project.basedir}/src/main/jooq</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 	</profiles>
 	<url>https://www.netshot.net</url>

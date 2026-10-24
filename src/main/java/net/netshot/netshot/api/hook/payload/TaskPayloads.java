@@ -18,11 +18,12 @@
  */
 package net.netshot.netshot.api.hook.payload;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
-
-import org.hibernate.Hibernate;
+import java.util.function.Function;
 
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -35,8 +36,8 @@ import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
@@ -46,6 +47,7 @@ import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
+import net.netshot.netshot.task.type.DeviceBasedTask;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
@@ -55,13 +57,15 @@ import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.task.type.TaskSpec;
+import net.netshot.netshot.task.type.TaskSpecs;
 
 /**
  * Maps a task to its webhook payload. All the methods are pure functions.
  *
- * <p>{@link #toPayload(Task)} reads the task while the session which loaded it is still open (see
- * {@code TaskService.mapTask}): the payload embeds the target device, with its accesses and
- * groups, which are lazily loaded.</p>
+ * <p>{@link #toPayload} runs in the read transaction of {@code TaskService.mapTask}: the payload
+ * embeds the target device, with its accesses and groups, which it loads on demand through
+ * the given function.</p>
  */
 public final class TaskPayloads {
 
@@ -76,101 +80,74 @@ public final class TaskPayloads {
 	 * Maps a task to its payload.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param task the task, attached to an open session and prepared
+	 * @param task the task
+	 * @param devices gets a device by ID (in an open session), null for a null ID
 	 * @return the payload, of the subtype matching the type of the task
 	 * @throws IllegalArgumentException if the type of task has no payload
 	 */
-	public static TaskPayload toPayload(DriverRegistry driverRegistry, Task task) {
-		Task concrete = (Task) Hibernate.unproxy(task);
-		TaskBasePayload base = toBasePayload(driverRegistry, concrete);
-		if (concrete instanceof TakeSnapshotTask snapshot) {
-			return new TaskPayload.TakeSnapshot(base, snapshot.isAutomatic(), deviceId(concrete));
-		}
-		else if (concrete instanceof CheckComplianceTask) {
-			return new TaskPayload.CheckCompliance(base, deviceId(concrete));
-		}
-		else if (concrete instanceof RunDeviceScriptTask) {
-			return new TaskPayload.RunDeviceScript(base, deviceId(concrete));
-		}
-		else if (concrete instanceof RunDiagnosticsTask) {
-			return new TaskPayload.RunDiagnostics(base, deviceId(concrete));
-		}
-		else if (concrete instanceof DiscoverDeviceTypeTask discover) {
-			Device resultDevice = discover.getDiscoverResultDevice();
-			return new TaskPayload.DiscoverDeviceType(base, discover.getDeviceAddress(), resultDevice == null ? 0 : resultDevice.getId(),
-				toPayload(driverRegistry, resultDevice), discoveredDeviceTypeDescription(driverRegistry, discover), discover.getSnapshotTaskId());
-		}
-		else if (concrete instanceof TakeGroupSnapshotTask snapshot) {
-			return new TaskPayload.TakeGroupSnapshot(base, deviceGroupId(concrete), snapshot.getLimitToOutofdateDeviceHours());
-		}
-		else if (concrete instanceof CheckGroupComplianceTask) {
-			return new TaskPayload.CheckGroupCompliance(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof CheckGroupSoftwareTask) {
-			return new TaskPayload.CheckGroupSoftware(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof RunGroupDiagnosticsTask) {
-			return new TaskPayload.RunGroupDiagnostics(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof RunDeviceGroupScriptTask) {
-			return new TaskPayload.RunDeviceGroupScript(base, deviceGroupId(concrete));
-		}
-		else if (concrete instanceof PurgeDatabaseTask purge) {
-			return new TaskPayload.PurgeDatabase(base, purge.getConfigDays(), purge.getConfigKeepDays(), purge.getConfigSize(),
-				purge.getDays(), deviceGroupId(concrete), purge.getModuleDays(), purge.isRemoveOrphanFiles());
-		}
-		else if (concrete instanceof ScanSubnetsTask) {
-			return new TaskPayload.ScanSubnets(base);
-		}
-		throw new IllegalArgumentException("No webhook payload for the task type " + concrete.getClass().getSimpleName());
+	public static TaskPayload toPayload(DriverRegistry driverRegistry, Task task, Function<Long, Device> devices) {
+		TaskSpec spec = task.spec();
+		Device device = spec instanceof DeviceBasedTask deviceTask ? devices.apply(deviceTask.deviceId()) : null;
+		TaskBasePayload base = toBasePayload(driverRegistry, task, device);
+		return switch (spec) {
+			case TakeSnapshotTask s -> new TaskPayload.TakeSnapshot(base, s.automatic(), TaskSpecs.deviceId(s));
+			case CheckComplianceTask s -> new TaskPayload.CheckCompliance(base, TaskSpecs.deviceId(s));
+			case RunDeviceScriptTask s -> new TaskPayload.RunDeviceScript(base, TaskSpecs.deviceId(s));
+			case RunDiagnosticsTask s -> new TaskPayload.RunDiagnostics(base, TaskSpecs.deviceId(s));
+			case DiscoverDeviceTypeTask s -> new TaskPayload.DiscoverDeviceType(base, s.deviceAddress(),
+				s.discoverResultDeviceId() == null ? 0 : s.discoverResultDeviceId(),
+				toPayload(driverRegistry, devices.apply(s.discoverResultDeviceId())),
+				discoveredDeviceTypeDescription(driverRegistry, s), s.snapshotTaskId());
+			case TakeGroupSnapshotTask s -> new TaskPayload.TakeGroupSnapshot(base, TaskSpecs.deviceGroupId(s), s.limitToOutofdateDeviceHours());
+			case CheckGroupComplianceTask s -> new TaskPayload.CheckGroupCompliance(base, TaskSpecs.deviceGroupId(s));
+			case CheckGroupSoftwareTask s -> new TaskPayload.CheckGroupSoftware(base, TaskSpecs.deviceGroupId(s));
+			case RunGroupDiagnosticsTask s -> new TaskPayload.RunGroupDiagnostics(base, TaskSpecs.deviceGroupId(s));
+			case RunDeviceGroupScriptTask s -> new TaskPayload.RunDeviceGroupScript(base, TaskSpecs.deviceGroupId(s));
+			case PurgeDatabaseTask s -> new TaskPayload.PurgeDatabase(base, s.configDays(), s.configKeepDays(), s.configSize(),
+				s.days(), TaskSpecs.deviceGroupId(s), s.moduleDays(), s.removeOrphanFiles());
+			case ScanSubnetsTask s -> new TaskPayload.ScanSubnets(base);
+		};
 	}
 
-	private static TaskBasePayload toBasePayload(DriverRegistry driverRegistry, Task task) {
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
+	}
+
+	private static TaskBasePayload toBasePayload(DriverRegistry driverRegistry, Task task, Device device) {
+		TaskSpec spec = task.spec();
 		return new TaskBasePayload(
-			task.getAuthor(),
-			task.isCancelRequested(),
-			task.getChangeDate(),
-			task.isCheckCompliance(),
-			task.getChildOrder(),
-			task.getComments(),
-			task.getCreationDate(),
-			task.isDebugEnabled(),
-			toPayload(driverRegistry, task.getDevice()),
-			task.getDeviceDriver(),
-			task.isDontCheckCompliance(),
-			task.isDontRunDiagnostics(),
-			task.getExecutionDate(),
-			task.getId(),
-			task.getLog(),
-			task.getNextExecutionDate(),
-			task.getParentTaskId(),
-			task.getPriority(),
+			task.author(),
+			task.cancelRequested(),
+			date(task.changeDate()),
+			TaskSpecs.checkCompliance(spec),
+			task.childOrder(),
+			task.comments(),
+			date(task.creationDate()),
+			task.debugEnabled(),
+			toPayload(driverRegistry, device),
+			TaskSpecs.deviceDriver(spec),
+			TaskSpecs.dontCheckCompliance(spec),
+			TaskSpecs.dontRunDiagnostics(spec),
+			date(task.executionDate()),
+			task.id(),
+			task.log(),
+			task.nextExecutionDate(),
+			task.parentTaskId(),
+			task.priority(),
 			task.isRepeating(),
-			task.isRunDiagnostics(),
-			task.isRunSnapshot(),
-			task.getRunnerId(),
-			task.getScheduleFactor(),
-			task.getScheduleMode(),
-			task.getScheduleReference(),
-			task.getScheduleType(),
-			task.getScript(),
-			task.getStatus(),
-			task.isStopOnFailure(),
-			task.getTarget(),
-			task.getTaskDescription(),
-			task.getUserInputValues());
-	}
-
-	// The ID of the target device, 0 for none.
-	private static long deviceId(Task task) {
-		Device device = task.getDevice();
-		return device == null ? 0 : device.getId();
-	}
-
-	// The ID of the target group, 0 for none.
-	private static long deviceGroupId(Task task) {
-		DeviceGroup group = task.getDeviceGroup();
-		return group == null ? 0 : group.getId();
+			TaskSpecs.runDiagnostics(spec),
+			TaskSpecs.runSnapshot(spec),
+			task.runnerId(),
+			task.scheduleFactor(),
+			task.scheduleMode(),
+			date(task.scheduleReference()),
+			task.scheduleType(),
+			TaskSpecs.script(spec),
+			task.status(),
+			task.stopOnFailure(),
+			task.target(),
+			task.description(),
+			TaskSpecs.userInputValues(spec));
 	}
 
 	// The description of the driver of the device
@@ -185,95 +162,89 @@ public final class TaskPayloads {
 
 	// The description of the discovered device type, "Unknown" when there is no such driver
 	private static String discoveredDeviceTypeDescription(DriverRegistry driverRegistry, DiscoverDeviceTypeTask task) {
-		DeviceDriver deviceDriver = driverRegistry.getDriverByName(task.getDiscoveredDeviceType());
+		DeviceDriver deviceDriver = driverRegistry.getDriverByName(task.discoveredDeviceType());
 		if (deviceDriver == null) {
 			return "Unknown";
 		}
 		return deviceDriver.getDescription();
 	}
 
-	private static DevicePayload toPayload(DriverRegistry driverRegistry, Device deviceOrProxy) {
-		if (deviceOrProxy == null) {
+	private static DevicePayload toPayload(DriverRegistry driverRegistry, Device device) {
+		if (device == null) {
 			return null;
 		}
-		Device device = (Device) Hibernate.unproxy(deviceOrProxy);
 		// The collections of the device are sets: they are listed in a stable order
 		List<DeviceAccessPayload> accesses = new ArrayList<>();
-		device.getAccesses().stream().sorted(Comparator.comparing(DeviceAccess::getAccessName, Comparator.nullsFirst(Comparator.naturalOrder())))
+		device.accesses().stream().sorted(Comparator.comparing(DeviceAccess::accessName, Comparator.nullsFirst(Comparator.naturalOrder())))
 			.forEach(access -> accesses.add(toPayload(access)));
 		List<DeviceGroupPayload> ownerGroups = new ArrayList<>();
-		device.getOwnerGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::getId))
+		device.ownerGroups().stream().sorted(Comparator.comparingLong(DeviceGroup::id))
 			.forEach(group -> ownerGroups.add(toPayload(group)));
 		return new DevicePayload(
 			accesses,
 			device.getCachedIpAddressAsString(),
-			device.getChangeDate(),
-			device.getComments(),
-			device.isCompliant(),
-			device.getContact(),
-			device.getCreatedDate(),
-			device.getCreator(),
-			device.getDriver(),
+			date(device.changeDate()),
+			device.comments(),
+			device.compliant(),
+			device.contact(),
+			date(device.createdDate()),
+			device.creator(),
+			device.driver(),
 			device.isEndOfLife(),
 			device.isEndOfSale(),
-			device.getEolDate(),
-			toPayload(device.getEolModule()),
-			device.getEosDate(),
-			toPayload(device.getEosModule()),
-			device.getFamily(),
-			device.getLocation(),
-			device.getMgmtAddress(),
-			device.getName(),
-			device.getNetworkClass(),
+			date(device.eolDate()),
+			toPayload(device.eolModule()),
+			date(device.eosDate()),
+			toPayload(device.eosModule()),
+			device.family(),
+			device.location(),
+			device.mgmtAddress(),
+			device.name(),
+			device.networkClass(),
 			ownerGroups,
 			realDeviceType(driverRegistry, device),
-			device.getSerialNumber(),
-			device.getSoftwareLevel(),
-			device.getSoftwareVersion(),
-			device.getStatus(),
-			device.getTags().stream().sorted().toList());
+			device.serialNumber(),
+			device.softwareLevel(),
+			device.softwareVersion(),
+			device.status(),
+			device.tags().stream().sorted().toList());
 	}
 
-	private static ModulePayload toPayload(Module moduleOrProxy) {
-		if (moduleOrProxy == null) {
+	private static ModulePayload toPayload(Module module) {
+		if (module == null) {
 			return null;
 		}
-		Module module = (Module) Hibernate.unproxy(moduleOrProxy);
 		return new ModulePayload(
-			module.getId(),
-			module.getSlot(),
-			module.getPartNumber(),
-			module.getSerialNumber(),
-			module.getFirstSeenDate(),
-			module.getLastSeenDate(),
-			module.isRemoved());
+			module.id(),
+			module.slot(),
+			module.partNumber(),
+			module.serialNumber(),
+			date(module.firstSeenDate()),
+			date(module.lastSeenDate()),
+			module.removed());
 	}
 
 	private static DeviceAccessPayload toPayload(DeviceAccess access) {
 		return new DeviceAccessPayload(
-			access.getAccessName(),
-			access.getAddress(),
-			access.getPort(),
-			toPayload(access.getGlobalCredentialSet()),
-			toPayload(access.getSpecificCredentialSet()),
-			access.getSshHostKeyVerification(),
-			access.getSshTrustedHostKeys(),
-			access.getSshTrustedHostKeysSince(),
-			access.getHttpsCaTrustMode(),
-			access.getHttpsCustomCaCertificate());
+			access.accessName(),
+			access.address(),
+			access.port(),
+			toPayload(access.globalCredentialSet()),
+			toPayload(access.specificCredentialSet()),
+			access.sshHostKeyVerification(),
+			access.sshTrustedHostKeys(),
+			date(access.sshTrustedHostKeysSince()),
+			access.httpsCaTrustMode(),
+			access.httpsCustomCaCertificate());
 	}
 
-	private static DeviceGroupPayload toPayload(DeviceGroup groupOrProxy) {
-		DeviceGroup group = (DeviceGroup) Hibernate.unproxy(groupOrProxy);
-		if (group instanceof DynamicDeviceGroup dynamic) {
-			return new DeviceGroupPayload.DynamicGroup(dynamic.getId(), dynamic.getChangeDate(), dynamic.getName(),
-				dynamic.getFolder(), dynamic.isHiddenFromReports(), dynamic.getQuery());
-		}
-		else if (group instanceof StaticDeviceGroup) {
-			return new DeviceGroupPayload.StaticGroup(group.getId(), group.getChangeDate(), group.getName(),
-				group.getFolder(), group.isHiddenFromReports());
-		}
-		throw new IllegalArgumentException("Unknown kind of device group: " + group.getClass().getName());
+	private static DeviceGroupPayload toPayload(DeviceGroup group) {
+		return switch (group) {
+			case DynamicDeviceGroup dynamic -> new DeviceGroupPayload.DynamicGroup(dynamic.id(), date(dynamic.changeDate()), dynamic.name(),
+				dynamic.folder(), dynamic.hiddenFromReports(), dynamic.query());
+			case StaticDeviceGroup staticGroup -> new DeviceGroupPayload.StaticGroup(staticGroup.id(), date(staticGroup.changeDate()),
+				staticGroup.name(), staticGroup.folder(), staticGroup.hiddenFromReports());
+		};
 	}
 
 	private static DomainPayload toPayload(Domain domain) {
@@ -281,12 +252,12 @@ public final class TaskPayloads {
 			return null;
 		}
 		return new DomainPayload(
-			domain.getId(),
-			domain.getChangeDate(),
-			domain.getName(),
-			domain.getDescription(),
-			domain.getServer4Address() == null ? null : domain.getServer4Address().getIp(),
-			domain.getServer6Address() == null ? null : domain.getServer6Address().getIp());
+			domain.id(),
+			date(domain.changeDate()),
+			domain.name(),
+			domain.description(),
+			domain.server4Address() == null ? null : domain.server4Address().getIp(),
+			domain.server6Address() == null ? null : domain.server6Address().getIp());
 	}
 
 	// A secret never goes into a payload: it is replaced by the mask when there is one.
@@ -298,36 +269,22 @@ public final class TaskPayloads {
 		if (credentialSet == null) {
 			return null;
 		}
-		DeviceCredentialSet cs = (DeviceCredentialSet) Hibernate.unproxy(credentialSet);
-		DomainPayload domain = toPayload(cs.getMgmtDomain());
-		if (cs instanceof DeviceSnmpv3Community c) {
-			return new CredentialSetPayload.SnmpV3(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				masked(c.getCommunity()), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath(),
-				c.getUsername(), c.getResolvedUsernameVaultInstanceId(), c.getUsernameVaultPath(),
-				c.getAuthType(), masked(c.getAuthKey()), c.getResolvedAuthKeyVaultInstanceId(), c.getAuthKeyVaultPath(),
-				c.getPrivType(), masked(c.getPrivKey()), c.getResolvedPrivKeyVaultInstanceId(), c.getPrivKeyVaultPath());
-		}
-		else if (cs instanceof DeviceSnmpv2cCommunity c) {
-			return new CredentialSetPayload.SnmpV2c(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				masked(c.getCommunity()), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath());
-		}
-		else if (cs instanceof DeviceSnmpv1Community c) {
-			return new CredentialSetPayload.SnmpV1(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				masked(c.getCommunity()), c.getResolvedCommunityVaultInstanceId(), c.getCommunityVaultPath());
-		}
-		else if (cs instanceof DeviceSshKeyAccount c) {
-			return new CredentialSetPayload.SshKey(c.getId(), c.getName(), domain, c.isDeviceSpecific(),
-				masked(c.getPrivateKey()), c.getResolvedPrivateKeyVaultInstanceId(), c.getPrivateKeyVaultPath());
-		}
-		else if (cs instanceof DeviceSshAccount) {
-			return new CredentialSetPayload.Ssh(cs.getId(), cs.getName(), domain, cs.isDeviceSpecific());
-		}
-		else if (cs instanceof DeviceTelnetAccount) {
-			return new CredentialSetPayload.Telnet(cs.getId(), cs.getName(), domain, cs.isDeviceSpecific());
-		}
-		else if (cs instanceof DeviceHttpAccount) {
-			return new CredentialSetPayload.Http(cs.getId(), cs.getName(), domain, cs.isDeviceSpecific());
-		}
-		throw new IllegalArgumentException("Unknown kind of credential set: " + cs.getClass().getName());
+		DomainPayload domain = toPayload(credentialSet.mgmtDomain());
+		return switch (credentialSet) {
+			case DeviceSnmpv3Community c -> new CredentialSetPayload.SnmpV3(c.id(), c.name(), domain, c.deviceSpecific(),
+				masked(c.community()), c.communityVaultInstanceId(), c.communityVaultPath(),
+				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
+				c.authType(), masked(c.authKey()), c.authKeyVaultInstanceId(), c.authKeyVaultPath(),
+				c.privType(), masked(c.privKey()), c.privKeyVaultInstanceId(), c.privKeyVaultPath());
+			case DeviceSnmpv2cCommunity c -> new CredentialSetPayload.SnmpV2c(c.id(), c.name(), domain, c.deviceSpecific(),
+				masked(c.community()), c.communityVaultInstanceId(), c.communityVaultPath());
+			case DeviceSnmpv1Community c -> new CredentialSetPayload.SnmpV1(c.id(), c.name(), domain, c.deviceSpecific(),
+				masked(c.community()), c.communityVaultInstanceId(), c.communityVaultPath());
+			case DeviceSshKeyAccount c -> new CredentialSetPayload.SshKey(c.id(), c.name(), domain, c.deviceSpecific(),
+				masked(c.privateKey()), c.privateKeyVaultInstanceId(), c.privateKeyVaultPath());
+			case DeviceSshAccount c -> new CredentialSetPayload.Ssh(c.id(), c.name(), domain, c.deviceSpecific());
+			case DeviceTelnetAccount c -> new CredentialSetPayload.Telnet(c.id(), c.name(), domain, c.deviceSpecific());
+			case DeviceHttpAccount c -> new CredentialSetPayload.Http(c.id(), c.name(), domain, c.deviceSpecific());
+		};
 	}
 }

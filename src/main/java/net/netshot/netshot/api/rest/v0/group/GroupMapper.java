@@ -18,10 +18,10 @@
  */
 package net.netshot.netshot.api.rest.v0.group;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-
-import org.hibernate.Hibernate;
 
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
@@ -29,7 +29,7 @@ import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 
 /**
- * Maps the device groups between the entities of the inventory and their REST representation.
+ * Maps the device groups between the records of the inventory and their REST representation.
  * All the methods are pure functions.
  */
 public final class GroupMapper {
@@ -38,23 +38,23 @@ public final class GroupMapper {
 		// Static helpers only
 	}
 
+	private static Date date(Instant instant) {
+		return instant == null ? null : Date.from(instant);
+	}
+
 	/**
 	 * Maps a device group to its representation (the members are not part of it).
 	 *
-	 * @param groupOrProxy the group, or a proxy of it
+	 * @param group the group
 	 * @return the DTO
 	 */
-	public static DeviceGroupDto toDto(DeviceGroup groupOrProxy) {
-		DeviceGroup group = (DeviceGroup) Hibernate.unproxy(groupOrProxy);
-		if (group instanceof DynamicDeviceGroup dynamic) {
-			return new DeviceGroupDto.DynamicGroup(dynamic.getId(), dynamic.getChangeDate(), dynamic.getName(),
-				dynamic.getFolder(), dynamic.isHiddenFromReports(), dynamic.getQuery());
-		}
-		else if (group instanceof StaticDeviceGroup) {
-			return new DeviceGroupDto.StaticGroup(group.getId(), group.getChangeDate(), group.getName(),
-				group.getFolder(), group.isHiddenFromReports());
-		}
-		throw new IllegalArgumentException("Unknown kind of device group: " + group.getClass().getName());
+	public static DeviceGroupDto toDto(DeviceGroup group) {
+		return switch (group) {
+			case DynamicDeviceGroup dynamic -> new DeviceGroupDto.DynamicGroup(dynamic.id(), date(dynamic.changeDate()), dynamic.name(),
+				dynamic.folder(), dynamic.hiddenFromReports(), dynamic.query());
+			case StaticDeviceGroup staticGroup -> new DeviceGroupDto.StaticGroup(staticGroup.id(), date(staticGroup.changeDate()),
+				staticGroup.name(), staticGroup.folder(), staticGroup.hiddenFromReports());
+		};
 	}
 
 	/**

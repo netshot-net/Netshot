@@ -23,13 +23,9 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Transient;
-
 /**
  * An IP address - abstract, can be either IPv4 or IPv6.
  */
-@Embeddable
 public abstract class NetworkAddress {
 
 	/**
@@ -37,7 +33,6 @@ public abstract class NetworkAddress {
 	 *
 	 * @return the inet address
 	 */
-	@Transient
 	public abstract InetAddress getInetAddress();
 
 	/**
@@ -114,13 +109,10 @@ public abstract class NetworkAddress {
 	 *
 	 * @return the ip
 	 */
-	@Transient
 	public abstract String getIp();
 
-	@Transient
 	public abstract int getPrefixLength();
 
-	@Transient
 	public abstract String getPrefix();
 
 	/*

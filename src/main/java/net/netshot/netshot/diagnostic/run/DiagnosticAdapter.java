@@ -57,10 +57,9 @@ public interface DiagnosticAdapter<D extends Diagnostic> {
 	 * Builds a diagnostic result.
 	 *
 	 * @param diagnostic the diagnostic
-	 * @param device the device
 	 * @param value the diagnostic result, as returned by the script
 	 * @return the diagnostic result of the right type
 	 */
-	DiagnosticResult makeResult(D diagnostic, Device device, Value value);
+	DiagnosticResult makeResult(D diagnostic, Value value);
 
 }

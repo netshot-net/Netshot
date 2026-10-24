@@ -18,15 +18,14 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.RecordComponent;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
@@ -39,16 +38,16 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.access.DeviceAccess;
+import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
@@ -58,12 +57,12 @@ import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DeviceGroupMembership;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -88,114 +87,93 @@ class DeviceDtoTest {
 	private final DtoContract contract = new DtoContract(DeviceDtoTest.class, System.currentTimeMillis());
 
 	private static Domain domain(long id, String name) throws Exception {
-		Domain domain = new Domain(name, "Description of " + name, new Network4Address("10.255.0.1"), new Network6Address("2001:db8::1"));
-		domain.setId(id);
-		domain.setChangeDate(new Date(1_600_000_000_000L));
-		return domain;
-	}
-
-	private static <T extends DeviceCredentialSet> T credential(T credentialSet, long id, Domain domain) {
-		credentialSet.setId(id);
-		credentialSet.setMgmtDomain(domain);
-		return credentialSet;
+		return Domain.builder().id(id).changeDate(Instant.ofEpochMilli(1_600_000_000_000L)).name(name).description("Description of " + name)
+			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("2001:db8::1")).build();
 	}
 
 	private static Device fullDevice() throws Exception {
 		Domain domain = domain(1, "Paris DC");
-		Device device = new Device("CiscoIOS12", "10.1.1.1", domain, "seed");
-		device.setId(42);
-		device.setName("router-1");
-		device.setFamily("Cisco 2900");
-		device.setLocation("Paris");
-		device.setContact("noc@example.net");
-		device.setSerialNumber("SN1");
-		device.setSoftwareVersion("16.1");
-		device.setSoftwareLevel(ConformanceLevel.GOLD);
-		device.setNetworkClass(Device.NetworkClass.ROUTER);
-		device.setStatus(Device.Status.PREPRODUCTION);
-		device.setComments("Some comments");
-		device.setChangeDate(new Date(1_600_000_100_000L));
-		device.setCreatedDate(new Date(1_500_000_000_000L));
-		device.setEolDate(new Date(1_000_000_000_000L));
-		device.setEosDate(new Date(4_000_000_000_000L));
-		Module eolModule = new Module("1", "PN-EOL", "SN-EOL", device);
-		eolModule.setId(10);
-		eolModule.setFirstSeenDate(new Date(1_400_000_000_000L));
-		eolModule.setLastSeenDate(new Date(1_410_000_000_000L));
-		device.setEolModule(eolModule);
-		Module eosModule = new Module("2", "PN-EOS", "SN-EOS", device);
-		eosModule.setId(11);
-		eosModule.setRemoved(true);
-		device.setEosModule(eosModule);
-		device.setOptions(new java.util.HashMap<>(Map.of("fullBackup", true, "mode", "fast")));
-		device.replaceTags(List.of("core", "production"));
-		device.addAttribute(new DeviceTextAttribute(device, "text", "some text"));
-		device.addAttribute(new DeviceNumericAttribute(device, "number", 12.5));
-		device.addAttribute(new DeviceLongTextAttribute(device, "long", "some very long text"));
-		device.addAttribute(new DeviceBinaryAttribute(device, "binary", true));
-		DynamicDeviceGroup dynamic = new DynamicDeviceGroup("Dynamic", "CiscoIOS12", "[Name] contains \"r\"");
-		dynamic.setId(100);
-		dynamic.setFolder("Production");
-		dynamic.setHiddenFromReports(true);
-		dynamic.setChangeDate(new Date(1_600_000_200_000L));
-		StaticDeviceGroup fixed = new StaticDeviceGroup("Static");
-		fixed.setId(101);
-		fixed.setChangeDate(new Date(1_600_000_300_000L));
-		device.getGroupMemberships().add(new DeviceGroupMembership(device, dynamic, 0));
-		device.getGroupMemberships().add(new DeviceGroupMembership(device, fixed, 1));
+		Module eolModule = Module.builder().id(10).slot("1").partNumber("PN-EOL").serialNumber("SN-EOL")
+			.firstSeenDate(Instant.ofEpochMilli(1_400_000_000_000L)).lastSeenDate(Instant.ofEpochMilli(1_410_000_000_000L)).build();
+		Module eosModule = Module.builder().id(11).slot("2").partNumber("PN-EOS").serialNumber("SN-EOS").removed(true).build();
+		DynamicDeviceGroup dynamic = DynamicDeviceGroup.builder().id(100).name("Dynamic").folder("Production").hiddenFromReports(true)
+			.query("[Name] contains \"r\"").changeDate(Instant.ofEpochMilli(1_600_000_200_000L)).build();
+		StaticDeviceGroup fixed = StaticDeviceGroup.builder().id(101).name("Static").folder("")
+			.changeDate(Instant.ofEpochMilli(1_600_000_300_000L)).build();
 
-		DeviceSnmpv1Community snmp1 = credential(new DeviceSnmpv1Community("public1", "SNMP v1"), 1, null);
-		snmp1.setResolvedCommunityVaultInstanceId(5L);
-		snmp1.setCommunityVaultPath("path/community1");
-		DeviceSnmpv2cCommunity snmp2 = credential(new DeviceSnmpv2cCommunity("public2", "SNMP v2"), 2, domain);
-		DeviceSnmpv3Community snmp3 = credential(new DeviceSnmpv3Community(null, "SNMP v3", "user", AuthProtocol.HMAC192SHA256,
-			"authkey", PrivProtocol.AES256, "privkey"), 3, domain);
-		snmp3.setResolvedUsernameVaultInstanceId(6L);
-		snmp3.setUsernameVaultPath("path/user");
-		snmp3.setResolvedAuthKeyVaultInstanceId(7L);
-		snmp3.setAuthKeyVaultPath("path/auth");
-		snmp3.setResolvedPrivKeyVaultInstanceId(8L);
-		snmp3.setPrivKeyVaultPath("path/priv");
-		DeviceSshAccount ssh = credential(new DeviceSshAccount("sshuser", "sshpass", "sshenable", "SSH"), 4, null);
-		ssh.setResolvedPasswordVaultInstanceId(9L);
-		ssh.setPasswordVaultPath("path/pass");
-		DeviceSshKeyAccount sshKey = credential(new DeviceSshKeyAccount("keyuser", "PRIVATE KEY", "passphrase", "keyenable", "SSH Key"), 5, domain);
-		sshKey.setResolvedPrivateKeyVaultInstanceId(10L);
-		sshKey.setPrivateKeyVaultPath("path/key");
-		DeviceTelnetAccount telnet = credential(new DeviceTelnetAccount("telnetuser", "telnetpass", "telnetenable", "Telnet"), 6, null);
-		DeviceHttpAccount http = credential(new DeviceHttpAccount("httpuser", "httppass", "HTTP"), 7, null);
-		http.setDeviceSpecific(true);
-		http.setResolvedUsernameVaultInstanceId(11L);
-		http.setUsernameVaultPath("path/http");
+		DeviceSnmpv1Community snmp1 = DeviceSnmpv1Community.builder().id(1).community("public1").name("SNMP v1")
+			.communityVaultInstanceId(5L).communityVaultPath("path/community1").build();
+		DeviceSnmpv2cCommunity snmp2 = DeviceSnmpv2cCommunity.builder().id(2).community("public2").name("SNMP v2").mgmtDomain(domain).build();
+		DeviceSnmpv3Community snmp3 = DeviceSnmpv3Community.builder().id(3).name("SNMP v3").mgmtDomain(domain)
+			.username("user").usernameVaultInstanceId(6L).usernameVaultPath("path/user")
+			.authType(AuthProtocol.HMAC192SHA256).authKey("authkey").authKeyVaultInstanceId(7L).authKeyVaultPath("path/auth")
+			.privType(PrivProtocol.AES256).privKey("privkey").privKeyVaultInstanceId(8L).privKeyVaultPath("path/priv").build();
+		DeviceSshAccount ssh = DeviceSshAccount.builder().id(4).username("sshuser").password("sshpass").superPassword("sshenable").name("SSH")
+			.passwordVaultInstanceId(9L).passwordVaultPath("path/pass").build();
+		DeviceSshKeyAccount sshKey = DeviceSshKeyAccount.builder().id(5).username("keyuser").privateKey("PRIVATE KEY").password("passphrase")
+			.superPassword("keyenable").name("SSH Key").mgmtDomain(domain).privateKeyVaultInstanceId(10L).privateKeyVaultPath("path/key").build();
+		DeviceTelnetAccount telnet = DeviceTelnetAccount.builder().id(6).username("telnetuser").password("telnetpass").superPassword("telnetenable")
+			.name("Telnet").build();
+		DeviceHttpAccount http = DeviceHttpAccount.builder().id(7).username("httpuser").password("httppass").name("HTTP").deviceSpecific(true)
+			.usernameVaultInstanceId(11L).usernameVaultPath("path/http").build();
 
-		addAccess(device, "a1", snmp1, true);
-		addAccess(device, "a2", snmp2, false);
-		addAccess(device, "a3", snmp3, true);
-		addAccess(device, "a4", ssh, false);
-		addAccess(device, "a5", sshKey, true);
-		addAccess(device, "a6", telnet, false);
-		addAccess(device, "a7", http, true);
-		DeviceAccess plain = new DeviceAccess(device, "plain");
-		plain.setAddress("192.0.2.1");
-		plain.setPort(8443);
-		plain.setSshHostKeyVerification(SshHostKeyVerification.TRUST_KNOWN);
-		plain.setSshTrustedHostKeys("ssh-ed25519 AAAA");
-		plain.setSshTrustedHostKeysSince(new Date(1_600_000_400_000L));
-		plain.setHttpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA);
-		plain.setHttpsCustomCaCertificate("-----BEGIN CERTIFICATE-----");
-		device.getAccesses().add(plain);
-		return device;
+		List<DeviceAccess> accesses = new ArrayList<>(List.of(
+			access("a1", snmp1, true),
+			access("a2", snmp2, false),
+			access("a3", snmp3, true),
+			access("a4", ssh, false),
+			access("a5", sshKey, true),
+			access("a6", telnet, false),
+			access("a7", http, true)));
+		accesses.add(DeviceAccess.of("plain").toBuilder()
+			.address("192.0.2.1")
+			.port(8443)
+			.sshHostKeyVerification(SshHostKeyVerification.TRUST_KNOWN)
+			.sshTrustedHostKeys("ssh-ed25519 AAAA")
+			.sshTrustedHostKeysSince(Instant.ofEpochMilli(1_600_000_400_000L))
+			.httpsCaTrustMode(HttpsCaTrustMode.CUSTOM_CA)
+			.httpsCustomCaCertificate("-----BEGIN CERTIFICATE-----")
+			.build());
+
+		return Device.create("CiscoIOS12", "10.1.1.1", domain, "seed").toBuilder()
+			.id(42)
+			.name("router-1")
+			.family("Cisco 2900")
+			.location("Paris")
+			.contact("noc@example.net")
+			.serialNumber("SN1")
+			.softwareVersion("16.1")
+			.softwareLevel(ConformanceLevel.GOLD)
+			.networkClass(Device.NetworkClass.ROUTER)
+			.status(Device.Status.PREPRODUCTION)
+			.comments("Some comments")
+			.changeDate(Instant.ofEpochMilli(1_600_000_100_000L))
+			.createdDate(Instant.ofEpochMilli(1_500_000_000_000L))
+			.eolDate(Instant.ofEpochMilli(1_000_000_000_000L))
+			.eosDate(Instant.ofEpochMilli(4_000_000_000_000L))
+			.eolModule(eolModule)
+			.eosModule(eosModule)
+			.options(new HashMap<>(Map.of("fullBackup", true, "mode", "fast")))
+			.tags(Device.normalizeTags(List.of("core", "production")))
+			.attributes(List.of(
+				new DeviceTextAttribute("text", "some text"),
+				new DeviceNumericAttribute("number", 12.5),
+				new DeviceLongTextAttribute("long", "some very long text"),
+				new DeviceBinaryAttribute("binary", true)))
+			.ownerGroups(List.of(dynamic, fixed))
+			.accesses(accesses)
+			.build();
 	}
 
-	private static void addAccess(Device device, String name, DeviceCredentialSet credentialSet, boolean global) {
-		DeviceAccess access = new DeviceAccess(device, name);
+	private static DeviceAccess access(String name, DeviceCredentialSet credentialSet, boolean global) {
+		DeviceAccess.DeviceAccessBuilder access = DeviceAccess.of(name).toBuilder();
 		if (global) {
-			access.setGlobalCredentialSet(credentialSet);
+			access.globalCredentialSet(credentialSet);
 		}
 		else {
-			access.setSpecificCredentialSet(credentialSet);
+			access.specificCredentialSet(credentialSet);
 		}
-		device.getAccesses().add(access);
+		return access.build();
 	}
 
 	private static byte[] json(Object value) throws Exception {
@@ -230,12 +208,11 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("The tags and the attributes of a device (sets) are listed in a stable order, by name")
 	void collectionsInStableOrder() {
-		Device device = new Device("CiscoIOS12", "10.1.1.3", null, "seed");
 		List<String> tags = List.of("zulu", "alpha", "mike", "bravo", "yankee", "charlie", "x-ray", "delta");
-		device.replaceTags(tags);
-		for (String name : tags) {
-			device.addAttribute(new DeviceTextAttribute(device, name, "v"));
-		}
+		Device device = Device.create("CiscoIOS12", "10.1.1.3", null, "seed").toBuilder()
+			.tags(new HashSet<>(tags))
+			.attributes(tags.stream().<DeviceAttribute>map(name -> new DeviceTextAttribute(name, "v")).toList())
+			.build();
 		DeviceDto dto = DeviceMapper.toDto(TestDrivers.registry(), device);
 		List<String> sorted = tags.stream().sorted().toList();
 		Assertions.assertEquals(sorted, dto.tags());
@@ -245,8 +222,7 @@ class DeviceDtoTest {
 	@Test
 	@DisplayName("A bare device has the same representation as the entity")
 	void bareDeviceRepresentation() throws Exception {
-		Device device = new Device("CiscoIOS12", "10.1.1.2", null, "seed");
-		device.setId(43);
+		Device device = Device.create("CiscoIOS12", "10.1.1.2", null, "seed").toBuilder().id(43).build();
 		this.assertRepresentation(device);
 	}
 
@@ -277,29 +253,41 @@ class DeviceDtoTest {
 		]""";
 
 	/**
-	 * The simple properties of an object, and the ones of the credential sets and domains it refers to.
-	 * @param bean the object
-	 * @return the property values, by property path
+	 * Describes what a request was read as, the way the former entities exposed it (bean properties):
+	 * the access had a back reference to its device (unset), the Vault instance given by a request
+	 * was a pending one ({@code resolvedXxxVaultInstanceId}), the stored one ({@code xxxVaultInstanceId})
+	 * being unset, and only the identity of the domains is read.
+	 * @param value the access or credential set
+	 * @return the property values, by property name
 	 */
-	private static Map<String, Object> describe(Object bean) throws IntrospectionException, ReflectiveOperationException {
+	private static Map<String, Object> describe(Record value) throws ReflectiveOperationException {
 		Map<String, Object> description = new TreeMap<>();
-		for (PropertyDescriptor property : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
-			if (property.getReadMethod() == null || "class".equals(property.getName())) {
-				continue;
+		if (value instanceof DeviceAccess) {
+			description.put("device", null);
+		}
+		for (RecordComponent component : value.getClass().getRecordComponents()) {
+			String name = component.getName();
+			Object item = component.getAccessor().invoke(value);
+			if (name.endsWith("VaultInstanceId")) {
+				description.put("resolved" + Character.toUpperCase(name.charAt(0)) + name.substring(1), item);
+				description.put(name, null);
 			}
-			Object value;
-			try {
-				value = property.getReadMethod().invoke(bean);
+			else if (item == null || item instanceof String || item instanceof Number || item instanceof Boolean
+					|| item instanceof Enum) {
+				description.put(name, item);
 			}
-			catch (InvocationTargetException e) {
-				continue;
+			else if (item instanceof Instant instant) {
+				description.put(name, Date.from(instant));
 			}
-			if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean
-					|| value instanceof Enum || value instanceof Date) {
-				description.put(property.getName(), value);
+			else if (item instanceof DeviceCredentialSet credentialSet) {
+				description.put(name, describe((Record) credentialSet));
 			}
-			else if (value instanceof DeviceCredentialSet || value instanceof Domain) {
-				description.put(property.getName(), describe(value));
+			else if (item instanceof Domain domain) {
+				Map<String, Object> reference = new TreeMap<>();
+				reference.put("id", domain.id());
+				reference.put("name", domain.name());
+				reference.put("description", domain.description());
+				description.put(name, reference);
 			}
 		}
 		return description;
@@ -312,28 +300,14 @@ class DeviceDtoTest {
 			.readValue(ACCESSES);
 		for (int i = 0; i < dtos.size(); i++) {
 			DeviceAccess actual = DeviceAccessMapper.toEntity(dtos.get(i));
-			Map<String, Object> actualDescription = describe(actual);
-			// Only the id and the name of the domain are kept
-			actualDescription.values().forEach(DeviceDtoTest::keepIdentityOfDomains);
-			this.contract.checkText("access-" + i, DtoContract.render(actual, actualDescription));
+			this.contract.checkText("access-" + i, DtoContract.render(actual, describe(actual)));
 		}
 		// Make sure the check is meaningful
 		Assertions.assertEquals("p4", ((DeviceSshAccount) dtos.stream().map(DeviceAccessMapper::toEntity)
-			.filter(a -> "a4".equals(a.getAccessName())).findFirst().orElseThrow().getSpecificCredentialSet()).getPassword());
-		DeviceSshKeyAccount key = (DeviceSshKeyAccount) DeviceAccessMapper.toEntity(dtos.get(5)).getSpecificCredentialSet();
-		Assertions.assertNull(key.getPassword(), "the = placeholder means unchanged, thus null");
-		Assertions.assertEquals(12L, key.getResolvedPrivateKeyVaultInstanceId());
-	}
-
-	@SuppressWarnings("unchecked")
-	private static void keepIdentityOfDomains(Object value) {
-		if (value instanceof Map<?, ?> map) {
-			Map<String, Object> nested = (Map<String, Object>) map;
-			if (nested.containsKey("mgmtDomain") && nested.get("mgmtDomain") instanceof Map<?, ?> domain) {
-				((Map<String, Object>) domain).keySet().retainAll(Set.of("id", "name", "description"));
-			}
-			nested.values().forEach(DeviceDtoTest::keepIdentityOfDomains);
-		}
+			.filter(a -> "a4".equals(a.accessName())).findFirst().orElseThrow().specificCredentialSet()).password());
+		DeviceSshKeyAccount key = (DeviceSshKeyAccount) DeviceAccessMapper.toEntity(dtos.get(5)).specificCredentialSet();
+		Assertions.assertNull(key.password(), "the = placeholder means unchanged, thus null");
+		Assertions.assertEquals(12L, key.privateKeyVaultInstanceId());
 	}
 
 	@Test

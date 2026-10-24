@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.vault;
 
+import net.netshot.netshot.testing.TestDevices;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,17 +79,18 @@ class VaultInstanceServiceTest {
 	}
 
 	private HashicorpVaultKv2Instance definition(String name) {
-		HashicorpVaultKv2Instance instance = new HashicorpVaultKv2Instance(name);
-		instance.setBaseUrl("https://vault.example.net:8200");
-		instance.setAuthMethod(AuthMethod.APPROLE);
-		instance.setAppRoleId("role");
-		instance.setAppRoleSecretId("secret");
-		instance.setJwtClientSecret("jwt-secret");
+		HashicorpVaultKv2Instance instance = HashicorpVaultKv2Instance.builder(name)
+			.baseUrl("https://vault.example.net:8200")
+			.authMethod(AuthMethod.APPROLE)
+			.appRoleId("role")
+			.appRoleSecretId("secret")
+			.jwtClientSecret("jwt-secret")
+			.build();
 		return instance;
 	}
 
 	private HashicorpVaultKv2Instance stored(long id) {
-		return (HashicorpVaultKv2Instance) this.transactions.read(session -> session.get(VaultInstance.class, id));
+		return (HashicorpVaultKv2Instance) this.transactions.read(dsl -> new VaultInstanceRepository().find(dsl, id));
 	}
 
 	private HashicorpVaultKv2Instance createInstance() {
@@ -100,12 +102,12 @@ class VaultInstanceServiceTest {
 	void create() {
 		int notifications = this.notified.size();
 		HashicorpVaultKv2Instance created = (HashicorpVaultKv2Instance) this.service.create(this.definition("  Padded name "));
-		Assertions.assertTrue(created.getId() > 0);
-		HashicorpVaultKv2Instance reloaded = this.stored(created.getId());
-		Assertions.assertEquals("  Padded name ", reloaded.getName(), "the name is not trimmed");
-		Assertions.assertEquals("secret", reloaded.getAppRoleSecretId());
-		Assertions.assertEquals("jwt-secret", reloaded.getJwtClientSecret());
-		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, reloaded.getHttpsCaTrustMode());
+		Assertions.assertTrue(created.id() > 0);
+		HashicorpVaultKv2Instance reloaded = this.stored(created.id());
+		Assertions.assertEquals("  Padded name ", reloaded.name(), "the name is not trimmed");
+		Assertions.assertEquals("secret", reloaded.appRoleSecretId());
+		Assertions.assertEquals("jwt-secret", reloaded.jwtClientSecret());
+		Assertions.assertEquals(HttpsCaTrustMode.SYSTEM_TRUSTSTORE, reloaded.httpsCaTrustMode());
 		Assertions.assertEquals(notifications, this.notified.size());
 	}
 
@@ -116,15 +118,18 @@ class VaultInstanceServiceTest {
 		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.create(this.definition(null)));
 		HashicorpVaultKv2Instance first = this.createInstance();
 		int before = this.service.list(Page.ALL).size();
-		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.create(this.definition(first.getName())));
-		HashicorpVaultKv2Instance noUrl = this.definition(this.nextName());
-		noUrl.setBaseUrl(null);
+		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.create(this.definition(first.name())));
+		HashicorpVaultKv2Instance noUrl = this.definition(this.nextName()).toBuilder()
+			.baseUrl(null)
+			.build();
 		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.create(noUrl));
-		HashicorpVaultKv2Instance noAuth = this.definition(this.nextName());
-		noAuth.setAuthMethod(null);
+		HashicorpVaultKv2Instance noAuth = this.definition(this.nextName()).toBuilder()
+			.authMethod(null)
+			.build();
 		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.create(noAuth));
-		HashicorpVaultKv2Instance noTrustMode = this.definition(this.nextName());
-		noTrustMode.setHttpsCaTrustMode(null);
+		HashicorpVaultKv2Instance noTrustMode = this.definition(this.nextName()).toBuilder()
+			.httpsCaTrustMode(null)
+			.build();
 		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.create(noTrustMode));
 		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
 	}
@@ -144,46 +149,48 @@ class VaultInstanceServiceTest {
 	@DisplayName("update() changes the fields, keeps the secrets which are not given, and notifies the change")
 	void update() {
 		HashicorpVaultKv2Instance created = this.createInstance();
-		HashicorpVaultKv2Instance incoming = this.definition("Renamed " + created.getName());
-		incoming.setBaseUrl("https://other.example.net");
-		incoming.setNamespace("ns");
-		incoming.setHttpsCaTrustMode(HttpsCaTrustMode.TRUST_ANY);
-		incoming.setKvMountPath("kv");
-		incoming.setAuthMethod(AuthMethod.JWT);
-		incoming.setAppRoleId("role2");
-		incoming.setAppRoleSecretId(null);
-		incoming.setJwtClientSecret(null);
-		incoming.setJwtIdpTokenEndpoint("https://idp.example.net");
-		incoming.setJwtClientId("client");
-		incoming.setJwtVaultRole("vrole");
-		incoming.setJwtScope("scope");
-		incoming.setAppRoleMountPath("changed-approle");
-		incoming.setJwtMountPath("changed-jwt");
+		HashicorpVaultKv2Instance incoming = this.definition("Renamed " + created.name()).toBuilder()
+			.baseUrl("https://other.example.net")
+			.namespace("ns")
+			.httpsCaTrustMode(HttpsCaTrustMode.TRUST_ANY)
+			.kvMountPath("kv")
+			.authMethod(AuthMethod.JWT)
+			.appRoleId("role2")
+			.appRoleSecretId(null)
+			.jwtClientSecret(null)
+			.jwtIdpTokenEndpoint("https://idp.example.net")
+			.jwtClientId("client")
+			.jwtVaultRole("vrole")
+			.jwtScope("scope")
+			.appRoleMountPath("changed-approle")
+			.jwtMountPath("changed-jwt")
+			.build();
 		int notifications = this.notified.size();
-		HashicorpVaultKv2Instance updated = (HashicorpVaultKv2Instance) this.service.update(created.getId(), incoming);
-		Assertions.assertEquals(created.getId(), updated.getId());
-		HashicorpVaultKv2Instance reloaded = this.stored(created.getId());
-		Assertions.assertEquals(incoming.getName(), reloaded.getName());
-		Assertions.assertEquals("https://other.example.net", reloaded.getBaseUrl());
-		Assertions.assertEquals("ns", reloaded.getNamespace());
-		Assertions.assertEquals(HttpsCaTrustMode.TRUST_ANY, reloaded.getHttpsCaTrustMode());
-		Assertions.assertEquals("kv", reloaded.getKvMountPath());
-		Assertions.assertEquals(AuthMethod.JWT, reloaded.getAuthMethod());
-		Assertions.assertEquals("role2", reloaded.getAppRoleId());
-		Assertions.assertEquals("secret", reloaded.getAppRoleSecretId(), "the secret which is not given is kept");
-		Assertions.assertEquals("jwt-secret", reloaded.getJwtClientSecret(), "the secret which is not given is kept");
-		Assertions.assertEquals("client", reloaded.getJwtClientId());
-		Assertions.assertEquals("changed-approle", reloaded.getAppRoleMountPath());
-		Assertions.assertEquals("changed-jwt", reloaded.getJwtMountPath());
-		Assertions.assertEquals(List.of(created.getId()), this.notified.subList(notifications, this.notified.size()));
+		HashicorpVaultKv2Instance updated = (HashicorpVaultKv2Instance) this.service.update(created.id(), incoming);
+		Assertions.assertEquals(created.id(), updated.id());
+		HashicorpVaultKv2Instance reloaded = this.stored(created.id());
+		Assertions.assertEquals(incoming.name(), reloaded.name());
+		Assertions.assertEquals("https://other.example.net", reloaded.baseUrl());
+		Assertions.assertEquals("ns", reloaded.namespace());
+		Assertions.assertEquals(HttpsCaTrustMode.TRUST_ANY, reloaded.httpsCaTrustMode());
+		Assertions.assertEquals("kv", reloaded.kvMountPath());
+		Assertions.assertEquals(AuthMethod.JWT, reloaded.authMethod());
+		Assertions.assertEquals("role2", reloaded.appRoleId());
+		Assertions.assertEquals("secret", reloaded.appRoleSecretId(), "the secret which is not given is kept");
+		Assertions.assertEquals("jwt-secret", reloaded.jwtClientSecret(), "the secret which is not given is kept");
+		Assertions.assertEquals("client", reloaded.jwtClientId());
+		Assertions.assertEquals("changed-approle", reloaded.appRoleMountPath());
+		Assertions.assertEquals("changed-jwt", reloaded.jwtMountPath());
+		Assertions.assertEquals(List.of(created.id()), this.notified.subList(notifications, this.notified.size()));
 
-		HashicorpVaultKv2Instance withSecrets = this.definition(incoming.getName());
-		withSecrets.setAppRoleSecretId("new-secret");
-		withSecrets.setJwtClientSecret("new-jwt-secret");
-		this.service.update(created.getId(), withSecrets);
-		reloaded = this.stored(created.getId());
-		Assertions.assertEquals("new-secret", reloaded.getAppRoleSecretId());
-		Assertions.assertEquals("new-jwt-secret", reloaded.getJwtClientSecret());
+		HashicorpVaultKv2Instance withSecrets = this.definition(incoming.name()).toBuilder()
+			.appRoleSecretId("new-secret")
+			.jwtClientSecret("new-jwt-secret")
+			.build();
+		this.service.update(created.id(), withSecrets);
+		reloaded = this.stored(created.id());
+		Assertions.assertEquals("new-secret", reloaded.appRoleSecretId());
+		Assertions.assertEquals("new-jwt-secret", reloaded.jwtClientSecret());
 	}
 
 	@Test
@@ -193,13 +200,14 @@ class VaultInstanceServiceTest {
 		HashicorpVaultKv2Instance second = this.createInstance();
 		int notifications = this.notified.size();
 		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, () -> this.service.update(99999999L, this.definition("x")));
-		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.update(second.getId(), this.definition(" ")));
-		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.update(second.getId(), this.definition(first.getName())));
-		HashicorpVaultKv2Instance noUrl = this.definition(second.getName());
-		noUrl.setBaseUrl(null);
-		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.update(second.getId(), noUrl));
-		Assertions.assertEquals(second.getName(), this.stored(second.getId()).getName());
-		Assertions.assertEquals("https://vault.example.net:8200", this.stored(second.getId()).getBaseUrl());
+		assertError(ErrorCode.NETSHOT_INVALID_VAULT_INSTANCE_NAME, () -> this.service.update(second.id(), this.definition(" ")));
+		assertError(ErrorCode.NETSHOT_DUPLICATE_VAULT_INSTANCE, () -> this.service.update(second.id(), this.definition(first.name())));
+		HashicorpVaultKv2Instance noUrl = this.definition(second.name()).toBuilder()
+			.baseUrl(null)
+			.build();
+		assertError(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, () -> this.service.update(second.id(), noUrl));
+		Assertions.assertEquals(second.name(), this.stored(second.id()).name());
+		Assertions.assertEquals("https://vault.example.net:8200", this.stored(second.id()).baseUrl());
 		Assertions.assertEquals(notifications, this.notified.size());
 	}
 
@@ -208,10 +216,10 @@ class VaultInstanceServiceTest {
 	void delete() {
 		HashicorpVaultKv2Instance created = this.createInstance();
 		int notifications = this.notified.size();
-		Assertions.assertTrue(this.service.delete(created.getId()));
-		Assertions.assertNull(this.stored(created.getId()));
-		Assertions.assertEquals(List.of(created.getId()), this.notified.subList(notifications, this.notified.size()));
-		Assertions.assertFalse(this.service.delete(created.getId()));
+		Assertions.assertTrue(this.service.delete(created.id()));
+		Assertions.assertNull(this.stored(created.id()));
+		Assertions.assertEquals(List.of(created.id()), this.notified.subList(notifications, this.notified.size()));
+		Assertions.assertFalse(this.service.delete(created.id()));
 		Assertions.assertEquals(notifications + 1, this.notified.size(), "nothing to notify for an unknown Vault instance");
 	}
 
@@ -219,15 +227,11 @@ class VaultInstanceServiceTest {
 	@DisplayName("delete() refuses a Vault instance which credential fields reference, and keeps it")
 	void deleteInUse() {
 		HashicorpVaultKv2Instance created = this.createInstance();
-		this.transactions.run(session -> {
-			DeviceSshAccount ssh = new DeviceSshAccount(null, null, null, "Credentials of " + created.getName());
-			ssh.setPasswordVaultInstanceId(session.get(VaultInstance.class, created.getId()));
-			ssh.setPasswordVaultPath("a/b");
-			session.persist(ssh);
-		});
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().name("Credentials of " + created.name())
+			.passwordVaultInstanceId(created.id()).passwordVaultPath("a/b").build());
 		int notifications = this.notified.size();
-		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_IN_USE, () -> this.service.delete(created.getId()));
-		Assertions.assertNotNull(this.stored(created.getId()));
+		assertError(ErrorCode.NETSHOT_VAULT_INSTANCE_IN_USE, () -> this.service.delete(created.id()));
+		Assertions.assertNotNull(this.stored(created.id()));
 		Assertions.assertEquals(notifications, this.notified.size());
 	}
 
@@ -248,21 +252,23 @@ class VaultInstanceServiceTest {
 		this.tested.clear();
 		this.testFailure = null;
 		HashicorpVaultKv2Instance created = this.createInstance();
-		HashicorpVaultKv2Instance candidate = this.definition("Candidate");
-		candidate.setBaseUrl("https://elsewhere.example.net");
-		candidate.setAppRoleSecretId(null);
-		candidate.setJwtClientSecret(null);
-		this.service.testConnection(created.getId(), candidate);
+		HashicorpVaultKv2Instance candidate = this.definition("Candidate").toBuilder()
+			.baseUrl("https://elsewhere.example.net")
+			.appRoleSecretId(null)
+			.jwtClientSecret(null)
+			.build();
+		this.service.testConnection(created.id(), candidate);
 		HashicorpVaultKv2Instance testedInstance = this.tested.get(0);
 		Assertions.assertNotSame(candidate, testedInstance);
-		Assertions.assertEquals("https://elsewhere.example.net", testedInstance.getBaseUrl());
-		Assertions.assertEquals("secret", testedInstance.getAppRoleSecretId());
-		Assertions.assertEquals("jwt-secret", testedInstance.getJwtClientSecret());
+		Assertions.assertEquals("https://elsewhere.example.net", testedInstance.baseUrl());
+		Assertions.assertEquals("secret", testedInstance.appRoleSecretId());
+		Assertions.assertEquals("jwt-secret", testedInstance.jwtClientSecret());
 
-		HashicorpVaultKv2Instance withSecret = this.definition("Candidate");
-		withSecret.setAppRoleSecretId("given");
-		this.service.testConnection(created.getId(), withSecret);
-		Assertions.assertEquals("given", this.tested.get(1).getAppRoleSecretId());
+		HashicorpVaultKv2Instance withSecret = this.definition("Candidate").toBuilder()
+			.appRoleSecretId("given")
+			.build();
+		this.service.testConnection(created.id(), withSecret);
+		Assertions.assertEquals("given", this.tested.get(1).appRoleSecretId());
 	}
 
 	@Test

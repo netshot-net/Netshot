@@ -28,7 +28,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
-import org.hibernate.Session;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -44,8 +43,8 @@ import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.DriverValueType;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -126,7 +125,7 @@ public class UserDeviceScript extends DeviceScript {
 	}
 
 	@Override
-	protected void run(Session session, Device device, AccessManager accessManager)
+	protected void run(DeviceDraft device, AccessManager accessManager)
 		throws InvalidCredentialsException, IOException, UnsupportedOperationException, MissingDeviceDriverException {
 		DeviceDriver driver = this.driverRegistry.forDevice(device);
 		JsCliHelper jsCliHelper = new JsCliHelper(accessManager, driver.getDefaultCliAccessDefinitions(), true, this.taskContext);
@@ -138,7 +137,7 @@ public class UserDeviceScript extends DeviceScript {
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
 			clientFactory.setOptions(options);
-			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, null, this.taskContext, false));
+			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, this.taskContext, false));
 			options.setUserInputs(this.userInputValues);
 			context
 				.getBindings("js")

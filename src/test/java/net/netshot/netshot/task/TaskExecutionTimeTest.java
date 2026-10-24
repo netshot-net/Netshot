@@ -21,10 +21,9 @@ package net.netshot.netshot.task;
 import java.util.Calendar;
 import java.util.Properties;
 
-import org.quartz.JobKey;
-
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.task.Task.ScheduleType;
+import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.testing.UnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,23 +39,13 @@ public class TaskExecutionTimeTest {
 		TestConfig.init(new Properties());
 	}
 
-	Task task = new Task() {
-		@Override
-		public JobKey getIdentity() {
-			return null;
-		}
-
-		@Override
-		public String getTaskDescription() {
-			return null;
-		}
-	};
+	Task task = Task.of(new CheckComplianceTask(null), "", "None", "");
 
 	@Test
 	@DisplayName("Next execution time of ASAP task")
 	void asapTask() {
-		task.setScheduleType(ScheduleType.ASAP);
-		Assertions.assertNull(task.getNextExecutionDate(),
+		task = task.toBuilder().scheduleType(ScheduleType.ASAP).build();
+		Assertions.assertNull(task.nextExecutionDate(),
 			"Next execution date for ASAP task is not null");
 	}
 
@@ -65,9 +54,9 @@ public class TaskExecutionTimeTest {
 	void atTask() {
 		Calendar inSixteenMinutes = Calendar.getInstance();
 		inSixteenMinutes.add(Calendar.MINUTE, 16);
-		task.setScheduleType(ScheduleType.AT);
-		task.setScheduleReference(inSixteenMinutes.getTime());
-		Assertions.assertEquals(task.getNextExecutionDate(), inSixteenMinutes.getTime(),
+		task = task.toBuilder().scheduleType(ScheduleType.AT).build();
+		task = task.toBuilder().scheduleReference(inSixteenMinutes.getTime().toInstant()).build();
+		Assertions.assertEquals(task.nextExecutionDate(), inSixteenMinutes.getTime(),
 			"Next execution date for AT task is not the schedule reference");
 	}
 
@@ -76,12 +65,12 @@ public class TaskExecutionTimeTest {
 	void everyTwoHoursImminentTask() {
 		Calendar inTenSeconds = Calendar.getInstance();
 		inTenSeconds.add(Calendar.SECOND, 10);
-		task.setScheduleReference(inTenSeconds.getTime());
-		task.setScheduleType(ScheduleType.HOURLY);
-		task.setScheduleFactor(2);
+		task = task.toBuilder().scheduleReference(inTenSeconds.getTime().toInstant()).build();
+		task = task.toBuilder().scheduleType(ScheduleType.HOURLY).build();
+		task = task.toBuilder().scheduleFactor(2).build();
 		Calendar inTwoHours = (Calendar) inTenSeconds.clone();
 		inTwoHours.add(Calendar.HOUR, 2);
-		Assertions.assertEquals(task.getNextExecutionDate(), inTwoHours.getTime(),
+		Assertions.assertEquals(task.nextExecutionDate(), inTwoHours.getTime(),
 			"Next execution date for EVERY 2 HOURS task is not in two hours");
 	}
 
@@ -90,10 +79,10 @@ public class TaskExecutionTimeTest {
 	void everyTwoHoursTask() {
 		Calendar inEightySeconds = Calendar.getInstance();
 		inEightySeconds.add(Calendar.SECOND, 80);
-		task.setScheduleReference(inEightySeconds.getTime());
-		task.setScheduleType(ScheduleType.HOURLY);
-		task.setScheduleFactor(2);
-		Assertions.assertEquals(task.getNextExecutionDate(), inEightySeconds.getTime(),
+		task = task.toBuilder().scheduleReference(inEightySeconds.getTime().toInstant()).build();
+		task = task.toBuilder().scheduleType(ScheduleType.HOURLY).build();
+		task = task.toBuilder().scheduleFactor(2).build();
+		Assertions.assertEquals(task.nextExecutionDate(), inEightySeconds.getTime(),
 			"Next execution date for EVERY 2 HOURS task is not now");
 	}
 
@@ -102,12 +91,12 @@ public class TaskExecutionTimeTest {
 	void everyWeekTask() {
 		Calendar inTenSeconds = Calendar.getInstance();
 		inTenSeconds.add(Calendar.SECOND, 10);
-		task.setScheduleReference(inTenSeconds.getTime());
-		task.setScheduleType(ScheduleType.WEEKLY);
-		task.setScheduleFactor(1);
+		task = task.toBuilder().scheduleReference(inTenSeconds.getTime().toInstant()).build();
+		task = task.toBuilder().scheduleType(ScheduleType.WEEKLY).build();
+		task = task.toBuilder().scheduleFactor(1).build();
 		Calendar inOneWeek = (Calendar) inTenSeconds.clone();
 		inOneWeek.add(Calendar.WEEK_OF_YEAR, 1);
-		Assertions.assertEquals(task.getNextExecutionDate(), inOneWeek.getTime(),
+		Assertions.assertEquals(task.nextExecutionDate(), inOneWeek.getTime(),
 			"Next execution date for EVERY WEEK task is not now");
 	}
 
@@ -116,12 +105,12 @@ public class TaskExecutionTimeTest {
 	void everySixMonths() {
 		Calendar inTenSeconds = Calendar.getInstance();
 		inTenSeconds.add(Calendar.SECOND, 10);
-		task.setScheduleReference(inTenSeconds.getTime());
-		task.setScheduleType(ScheduleType.MONTHLY);
-		task.setScheduleFactor(6);
+		task = task.toBuilder().scheduleReference(inTenSeconds.getTime().toInstant()).build();
+		task = task.toBuilder().scheduleType(ScheduleType.MONTHLY).build();
+		task = task.toBuilder().scheduleFactor(6).build();
 		Calendar inSixMonths = (Calendar) inTenSeconds.clone();
 		inSixMonths.add(Calendar.MONTH, 6);
-		Assertions.assertEquals(task.getNextExecutionDate(), inSixMonths.getTime(),
+		Assertions.assertEquals(task.nextExecutionDate(), inSixMonths.getTime(),
 			"Next execution date for EVERY SIX MONTHS task is not now");
 	}
 
@@ -131,9 +120,9 @@ public class TaskExecutionTimeTest {
 		Calendar reference = Calendar.getInstance();
 		reference.set(2016, 01, 01, 16, 00, 00);
 		reference.set(Calendar.MILLISECOND, 0);
-		task.setScheduleReference(reference.getTime());
-		task.setScheduleType(ScheduleType.MONTHLY);
-		task.setScheduleFactor(1);
+		task = task.toBuilder().scheduleReference(reference.getTime().toInstant()).build();
+		task = task.toBuilder().scheduleType(ScheduleType.MONTHLY).build();
+		task = task.toBuilder().scheduleFactor(1).build();
 		Calendar nextFirst = Calendar.getInstance();
 		nextFirst.set(Calendar.DAY_OF_MONTH, 1);
 		nextFirst.set(Calendar.HOUR_OF_DAY, 16);
@@ -143,7 +132,7 @@ public class TaskExecutionTimeTest {
 		if (nextFirst.before(Calendar.getInstance())) {
 			nextFirst.add(Calendar.MONTH, 1);
 		}
-		Assertions.assertEquals(task.getNextExecutionDate(), nextFirst.getTime(),
+		Assertions.assertEquals(task.nextExecutionDate(), nextFirst.getTime(),
 			"Next execution date for EVERY FIRST OF THE MONTH is not next first of the month");
 	}
 

@@ -22,6 +22,10 @@ import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import net.netshot.netshot.access.Http.AuthScheme;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
@@ -29,9 +33,6 @@ import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.DeviceDriver.Location;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.testing.ScriptEngineTest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /**
  * Tests for the access "group"/"priority" defaulting and the HTTP/HTTPS

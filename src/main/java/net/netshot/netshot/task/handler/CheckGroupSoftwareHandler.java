@@ -19,21 +19,22 @@
 package net.netshot.netshot.task.handler;
 
 import java.util.List;
-
-import org.hibernate.CacheMode;
-import org.hibernate.ScrollMode;
-import org.hibernate.ScrollableResults;
-import org.hibernate.Session;
+import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.HardwareRule;
+import net.netshot.netshot.compliance.HardwareRuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.group.DeviceGroup;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
+import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 
 /**
@@ -43,81 +44,57 @@ import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
 public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftwareTask> {
 
 
+	private final SoftwareRuleRepository softwareRuleRepository = new SoftwareRuleRepository();
+
+	private final HardwareRuleRepository hardwareRuleRepository = new HardwareRuleRepository();
+
+	private final DeviceRepository deviceRepository = new DeviceRepository();
+
+	private final Transactions transactions = new Transactions();
+
 	@Override
 	public Class<CheckGroupSoftwareTask> taskType() {
 		return CheckGroupSoftwareTask.class;
 	}
 
 	@Override
-	public void run(CheckGroupSoftwareTask task) {
-		DeviceGroup group = task.getDeviceGroup();
-		List<Device> deviceList = group == null ? task.getDeviceList() : null;
-		if (group == null && (deviceList == null || deviceList.isEmpty())) {
-			task.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
-			task.setStatus(Status.CANCELLED);
+	public void run(Task task, CheckGroupSoftwareTask spec, TaskRun run) {
+		Long groupId = spec.deviceGroupId();
+		List<Long> deviceList = groupId == null ? spec.deviceIds() : null;
+		if (groupId == null && (deviceList == null || deviceList.isEmpty())) {
+			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");
+			run.setStatus(Status.CANCELLED);
 			return;
 		}
 		log.debug("Task {}. Starting check software compliance and hardware support status task for {}.",
-			task.getId(), group == null ? deviceList.size() + " listed device(s)" : "group " + group.getId());
+			task.id(), groupId == null ? deviceList.size() + " listed device(s)" : "group " + groupId);
 
-		List<Long> deviceIds = group == null ? deviceList.stream().map(Device::getId).toList() : null;
+		List<Long> deviceIds = deviceList;
 
-		Session session = Database.getSession();
 		try {
-			log.debug("Task {}. Retrieving the software rules", task.getId());
-			List<SoftwareRule> softwareRules = session
-				.createQuery("select sr from SoftwareRule sr order by sr.priority asc", SoftwareRule.class)
-				.list();
-			log.debug("Task {}. Retrieving the hardware rules", task.getId());
-			List<HardwareRule> hardwareRules = session
-				.createQuery("select hr from HardwareRule hr", HardwareRule.class)
-				.list();
-
-			session.beginTransaction();
-			ScrollableResults<Device> devices;
-			if (group != null) {
-				devices = session
-					.createQuery("select d from Device d join d.groupMemberships gm where gm.key.group.id = :id", Device.class)
-					.setParameter("id", group.getId())
-					.setCacheMode(CacheMode.IGNORE)
-					.scroll(ScrollMode.FORWARD_ONLY);
-			}
-			else {
-				devices = session
-					.createQuery("select d from Device d where d.id in :ids", Device.class)
-					.setParameter("ids", deviceIds)
-					.setCacheMode(CacheMode.IGNORE)
-					.scroll(ScrollMode.FORWARD_ONLY);
-			}
-			while (devices.next()) {
-				Device device = devices.get();
-				device.setSoftwareLevel(ConformanceLevel.UNKNOWN);
-				for (SoftwareRule rule : softwareRules) {
-					rule.check(device);
-					if (device.getSoftwareLevel() != ConformanceLevel.UNKNOWN) {
-						break;
+			this.transactions.run(dsl -> {
+				log.debug("Task {}. Retrieving the software rules", task.id());
+				List<SoftwareRule> softwareRules = this.softwareRuleRepository.findAll(dsl, Page.ALL);
+				log.debug("Task {}. Retrieving the hardware rules", task.id());
+				List<HardwareRule> hardwareRules = this.hardwareRuleRepository.findAll(dsl);
+				List<Long> targetIds = groupId != null ? new GroupRepository().findMemberIds(dsl, groupId) : deviceIds;
+				for (Long deviceId : targetIds) {
+					Device device = this.deviceRepository.find(dsl, deviceId);
+					if (device == null) {
+						continue;
 					}
+					Set<Long> groupIds = GroupRepository.findGroupIdsOfDevice(dsl, device.id());
+					this.deviceRepository.save(dsl, device,
+						CheckComplianceHandler.checkSoftwareAndHardware(device, groupIds, softwareRules, hardwareRules));
 				}
-				device.resetEoX();
-				for (HardwareRule rule : hardwareRules) {
-					rule.check(device);
-				}
-				session.persist(device);
-				session.flush();
-				session.evict(device);
-			}
-			session.getTransaction().commit();
-			task.setStatus(Status.SUCCESS);
+			});
+			run.setStatus(Status.SUCCESS);
 		}
 		catch (Exception e) {
-			Database.rollbackSilently(session);
-			log.error("Task {}. Error while checking compliance.", task.getId(), e);
-			task.logger.error("Error while checking compliance: {}", e.getMessage());
-			task.setStatus(Status.FAILURE);
+			log.error("Task {}. Error while checking compliance.", task.id(), e);
+			run.logger.error("Error while checking compliance: {}", e.getMessage());
+			run.setStatus(Status.FAILURE);
 			return;
-		}
-		finally {
-			session.close();
 		}
 	}
 

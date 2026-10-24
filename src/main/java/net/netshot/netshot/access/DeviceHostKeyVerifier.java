@@ -50,8 +50,8 @@ import net.netshot.netshot.task.engine.TaskContext;
  * </ul>
  * <p>
  * This is invoked by the SSH library on its own I/O thread, not the task's
- * worker thread, so it must not touch the Hibernate-managed {@link DeviceAccess}
- * entity directly. Instead, a learned key is only recorded on {@link #learnedKeysUpdate},
+ * worker thread, so it does not change the {@link DeviceAccess} of the device
+ * itself. Instead, a learned key is only recorded on {@link #learnedKeysUpdate},
  * for the caller to pick up and persist afterwards, back on its own thread,
  * once {@code connect()} returns (see {@code AccessManager}).
  */

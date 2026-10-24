@@ -1,26 +1,6 @@
 <?xml version="1.0"?>
 <ArrayList>
   <item>
-    <checkDate>1609502403000</checkDate>
-    <comment/>
-    <expirationDate/>
-    <policyId>2</policyId>
-    <policyName>Routing policy</policyName>
-    <result>NOTAPPLICABLE</result>
-    <ruleId>4</ruleId>
-    <ruleName>Python check</ruleName>
-  </item>
-  <item>
-    <checkDate>1609502402000</checkDate>
-    <comment>Script error</comment>
-    <expirationDate/>
-    <policyId>2</policyId>
-    <policyName>Routing policy</policyName>
-    <result>INVALIDRULE</result>
-    <ruleId>3</ruleId>
-    <ruleName>JS check</ruleName>
-  </item>
-  <item>
     <checkDate>1609502400000</checkDate>
     <comment>Found text 'transport input telnet'</comment>
     <expirationDate/>
@@ -41,14 +21,14 @@
     <ruleName>Hostname set</ruleName>
   </item>
   <item>
-    <checkDate>1609502403000</checkDate>
-    <comment/>
+    <checkDate>1609502402000</checkDate>
+    <comment>Script error</comment>
     <expirationDate/>
     <policyId>2</policyId>
     <policyName>Routing policy</policyName>
-    <result>NOTAPPLICABLE</result>
-    <ruleId>4</ruleId>
-    <ruleName>Python check</ruleName>
+    <result>INVALIDRULE</result>
+    <ruleId>3</ruleId>
+    <ruleName>JS check</ruleName>
   </item>
   <item>
     <checkDate>1609502402000</checkDate>
@@ -59,5 +39,25 @@
     <result>INVALIDRULE</result>
     <ruleId>3</ruleId>
     <ruleName>JS check</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502403000</checkDate>
+    <comment/>
+    <expirationDate/>
+    <policyId>2</policyId>
+    <policyName>Routing policy</policyName>
+    <result>NOTAPPLICABLE</result>
+    <ruleId>4</ruleId>
+    <ruleName>Python check</ruleName>
+  </item>
+  <item>
+    <checkDate>1609502403000</checkDate>
+    <comment/>
+    <expirationDate/>
+    <policyId>2</policyId>
+    <policyName>Routing policy</policyName>
+    <result>NOTAPPLICABLE</result>
+    <ruleId>4</ruleId>
+    <ruleName>Python check</ruleName>
   </item>
 </ArrayList>

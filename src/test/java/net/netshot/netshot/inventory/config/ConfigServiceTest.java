@@ -22,11 +22,12 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.Session;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
@@ -42,12 +44,12 @@ import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 
 /**
@@ -76,64 +78,46 @@ class ConfigServiceTest {
 	void initDb() throws Exception {
 		this.transactions = new Transactions();
 		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
-		this.transactions.run(session -> {
-			Domain domain = new Domain("Lab", "Test domain", null, null);
-			session.persist(domain);
-			this.domainId = domain.getId();
-			Device routerDevice = device(session, "CiscoIOS12", "router-a", "10.40.0.1", domain);
-			this.router = routerDevice.getId();
-			Device otherDevice = device(session, "CiscoIOS12", "router-b", "10.40.0.2", null);
-			Device snmpDevice = device(session, "GenericSNMP", "snmp-c", "10.40.0.3", domain);
-			this.first = addConfig(session, routerDevice, D2020, "tester", "hostname a\n!\ninterface Gi0/0\n ip address 10.0.0.1\n!\nend\n", false).getId();
-			this.second = addConfig(session, routerDevice, D2021, "tester", "hostname a\n!\ninterface Gi0/0\n ip address 10.0.0.1\n shutdown\n!\nend\n", true).getId();
-			this.third = addConfig(session, routerDevice, D2022, "snapshot", "hostname a\n!\nend\n", true).getId();
-			this.otherConfig = addConfig(session, otherDevice, D2021, "tester", "hostname b\n", false).getId();
-			this.snmpConfig = addConfig(session, snmpDevice, D2021, "tester", "x\n", false).getId();
-			StaticDeviceGroup group = new StaticDeviceGroup("Routers");
-			group.updateCachedDevices(List.of(routerDevice));
-			session.persist(group);
-			this.groupId = group.getId();
-		});
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		this.domainId = domain.id();
+		Device routerDevice = device("CiscoIOS12", "router-a", "10.40.0.1", domain);
+		this.router = routerDevice.id();
+		Device otherDevice = device("CiscoIOS12", "router-b", "10.40.0.2", null);
+		Device snmpDevice = device("GenericSNMP", "snmp-c", "10.40.0.3", domain);
+		this.first = addConfig(routerDevice, D2020, "tester", "hostname a\n!\ninterface Gi0/0\n ip address 10.0.0.1\n!\nend\n", false);
+		this.second = addConfig(routerDevice, D2021, "tester", "hostname a\n!\ninterface Gi0/0\n ip address 10.0.0.1\n shutdown\n!\nend\n", true);
+		this.third = addConfig(routerDevice, D2022, "snapshot", "hostname a\n!\nend\n", true);
+		this.otherConfig = addConfig(otherDevice, D2021, "tester", "hostname b\n", false);
+		this.snmpConfig = addConfig(snmpDevice, D2021, "tester", "x\n", false);
+		this.groupId = TestDevices.addStaticGroup("Routers", routerDevice).id();
 	}
 
-	private static Device device(Session session, String driver, String name, String address, Domain domain) {
-		Device device = new Device(driver, address, domain, "seed");
-		device.setName(name);
-		session.persist(device);
-		return device;
+	private static Device device(String driver, String name, String address, Domain domain) {
+		return TestDevices.add(Device.create(driver, address, domain, "seed").toBuilder().name(name).build());
 	}
 
-	private static Config addConfig(Session session, Device device, long date, String author, String runningConfig, boolean full) {
-		Config config = new Config(device);
-		config.setAuthor(author);
-		config.setChangeDate(new Date(date));
-		device.getConfigs().add(config);
-		session.persist(config);
-		ConfigLongTextAttribute running = new ConfigLongTextAttribute(config, "runningConfig", runningConfig);
-		config.addAttribute(running);
-		session.persist(running);
-		ConfigTextAttribute version = new ConfigTextAttribute(config, "iosVersion", "16.1.6");
-		config.addAttribute(version);
-		session.persist(version);
+	private static long addConfig(Device device, long date, String author, String runningConfig, boolean full) {
+		List<ConfigAttribute> attributes = new ArrayList<>();
+		attributes.add(new ConfigLongTextAttribute("runningConfig", runningConfig));
+		attributes.add(new ConfigTextAttribute("iosVersion", "16.1.6"));
+		ConfigBinaryFileAttribute file = null;
 		if (full) {
-			ConfigNumericAttribute size = new ConfigNumericAttribute(config, "configSize", 1234.5);
-			config.addAttribute(size);
-			session.persist(size);
-			ConfigBinaryAttribute saved = new ConfigBinaryAttribute(config, "configSaved", true);
-			config.addAttribute(saved);
-			session.persist(saved);
-			ConfigBinaryFileAttribute file = new ConfigBinaryFileAttribute(config, "backupFile", "backup.tar.gz");
-			file.setFileSize(5);
-			config.addAttribute(file);
-			session.persist(file);
+			attributes.add(new ConfigNumericAttribute("configSize", 1234.5));
+			attributes.add(new ConfigBinaryAttribute("configSaved", true));
+			file = ConfigBinaryFileAttribute.create("backupFile", "backup.tar.gz").withFile(5, null);
+			attributes.add(file);
+		}
+		long configId = TestDevices.addConfig(device,
+			Config.builder().author(author).changeDate(Instant.ofEpochMilli(date)).attributes(attributes).build());
+		if (file != null) {
 			try {
-				Files.writeString(file.getFilePath(), "bytes");
+				Files.writeString(file.getFilePath(device.id(), configId), "bytes");
 			}
 			catch (java.io.IOException e) {
 				throw new IllegalStateException(e);
 			}
 		}
-		return config;
+		return configId;
 	}
 
 	private static NetshotException assertError(ErrorCode code, Executable executable) {
@@ -154,10 +138,10 @@ class ConfigServiceTest {
 	@DisplayName("listByDevice() returns the configurations of the device, the most recent first, with usable attributes")
 	void listByDevice() {
 		List<Config> configs = this.service.listByDevice(this.router, Page.ALL);
-		Assertions.assertEquals(List.of(this.third, this.second, this.first), configs.stream().map(Config::getId).toList());
-		Assertions.assertEquals(5, configs.get(0).getAttributes().size(), "attributes can be read without a session");
-		Assertions.assertEquals(2, configs.get(2).getAttributes().size());
-		Assertions.assertEquals(List.of(this.second), this.service.listByDevice(this.router, new Page(1, 1)).stream().map(Config::getId).toList());
+		Assertions.assertEquals(List.of(this.third, this.second, this.first), configs.stream().map(Config::id).toList());
+		Assertions.assertEquals(5, configs.get(0).attributes().size(), "attributes can be read without a session");
+		Assertions.assertEquals(2, configs.get(2).attributes().size());
+		Assertions.assertEquals(List.of(this.second), this.service.listByDevice(this.router, new Page(1, 1)).stream().map(Config::id).toList());
 		Assertions.assertEquals(List.of(), this.service.listByDevice(99999999L, Page.ALL));
 	}
 
@@ -261,8 +245,8 @@ class ConfigServiceTest {
 		Assertions.assertNull(bare.originalConfig());
 		ConfigDiff full = this.service.diff(this.second, this.third, false, true);
 		Assertions.assertNull(full.deltas());
-		Assertions.assertEquals(5, full.originalConfig().getAttributes().size(), "attributes can be read without a session");
-		Assertions.assertEquals(this.third, full.revisedConfig().getId());
+		Assertions.assertEquals(5, full.originalConfig().attributes().size(), "attributes can be read without a session");
+		Assertions.assertEquals(this.third, full.revisedConfig().id());
 	}
 
 	@Test
@@ -273,7 +257,7 @@ class ConfigServiceTest {
 		ConfigDiff beforeAll = this.service.diff(0, this.first, true, true);
 		Assertions.assertEquals(0, beforeAll.originalConfigId(), "an empty configuration stands for the missing one");
 		Assertions.assertNull(beforeAll.originalDate());
-		Assertions.assertEquals(0, beforeAll.originalConfig().getAttributes().size());
+		Assertions.assertEquals(0, beforeAll.originalConfig().attributes().size());
 		Assertions.assertEquals(ConfigDelta.Type.CHANGE, beforeAll.deltas().get("Running configuration").get(0).type());
 	}
 

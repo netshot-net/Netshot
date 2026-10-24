@@ -26,8 +26,7 @@ import net.netshot.netshot.platform.tls.CaCertificates;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
- * Validation of hooks: static, side-effect free (but for the default value of the CA trust
- * mode) functions which throw {@link NetshotException}.
+ * Validation of hooks: static, side-effect free functions which throw {@link NetshotException}.
  */
 public final class HookValidation {
 
@@ -39,41 +38,38 @@ public final class HookValidation {
 	 * Validates a Web hook: the target URL must be a HTTP(S) one, the action must be set, and the
 	 * HTTPS trust policy must be consistent.
 	 *
-	 * @param webHook the Web hook to validate (its missing CA trust mode is defaulted)
-	 * @throws NetshotException if the URL or the action is invalid, or if the CUSTOM_CA mode is
-	 *         selected without a valid certificate
+	 * @param webHook the hook
+	 * @return the hook, with the default CA trust mode if none is given
 	 */
-	public static void validateWebHook(WebHook webHook) {
+	public static WebHook validateWebHook(WebHook webHook) {
 		try {
-			webHook.getParsedUrl();
+			webHook.parsedUrl();
 		}
 		catch (MalformedURLException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_WEB_URL, "Invalid Web hook target URL");
 		}
-		if (webHook.getAction() == null) {
+		if (webHook.action() == null) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_WEB, "Invalid action");
 		}
-		validateWebHookTrustPolicy(webHook);
+		return validateWebHookTrustPolicy(webHook);
 	}
 
 	/**
-	 * Validates a Web hook's HTTPS trust policy: defaults a missing CA trust
-	 * mode to {@code SYSTEM_TRUSTSTORE}, and requires/validates a custom CA
-	 * certificate when the mode is {@code CUSTOM_CA}.
+	 * Validates the HTTPS trust policy of a Web hook: a custom CA must be given (and valid) in
+	 * {@link HttpsCaTrustMode#CUSTOM_CA} mode.
 	 *
-	 * @param webHook the Web hook to validate
-	 * @throws NetshotException if the CUSTOM_CA mode is selected without a valid certificate
+	 * @param webHook the hook
+	 * @return the hook, with the default CA trust mode ({@link HttpsCaTrustMode#SYSTEM_TRUSTSTORE}) if none is given
 	 */
-	public static void validateWebHookTrustPolicy(WebHook webHook) {
-		if (webHook.getHttpsCaTrustMode() == null) {
-			webHook.setHttpsCaTrustMode(HttpsCaTrustMode.SYSTEM_TRUSTSTORE);
-		}
-		if (webHook.getHttpsCaTrustMode() == HttpsCaTrustMode.CUSTOM_CA) {
-			if (webHook.getHttpsCustomCaCertificate() == null || webHook.getHttpsCustomCaCertificate().isBlank()) {
+	public static WebHook validateWebHookTrustPolicy(WebHook webHook) {
+		WebHook checked = webHook.httpsCaTrustMode() == null ? webHook.withHttpsCaTrustMode(HttpsCaTrustMode.SYSTEM_TRUSTSTORE) : webHook;
+		if (checked.httpsCaTrustMode() == HttpsCaTrustMode.CUSTOM_CA) {
+			if (checked.httpsCustomCaCertificate() == null || checked.httpsCustomCaCertificate().isBlank()) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
 					"The webhook requires a custom CA certificate when the HTTPS trust mode is CUSTOM_CA.");
 			}
-			CaCertificates.validateCustomCa(webHook.getHttpsCustomCaCertificate(), "the webhook");
+			CaCertificates.validateCustomCa(checked.httpsCustomCaCertificate(), "the webhook");
 		}
+		return checked;
 	}
 }

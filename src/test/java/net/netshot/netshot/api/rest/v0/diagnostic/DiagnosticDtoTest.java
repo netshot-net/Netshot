@@ -18,9 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v0.diagnostic;
 
-import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +43,13 @@ import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.DiagnosticTextResult;
+import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DriverValueType;
+import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.testing.ScriptEngineTest;
@@ -83,99 +84,85 @@ class DiagnosticDtoTest {
 	}
 
 	private static DynamicDeviceGroup dynamicGroup() {
-		DynamicDeviceGroup dynamic = new DynamicDeviceGroup("Dynamic", "CiscoIOS12", "[Name] contains \"r\"");
-		dynamic.setId(100);
-		dynamic.setFolder("Production");
-		dynamic.setChangeDate(new Date(1_600_000_200_000L));
-		return dynamic;
+		return DynamicDeviceGroup.builder().id(100).name("Dynamic").query("[Name] contains \"r\"").folder("Production")
+			.changeDate(Instant.ofEpochMilli(1_600_000_200_000L)).build();
 	}
 
 	private static StaticDeviceGroup staticGroup() {
-		StaticDeviceGroup fixed = new StaticDeviceGroup("Static");
-		fixed.setId(101);
-		fixed.setHiddenFromReports(true);
-		fixed.setChangeDate(new Date(1_600_000_300_000L));
-		return fixed;
+		return StaticDeviceGroup.builder().id(101).name("Static").folder("").hiddenFromReports(true)
+			.changeDate(Instant.ofEpochMilli(1_600_000_300_000L)).build();
+	}
+
+	private static DiagnosticView view(Diagnostic diagnostic, DeviceGroup group) {
+		return new DiagnosticView(diagnostic, group);
 	}
 
 	@Test
 	@DisplayName("A simple diagnostic has the same JSON and XML representation as the entity, with either kind of group or none")
 	void simpleDiagnostic() throws Exception {
-		SimpleDiagnostic diagnostic = new SimpleDiagnostic("Simple", true, dynamicGroup(), AttributeType.TEXT, "CiscoIOS12",
+		DynamicDeviceGroup dynamic = dynamicGroup();
+		StaticDeviceGroup fixed = staticGroup();
+		SimpleDiagnostic diagnostic = new SimpleDiagnostic(5, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(.*)", "$1");
-		diagnostic.setId(5);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
-		diagnostic.setTargetGroup(staticGroup());
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
-		diagnostic.setTargetGroup(null);
-		diagnostic.setDeviceDriver("NoSuchDriver");
-		diagnostic.setModifierPattern(null);
-		diagnostic.setResultType(AttributeType.LONGTEXT);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
-		diagnostic.setDeviceDriver("");
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic));
-		String json = new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, dynamic)));
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, fixed)));
+		diagnostic = new SimpleDiagnostic(5, "Simple", true, null, AttributeType.LONGTEXT, "NoSuchDriver",
+			"enable", "show version", null, "$1");
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null)));
+		diagnostic = new SimpleDiagnostic(5, "Simple", true, null, AttributeType.LONGTEXT, "",
+			"enable", "show version", null, "$1");
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null)));
+		String json = new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null))));
 		Assertions.assertTrue(json.contains("\"type\":\"SimpleDiagnostic\""), json);
-		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), diagnostic))).startsWith("<SimpleDiagnostic type=\"SimpleDiagnostic\">"));
+		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null))))
+			.startsWith("<SimpleDiagnostic type=\"SimpleDiagnostic\">"));
 	}
 
 	@Test
 	@DisplayName("JavaScript and Python diagnostics have the same JSON and XML representation as the entities")
 	void scriptDiagnostics() throws Exception {
-		JavaScriptDiagnostic js = new JavaScriptDiagnostic("JS", false, staticGroup(), AttributeType.NUMERIC, "function diagnose() {\n}");
-		js.setId(6);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), js));
-		js.setTargetGroup(null);
-		js.setScript(null);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), js));
-		PythonDiagnostic python = new PythonDiagnostic("Python", true, dynamicGroup(), AttributeType.BINARY, "def diagnose():\n  pass");
-		python.setId(7);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), python));
-		python.setTargetGroup(null);
-		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), python));
-		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), python))).contains("\"type\":\"PythonDiagnostic\""));
-		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), js))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
+		DynamicDeviceGroup dynamic = dynamicGroup();
+		StaticDeviceGroup fixed = staticGroup();
+		JavaScriptDiagnostic js = new JavaScriptDiagnostic(6, "JS", false, fixed.id(), AttributeType.NUMERIC, "function diagnose() {\n}");
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, fixed)));
+		js = new JavaScriptDiagnostic(6, "JS", false, null, AttributeType.NUMERIC, null);
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, null)));
+		PythonDiagnostic python = new PythonDiagnostic(7, "Python", true, dynamic.id(), AttributeType.BINARY, "def diagnose():\n  pass");
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, dynamic)));
+		python = new PythonDiagnostic(7, "Python", true, null, AttributeType.BINARY, "def diagnose():\n  pass");
+		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, null)));
+		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, null)))).contains("\"type\":\"PythonDiagnostic\""));
+		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, null)))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
 	}
 
 	@Test
 	@DisplayName("A list of diagnostics has the same representation as a list of entities")
 	void diagnosticList() throws Exception {
-		SimpleDiagnostic simple = new SimpleDiagnostic("Simple", true, dynamicGroup(), AttributeType.TEXT, "CiscoIOS12", "enable", "show", null, null);
-		simple.setId(1);
-		PythonDiagnostic python = new PythonDiagnostic("Python", true, null, AttributeType.BINARY, "x");
-		python.setId(2);
-		JavaScriptDiagnostic js = new JavaScriptDiagnostic("JS", true, staticGroup(), AttributeType.TEXT, "y");
-		js.setId(3);
-		List<Diagnostic> entities = new ArrayList<>(List.of(simple, python, js));
+		DynamicDeviceGroup dynamic = dynamicGroup();
+		StaticDeviceGroup fixed = staticGroup();
+		SimpleDiagnostic simple = new SimpleDiagnostic(1, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12", "enable", "show", null, null);
+		PythonDiagnostic python = new PythonDiagnostic(2, "Python", true, null, AttributeType.BINARY, "x");
+		JavaScriptDiagnostic js = new JavaScriptDiagnostic(3, "JS", true, fixed.id(), AttributeType.TEXT, "y");
+		List<DiagnosticView> entities = new ArrayList<>(List.of(view(simple, dynamic), view(python, null), view(js, fixed)));
 		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(TestDrivers.registry(), entities)));
 	}
 
-	private static void dates(DiagnosticResult result) {
-		result.setCreationDate(new Date(1_609_502_400_000L));
-		result.setLastCheckDate(new Date(1_609_502_400_500L));
+	@SuppressWarnings("unchecked")
+	private static <R extends DiagnosticResult> R dated(R result) {
+		return (R) result.withDates(Instant.ofEpochMilli(1_609_502_400_000L), Instant.ofEpochMilli(1_609_502_400_500L));
 	}
 
 	@Test
 	@DisplayName("Each type of diagnostic result has the same JSON and XML representation as the entity")
 	void results() throws Exception {
-		PythonDiagnostic diagnostic = new PythonDiagnostic("Diag", true, null, AttributeType.TEXT, "x");
-		diagnostic.setId(9);
-		DiagnosticTextResult text = new DiagnosticTextResult(null, diagnostic, "some text");
-		dates(text);
-		DiagnosticTextResult noText = new DiagnosticTextResult(null, diagnostic, null);
-		dates(noText);
-		DiagnosticLongTextResult longText = new DiagnosticLongTextResult(null, diagnostic, "long\ntext");
-		dates(longText);
-		DiagnosticNumericResult numeric = new DiagnosticNumericResult(null, diagnostic, 42.5);
-		dates(numeric);
-		DiagnosticNumericResult noNumber = new DiagnosticNumericResult(null, diagnostic, 1.0);
-		noNumber.setNumber(null);
-		dates(noNumber);
-		DiagnosticBinaryResult binary = new DiagnosticBinaryResult(null, diagnostic, true);
-		dates(binary);
-		DiagnosticBinaryResult noAssumption = new DiagnosticBinaryResult(null, diagnostic, false);
-		noAssumption.setAssumption(null);
-		dates(noAssumption);
+		PythonDiagnostic diagnostic = new PythonDiagnostic(9, "Diag", true, null, AttributeType.TEXT, "x");
+		DiagnosticTextResult text = dated(DiagnosticTextResult.of(diagnostic, "some text"));
+		DiagnosticTextResult noText = dated(DiagnosticTextResult.of(diagnostic, null));
+		DiagnosticLongTextResult longText = dated(DiagnosticLongTextResult.of(diagnostic, "long\ntext"));
+		DiagnosticNumericResult numeric = dated(DiagnosticNumericResult.of(diagnostic, 42.5));
+		DiagnosticNumericResult noNumber = dated(DiagnosticNumericResult.of(diagnostic, null));
+		DiagnosticBinaryResult binary = dated(DiagnosticBinaryResult.of(diagnostic, true));
+		DiagnosticBinaryResult noAssumption = dated(DiagnosticBinaryResult.of(diagnostic, null));
 		for (DiagnosticResult result : List.of(text, noText, longText, numeric, noNumber, binary, noAssumption)) {
 			this.assertRepresentation(DiagnosticMapper.toDto(result));
 		}
@@ -185,17 +172,12 @@ class DiagnosticDtoTest {
 		Assertions.assertTrue(json.contains("\"type\":\"LONGTEXT\"") && json.contains("\"diagnosticId\":9") && !json.contains("longText"), json);
 	}
 
-	private static DeviceJsScript script() throws Exception {
-		DeviceJsScript script = new DeviceJsScript("Script", "CiscoIOS12", "function run() {}", "tester");
-		script.setId(3);
-		script.setFolder("Folder");
-		return script;
+	private static DeviceJsScript script() {
+		return script(null);
 	}
 
-	private static void definitions(DeviceJsScript script, Map<String, UserInputDefinition> definitions) throws Exception {
-		Field field = DeviceJsScript.class.getDeclaredField("userInputDefinitions");
-		field.setAccessible(true);
-		field.set(script, definitions);
+	private static DeviceJsScript script(Map<String, UserInputDefinition> definitions) {
+		return new DeviceJsScript(3, "Script", "Folder", "function run() {}", "CiscoIOS12", "tester", definitions);
 	}
 
 	@Test
@@ -203,7 +185,7 @@ class DiagnosticDtoTest {
 	void scripts() throws Exception {
 		DeviceJsScript script = script();
 		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
-		definitions(script, new LinkedHashMap<>());
+		script = script(new LinkedHashMap<>());
 		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		UserInputDefinition text = new UserInputDefinition("hostname");
 		text.setDescription("The host");
@@ -213,11 +195,9 @@ class DiagnosticDtoTest {
 		Map<String, UserInputDefinition> map = new LinkedHashMap<>();
 		map.put("hostname", text);
 		map.put("flag", flag);
-		definitions(script, map);
+		script = script(map);
 		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
-		script.setScript(null);
-		script.setDeviceDriver("NoSuchDriver");
-		script.setFolder(null);
+		script = new DeviceJsScript(script.id(), script.name(), null, null, "NoSuchDriver", script.author(), script.userInputDefinitions());
 		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		DeviceJsScript other = script();
 		List<DeviceJsScript> list = new ArrayList<>(List.of(script, other));

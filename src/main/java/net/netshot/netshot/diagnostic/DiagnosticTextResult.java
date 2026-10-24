@@ -18,59 +18,50 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
 import java.util.Objects;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
+/**
+ * A text diagnostic result.
+ *
+ * @param diagnosticId the ID of the diagnostic
+ * @param diagnosticName the name of the diagnostic
+ * @param creationDate when the diagnostic first gave this value
+ * @param lastCheckDate when the diagnostic last gave this value
+ * @param text the value
+ */
+public record DiagnosticTextResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, String text)
+	implements DiagnosticResult {
 
-@Entity
-@DiscriminatorValue("S")
-public class DiagnosticTextResult extends DiagnosticResult {
-
-	@Getter(onMethod = @__({
-		@Column(length = 524288)
-	}))
-	@Setter
-	private String text;
-
-	protected DiagnosticTextResult() {
-	}
-
-	public DiagnosticTextResult(Device device, Diagnostic diagnostic, String value) {
-		super(device, diagnostic);
-		this.text = value;
+	/**
+	 * Builds a new result of a diagnostic (created and checked now).
+	 *
+	 * @param diagnostic the diagnostic
+	 * @param value the value
+	 * @return the result
+	 */
+	public static DiagnosticTextResult of(Diagnostic diagnostic, String value) {
+		Instant now = DiagnosticResult.now();
+		return new DiagnosticTextResult(diagnostic.id(), diagnostic.name(), now, now, value);
 	}
 
 	@Override
-	@Transient
+	public DiagnosticTextResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticTextResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.text);
+	}
+
+	@Override
 	public String getAsText() {
-		if (text == null) {
-			return "";
-		}
-		return text;
+		return this.text == null ? "" : this.text;
 	}
 
 	@Override
-	@Transient
 	public Object getData() {
-		return getText();
+		return this.text;
 	}
 
 	@Override
-	public boolean valueEquals(DiagnosticResult obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DiagnosticTextResult)) {
-			return false;
-		}
-		DiagnosticTextResult other = (DiagnosticTextResult) obj;
-		return Objects.equals(this.text, other.text);
+	public boolean valueEquals(DiagnosticResult other) {
+		return other instanceof DiagnosticTextResult o && Objects.equals(this.text, o.text);
 	}
-
 }

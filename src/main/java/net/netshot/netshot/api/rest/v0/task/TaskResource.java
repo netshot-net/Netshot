@@ -92,7 +92,7 @@ public class TaskResource {
 
 	private String getUsername() {
 		try {
-			return ((User) this.securityContext.getUserPrincipal()).getUsername();
+			return ((User) this.securityContext.getUserPrincipal()).username();
 		}
 		catch (Exception e) {
 			// Whatever may happen

@@ -18,6 +18,9 @@
  */
 package net.netshot.netshot.api.rest.v0.device;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_ACCESS;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.http.HttpResponse;
@@ -28,7 +31,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.hibernate.Session;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -40,25 +49,19 @@ import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.driver.AttributeDefinition;
-import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 @ApiTest
 @DisplayName("Device tests")
@@ -77,22 +80,22 @@ public class DeviceResourceTest {
 	private Domain testDomain;
 
 	private enum DeviceField {
-		CONTACT(Device::getContact),
-		CREATED_DATE(Device::getCreatedDate),
-		CREATOR(Device::getCreator),
-		DRIVER(Device::getDriver),
-		EOL_DATE(Device::getEolDate),
-		EOS_DATE(Device::getEosDate),
-		FAMILY(Device::getFamily),
-		LOCATION(Device::getLocation),
-		MGMT_ADDRESS(Device::getMgmtAddress),
-		NAME(Device::getName),
-		NETWORK_CLASS(Device::getNetworkClass),
-		SERIAL_NUMBER(Device::getSerialNumber),
-		SOFTWARE_LEVEL(Device::getSoftwareLevel),
-		SOFTWARE_VERSION(Device::getSoftwareVersion),
-		STATUS(Device::getStatus),
-		COMMENTS(Device::getComments);
+		CONTACT(Device::contact),
+		CREATED_DATE(Device::createdDate),
+		CREATOR(Device::creator),
+		DRIVER(Device::driver),
+		EOL_DATE(Device::eolDate),
+		EOS_DATE(Device::eosDate),
+		FAMILY(Device::family),
+		LOCATION(Device::location),
+		MGMT_ADDRESS(Device::mgmtAddress),
+		NAME(Device::name),
+		NETWORK_CLASS(Device::networkClass),
+		SERIAL_NUMBER(Device::serialNumber),
+		SOFTWARE_LEVEL(Device::softwareLevel),
+		SOFTWARE_VERSION(Device::softwareVersion),
+		STATUS(Device::status),
+		COMMENTS(Device::comments);
 
 		private Function<Device, ?> getter;
 
@@ -102,16 +105,9 @@ public class DeviceResourceTest {
 	}
 
 	private void createTestDomain() throws IOException {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			this.testDomain = new Domain(
-				this.testDomainName, "Test Domain for devices",
-				new Network4Address("10.1.1.1"),
-				null
-			);
-			session.persist(this.testDomain);
-			session.getTransaction().commit();
-		}
+		this.testDomain = TestDevices.addDomain(Domain.builder()
+			.name(this.testDomainName).description("Test Domain for devices")
+			.server4Address(new Network4Address("10.1.1.1")).build());
 	}
 
 	private DeviceDriver getTestDriver() {
@@ -131,6 +127,28 @@ public class DeviceResourceTest {
 		}
 	}
 
+	/**
+	 * Finds the only stored device, if any.
+	 *
+	 * @return the device
+	 */
+	private static Device findOnlyDevice() {
+		long id = new Transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE).fetchSingle(DEVICE.ID));
+		return TestDevices.find(id);
+	}
+
+	/**
+	 * Finds the only stored device having a given management address.
+	 *
+	 * @param address the management address
+	 * @return the device
+	 */
+	private static Device findDeviceByAddress(String address) {
+		long id = new Transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE)
+			.where(DEVICE.MGMT_ADDRESS.eq(address)).fetchSingle(DEVICE.ID));
+		return TestDevices.find(id);
+	}
+
 	@BeforeAll
 	static void loadDrivers() throws Exception {
 		TestDrivers.reload();
@@ -138,16 +156,7 @@ public class DeviceResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session
-				.createMutationQuery("delete from Device")
-				.executeUpdate();
-			session
-				.createMutationQuery("delete from Domain")
-				.executeUpdate();
-			session.getTransaction().commit();
-		}
+		TestDevices.deleteAll();
 	}
 
 	@Test
@@ -237,18 +246,12 @@ public class DeviceResourceTest {
 				"Device list is not empty");
 		}
 		this.createTestDomain();
-		Device device1 = new Device(this.getTestDriver().getName(),
-			"10.1.1.1", this.testDomain, "test");
-		device1.setName("device1");
-		Device device2 = new Device(this.getTestDriver().getName(),
-			"10.1.1.2", this.testDomain, "test");
-		device2.setName("device2");
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(device1);
-			session.persist(device2);
-			session.getTransaction().commit();
-		}
+		Device device1 = Device.create(this.getTestDriver().getName(),
+			"10.1.1.1", this.testDomain, "test").toBuilder().name("device1").build();
+		Device device2 = Device.create(this.getTestDriver().getName(),
+			"10.1.1.2", this.testDomain, "test").toBuilder().name("device2").build();
+		device1 = TestDevices.add(device1);
+		device2 = TestDevices.add(device2);
 		{
 			HttpResponse<JsonNode> response = apiClient.get("/devices");
 			Assertions.assertEquals(
@@ -260,17 +263,17 @@ public class DeviceResourceTest {
 			JsonNode deviceNode1 = deviceNodeIt.next();
 			Assertions.assertEquals(
 				JsonNodeFactory.instance.objectNode()
-					.put("id", device1.getId())
-					.put("name", device1.getName())
-					.put("family", device1.getFamily())
-					.put("mgmtAddress", device1.getMgmtAddress())
-					.put("status", device1.getStatus().toString())
-					.put("driver", device1.getDriver())
+					.put("id", device1.id())
+					.put("name", device1.name())
+					.put("family", device1.family())
+					.put("mgmtAddress", device1.mgmtAddress())
+					.put("status", device1.status().toString())
+					.put("driver", device1.driver())
 					.put("eol", device1.isEndOfLife())
 					.put("eos", device1.isEndOfSale())
-					.put("configCompliant", device1.isCompliant())
-					.put("softwareLevel", device1.getSoftwareLevel().toString())
-					.put("networkClass", device1.getNetworkClass().toString()),
+					.put("configCompliant", device1.compliant())
+					.put("softwareLevel", device1.softwareLevel().toString())
+					.put("networkClass", device1.networkClass().toString()),
 				deviceNode1,
 				"Retrieved device doesn't match expected object");
 		}
@@ -281,14 +284,9 @@ public class DeviceResourceTest {
 	@ResourceLock("DB")
 	void getDevice() throws IOException, InterruptedException, MissingDeviceDriverException {
 		this.createTestDomain();
-		Device device1 = new Device(this.getTestDriver().getName(),
-			"10.1.1.1", this.testDomain, "test");
-		device1.setName("device1");
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(device1);
-			session.getTransaction().commit();
-		}
+		Device device1 = Device.create(this.getTestDriver().getName(),
+			"10.1.1.1", this.testDomain, "test").toBuilder().name("device1").build();
+		device1 = TestDevices.add(device1);
 		{
 			HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(TestServer.UNKNOWN_ID));
 			Assertions.assertEquals(
@@ -296,37 +294,37 @@ public class DeviceResourceTest {
 				"Not getting 404 response for nonexistent device");
 		}
 		{
-			HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(device1.getId()));
+			HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(device1.id()));
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for device");
 			JsonNode deviceNode1 = response.body();
 			ObjectNode expectedNode1 = JsonNodeFactory.instance.objectNode()
-				.put("id", device1.getId())
-				.put("name", device1.getName())
-				.put("networkClass", device1.getNetworkClass().toString())
-				.put("family", device1.getFamily())
-				.put("mgmtAddress", device1.getMgmtAddress())
-				.put("cachedIpAddress", device1.getMgmtAddress())
-				.put("status", device1.getStatus().toString())
-				.put("driver", device1.getDriver())
+				.put("id", device1.id())
+				.put("name", device1.name())
+				.put("networkClass", device1.networkClass().toString())
+				.put("family", device1.family())
+				.put("mgmtAddress", device1.mgmtAddress())
+				.put("cachedIpAddress", device1.mgmtAddress())
+				.put("status", device1.status().toString())
+				.put("driver", device1.driver())
 				.put("realDeviceType", TestDrivers.registry().forDevice(device1).getDescription())
-				.put("serialNumber", device1.getSerialNumber())
-				.put("softwareVersion", device1.getSoftwareVersion())
-				.put("softwareLevel", device1.getSoftwareLevel().toString())
-				.put("contact", device1.getContact())
-				.put("location", device1.getLocation())
-				.put("creator", device1.getCreator())
-				.put("changeDate", device1.getChangeDate().getTime())
-				.put("createdDate", device1.getCreatedDate().getTime())
+				.put("serialNumber", device1.serialNumber())
+				.put("softwareVersion", device1.softwareVersion())
+				.put("softwareLevel", device1.softwareLevel().toString())
+				.put("contact", device1.contact())
+				.put("location", device1.location())
+				.put("creator", device1.creator())
+				.put("changeDate", device1.changeDate().toEpochMilli())
+				.put("createdDate", device1.createdDate().toEpochMilli())
 				.putNull("eolDate")
 				.putNull("eolModule")
 				.putNull("eosDate")
 				.putNull("eosModule")
 				.put("endOfLife", device1.isEndOfLife())
 				.put("endOfSale", device1.isEndOfSale())
-				.put("compliant", device1.isCompliant())
-				.put("comments", device1.getComments());
+				.put("compliant", device1.compliant())
+				.put("comments", device1.comments());
 			expectedNode1.putArray("ownerGroups");
 			expectedNode1.putArray("attributes");
 			expectedNode1.putArray("accesses");
@@ -334,11 +332,11 @@ public class DeviceResourceTest {
 			expectedNode1.putObject("options");
 			expectedNode1.set("mgmtDomain",
 				JsonNodeFactory.instance.objectNode()
-					.put("id", device1.getMgmtDomain().getId())
-					.put("name", device1.getMgmtDomain().getName())
-					.put("changeDate", device1.getMgmtDomain().getChangeDate().getTime())
-					.put("description", device1.getMgmtDomain().getDescription())
-					.put("server4Address", device1.getMgmtDomain().getServer4Address().getIp())
+					.put("id", device1.mgmtDomain().id())
+					.put("name", device1.mgmtDomain().name())
+					.put("changeDate", device1.mgmtDomain().changeDate().toEpochMilli())
+					.put("description", device1.mgmtDomain().description())
+					.put("server4Address", device1.mgmtDomain().server4Address().getIp())
 					.putNull("server6Address"));
 			Assertions.assertEquals(expectedNode1, deviceNode1,
 				"Retrieved device doesn't match expected object");
@@ -350,14 +348,14 @@ public class DeviceResourceTest {
 	@ResourceLock("DB")
 	void createDevice() throws IOException, InterruptedException {
 		this.createTestDomain();
-		Device device1 = new Device(this.getTestDriver().getName(),
+		Device device1 = Device.create(this.getTestDriver().getName(),
 			"10.1.1.1", this.testDomain, "test");
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
-			.put("ipAddress", device1.getMgmtAddress())
-			.put("domainId", this.testDomain.getId())
-			.put("name", device1.getName())
-			.put("deviceType", device1.getDriver());
+			.put("ipAddress", device1.mgmtAddress())
+			.put("domainId", this.testDomain.id())
+			.put("name", device1.name())
+			.put("deviceType", device1.driver());
 		{
 			HttpResponse<JsonNode> response = apiClient.post("/devices",
 				data.deepCopy().put("domainId", TestServer.UNKNOWN_ID));
@@ -379,14 +377,9 @@ public class DeviceResourceTest {
 				"Not getting 201 response for created device");
 		}
 
-		try (Session session = Database.getSession()) {
-			Device newDevice = session
-				.createQuery("from Device d", Device.class)
-				.uniqueResult();
-			device1.setId(newDevice.getId());
-			this.assertDevicesEqual(device1, newDevice,
-				DeviceField.CREATED_DATE, DeviceField.CREATOR);
-		}
+		Device newDevice = findOnlyDevice();
+		this.assertDevicesEqual(device1, newDevice,
+			DeviceField.CREATED_DATE, DeviceField.CREATOR);
 	}
 
 	@Test
@@ -397,22 +390,18 @@ public class DeviceResourceTest {
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
 			.put("ipAddress", "2001:db8::1")
-			.put("domainId", this.testDomain.getId())
+			.put("domainId", this.testDomain.id())
 			.put("name", "device1")
 			.put("deviceType", this.getTestDriver().getName());
 		HttpResponse<JsonNode> response = apiClient.post("/devices", data);
 		Assertions.assertEquals(
 			Response.Status.CREATED.getStatusCode(), response.statusCode(),
 			"Not getting 201 response for created device with an IPv6 management address");
-		try (Session session = Database.getSession()) {
-			Device newDevice = session
-				.createQuery("from Device d", Device.class)
-				.uniqueResult();
-			Assertions.assertEquals("2001:db8::1", newDevice.getMgmtAddress(),
-				"Management address not stored as entered");
-			Assertions.assertEquals(InetAddress.getByName("2001:db8::1"), newDevice.getCachedIpAddress(),
-				"Cached IP address not resolved from management address at creation");
-		}
+		Device newDevice = findOnlyDevice();
+		Assertions.assertEquals("2001:db8::1", newDevice.mgmtAddress(),
+			"Management address not stored as entered");
+		Assertions.assertEquals(InetAddress.getByName("2001:db8::1"), newDevice.cachedIpAddress(),
+			"Cached IP address not resolved from management address at creation");
 	}
 
 	@Test
@@ -423,20 +412,16 @@ public class DeviceResourceTest {
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
 			.put("ipAddress", "router1.example.com")
-			.put("domainId", this.testDomain.getId())
+			.put("domainId", this.testDomain.id())
 			.put("name", "device1")
 			.put("deviceType", this.getTestDriver().getName());
 		HttpResponse<JsonNode> response = apiClient.post("/devices", data);
 		Assertions.assertEquals(
 			Response.Status.CREATED.getStatusCode(), response.statusCode(),
 			"Not getting 201 response for created device with a hostname management address");
-		try (Session session = Database.getSession()) {
-			Device newDevice = session
-				.createQuery("from Device d", Device.class)
-				.uniqueResult();
-			Assertions.assertEquals("router1.example.com", newDevice.getMgmtAddress(),
-				"Management address not stored as entered");
-		}
+		Device newDevice = findOnlyDevice();
+		Assertions.assertEquals("router1.example.com", newDevice.mgmtAddress(),
+			"Management address not stored as entered");
 	}
 
 	@Test
@@ -447,7 +432,7 @@ public class DeviceResourceTest {
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
 			.put("ipAddress", "not an address!")
-			.put("domainId", this.testDomain.getId())
+			.put("domainId", this.testDomain.id())
 			.put("name", "device1")
 			.put("deviceType", this.getTestDriver().getName());
 		HttpResponse<JsonNode> response = apiClient.post("/devices", data);
@@ -464,23 +449,17 @@ public class DeviceResourceTest {
 		Device device1 = FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, 0);
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
-			.put("ipAddress", device1.getMgmtAddress())
-			.put("domainId", this.testDomain.getId())
-			.put("name", device1.getName())
-			.put("deviceType", device1.getDriver());
+			.put("ipAddress", device1.mgmtAddress())
+			.put("domainId", this.testDomain.id())
+			.put("name", device1.name())
+			.put("deviceType", device1.driver());
 		{
 			HttpResponse<JsonNode> response = apiClient.post("/devices", data);
 			Assertions.assertEquals(
 				Response.Status.CREATED.getStatusCode(), response.statusCode(),
 				"Not getting 201 response for created device");
 		}
-		try (Session session = Database.getSession()) {
-			Device newDevice = session
-				.createQuery("from Device d where d.mgmtAddress = :ip", Device.class)
-				.setParameter("ip", device1.getMgmtAddress())
-				.uniqueResult();
-			device1.setId(newDevice.getId());
-		}
+		device1 = findDeviceByAddress(device1.mgmtAddress());
 		{
 			HttpResponse<JsonNode> response = apiClient.post("/devices", data);
 			Assertions.assertEquals(
@@ -492,7 +471,7 @@ public class DeviceResourceTest {
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("enabled", false);
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/devices/%d".formatted(device1.getId()), editData);
+				"/devices/%d".formatted(device1.id()), editData);
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for edited device");
@@ -509,7 +488,7 @@ public class DeviceResourceTest {
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("enabled", true);
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/devices/%d".formatted(device1.getId()), editData);
+				"/devices/%d".formatted(device1.id()), editData);
 			Assertions.assertEquals(
 				Response.Status.CONFLICT.getStatusCode(), response.statusCode(),
 				"Not getting 409 response for edited device");
@@ -521,18 +500,12 @@ public class DeviceResourceTest {
 	@ResourceLock("DB")
 	void deleteDevice() throws IOException, InterruptedException {
 		this.createTestDomain();
-		Device device1 = new Device(this.getTestDriver().getName(),
-			"10.1.1.1", this.testDomain, "test");
-		device1.setName("device1");
-		Device device2 = new Device(this.getTestDriver().getName(),
-			"10.1.1.2", this.testDomain, "test");
-		device2.setName("device2");
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(device1);
-			session.persist(device2);
-			session.getTransaction().commit();
-		}
+		Device device1 = Device.create(this.getTestDriver().getName(),
+			"10.1.1.1", this.testDomain, "test").toBuilder().name("device1").build();
+		Device device2 = Device.create(this.getTestDriver().getName(),
+			"10.1.1.2", this.testDomain, "test").toBuilder().name("device2").build();
+		device1 = TestDevices.add(device1);
+		device2 = TestDevices.add(device2);
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
 				"/devices/%d".formatted(TestServer.UNKNOWN_ID));
@@ -542,7 +515,7 @@ public class DeviceResourceTest {
 		}
 		{
 			HttpResponse<JsonNode> response = apiClient.delete(
-				"/devices/%d".formatted(device1.getId()));
+				"/devices/%d".formatted(device1.id()));
 			Assertions.assertEquals(
 				Response.Status.NO_CONTENT.getStatusCode(), response.statusCode(),
 				"Not getting 204 response for device deletion");
@@ -556,17 +529,17 @@ public class DeviceResourceTest {
 		JsonNode deviceNode = listResponse.body().iterator().next();
 		Assertions.assertEquals(
 			JsonNodeFactory.instance.objectNode()
-				.put("id", device2.getId())
-				.put("name", device2.getName())
-				.put("family", device2.getFamily())
-				.put("mgmtAddress", device2.getMgmtAddress())
-				.put("status", device2.getStatus().toString())
-				.put("driver", device2.getDriver())
+				.put("id", device2.id())
+				.put("name", device2.name())
+				.put("family", device2.family())
+				.put("mgmtAddress", device2.mgmtAddress())
+				.put("status", device2.status().toString())
+				.put("driver", device2.driver())
 				.put("eol", device2.isEndOfLife())
 				.put("eos", device2.isEndOfSale())
-				.put("configCompliant", device2.isCompliant())
-				.put("softwareLevel", device2.getSoftwareLevel().toString())
-				.put("networkClass", device2.getNetworkClass().toString()),
+				.put("configCompliant", device2.compliant())
+				.put("softwareLevel", device2.softwareLevel().toString())
+				.put("networkClass", device2.networkClass().toString()),
 			deviceNode,
 			"Retrieved device doesn't match expected object");
 	}
@@ -576,47 +549,31 @@ public class DeviceResourceTest {
 	@ResourceLock("DB")
 	void deleteDeviceCascadesAccessesAndOwnedCredentialOnly() throws IOException, InterruptedException {
 		this.createTestDomain();
-		Device device1 = new Device(this.getTestDriver().getName(),
-			"10.1.1.1", this.testDomain, "test");
-		device1.setName("device1");
-		DeviceCredentialSet globalCred = new DeviceSshAccount("admin", "admin", null, "globalCredForCascadeTest");
-		DeviceCredentialSet specificCred = new DeviceSshAccount("admin", "admin", null,
-			DeviceCredentialSet.generateSpecificName());
-		specificCred.setDeviceSpecific(true);
-		long globalCredId;
-		long specificCredId;
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(globalCred);
-			DeviceAccess sshAccess = new DeviceAccess(device1, "ssh");
-			sshAccess.setGlobalCredentialSet(globalCred);
-			device1.getAccesses().add(sshAccess);
-			DeviceAccess telnetAccess = new DeviceAccess(device1, "telnet");
-			telnetAccess.setSpecificCredentialSet(specificCred);
-			device1.getAccesses().add(telnetAccess);
-			session.persist(device1);
-			session.getTransaction().commit();
-			globalCredId = globalCred.getId();
-			specificCredId = specificCred.getId();
-		}
+		Device device1 = Device.create(this.getTestDriver().getName(),
+			"10.1.1.1", this.testDomain, "test").toBuilder().name("device1").build();
+		DeviceCredentialSet globalCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("globalCredForCascadeTest").build();
+		DeviceCredentialSet specificCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null)
+			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
+		globalCred = TestDevices.addCredentialSet(globalCred);
+		device1 = TestDevices.add(device1.toBuilder().accesses(List.of(
+			DeviceAccess.of("ssh").toBuilder().globalCredentialSet(globalCred).build(),
+			DeviceAccess.of("telnet").toBuilder().specificCredentialSet(specificCred).build())).build());
+		long globalCredId = globalCred.id();
+		long specificCredId = device1.getDeviceAccess("telnet").specificCredentialSet().id();
 
-		HttpResponse<JsonNode> response = apiClient.delete("/devices/%d".formatted(device1.getId()));
+		HttpResponse<JsonNode> response = apiClient.delete("/devices/%d".formatted(device1.id()));
 		Assertions.assertEquals(
 			Response.Status.NO_CONTENT.getStatusCode(), response.statusCode(),
 			"Not getting 204 response for device deletion");
 
-		try (Session session = Database.getSession()) {
-			Long deviceAccessCount = session
-				.createQuery("select count(a) from DeviceAccess a where a.key.device.id = :id", Long.class)
-				.setParameter("id", device1.getId())
-				.uniqueResult();
-			Assertions.assertEquals(0L, deviceAccessCount,
-				"DeviceAccess rows should be cascade-deleted along with the device");
-			Assertions.assertNull(session.get(DeviceCredentialSet.class, specificCredId),
-				"The owned specific credential set should be cascade-deleted along with its DeviceAccess");
-			Assertions.assertNotNull(session.get(DeviceCredentialSet.class, globalCredId),
-				"A referenced global credential set must survive device deletion");
-		}
+		long deviceId = device1.id();
+		int deviceAccessCount = new Transactions().read(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(deviceId)));
+		Assertions.assertEquals(0, deviceAccessCount,
+			"DeviceAccess rows should be cascade-deleted along with the device");
+		Assertions.assertNull(TestDevices.findCredentialSet(specificCredId),
+			"The owned specific credential set should be cascade-deleted along with its DeviceAccess");
+		Assertions.assertNotNull(TestDevices.findCredentialSet(globalCredId),
+			"A referenced global credential set must survive device deletion");
 	}
 
 	@Test
@@ -627,7 +584,7 @@ public class DeviceResourceTest {
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
 			.put("ipAddress", "10.1.1.1")
-			.put("domainId", this.testDomain.getId())
+			.put("domainId", this.testDomain.id())
 			.put("name", "device1")
 			.put("deviceType", this.getTestDriver().getName());
 		ObjectNode accessNode = JsonNodeFactory.instance.objectNode()
@@ -648,18 +605,12 @@ public class DeviceResourceTest {
 	@ResourceLock("DB")
 	void deviceAccessRejectsMismatchedCredentialClass() throws IOException, InterruptedException {
 		this.createTestDomain();
-		DeviceCredentialSet snmpCred = new DeviceSnmpv2cCommunity("public", "snmpCredForMismatchTest");
-		long snmpCredId;
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(snmpCred);
-			session.getTransaction().commit();
-			snmpCredId = snmpCred.getId();
-		}
+		DeviceCredentialSet snmpCred = DeviceSnmpv2cCommunity.builder().community("public").name("snmpCredForMismatchTest").build();
+		long snmpCredId = TestDevices.addCredentialSet(snmpCred).id();
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
 			.put("ipAddress", "10.1.1.1")
-			.put("domainId", this.testDomain.getId())
+			.put("domainId", this.testDomain.id())
 			.put("name", "device1")
 			.put("deviceType", this.getTestDriver().getName());
 		ObjectNode accessNode = JsonNodeFactory.instance.objectNode()
@@ -680,12 +631,8 @@ public class DeviceResourceTest {
 		this.createTestDomain();
 		Device device1 = FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, 1);
 		Device device2 = FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, 2);
-		try (Session session = Database.getSession()) {
-			session.beginTransaction();
-			session.persist(device1);
-			session.persist(device2);
-			session.getTransaction().commit();
-		}
+		device1 = TestDevices.add(device1);
+		device2 = TestDevices.add(device2);
 		{
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("enabled", false);
@@ -699,59 +646,44 @@ public class DeviceResourceTest {
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("enabled", false);
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/devices/%d".formatted(device1.getId()), editData);
+				"/devices/%d".formatted(device1.id()), editData);
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for edited device");
 
-			try (Session session = Database.getSession()) {
-				Device editedDevice = session
-					.createQuery("from Device d where d.id = :id", Device.class)
-					.setParameter("id", device1.getId())
-					.uniqueResult();
-				Assertions.assertEquals(Device.Status.DISABLED, editedDevice.getStatus(),
-					"The edited device is not disabled");
-				this.assertDevicesEqual(device1, editedDevice, DeviceField.STATUS);
-			}
+			Device editedDevice = TestDevices.find(device1.id());
+			Assertions.assertEquals(Device.Status.DISABLED, editedDevice.status(),
+				"The edited device is not disabled");
+			this.assertDevicesEqual(device1, editedDevice, DeviceField.STATUS);
 		}
 		{
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("enabled", true);
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/devices/%d".formatted(device1.getId()), editData);
+				"/devices/%d".formatted(device1.id()), editData);
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for edited device");
 
-			try (Session session = Database.getSession()) {
-				Device editedDevice = session
-					.createQuery("from Device d where d.id = :id", Device.class)
-					.setParameter("id", device1.getId())
-					.uniqueResult();
-				Assertions.assertEquals(Device.Status.INPRODUCTION, editedDevice.getStatus(),
-					"The edited device is not enabled");
-				this.assertDevicesEqual(device1, editedDevice);
-			}
+			Device editedDevice = TestDevices.find(device1.id());
+			Assertions.assertEquals(Device.Status.INPRODUCTION, editedDevice.status(),
+				"The edited device is not enabled");
+			this.assertDevicesEqual(device1, editedDevice);
 		}
 		{
 			final String comments = "TEST EDIT COMMENT";
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()
 				.put("comments", comments);
 			HttpResponse<JsonNode> response = apiClient.put(
-				"/devices/%d".formatted(device1.getId()), editData);
+				"/devices/%d".formatted(device1.id()), editData);
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for edited device");
 
-			try (Session session = Database.getSession()) {
-				Device editedDevice = session
-					.createQuery("from Device d where d.id = :id", Device.class)
-					.setParameter("id", device1.getId())
-					.uniqueResult();
-				Assertions.assertEquals(comments, editedDevice.getComments(),
-					"The edited device comments are not correct");
-				this.assertDevicesEqual(device1, editedDevice, DeviceField.COMMENTS);
-			}
+			Device editedDevice = TestDevices.find(device1.id());
+			Assertions.assertEquals(comments, editedDevice.comments(),
+				"The edited device comments are not correct");
+			this.assertDevicesEqual(device1, editedDevice, DeviceField.COMMENTS);
 		}
 	}
 
@@ -763,7 +695,7 @@ public class DeviceResourceTest {
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)
 			.put("ipAddress", "10.1.1.1")
-			.put("domainId", this.testDomain.getId())
+			.put("domainId", this.testDomain.id())
 			.put("deviceType", this.getTestDriver().getName())
 			.put("comments", "Created with tags");
 		data.putArray("tags").add("core").add(" Paris ").add("core");
@@ -782,16 +714,12 @@ public class DeviceResourceTest {
 				"Not getting 201 response for created device");
 		}
 		long deviceId;
-		try (Session session = Database.getSession()) {
-			Device newDevice = session
-				.createQuery("from Device d left join fetch d.tags", Device.class)
-				.uniqueResult();
-			deviceId = newDevice.getId();
-			Assertions.assertEquals(Set.of("core", "Paris"), newDevice.getTags(),
-				"The tags of the created device are not correct");
-			Assertions.assertEquals("Created with tags", newDevice.getComments(),
-				"The comments of the created device are not correct");
-		}
+		Device newDevice = findOnlyDevice();
+		deviceId = newDevice.id();
+		Assertions.assertEquals(Set.of("core", "Paris"), newDevice.tags(),
+			"The tags of the created device are not correct");
+		Assertions.assertEquals("Created with tags", newDevice.comments(),
+			"The comments of the created device are not correct");
 		{
 			HttpResponse<JsonNode> response = apiClient.get("/devices/%d".formatted(deviceId));
 			Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
@@ -806,16 +734,11 @@ public class DeviceResourceTest {
 			Assertions.assertEquals(
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response for edited device");
-			try (Session session = Database.getSession()) {
-				Device editedDevice = session
-					.createQuery("from Device d left join fetch d.tags where d.id = :id", Device.class)
-					.setParameter("id", deviceId)
-					.uniqueResult();
-				Assertions.assertEquals(Set.of("core", "lab"), editedDevice.getTags(),
-					"The tags of the edited device are not correct");
-				Assertions.assertEquals("Created with tags", editedDevice.getComments(),
-					"The comments should be untouched when not passed");
-			}
+			Device editedDevice = TestDevices.find(deviceId);
+			Assertions.assertEquals(Set.of("core", "lab"), editedDevice.tags(),
+				"The tags of the edited device are not correct");
+			Assertions.assertEquals("Created with tags", editedDevice.comments(),
+				"The comments should be untouched when not passed");
 		}
 		{
 			ObjectNode editData = JsonNodeFactory.instance.objectNode()

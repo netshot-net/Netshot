@@ -18,136 +18,81 @@
  */
 package net.netshot.netshot.diagnostic;
 
-import java.util.Date;
-import java.util.Objects;
+import java.time.Instant;
 
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.DiscriminatorColumn;
-import jakarta.persistence.DiscriminatorType;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
-import lombok.Getter;
-import lombok.Setter;
-import net.netshot.netshot.inventory.device.Device;
-
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.CHAR)
-@DiscriminatorValue("A")
-@FilterDef(name = "lightDiagAttributesOnly", defaultCondition = "type <> 'T'")
-public abstract class DiagnosticResult {
-
-	/** Unique ID of the diagnostic result. **/
-	@Getter(onMethod = @__({
-		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	protected long id;
-
-	/** The date this result was created on. **/
-	@Getter
-	@Setter
-	private Date creationDate = new Date();
-
-	/** The last date this result was returned. **/
-	@Getter
-	@Setter
-	private Date lastCheckDate = new Date();
-
-	/** The diagnostic which created that result. **/
-	@Getter(onMethod = @__({
-		@ManyToOne(fetch = FetchType.LAZY),
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private Diagnostic diagnostic;
-
-	/** The device which created that result. **/
-	@Getter(onMethod = @__({
-		@ManyToOne,
-		@OnDelete(action = OnDeleteAction.CASCADE)
-	}))
-	@Setter
-	private Device device;
+/**
+ * The result of a diagnostic on a device: the last value the diagnostic gave, kept with the
+ * date it was first given ({@link #creationDate}) and the date it was last checked. There is one
+ * result per device and diagnostic. Its type is stored as a one letter discriminator.
+ */
+public sealed interface DiagnosticResult
+	permits DiagnosticTextResult, DiagnosticNumericResult, DiagnosticBinaryResult, DiagnosticLongTextResult {
 
 	/**
-	 * Instantiates a new diagnostic result (for Hibernate).
+	 * Gets the ID of the diagnostic.
+	 *
+	 * @return the diagnostic ID
 	 */
-	protected DiagnosticResult() {
-	}
+	Long diagnosticId();
 
 	/**
-	 * Instantiates a new diagnostic result.
-	 * @param device The device
-	 * @param diagnostic The diagnostic
+	 * Gets the name of the diagnostic (read from the diagnostic).
+	 *
+	 * @return the name
 	 */
-	public DiagnosticResult(Device device, Diagnostic diagnostic) {
-		this.device = device;
-		this.diagnostic = diagnostic;
-	}
+	String diagnosticName();
 
 	/**
-	 * Gets the result value as text.
-	 * @return the result value as text
+	 * Gets when the diagnostic first gave this value.
+	 *
+	 * @return the date
 	 */
-	@Transient
-	public abstract String getAsText();
-
+	Instant creationDate();
 
 	/**
-	 * Gets the result value as an object.
-	 * @return the result value as object
+	 * Gets when the diagnostic last gave this value.
+	 *
+	 * @return the date
 	 */
-	@Transient
-	public abstract Object getData();
+	Instant lastCheckDate();
 
 	/**
-	 * Gets the name of the associated diagnostic. To be sent along the result via REST.
-	 * @return the name of the diagnostic.
+	 * Gets the same result, with other dates.
+	 *
+	 * @param newCreationDate the date of creation
+	 * @param newLastCheckDate the date of the last check
+	 * @return the result
 	 */
-	@Transient
-	public String getDiagnosticName() {
-		return this.getDiagnostic().getName();
-	}
+	DiagnosticResult withDates(Instant newCreationDate, Instant newLastCheckDate);
 
 	/**
-	 * Gets the ID of the associated diagnostic. To be sent along the result via REST.
-	 * @return the id of the diagnostic.
+	 * Gets the value of the result, as text.
+	 *
+	 * @return the text (empty when there is no value)
 	 */
-	@Transient
-	public Long getDiagnosticId() {
-		return this.getDiagnostic().getId();
+	String getAsText();
+
+	/**
+	 * Gets the value of the result.
+	 *
+	 * @return the value
+	 */
+	Object getData();
+
+	/**
+	 * Tells whether another result has the same type and value (whatever its diagnostic and dates).
+	 *
+	 * @param other the other result (may be null)
+	 * @return true if the value is the same
+	 */
+	boolean valueEquals(DiagnosticResult other);
+
+	/**
+	 * The time of a new result.
+	 *
+	 * @return now
+	 */
+	static Instant now() {
+		return Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
 	}
-
-	public abstract boolean valueEquals(DiagnosticResult obj);
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(diagnostic, device);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof DiagnosticResult)) {
-			return false;
-		}
-		DiagnosticResult other = (DiagnosticResult) obj;
-		return Objects.equals(diagnostic, other.diagnostic)
-			&& Objects.equals(device, other.device);
-	}
-
 }

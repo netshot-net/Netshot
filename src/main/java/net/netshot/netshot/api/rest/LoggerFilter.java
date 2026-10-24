@@ -112,18 +112,18 @@ public class LoggerFilter implements ContainerResponseFilter {
 		String remoteAddr = LoggerFilter.getClientAddress(this.httpRequest);
 		if ("GET".equals(method)) {
 			AAA_LOG.debug("Request from {} ({}) - {} - \"{} {}\" - {}.", remoteAddr,
-				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.getUsername(),
+				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.username(),
 				requestContext.getMethod(), requestContext.getUriInfo().getRequestUri(), responseContext.getStatus());
 		}
 		else {
 			AAA_LOG.info("Request from {} ({}) - {} - \"{} {}\" - {}.", remoteAddr,
-				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.getUsername(),
+				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.username(),
 				requestContext.getMethod(), requestContext.getUriInfo().getRequestUri(), responseContext.getStatus());
 			try {
 				Tacacs.account(
 					requestContext.getMethod(),
 					requestContext.getUriInfo().getRequestUri().getPath(),
-					user == null ? "<none>" : user.getUsername(),
+					user == null ? "<none>" : user.username(),
 					Integer.toString(responseContext.getStatus()),
 					remoteAddr);
 			}

@@ -21,11 +21,36 @@ package net.netshot.netshot.task.type;
 import net.netshot.netshot.inventory.device.Device;
 
 /**
- * Device specific task interface.
+ * A task working on one device.
  */
 public interface DeviceBasedTask {
 
-	Device getDevice();
+	/**
+	 * Gets the ID of the target device.
+	 *
+	 * @return the device ID, null if the device was deleted
+	 */
+	Long deviceId();
 
-	void setDevice(Device device);
+	/**
+	 * Gets the description of a device as a task target: its name, or its management address
+	 * when it was never captured.
+	 *
+	 * @param device the device
+	 * @return the target description
+	 */
+	static String targetOf(Device device) {
+		return device.lastConfigId() == null ? device.mgmtAddress() : device.name();
+	}
+
+	/**
+	 * Gets the identity group of a device task, from a prefix.
+	 *
+	 * @param prefix the prefix
+	 * @param deviceId the device ID (or null)
+	 * @return the identity group
+	 */
+	static String identityGroup(String prefix, Long deviceId) {
+		return String.format("%s_%d", prefix, deviceId == null ? 0 : deviceId);
+	}
 }

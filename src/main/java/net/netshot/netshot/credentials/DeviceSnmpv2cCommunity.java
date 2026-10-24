@@ -18,67 +18,48 @@
  */
 package net.netshot.netshot.credentials;
 
-import jakarta.persistence.Entity;
+import java.time.Instant;
 
+import lombok.Builder;
+import net.netshot.netshot.inventory.domain.Domain;
 
 /**
- * A SNMPv2c community.
+ * An SNMPv2c community.
+ *
+ * @param id the ID (0 for a credential set which isn't stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the time of the last change
+ * @param name the name, unique
+ * @param mgmtDomain the domain the credential set is restricted to, or null for all the domains
+ * @param deviceSpecific whether the credential set belongs to one access of one device (rather than being global)
+ * @param community the community
+ * @param communityVaultInstanceId the ID of the Vault instance the community is read from, or null if it is local
+ * @param communityVaultPath the Vault path (and key) of the community
  */
-@Entity
-public final class DeviceSnmpv2cCommunity extends DeviceSnmpCommunity {
+@Builder(toBuilder = true)
+public record DeviceSnmpv2cCommunity(
+	long id,
+	int version,
+	Instant changeDate,
+	String name,
+	Domain mgmtDomain,
+	boolean deviceSpecific,
+	String community,
+	Long communityVaultInstanceId,
+	String communityVaultPath) implements DeviceSnmpCommunity {
 
-	/**
-	 * Instantiates a new device snmpv2c community.
-	 */
-	protected DeviceSnmpv2cCommunity() {
-
-	}
-
-	/**
-	 * Instantiates a new device snmpv2c community.
-	 *
-	 * @param community the community
-	 * @param name the name
-	 */
-	public DeviceSnmpv2cCommunity(String community, String name) {
-		super(community, name);
-	}
-
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.credentials.DeviceSnmpCommunity#hashCode()
-	 */
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + (name == null ? 0 : name.hashCode());
-		return result;
+	public DeviceSnmpv2cCommunity withIdentity(long newId, String newName, boolean newDeviceSpecific) {
+		return this.toBuilder().id(newId).name(newName).deviceSpecific(newDeviceSpecific).build();
 	}
 
-	/*(non-Javadoc)
-	 * @see net.netshot.netshot.credentials.DeviceSnmpCommunity#equals(java.lang.Object)
-	 */
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!super.equals(obj)) {
-			return false;
-		}
-		if (!(obj instanceof DeviceSnmpv2cCommunity)) {
-			return false;
-		}
-		DeviceSnmpv2cCommunity other = (DeviceSnmpv2cCommunity) obj;
-		if (name == null) {
-			if (other.name != null) {
-				return false;
-			}
-		}
-		else if (!name.equals(other.name)) {
-			return false;
-		}
-		return true;
+	public DeviceSnmpv2cCommunity withMgmtDomain(Domain newMgmtDomain) {
+		return this.toBuilder().mgmtDomain(newMgmtDomain).build();
 	}
 
+	@Override
+	public String toString() {
+		return DeviceCredentialSet.describe(this);
+	}
 }

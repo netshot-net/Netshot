@@ -57,13 +57,26 @@ final class SharedPostgres implements AutoCloseable {
 	/** Database migrated once per run, which the database of each test class is a copy of. */
 	private static final String TEMPLATE_DATABASE = "netshot_template";
 
+	/** The default PostgreSQL image of the tests: the oldest supported version. */
+	static final String DEFAULT_IMAGE = "postgres:15";
+
+	/**
+	 * Gets the PostgreSQL image of the tests: the oldest supported version by default, another one with
+	 * {@code -Dnetshot.test.postgres=postgres:18} (the CI also runs the database tests on the latest version).
+	 *
+	 * @return the image name
+	 */
+	static String image() {
+		return System.getProperty("netshot.test.postgres", DEFAULT_IMAGE);
+	}
+
 	private final PostgreSQLContainer container;
 
 	private boolean templateMigrated;
 
 	@SuppressWarnings("resource")
 	private SharedPostgres() {
-		this.container = new PostgreSQLContainer(DockerImageName.parse("postgres:17"))
+		this.container = new PostgreSQLContainer(DockerImageName.parse(image()))
 			.withUsername("netshot")
 			.withPassword("netshot")
 			.withDatabaseName("netshot");

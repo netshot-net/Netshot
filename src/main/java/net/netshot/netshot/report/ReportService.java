@@ -27,8 +27,8 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Function;
 
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.CheckResult;
@@ -37,24 +37,17 @@ import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceSummary;
-import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.NetworkAddress;
-import net.netshot.netshot.inventory.device.NetworkInterface;
-import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
-import net.netshot.netshot.report.ReportExportSink.ExportedAddress;
 import net.netshot.netshot.report.ReportExportSink.ExportedAttribute;
 import net.netshot.netshot.report.ReportExportSink.ExportedDevice;
 import net.netshot.netshot.report.ReportExportSink.ExportedInterface;
 import net.netshot.netshot.report.ReportExportSink.ExportedMembership;
 import net.netshot.netshot.report.ReportExportSink.ExportedModule;
+import net.netshot.netshot.report.ReportRepository.AttributeToExport;
 
 /**
  * The report use cases: statistics on the configuration changes, the compliance and the hardware
@@ -95,11 +88,11 @@ public class ReportService {
 	 * @param work the reads
 	 * @return the result
 	 */
-	private <T> T read(String logMessage, Function<Session, T> work) {
+	private <T> T read(String logMessage, Function<DSLContext, T> work) {
 		try {
 			return this.transactions.read(work);
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error(logMessage, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to get the stats");
 		}
@@ -124,14 +117,14 @@ public class ReportService {
 		today.set(Calendar.MINUTE, 0);
 		today.set(Calendar.SECOND, 0);
 		today.set(Calendar.MILLISECOND, 0);
-		return this.read("Unable to get the stats.", session -> {
+		return this.read("Unable to get the stats.", dsl -> {
 			List<DailyChangeCount> stats = new ArrayList<>();
 			for (int d = 7; d > 0; d--) {
 				Calendar dayStart = (Calendar) today.clone();
 				Calendar dayEnd = (Calendar) today.clone();
 				dayStart.add(Calendar.DATE, -d + 1);
 				dayEnd.add(Calendar.DATE, -d + 2);
-				Long changeCount = this.repository.countConfigChanges(session, dayStart.getTime(), dayEnd.getTime());
+				Long changeCount = this.repository.countConfigChanges(dsl, dayStart.getTime(), dayEnd.getTime());
 				stats.add(new DailyChangeCount(changeCount == null ? 0 : changeCount, dayStart.getTime()));
 			}
 			return stats;
@@ -149,7 +142,7 @@ public class ReportService {
 	public List<GroupConfigComplianceStat> getGroupConfigComplianceStats(Set<Long> domains, Set<Long> deviceGroups,
 		Set<Long> policies) {
 		return this.read("Unable to get the stats.",
-			session -> this.repository.findGroupConfigComplianceStats(session, domains, deviceGroups, policies));
+			dsl -> this.repository.findGroupConfigComplianceStats(dsl, domains, deviceGroups, policies));
 	}
 
 	/**
@@ -160,9 +153,9 @@ public class ReportService {
 	 * @return the device counts by end-of-sale and end-of-life dates
 	 */
 	public HardwareSupportStats getHardwareSupportStats(Set<Long> domains, Set<Long> deviceGroups) {
-		return this.read("Unable to get the stats.", session -> new HardwareSupportStats(
-			this.repository.findHardwareSupportCounts(session, EndOfSupport.SALE, domains, deviceGroups),
-			this.repository.findHardwareSupportCounts(session, EndOfSupport.LIFE, domains, deviceGroups)));
+		return this.read("Unable to get the stats.", dsl -> new HardwareSupportStats(
+			this.repository.findHardwareSupportCounts(dsl, EndOfSupport.SALE, domains, deviceGroups),
+			this.repository.findHardwareSupportCounts(dsl, EndOfSupport.LIFE, domains, deviceGroups)));
 	}
 
 	/**
@@ -173,7 +166,7 @@ public class ReportService {
 	 */
 	public List<GroupSoftwareComplianceStat> getGroupSoftwareComplianceStats(Set<Long> domains) {
 		return this.read("Unable to get the stats.",
-			session -> this.repository.findGroupSoftwareComplianceStats(session, domains));
+			dsl -> this.repository.findGroupSoftwareComplianceStats(dsl, domains));
 	}
 
 	/**
@@ -188,7 +181,7 @@ public class ReportService {
 	public List<PolicyRuleDevice> getConfigComplianceDeviceStatuses(Set<Long> domains, Set<Long> groups,
 		Set<Long> policies, Set<CheckResult.ResultOption> results) {
 		return this.read("Unable to get the devices.",
-			session -> this.repository.findPolicyRuleDevices(session, domains, groups, policies, results));
+			dsl -> this.repository.findPolicyRuleDevices(dsl, domains, groups, policies, results));
 	}
 
 	/**
@@ -202,7 +195,7 @@ public class ReportService {
 	public List<PolicyRuleDevice> getGroupConfigNonCompliantDevices(Long groupId, Set<Long> domains,
 		Set<Long> policies) {
 		return this.read("Unable to get the devices.",
-			session -> this.repository.findNonCompliantDevices(session, groupId, domains, policies));
+			dsl -> this.repository.findNonCompliantDevices(dsl, groupId, domains, policies));
 	}
 
 	/**
@@ -223,7 +216,7 @@ public class ReportService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, "Invalid type, expected eos or eol.");
 		}
 		Date eoxDate = new Date(date);
-		return this.read("Unable to get the devices.", session -> this.repository.findDevicesByEndOfSupport(session,
+		return this.read("Unable to get the devices.", dsl -> this.repository.findDevicesByEndOfSupport(dsl,
 			milestone, date == 0 ? null : eoxDate, domains, deviceGroups));
 	}
 
@@ -246,7 +239,7 @@ public class ReportService {
 		}
 		ConformanceLevel conformanceLevel = filterLevel;
 		return this.read("Unable to get the devices.",
-			session -> this.repository.findDevicesBySoftwareLevel(session, groupId, conformanceLevel, domains));
+			dsl -> this.repository.findDevicesBySoftwareLevel(dsl, groupId, conformanceLevel, domains));
 	}
 
 	/**
@@ -266,7 +259,7 @@ public class ReportService {
 		Calendar when = Calendar.getInstance();
 		when.add(Calendar.DATE, -period);
 		return this.read("Unable to get the devices.",
-			session -> this.repository.findAccessFailureDevices(session, when.getTime(), domains, page));
+			dsl -> this.repository.findAccessFailureDevices(dsl, when.getTime(), domains, page));
 	}
 
 	/**
@@ -280,168 +273,102 @@ public class ReportService {
 	public void export(ReportExportSelection selection, ReportExportSink sink) {
 		Set<Long> domains = selection.domains();
 		Set<Long> groups = selection.groups();
-		this.transactions.read(session -> {
-			sink.summary(this.selectionNames(session, domains, true), this.selectionNames(session, groups, false));
-			this.exportDevices(session, selection, sink);
+		this.transactions.read(dsl -> {
+			sink.summary(domains.isEmpty() ? null : this.repository.findDomainNames(dsl, domains),
+				groups.isEmpty() ? null : this.repository.findGroupNames(dsl, groups));
+			this.exportDevices(dsl, selection, sink);
 			if (selection.interfaces()) {
-				this.exportInterfaces(session, selection, sink);
+				log.debug("Exporting interface data");
+				sink.interfacesStart();
+				for (ExportedInterface networkInterface : this.repository.findInterfacesToExport(dsl, domains, groups)) {
+					sink.networkInterface(networkInterface);
+				}
 			}
 			if (selection.inventory()) {
-				this.exportInventory(session, selection, sink);
+				this.exportInventory(dsl, selection, sink);
 			}
 			if (selection.compliance()) {
 				log.debug("Exporting compliance data");
-				List<PolicyRuleDevice> checkResults = this.repository.findPolicyRuleDevices(session, domains, groups,
+				List<PolicyRuleDevice> checkResults = this.repository.findPolicyRuleDevices(dsl, domains, groups,
 					new HashSet<Long>(), new HashSet<>(List.of(CheckResult.ResultOption.CONFORMING,
 						CheckResult.ResultOption.NONCONFORMING, CheckResult.ResultOption.EXEMPTED)));
 				sink.complianceStart();
 				for (PolicyRuleDevice checkResult : checkResults) {
 					sink.complianceResult(checkResult);
 				}
-				session.clear();
 			}
 			if (selection.deviceGroups()) {
-				this.exportGroups(session, selection, sink);
+				log.debug("Exporting group data");
+				List<GroupConfigComplianceStat> groupConfigComplianceStats = this.repository
+					.findGroupConfigComplianceStats(dsl, domains, groups, new HashSet<>());
+				sink.groupsStart(selection.compliance());
+				for (GroupConfigComplianceStat stat : groupConfigComplianceStats) {
+					sink.group(stat);
+				}
+				log.debug("Exporting group memberships");
+				sink.membershipsStart();
+				for (ExportedMembership membership : this.repository.findMembershipsToExport(dsl, domains, groups)) {
+					sink.membership(membership);
+				}
 			}
 			if (selection.deviceDriverAttributes()) {
-				this.exportAttributes(session, selection, sink);
+				this.exportAttributes(dsl, selection, sink);
 			}
 			return null;
 		});
 	}
 
-	private List<String> selectionNames(Session session, Set<Long> ids, boolean domain) {
-		if (ids.isEmpty()) {
-			return null;
-		}
-		List<String> names = new ArrayList<>();
-		if (domain) {
-			for (Domain deviceDomain : this.repository.findDomains(session, ids)) {
-				names.add(String.format("%s (%d)", deviceDomain.getName(), deviceDomain.getId()));
-			}
-		}
-		else {
-			for (DeviceGroup group : this.repository.findDeviceGroups(session, ids)) {
-				names.add(String.format("%s (%d)", group.getName(), group.getId()));
-			}
-		}
-		return names;
-	}
-
-	private void exportDevices(Session session, ReportExportSelection selection, ReportExportSink sink) {
+	private void exportDevices(DSLContext dsl, ReportExportSelection selection, ReportExportSink sink) {
 		sink.devicesStart(selection.compliance(), selection.locations());
 		for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
-			List<Device> devices = this.repository.findDevicesToExport(session, selection.domains(), selection.groups(),
+			List<ExportedDevice> devices = this.repository.findDevicesToExport(dsl, selection.domains(), selection.groups(),
 				new Page(n, EXPORT_PAGE_SIZE));
 			if (devices.size() == 0) {
 				break;
 			}
-			for (Device device : devices) {
-				sink.device(new ExportedDevice(device.getId(), device.getName(), device.getMgmtAddress(),
-					device.getMgmtDomain().getName(), device.getNetworkClass(), device.getFamily(),
-					device.getCreatedDate(), device.getChangeDate(), device.getSoftwareVersion(),
-					device.getSoftwareLevel(), device.getEosDate(), device.getEolDate(), device.getLocation(),
-					device.getContact()));
+			for (ExportedDevice device : devices) {
+				sink.device(device);
 			}
 		}
 	}
 
-	private void exportInterfaces(Session session, ReportExportSelection selection, ReportExportSink sink) {
-		log.debug("Exporting interface data");
-		List<NetworkInterface> networkInterfaces = this.repository.findInterfacesToExport(session,
-			selection.domains(), selection.groups());
-		sink.interfacesStart();
-		for (NetworkInterface networkInterface : networkInterfaces) {
-			Device device = networkInterface.getDevice();
-			List<ExportedAddress> addresses = new ArrayList<>();
-			for (NetworkAddress address : networkInterface.getIpAddresses()) {
-				addresses.add(new ExportedAddress(address.getIp(), address.getPrefixLength(), address.getAddressUsage()));
-			}
-			sink.networkInterface(new ExportedInterface(device.getId(), device.getName(),
-				networkInterface.getVirtualDevice(), networkInterface.getInterfaceName(),
-				networkInterface.getDescription(), networkInterface.getVrfInstance(), networkInterface.getMacAddress(),
-				networkInterface.isEnabled(), networkInterface.isLevel3(), addresses));
-		}
-		session.clear();
-	}
-
-	private void exportInventory(Session session, ReportExportSelection selection, ReportExportSink sink) {
+	private void exportInventory(DSLContext dsl, ReportExportSelection selection, ReportExportSink sink) {
 		log.debug("Exporting device inventory");
 		sink.inventoryStart(selection.inventoryHistory());
 		for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
-			List<Module> modules = this.repository.findModulesToExport(session, selection.inventoryHistory(),
+			List<ExportedModule> modules = this.repository.findModulesToExport(dsl, selection.inventoryHistory(),
 				selection.domains(), selection.groups(), new Page(n, EXPORT_PAGE_SIZE));
 			if (modules.size() == 0) {
 				break;
 			}
-			for (Module module : modules) {
-				Device device = module.getDevice();
-				sink.module(new ExportedModule(device.getId(), device.getName(), module.getSlot(),
-					module.getPartNumber(), module.getSerialNumber(), module.getFirstSeenDate(),
-					module.getLastSeenDate(), module.isRemoved()));
-			}
-			session.clear();
-		}
-	}
-
-	private void exportGroups(Session session, ReportExportSelection selection, ReportExportSink sink) {
-		{
-			log.debug("Exporting group data");
-			List<GroupConfigComplianceStat> groupConfigComplianceStats = this.repository
-				.findGroupConfigComplianceStats(session, selection.domains(), selection.groups(), new HashSet<>());
-			sink.groupsStart(selection.compliance());
-			for (GroupConfigComplianceStat stat : groupConfigComplianceStats) {
-				sink.group(stat);
-			}
-			session.clear();
-		}
-		{
-			log.debug("Exporting group memberships");
-			sink.membershipsStart();
-			for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
-				List<Device> devices = this.repository.findDevicesWithGroupsToExport(session, selection.domains(),
-					selection.groups(), new Page(n, EXPORT_PAGE_SIZE));
-				if (devices.size() == 0) {
-					break;
-				}
-				for (Device device : devices) {
-					for (DeviceGroup group : device.getOwnerGroups()) {
-						if (group.isHiddenFromReports()) {
-							continue;
-						}
-						sink.membership(new ExportedMembership(device.getId(), device.getName(), group.getId(),
-							group.getName()));
-					}
-				}
-				session.clear();
+			for (ExportedModule module : modules) {
+				sink.module(module);
 			}
 		}
 	}
 
-	private void exportAttributes(Session session, ReportExportSelection selection, ReportExportSink sink) {
+	private void exportAttributes(DSLContext dsl, ReportExportSelection selection, ReportExportSink sink) {
 		log.debug("Exporting driver-specific device attributes");
 		sink.attributesStart();
 		for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
-			List<DeviceAttribute> attributes = this.repository.findDeviceAttributesToExport(session,
+			List<AttributeToExport> attributes = this.repository.findDeviceAttributesToExport(dsl,
 				selection.domains(), selection.groups(), new Page(n, EXPORT_PAGE_SIZE));
 			if (attributes.size() == 0) {
 				break;
 			}
-			for (DeviceAttribute attribute : attributes) {
+			for (AttributeToExport attribute : attributes) {
 				try {
-					String value = attribute.getData().toString();
-					Device device = attribute.getDevice();
-					DeviceDriver driver = this.driverRegistry.forDevice(device);
-					AttributeDefinition definition = driver.getAttributeDefinition(AttributeLevel.DEVICE, attribute.getName());
-					sink.attribute(new ExportedAttribute(device.getId(), device.getName(),
+					String value = attribute.value().toString();
+					DeviceDriver driver = this.driverRegistry.forDevice(attribute.deviceId(), attribute.driver());
+					AttributeDefinition definition = driver.getAttributeDefinition(AttributeLevel.DEVICE, attribute.name());
+					sink.attribute(new ExportedAttribute(attribute.deviceId(), attribute.deviceName(),
 						definition == null ? null : definition.getTitle(), value));
 				}
 				catch (Exception e) {
-					log.warn("Error while exporting attribute (ID {}, name {})... skipping",
-						attribute.getId(), attribute.getName(), e);
+					log.warn("Error while exporting attribute (device {}, name {})... skipping",
+						attribute.deviceId(), attribute.name(), e);
 				}
 			}
-			session.clear();
 		}
 	}
 }

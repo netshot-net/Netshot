@@ -1,19 +1,6 @@
 <?xml version="1.0"?>
 <ArrayList>
   <item>
-    <configCompliant>true</configCompliant>
-    <driver>CiscoIOS12</driver>
-    <eol>false</eol>
-    <eos>false</eos>
-    <family/>
-    <id>4</id>
-    <mgmtAddress>2001:db8::4</mgmtAddress>
-    <name>bare-1</name>
-    <networkClass>UNKNOWN</networkClass>
-    <softwareLevel>UNKNOWN</softwareLevel>
-    <status>INPRODUCTION</status>
-  </item>
-  <item>
     <configCompliant>false</configCompliant>
     <driver>CiscoIOS12</driver>
     <eol>false</eol>
@@ -51,5 +38,18 @@
     <networkClass>SERVER</networkClass>
     <softwareLevel>UNKNOWN</softwareLevel>
     <status>PREPRODUCTION</status>
+  </item>
+  <item>
+    <configCompliant>true</configCompliant>
+    <driver>CiscoIOS12</driver>
+    <eol>false</eol>
+    <eos>false</eos>
+    <family/>
+    <id>4</id>
+    <mgmtAddress>2001:db8::4</mgmtAddress>
+    <name>bare-1</name>
+    <networkClass>UNKNOWN</networkClass>
+    <softwareLevel>UNKNOWN</softwareLevel>
+    <status>INPRODUCTION</status>
   </item>
 </ArrayList>

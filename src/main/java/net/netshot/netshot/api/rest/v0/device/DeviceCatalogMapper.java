@@ -61,15 +61,15 @@ public final class DeviceCatalogMapper {
 	/**
 	 * Maps the network interfaces to their representation.
 	 *
-	 * @param interfaces the interfaces, with their IP addresses loaded
+	 * @param interfaces the interfaces
 	 * @return the DTOs, in the same order
 	 */
 	public static List<NetworkInterfaceDto> toInterfaceDtos(List<NetworkInterface> interfaces) {
 		List<NetworkInterfaceDto> dtos = new ArrayList<>(interfaces.size());
 		interfaces.forEach(networkInterface -> dtos.add(toDto(networkInterface)));
 		if (interfaces.getClass() != ArrayList.class) {
-			// Quirk kept: a paginated query with a collection fetch is paginated in memory and answers a
-			// sub list, which XML publishes as <SubList> instead of <ArrayList>
+			// Quirk kept: the interfaces are answered as a sub list when they are paginated
+			// (see DeviceRepository#findInterfaces), which XML publishes as <SubList>
 			return dtos.subList(0, dtos.size());
 		}
 		return dtos;
@@ -77,15 +77,15 @@ public final class DeviceCatalogMapper {
 
 	private static NetworkInterfaceDto toDto(NetworkInterface networkInterface) {
 		return new NetworkInterfaceDto(
-			networkInterface.getId(),
-			networkInterface.getInterfaceName(),
-			toAddressDtos(networkInterface.getIp4Addresses()),
-			toAddressDtos(networkInterface.getIp6Addresses()),
-			networkInterface.getVrfInstance(),
-			networkInterface.getVirtualDevice(),
-			networkInterface.getDescription(),
-			networkInterface.isEnabled(),
-			networkInterface.isLevel3(),
+			networkInterface.id(),
+			networkInterface.interfaceName(),
+			toAddressDtos(networkInterface.ip4Addresses()),
+			toAddressDtos(networkInterface.ip6Addresses()),
+			networkInterface.vrfInstance(),
+			networkInterface.virtualDevice(),
+			networkInterface.description(),
+			networkInterface.enabled(),
+			networkInterface.level3(),
 			networkInterface.getMacAddress());
 	}
 

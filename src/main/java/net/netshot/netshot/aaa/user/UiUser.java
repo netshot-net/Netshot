@@ -19,24 +19,13 @@
 package net.netshot.netshot.aaa.user;
 
 import java.io.InvalidClassException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.hibernate.annotations.NaturalId;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
@@ -44,15 +33,20 @@ import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
 
 /**
- * The User class represents a Netshot user.
+ * A Netshot user: a local one (with a password stored in Netshot), or a remote one (authenticated
+ * by RADIUS, TACACS+ or OIDC, possibly with a local entry to override its level).
+ *
+ * @param id the ID (0 for a user not stored, such as a remote user without local entry)
+ * @param username the user name
+ * @param local true for a local user
+ * @param level the authorization level
+ * @param hashedPassword the hash of the password
+ * @param oldHashedPasswords the hashes of the previous passwords, most recent first
+ * @param lastPasswordChangeDate when the password was last changed (null if unknown)
  */
-@Entity(name = "\"user\"")
-@Table(indexes = {
-	@Index(name = "usernameIndex", columnList = "username")
-})
-@EqualsAndHashCode
 @Slf4j
-public class UiUser implements User {
+public record UiUser(long id, String username, boolean local, int level, String hashedPassword,
+	List<String> oldHashedPasswords, Instant lastPasswordChangeDate) implements User {
 
 	/**
 	 * Settings/config for the current class.
@@ -102,97 +96,114 @@ public class UiUser implements User {
 		UiUser.SETTINGS.load();
 	}
 
-	/** The id. */
-	@Getter(onMethod = @__({
-		@Id,
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-	}))
-	@Setter
-	private long id;
-
-	/** The local. */
-	@Getter
-	@Setter
-	private boolean local;
-
-	/** The hashed password. */
-	@Getter
-	@Setter
-	private String hashedPassword;
-
-	/** The previous password hashes. */
-	@Getter
-	@Setter
-	private List<String> oldHashedPasswords = new ArrayList<>();
-
-	/** Date of last password change. */
-	@Getter
-	@Setter
-	private Date lastPasswordChangeDate;
-
-	/** The username. */
-	@Getter(onMethod = @__({
-		@NaturalId(mutable = true)
-	}))
-	@Setter
-	private String username;
-
-	/** The level. */
-	@Getter
-	@Setter
-	private int level = User.LEVEL_ADMIN;
-
 	/**
-	 * Instantiates a new user.
-	 */
-	protected UiUser() {
-
-	}
-
-	/**
-	 * Instantiates a new user.
+	 * Builds a user with a password (not checked against the password policy), not stored yet.
 	 *
-	 * @param username the username
+	 * @param username the user name
 	 * @param local true for a local user
-	 * @param password the password
+	 * @param level the authorization level
+	 * @param password the clear password
+	 * @return the user
 	 */
-	public UiUser(String username, boolean local, String password) {
-		this.username = username;
-		this.local = local;
-		this.setPassword(password);
-	}
-
-	public UiUser(String name, int level) {
-		this.username = name;
-		this.level = level;
-		this.local = false;
+	public static UiUser withPassword(String username, boolean local, int level, String password) {
+		return new UiUser(0, username, local, level, null, List.of(), null).withPassword(password);
 	}
 
 	/**
-	 * Sets the password.
+	 * Builds a remote user, as authenticated by a remote server.
+	 *
+	 * @param username the user name
+	 * @param level the authorization level
+	 * @return the user
+	 */
+	public static UiUser remote(String username, int level) {
+		return new UiUser(0, username, false, level, null, List.of(), null);
+	}
+
+	/**
+	 * Canonical constructor: the password history is copied, none means an empty one.
+	 */
+	public UiUser {
+		oldHashedPasswords = oldHashedPasswords == null ? List.of() : List.copyOf(oldHashedPasswords);
+	}
+
+	/**
+	 * Gets a copy of the user with another ID.
+	 *
+	 * @param newId the ID
+	 * @return the user
+	 */
+	public UiUser withId(long newId) {
+		return new UiUser(newId, this.username, this.local, this.level, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+	}
+
+	/**
+	 * Gets a copy of the user with another level.
+	 *
+	 * @param newLevel the level
+	 * @return the user
+	 */
+	public UiUser withLevel(int newLevel) {
+		return new UiUser(this.id, this.username, this.local, newLevel, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+	}
+
+	/**
+	 * Gets a copy of the user with new settings, keeping the password.
+	 *
+	 * @param newUsername the user name
+	 * @param newLocal true for a local user
+	 * @param newLevel the level
+	 * @return the user
+	 */
+	public UiUser withSettings(String newUsername, boolean newLocal, int newLevel) {
+		return new UiUser(this.id, newUsername, newLocal, newLevel, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+	}
+
+	/**
+	 * Gets a copy of the user with another password hash (the history and change date are kept).
+	 *
+	 * @param newHashedPassword the hash
+	 * @return the user
+	 */
+	public UiUser withHashedPassword(String newHashedPassword) {
+		return new UiUser(this.id, this.username, this.local, this.level, newHashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+	}
+
+	/**
+	 * Gets a copy of the user with another password change date.
+	 *
+	 * @param date the date
+	 * @return the user
+	 */
+	public UiUser withLastPasswordChangeDate(Instant date) {
+		return new UiUser(this.id, this.username, this.local, this.level, this.hashedPassword, this.oldHashedPasswords, date);
+	}
+
+	/**
+	 * Gets a copy of the user with a new password, changed now (the history is kept as is).
 	 *
 	 * @param password the new password
+	 * @return the user
 	 */
-	public void setPassword(String password) {
-		this.setHashedPassword(UiUser.hash(password));
-		this.setLastPasswordChangeDate(new Date());
+	public UiUser withPassword(String password) {
+		return new UiUser(this.id, this.username, this.local, this.level, UiUser.hash(password), this.oldHashedPasswords, Instant.now());
 	}
 
 	/**
-	 * Sets the password if it complies with the given policy.
+	 * Gets a copy of the user with a new password which complies with the given policy:
+	 * the current password goes to the history.
 	 *
 	 * @param password the new password
 	 * @param policy the policy to check
+	 * @return the user
+	 * @throws PasswordPolicyException if the password doesn't comply with the policy
 	 */
-	public void setPassword(String password, PasswordPolicy policy) throws PasswordPolicyException {
+	public UiUser withPassword(String password, PasswordPolicy policy) throws PasswordPolicyException {
 		for (Map.Entry<PasswordPolicy.CharMatch, Integer> e : policy.getMinCharMatchCounts().entrySet()) {
 			if (e.getKey().countMatches(password) < e.getValue()) {
 				throw new PasswordPolicyException(String.format(
 					"The password doesn't match the defined policy: %s", e.getKey().getDescription()));
 			}
-		}
-		if (this.oldHashedPasswords == null) {
-			this.oldHashedPasswords = new ArrayList<>();
 		}
 		int size = Math.min(policy.getMaxHistory(), this.oldHashedPasswords.size());
 		for (int i = 0; i < size; i++) {
@@ -209,13 +220,14 @@ public class UiUser implements User {
 				log.error("Error while computing/checking user password hash vs old hash", e);
 			}
 		}
-		if (this.getHashedPassword() != null) {
-			this.oldHashedPasswords.addFirst(this.getHashedPassword());
+		List<String> history = new ArrayList<>(this.oldHashedPasswords);
+		if (this.hashedPassword != null) {
+			history.addFirst(this.hashedPassword);
 		}
-		while (this.oldHashedPasswords.size() > policy.getMaxHistory()) {
-			this.oldHashedPasswords.removeLast();
+		while (history.size() > policy.getMaxHistory()) {
+			history.removeLast();
 		}
-		this.setPassword(password);
+		return new UiUser(this.id, this.username, this.local, this.level, UiUser.hash(password), history, Instant.now());
 	}
 
 	/**
@@ -248,9 +260,7 @@ public class UiUser implements User {
 		if (days == 0) {
 			return;
 		}
-		Calendar lastValidCal = Calendar.getInstance();
-		lastValidCal.add(Calendar.DATE, -1 * policy.getMaxDuration());
-		if (this.lastPasswordChangeDate.before(lastValidCal.getTime())) {
+		if (this.lastPasswordChangeDate.isBefore(Instant.now().minus(days, ChronoUnit.DAYS))) {
 			throw new PasswordPolicyException("Password has expired, it must be changed");
 		}
 	}
@@ -259,7 +269,6 @@ public class UiUser implements User {
 	 * @see java.security.Principal#getName()
 	 */
 	@Override
-	@Transient
 	public String getName() {
 		return username;
 	}

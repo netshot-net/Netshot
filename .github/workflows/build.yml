@@ -85,6 +85,10 @@ jobs:
       - name: Run the tests
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock builder ./mvnw test
 
+      - name: Run the database tests on the latest PostgreSQL
+        # The tests run on the oldest supported PostgreSQL by default
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock builder ./mvnw test -Pdocker -Dnetshot.test.postgres=postgres:18
+
       - name: Build and push the image
         uses: docker/build-push-action@v7
         with:

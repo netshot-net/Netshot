@@ -18,10 +18,13 @@
  */
 package net.netshot.netshot.api.rest.v0;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +57,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
@@ -98,14 +100,10 @@ class InventoryDtoTest {
 	@Test
 	@DisplayName("Both kinds of groups have the same JSON and XML representation as the entities, alone and in a list")
 	void groups() throws Exception {
-		DynamicDeviceGroup dynamic = new DynamicDeviceGroup("Dynamic", "CiscoIOS12", "[Name] contains \"r\"");
-		dynamic.setId(10);
-		dynamic.setFolder("Production");
-		dynamic.setHiddenFromReports(true);
-		dynamic.setChangeDate(new Date(1_600_000_200_000L));
-		StaticDeviceGroup fixed = new StaticDeviceGroup("Static");
-		fixed.setId(11);
-		fixed.setChangeDate(new Date(1_600_000_300_000L));
+		DynamicDeviceGroup dynamic = DynamicDeviceGroup.builder().id(10).name("Dynamic").query("[Name] contains \"r\"")
+			.folder("Production").hiddenFromReports(true).changeDate(Instant.ofEpochMilli(1_600_000_200_000L)).build();
+		StaticDeviceGroup fixed = StaticDeviceGroup.builder().id(11).name("Static").folder("")
+			.changeDate(Instant.ofEpochMilli(1_600_000_300_000L)).build();
 		this.assertRepresentation(GroupMapper.toDto(dynamic));
 		this.assertRepresentation(GroupMapper.toDto(fixed));
 		List<DeviceGroup> entities = new ArrayList<>(List.of(dynamic, fixed));
@@ -116,21 +114,18 @@ class InventoryDtoTest {
 	}
 
 	private static Config fullConfig() {
-		Device device = new Device("CiscoIOS12", "10.1.1.1", null, "seed");
-		Config config = new Config(device);
-		config.setId(7);
-		config.setAuthor("tester");
-		config.setChangeDate(new Date(1_600_000_000_000L));
-		config.setCustomHash("hash");
-		config.addAttribute(new ConfigTextAttribute(config, "text", "some text"));
-		config.addAttribute(new ConfigNumericAttribute(config, "number", 12.5));
-		config.addAttribute(new ConfigLongTextAttribute(config, "long", "some very long text"));
-		config.addAttribute(new ConfigBinaryAttribute(config, "binary", true));
-		ConfigBinaryFileAttribute file = new ConfigBinaryFileAttribute(config, "file", "backup.tar.gz");
-		file.setFileSize(4096);
-		file.setChecksum("0123456789abcdef");
-		config.addAttribute(file);
-		return config;
+		return Config.builder()
+			.id(7)
+			.author("tester")
+			.changeDate(Instant.ofEpochMilli(1_600_000_000_000L))
+			.customHash("hash")
+			.attributes(List.of(
+				new ConfigTextAttribute("text", "some text"),
+				new ConfigNumericAttribute("number", 12.5),
+				new ConfigLongTextAttribute("long", "some very long text"),
+				new ConfigBinaryAttribute("binary", true),
+				ConfigBinaryFileAttribute.create("file", "backup.tar.gz").withFile(4096, "0123456789abcdef")))
+			.build();
 	}
 
 	@Test
@@ -145,7 +140,7 @@ class InventoryDtoTest {
 		Assertions.assertFalse(json.contains("some very long text"), "long texts are not part of the representation");
 		this.assertRepresentation(new ArrayList<>(ConfigMapper.toDtos(new ArrayList<>(List.of(config)))));
 
-		Config bare = new Config(config.getDevice());
+		Config bare = Config.empty(config.deviceId());
 		this.assertRepresentation(ConfigMapper.toDto(bare));
 	}
 
@@ -161,18 +156,19 @@ class InventoryDtoTest {
 	@Test
 	@DisplayName("An interface has the same representation as the entity, with IPv4 and IPv6 addresses of every usage")
 	void networkInterface() throws Exception {
-		NetworkInterface networkInterface = new NetworkInterface(null, "Gi0/0", "vd", "VRF1", true, true, "Uplink");
-		networkInterface.setId(3);
+		Set<Network4Address> ip4 = new LinkedHashSet<>();
+		Set<Network6Address> ip6 = new LinkedHashSet<>();
 		Network4Address primary = new Network4Address("10.0.0.1", 24);
 		Network4Address secondary = new Network4Address("10.0.1.1", 24);
 		secondary.setAddressUsage(AddressUsage.SECONDARY);
-		networkInterface.addIpAddress(primary);
-		networkInterface.addIpAddress(secondary);
+		NetworkInterface.addIpAddress(ip4, ip6, primary);
+		NetworkInterface.addIpAddress(ip4, ip6, secondary);
 		Network6Address v6 = new Network6Address("2001:db8::1", 64);
 		v6.setAddressUsage(AddressUsage.HSRP);
-		networkInterface.addIpAddress(v6);
-		NetworkInterface bare = new NetworkInterface(null, null, null, null, false, false, null);
-		bare.setId(4);
+		NetworkInterface.addIpAddress(ip4, ip6, v6);
+		NetworkInterface networkInterface = NetworkInterface.builder().id(3).interfaceName("Gi0/0").virtualDevice("vd").vrfInstance("VRF1")
+			.enabled(true).level3(true).description("Uplink").ip4Addresses(ip4).ip6Addresses(ip6).build();
+		NetworkInterface bare = NetworkInterface.builder().id(4).build();
 		List<NetworkInterface> entities = new ArrayList<>(List.of(networkInterface, bare));
 		List<NetworkInterfaceDto> dtos = DeviceCatalogMapper.toInterfaceDtos(entities);
 		this.assertRepresentation(dtos);
@@ -192,13 +188,13 @@ class InventoryDtoTest {
 	@Test
 	@DisplayName("A domain is published with its IPv4 address only")
 	void domain() throws Exception {
-		Domain domain = new Domain("Paris DC", "Paris data center", new Network4Address("10.255.0.1"), new Network6Address("::"));
-		domain.setId(1);
+		Domain domain = Domain.builder().id(1).name("Paris DC").description("Paris data center")
+			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("::")).build();
 		DomainSummaryDto dto = DomainMapper.toSummaryDto(domain);
 		Assertions.assertEquals(Map.of("description", "Paris data center", "id", 1, "ipAddress", "10.255.0.1", "name", "Paris DC"),
 			JSON.readValue(json(dto), Map.class));
 		Assertions.assertTrue(new String(xml(dto)).startsWith("<RsDomain>"));
-		Domain withoutAddress = new Domain("No address", "", null, null);
+		Domain withoutAddress = Domain.builder().name("No address").description("").build();
 		Assertions.assertNull(DomainMapper.toSummaryDto(withoutAddress).ipAddress());
 	}
 

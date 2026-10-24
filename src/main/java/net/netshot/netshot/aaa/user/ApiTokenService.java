@@ -20,8 +20,7 @@ package net.netshot.netshot.aaa.user;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
+import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,9 +61,9 @@ public class ApiTokenService {
 	 */
 	public List<ApiToken> list(Page page) {
 		try {
-			return this.transactions.read(session -> this.repository.list(session, page));
+			return this.transactions.read(dsl -> this.repository.list(dsl, page));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Unable to retrieve the API tokens.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the API tokens.");
 		}
@@ -80,7 +79,7 @@ public class ApiTokenService {
 		String hash = ApiToken.hashToken(token.trim());
 		try {
 			// Read-write pool, as before: a token just created must work even with a lagging read database
-			ApiToken apiToken = this.transactions.write(session -> this.repository.findByHash(session, hash));
+			ApiToken apiToken = this.transactions.write(dsl -> this.repository.findByHash(dsl, hash));
 			if (apiToken == null) {
 				AAA_LOG.warn("Invalid API token received.");
 			}
@@ -89,7 +88,7 @@ public class ApiTokenService {
 			}
 			return apiToken;
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Database error while looking for API token", e);
 			return null;
 		}
@@ -115,18 +114,19 @@ public class ApiTokenService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_API_TOKEN_FORMAT, "Invalid token format.");
 		}
 
-		ApiToken apiToken = new ApiToken(description, token, level);
+		ApiToken valid = ApiToken.of(description, token, level);
 
+		ApiToken apiToken;
 		try {
-			this.transactions.run(session -> {
-				if (this.repository.existsByHash(session, apiToken.getHashedToken())) {
+			apiToken = valid.withId(this.transactions.write(dsl -> {
+				if (this.repository.existsByHash(dsl, valid.hashedToken())) {
 					log.warn("The passed token is already registered");
 					throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, "This token is already registered.");
 				}
-				this.repository.persist(session, apiToken);
-			});
+				return this.repository.add(dsl, valid);
+			}));
 		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			log.error("Error while saving the new API token.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the API token to the database");
 		}
@@ -143,21 +143,17 @@ public class ApiTokenService {
 	public boolean delete(long id) {
 		ApiToken apiToken;
 		try {
-			apiToken = this.transactions.write(session -> {
-				ApiToken existing = this.repository.find(session, id);
+			apiToken = this.transactions.write(dsl -> {
+				ApiToken existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.info("No such API token of ID {}", id);
 					return null;
 				}
-				this.repository.remove(session, existing);
+				this.repository.remove(dsl, existing.id());
 				return existing;
 			});
 		}
-		catch (ObjectNotFoundException e) {
-			log.error("The API token doesn't exist.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "The API token doesn't exist.");
-		}
-		catch (HibernateException e) {
+		catch (DataAccessException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the API token.");
 		}
 		if (apiToken == null) {

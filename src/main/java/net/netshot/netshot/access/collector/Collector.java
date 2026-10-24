@@ -89,9 +89,9 @@ public abstract class Collector extends Thread {
 		if (domain == null) {
 			throw new IllegalArgumentException("Unable to find collector address be cause domain is null");
 		}
-		NetworkAddress ip = domain.getServer4Address();
+		NetworkAddress ip = domain.server4Address();
 		if (ip == null) {
-			throw new IllegalArgumentException("Domain %s (%d) has no server address".formatted(domain.getName(), domain.getId()));
+			throw new IllegalArgumentException("Domain %s (%d) has no server address".formatted(domain.name(), domain.id()));
 		}
 		ip = Collector.SETTINGS.clusterIpOverrides.getOrDefault(ip, ip);
 		return ip;

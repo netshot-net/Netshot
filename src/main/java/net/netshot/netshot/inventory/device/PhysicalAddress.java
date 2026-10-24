@@ -22,22 +22,16 @@ import java.text.ParseException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 
 /**
  * A MAC address.
  */
-@Embeddable
 public final class PhysicalAddress {
 
 	/** The address. */
-	@Getter(onMethod = @__({
-		@Column(name = "physicalAddress")
-	}))
+	@Getter
 	@Setter
 	private long address;
 
@@ -165,7 +159,6 @@ public final class PhysicalAddress {
 	 *
 	 * @return the long address
 	 */
-	@Transient
 	public long getLongAddress() {
 		return this.address;
 	}

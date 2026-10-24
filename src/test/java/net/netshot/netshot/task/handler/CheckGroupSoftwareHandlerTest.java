@@ -18,9 +18,8 @@
  */
 package net.netshot.netshot.task.handler;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -36,10 +35,13 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
+import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.testing.DatabaseTest;
-import net.netshot.netshot.testing.fake.FakeDeviceFactory;
+import net.netshot.netshot.testing.TestCompliance;
+import net.netshot.netshot.testing.TestDevices;
 
 /**
  * Characterization of {@link CheckGroupSoftwareHandler}, run through the task engine: the software
@@ -65,15 +67,15 @@ class CheckGroupSoftwareHandlerTest {
 
 	@BeforeEach
 	void createDevices() {
-		Domain domain = new Domain("Lab", "Test domain", null, null);
-		this.inGroup = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
-		this.outOfGroup = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 2);
-		this.group = new StaticDeviceGroup("Routers");
-		this.group.addDevice(this.inGroup);
-		TaskRunner.persist(domain, this.inGroup, this.outOfGroup, this.group,
-			new SoftwareRule(20, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.SILVER),
-			new SoftwareRule(10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE),
-			new HardwareRule("CiscoIOS12", null, "", false, "TESTCHASSIS", false, daysFromNow(-10), daysFromNow(-5)));
+		Domain domain = TestDevices.addDomain("Lab", "Test domain");
+		this.inGroup = TestDevices.addFakeCiscoIos(domain, 1);
+		this.outOfGroup = TestDevices.addFakeCiscoIos(domain, 2);
+		this.group = TestDevices.addStaticGroup("Routers");
+		TestDevices.addMembers(this.group, this.inGroup);
+		TestCompliance.softwareRules(
+			new SoftwareRule(0, 20, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.SILVER),
+			new SoftwareRule(0, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE));
+		TestCompliance.hardwareRules(new HardwareRule(0, "CiscoIOS12", null, "", false, "TESTCHASSIS", false, daysFromNow(-10), daysFromNow(-5)));
 	}
 
 	@AfterEach
@@ -81,47 +83,45 @@ class CheckGroupSoftwareHandlerTest {
 		TaskRunner.cleanDatabase();
 	}
 
-	private static Date daysFromNow(int days) {
-		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.DATE, days);
-		return calendar.getTime();
+	private static Instant daysFromNow(int days) {
+		return Instant.now().plus(days, ChronoUnit.DAYS);
 	}
 
 	private static Device reload(Device device) {
-		return TaskRunner.inSession(session -> session.get(Device.class, device.getId()));
+		return TestDevices.find(device.id());
 	}
 
 	@Test
 	@DisplayName("Checks the devices of the group only")
 	void checksTheDevicesOfTheGroup() throws Exception {
-		long id = this.runner.run(new CheckGroupSoftwareTask(this.group, "Test", "tester"));
+		long id = this.runner.run(GroupBasedTask.of(new CheckGroupSoftwareTask(this.group.id(), null), this.group.name(), "Test", "tester"));
 
-		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(CheckGroupSoftwareTask.class, id).getStatus());
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
 		Device checked = reload(this.inGroup);
-		Assertions.assertEquals(ConformanceLevel.BRONZE, checked.getSoftwareLevel(), "First matching rule by priority");
+		Assertions.assertEquals(ConformanceLevel.BRONZE, checked.softwareLevel(), "First matching rule by priority");
 		Assertions.assertTrue(checked.isEndOfSale());
 		Assertions.assertTrue(checked.isEndOfLife());
 		Device unchecked = reload(this.outOfGroup);
-		Assertions.assertEquals(ConformanceLevel.GOLD, unchecked.getSoftwareLevel(), "Device out of the group left as is");
+		Assertions.assertEquals(ConformanceLevel.GOLD, unchecked.softwareLevel(), "Device out of the group left as is");
 		Assertions.assertFalse(unchecked.isEndOfSale());
 	}
 
 	@Test
 	@DisplayName("Checks the devices of a list")
 	void checksTheDevicesOfAList() throws Exception {
-		this.runner.run(new CheckGroupSoftwareTask(List.of(this.outOfGroup), "Test", "tester"));
+		this.runner.run(TaskRunner.forDevices(new CheckGroupSoftwareTask(null, TaskRunner.ids(this.outOfGroup)), "Test", "tester"));
 
-		Assertions.assertEquals(ConformanceLevel.BRONZE, reload(this.outOfGroup).getSoftwareLevel());
-		Assertions.assertEquals(ConformanceLevel.GOLD, reload(this.inGroup).getSoftwareLevel(), "Device out of the list left as is");
+		Assertions.assertEquals(ConformanceLevel.BRONZE, reload(this.outOfGroup).softwareLevel());
+		Assertions.assertEquals(ConformanceLevel.GOLD, reload(this.inGroup).softwareLevel(), "Device out of the list left as is");
 	}
 
 	@Test
 	@DisplayName("Is cancelled without group nor device")
 	void cancelledWithoutTarget() throws Exception {
-		long id = this.runner.run(new CheckGroupSoftwareTask(List.of(), "Test", "tester"));
+		long id = this.runner.run(TaskRunner.forDevices(new CheckGroupSoftwareTask(null, TaskRunner.ids()), "Test", "tester"));
 
-		CheckGroupSoftwareTask task = TaskRunner.load(CheckGroupSoftwareTask.class, id);
-		Assertions.assertEquals(Status.CANCELLED, task.getStatus());
-		Assertions.assertTrue(task.getLog().contains("Neither a device group nor a device list is set"), task.getLog());
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.CANCELLED, task.status());
+		Assertions.assertTrue(task.log().contains("Neither a device group nor a device list is set"), task.log());
 	}
 }

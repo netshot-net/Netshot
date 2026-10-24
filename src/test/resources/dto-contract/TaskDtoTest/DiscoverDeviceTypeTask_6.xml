@@ -3,13 +3,13 @@
   <author>author-6</author>
   <cancelRequested>true</cancelRequested>
   <changeDate>1600000000006</changeDate>
-  <checkCompliance>true</checkCompliance>
+  <checkCompliance>false</checkCompliance>
   <childOrder>6</childOrder>
   <comments>Comments of 6</comments>
   <creationDate>1500000000006</creationDate>
   <debugEnabled>true</debugEnabled>
   <deviceAddress>10.9.9.10</deviceAddress>
-  <deviceDriver>CiscoIOS12</deviceDriver>
+  <deviceDriver/>
   <deviceId>0</deviceId>
   <discoveredDeviceTypeDescription>Unknown</discoveredDeviceTypeDescription>
   <executionDate/>
@@ -19,20 +19,18 @@
   <parentTaskId>106</parentTaskId>
   <priority>7</priority>
   <repeating>true</repeating>
-  <runDiagnostics>true</runDiagnostics>
-  <runSnapshot>true</runSnapshot>
+  <runDiagnostics>false</runDiagnostics>
+  <runSnapshot>false</runSnapshot>
   <runnerId>&lt;runnerId&gt;</runnerId>
   <scheduleFactor>3</scheduleFactor>
   <scheduleMode>SEQUENTIAL</scheduleMode>
   <scheduleReference>1700000000000</scheduleReference>
   <scheduleType>WEEKLY</scheduleType>
-  <script>script of 6</script>
+  <script/>
   <snapshotTaskId>0</snapshotTaskId>
   <status>NEW</status>
   <stopOnFailure>true</stopOnFailure>
   <target>10.9.9.10</target>
   <taskDescription>Device autodiscovery</taskDescription>
-  <userInputValues>
-    <input>value</input>
-  </userInputValues>
+  <userInputValues/>
 </DiscoverDeviceTypeTask>
