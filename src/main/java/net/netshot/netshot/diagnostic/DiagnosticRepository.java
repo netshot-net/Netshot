@@ -21,8 +21,11 @@ package net.netshot.netshot.diagnostic;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC;
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;
+import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -187,12 +190,19 @@ public class DiagnosticRepository {
 	}
 
 	/**
-	 * Deletes all the results of a diagnostic.
+	 * Deletes all the results of a diagnostic, with their long texts.
 	 *
 	 * @param dsl the jOOQ context
 	 * @param diagnosticId the diagnostic ID
 	 */
 	public void deleteResults(DSLContext dsl, long diagnosticId) {
-		dsl.deleteFrom(DIAGNOSTIC_RESULT).where(DIAGNOSTIC_RESULT.DIAGNOSTIC.eq(diagnosticId)).execute();
+		List<Long> longTextIds = new ArrayList<>(dsl.deleteFrom(DIAGNOSTIC_RESULT)
+			.where(DIAGNOSTIC_RESULT.DIAGNOSTIC.eq(diagnosticId))
+			.returning(DIAGNOSTIC_RESULT.LONG_TEXT)
+			.fetch(DIAGNOSTIC_RESULT.LONG_TEXT));
+		longTextIds.removeIf(Objects::isNull);
+		if (!longTextIds.isEmpty()) {
+			dsl.deleteFrom(LONG_TEXT_CONFIGURATION).where(LONG_TEXT_CONFIGURATION.ID.in(longTextIds)).execute();
+		}
 	}
 }
