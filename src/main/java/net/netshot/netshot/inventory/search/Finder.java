@@ -1343,26 +1343,24 @@ public class Finder {
 
 				Ipv4Expression ipExpr = new Ipv4Expression();
 				if (value.type == TokenType.IPV4) {
-					if (comparator.type != TokenType.IS) {
+					if (comparator.type != TokenType.IS && comparator.type != TokenType.CONTAINS) {
 						throw new FinderParseException("Invalid operator for simple IP at character %d.".formatted(comparator.position));
 					}
 					ip = value.value;
 					ipExpr.withMask = false;
 				}
 				else if (value.type == TokenType.SUBNETV4) {
-					if (comparator.type != TokenType.IS
-						&& comparator.type != TokenType.IN
-						&& comparator.type != TokenType.CONTAINS) {
+					if (comparator.type != TokenType.IS && comparator.type != TokenType.IN) {
+						if (comparator.type == TokenType.CONTAINS) {
+							throw new FinderParseException(
+								"'IP contains' must be followed by a simple IP address (at character %d).".formatted(comparator.position));
+						}
 						throw new FinderParseException("Invalid operator for IP subnet at character %d.".formatted(comparator.position));
 					}
 					String[] values = value.value.split("/");
 					ip = values[0];
 					prefixLength = Integer.parseInt(values[1]);
 					ipExpr.withMask = true;
-					if (comparator.type == TokenType.CONTAINS && ipExpr.withMask) {
-						throw new FinderParseException(
-							"'IP contains' must be followed by a simple IP address (at character %d).".formatted(comparator.position));
-					}
 				}
 				else {
 					return null;
@@ -1453,15 +1451,18 @@ public class Finder {
 
 				Ipv6Expression ipExpr = new Ipv6Expression();
 				if (value.type == TokenType.IPV6) {
-					if (comparator.type != TokenType.IS) {
+					if (comparator.type != TokenType.IS && comparator.type != TokenType.CONTAINS) {
 						throw new FinderParseException("Invalid operator for simple IP at character %d.".formatted(comparator.position));
 					}
 					ip = value.value;
 					ipExpr.withMask = false;
 				}
 				else if (value.type == TokenType.SUBNETV6) {
-					if (comparator.type != TokenType.IS
-						&& comparator.type != TokenType.IN) {
+					if (comparator.type != TokenType.IS && comparator.type != TokenType.IN) {
+						if (comparator.type == TokenType.CONTAINS) {
+							throw new FinderParseException(
+								"'IP contains' must be followed by a simple IP address (at character %d).".formatted(comparator.position));
+						}
 						throw new FinderParseException("Invalid operator for IP subnet at character %d.".formatted(comparator.position));
 					}
 					String[] values = value.value.split("/");
@@ -1507,6 +1508,10 @@ public class Finder {
 			else if (this.withMask) {
 				where = ip6.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType()))
 					.and(ip6.PREFIX_LENGTH.eq(this.target.getPrefixLength()));
+			}
+			else if (this.sign == TokenType.CONTAINS) {
+				where = DSL.condition("{0} <<= cast((host({1}) || '/' || {2}) as inet)",
+					DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType()), ip6.ADDRESS, ip6.PREFIX_LENGTH);
 			}
 			else {
 				where = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()))
