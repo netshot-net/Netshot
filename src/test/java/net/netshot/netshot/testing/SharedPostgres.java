@@ -51,7 +51,7 @@ final class SharedPostgres implements AutoCloseable {
 	 */
 	static SharedPostgres get(ExtensionContext context) {
 		return context.getRoot().getStore(NAMESPACE)
-			.computeIfAbsent(SharedPostgres.class, key -> new SharedPostgres(), SharedPostgres.class);
+			.computeIfAbsent(SharedPostgres.class, _ -> new SharedPostgres(), SharedPostgres.class);
 	}
 
 	/** Database migrated once per run, which the database of each test class is a copy of. */

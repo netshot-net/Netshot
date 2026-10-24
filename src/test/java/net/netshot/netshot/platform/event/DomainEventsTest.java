@@ -54,11 +54,11 @@ class DomainEventsTest {
 	void aFailingListenerDoesNotStopTheOthers() {
 		DomainEvents events = new DomainEvents();
 		List<String> calls = new ArrayList<>();
-		events.subscribe(First.class, event -> calls.add("before"));
-		events.subscribe(First.class, event -> {
+		events.subscribe(First.class, _ -> calls.add("before"));
+		events.subscribe(First.class, _ -> {
 			throw new IllegalStateException("Expected failure of a listener");
 		});
-		events.subscribe(First.class, event -> calls.add("after"));
+		events.subscribe(First.class, _ -> calls.add("after"));
 		Assertions.assertDoesNotThrow(() -> events.publish(new First("x")));
 		Assertions.assertEquals(List.of("before", "after"), calls);
 	}
@@ -72,7 +72,7 @@ class DomainEventsTest {
 	void listenersAreCalledInThePublisherThread() {
 		DomainEvents events = new DomainEvents();
 		List<Thread> threads = new ArrayList<>();
-		events.subscribe(First.class, event -> threads.add(Thread.currentThread()));
+		events.subscribe(First.class, _ -> threads.add(Thread.currentThread()));
 		events.publish(new First("x"));
 		Assertions.assertEquals(List.of(Thread.currentThread()), threads);
 	}

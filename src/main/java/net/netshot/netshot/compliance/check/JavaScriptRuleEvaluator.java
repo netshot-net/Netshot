@@ -95,7 +95,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	 * @return true if the script is a valid rule
 	 */
 	private boolean prepare(JavaScriptRule rule, Context context, TaskContext taskContext) {
-		return this.validity.get(rule, r -> {
+		return this.validity.get(rule, _ -> {
 			boolean jsValid = false;
 			try {
 				Value checkFunction = context.getBindings("js").getMember("check");

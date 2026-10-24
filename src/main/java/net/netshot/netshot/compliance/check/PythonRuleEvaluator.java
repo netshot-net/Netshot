@@ -95,7 +95,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 	 * @return true if the script is a valid rule
 	 */
 	private boolean prepare(PythonRule rule, Context context, TaskContext taskContext) {
-		return this.validity.get(rule, r -> {
+		return this.validity.get(rule, _ -> {
 			boolean pyValid = false;
 			try {
 				Value checkFunction = context.getBindings("python").getMember("check");

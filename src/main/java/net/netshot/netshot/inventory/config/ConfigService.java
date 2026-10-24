@@ -275,7 +275,7 @@ public class ConfigService {
 				List<String> lines2 = Arrays.asList(text2.replace("\r", "").split("\n"));
 				Patch<String> patch = DiffUtils.diff(lines1, lines2);
 				for (AbstractDelta<String> delta : patch.getDeltas()) {
-					deltas.computeIfAbsent(definition.getTitle(), title -> new ArrayList<>())
+					deltas.computeIfAbsent(definition.getTitle(), _ -> new ArrayList<>())
 						.add(ConfigDelta.of(delta, lines1, lineParents1));
 				}
 			}

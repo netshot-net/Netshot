@@ -39,16 +39,16 @@ public class RuleStateCacheTest {
 		TextRule rule2 = TextRule.builder("Rule", 0).build();
 		Assertions.assertEquals(rule1, rule2, "Rules with the same components are equal");
 
-		Assertions.assertEquals("state", cache.get(rule1, r -> {
+		Assertions.assertEquals("state", cache.get(rule1, _ -> {
 			prepared.incrementAndGet();
 			return "state";
 		}));
-		Assertions.assertEquals("state", cache.get(rule1, r -> {
+		Assertions.assertEquals("state", cache.get(rule1, _ -> {
 			prepared.incrementAndGet();
 			return "other";
 		}));
 		Assertions.assertEquals(1, prepared.get());
-		Assertions.assertEquals("other", cache.get(rule2, r -> "other"), "Another instance has its own state");
+		Assertions.assertEquals("other", cache.get(rule2, _ -> "other"), "Another instance has its own state");
 		Assertions.assertEquals(2, cache.size());
 	}
 
@@ -59,9 +59,9 @@ public class RuleStateCacheTest {
 		TextRule rule = TextRule.builder("Rule", 0).build();
 		cache.replaceIfPresent(rule, false);
 		Assertions.assertEquals(0, cache.size());
-		Assertions.assertTrue(cache.get(rule, r -> true));
+		Assertions.assertTrue(cache.get(rule, _ -> true));
 		cache.replaceIfPresent(rule, false);
-		Assertions.assertFalse(cache.get(rule, r -> true));
+		Assertions.assertFalse(cache.get(rule, _ -> true));
 	}
 
 	@Test
@@ -69,7 +69,7 @@ public class RuleStateCacheTest {
 	void weaklyHeld() throws Exception {
 		RuleStateCache<TextRule, String> cache = new RuleStateCache<>();
 		TextRule rule = TextRule.builder("Rule", 0).build();
-		cache.get(rule, r -> "state");
+		cache.get(rule, _ -> "state");
 		Assertions.assertEquals(1, cache.size());
 		rule = null;
 		for (int i = 0; i < 50 && cache.size() > 0; i++) {
