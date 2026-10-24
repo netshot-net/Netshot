@@ -84,7 +84,7 @@ final class HookTaskSeed {
 			String[] parts = entry.split("=");
 			taskIds.put(parts[0], seed.id(parts[1]));
 		}
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			DeviceGroup group = new GroupRepository().find(dsl, seed.id("group.static"));
 			long created = ApiContractSeed.D2022 + 10000;
 

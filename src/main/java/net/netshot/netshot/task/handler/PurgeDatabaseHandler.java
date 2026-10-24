@@ -112,7 +112,7 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 				Calendar when = Calendar.getInstance();
 				when.add(Calendar.DATE, -1 * days);
 				Condition deviceCondition = groupId == null && deviceIds == null ? null : targetDevices(TASK.DEVICE, groupId, deviceIds);
-				int count = this.transactions.writeDsl(dsl -> this.taskRepository.deleteFinished(dsl, when.toInstant(), deviceCondition));
+				int count = this.transactions.write(dsl -> this.taskRepository.deleteFinished(dsl, when.toInstant(), deviceCondition));
 				log.trace("Task {}. Cleaning up done on tasks, {} entries affected.", task.id(), count);
 				run.logger.info("Cleaning up done on tasks, {} entries affected.", count);
 			}
@@ -137,7 +137,7 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 				Calendar when = Calendar.getInstance();
 				when.add(Calendar.DATE, -1 * configDays);
 				List<Path> toDeletePathes = new ArrayList<>();
-				int count = this.transactions.writeDsl(dsl -> this.purgeConfigs(dsl, when.toInstant(), configSize, configKeepDays,
+				int count = this.transactions.write(dsl -> this.purgeConfigs(dsl, when.toInstant(), configSize, configKeepDays,
 					groupId, deviceIds, toDeletePathes));
 				log.trace("Task {}. Cleaning up done on configurations, {} entries affected.", task.id(), count);
 				run.logger.info("Cleaning up done on configurations, {} entries affected.", count);
@@ -172,7 +172,7 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 				run.logger.info("Cleaning up hardware modules removed more than {} days...", moduleDays);
 				Calendar when = Calendar.getInstance();
 				when.add(Calendar.DATE, -1 * moduleDays);
-				int count = this.transactions.writeDsl(dsl -> dsl.deleteFrom(MODULE)
+				int count = this.transactions.write(dsl -> dsl.deleteFrom(MODULE)
 					.where(MODULE.REMOVED.isTrue(), MODULE.LAST_SEEN_DATE.le(when.toInstant()), targetDevices(MODULE.DEVICE, groupId, deviceIds))
 					.execute());
 				log.trace("Task {}. Cleaning up done on modules, {} entries affected.", task.id(), count);
@@ -191,7 +191,7 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 			try {
 				log.trace("Task {}. Cleaning up orphan binary attribute files...", task.id());
 				run.logger.info("Cleaning up orphan binary attribute files...");
-				Set<String> knownUids = new HashSet<>(this.transactions.writeDsl(dsl -> dsl.select(CONFIG_ATTRIBUTE.UID)
+				Set<String> knownUids = new HashSet<>(this.transactions.write(dsl -> dsl.select(CONFIG_ATTRIBUTE.UID)
 					.from(CONFIG_ATTRIBUTE).where(CONFIG_ATTRIBUTE.TYPE.eq("F")).fetch(CONFIG_ATTRIBUTE.UID)));
 
 				int count = 0;

@@ -105,7 +105,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			return;
 		}
 		ApiTokenRepository tokens = new ApiTokenRepository();
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			// Remove the default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			for (Map.Entry<Integer, String> entry : TestServer.API_TOKENS.entrySet()) {
@@ -120,7 +120,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!managesTokens(context)) {
 			return;
 		}
-		new Transactions().runDsl(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
+		new Transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
 	}
 
 	@Override

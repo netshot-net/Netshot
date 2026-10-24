@@ -1617,7 +1617,7 @@ public class Finder {
 		private static Diagnostic getDiagnosticByName(Token token) throws FinderParseException {
 			String diagnosticName = token.key2;
 			try {
-				return new Transactions().readDsl(dsl -> new DiagnosticRepository().findByName(dsl, diagnosticName));
+				return new Transactions().read(dsl -> new DiagnosticRepository().findByName(dsl, diagnosticName));
 			}
 			catch (DataAccessException e) {
 				log.error("Error while retrieving diagnostic '{}'.", diagnosticName, e);
@@ -1954,7 +1954,7 @@ public class Finder {
 		 */
 		private static Policy getPolicyByName(String policyName) throws FinderParseException {
 			try {
-				return new Transactions().readDsl(dsl -> new PolicyRepository().findByName(dsl, policyName));
+				return new Transactions().read(dsl -> new PolicyRepository().findByName(dsl, policyName));
 			}
 			catch (DataAccessException e) {
 				log.error("Error while retrieving policy '{}'.", policyName, e);
@@ -1972,7 +1972,7 @@ public class Finder {
 		 */
 		private static Rule getRuleByPolicyAndName(Policy policy, String ruleName) throws FinderParseException {
 			try {
-				return new Transactions().readDsl(dsl -> new RuleRepository().findOfPolicyByName(dsl, policy.id(), ruleName));
+				return new Transactions().read(dsl -> new RuleRepository().findOfPolicyByName(dsl, policy.id(), ruleName));
 			}
 			catch (DataAccessException e) {
 				log.error("Error while retrieving rule '{}' for policy '{}'.", ruleName, policy.name(), e);

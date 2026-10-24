@@ -89,7 +89,7 @@ public class ConfigService {
 	 */
 	public List<Config> listByDevice(long deviceId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findByDevice(dsl, deviceId, page));
+			return this.transactions.read(dsl -> this.repository.findByDevice(dsl, deviceId, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs.", e);
@@ -107,7 +107,7 @@ public class ConfigService {
 	 */
 	public List<ConfigSummary> listChanges(ConfigFilter filter, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findSummaries(dsl, filter, page));
+			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, filter, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs", e);
@@ -126,7 +126,7 @@ public class ConfigService {
 	 */
 	public ConfigItem getItem(long id, String itemName) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Config config = this.repository.find(dsl, id, true);
 				if (config == null) {
 					log.warn("Unable to find the config object.");
@@ -209,7 +209,7 @@ public class ConfigService {
 	 */
 	public ConfigDiff diff(long id1, long id2, boolean includeDeltas, boolean includeConfigs) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Config config2 = this.repository.find(dsl, id2, true);
 				Config config1;
 				if (config2 != null && id1 == 0) {

@@ -58,11 +58,11 @@ public class UserResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		this.transactions.runDsl(dsl -> dsl.deleteFrom(Tables.USER).execute());
+		this.transactions.run(dsl -> dsl.deleteFrom(Tables.USER).execute());
 	}
 
 	private UiUser store(UiUser user) {
-		return user.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, user)));
+		return user.withId(this.transactions.write(dsl -> this.repository.add(dsl, user)));
 	}
 
 	@Test
@@ -128,7 +128,7 @@ public class UserResourceTest {
 			"Not getting 201 response for created user");
 
 		{
-			UiUser newUser = this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, user.username()));
+			UiUser newUser = this.transactions.read(dsl -> this.repository.findByUsername(dsl, user.username()));
 			Assertions.assertEquals(user.username(), newUser.username(), "User not created as expected");
 			Assertions.assertEquals(user.level(), newUser.level(), "User not created as expected");
 			Assertions.assertEquals(user.local(), newUser.local(), "User not created as expected");
@@ -183,7 +183,7 @@ public class UserResourceTest {
 			Response.Status.OK.getStatusCode(), response.statusCode(),
 			"Not getting 200 response for user update");
 		{
-			UiUser dbUser = this.transactions.readDsl(dsl -> this.repository.find(dsl, targetUser.id()));
+			UiUser dbUser = this.transactions.read(dsl -> this.repository.find(dsl, targetUser.id()));
 			Assertions.assertEquals(targetUser.getName(), dbUser.getName(),
 				"User not updated as expected");
 			Assertions.assertEquals(targetUser.level(), dbUser.level(),
@@ -219,7 +219,7 @@ public class UserResourceTest {
 				"Not getting 200 response for user update");
 		}
 		{
-			UiUser dbUser = this.transactions.readDsl(dsl -> this.repository.find(dsl, targetUser.id()));
+			UiUser dbUser = this.transactions.read(dsl -> this.repository.find(dsl, targetUser.id()));
 			Assertions.assertEquals(targetUser.getName(), dbUser.getName(),
 				"User not updated as expected");
 			Assertions.assertEquals(targetUser.level(), dbUser.level(),

@@ -47,7 +47,7 @@ public final class TestTasks {
 	 * @return the stored task
 	 */
 	public static Task add(Task task) {
-		return TRANSACTIONS.writeDsl(dsl -> REPOSITORY.add(dsl, task));
+		return TRANSACTIONS.write(dsl -> REPOSITORY.add(dsl, task));
 	}
 
 	/**
@@ -68,7 +68,7 @@ public final class TestTasks {
 	 * @return the task, null if there is no such task
 	 */
 	public static Task find(long id) {
-		return TRANSACTIONS.readDsl(dsl -> REPOSITORY.find(dsl, id));
+		return TRANSACTIONS.read(dsl -> REPOSITORY.find(dsl, id));
 	}
 
 	/**
@@ -77,7 +77,7 @@ public final class TestTasks {
 	 * @return the tasks
 	 */
 	public static List<Task> all() {
-		return TRANSACTIONS.readDsl(dsl -> REPOSITORY.findWhere(dsl, org.jooq.impl.DSL.noCondition()));
+		return TRANSACTIONS.read(dsl -> REPOSITORY.findWhere(dsl, org.jooq.impl.DSL.noCondition()));
 	}
 
 	/**
@@ -87,7 +87,7 @@ public final class TestTasks {
 	 * @return the children
 	 */
 	public static List<Task> children(long parentId) {
-		return TRANSACTIONS.readDsl(dsl -> REPOSITORY.findChildren(dsl, parentId));
+		return TRANSACTIONS.read(dsl -> REPOSITORY.findChildren(dsl, parentId));
 	}
 
 	/**
@@ -97,7 +97,7 @@ public final class TestTasks {
 	 * @return the debug log, null for none
 	 */
 	public static String debugLog(long id) {
-		return TRANSACTIONS.readDsl(dsl -> REPOSITORY.findDebugLog(dsl, id));
+		return TRANSACTIONS.read(dsl -> REPOSITORY.findDebugLog(dsl, id));
 	}
 
 	/**
@@ -107,7 +107,7 @@ public final class TestTasks {
 	 * @param text the debug log
 	 */
 	public static void setDebugLog(long id, String text) {
-		TRANSACTIONS.runDsl(dsl -> {
+		TRANSACTIONS.run(dsl -> {
 			long debugLogId = dsl.insertInto(DEBUG_LOG).set(DEBUG_LOG.TEXT, text).returning(DEBUG_LOG.ID).fetchOne(DEBUG_LOG.ID);
 			dsl.update(TASK).set(TASK.DEBUG_LOG, debugLogId).where(TASK.ID.eq(id)).execute();
 		});
@@ -120,7 +120,7 @@ public final class TestTasks {
 	 * @return the positions and device IDs, by position
 	 */
 	public static List<long[]> deviceListMembers(long id) {
-		return TRANSACTIONS.readDsl(dsl -> dsl.select(TASK_DEVICE_LIST_MEMBERS.LIST_POSITION, TASK_DEVICE_LIST_MEMBERS.DEVICE_ID)
+		return TRANSACTIONS.read(dsl -> dsl.select(TASK_DEVICE_LIST_MEMBERS.LIST_POSITION, TASK_DEVICE_LIST_MEMBERS.DEVICE_ID)
 			.from(TASK_DEVICE_LIST_MEMBERS).where(TASK_DEVICE_LIST_MEMBERS.TASK_ID.eq(id)).orderBy(TASK_DEVICE_LIST_MEMBERS.LIST_POSITION)
 			.fetch(r -> new long[] {r.value1(), r.value2()}));
 	}
@@ -132,7 +132,7 @@ public final class TestTasks {
 	 * @param status the new status
 	 */
 	public static void setStatus(long id, Task.Status status) {
-		TRANSACTIONS.runDsl(dsl -> REPOSITORY.setStatus(dsl, id, status));
+		TRANSACTIONS.run(dsl -> REPOSITORY.setStatus(dsl, id, status));
 	}
 
 	/**
@@ -141,13 +141,13 @@ public final class TestTasks {
 	 * @param id the ID
 	 */
 	public static void delete(long id) {
-		TRANSACTIONS.runDsl(dsl -> dsl.deleteFrom(TASK).where(TASK.ID.eq(id)).execute());
+		TRANSACTIONS.run(dsl -> dsl.deleteFrom(TASK).where(TASK.ID.eq(id)).execute());
 	}
 
 	/**
 	 * Deletes all the tasks.
 	 */
 	public static void deleteAll() {
-		TRANSACTIONS.runDsl(dsl -> dsl.deleteFrom(TASK).execute());
+		TRANSACTIONS.run(dsl -> dsl.deleteFrom(TASK).execute());
 	}
 }

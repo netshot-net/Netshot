@@ -90,7 +90,7 @@ public class RuleService {
 	 */
 	public List<RuleSummary> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findSummaries(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the rules.", e);
@@ -108,7 +108,7 @@ public class RuleService {
 	 */
 	public List<Rule> listOfPolicy(long policyId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				if (this.policyRepository.find(dsl, policyId) == null) {
 					log.error("Invalid policy.");
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Invalid policy");
@@ -132,7 +132,7 @@ public class RuleService {
 	 */
 	public Rule getOfPolicy(long policyId, long id) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				if (this.policyRepository.find(dsl, policyId) == null) {
 					log.error("Invalid policy.");
 					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unknown policy");
@@ -167,7 +167,7 @@ public class RuleService {
 		String name = definition.name().trim();
 		Rule rule;
 		try {
-			rule = this.transactions.writeDsl(dsl -> {
+			rule = this.transactions.write(dsl -> {
 				Policy policy = this.policyRepository.find(dsl, definition.policyId());
 				if (policy == null) {
 					log.error("The policy of ID {} doesn't exist.", definition.policyId());
@@ -225,7 +225,7 @@ public class RuleService {
 	public Rule update(long id, RuleDefinition definition) {
 		Rule rule;
 		try {
-			rule = this.transactions.writeDsl(dsl -> {
+			rule = this.transactions.write(dsl -> {
 				Rule existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
@@ -283,7 +283,7 @@ public class RuleService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.writeDsl(dsl -> {
+			boolean deleted = this.transactions.write(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such rule of ID {}", id);
 					return false;
@@ -313,7 +313,7 @@ public class RuleService {
 	 */
 	public RuleTestResult test(long deviceId, RuleDefinition definition) {
 		try {
-			Device found = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			Device found = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
 			Device device = found == null || found.lastConfigId() == null ? null : found;
 			if (device == null) {
 				log.warn("Unable to find the device {}.", deviceId);
@@ -394,7 +394,7 @@ public class RuleService {
 	 */
 	public List<ExemptedDevice> listExemptedDevices(long ruleId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findExemptedDevices(dsl, ruleId, page));
+			return this.transactions.read(dsl -> this.repository.findExemptedDevices(dsl, ruleId, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the exemptions.", e);
@@ -412,7 +412,7 @@ public class RuleService {
 	 */
 	public List<DeviceRuleResult> listDeviceResults(long deviceId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findDeviceResults(dsl, deviceId, page));
+			return this.transactions.read(dsl -> this.repository.findDeviceResults(dsl, deviceId, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the rules.", e);

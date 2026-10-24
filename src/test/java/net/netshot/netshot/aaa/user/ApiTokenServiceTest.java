@@ -71,7 +71,7 @@ class ApiTokenServiceTest {
 	}
 
 	private ApiToken reload(long id) {
-		return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
+		return this.transactions.read(dsl -> this.repository.find(dsl, id));
 	}
 
 	@Test

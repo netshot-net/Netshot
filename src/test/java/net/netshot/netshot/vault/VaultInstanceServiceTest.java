@@ -90,7 +90,7 @@ class VaultInstanceServiceTest {
 	}
 
 	private HashicorpVaultKv2Instance stored(long id) {
-		return (HashicorpVaultKv2Instance) this.transactions.readDsl(dsl -> new VaultInstanceRepository().find(dsl, id));
+		return (HashicorpVaultKv2Instance) this.transactions.read(dsl -> new VaultInstanceRepository().find(dsl, id));
 	}
 
 	private HashicorpVaultKv2Instance createInstance() {

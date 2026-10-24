@@ -72,7 +72,7 @@ public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftware
 		List<Long> deviceIds = deviceList;
 
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				log.debug("Task {}. Retrieving the software rules", task.id());
 				List<SoftwareRule> softwareRules = this.softwareRuleRepository.findAll(dsl, Page.ALL);
 				log.debug("Task {}. Retrieving the hardware rules", task.id());

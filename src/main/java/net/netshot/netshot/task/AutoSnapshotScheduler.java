@@ -124,7 +124,7 @@ public class AutoSnapshotScheduler {
 		Device device;
 		try {
 			log.trace("Retrieving the device.");
-			device = new Transactions().readDsl(dsl -> {
+			device = new Transactions().read(dsl -> {
 				Long deviceId = dsl.select(DEVICE.ID).from(DEVICE)
 					.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name()), DEVICE.CACHED_IP_ADDRESS.eq(address.getInetAddress()))
 					.fetchOne(DEVICE.ID);
@@ -168,7 +168,7 @@ public class AutoSnapshotScheduler {
 		Device device;
 		try {
 			log.trace("Retrieving the device.");
-			device = new Transactions().readDsl(dsl -> new DeviceRepository().find(dsl, deviceId));
+			device = new Transactions().read(dsl -> new DeviceRepository().find(dsl, deviceId));
 			if (device == null) {
 				log.warn("No device with such ID {} in the database.", deviceId);
 				return false;

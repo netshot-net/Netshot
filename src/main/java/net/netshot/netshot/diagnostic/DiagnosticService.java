@@ -68,7 +68,7 @@ public class DiagnosticService {
 	 */
 	public List<DiagnosticView> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				List<DiagnosticView> views = new ArrayList<>();
 				for (Diagnostic diagnostic : this.repository.findAll(dsl, page)) {
 					views.add(this.view(dsl, diagnostic));
@@ -91,7 +91,7 @@ public class DiagnosticService {
 	 */
 	public DiagnosticView get(long id) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Diagnostic diagnostic = this.repository.find(dsl, id);
 				if (diagnostic == null) {
 					log.warn("Unable to find the diagnostic object.");
@@ -131,7 +131,7 @@ public class DiagnosticService {
 		AttributeType resultType = parseResultType(definition);
 		DiagnosticView diagnostic;
 		try {
-			diagnostic = this.transactions.writeDsl(dsl -> {
+			diagnostic = this.transactions.write(dsl -> {
 				DeviceGroup group = null;
 				if (definition.targetGroup() != -1) {
 					group = this.requireGroup(dsl, definition.targetGroup());
@@ -164,7 +164,7 @@ public class DiagnosticService {
 	public DiagnosticView update(long id, DiagnosticDefinition definition) {
 		DiagnosticView diagnostic;
 		try {
-			diagnostic = this.transactions.writeDsl(dsl -> {
+			diagnostic = this.transactions.write(dsl -> {
 				Diagnostic existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the diagnostic {} to be edited.", id);
@@ -222,7 +222,7 @@ public class DiagnosticService {
 	 */
 	public boolean delete(long id) {
 		try {
-			Diagnostic deleted = this.transactions.writeDsl(dsl -> {
+			Diagnostic deleted = this.transactions.write(dsl -> {
 				Diagnostic diagnostic = this.repository.find(dsl, id);
 				if (diagnostic == null) {
 					log.info("No such diagnostic of ID {}", id);
@@ -253,7 +253,7 @@ public class DiagnosticService {
 	 */
 	public List<DiagnosticResult> listResults(long deviceId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> new DiagnosticResultRepository().findByDevice(dsl, deviceId, page));
+			return this.transactions.read(dsl -> new DiagnosticResultRepository().findByDevice(dsl, deviceId, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostic results.", e);

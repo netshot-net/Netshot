@@ -80,7 +80,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, run.logger);
 		try {
 			// Start over from a fresh device from DB
-			device = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
 			if (device == null) {
 				throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
 			}
@@ -94,7 +94,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			}
 			DeviceDraft draft = new DeviceDraft(device);
 			deviceScript.connectRun(draft);
-			Config newConfig = this.transactions.writeDsl(dsl -> this.deviceRepository.saveDraft(dsl, draft));
+			Config newConfig = this.transactions.write(dsl -> this.deviceRepository.saveDraft(dsl, draft));
 			device = newConfig == null ? draft.toDevice() : draft.toDevice().toBuilder().lastConfigId(newConfig.id()).build();
 			if (newConfig != null) {
 				for (ConfigAttribute ca : newConfig.attributes()) {

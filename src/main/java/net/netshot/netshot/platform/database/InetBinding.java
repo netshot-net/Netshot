@@ -37,13 +37,14 @@ import org.jooq.Converter;
 import org.jooq.impl.DSL;
 
 /**
- * jOOQ binding of the PostgreSQL {@code inet} columns to {@link InetAddress}
- * (the jOOQ counterpart of {@link InetAddressUserType}). Only the address is
- * kept: a prefix length stored in the value ({@code 10.0.0.0/8}) is dropped
- * when reading, as the prefix lengths live in their own columns.
+ * jOOQ binding of the PostgreSQL {@code inet} columns to {@link InetAddress}.
+ * Only the address is kept: a prefix length stored in the value ({@code 10.0.0.0/8})
+ * is dropped when reading, as the prefix lengths live in their own columns.
  * Used by the generated classes, see the jOOQ code generation.
  */
 public class InetBinding implements Binding<Object, InetAddress> {
+
+	private static final long serialVersionUID = 1L;
 
 	private static final Converter<Object, InetAddress> CONVERTER =
 		Converter.ofNullable(Object.class, InetAddress.class, InetBinding::parse, InetAddress::getHostAddress);

@@ -152,7 +152,7 @@ final class TaskRunner {
 	 * Empties every table of the schema of the test class (except the bookkeeping tables of Liquibase).
 	 */
 	static void cleanDatabase() {
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			List<String> tables = new ArrayList<>();
 			for (org.jooq.Record row : dsl.fetch("select tablename from pg_tables where schemaname = current_schema() "
 					+ "and tablename not like 'databasechangelog%'")) {

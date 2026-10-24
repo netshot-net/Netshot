@@ -105,7 +105,7 @@ public class DeviceListExtractor extends Netshot {
 			Wiring.init();
 
 			log.info("Requesting data from the DB...");
-			List<Device> devices = new Transactions().readDsl(dsl -> new DeviceRepository().findAll(dsl,
+			List<Device> devices = new Transactions().read(dsl -> new DeviceRepository().findAll(dsl,
 				dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
 			for (Device device : devices) {
 				DeviceCliAccount cliAccount = null;

@@ -131,7 +131,7 @@ public class PurgeTest {
 	}
 
 	private static long count(String sql) {
-		return new Transactions().readDsl(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
+		return new Transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
 	}
 
 	private void assertDeviceCount(long expected) {

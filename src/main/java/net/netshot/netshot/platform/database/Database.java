@@ -18,41 +18,10 @@
  */
 package net.netshot.netshot.platform.database;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Properties;
-import java.util.TreeSet;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
-import org.hibernate.Hibernate;
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.StatelessSession;
-import org.hibernate.exception.ConstraintViolationException;
-import org.hibernate.boot.Metadata;
-import org.hibernate.boot.MetadataBuilder;
-import org.hibernate.boot.MetadataSources;
-import org.hibernate.boot.SessionFactoryBuilder;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.AvailableSettings;
-import org.hibernate.proxy.HibernateProxy;
-import org.hibernate.service.ServiceRegistry;
-import org.slf4j.MarkerFactory;
-
-import jakarta.persistence.AttributeConverter;
-import jakarta.persistence.PersistenceException;
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.command.CommandScope;
 import liquibase.command.core.UpdateCommandStep;
@@ -69,92 +38,8 @@ import net.netshot.netshot.Netshot;
 @Slf4j
 public final class Database {
 
-	/** The session factory. */
-	private static SessionFactory sessionFactory;
-
-	/** The service registry. */
-	private static ServiceRegistry serviceRegistry;
-
-	/** The connection pools of the current session factory. */
+	/** The connection pools. */
 	private static ConnectionPools pools;
-
-	/**
-	 * List classes in a given package.
-	 *
-	 * @param packageName
-	 *                      the package name
-	 * @return the list
-	 * @throws ClassNotFoundException
-	 *                                  the class not found exception
-	 * @throws IOException
-	 *                                  Signals that an I/O exception has occurred.
-	 */
-	public static List<Class<?>> listClassesInPackage(String packageName) throws ClassNotFoundException, IOException {
-		String path = packageName.replace('.', '/');
-		Enumeration<URL> resources = ClassLoader.getSystemResources(path);
-		List<String> dirs = new ArrayList<>();
-		while (resources.hasMoreElements()) {
-			URL resource = resources.nextElement();
-			dirs.add(URLDecoder.decode(resource.getFile(), "UTF-8"));
-		}
-		TreeSet<String> classes = new TreeSet<>();
-		for (String directory : dirs) {
-			classes.addAll(findClasses(directory, packageName));
-		}
-		ArrayList<Class<?>> classList = new ArrayList<>();
-		for (String clazz : classes) {
-			classList.add(Class.forName(clazz));
-		}
-		return classList;
-	}
-
-	/**
-	 * Find classes with a path.
-	 *
-	 * @param path the path
-	 * @param packageName the package name
-	 * @return the tree set
-	 */
-	private static TreeSet<String> findClasses(String path, String packageName)
-		throws IOException {
-		TreeSet<String> classes = new TreeSet<>();
-		if (path.startsWith("file:") && path.contains("!")) {
-			String[] split = path.split("!");
-			try {
-				URL jar = new URI(split[0]).toURL();
-
-				ZipInputStream zip = new ZipInputStream(jar.openStream());
-				ZipEntry entry;
-				while ((entry = zip.getNextEntry()) != null) {
-					if (entry.getName().endsWith(".class")) {
-						String className = entry.getName().replaceAll("[$].*", "").replaceAll("[.]class", "").replace('/', '.');
-						if (className.startsWith(packageName)) {
-							classes.add(className);
-						}
-					}
-				}
-			}
-			catch (URISyntaxException e) {
-				log.error("Unable to parse path as URI", e);
-			}
-		}
-		File dir = new File(path);
-		if (!dir.exists()) {
-			return classes;
-		}
-		File[] files = dir.listFiles();
-		for (File file : files) {
-			if (file.isDirectory()) {
-				assert !file.getName().contains(".");
-				classes.addAll(findClasses(file.getAbsolutePath(), packageName + "." + file.getName()));
-			}
-			else if (file.getName().endsWith(".class")) {
-				String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
-				classes.add(className);
-			}
-		}
-		return classes;
-	}
 
 	/**
 	 * Update the database schema (to be run at startup).
@@ -183,77 +68,23 @@ public final class Database {
 	}
 
 	/**
-	 * Initializes the database access, with Hibernate.
-	 *
-	 * @param model the persistent model (entities and converters), provided by the caller
+	 * Initializes the database access: creates the connection pools.
 	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static void init(DatabaseModel model) {
+	public static synchronized void init() {
 		// Initialized again (tests): release the connections of the previous initialization
 		shutdown();
-		try {
-			Properties serviceProperties = new Properties();
-			serviceProperties.setProperty(AvailableSettings.TRANSACTION_COORDINATOR_STRATEGY, "jdbc");
-			serviceProperties.setProperty(AvailableSettings.CURRENT_SESSION_CONTEXT_CLASS, "thread");
-			// serviceProperties.setProperty(AvailableSettings.HBM2DDL_AUTO, "update"); // "update" or "validate" or ""
-			// serviceProperties.setProperty(AvailableSettings.SHOW_SQL, "true");
-			serviceProperties.setProperty(AvailableSettings.FORMAT_SQL, "true");
-			// Dates/times stored in UTC in the DB, without timezone, up to Java to convert to server local time
-			serviceProperties.setProperty(AvailableSettings.JDBC_TIME_ZONE, "UTC");
-
-			// The connection pools (read-write, system and read-only), given to Hibernate by the custom
-			// multi-tenant connection provider
-			pools = new ConnectionPools(getDriverClass(), getUrl(), getReadUrl(), getUsername(), getPassword());
-			CustomConnectionProvider connectionProvider = new CustomConnectionProvider(pools);
-
-			serviceProperties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER, connectionProvider);
-			if (getDriverClass().contains("postgresql")) {
-				serviceProperties.setProperty(AvailableSettings.DIALECT, "net.netshot.netshot.platform.database.CustomPostgreSQLDialect");
-			}
-			serviceRegistry = new StandardServiceRegistryBuilder().applySettings(serviceProperties).build();
-
-			MetadataSources sources = new MetadataSources(serviceRegistry);
-			for (Class<?> clazz : model.entityClasses()) {
-				sources.addAnnotatedClass(clazz);
-			}
-
-			MetadataBuilder metadataBuilder = sources.getMetadataBuilder()
-				.applyImplicitNamingStrategy(new ImprovedImplicitNamingStrategy())
-				.applyPhysicalNamingStrategy(new ImprovedPhysicalNamingStrategy());
-			for (Class<? extends AttributeConverter<?, ?>> converter : model.attributeConverters()) {
-				metadataBuilder.applyAttributeConverter((Class) converter);
-			}
-			Metadata metadata = metadataBuilder.build();
-
-			SessionFactoryBuilder sessionFactoryBuilder = metadata.getSessionFactoryBuilder();
-			sessionFactoryBuilder.applyInterceptor(new DatabaseInterceptor());
-			sessionFactory = sessionFactoryBuilder.build();
-
-		}
-		catch (HibernateException e) {
-			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate Hibernate", e);
-			throw new RuntimeException("Unable to instantiate Hibernate, see logs for more details");
-		}
+		pools = new ConnectionPools(getDriverClass(), getUrl(), getReadUrl(), getUsername(), getPassword());
 	}
 
 	/**
-	 * Closes the session factory and its connection pools, if initialized.
+	 * Closes the connection pools, if initialized.
 	 */
 	public static synchronized void shutdown() {
-		if (sessionFactory != null) {
-			sessionFactory.close();
-			sessionFactory = null;
-		}
-		if (serviceRegistry != null) {
-			StandardServiceRegistryBuilder.destroy(serviceRegistry);
-			serviceRegistry = null;
-		}
 		if (pools != null) {
 			pools.close();
 			pools = null;
 		}
 	}
-
 
 	/**
 	 * Retrieve the configured driver class.
@@ -326,66 +157,24 @@ public final class Database {
 	}
 
 	/**
-	 * Gets the session.
-	 *
-	 * @return the session
-	 * @throws HibernateException the hibernate exception
-	 */
-	public static Session getSession() throws HibernateException {
-		return getSession(false);
-	}
-
-	/**
-	 * Gets a database session.
-	 *
-	 * @param readOnly = true when requesting a read-only session
-	 * @return the session
-	 * @throws HibernateException the hibernate exception
-	 */
-	public static Session getSession(boolean readOnly) throws HibernateException {
-		return sessionFactory
-			.withOptions()
-			.tenantIdentifier(
-				readOnly ? TenantIdentifier.READ_ONLY : TenantIdentifier.READ_WRITE)
-			.openSession();
-	}
-
-	/**
-	 * Gets a read-write database session from the small dedicated SYSTEM pool.
-	 * Reserved for short task dispatch and cluster bookkeeping transactions: never hold such
-	 * a session across device I/O, hooks or any other potentially long operation.
-	 *
-	 * @return the session
-	 * @throws HibernateException the hibernate exception
-	 */
-	public static Session getSystemSession() throws HibernateException {
-		return sessionFactory
-			.withOptions()
-			.tenantIdentifier(TenantIdentifier.SYSTEM)
-			.openSession();
-	}
-
-	/**
-	 * Gets a stateless database session.
-	 *
-	 * @return the session
-	 * @throws HibernateException the hibernate exception
-	 */
-	public static StatelessSession getStalessSession() throws HibernateException {
-		return sessionFactory
-			.withStatelessOptions()
-			.tenantIdentifier(TenantIdentifier.READ_ONLY)
-			.openStatelessSession();
-	}
-
-	/**
 	 * Retrieves a raw SQL connection.
 	 * 
 	 * @return the connection
 	 * @throws SQLException
 	 */
 	public static Connection getConnection() throws SQLException {
-		return pools.get(TenantIdentifier.READ_WRITE).getConnection();
+		return getConnection(PoolKind.READ_WRITE);
+	}
+
+	/**
+	 * Retrieves a connection from one of the pools.
+	 *
+	 * @param pool the kind of connection
+	 * @return the connection
+	 * @throws SQLException if no connection can be obtained
+	 */
+	static Connection getConnection(PoolKind pool) throws SQLException {
+		return pools.get(pool).getConnection();
 	}
 
 	/**
@@ -400,65 +189,6 @@ public final class Database {
 			return Database.getConnection();
 		}
 		return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
-	}
-
-	/**
-	 * Gets the real object from the Hibernate proxy.
-	 *
-	 * @param <T>
-	 *                 the generic type
-	 * @param entity
-	 *                 the entity
-	 * @return the t
-	 */
-	@SuppressWarnings("unchecked")
-	public static <T> T unproxy(T entity) {
-		if (entity == null) {
-			return null;
-		}
-		if (entity instanceof HibernateProxy proxy) {
-			Hibernate.initialize(entity);
-			entity = (T) proxy.getHibernateLazyInitializer().getImplementation();
-		}
-		return entity;
-	}
-
-	/**
-	 * Check whether a PersistenceException is caused by key conflict (duplicate key).
-	 * @param e = the exception to check
-	 * @return true if duplicate key
-	 */
-	public static boolean isDuplicateException(PersistenceException e) {
-		Throwable t = e;
-		for (int i = 0; i < 2; i++) {
-			if (t == null) {
-				return false;
-			}
-			if (t instanceof ConstraintViolationException) {
-				return true;
-			}
-			if (t.getMessage().toLowerCase().contains("duplicate")) {
-				return true;
-			}
-			t = t.getCause();
-		}
-		return false;
-	}
-
-	/**
-	 * Silently rolls back the current transaction of the given session.
-	 * If the rollback fails, the exception is logged but not rethrown,
-	 * so as not to mask the original exception that triggered the rollback.
-	 *
-	 * @param session the Hibernate session
-	 */
-	public static void rollbackSilently(Session session) {
-		try {
-			session.getTransaction().rollback();
-		}
-		catch (Exception e) {
-			log.error("Error during transaction rollback.", e);
-		}
 	}
 
 	private Database() {

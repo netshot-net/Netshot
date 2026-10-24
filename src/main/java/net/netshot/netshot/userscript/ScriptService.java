@@ -68,7 +68,7 @@ public class ScriptService {
 	 */
 	public List<DeviceJsScript> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page).stream()
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page).stream()
 				.map(DeviceJsScript::withoutScript)
 				.toList());
 		}
@@ -87,7 +87,7 @@ public class ScriptService {
 	 */
 	public DeviceJsScript get(long id) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
+			return this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the script {}.", id, e);
@@ -142,7 +142,7 @@ public class ScriptService {
 		DeviceJsScript valid = this.validate(creation);
 		DeviceJsScript script;
 		try {
-			script = valid.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, valid)));
+			script = valid.withId(this.transactions.write(dsl -> this.repository.add(dsl, valid)));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new rule.", e);
@@ -163,7 +163,7 @@ public class ScriptService {
 	 */
 	public void delete(long id) {
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.warn("No such script of ID {}", id);
 					throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
