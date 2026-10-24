@@ -181,17 +181,17 @@ public class DiagnosticService {
 				}
 				Long groupId = group == null ? null : group.id();
 				Diagnostic edited = switch (existing) {
-					case JavaScriptDiagnostic js -> {
+					case JavaScriptDiagnostic _ -> {
 						checkSameType("JavaScriptDiagnostic", definition);
 						checkScript(definition);
 						yield new JavaScriptDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
 					}
-					case PythonDiagnostic python -> {
+					case PythonDiagnostic _ -> {
 						checkSameType("PythonDiagnostic", definition);
 						checkScript(definition);
 						yield new PythonDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
 					}
-					case SimpleDiagnostic simple -> {
+					case SimpleDiagnostic _ -> {
 						checkSameType("SimpleDiagnostic", definition);
 						checkCommand(definition);
 						yield new SimpleDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),

@@ -105,7 +105,7 @@ public final class TaskPayloads {
 			case RunDeviceGroupScriptTask s -> new TaskPayload.RunDeviceGroupScript(base, TaskSpecs.deviceGroupId(s));
 			case PurgeDatabaseTask s -> new TaskPayload.PurgeDatabase(base, s.configDays(), s.configKeepDays(), s.configSize(),
 				s.days(), TaskSpecs.deviceGroupId(s), s.moduleDays(), s.removeOrphanFiles());
-			case ScanSubnetsTask s -> new TaskPayload.ScanSubnets(base);
+			case ScanSubnetsTask _ -> new TaskPayload.ScanSubnets(base);
 		};
 	}
 

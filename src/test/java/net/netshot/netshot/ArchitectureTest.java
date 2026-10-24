@@ -199,7 +199,7 @@ public final class ArchitectureTest {
 				for (Dependency d : c.getDirectDependenciesFromSelf()) {
 					String to = sliceOf(d.getTargetClass());
 					if (to != null && !to.equals(from)) {
-						reachable.computeIfAbsent(from, k -> new HashSet<>()).add(to);
+						reachable.computeIfAbsent(from, _ -> new HashSet<>()).add(to);
 					}
 				}
 			}

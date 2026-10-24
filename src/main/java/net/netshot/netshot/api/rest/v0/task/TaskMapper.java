@@ -84,7 +84,7 @@ public final class TaskMapper {
 			case RunDeviceGroupScriptTask s -> new TaskDto.RunDeviceGroupScript(base, TaskSpecs.deviceGroupId(s));
 			case PurgeDatabaseTask s -> new TaskDto.PurgeDatabase(base, s.configDays(), s.configKeepDays(), s.configSize(),
 				s.days(), TaskSpecs.deviceGroupId(s), s.moduleDays(), s.removeOrphanFiles());
-			case ScanSubnetsTask s -> new TaskDto.ScanSubnets(base);
+			case ScanSubnetsTask _ -> new TaskDto.ScanSubnets(base);
 		};
 	}
 
