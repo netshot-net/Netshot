@@ -32,6 +32,13 @@ For more complex queries, open **Advanced search** and build a logical search ex
 
 To find devices by tag, use the **Tags** attribute in the advanced search (it suggests the existing tags), or type an expression such as `[Tag] is "core"` directly. All the text operators are supported (`is`, `contains`, `containsnocase`, `startswith`, `endswith`, `matches`); a device matches as soon as one of its tags matches. Clicking a tag badge on a device runs this search for you.
 
+To find devices by IP address, use the `[IP]` attribute, which compares the management address and the interface addresses (IPv4 or IPv6) of the devices:
+
+- `[IP] is 10.0.0.1`: the management address or an interface address is `10.0.0.1`.
+- `[IP] is 10.0.0.1/24`: an interface has the address `10.0.0.1` with a `/24` mask.
+- `[IP] in 10.0.0.0/16`: the management address or an interface address is in `10.0.0.0/16`.
+- `[IP] contains 10.0.0.5`: the subnet of an interface contains `10.0.0.5` (for example an interface `10.0.0.1/24`).
+
 ## Device groups
 
 Groups let you organize devices for filtering, for running tasks over many devices at once, as the target of [compliance policies](compliance.md), and to break down [reports](reports.md). Managing groups requires a read-write role.
