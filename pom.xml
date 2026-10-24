@@ -11,7 +11,6 @@
 		<hibernate.version>6.6.55.Final</hibernate.version>
 		<c3p0.version>0.14.1</c3p0.version>
 		<undertow.version>2.4.2.Final</undertow.version>
-		<undertow-ee.version>2.0.1.Final</undertow-ee.version>
 		<jackson.version>2.22.4</jackson.version>
 		<jersey.version>4.0.2</jersey.version>
 		<swagger.version>2.2.53</swagger.version>
@@ -317,10 +316,9 @@
 			<version>${undertow.version}</version>
 		</dependency>
 		<dependency>
-			<!-- Since Undertow 2.4, the servlet container is released separately, as Undertow EE -->
-			<groupId>io.undertow.ee</groupId>
+			<groupId>io.undertow</groupId>
 			<artifactId>undertow-servlet</artifactId>
-			<version>${undertow-ee.version}</version>
+			<version>2.3.26.Final</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
