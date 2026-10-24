@@ -621,20 +621,28 @@ public class Finder {
 			return DEVICE.as(itemPrefix + "_d");
 		}
 
+		/** The escape character of the LIKE patterns. */
+		protected static final char LIKE_ESCAPE = '\\';
+
 		/**
-		 * Gets the LIKE pattern for a text comparison.
+		 * Gets the LIKE pattern for a text comparison. The LIKE wildcards of the value are
+		 * escaped (with {@link #LIKE_ESCAPE}), so they match literally.
 		 *
 		 * @param sign the comparison
 		 * @param value the value to compare with
-		 * @return the pattern (the value itself for an exact or regular expression match)
+		 * @return the pattern
 		 */
 		protected static String likeTarget(TokenType sign, String value) {
+			String escaped = value
+				.replace(String.valueOf(LIKE_ESCAPE), String.valueOf(LIKE_ESCAPE) + LIKE_ESCAPE)
+				.replace("%", LIKE_ESCAPE + "%")
+				.replace("_", LIKE_ESCAPE + "_");
 			return switch (sign) {
-				case CONTAINS -> "%" + value + "%";
-				case CONTAINSNOCASE -> "%" + value.toLowerCase() + "%";
-				case STARTSWITH -> value + "%";
-				case ENDSWITH -> "%" + value;
-				default -> value;
+				case CONTAINS -> "%" + escaped + "%";
+				case CONTAINSNOCASE -> "%" + escaped.toLowerCase() + "%";
+				case STARTSWITH -> escaped + "%";
+				case ENDSWITH -> "%" + escaped;
+				default -> escaped;
 			};
 		}
 
@@ -651,9 +659,9 @@ public class Finder {
 				return DSL.condition("{0} ~ {1}", field, DSL.val(value));
 			}
 			if (TokenType.CONTAINSNOCASE.equals(sign)) {
-				return DSL.lower(field).like(likeTarget(sign, value));
+				return DSL.lower(field).like(likeTarget(sign, value), LIKE_ESCAPE);
 			}
-			return field.like(likeTarget(sign, value));
+			return field.like(likeTarget(sign, value), LIKE_ESCAPE);
 		}
 	}
 
