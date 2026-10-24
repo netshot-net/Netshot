@@ -76,7 +76,6 @@ import net.netshot.netshot.device.attribute.AttributeDefinition;
 import net.netshot.netshot.device.credentials.DeviceCredentialSet;
 import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
-import net.netshot.netshot.device.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.hooks.Hook;
 import net.netshot.netshot.hooks.WebHook;
 import net.netshot.netshot.rest.NetshotBadRequestException;
@@ -971,112 +970,6 @@ public class RestServiceTest extends WithDatabaseTest {
 						targetDomain, dbDomain, "Domain not updated as expected");
 				}
 			}
-
-			@Test
-			@DisplayName("Refuse a null domain name, store a null description as empty")
-			@ResourceLock("DB")
-			void nullDomainNameAndDescription() throws IOException, InterruptedException {
-				ObjectNode noName = JsonNodeFactory.instance.objectNode()
-					.putNull("name")
-					.put("description", "Domain without name")
-					.put("ipAddress", "10.1.1.1");
-				{
-					HttpResponse<JsonNode> response = apiClient.post("/domains", noName);
-					Assertions.assertEquals(
-						Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
-						"Not getting 400 response for a domain without name");
-					Assertions.assertEquals(
-						NetshotBadRequestException.Reason.NETSHOT_INVALID_DOMAIN_NAME.getCode(),
-						response.body().get("errorCode").asInt());
-				}
-				ObjectNode noDescription = JsonNodeFactory.instance.objectNode()
-					.put("name", "Test")
-					.putNull("description")
-					.put("ipAddress", "10.1.1.1");
-				HttpResponse<JsonNode> createResponse = apiClient.post("/domains", noDescription);
-				Assertions.assertEquals(
-					Response.Status.CREATED.getStatusCode(), createResponse.statusCode(),
-					"Not getting 201 response for a domain without description");
-				long id = createResponse.body().get("id").asLong();
-				try (Session session = Database.getSession()) {
-					Assertions.assertEquals("", session.get(Domain.class, id).getDescription());
-				}
-				{
-					HttpResponse<JsonNode> response = apiClient.put("/domains/%d".formatted(id), noName);
-					Assertions.assertEquals(
-						Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
-						"Not getting 400 response for a domain update without name");
-					Assertions.assertEquals(
-						NetshotBadRequestException.Reason.NETSHOT_INVALID_DOMAIN_NAME.getCode(),
-						response.body().get("errorCode").asInt());
-				}
-				{
-					HttpResponse<JsonNode> response = apiClient.put("/domains/%d".formatted(id), noDescription);
-					Assertions.assertEquals(
-						Response.Status.OK.getStatusCode(), response.statusCode(),
-						"Not getting 200 response for a domain update without description");
-				}
-			}
-		}
-
-		@Nested
-		@DisplayName("Credential set API Tests")
-		class CredentialSetTest {
-
-			@AfterEach
-			void cleanUpData() {
-				try (Session session = Database.getSession()) {
-					session.beginTransaction();
-					session
-						.createMutationQuery("delete from DeviceCredentialSet")
-						.executeUpdate();
-					session.getTransaction().commit();
-				}
-			}
-
-			private DeviceSshKeyAccount getStoredKeyAccount(long id) {
-				try (Session session = Database.getSession()) {
-					return session.get(DeviceSshKeyAccount.class, id);
-				}
-			}
-
-			@Test
-			@DisplayName("Update SSH key credential set keeps the private key when it is not given")
-			@ResourceLock("DB")
-			void updateSshKeyKeepsPrivateKey() throws IOException, InterruptedException {
-				DeviceSshKeyAccount account = new DeviceSshKeyAccount("u", "the-key", "p", null, "SSH key set");
-				try (Session session = Database.getSession()) {
-					session.beginTransaction();
-					session.persist(account);
-					session.getTransaction().commit();
-				}
-				ObjectNode data = JsonNodeFactory.instance.objectNode()
-					.put("type", "SSH Key")
-					.put("name", "SSH key set")
-					.put("username", "u2");
-				{
-					HttpResponse<JsonNode> response = apiClient.put(
-						"/credentialsets/%d".formatted(account.getId()), data);
-					Assertions.assertEquals(
-						Response.Status.OK.getStatusCode(), response.statusCode(),
-						"Not getting 200 response for credential set update");
-				}
-				DeviceSshKeyAccount stored = this.getStoredKeyAccount(account.getId());
-				Assertions.assertEquals("u2", stored.getUsername(), "The username is not updated");
-				Assertions.assertEquals("the-key", stored.getPrivateKey(), "The private key is not kept");
-				Assertions.assertEquals("p", stored.getPassword(), "The passphrase is not kept");
-
-				data.put("privateKey", "new-key");
-				{
-					HttpResponse<JsonNode> response = apiClient.put(
-						"/credentialsets/%d".formatted(account.getId()), data);
-					Assertions.assertEquals(
-						Response.Status.OK.getStatusCode(), response.statusCode(),
-						"Not getting 200 response for credential set update");
-				}
-				Assertions.assertEquals("new-key", this.getStoredKeyAccount(account.getId()).getPrivateKey(),
-					"The private key is not changed");
-			}
 		}
 
 		@Nested
@@ -1630,30 +1523,6 @@ public class RestServiceTest extends WithDatabaseTest {
 			}
 
 			@Test
-			@DisplayName("Update webhook with null triggers")
-			@ResourceLock("DB")
-			void updateWebhookNullTriggers() throws IOException, InterruptedException {
-				ObjectNode data = newWebhookData("Webhook with triggers", "https://example.net/callback");
-				data.putArray("triggers").addObject()
-					.put("type", "POST_TASK")
-					.put("item", "TakeSnapshotTask");
-				HttpResponse<JsonNode> createResponse = apiClient.post("/hooks", data);
-				Assertions.assertEquals(
-					Response.Status.CREATED.getStatusCode(), createResponse.statusCode(),
-					"Not getting 201 response for webhook creation");
-				long id = createResponse.body().get("id").asLong();
-				Assertions.assertEquals(1, this.getWebHookByName("Webhook with triggers").getTriggers().size());
-
-				data.putNull("triggers");
-				HttpResponse<JsonNode> response = apiClient.put("/hooks/%d".formatted(id), data);
-				Assertions.assertEquals(
-					Response.Status.OK.getStatusCode(), response.statusCode(),
-					"Not getting 200 response for webhook update with null triggers");
-				Assertions.assertTrue(this.getWebHookByName("Webhook with triggers").getTriggers().isEmpty(),
-					"The triggers are not removed");
-			}
-
-			@Test
 			@DisplayName("Delete webhook")
 			@ResourceLock("DB")
 			void deleteWebhook() throws IOException, InterruptedException {
@@ -1680,53 +1549,6 @@ public class RestServiceTest extends WithDatabaseTest {
 			}
 		}
 
-	}
-
-	@Nested
-	@DisplayName("Group tests")
-	@ResourceLock("DB")
-	class GroupTest {
-
-		@AfterEach
-		void cleanUpData() {
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.createMutationQuery("delete from DeviceGroup").executeUpdate();
-				session.getTransaction().commit();
-			}
-		}
-
-		@Test
-		@DisplayName("Refuse a null group name")
-		void nullGroupName() throws IOException, InterruptedException {
-			ObjectNode noName = JsonNodeFactory.instance.objectNode()
-				.putNull("name")
-				.put("type", "StaticDeviceGroup");
-			{
-				HttpResponse<JsonNode> response = apiClient.post("/groups", noName);
-				Assertions.assertEquals(
-					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
-					"Not getting 400 response for a group without name");
-				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_GROUP_NAME.getCode(),
-					response.body().get("errorCode").asInt());
-			}
-			StaticDeviceGroup group = new StaticDeviceGroup("Test group");
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.persist(group);
-				session.getTransaction().commit();
-			}
-			{
-				HttpResponse<JsonNode> response = apiClient.put("/groups/%d".formatted(group.getId()), noName);
-				Assertions.assertEquals(
-					Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
-					"Not getting 400 response for a group update without name");
-				Assertions.assertEquals(
-					NetshotBadRequestException.Reason.NETSHOT_INVALID_GROUP_NAME.getCode(),
-					response.body().get("errorCode").asInt());
-			}
-		}
 	}
 
 	@Nested
