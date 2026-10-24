@@ -2362,4 +2362,11 @@
 		<sql>ALTER TABLE vault_instance ADD CONSTRAINT ck_vault_instance_hashicorp_auth_method
 			CHECK (dtype &lt;&gt; 'HashicorpVaultKv2Instance' OR auth_method IS NOT NULL)</sql>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_9">
+		<!-- Deleting a diagnostic (or changing its target group) deleted its results but left their long texts. -->
+		<sql>DELETE FROM long_text_configuration l
+			WHERE NOT EXISTS (SELECT 1 FROM config_attribute a WHERE a.long_text = l.id)
+			AND NOT EXISTS (SELECT 1 FROM device_attribute a WHERE a.long_text = l.id)
+			AND NOT EXISTS (SELECT 1 FROM diagnostic_result r WHERE r.long_text = l.id)</sql>
+	</changeSet>
 </databaseChangeLog>

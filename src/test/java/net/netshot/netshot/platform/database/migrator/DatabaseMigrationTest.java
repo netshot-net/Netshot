@@ -799,6 +799,38 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
+	@DisplayName("0.26.0_9 - orphaned long texts deleted")
+	class OrphanedLongTextMigrationTest {
+
+		@Test
+		@DisplayName("The long texts no attribute or diagnostic result refers to are deleted, the others are kept")
+		void deletesOrphanedLongTexts() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("orphanedlongtextmigrationtest"));
+			updateToChangeSet("0.26.0_8", "netshot");
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into long_text_configuration (id, text) values "
+					+ "(1001, 'device attribute'), (1002, 'config attribute'), (1003, 'diagnostic result'), (1004, 'orphan')");
+				statement.execute("insert into device (id, version, name, status) values (1011, 0, 'r1', 'INPRODUCTION')");
+				statement.execute("insert into device_attribute (id, type, name, device, long_text) values (1021, 'L', 'a', 1011, 1001)");
+				statement.execute("insert into config (id, version, device) values (1031, 0, 1011)");
+				statement.execute("insert into config_attribute (id, type, name, config, long_text) values (1041, 'L', 'a', 1031, 1002)");
+				statement.execute("insert into diagnostic (id, type, enabled, name, result_type) values (1051, 'SIMPLE', true, 'd', 'LONGTEXT')");
+				statement.execute("insert into diagnostic_result (id, type, device, diagnostic, long_text) values (1061, 'L', 1011, 1051, 1003)");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(List.of(List.of("1001"), List.of("1002"), List.of("1003")),
+					rows(statement, "select id from long_text_configuration order by id", 1));
+			}
+		}
+	}
+
+	@Nested
 	@DisplayName("Custom changes moved to platform.database.migrator keep upgrades of existing databases valid")
 	class CustomChangeChecksumTest {
 

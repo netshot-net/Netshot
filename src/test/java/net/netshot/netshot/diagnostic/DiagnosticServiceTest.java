@@ -97,6 +97,15 @@ class DiagnosticServiceTest {
 		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.DIAGNOSTIC_RESULT, Tables.DIAGNOSTIC_RESULT.DIAGNOSTIC.eq(diagnosticId)));
 	}
 
+	private long countLongTexts() {
+		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.LONG_TEXT_CONFIGURATION));
+	}
+
+	private void addLongTextResult(long diagnosticId) {
+		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
+			List.of(DiagnosticLongTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "long value"))));
+	}
+
 	private void addResult(long diagnosticId) {
 		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
 			List.of(DiagnosticTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "value"))));
@@ -316,6 +325,22 @@ class DiagnosticServiceTest {
 		Assertions.assertEquals(0, this.countResults(diagnostic.id()));
 		assertError(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, () -> this.service.get(diagnostic.id()).diagnostic());
 		Assertions.assertFalse(this.service.delete(99999999L));
+	}
+
+	@Test
+	@DisplayName("delete() and a target group change remove the long texts of the results")
+	void deleteLongTextResults() {
+		long longTexts = this.countLongTexts();
+		Diagnostic diagnostic = this.service.create(simple(this.name("Long text"), this.groupId, "enable", "show run")).diagnostic();
+		this.addLongTextResult(diagnostic.id());
+		Assertions.assertEquals(longTexts + 1, this.countLongTexts());
+		this.service.update(diagnostic.id(), simple(diagnostic.name(), this.otherGroupId, "enable", "show run"));
+		Assertions.assertEquals(longTexts, this.countLongTexts(), "the long text of the result is deleted on a group change");
+
+		this.addLongTextResult(diagnostic.id());
+		Assertions.assertEquals(longTexts + 1, this.countLongTexts());
+		Assertions.assertTrue(this.service.delete(diagnostic.id()));
+		Assertions.assertEquals(longTexts, this.countLongTexts(), "the long text of the result is deleted with the diagnostic");
 	}
 
 	@Test
