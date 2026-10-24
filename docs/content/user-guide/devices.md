@@ -39,6 +39,8 @@ To find devices by IP address, use the `[IP]` attribute, which compares the mana
 - `[IP] in 10.0.0.0/16`: the management address or an interface address is in `10.0.0.0/16`.
 - `[IP] contains 10.0.0.5`: the subnet of an interface contains `10.0.0.5` (for example an interface `10.0.0.1/24`).
 
+In the text comparisons (`is`, `contains`, `startswith`...), the `%` and `_` characters match literally.
+
 ## Device groups
 
 Groups let you organize devices for filtering, for running tasks over many devices at once, as the target of [compliance policies](compliance.md), and to break down [reports](reports.md). Managing groups requires a read-write role.
