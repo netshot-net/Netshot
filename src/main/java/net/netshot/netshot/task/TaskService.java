@@ -124,7 +124,7 @@ public class TaskService {
 	public List<TaskSummary> list(TaskFilter filter, Page page) {
 		Page effective = page.limit() == null ? new Page(page.offset(), DEFAULT_LIMIT) : page;
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findSummaries(dsl, filter, effective));
+			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, filter, effective));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the tasks.", e);
@@ -147,7 +147,7 @@ public class TaskService {
 	public List<TaskSummary> listByDevice(long deviceId, Integer offset, Integer limit) {
 		try {
 			Page page = new Page(offset, limit == null ? DEFAULT_LIMIT : limit);
-			return this.transactions.readDsl(dsl -> this.repository.findSummariesByDevice(dsl, deviceId, page));
+			return this.transactions.read(dsl -> this.repository.findSummariesByDevice(dsl, deviceId, page));
 		}
 		catch (Exception e) {
 			log.error("Unable to fetch the tasks.", e);
@@ -164,7 +164,7 @@ public class TaskService {
 	 */
 	public Task find(long id) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
+			return this.transactions.read(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
@@ -185,7 +185,7 @@ public class TaskService {
 	 */
 	public <R> R mapTask(long id, TaskMapping<R> mapper) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Task task = this.repository.find(dsl, id);
 				if (task == null) {
 					log.error("Unable to find the task {}.", id);
@@ -226,7 +226,7 @@ public class TaskService {
 	 */
 	public String getDebugLog(long id) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Task task = this.repository.find(dsl, id);
 				if (task == null) {
 					log.error("Unable to find the task {}.", id);
@@ -254,7 +254,7 @@ public class TaskService {
 	public Task update(long id, boolean cancel, String author) {
 		Task task;
 		try {
-			task = this.transactions.writeDsl(dsl -> this.repository.find(dsl, id));
+			task = this.transactions.write(dsl -> this.repository.find(dsl, id));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the task {}.", id, e);
@@ -267,7 +267,7 @@ public class TaskService {
 		if (cancel) {
 			this.cancel(task, author);
 			try {
-				task = this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
+				task = this.transactions.read(dsl -> this.repository.find(dsl, id));
 			}
 			catch (DataAccessException e) {
 				log.error("Unable to fetch the task {}.", id, e);
@@ -323,7 +323,7 @@ public class TaskService {
 	 */
 	public TaskOverview getOverview(Long parentTaskId) {
 		try {
-			List<TaskStatusCount> counts = this.transactions.readDsl(dsl -> this.repository.countByStatus(dsl, parentTaskId));
+			List<TaskStatusCount> counts = this.transactions.read(dsl -> this.repository.countByStatus(dsl, parentTaskId));
 			Map<Task.Status, Long> countByStatus = new HashMap<>();
 			for (Task.Status status : Task.Status.values()) {
 				countByStatus.put(status, 0L);
@@ -355,7 +355,7 @@ public class TaskService {
 		long span = Math.max(1L, to - from);
 		double step = ((double) span) / binCount;
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Map<Task.Status, Long> statusCounts = new HashMap<>();
 				for (Task.Status status : FINAL_STATUSES) {
 					statusCounts.put(status, 0L);
@@ -556,7 +556,7 @@ public class TaskService {
 		}
 		Domain domain;
 		try {
-			domain = this.transactions.writeDsl(dsl -> {
+			domain = this.transactions.write(dsl -> {
 				Domain found = new DomainRepository().find(dsl, c.domain());
 				if (found == null) {
 					log.error("No such domain of ID {}.", c.domain());
@@ -635,7 +635,7 @@ public class TaskService {
 		}
 		else if (hasDeviceList(c)) {
 			// No translation of the database errors here, as in the former code
-			spec.deviceIds(this.transactions.writeDsl(dsl -> this.resolveDeviceList(dsl, c)));
+			spec.deviceIds(this.transactions.write(dsl -> this.resolveDeviceList(dsl, c)));
 		}
 		Task task = Task.of(spec.build(), c.comments(), "Global", c.author());
 		return task;
@@ -705,7 +705,7 @@ public class TaskService {
 	// Runs some work in a read-write transaction, reporting a database failure as such.
 	private <T> T inTransaction(Function<DSLContext, T> work) {
 		try {
-			return this.transactions.writeDsl(work);
+			return this.transactions.write(work);
 		}
 		catch (DataAccessException e) {
 			log.error("Error while retrieving the target of the task.", e);

@@ -162,7 +162,7 @@ public class AccessManager {
 			}
 		}
 		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
-		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> new Transactions().readDsl(
+		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> new Transactions().read(
 			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
 		return new AccessManager(driverRegistry, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}

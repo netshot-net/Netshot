@@ -77,7 +77,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 		UserDeviceScript deviceScript = null;
 		try {
 			// Start over from a fresh device from DB
-			device = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
 			if (device == null) {
 				throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
 			}
@@ -100,7 +100,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 			deviceScript.setUserInputValues(spec.userInputValues());
 			DeviceDraft draft = new DeviceDraft(device);
 			deviceScript.connectRun(draft);
-			this.transactions.writeDsl(dsl -> this.deviceRepository.saveDraft(dsl, draft));
+			this.transactions.write(dsl -> this.deviceRepository.saveDraft(dsl, draft));
 			device = draft.toDevice();
 			run.setStatus(Status.SUCCESS);
 		}

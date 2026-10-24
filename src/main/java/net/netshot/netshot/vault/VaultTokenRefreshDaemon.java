@@ -82,7 +82,7 @@ final class VaultTokenRefreshDaemon extends Thread {
 
 	private void refreshAll() {
 		// The instances are read first: no transaction is held during the logins
-		List<VaultInstance> instances = new Transactions().readDsl(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
+		List<VaultInstance> instances = new Transactions().read(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
 		for (VaultInstance candidate : instances) {
 			if (!(candidate instanceof HashicorpVaultKv2Instance vaultInstance)) {
 				continue;

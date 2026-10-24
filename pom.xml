@@ -8,7 +8,6 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<polyglot.version>25.0.4.1.1</polyglot.version>
-		<hibernate.version>6.6.55.Final</hibernate.version>
 		<c3p0.version>0.14.1</c3p0.version>
 		<undertow.version>2.4.2.Final</undertow.version>
 		<jackson.version>2.22.4</jackson.version>
@@ -208,21 +207,6 @@
 				<exclusion>
 					<artifactId>*</artifactId>
 					<groupId>org.bouncycastle</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-core</artifactId>
-			<version>${hibernate.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>jakarta.xml.bind</groupId>
-					<artifactId>jakarta.xml.bind-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.glassfish.jaxb</groupId>
-					<artifactId>jaxb-runtime</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>

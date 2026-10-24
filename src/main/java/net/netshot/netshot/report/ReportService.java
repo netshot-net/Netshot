@@ -88,9 +88,9 @@ public class ReportService {
 	 * @param work the reads
 	 * @return the result
 	 */
-	private <T> T readDsl(String logMessage, Function<DSLContext, T> work) {
+	private <T> T read(String logMessage, Function<DSLContext, T> work) {
 		try {
-			return this.transactions.readDsl(work);
+			return this.transactions.read(work);
 		}
 		catch (DataAccessException e) {
 			log.error(logMessage, e);
@@ -117,7 +117,7 @@ public class ReportService {
 		today.set(Calendar.MINUTE, 0);
 		today.set(Calendar.SECOND, 0);
 		today.set(Calendar.MILLISECOND, 0);
-		return this.readDsl("Unable to get the stats.", dsl -> {
+		return this.read("Unable to get the stats.", dsl -> {
 			List<DailyChangeCount> stats = new ArrayList<>();
 			for (int d = 7; d > 0; d--) {
 				Calendar dayStart = (Calendar) today.clone();
@@ -141,7 +141,7 @@ public class ReportService {
 	 */
 	public List<GroupConfigComplianceStat> getGroupConfigComplianceStats(Set<Long> domains, Set<Long> deviceGroups,
 		Set<Long> policies) {
-		return this.readDsl("Unable to get the stats.",
+		return this.read("Unable to get the stats.",
 			dsl -> this.repository.findGroupConfigComplianceStats(dsl, domains, deviceGroups, policies));
 	}
 
@@ -153,7 +153,7 @@ public class ReportService {
 	 * @return the device counts by end-of-sale and end-of-life dates
 	 */
 	public HardwareSupportStats getHardwareSupportStats(Set<Long> domains, Set<Long> deviceGroups) {
-		return this.readDsl("Unable to get the stats.", dsl -> new HardwareSupportStats(
+		return this.read("Unable to get the stats.", dsl -> new HardwareSupportStats(
 			this.repository.findHardwareSupportCounts(dsl, EndOfSupport.SALE, domains, deviceGroups),
 			this.repository.findHardwareSupportCounts(dsl, EndOfSupport.LIFE, domains, deviceGroups)));
 	}
@@ -165,7 +165,7 @@ public class ReportService {
 	 * @return the statistics
 	 */
 	public List<GroupSoftwareComplianceStat> getGroupSoftwareComplianceStats(Set<Long> domains) {
-		return this.readDsl("Unable to get the stats.",
+		return this.read("Unable to get the stats.",
 			dsl -> this.repository.findGroupSoftwareComplianceStats(dsl, domains));
 	}
 
@@ -180,7 +180,7 @@ public class ReportService {
 	 */
 	public List<PolicyRuleDevice> getConfigComplianceDeviceStatuses(Set<Long> domains, Set<Long> groups,
 		Set<Long> policies, Set<CheckResult.ResultOption> results) {
-		return this.readDsl("Unable to get the devices.",
+		return this.read("Unable to get the devices.",
 			dsl -> this.repository.findPolicyRuleDevices(dsl, domains, groups, policies, results));
 	}
 
@@ -194,7 +194,7 @@ public class ReportService {
 	 */
 	public List<PolicyRuleDevice> getGroupConfigNonCompliantDevices(Long groupId, Set<Long> domains,
 		Set<Long> policies) {
-		return this.readDsl("Unable to get the devices.",
+		return this.read("Unable to get the devices.",
 			dsl -> this.repository.findNonCompliantDevices(dsl, groupId, domains, policies));
 	}
 
@@ -216,7 +216,7 @@ public class ReportService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, "Invalid type, expected eos or eol.");
 		}
 		Date eoxDate = new Date(date);
-		return this.readDsl("Unable to get the devices.", dsl -> this.repository.findDevicesByEndOfSupport(dsl,
+		return this.read("Unable to get the devices.", dsl -> this.repository.findDevicesByEndOfSupport(dsl,
 			milestone, date == 0 ? null : eoxDate, domains, deviceGroups));
 	}
 
@@ -238,7 +238,7 @@ public class ReportService {
 			}
 		}
 		ConformanceLevel conformanceLevel = filterLevel;
-		return this.readDsl("Unable to get the devices.",
+		return this.read("Unable to get the devices.",
 			dsl -> this.repository.findDevicesBySoftwareLevel(dsl, groupId, conformanceLevel, domains));
 	}
 
@@ -258,7 +258,7 @@ public class ReportService {
 		}
 		Calendar when = Calendar.getInstance();
 		when.add(Calendar.DATE, -period);
-		return this.readDsl("Unable to get the devices.",
+		return this.read("Unable to get the devices.",
 			dsl -> this.repository.findAccessFailureDevices(dsl, when.getTime(), domains, page));
 	}
 
@@ -273,7 +273,7 @@ public class ReportService {
 	public void export(ReportExportSelection selection, ReportExportSink sink) {
 		Set<Long> domains = selection.domains();
 		Set<Long> groups = selection.groups();
-		this.transactions.readDsl(dsl -> {
+		this.transactions.read(dsl -> {
 			sink.summary(domains.isEmpty() ? null : this.repository.findDomainNames(dsl, domains),
 				groups.isEmpty() ? null : this.repository.findGroupNames(dsl, groups));
 			this.exportDevices(dsl, selection, sink);

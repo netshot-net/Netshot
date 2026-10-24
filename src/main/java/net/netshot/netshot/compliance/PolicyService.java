@@ -70,7 +70,7 @@ public class PolicyService {
 	 */
 	public List<PolicyView> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				List<PolicyView> views = new ArrayList<>();
 				for (Policy policy : this.repository.findAll(dsl, page)) {
 					views.add(this.view(dsl, policy));
@@ -114,7 +114,7 @@ public class PolicyService {
 		}
 		PolicyView policy;
 		try {
-			policy = this.transactions.writeDsl(dsl -> {
+			policy = this.transactions.write(dsl -> {
 				Policy newPolicy = new Policy(0, name, definition.targetGroupIds());
 				PolicyView view = this.view(dsl, newPolicy);
 				newPolicy = newPolicy.withId(this.repository.add(dsl, newPolicy));
@@ -145,7 +145,7 @@ public class PolicyService {
 	public PolicyView update(long id, PolicyDefinition definition) {
 		PolicyView policy;
 		try {
-			policy = this.transactions.writeDsl(dsl -> {
+			policy = this.transactions.write(dsl -> {
 				Policy existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the policy {} to be edited.", id);
@@ -188,7 +188,7 @@ public class PolicyService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.writeDsl(dsl -> {
+			boolean deleted = this.transactions.write(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such policy of ID {}", id);
 					return false;

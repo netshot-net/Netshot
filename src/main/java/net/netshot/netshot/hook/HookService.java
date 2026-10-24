@@ -66,7 +66,7 @@ public class HookService {
 	 */
 	public List<Hook> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the hooks.", e);
@@ -83,7 +83,7 @@ public class HookService {
 	 */
 	public List<Hook> findEnabled(HookTrigger.TriggerType type, String item) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findEnabledByTrigger(dsl, type, item));
+			return this.transactions.read(dsl -> this.repository.findEnabledByTrigger(dsl, type, item));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the hooks.", e);
@@ -118,7 +118,7 @@ public class HookService {
 		Hook valid = validate(hook);
 		Hook created;
 		try {
-			created = valid.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, valid)));
+			created = valid.withId(this.transactions.write(dsl -> this.repository.add(dsl, valid)));
 		}
 		catch (DataAccessException e) {
 			log.error("Can't add the hook.", e);
@@ -153,7 +153,7 @@ public class HookService {
 		}
 		Hook valid = validate(hook);
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				Hook stored = this.repository.find(dsl, id);
 				// A hook of another type is not found, as with the former query by type
 				if (stored == null || !stored.getClass().equals(valid.getClass())) {
@@ -188,7 +188,7 @@ public class HookService {
 	public boolean delete(long id) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.writeDsl(dsl -> this.repository.remove(dsl, id));
+			deleted = this.transactions.write(dsl -> this.repository.remove(dsl, id));
 		}
 		catch (RuntimeException e) {
 			log.error("Unable to delete the hook {}", id, e);

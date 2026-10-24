@@ -647,7 +647,7 @@ public class DemoDataCreator {
 	public void createData() {
 		log.info("Creating data...");
 		try {
-			new Transactions().runDsl(this::createData);
+			new Transactions().run(this::createData);
 			log.info("Success");
 		}
 		catch (Exception e) {

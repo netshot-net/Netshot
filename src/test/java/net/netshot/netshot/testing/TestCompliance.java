@@ -54,7 +54,7 @@ public final class TestCompliance {
 	 */
 	public static Policy policy(String name, Long... groupIds) {
 		Policy policy = new Policy(0, name, Set.of(groupIds));
-		return policy.withId(TRANSACTIONS.writeDsl(dsl -> new PolicyRepository().add(dsl, policy)));
+		return policy.withId(TRANSACTIONS.write(dsl -> new PolicyRepository().add(dsl, policy)));
 	}
 
 	/**
@@ -66,7 +66,7 @@ public final class TestCompliance {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <R extends Rule> R rule(R rule) {
-		return (R) rule.withId(TRANSACTIONS.writeDsl(dsl -> new RuleRepository().add(dsl, rule)));
+		return (R) rule.withId(TRANSACTIONS.write(dsl -> new RuleRepository().add(dsl, rule)));
 	}
 
 	/**
@@ -75,7 +75,7 @@ public final class TestCompliance {
 	 * @param rules the rules (their IDs are ignored)
 	 */
 	public static void softwareRules(SoftwareRule... rules) {
-		TRANSACTIONS.runDsl(dsl -> {
+		TRANSACTIONS.run(dsl -> {
 			for (SoftwareRule rule : rules) {
 				new SoftwareRuleRepository().add(dsl, rule);
 			}
@@ -88,7 +88,7 @@ public final class TestCompliance {
 	 * @param rules the rules (their IDs are ignored)
 	 */
 	public static void hardwareRules(HardwareRule... rules) {
-		TRANSACTIONS.runDsl(dsl -> {
+		TRANSACTIONS.run(dsl -> {
 			for (HardwareRule rule : rules) {
 				new HardwareRuleRepository().add(dsl, rule);
 			}
@@ -101,7 +101,7 @@ public final class TestCompliance {
 	 * @param results the results
 	 */
 	public static void checkResults(CheckResult... results) {
-		TRANSACTIONS.runDsl(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(results)));
+		TRANSACTIONS.run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(results)));
 	}
 
 	/**
@@ -111,6 +111,6 @@ public final class TestCompliance {
 	 * @param expirations the expiration dates, by device ID
 	 */
 	public static void exemptions(long ruleId, Map<Long, Instant> expirations) {
-		TRANSACTIONS.runDsl(dsl -> new RuleRepository().replaceExemptions(dsl, ruleId, expirations));
+		TRANSACTIONS.run(dsl -> new RuleRepository().replaceExemptions(dsl, ruleId, expirations));
 	}
 }

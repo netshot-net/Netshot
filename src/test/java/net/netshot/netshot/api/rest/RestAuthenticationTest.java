@@ -102,7 +102,7 @@ public class RestAuthenticationTest {
 
 		@AfterEach
 		void cleanUpData() {
-			new Transactions().runDsl(dsl -> dsl.deleteFrom(Tables.USER).execute());
+			new Transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
 		}
 
 		@Test
@@ -156,7 +156,7 @@ public class RestAuthenticationTest {
 		void currentUser() throws IOException, InterruptedException {
 			String secret = "jmE5C9JHDpLtbGswYfWBdUayKFn7Th6R";
 			ApiToken temp = ApiToken.of("Token get test", secret, UiUser.LEVEL_READONLY);
-			ApiToken token1 = temp.withId(new Transactions().writeDsl(dsl -> new ApiTokenRepository().add(dsl, temp)));
+			ApiToken token1 = temp.withId(new Transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
 			apiClient.setApiToken(secret);
 			HttpResponse<JsonNode> response = apiClient.get("/user");
 			Assertions.assertEquals(
@@ -206,7 +206,7 @@ public class RestAuthenticationTest {
 				user = user.withLastPasswordChangeDate(Instant.now().minus(passwordAge, ChronoUnit.DAYS));
 			}
 			UiUser stored = user;
-			this.testUser = stored.withId(new Transactions().writeDsl(dsl -> new UserRepository().add(dsl, stored)));
+			this.testUser = stored.withId(new Transactions().write(dsl -> new UserRepository().add(dsl, stored)));
 		}
 
 		@Test
@@ -338,7 +338,7 @@ public class RestAuthenticationTest {
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response");
 			{
-				UiUser user = new Transactions().readDsl(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 					"Password not changed as expected");
 			}
@@ -356,7 +356,7 @@ public class RestAuthenticationTest {
 				() -> apiClient.get("/domains"),
 				"Login should have failed");
 			{
-				UiUser user = new Transactions().readDsl(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(testPassword, null),
 					"Password should not have changed");
 			}
@@ -502,7 +502,7 @@ public class RestAuthenticationTest {
 					Response.Status.OK.getStatusCode(), response.statusCode(),
 					"Not getting 200 response");
 				{
-					UiUser user = new Transactions().readDsl(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+					UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 					Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 						"Password should have changed");
 				}

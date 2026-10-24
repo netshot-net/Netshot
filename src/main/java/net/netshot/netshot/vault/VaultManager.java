@@ -119,7 +119,7 @@ public final class VaultManager {
 
 	/** Reads a Vault instance from the database (null if it doesn't exist). */
 	private static volatile LongFunction<VaultInstance> instanceLoader =
-		id -> new Transactions().readDsl(dsl -> new VaultInstanceRepository().find(dsl, id));
+		id -> new Transactions().read(dsl -> new VaultInstanceRepository().find(dsl, id));
 
 		private static final ConcurrentHashMap<Long, VaultToken> TOKEN_CACHE = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Long, CompletableFuture<VaultToken>> LOGIN_IN_FLIGHT = new ConcurrentHashMap<>();

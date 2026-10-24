@@ -97,7 +97,7 @@ class CheckComplianceHandlerTest {
 	}
 
 	private Map<String, ResultOption> results() {
-		return new Transactions().readDsl(dsl -> dsl.select(Tables.RULE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+		return new Transactions().read(dsl -> dsl.select(Tables.RULE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
 			.join(Tables.RULE).on(Tables.RULE.ID.eq(Tables.CHECK_RESULT.RULE))
 			.where(Tables.CHECK_RESULT.DEVICE.eq(this.device.id()))
 			.fetch()

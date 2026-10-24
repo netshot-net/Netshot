@@ -83,7 +83,7 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 		RunDiagnosticDeviceScript deviceScript = null;
 		try {
 			// Start over from a fresh device from DB
-			device = this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, deviceId));
+			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
 			if (device == null) {
 				throw new IllegalStateException("The device %d doesn't exist anymore".formatted(deviceId));
 			}
@@ -95,12 +95,12 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 				run.setStatus(Status.CANCELLED);
 				return;
 			}
-			List<Diagnostic> diagnostics = this.transactions.readDsl(dsl -> new DiagnosticRepository().findEnabledForDevice(dsl, deviceId));
+			List<Diagnostic> diagnostics = this.transactions.read(dsl -> new DiagnosticRepository().findEnabledForDevice(dsl, deviceId));
 			if (diagnostics.size() > 0) {
 				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, diagnostics, this.diagnosticAdapters, run.logger);
 				DeviceDraft draft = new DeviceDraft(device);
 				deviceScript.connectRun(draft);
-				this.transactions.writeDsl(dsl -> this.deviceRepository.saveDraft(dsl, draft));
+				this.transactions.write(dsl -> this.deviceRepository.saveDraft(dsl, draft));
 				device = draft.toDevice();
 			}
 			else {

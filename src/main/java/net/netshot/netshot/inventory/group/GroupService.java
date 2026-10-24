@@ -71,7 +71,7 @@ public class GroupService {
 	 */
 	public List<DeviceGroup> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the groups.", e);
@@ -88,7 +88,7 @@ public class GroupService {
 	 */
 	public DeviceGroup get(long id) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				DeviceGroup group = this.repository.find(dsl, id);
 				if (group == null) {
 					log.warn("Unable to find the device group.");
@@ -121,7 +121,7 @@ public class GroupService {
 		}
 		DeviceGroup group;
 		try {
-			group = this.transactions.writeDsl(dsl -> {
+			group = this.transactions.write(dsl -> {
 				if ("StaticDeviceGroup".equals(definition.type())) {
 					List<Long> deviceIds = this.checkDevices(dsl, definition.staticDevices());
 					DeviceGroup added = this.repository.add(dsl, StaticDeviceGroup.builder()
@@ -171,7 +171,7 @@ public class GroupService {
 	public DeviceGroup update(long id, GroupDefinition definition) {
 		DeviceGroup group;
 		try {
-			group = this.transactions.writeDsl(dsl -> {
+			group = this.transactions.write(dsl -> {
 				DeviceGroup existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the group {} to be edited.", id);
@@ -233,7 +233,7 @@ public class GroupService {
 	 */
 	public boolean delete(long id) {
 		try {
-			boolean deleted = this.transactions.writeDsl(dsl -> {
+			boolean deleted = this.transactions.write(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such device group of ID {}", id);
 					return false;

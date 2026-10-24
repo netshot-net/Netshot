@@ -89,7 +89,7 @@ public class ApiTokenResourceTest {
 			"Not getting 201 response for created API token");
 
 		{
-			ApiToken newToken = this.transactions.readDsl(dsl -> this.repository.findByHash(dsl, token.hashedToken()));
+			ApiToken newToken = this.transactions.read(dsl -> this.repository.findByHash(dsl, token.hashedToken()));
 			Assertions.assertEquals(token.level(), newToken.level(),
 				"Token not created as expected");
 		}
@@ -101,7 +101,7 @@ public class ApiTokenResourceTest {
 	void deleteToken() throws IOException, InterruptedException {
 		ApiToken temp = ApiToken.of(
 			"Temp token", "dZLV0zCn5gmbUJIebRHBxM4QjIAoNruK", UiUser.LEVEL_OPERATOR);
-		ApiToken token1 = temp.withId(this.transactions.writeDsl(dsl -> this.repository.add(dsl, temp)));
+		ApiToken token1 = temp.withId(this.transactions.write(dsl -> this.repository.add(dsl, temp)));
 		HttpResponse<JsonNode> response = apiClient.delete(
 			"/apitokens/%d".formatted(token1.id()));
 		Assertions.assertEquals(

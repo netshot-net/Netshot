@@ -91,7 +91,7 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 		List<Long> deviceIds = devices;
 
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				List<Policy> policies = this.policyRepository.findAll(dsl, Page.ALL);
 				// The devices of the group (or the list)
 				Condition targetDevices = groupId != null

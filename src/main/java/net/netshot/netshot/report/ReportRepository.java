@@ -61,12 +61,11 @@ import net.netshot.netshot.report.ReportExportSink.ExportedModule;
 import net.netshot.netshot.task.Task;
 
 /**
- * The queries of the reports (read-only). Every method takes the jOOQ {@link DSLContext} (statistics
- * and device lists) or the {@link Session} (data export) first, none opens a transaction.
+ * The queries of the reports (read-only). Every method takes the jOOQ {@link DSLContext} first, none
+ * opens a transaction.
  *
- * <p>The statistics and device lists are jOOQ queries projected into records ({@link DeviceSummary}
- * and the records of this package). The queries of the data export load entities, which the caller reads inside
- * the same session: their fetch plan is documented on each method.</p>
+ * <p>The statistics, the device lists and the data export are projected into records
+ * ({@link DeviceSummary} and the records of this package).</p>
  */
 public class ReportRepository {
 

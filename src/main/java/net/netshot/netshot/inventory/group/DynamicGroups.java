@@ -117,7 +117,7 @@ public final class DynamicGroups {
 	public static void refreshAllGroupsOfOneDevice(long deviceId) {
 		log.debug("Refreshing all groups for device {}.", deviceId);
 		try {
-			new Transactions().runDsl(dsl -> refreshAllGroupsOfOneDevice(dsl, deviceId));
+			new Transactions().run(dsl -> refreshAllGroupsOfOneDevice(dsl, deviceId));
 		}
 		catch (Exception e) {
 			log.error("Error while refreshing the dynamic groups.", e);
@@ -132,7 +132,7 @@ public final class DynamicGroups {
 		log.debug("Refreshing all dynamic groups.");
 		Instant before = Instant.now();
 		try {
-			new Transactions().runDsl(dsl -> {
+			new Transactions().run(dsl -> {
 				for (DynamicDeviceGroup group : REPOSITORY.findDynamic(dsl)) {
 					try {
 						log.trace("Refreshing group {} ({})", group.id(), group.name());

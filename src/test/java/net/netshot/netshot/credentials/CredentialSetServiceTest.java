@@ -72,7 +72,7 @@ class CredentialSetServiceTest {
 		this.service = new CredentialSetService(this.transactions, new CredentialSetRepository());
 		this.domainId = TestDevices.addDomain(Domain.builder().name("Credentials domain").description("d")
 			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("::")).build()).id();
-		this.vaultId = this.transactions.writeDsl(dsl -> new VaultInstanceRepository().add(dsl,
+		this.vaultId = this.transactions.write(dsl -> new VaultInstanceRepository().add(dsl,
 			HashicorpVaultKv2Instance.builder("Credentials vault")
 				.baseUrl("https://vault.example.net")
 				.authMethod(HashicorpVaultKv2Instance.AuthMethod.APPROLE)

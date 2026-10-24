@@ -222,7 +222,7 @@ public final class ApiContractSeed {
 
 	private void seedAuth() {
 		ApiTokenRepository repository = new ApiTokenRepository();
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			// Remove default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			Object[][] tokens = {
@@ -370,7 +370,7 @@ public final class ApiContractSeed {
 	}
 
 	private void seedDevices() {
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
 			CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
 			DeviceRepository deviceRepository = new DeviceRepository();
@@ -464,7 +464,7 @@ public final class ApiContractSeed {
 	 */
 	private void writeBinaryFiles(long deviceId) {
 		Path folder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
-		List<Config> configs = new Transactions().readDsl(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
+		List<Config> configs = new Transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
 		for (Config config : configs) {
 			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {
 				if (attribute instanceof ConfigBinaryFileAttribute file) {
@@ -600,7 +600,7 @@ public final class ApiContractSeed {
 			 "context": "line vty", "field": "runningConfig", "driver": "CiscoIOS12", "enabled": true,
 			 "exemptions": {"%d": %d}}"""
 			.formatted(this.id("rule.text"), this.id("policy.security"), this.id("device.router2"), D2040));
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
@@ -669,7 +669,7 @@ public final class ApiContractSeed {
 	}
 
 	private void seedTasks() {
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));

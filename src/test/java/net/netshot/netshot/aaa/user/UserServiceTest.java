@@ -81,11 +81,11 @@ class UserServiceTest {
 	}
 
 	private UiUser reload(long id) {
-		return this.transactions.readDsl(dsl -> this.repository.find(dsl, id));
+		return this.transactions.read(dsl -> this.repository.find(dsl, id));
 	}
 
 	private UiUser reload(String name) {
-		return this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, name));
+		return this.transactions.read(dsl -> this.repository.findByUsername(dsl, name));
 	}
 
 	private static void assertPassword(UiUser user, String password) throws Exception {
@@ -328,7 +328,7 @@ class UserServiceTest {
 	void changeExpiredPassword() throws Exception {
 		UiUser user = this.create(this.nextName(), true, PASSWORD, 10);
 		String name = user.username();
-		this.transactions.runDsl(dsl -> this.repository.save(dsl,
+		this.transactions.run(dsl -> this.repository.save(dsl,
 			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
 		Assertions.assertThrows(PasswordPolicy.PasswordPolicyException.class, () -> this.reload(name).checkPassword(PASSWORD, PasswordPolicy.getMainPolicy()));
 		this.service.changeOwnPassword(name, name, PASSWORD, "Fresh-passw0rd");

@@ -68,7 +68,7 @@ public class DomainService {
 	 */
 	public List<Domain> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findAll(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findAll(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the domains.", e);
@@ -103,7 +103,7 @@ public class DomainService {
 		}
 		Domain domain;
 		try {
-			domain = this.transactions.writeDsl(dsl -> this.repository.add(dsl, definedDomain));
+			domain = this.transactions.write(dsl -> this.repository.add(dsl, definedDomain));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while adding a domain.", e);
@@ -142,7 +142,7 @@ public class DomainService {
 		}
 		Domain domain;
 		try {
-			domain = this.transactions.writeDsl(dsl -> {
+			domain = this.transactions.write(dsl -> {
 				Domain existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("The domain of ID {} doesn't exist.", id);
@@ -179,7 +179,7 @@ public class DomainService {
 	 */
 	public void delete(long id) {
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				if (!this.repository.remove(dsl, id)) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");

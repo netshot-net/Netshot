@@ -48,7 +48,7 @@ record TaskTargets(DeviceGroup group, List<Device> devices) {
 		if (spec.deviceGroupId() == null && spec.deviceIds().isEmpty()) {
 			return new TaskTargets(null, List.of());
 		}
-		return new Transactions().readDsl(dsl -> {
+		return new Transactions().read(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			if (spec.deviceGroupId() != null) {
 				GroupRepository groupRepository = new GroupRepository();

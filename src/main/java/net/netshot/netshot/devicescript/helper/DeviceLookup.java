@@ -50,7 +50,7 @@ final class DeviceLookup {
 	 * @return the device, or null if there is no such device
 	 */
 	Device findDevice(long id) {
-		return this.transactions.readDsl(dsl -> this.deviceRepository.find(dsl, id));
+		return this.transactions.read(dsl -> this.deviceRepository.find(dsl, id));
 	}
 
 	/**
@@ -60,7 +60,7 @@ final class DeviceLookup {
 	 * @return the device, or null if there is no such device
 	 */
 	Device findDevice(String name) {
-		return this.transactions.readDsl(dsl -> this.deviceRepository.findByName(dsl, name));
+		return this.transactions.read(dsl -> this.deviceRepository.findByName(dsl, name));
 	}
 
 	/**
@@ -74,7 +74,7 @@ final class DeviceLookup {
 		if (configId == null) {
 			return null;
 		}
-		return this.configs.computeIfAbsent(configId, id -> this.transactions.readDsl(dsl -> this.configRepository.find(dsl, id, true)));
+		return this.configs.computeIfAbsent(configId, id -> this.transactions.read(dsl -> this.configRepository.find(dsl, id, true)));
 	}
 
 	/**
@@ -84,6 +84,6 @@ final class DeviceLookup {
 	 * @return the results
 	 */
 	List<DiagnosticResult> diagnosticResults(long deviceId) {
-		return this.transactions.readDsl(dsl -> this.diagnosticResultRepository.findByDevice(dsl, deviceId));
+		return this.transactions.read(dsl -> this.diagnosticResultRepository.findByDevice(dsl, deviceId));
 	}
 }

@@ -24,18 +24,9 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import org.hibernate.annotations.Type;
-
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Transient;
-import net.netshot.netshot.platform.database.InetAddressUserType;
-
 /**
  * An IPv6 address.
  */
-@Embeddable
 public final class Network6Address extends NetworkAddress {
 
 	/**
@@ -182,7 +173,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the address
 	 */
-	@Type(InetAddressUserType.class)
 	public InetAddress getAddress() {
 		return address;
 	}
@@ -201,7 +191,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the address1
 	 */
-	@Transient
 	public long getAddress1() {
 		return this.address == null ? 0 : ByteBuffer.wrap(this.address.getAddress()).getLong(0);
 	}
@@ -211,7 +200,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the address2
 	 */
-	@Transient
 	public long getAddress2() {
 		return this.address == null ? 0 : ByteBuffer.wrap(this.address.getAddress()).getLong(8);
 	}
@@ -220,7 +208,6 @@ public final class Network6Address extends NetworkAddress {
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getInetAddress()
 	 */
 	@Override
-	@Transient
 	public InetAddress getInetAddress() {
 		return this.address;
 	}
@@ -228,7 +215,6 @@ public final class Network6Address extends NetworkAddress {
 	/*(non-Javadoc)
 	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getIP()
 	 */
-	@Transient
 	@Override
 	public String getIp() {
 		return Network6Address.intToIP(this.getAddress1(), this.getAddress2());
@@ -239,7 +225,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return the prefix
 	 */
-	@Transient
 	@Override
 	public String getPrefix() {
 		return getIp() + "/" + prefixLength;
@@ -287,7 +272,6 @@ public final class Network6Address extends NetworkAddress {
 	private AddressUsage addressUsage = AddressUsage.PRIMARY;
 
 	@Override
-	@Enumerated(EnumType.STRING)
 	public AddressUsage getAddressUsage() {
 		return addressUsage;
 	}
@@ -313,7 +297,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return true, if is multicast
 	 */
-	@Transient
 	public boolean isMulticast() {
 		return ((this.getAddress1() >>> 56) & 0xFF) == 0xFF;
 	}
@@ -323,7 +306,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return true, if is multicast
 	 */
-	@Transient
 	public boolean isLinkLocal() {
 		return ((this.getAddress1() >>> 48) & 0xFE80) == 0xFE80;
 	}
@@ -334,7 +316,6 @@ public final class Network6Address extends NetworkAddress {
 	 *
 	 * @return true, if is normal unicast
 	 */
-	@Transient
 	public boolean isGlobalUnicast() {
 		return ((this.getAddress1() >>> 61) & 0b111) == 0b001;
 	}

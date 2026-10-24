@@ -94,7 +94,7 @@ public class AccessManagerTest {
 
 	// The auto-try pool of a stored device, read from the database
 	private static Supplier<List<DeviceCredentialSet>> autoPool(DeviceDraft device) {
-		return () -> new Transactions().readDsl(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
+		return () -> new Transactions().read(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
 	}
 
 	@Test
@@ -332,7 +332,7 @@ public class AccessManagerTest {
 			Client client = resolution.ensureResolved(true);
 			Assertions.assertNotNull(client);
 			resolution.confirmCredentialWorks();
-			new Transactions().writeDsl(dsl -> new DeviceRepository().saveDraft(dsl, device));
+			new Transactions().write(dsl -> new DeviceRepository().saveDraft(dsl, device));
 
 			Assertions.assertNotNull(device.getDeviceAccess("ssh"),
 				"A DeviceAccess row should have been created to hold the pin");

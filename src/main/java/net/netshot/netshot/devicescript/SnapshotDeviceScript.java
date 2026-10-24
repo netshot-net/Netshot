@@ -147,7 +147,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 		if (lastConfigId == null) {
 			return null;
 		}
-		return new Transactions().readDsl(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
+		return new Transactions().read(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
 	}
 
 	@Override

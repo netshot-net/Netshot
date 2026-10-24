@@ -133,7 +133,7 @@ public class DeviceResourceTest {
 	 * @return the device
 	 */
 	private static Device findOnlyDevice() {
-		long id = new Transactions().readDsl(dsl -> dsl.select(DEVICE.ID).from(DEVICE).fetchSingle(DEVICE.ID));
+		long id = new Transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE).fetchSingle(DEVICE.ID));
 		return TestDevices.find(id);
 	}
 
@@ -144,7 +144,7 @@ public class DeviceResourceTest {
 	 * @return the device
 	 */
 	private static Device findDeviceByAddress(String address) {
-		long id = new Transactions().readDsl(dsl -> dsl.select(DEVICE.ID).from(DEVICE)
+		long id = new Transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE)
 			.where(DEVICE.MGMT_ADDRESS.eq(address)).fetchSingle(DEVICE.ID));
 		return TestDevices.find(id);
 	}
@@ -567,7 +567,7 @@ public class DeviceResourceTest {
 			"Not getting 204 response for device deletion");
 
 		long deviceId = device1.id();
-		int deviceAccessCount = new Transactions().readDsl(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(deviceId)));
+		int deviceAccessCount = new Transactions().read(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(deviceId)));
 		Assertions.assertEquals(0, deviceAccessCount,
 			"DeviceAccess rows should be cascade-deleted along with the device");
 		Assertions.assertNull(TestDevices.findCredentialSet(specificCredId),

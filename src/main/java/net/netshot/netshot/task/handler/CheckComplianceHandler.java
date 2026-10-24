@@ -91,7 +91,7 @@ public class CheckComplianceHandler implements TaskHandler<CheckComplianceTask> 
 		}
 
 		try {
-			this.transactions.runDsl(dsl -> {
+			this.transactions.run(dsl -> {
 				// Delete previous results
 				this.ruleRepository.deleteCheckResultsOfDevice(dsl, deviceId);
 				// Start over from a fresh device from DB

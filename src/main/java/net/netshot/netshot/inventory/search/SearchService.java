@@ -60,7 +60,7 @@ public class SearchService {
 			Finder finder = new Finder(query);
 			try {
 				// Read-write session, as it has always been used for this query
-				return this.transactions.writeDsl(dsl -> new SearchResult(
+				return this.transactions.write(dsl -> new SearchResult(
 					finder.getFormattedQuery(), this.repository.findDevices(dsl, finder, page)));
 			}
 			catch (DataAccessException e) {

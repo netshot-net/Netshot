@@ -63,9 +63,9 @@ import net.netshot.netshot.task.type.TaskSpecs;
 /**
  * Maps a task to its webhook payload. All the methods are pure functions.
  *
- * <p>{@link #toPayload(Task)} reads the task while the session which loaded it is still open (see
- * {@code TaskService.mapTask}): the payload embeds the target device, with its accesses and
- * groups, which are lazily loaded.</p>
+ * <p>{@link #toPayload} runs in the read transaction of {@code TaskService.mapTask}: the payload
+ * embeds the target device, with its accesses and groups, which it loads on demand through
+ * the given function.</p>
  */
 public final class TaskPayloads {
 

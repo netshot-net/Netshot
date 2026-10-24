@@ -61,7 +61,7 @@ public class ApiTokenService {
 	 */
 	public List<ApiToken> list(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.list(dsl, page));
+			return this.transactions.read(dsl -> this.repository.list(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to retrieve the API tokens.", e);
@@ -79,7 +79,7 @@ public class ApiTokenService {
 		String hash = ApiToken.hashToken(token.trim());
 		try {
 			// Read-write pool, as before: a token just created must work even with a lagging read database
-			ApiToken apiToken = this.transactions.writeDsl(dsl -> this.repository.findByHash(dsl, hash));
+			ApiToken apiToken = this.transactions.write(dsl -> this.repository.findByHash(dsl, hash));
 			if (apiToken == null) {
 				AAA_LOG.warn("Invalid API token received.");
 			}
@@ -118,7 +118,7 @@ public class ApiTokenService {
 
 		ApiToken apiToken;
 		try {
-			apiToken = valid.withId(this.transactions.writeDsl(dsl -> {
+			apiToken = valid.withId(this.transactions.write(dsl -> {
 				if (this.repository.existsByHash(dsl, valid.hashedToken())) {
 					log.warn("The passed token is already registered");
 					throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, "This token is already registered.");
@@ -143,7 +143,7 @@ public class ApiTokenService {
 	public boolean delete(long id) {
 		ApiToken apiToken;
 		try {
-			apiToken = this.transactions.writeDsl(dsl -> {
+			apiToken = this.transactions.write(dsl -> {
 				ApiToken existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.info("No such API token of ID {}", id);

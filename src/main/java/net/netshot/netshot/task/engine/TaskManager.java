@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
 
-import org.hibernate.Session;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -54,8 +53,6 @@ import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
-import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.platform.database.Jooq;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.Task;
@@ -220,20 +217,7 @@ public final class TaskManager {
 	 * @return the result
 	 */
 	private static <T> T inSystemTransaction(Function<DSLContext, T> work) {
-		Session session = Database.getSystemSession();
-		try {
-			session.beginTransaction();
-			T result = work.apply(Jooq.dsl(session));
-			session.getTransaction().commit();
-			return result;
-		}
-		catch (RuntimeException e) {
-			Database.rollbackSilently(session);
-			throw e;
-		}
-		finally {
-			session.close();
-		}
+		return TRANSACTIONS.system(work);
 	}
 
 	/**
@@ -341,7 +325,7 @@ public final class TaskManager {
 	 */
 	public static void requestCancel(long taskId) {
 		try {
-			TRANSACTIONS.runDsl(dsl -> REPOSITORY.requestCancel(dsl, taskId));
+			TRANSACTIONS.run(dsl -> REPOSITORY.requestCancel(dsl, taskId));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while requesting cancellation of task {}.", taskId, e);
@@ -361,7 +345,7 @@ public final class TaskManager {
 		TaskManager.runnerScheduler.deleteJob(task.identity());
 		TaskManager.masterScheduler.deleteJob(task.identity());
 		try {
-			TRANSACTIONS.runDsl(dsl -> {
+			TRANSACTIONS.run(dsl -> {
 				onCancel(task);
 				REPOSITORY.cancel(dsl, task.id(), reason);
 			});
@@ -418,7 +402,7 @@ public final class TaskManager {
 	 */
 	private static Task store(Task task, Status status, boolean schedule) {
 		try {
-			return TRANSACTIONS.writeDsl(dsl -> {
+			return TRANSACTIONS.write(dsl -> {
 				if (schedule) {
 					onSchedule(task);
 				}
@@ -484,7 +468,7 @@ public final class TaskManager {
 	 */
 	public static void scheduleLocalTasks() {
 		try {
-			List<Task> tasks = TRANSACTIONS.readDsl(dsl -> REPOSITORY.findWhere(dsl,
+			List<Task> tasks = TRANSACTIONS.read(dsl -> REPOSITORY.findWhere(dsl,
 				TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(ClusterManager.getLocalInstanceId()))));
 			for (Task task : tasks) {
 				log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
@@ -613,7 +597,7 @@ public final class TaskManager {
 	 */
 	public static void cancelOrphanedDelayedTasks() {
 		try {
-			int count = TRANSACTIONS.writeDsl(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
+			int count = TRANSACTIONS.write(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
 				Status.CANCELLED, Status.DELAYED));
 			log.info("{} orphaned DELAYED task(s) cancelled at startup", count);
 		}

@@ -61,7 +61,7 @@ public class DeviceCatalogService {
 	 */
 	public List<DeviceFamily> getFamilies(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findFamilies(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findFamilies(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while loading device families.", e);
@@ -78,7 +78,7 @@ public class DeviceCatalogService {
 	 */
 	public List<String> getPartNumbers(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findPartNumbers(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findPartNumbers(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while loading part numbers.", e);
@@ -95,7 +95,7 @@ public class DeviceCatalogService {
 	 */
 	public List<DeviceTagCount> getTags(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findTagCounts(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findTagCounts(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while loading device tags.", e);
@@ -112,7 +112,7 @@ public class DeviceCatalogService {
 	 */
 	public List<String> getSoftwareVersions(Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findSoftwareVersions(dsl, page));
+			return this.transactions.read(dsl -> this.repository.findSoftwareVersions(dsl, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while loading software versions.", e);

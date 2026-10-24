@@ -105,7 +105,7 @@ class CheckGroupComplianceHandlerTest {
 	}
 
 	private static Map<String, ResultOption> results() {
-		return new Transactions().readDsl(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+		return new Transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
 			.join(Tables.DEVICE).on(Tables.DEVICE.ID.eq(Tables.CHECK_RESULT.DEVICE))
 			.fetch()
 			.stream()

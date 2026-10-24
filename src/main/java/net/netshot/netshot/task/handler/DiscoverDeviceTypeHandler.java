@@ -83,7 +83,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 		if (spec.credentialSetIds().isEmpty()) {
 			return List.of();
 		}
-		return new Transactions().readDsl(dsl -> new CredentialSetRepository().findAll(dsl, spec.credentialSetIds()));
+		return new Transactions().read(dsl -> new CredentialSetRepository().findAll(dsl, spec.credentialSetIds()));
 	}
 
 	@Override
@@ -132,7 +132,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			Device newDevice = null;
 			try {
 				final String deviceType = discoveredDeviceType;
-				Object[] created = new Transactions().writeDsl(dsl -> {
+				Object[] created = new Transactions().write(dsl -> {
 					Domain domain = spec.domainId() == null ? null : new DomainRepository().find(dsl, spec.domainId());
 					Device.DeviceBuilder device = Device.create(deviceType, spec.deviceAddress(), domain, task.author()).toBuilder();
 					// Create a bare (enabled, no pin) DeviceAccess row for every access the

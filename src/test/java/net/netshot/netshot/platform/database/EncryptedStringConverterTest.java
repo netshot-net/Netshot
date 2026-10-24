@@ -38,13 +38,19 @@ public class EncryptedStringConverterTest {
 	}
 
 	@Test
-	@DisplayName("A value encrypted by Hibernate is read by jOOQ, and the other way round")
-	void sameEncryptionAsHibernate() {
-		StringEncryptorConverter hibernate = new StringEncryptorConverter();
+	@DisplayName("A value encrypted by the former Hibernate converter is read")
+	void readsHibernateValue() {
+		// Written by StringEncryptorConverter (Hibernate) with the default password, before it was removed
+		String stored = "gNLFia/O/0LTQDS0Xc1BOzqqRR1lfRgLNhqdWofbXagDZkrlNCQM2XC+JG2MmwBSIX8kXKyugKc=";
+		Assertions.assertEquals("S3cr3t-ẞ-value", new EncryptedStringConverter().from(stored));
+	}
+
+	@Test
+	@DisplayName("A value is encrypted, and read back")
+	void roundTrip() {
 		EncryptedStringConverter jooq = new EncryptedStringConverter();
 		String secret = "S3cr3t-ẞ-value";
-		Assertions.assertEquals(secret, jooq.from(hibernate.convertToDatabaseColumn(secret)));
-		Assertions.assertEquals(secret, hibernate.convertToEntityAttribute(jooq.to(secret)));
+		Assertions.assertEquals(secret, jooq.from(jooq.to(secret)));
 		Assertions.assertNotEquals(secret, jooq.to(secret), "the stored value is encrypted");
 	}
 

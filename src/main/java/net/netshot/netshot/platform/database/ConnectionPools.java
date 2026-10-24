@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 
 /**
- * The pools of database connections (c3p0), one per {@link TenantIdentifier}: read-write, system
+ * The pools of database connections (c3p0), one per {@link PoolKind}: read-write, system
  * (small pool for task dispatch and cluster bookkeeping) and, if a read URL is configured, read-only.
  * They are configured by the {@code netshot.db.pooler.*} settings.
  */
@@ -38,7 +38,7 @@ import net.netshot.netshot.Netshot;
 public final class ConnectionPools implements AutoCloseable {
 
 	/** The pools. */
-	private final Map<TenantIdentifier, ComboPooledDataSource> pools = new EnumMap<>(TenantIdentifier.class);
+	private final Map<PoolKind, ComboPooledDataSource> pools = new EnumMap<>(PoolKind.class);
 
 	/**
 	 * Creates the pools.
@@ -50,20 +50,20 @@ public final class ConnectionPools implements AutoCloseable {
 	 * @param password the password
 	 */
 	public ConnectionPools(String driverClass, String url, String readUrl, String username, String password) {
-		this.pools.put(TenantIdentifier.READ_WRITE, create(TenantIdentifier.READ_WRITE, driverClass, url, username, password,
+		this.pools.put(PoolKind.READ_WRITE, create(PoolKind.READ_WRITE, driverClass, url, username, password,
 			Netshot.getConfig("netshot.db.pooler.minpoolsize", 5, 0, Integer.MAX_VALUE),
 			Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE)));
-		this.pools.put(TenantIdentifier.SYSTEM, create(TenantIdentifier.SYSTEM, driverClass, url, username, password,
+		this.pools.put(PoolKind.SYSTEM, create(PoolKind.SYSTEM, driverClass, url, username, password,
 			Netshot.getConfig("netshot.db.pooler.system.minpoolsize", 1, 0, Integer.MAX_VALUE),
 			Netshot.getConfig("netshot.db.pooler.system.maxpoolsize", 5, 1, Integer.MAX_VALUE)));
 		if (readUrl != null) {
-			this.pools.put(TenantIdentifier.READ_ONLY, create(TenantIdentifier.READ_ONLY, driverClass, readUrl, username, password,
+			this.pools.put(PoolKind.READ_ONLY, create(PoolKind.READ_ONLY, driverClass, readUrl, username, password,
 				Netshot.getConfig("netshot.db.pooler.minpoolsize", 5, 0, Integer.MAX_VALUE),
 				Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE)));
 		}
 	}
 
-	private static ComboPooledDataSource create(TenantIdentifier identifier, String driverClass, String url,
+	private static ComboPooledDataSource create(PoolKind identifier, String driverClass, String url,
 		String username, String password, int minPoolSize, int maxPoolSize) {
 		ComboPooledDataSource pool = new ComboPooledDataSource(false);
 		try {
@@ -99,9 +99,9 @@ public final class ConnectionPools implements AutoCloseable {
 	 * @param identifier the kind of connection
 	 * @return the pool
 	 */
-	public DataSource get(TenantIdentifier identifier) {
+	public DataSource get(PoolKind identifier) {
 		ComboPooledDataSource pool = this.pools.get(identifier);
-		return pool == null ? this.pools.get(TenantIdentifier.READ_WRITE) : pool;
+		return pool == null ? this.pools.get(PoolKind.READ_WRITE) : pool;
 	}
 
 	/**

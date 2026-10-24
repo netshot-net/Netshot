@@ -88,7 +88,7 @@ class HookServiceTest {
 	}
 
 	private WebHook stored(long id) {
-		return (WebHook) this.transactions.readDsl(dsl -> new HookRepository().find(dsl, id));
+		return (WebHook) this.transactions.read(dsl -> new HookRepository().find(dsl, id));
 	}
 
 	private static Set<String> items(Hook hook) {

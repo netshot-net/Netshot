@@ -128,7 +128,7 @@ class LoginServiceTest {
 	}
 
 	private UiUser reload(String name) {
-		return this.transactions.readDsl(dsl -> this.repository.findByUsername(dsl, name));
+		return this.transactions.read(dsl -> this.repository.findByUsername(dsl, name));
 	}
 
 	private static LoginAttempt password(String username, String password) {
@@ -136,7 +136,7 @@ class LoginServiceTest {
 	}
 
 	private void expire(String name) {
-		this.transactions.runDsl(dsl -> this.repository.save(dsl,
+		this.transactions.run(dsl -> this.repository.save(dsl,
 			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
 	}
 

@@ -123,7 +123,7 @@ public class DeviceService {
 	 */
 	public List<DeviceSummary> list(Long groupId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findSummaries(dsl, groupId, page));
+			return this.transactions.read(dsl -> this.repository.findSummaries(dsl, groupId, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the devices", e);
@@ -140,7 +140,7 @@ public class DeviceService {
 	 */
 	public Device get(long id) {
 		try {
-			return this.transactions.readDsl(dsl -> {
+			return this.transactions.read(dsl -> {
 				Device device = this.repository.find(dsl, id);
 				if (device == null) {
 					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "Can't find this device");
@@ -164,7 +164,7 @@ public class DeviceService {
 	 */
 	public List<NetworkInterface> getInterfaces(long deviceId, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findInterfaces(dsl, deviceId, page));
+			return this.transactions.read(dsl -> this.repository.findInterfaces(dsl, deviceId, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the interfaces.", e);
@@ -183,7 +183,7 @@ public class DeviceService {
 	 */
 	public List<Module> getModules(long deviceId, boolean includeHistory, Page page) {
 		try {
-			return this.transactions.readDsl(dsl -> this.repository.findModules(dsl, deviceId, includeHistory, page));
+			return this.transactions.read(dsl -> this.repository.findModules(dsl, deviceId, includeHistory, page));
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the modules.", e);
@@ -217,7 +217,7 @@ public class DeviceService {
 	private CreationContext loadCreationContext(DeviceCreation creation) {
 		try {
 			// Read-write transaction on purpose (the duplicate check must see the latest data)
-			return this.transactions.writeDsl(dsl -> {
+			return this.transactions.write(dsl -> {
 				log.debug("Looking for an active device with this IP address.");
 				DeviceSummary duplicate = this.repository.findActiveByMgmtAddress(dsl, creation.ipAddress(), null);
 				if (duplicate != null) {
@@ -282,7 +282,7 @@ public class DeviceService {
 		}
 		CreatedDevice created;
 		try {
-			created = this.transactions.writeDsl(dsl -> {
+			created = this.transactions.write(dsl -> {
 				List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, creation.accesses());
 				Map<String, Object> options = DeviceValidation.validateOptions(driver, creation.options());
 				Device.DeviceBuilder newDevice = Device.create(driver.getName(), creation.ipAddress(), domain, creation.author()).toBuilder();
@@ -336,7 +336,7 @@ public class DeviceService {
 	public Device update(long id, DeviceUpdate update) {
 		Device device;
 		try {
-			device = this.transactions.writeDsl(dsl -> {
+			device = this.transactions.write(dsl -> {
 				Device existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("The device of ID {} doesn't exist.", id);
@@ -422,7 +422,7 @@ public class DeviceService {
 	public boolean delete(long id) {
 		List<Path> filesToDelete;
 		try {
-			filesToDelete = this.transactions.writeDsl(dsl -> {
+			filesToDelete = this.transactions.write(dsl -> {
 				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
 				if (!this.repository.remove(dsl, id)) {
 					log.info("No such device of ID {}", id);

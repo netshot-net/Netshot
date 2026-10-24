@@ -55,7 +55,7 @@ public class ConnectionPoolsTest {
 		TestConfig.init(config);
 
 		try (ConnectionPools pools = new ConnectionPools("org.postgresql.Driver", URL, URL + "-read", "user", "secret")) {
-			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(TenantIdentifier.READ_WRITE);
+			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(PoolKind.READ_WRITE);
 			Assertions.assertEquals("ReadWrite", readWrite.getDataSourceName());
 			Assertions.assertEquals(URL, readWrite.getJdbcUrl());
 			Assertions.assertEquals("org.postgresql.Driver", readWrite.getDriverClass());
@@ -75,12 +75,12 @@ public class ConnectionPoolsTest {
 			Assertions.assertEquals(321, readWrite.getUnreturnedConnectionTimeout());
 			Assertions.assertTrue(readWrite.isDebugUnreturnedConnectionStackTraces());
 
-			ComboPooledDataSource readOnly = (ComboPooledDataSource) pools.get(TenantIdentifier.READ_ONLY);
+			ComboPooledDataSource readOnly = (ComboPooledDataSource) pools.get(PoolKind.READ_ONLY);
 			Assertions.assertEquals("ReadOnly", readOnly.getDataSourceName());
 			Assertions.assertEquals(URL + "-read", readOnly.getJdbcUrl());
 			Assertions.assertEquals(17, readOnly.getMaxPoolSize());
 
-			ComboPooledDataSource system = (ComboPooledDataSource) pools.get(TenantIdentifier.SYSTEM);
+			ComboPooledDataSource system = (ComboPooledDataSource) pools.get(PoolKind.SYSTEM);
 			Assertions.assertEquals("System", system.getDataSourceName());
 			Assertions.assertEquals(URL, system.getJdbcUrl());
 			Assertions.assertEquals(2, system.getMinPoolSize());
@@ -94,8 +94,8 @@ public class ConnectionPoolsTest {
 	void noReadDatabase() {
 		TestConfig.init(new Properties());
 		try (ConnectionPools pools = new ConnectionPools("org.postgresql.Driver", URL, null, "user", "secret")) {
-			Assertions.assertSame(pools.get(TenantIdentifier.READ_WRITE), pools.get(TenantIdentifier.READ_ONLY));
-			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(TenantIdentifier.READ_WRITE);
+			Assertions.assertSame(pools.get(PoolKind.READ_WRITE), pools.get(PoolKind.READ_ONLY));
+			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(PoolKind.READ_WRITE);
 			Assertions.assertEquals(5, readWrite.getMinPoolSize());
 			Assertions.assertEquals(50, readWrite.getMaxPoolSize());
 			Assertions.assertEquals(1800, readWrite.getMaxIdleTime());

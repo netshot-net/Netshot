@@ -114,7 +114,7 @@ public class FinderTest {
 				.server4Address(new Network4Address("10.%d.1.1".formatted(i))).build()));
 		}
 
-		new Transactions().runDsl(dsl -> {
+		new Transactions().run(dsl -> {
 			// Create test diagnostics BEFORE devices
 			Diagnostic textDiagnostic = new SimpleDiagnostic(0,
 				"System Status", true, null, AttributeType.TEXT,
@@ -257,7 +257,7 @@ public class FinderTest {
 				default -> null;
 			};
 			if (checkResult != null) {
-				new Transactions().runDsl(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
+				new Transactions().run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
 			}
 		}
 	}
@@ -301,7 +301,7 @@ public class FinderTest {
 	 * @return the device names
 	 */
 	private static List<String> findDeviceNames(Finder finder) {
-		return new Transactions().readDsl(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
+		return new Transactions().read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
 	}
 
 	@Test

@@ -143,7 +143,7 @@ public class TaskJob implements Job {
 		long startTime = System.currentTimeMillis();
 		while (true) {
 			Thread.sleep(pollInterval);
-			if (this.transactions.readDsl(dsl -> this.repository.isCancelRequested(dsl, taskId))) {
+			if (this.transactions.read(dsl -> this.repository.isCancelRequested(dsl, taskId))) {
 				return false;
 			}
 			if (lockManager.tryLock(TaskLockManager.NS_DEVICE, deviceId, taskId)) {
@@ -156,7 +156,7 @@ public class TaskJob implements Job {
 
 	// Claims the task and marks it as started, returns the run (or null if the task was not claimed)
 	private TaskRun start(long id) {
-		return this.transactions.writeDsl(dsl -> {
+		return this.transactions.write(dsl -> {
 			if (!this.repository.claim(dsl, id, ClusterManager.getLocalInstanceId())) {
 				Task skippedTask = this.repository.find(dsl, id);
 				if (skippedTask == null) {
@@ -191,7 +191,7 @@ public class TaskJob implements Job {
 		catch (Exception e) {
 			log.error("Error while retrieving, updating or preparing the task.", e);
 			try {
-				this.transactions.runDsl(dsl -> this.repository.fail(dsl, id, e.getMessage() == null ? "" : e.getMessage()));
+				this.transactions.run(dsl -> this.repository.fail(dsl, id, e.getMessage() == null ? "" : e.getMessage()));
 			}
 			catch (Exception e1) {
 				log.error("Error while setting the task {} to FAILED.", id, e1);
@@ -271,12 +271,12 @@ public class TaskJob implements Job {
 
 		log.trace("Updating the task with the result.");
 		try {
-			this.transactions.runDsl(dsl -> this.repository.saveRun(dsl, run));
+			this.transactions.run(dsl -> this.repository.saveRun(dsl, run));
 		}
 		catch (Exception e) {
 			log.error("Error while updating the task {} after execution.", id, e);
 			try {
-				this.transactions.runDsl(dsl -> this.repository.fail(dsl, id, null));
+				this.transactions.run(dsl -> this.repository.fail(dsl, id, null));
 			}
 			catch (Exception e1) {
 				log.error("Error while setting the task {} to FAILED.", id, e1);

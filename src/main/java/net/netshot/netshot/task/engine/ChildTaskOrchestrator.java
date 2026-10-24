@@ -86,7 +86,7 @@ public class ChildTaskOrchestrator {
 	 */
 	public List<Task> reloadExistingChildren(TaskRun parent) {
 		List<Task> children = new ArrayList<>(
-			this.transactions.readDsl(dsl -> this.repository.findChildren(dsl, parent.getTask().id())));
+			this.transactions.read(dsl -> this.repository.findChildren(dsl, parent.getTask().id())));
 		if (!children.isEmpty()) {
 			parent.logger.info("Resuming from {} previously pre-created child task(s) "
 				+ "(this run was interrupted, e.g. by a Netshot restart).", children.size());
@@ -112,7 +112,7 @@ public class ChildTaskOrchestrator {
 	 */
 	public List<Task> preCreateChildren(TaskRun parent, List<Task> children) {
 		Task parentTask = parent.getTask();
-		List<Task> stored = this.transactions.writeDsl(dsl -> {
+		List<Task> stored = this.transactions.write(dsl -> {
 			List<Task> added = new ArrayList<>();
 			int order = 0;
 			for (Task child : children) {
@@ -165,7 +165,7 @@ public class ChildTaskOrchestrator {
 		if (ids.isEmpty()) {
 			return;
 		}
-		this.transactions.writeDsl(dsl -> this.repository.setStatus(dsl, TASK.ID.in(ids), Status.CANCELLED, Status.DELAYED));
+		this.transactions.write(dsl -> this.repository.setStatus(dsl, TASK.ID.in(ids), Status.CANCELLED, Status.DELAYED));
 		parent.logger.info("Cancelled {} remaining child task(s) that hadn't started yet.", ids.size());
 	}
 
@@ -182,7 +182,7 @@ public class ChildTaskOrchestrator {
 		if (!(child.spec() instanceof DeviceBasedTask deviceTask) || deviceTask.deviceId() == null) {
 			return child.target();
 		}
-		String name = this.transactions.readDsl(dsl -> dsl.select(DEVICE.NAME).from(DEVICE)
+		String name = this.transactions.read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE)
 			.where(DEVICE.ID.eq(deviceTask.deviceId())).fetchOne(DEVICE.NAME));
 		if (name == null) {
 			return child.target();
@@ -192,7 +192,7 @@ public class ChildTaskOrchestrator {
 
 	// Gets whether the cancellation of the parent task was requested (fresh from the database)
 	private boolean isCancelRequested(TaskRun parent) {
-		return this.transactions.readDsl(dsl -> this.repository.isCancelRequested(dsl, parent.getTask().id()));
+		return this.transactions.read(dsl -> this.repository.isCancelRequested(dsl, parent.getTask().id()));
 	}
 
 	/**
@@ -228,7 +228,7 @@ public class ChildTaskOrchestrator {
 	 */
 	private Task markChildAsSchedulingFailure(TaskRun parent, Task child) {
 		try {
-			this.transactions.writeDsl(dsl -> this.repository.setStatus(dsl, child.id(), Status.FAILURE, Status.DELAYED));
+			this.transactions.write(dsl -> this.repository.setStatus(dsl, child.id(), Status.FAILURE, Status.DELAYED));
 		}
 		catch (Exception e) {
 			log.error("Task {}. Error while marking child task {} as failed after a scheduling error.",
@@ -318,7 +318,7 @@ public class ChildTaskOrchestrator {
 					cancelHonored = true;
 					break;
 				}
-				Map<Long, Status> statuses = this.transactions.readDsl(dsl -> this.repository.findStatuses(dsl, pending.keySet()));
+				Map<Long, Status> statuses = this.transactions.read(dsl -> this.repository.findStatuses(dsl, pending.keySet()));
 				for (Map.Entry<Long, Status> row : statuses.entrySet()) {
 					Status childStatus = row.getValue();
 					if (isTerminalStatus(childStatus)) {
@@ -432,7 +432,7 @@ public class ChildTaskOrchestrator {
 			"netshot.tasks.sequentialpollintervalms", 3000, 500, 60000);
 		while (true) {
 			Thread.sleep(intervalMs);
-			Status childStatus = this.transactions.readDsl(dsl -> this.repository.findStatus(dsl, taskId));
+			Status childStatus = this.transactions.read(dsl -> this.repository.findStatus(dsl, taskId));
 			if (childStatus == null || isTerminalStatus(childStatus)) {
 				return childStatus;
 			}
