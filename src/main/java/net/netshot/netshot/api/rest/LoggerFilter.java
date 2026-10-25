@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.augur.tacacs.TacacsException;
+import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
@@ -54,6 +55,19 @@ public class LoggerFilter implements ContainerResponseFilter {
 
 	@Context
 	private HttpServletRequest httpRequest;
+
+	/** The TACACS+ authentication (accounting of the requests). */
+	private final Tacacs tacacs;
+
+	/**
+	 * Creates the filter.
+	 *
+	 * @param tacacs the TACACS+ authentication (accounting of the requests)
+	 */
+	@Inject
+	public LoggerFilter(Tacacs tacacs) {
+		this.tacacs = tacacs;
+	}
 
 	/**
 	 * Guess the client IP address based on X-Forwarded-For header (if present).
@@ -118,7 +132,7 @@ public class LoggerFilter implements ContainerResponseFilter {
 				requestContext.getHeaderString(HttpHeaders.USER_AGENT), user == null ? "<none>" : user.username(),
 				requestContext.getMethod(), requestContext.getUriInfo().getRequestUri(), responseContext.getStatus());
 			try {
-				Tacacs.account(
+				this.tacacs.account(
 					requestContext.getMethod(),
 					requestContext.getUriInfo().getRequestUri().getPath(),
 					user == null ? "<none>" : user.username(),

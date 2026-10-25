@@ -113,9 +113,10 @@ public class ConfigReloadTest {
 		reload(Map.of(
 			"netshot.aaa.radius1.ip", "127.0.0.1",
 			"netshot.aaa.radius1.secret", "secret"));
-		Assertions.assertTrue(Radius.isAvailable());
+		Radius radius = new Radius(Netshot.config());
+		Assertions.assertTrue(radius.isAvailable());
 		reload(Map.of());
-		Assertions.assertFalse(Radius.isAvailable());
+		Assertions.assertFalse(radius.isAvailable());
 	}
 
 	@Test
@@ -124,9 +125,10 @@ public class ConfigReloadTest {
 		reload(Map.of(
 			"netshot.aaa.tacacs1.ip", "127.0.0.1",
 			"netshot.aaa.tacacs1.secret", "secret"));
-		Assertions.assertTrue(Tacacs.isAvailable());
+		Tacacs tacacs = new Tacacs(Netshot.config());
+		Assertions.assertTrue(tacacs.isAvailable());
 		reload(Map.of());
-		Assertions.assertFalse(Tacacs.isAvailable());
+		Assertions.assertFalse(tacacs.isAvailable());
 	}
 
 	@Test

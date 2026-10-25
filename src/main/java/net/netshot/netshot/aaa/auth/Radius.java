@@ -48,7 +48,6 @@ import net.jradius.packet.AccessRequest;
 import net.jradius.packet.RadiusResponse;
 import net.jradius.packet.attribute.AttributeFactory;
 import net.jradius.packet.attribute.AttributeList;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
@@ -168,20 +167,20 @@ public final class Radius {
 	}
 
 	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+	private final ConfigStore.Binding<Settings> settings;
 
 	/** The current clients. */
-	private static Clients clients;
+	private Clients clients;
 
 	/**
 	 * Gets the clients, built again when the settings changed.
 	 * @return the clients
 	 */
-	private static synchronized Clients clients() {
-		Settings settings = SETTINGS.get();
-		if (clients == null || clients.settings() != settings) {
+	private synchronized Clients clients() {
+		Settings current = this.settings.get();
+		if (this.clients == null || this.clients.settings() != current) {
 			List<RadiusClient> newClients = new ArrayList<>();
-			for (Settings.Server server : settings.servers()) {
+			for (Settings.Server server : current.servers()) {
 				try {
 					newClients.add(new RadiusClient(server.address(), server.secret(), server.authPort(), server.acctPort(),
 						server.timeout()));
@@ -191,9 +190,9 @@ public final class Radius {
 					log.error("Unable to create the RADIUS client for server {}.", server.id(), e);
 				}
 			}
-			clients = new Clients(settings, List.copyOf(newClients));
+			this.clients = new Clients(current, List.copyOf(newClients));
 		}
-		return clients;
+		return this.clients;
 	}
 
 	/**
@@ -201,22 +200,22 @@ public final class Radius {
 	 * @param from the clients the client was taken from
 	 * @param client the client
 	 */
-	private static synchronized void promote(Clients from, RadiusClient client) {
-		if (clients != from) {
+	private synchronized void promote(Clients from, RadiusClient client) {
+		if (this.clients != from) {
 			// Rebuilt in the meantime
 			return;
 		}
 		List<RadiusClient> ordered = new ArrayList<>(from.clients());
 		ordered.remove(client);
 		ordered.add(0, client);
-		clients = new Clients(from.settings(), List.copyOf(ordered));
+		this.clients = new Clients(from.settings(), List.copyOf(ordered));
 	}
 
 	static {
 		AttributeFactory.loadAttributeDictionary("net.jradius.dictionary.AttributeDictionaryImpl");
 	}
 
-	public static boolean isAvailable() {
+	public boolean isAvailable() {
 		return !clients().clients().isEmpty();
 	}
 
@@ -228,13 +227,13 @@ public final class Radius {
 	 * @param remoteAddress the remote address
 	 * @return the resulting user or null if authentication failed
 	 */
-	public static UiUser authenticate(String username, String password, String remoteAddress) {
+	public UiUser authenticate(String username, String password, String remoteAddress) {
 		Clients allClients = clients();
 		if (allClients.clients().isEmpty()) {
 			return null;
 		}
-		Settings settings = allClients.settings();
-		String nasIdentifier = settings.nasIdentifier();
+		Settings current = allClients.settings();
+		String nasIdentifier = current.nasIdentifier();
 		AttributeList attributeList = new AttributeList();
 		attributeList.add(new Attr_UserName(username));
 		attributeList.add(new Attr_NASPortType(Attr_NASPortType.Virtual));
@@ -252,7 +251,7 @@ public final class Radius {
 			request.addAttribute(new Attr_UserPassword(password));
 			RadiusResponse reply;
 			try {
-				reply = radiusClient.authenticate(request, settings.authMethod().getDeclaredConstructor().newInstance(), 3);
+				reply = radiusClient.authenticate(request, current.authMethod().getDeclaredConstructor().newInstance(), 3);
 				if (reply == null) {
 					log.error("Request to RADIUS server {} timed out.", radiusClient.getRemoteInetAddress().toString());
 					AAA_LOG.error(MarkerFactory.getMarker("AAA"), "Request to RADIUS server {} timed out.",
@@ -303,7 +302,13 @@ public final class Radius {
 		return null;
 	}
 
-	private Radius() {
+	/**
+	 * Creates the RADIUS authentication.
+	 *
+	 * @param config the configuration store, to read the settings from
+	 */
+	public Radius(ConfigStore config) {
+		this.settings = config.bind(Settings::from);
 	}
 
 }
