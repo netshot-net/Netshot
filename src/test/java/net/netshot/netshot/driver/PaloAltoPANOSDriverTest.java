@@ -34,7 +34,6 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
 import net.netshot.netshot.access.AccessManager;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.domain.Domain;
@@ -43,6 +42,7 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;

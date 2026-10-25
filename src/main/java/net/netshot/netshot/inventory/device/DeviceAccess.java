@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.access;
+package net.netshot.netshot.inventory.device;
 
 import java.time.Instant;
 

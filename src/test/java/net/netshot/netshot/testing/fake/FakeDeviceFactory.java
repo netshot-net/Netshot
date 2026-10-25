@@ -25,7 +25,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -41,6 +40,7 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.NetworkInterface;

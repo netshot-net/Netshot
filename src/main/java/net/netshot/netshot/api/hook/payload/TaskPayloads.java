@@ -25,7 +25,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -39,6 +38,7 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;

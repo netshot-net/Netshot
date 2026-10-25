@@ -58,8 +58,8 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
-import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.SecretResolver;
+import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultableSecret;
 
 /**

@@ -21,7 +21,7 @@ package net.netshot.netshot.api.hook.payload;
 import java.util.Date;
 
 
-import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
+import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
