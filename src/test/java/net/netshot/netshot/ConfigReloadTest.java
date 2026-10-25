@@ -39,12 +39,13 @@ import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.NetworkAddress;
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.vault.VaultManager;
 
 /**
- * Characterization of the configuration reload (what the HUP signal applies, through
- * {@link Netshot#loadModuleConfigs()}): the module settings are read again from the new configuration.
+ * The configuration reload (what the HUP signal applies): the settings of the modules are read again
+ * from the new configuration, through their bindings to the configuration store.
  */
 @UnitTest
 @DisplayName("Configuration reload")
@@ -53,17 +54,23 @@ public class ConfigReloadTest {
 	@TempDir
 	Path tempDir;
 
+	private static Config current() {
+		return Netshot.config().current();
+	}
+
 	@AfterEach
 	void resetConfig() {
 		Netshot.initConfig(new Properties());
-		Netshot.loadModuleConfigs();
 	}
 
+	/**
+	 * Replaces the configuration, as a reload does (the bindings and listeners are refreshed).
+	 * @param values the new configuration items
+	 */
 	private static void reload(Map<String, String> values) {
 		Properties config = new Properties();
 		config.putAll(values);
 		Netshot.initConfig(config);
-		Netshot.loadModuleConfigs();
 	}
 
 	@Test
@@ -86,9 +93,9 @@ public class ConfigReloadTest {
 		Assertions.assertEquals(4321, Telnet.settings().receiveTimeout());
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
 			Collector.settings().clusterIpOverrides().get(NetworkAddress.getNetworkAddress("10.0.0.1")));
-		Assertions.assertEquals(2222, VaultManager.SETTINGS.getHttpReadTimeoutMs());
-		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath());
-		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.SETTINGS.getVenvFolder());
+		Assertions.assertEquals(2222, VaultManager.settings().httpReadTimeoutMs());
+		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.settings().storageFolderPath());
+		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.settings().venvFolder());
 
 		reload(Map.of());
 		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory());
@@ -96,8 +103,8 @@ public class ConfigReloadTest {
 		Assertions.assertEquals(5000, Ssh.settings().connectionTimeout());
 		Assertions.assertEquals(60000, Telnet.settings().receiveTimeout());
 		Assertions.assertTrue(Collector.settings().clusterIpOverrides().isEmpty());
-		Assertions.assertEquals(10000, VaultManager.SETTINGS.getHttpReadTimeoutMs());
-		Assertions.assertNull(PythonFileSystem.SETTINGS.getVenvFolder());
+		Assertions.assertEquals(10000, VaultManager.settings().httpReadTimeoutMs());
+		Assertions.assertNull(PythonFileSystem.settings().venvFolder());
 	}
 
 	@Test
@@ -143,14 +150,14 @@ public class ConfigReloadTest {
 		config.setProperty("netshot.test.int", "42");
 		config.setProperty("netshot.test.badint", "4x2");
 		Netshot.initConfig(config);
-		Assertions.assertTrue(Netshot.getConfig("netshot.test.bool", false));
-		Assertions.assertFalse(Netshot.getConfig("netshot.test.badbool", false), "Only true/false are booleans");
-		Assertions.assertTrue(Netshot.getConfig("netshot.test.missing", true));
-		Assertions.assertEquals(42, Netshot.getConfig("netshot.test.int", 1));
-		Assertions.assertEquals(1, Netshot.getConfig("netshot.test.badint", 1));
-		Assertions.assertEquals(42, Netshot.getConfig("netshot.test.int", 1, 0, 100));
-		Assertions.assertEquals(1, Netshot.getConfig("netshot.test.int", 1, 0, 10), "Out of range");
-		Assertions.assertEquals("dflt", Netshot.getConfig("netshot.test.missing", "dflt"));
-		Assertions.assertNull(Netshot.getConfig("netshot.test.missing"));
+		Assertions.assertTrue(current().getBoolean("netshot.test.bool", false));
+		Assertions.assertFalse(current().getBoolean("netshot.test.badbool", false), "Only true/false are booleans");
+		Assertions.assertTrue(current().getBoolean("netshot.test.missing", true));
+		Assertions.assertEquals(42, current().getInt("netshot.test.int", 1));
+		Assertions.assertEquals(1, current().getInt("netshot.test.badint", 1));
+		Assertions.assertEquals(42, current().getInt("netshot.test.int", 1, 0, 100));
+		Assertions.assertEquals(1, current().getInt("netshot.test.int", 1, 0, 10), "Out of range");
+		Assertions.assertEquals("dflt", current().get("netshot.test.missing", "dflt"));
+		Assertions.assertNull(current().get("netshot.test.missing"));
 	}
 }

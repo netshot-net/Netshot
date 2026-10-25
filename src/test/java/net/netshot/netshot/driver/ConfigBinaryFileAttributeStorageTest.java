@@ -47,7 +47,6 @@ public class ConfigBinaryFileAttributeStorageTest {
 		Properties props = new Properties();
 		props.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 		TestConfig.init(props);
-		ConfigBinaryFileAttribute.loadConfig();
 	}
 
 	/** The ID of the device of the attribute. */

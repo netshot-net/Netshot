@@ -47,6 +47,8 @@ import io.undertow.servlet.api.ServletSessionConfig;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.http.HttpServerAddress;
 
@@ -61,13 +63,46 @@ public final class RestServer extends Thread {
 	/** The static instance of the server. */
 	private static RestServer instance;
 
-	private static final String HTTP_STATIC_PATH = Netshot.getConfig("netshot.http.staticpath", "/");
+	/** Whether the HTTP server is enabled. */
+	static final Setting<Boolean> ENABLED = Setting.bool("netshot.http.enabled").defaultValue(true).restart();
+
+	/** The path the static files (web UI) are served on. */
+	static final Setting<String> STATIC_PATH = Setting.text("netshot.http.staticpath").defaultValue("/").restart();
 
 	/** The path the REST API is served on. */
-	public static final String HTTP_API_PATH = Netshot.getConfig("netshot.http.apipath", "/api");
+	static final Setting<String> API_PATH = Setting.text("netshot.http.apipath").defaultValue("/api").restart();
 
 	/** Name of the session cookie. */
-	public static final String SESSION_COOKIE_NAME = Netshot.getConfig("netshot.http.sessioncookiename", "NetshotSessionID");
+	static final Setting<String> SESSION_COOKIE_NAME = Setting.text("netshot.http.sessioncookiename")
+		.defaultValue("NetshotSessionID").restart();
+
+	/** The keystore file (HTTPS). */
+	static final Setting<String> KEYSTORE_FILE = Setting.text("netshot.http.ssl.keystore.file").defaultValue("netshot.jks").restart();
+
+	/** The keystore password (HTTPS). */
+	static final Setting<String> KEYSTORE_PASS = Setting.text("netshot.http.ssl.keystore.pass")
+		.defaultValue("netshotpass").secret().restart();
+
+	/** Whether the session cookie is marked as Secure (default: with HTTPS, or behind a reverse proxy). */
+	static final Setting<Boolean> SECURE_COOKIE = Setting.bool("netshot.http.securecookie").restart();
+
+	/**
+	 * Gets the path the REST API is served on.
+	 *
+	 * @return the path, e.g. {@code /api}
+	 */
+	public static String apiPath() {
+		return Netshot.config().current().get(API_PATH);
+	}
+
+	/**
+	 * Gets the name of the session cookie.
+	 *
+	 * @return the name of the cookie
+	 */
+	public static String sessionCookieName() {
+		return Netshot.config().current().get(SESSION_COOKIE_NAME);
+	}
 
 	/**
 	 * Initializes the server, and starts it unless the HTTP server is disabled by the configuration.
@@ -76,7 +111,7 @@ public final class RestServer extends Thread {
 	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
 	 */
 	public static void init(AbstractBinder binder) {
-		if (!Netshot.getConfig("netshot.http.enabled", true)) {
+		if (!Netshot.config().current().get(ENABLED)) {
 			log.info("HTTP server is not enabled.");
 			return;
 		}
@@ -121,8 +156,8 @@ public final class RestServer extends Thread {
 		this.httpBaseUri = address.baseUri();
 		httpUseSsl = address.useSsl();
 		if (httpUseSsl) {
-			httpSslKeystoreFile = Netshot.getConfig("netshot.http.ssl.keystore.file", "netshot.jks");
-			httpSslKeystorePass = Netshot.getSecretConfig("netshot.http.ssl.keystore.pass", "netshotpass");
+			httpSslKeystoreFile = Netshot.config().current().get(KEYSTORE_FILE);
+			httpSslKeystorePass = Netshot.config().current().get(KEYSTORE_PASS);
 		}
 	}
 
@@ -160,8 +195,12 @@ public final class RestServer extends Thread {
 
 			// === Session cookie ===
 			// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
-			boolean behindProxy = Netshot.getConfig("netshot.http.trustxforwardedfor", false);
-			boolean secureCookie = Netshot.getConfig("netshot.http.securecookie", httpUseSsl || behindProxy);
+			Config config = Netshot.config().current();
+			boolean behindProxy = config.get(LoggerFilter.TRUST_X_FORWARDED_FOR);
+			Boolean configuredSecureCookie = config.get(SECURE_COOKIE);
+			boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
+			String apiPath = config.get(API_PATH);
+			String staticPath = config.get(STATIC_PATH);
 			if (!secureCookie) {
 				log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
 					+ "via a reverse proxy, set netshot.http.securecookie to true.");
@@ -174,7 +213,7 @@ public final class RestServer extends Thread {
 			// === Servlet (Jersey REST API) Deployment ===
 			DeploymentInfo servletBuilder = Servlets.deployment()
 				.setClassLoader(Netshot.class.getClassLoader())
-				.setContextPath(HTTP_API_PATH) // same as Grizzly context path
+				.setContextPath(apiPath) // same as Grizzly context path
 				.setDeploymentName("NetshotREST")
 				.addServlets(
 					Servlets.servlet("Jersey", ServletContainer.class,
@@ -183,7 +222,7 @@ public final class RestServer extends Thread {
 						.addMapping("/*")
 				)
 				.setServletSessionConfig(new ServletSessionConfig()
-					.setName(RestServer.SESSION_COOKIE_NAME)
+					.setName(config.get(SESSION_COOKIE_NAME))
 					.setHttpOnly(true)
 					.setSecure(secureCookie)
 					.setAttribute("SameSite", "Strict")
@@ -219,8 +258,8 @@ public final class RestServer extends Thread {
 
 			// === Routing ===
 			PathHandler pathHandler = Handlers.path()
-				.addPrefixPath(HTTP_STATIC_PATH, staticHandler)
-				.addPrefixPath(HTTP_API_PATH, servletHandler);
+				.addPrefixPath(staticPath, staticHandler)
+				.addPrefixPath(apiPath, servletHandler);
 
 			builder.setHandler(pathHandler);
 

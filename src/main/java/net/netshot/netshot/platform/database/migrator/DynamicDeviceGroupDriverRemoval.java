@@ -125,7 +125,8 @@ public class DynamicDeviceGroupDriverRemoval implements CustomSqlChange {
 	}
 
 	private void readAdditionalDrivers() {
-		final String addPath = Netshot.getConfig("netshot.drivers.path");
+		// netshot.drivers.path, declared by the driver loader (the migrations don't depend on the features)
+		final String addPath = Netshot.config().current().get("netshot.drivers.path");
 		if (addPath != null) {
 			final File folder = new File(addPath);
 			if (folder.isDirectory()) {

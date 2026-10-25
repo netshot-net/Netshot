@@ -105,7 +105,6 @@ public class HttpDownloadTest {
 		Properties props = TestConfig.properties();
 		props.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 		TestConfig.init(props);
-		ConfigBinaryFileAttribute.loadConfig();
 
 		this.fakeServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		this.port = this.fakeServer.getAddress().getPort();

@@ -463,7 +463,7 @@ public final class ApiContractSeed {
 	 * @param deviceId the ID of the device holding the attributes
 	 */
 	private void writeBinaryFiles(long deviceId) {
-		Path folder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
+		Path folder = ConfigBinaryFileAttribute.settings().storageFolderPath();
 		List<Config> configs = new Transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
 		for (Config config : configs) {
 			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {

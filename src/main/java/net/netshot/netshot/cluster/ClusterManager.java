@@ -43,6 +43,8 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;
@@ -94,6 +96,22 @@ public class ClusterManager extends Thread {
 		REASSIGN_ORPHANS,
 	}
 
+	/** Whether the clustering is enabled. */
+	public static final Setting<Boolean> ENABLED = Setting.bool("netshot.cluster.enabled").defaultValue(false).restart();
+
+	/** Priority of the local member in the master election. */
+	static final Setting<Integer> MASTER_PRIORITY = Setting.integer("netshot.cluster.master.priority").defaultValue(100).restart();
+
+	/** Priority of the local member to run the tasks. */
+	static final Setting<Integer> RUNNER_PRIORITY = Setting.integer("netshot.cluster.runner.priority").defaultValue(100).restart();
+
+	/** Weight of the local member to run the tasks. */
+	static final Setting<Integer> RUNNER_WEIGHT = Setting.integer("netshot.cluster.runner.weight")
+		.defaultValue(100).range(1, 1000).restart();
+
+	/** ID of the local member (20 lowercase hex digits; generated if not set). */
+	static final Setting<String> ID = Setting.text("netshot.cluster.id").restart();
+
 	/** Cluster Manager static instance. */
 	private static ClusterManager nsClusterManager;
 
@@ -125,7 +143,7 @@ public class ClusterManager extends Thread {
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
 	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
-		if (!Netshot.getConfig("netshot.cluster.enabled", false)) {
+		if (!Netshot.config().current().get(ENABLED)) {
 			log.info("High Availability is not enabled.");
 			return;
 		}
@@ -273,15 +291,12 @@ public class ClusterManager extends Thread {
 
 
 		String jvmVersion = System.getProperty("java.vm.version");
-		int masterPriority = Netshot.getConfig("netshot.cluster.master.priority", 100);
-		int runnerPriority = Netshot.getConfig("netshot.cluster.runner.priority", 100);
-		int runnerWeight = Netshot.getConfig("netshot.cluster.runner.weight", 100);
-		if (runnerWeight < 1 || runnerWeight > 1000) {
-			log.error("Invalid value {} for runner weight, will use 100 by default", runnerWeight);
-			runnerWeight = 100;
-		}
+		Config config = Netshot.config().current();
+		int masterPriority = config.get(MASTER_PRIORITY);
+		int runnerPriority = config.get(RUNNER_PRIORITY);
+		int runnerWeight = config.get(RUNNER_WEIGHT);
 
-		String localId = Netshot.getConfig("netshot.cluster.id");
+		String localId = config.get(ID);
 		if (localId != null) {
 			// First option: configured ID
 			if (!localId.matches("^[0-9a-z]{20}$")) {
