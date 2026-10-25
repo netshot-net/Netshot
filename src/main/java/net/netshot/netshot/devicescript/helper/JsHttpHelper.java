@@ -35,14 +35,14 @@ import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.AccessManager.Resolution;
 import net.netshot.netshot.access.Client;
 import net.netshot.netshot.access.Http;
-import net.netshot.netshot.access.Http.AuthScheme;
-import net.netshot.netshot.access.Http.HttpConfig;
 import net.netshot.netshot.access.Http.HttpDownloadResult;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
+import net.netshot.netshot.driver.protocol.AuthScheme;
+import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.platform.log.TaskContext;
 
@@ -118,7 +118,7 @@ public class JsHttpHelper {
 	}
 
 	private Client buildClient(AccessDefinition candidateAccessDef, DeviceCredentialSet credentialSet) throws IOException {
-		Http.HttpConfig httpConfig = candidateAccessDef.getHttpConfig();
+		HttpConfig httpConfig = candidateAccessDef.getHttpConfig();
 		String host = this.accessManager.resolveHost(candidateAccessDef);
 		int port = this.accessManager.resolvePort(candidateAccessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
