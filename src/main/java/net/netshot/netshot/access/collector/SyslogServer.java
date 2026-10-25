@@ -29,6 +29,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Network4Address;
@@ -50,8 +51,14 @@ public class SyslogServer extends Collector {
 	/** The scheduler of the automatic snapshots. */
 	private final AutoSnapshotScheduler autoSnapshotScheduler;
 
+	/** Whether the Syslog server is disabled. */
+	static final Setting<Boolean> DISABLED = Setting.bool("netshot.syslog.disabled").defaultValue(false).restart();
+
 	/** The UDP port to listen Syslog messages on. */
-	private int udpPort = 514;
+	static final Setting<Integer> PORT = Setting.integer("netshot.syslog.port").defaultValue(514).range(1, 65535).restart();
+
+	/** The UDP port to listen Syslog messages on. */
+	private int udpPort;
 
 	/** The static Syslog server. */
 	private static SyslogServer nsSyslogServer;
@@ -69,7 +76,7 @@ public class SyslogServer extends Collector {
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
 	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
-		if (Netshot.getConfig("netshot.syslog.disabled", false)) {
+		if (Netshot.config().current().get(DISABLED)) {
 			log.warn("The Syslog server is disabled by configuration.");
 			return;
 		}
@@ -88,7 +95,7 @@ public class SyslogServer extends Collector {
 		this.autoSnapshotScheduler = autoSnapshotScheduler;
 		this.setName("Syslog Receiver");
 		this.setDaemon(true);
-		this.udpPort = Netshot.getConfig("netshot.syslog.port", 514, 1, 65535);
+		this.udpPort = Netshot.config().current().get(PORT);
 	}
 
 	/*

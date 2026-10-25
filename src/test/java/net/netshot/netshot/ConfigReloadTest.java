@@ -19,6 +19,7 @@
 package net.netshot.netshot;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -80,11 +81,11 @@ public class ConfigReloadTest {
 			Map.entry("netshot.python.virtualenv", this.tempDir.toString())));
 		Assertions.assertEquals(7, PasswordPolicy.getMainPolicy().getMaxHistory());
 		Assertions.assertEquals(600, UiUser.settings().maxIdleTime());
-		Assertions.assertEquals(1234, Ssh.SETTINGS.getConnectionTimeout());
-		Assertions.assertArrayEquals(new String[] { "aes256-ctr", "aes128-ctr" }, Ssh.SETTINGS.getCiphers());
-		Assertions.assertEquals(4321, Telnet.SETTINGS.getReceiveTimeout());
+		Assertions.assertEquals(1234, Ssh.settings().connectionTimeout());
+		Assertions.assertEquals(List.of("aes256-ctr", "aes128-ctr"), Ssh.settings().ciphers());
+		Assertions.assertEquals(4321, Telnet.settings().receiveTimeout());
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
-			Collector.SETTINGS.getClusterIpOverrides().get(NetworkAddress.getNetworkAddress("10.0.0.1")));
+			Collector.settings().clusterIpOverrides().get(NetworkAddress.getNetworkAddress("10.0.0.1")));
 		Assertions.assertEquals(2222, VaultManager.SETTINGS.getHttpReadTimeoutMs());
 		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath());
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.SETTINGS.getVenvFolder());
@@ -92,9 +93,9 @@ public class ConfigReloadTest {
 		reload(Map.of());
 		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory());
 		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime());
-		Assertions.assertEquals(5000, Ssh.SETTINGS.getConnectionTimeout());
-		Assertions.assertEquals(60000, Telnet.SETTINGS.getReceiveTimeout());
-		Assertions.assertTrue(Collector.SETTINGS.getClusterIpOverrides().isEmpty());
+		Assertions.assertEquals(5000, Ssh.settings().connectionTimeout());
+		Assertions.assertEquals(60000, Telnet.settings().receiveTimeout());
+		Assertions.assertTrue(Collector.settings().clusterIpOverrides().isEmpty());
 		Assertions.assertEquals(10000, VaultManager.SETTINGS.getHttpReadTimeoutMs());
 		Assertions.assertNull(PythonFileSystem.SETTINGS.getVenvFolder());
 	}
@@ -130,7 +131,7 @@ public class ConfigReloadTest {
 			"netshot.cli.ssh.rekeydatalimit", "big"));
 		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory(), "Not a number");
 		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime(), "Out of range");
-		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.SETTINGS.getRekeyDataLimit(), "Not a long");
+		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.settings().rekeyDataLimit(), "Not a long");
 	}
 
 	@Test

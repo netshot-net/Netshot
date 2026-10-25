@@ -20,13 +20,16 @@ package net.netshot.netshot.access.collector;
 
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * A collector is a service running in background to collect data from devices.
@@ -35,49 +38,52 @@ import net.netshot.netshot.inventory.domain.Domain;
 public abstract class Collector extends Thread {
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the collectors.
+	 *
+	 * @param clusterIpOverrides the local collector address to use instead of the global address of a domain
 	 */
-	public static final class Settings {
-		/** The max idle time of user (in seconds). */
-		@Getter
-		private Map<NetworkAddress, NetworkAddress> clusterIpOverrides;
+	public record Settings(Map<NetworkAddress, NetworkAddress> clusterIpOverrides) {
+
+		/** The overrides of the domain server addresses, as {@code global|local} pairs separated by spaces. */
+		static final Setting<List<String>> DOMAIN_IP_OVERRIDE = Setting.list("netshot.cluster.domainipoverride", " +")
+			.defaultValue(List.of()).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
+		static Settings from(Config config) {
 			Map<NetworkAddress, NetworkAddress> ipOverrides = new HashMap<>();
-			String overrides = Netshot.getConfig("netshot.cluster.domainipoverride");
-			if (overrides != null) {
-				for (String override : overrides.split(" +")) {
-					String[] parts = override.split("\\|");
-					if (parts.length != 2) {
-						log.warn("Invalid netshot.cluster.domainipoverride format (check '{}')... ignoring", override);
-						continue;
-					}
-					try {
-						NetworkAddress global = NetworkAddress.getNetworkAddress(parts[0]);
-						NetworkAddress local = NetworkAddress.getNetworkAddress(parts[1]);
-						ipOverrides.put(global, local);
-					}
-					catch (UnknownHostException e) {
-						log.warn("Unable to parse IP address from netshot.cluster.domainipoverride", e);
-					}
+			for (String override : config.get(DOMAIN_IP_OVERRIDE)) {
+				String[] parts = override.split("\\|");
+				if (parts.length != 2) {
+					log.warn("Invalid netshot.cluster.domainipoverride format (check '{}')... ignoring", override);
+					continue;
+				}
+				try {
+					NetworkAddress global = NetworkAddress.getNetworkAddress(parts[0]);
+					NetworkAddress local = NetworkAddress.getNetworkAddress(parts[1]);
+					ipOverrides.put(global, local);
+				}
+				catch (UnknownHostException e) {
+					log.warn("Unable to parse IP address from netshot.cluster.domainipoverride", e);
 				}
 			}
-			synchronized (this) {
-				this.clusterIpOverrides = ipOverrides;
-			}
+			return new Settings(Map.copyOf(ipOverrides));
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
-	
-	public static void loadConfig() {
-		Collector.SETTINGS.load();
-	}
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
+	/**
+	 * Gets the settings of the collectors.
+	 * @return the settings
+	 */
+	public static Settings settings() {
+		return SETTINGS.get();
+	}
 
 	/**
 	 * Find the collector IP address to use for the given domain.
@@ -93,7 +99,7 @@ public abstract class Collector extends Thread {
 		if (ip == null) {
 			throw new IllegalArgumentException("Domain %s (%d) has no server address".formatted(domain.name(), domain.id()));
 		}
-		ip = Collector.SETTINGS.clusterIpOverrides.getOrDefault(ip, ip);
+		ip = Collector.settings().clusterIpOverrides().getOrDefault(ip, ip);
 		return ip;
 	}
 
