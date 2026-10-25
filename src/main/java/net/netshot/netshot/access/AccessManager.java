@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.apache.sshd.client.SshClient;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.credentials.CredentialSetRepository;
@@ -90,8 +92,8 @@ public class AccessManager {
 
 	private final DriverRegistry driverRegistry;
 
-	/** Resolves the secrets of the credentials (local or Vault-backed). */
-	private final SecretResolver secrets;
+	/** The secret resolver and the SSH client of the device accesses. */
+	private final Connectors connectors;
 	private final Supplier<List<DeviceCredentialSet>> autoPoolLoader;
 	@Getter
 	private final DeviceDraft device;
@@ -112,7 +114,7 @@ public class AccessManager {
 	/**
 	 * Instantiates a new access manager for one task attempt.
 	 * @param driverRegistry the loaded device drivers
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param autoPoolLoader loads the auto-try pool of credential sets of the device (may be null, e.g. for
 	 *        ad-hoc/test runs: no pool then)
 	 * @param device the device being accessed
@@ -122,10 +124,10 @@ public class AccessManager {
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 */
-	public AccessManager(DriverRegistry driverRegistry, SecretResolver secrets, Supplier<List<DeviceCredentialSet>> autoPoolLoader,
+	public AccessManager(DriverRegistry driverRegistry, Connectors connectors, Supplier<List<DeviceCredentialSet>> autoPoolLoader,
 			DeviceDraft device, NetworkAddress address, TaskContext taskContext, java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
 		this.driverRegistry = driverRegistry;
-		this.secrets = secrets;
+		this.connectors = connectors;
 		this.autoPoolLoader = autoPoolLoader;
 		this.device = device;
 		this.address = address;
@@ -139,7 +141,16 @@ public class AccessManager {
 	 * @return the secret resolver
 	 */
 	public SecretResolver secrets() {
-		return this.secrets;
+		return this.connectors.secrets();
+	}
+
+	/**
+	 * Gets the shared SSH client.
+	 *
+	 * @return the SSH client
+	 */
+	public SshClient sshClient() {
+		return this.connectors.sshClient();
 	}
 
 	/**
@@ -151,13 +162,13 @@ public class AccessManager {
 	 * sets (the global ones of the domain of the device) is read from the database
 	 * when needed.
 	 * @param driverRegistry the loaded device drivers
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param device the device being accessed
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 * @return the new access manager
 	 */
-	public static AccessManager forDevice(DriverRegistry driverRegistry, SecretResolver secrets, DeviceDraft device, TaskContext taskContext,
+	public static AccessManager forDevice(DriverRegistry driverRegistry, Connectors connectors, DeviceDraft device, TaskContext taskContext,
 			java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
 		device.setCachedIpAddress(Device.resolveIpAddress(device.getMgmtAddress()));
 		NetworkAddress address = null;
@@ -181,7 +192,7 @@ public class AccessManager {
 		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
 		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> new Transactions().read(
 			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
-		return new AccessManager(driverRegistry, secrets, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
+		return new AccessManager(driverRegistry, connectors, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}
 
 	/**

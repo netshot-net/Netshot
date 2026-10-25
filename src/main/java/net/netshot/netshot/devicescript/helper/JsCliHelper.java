@@ -120,13 +120,13 @@ public class JsCliHelper {
 		if (accessDef.getProtocol() == DriverProtocol.SSH) {
 			Ssh ssh;
 			if (credentialSet instanceof DeviceSshKeyAccount sshKeyAccount) {
-				ssh = new Ssh(host, port, resolveSecret(sshKeyAccount.usernameSecret()),
+				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshKeyAccount.usernameSecret()),
 					resolveSecret(sshKeyAccount.privateKeySecret()),
 					resolveSecret(sshKeyAccount.passwordSecret()), this.taskContext);
 			}
 			else {
 				DeviceSshAccount sshAccount = (DeviceSshAccount) credentialSet;
-				ssh = new Ssh(host, port, resolveSecret(sshAccount.usernameSecret()),
+				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshAccount.usernameSecret()),
 					resolveSecret(sshAccount.passwordSecret()), this.taskContext);
 			}
 			ssh.applySshConfig(accessDef.getSshConfig());
