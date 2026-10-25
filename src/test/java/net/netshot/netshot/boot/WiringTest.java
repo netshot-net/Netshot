@@ -49,7 +49,7 @@ public class WiringTest {
 	void services() {
 		Wiring wiring = Wiring.init();
 		Assertions.assertEquals(List.of("database", "device drivers", "OIDC IdP discovery", "task lock manager",
-			"Vault token refresher", "task manager", "Syslog server", "SNMP trap receiver", "SSH/SCP/SFTP server",
+			"Vault token refresher", "SSH client", "task manager", "Syslog server", "SNMP trap receiver", "SSH/SCP/SFTP server",
 			"Web/REST server"), wiring.services().stream().map(Service::name).toList());
 	}
 

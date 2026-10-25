@@ -25,13 +25,13 @@ import javax.script.ScriptException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
-import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Something to execute on a device.
@@ -48,8 +48,8 @@ public abstract class DeviceScript {
 
 	protected final transient DriverRegistry driverRegistry;
 
-	/** Resolves the secrets of the credentials (local or Vault-backed). */
-	protected final transient SecretResolver secrets;
+	/** The secret resolver and the SSH client of the device accesses. */
+	protected final transient Connectors connectors;
 
 	protected transient TaskContext taskContext;
 
@@ -57,12 +57,12 @@ public abstract class DeviceScript {
 	 * Creates the script.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param taskContext the task context
 	 */
-	protected DeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, TaskContext taskContext) {
+	protected DeviceScript(DriverRegistry driverRegistry, Connectors connectors, TaskContext taskContext) {
 		this.driverRegistry = driverRegistry;
-		this.secrets = secrets;
+		this.connectors = connectors;
 		this.taskContext = taskContext;
 	}
 
@@ -88,7 +88,7 @@ public abstract class DeviceScript {
 		// override. Failure there isn't immediately fatal: an access with its
 		// own override address may still be usable, so it only surfaces as a
 		// warning, not an exception.
-		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, this.secrets, device, this.taskContext, credentialSets);
+		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, this.connectors, device, this.taskContext, credentialSets);
 
 		try {
 			this.run(device, accessManager);

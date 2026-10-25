@@ -33,10 +33,10 @@ import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.inventory.config.ConfigDraft;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import net.netshot.netshot.vault.SecretResolver;
 
 @ScriptEngineTest
 @DisplayName("Snapshot configuration dump")
@@ -63,7 +63,7 @@ public class SnapshotDumpTest {
 	private void dump(String deviceName) {
 		DeviceDraft device = new DeviceDraft(FakeDeviceFactory.getFakeCiscoIosDevice());
 		device.setName(deviceName);
-		new SnapshotDeviceScript(TestDrivers.registry(), SecretResolver.LOCAL, null, new FakeTaskContext()).dumpConfig(device, new ConfigDraft(device.getId()));
+		new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, new FakeTaskContext()).dumpConfig(device, new ConfigDraft(device.getId()));
 	}
 
 	@Test

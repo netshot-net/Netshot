@@ -49,9 +49,9 @@ import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.PhysicalAddress;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import net.netshot.netshot.vault.SecretResolver;
 
 @SimulatorTest
 @DisplayName("Palo Alto PAN-OS driver test")
@@ -76,8 +76,8 @@ public class PaloAltoPANOSDriverTest {
 		sshAccess.port(CONTAINER.getMappedPort(22));
 		deviceAccesses.add(sshAccess.build());
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), SecretResolver.LOCAL, null, this.taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, this.taskContext, Set.of(credentials));
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, this.taskContext);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, this.taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {

@@ -29,6 +29,7 @@ import org.graalvm.polyglot.Value;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.devicescript.helper.JsCliHelper;
 import net.netshot.netshot.devicescript.helper.JsClientFactory;
@@ -44,7 +45,6 @@ import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
-import net.netshot.netshot.vault.SecretResolver;
 
 @Slf4j
 public final class RunDiagnosticDeviceScript extends DeviceScript {
@@ -58,14 +58,14 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 	/**
 	 * Instantiates a diagnostic CLI script.
 	 * @param driverRegistry = the loaded device drivers
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param diagnostics = the list of diagnostics
 	 * @param adapters = the diagnostic adapters
 	 * @param logger = the task context
 	 */
-	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
+	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, Connectors connectors, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
 		TaskContext logger) {
-		super(driverRegistry, secrets, logger);
+		super(driverRegistry, connectors, logger);
 		this.diagnostics = diagnostics;
 		this.adapters = adapters;
 	}
