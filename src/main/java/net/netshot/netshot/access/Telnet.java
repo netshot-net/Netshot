@@ -25,10 +25,12 @@ import org.apache.commons.net.telnet.InvalidTelnetOptionException;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.apache.commons.net.telnet.WindowSizeOptionHandler;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -41,45 +43,47 @@ public class Telnet extends Cli {
 	public static final int DEFAULT_PORT = 23;
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the Telnet client.
+	 *
+	 * @param connectionTimeout the connection timeout (ms)
+	 * @param receiveTimeout the receive timeout (ms)
+	 * @param commandTimeout the command timeout (ms)
 	 */
-	public static final class Settings {
+	public record Settings(int connectionTimeout, int receiveTimeout, int commandTimeout) {
 
-		/** Telnet connection timeout. */
-		@Getter
-		private int connectionTimeout;
+		/** Connection timeout (ms). */
+		static final Setting<Integer> CONNECTION_TIMEOUT = Setting.integer("netshot.cli.telnet.connectiontimeout")
+			.defaultValue(5000).range(1, Integer.MAX_VALUE).live();
 
-		/** Telnet receive timeout. */
-		@Getter
-		private int receiveTimeout;
+		/** Receive timeout (ms). */
+		static final Setting<Integer> RECEIVE_TIMEOUT = Setting.integer("netshot.cli.telnet.receivetimeout")
+			.defaultValue(60000).range(1, Integer.MAX_VALUE).live();
 
-		/** Telnet command timeout. */
-		@Getter
-		private int commandTimeout;
+		/** Command timeout (ms). */
+		static final Setting<Integer> COMMAND_TIMEOUT = Setting.integer("netshot.cli.telnet.commandtimeout")
+			.defaultValue(120000).range(1, Integer.MAX_VALUE).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.connectionTimeout = Netshot.getConfig("netshot.cli.telnet.connectiontimeout", 5000, 1, Integer.MAX_VALUE);
-			log.debug("The default connection timeout value for Telnet sessions is {}s", this.connectionTimeout);
-
-			this.receiveTimeout = Netshot.getConfig("netshot.cli.telnet.receivetimeout", 60000, 1, Integer.MAX_VALUE);
-			log.debug("The default receive timeout value for Telnet sessions is {}s", this.receiveTimeout);
-
-			this.commandTimeout = Netshot.getConfig("netshot.cli.telnet.commandtimeout", 120000, 1, Integer.MAX_VALUE);
-			log.debug("The default command timeout value for Telnet sessions is {}s", this.commandTimeout);
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT), config.get(COMMAND_TIMEOUT));
+			log.debug("The default Telnet settings are {}", settings);
+			return settings;
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * Initialize some additional static variables from global configuration.
+	 * Gets the settings of the Telnet client.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		Telnet.SETTINGS.load();
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
 
 	/**
@@ -142,9 +146,9 @@ public class Telnet extends Cli {
 	public Telnet(String host, int port, TaskContext taskContext) {
 		this(host, taskContext);
 		this.port = port;
-		this.connectionTimeout = Telnet.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Telnet.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Telnet.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Telnet.settings().connectionTimeout();
+		this.commandTimeout = Telnet.settings().commandTimeout();
+		this.receiveTimeout = Telnet.settings().receiveTimeout();
 	}
 
 	/*(non-Javadoc)

@@ -35,6 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Network4Address;
@@ -97,16 +99,33 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 */
 	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
-		nsSnmpTrapReceiver = new SnmpTrapReceiver(driverRegistry, autoSnapshotScheduler);
-		nsSnmpTrapReceiver.loadConfig();
+		SnmpTrapReceiver receiver = new SnmpTrapReceiver(driverRegistry, autoSnapshotScheduler);
+		nsSnmpTrapReceiver = receiver;
+		receiver.loadConfig(Netshot.config().current());
+		// Applied again (restarting the receiver if needed) on each configuration change
+		Netshot.config().addListener(receiver::loadConfig);
 	}
 
-	/**
-	 * Reload the configuration, restart the receiver if needed.
-	 */
-	public static void reload() {
-		nsSnmpTrapReceiver.loadConfig();
-	}
+	/** Whether the trap receiver is disabled. */
+	static final Setting<Boolean> DISABLED = Setting.bool("netshot.snmptrap.disabled").defaultValue(false).live();
+
+	/** The UDP port. */
+	static final Setting<Integer> PORT = Setting.integer("netshot.snmptrap.port").defaultValue(162).range(1, 65535).live();
+
+	/** The listen address. */
+	static final Setting<String> LISTEN_ADDRESS = Setting.text("netshot.snmptrap.listenaddress").defaultValue("0.0.0.0").live();
+
+	/** The accepted SNMPv1/v2c communities, separated by spaces. */
+	static final Setting<String> COMMUNITY = Setting.text("netshot.snmptrap.community").defaultValue("").secret().live();
+
+	/** The number of threads. */
+	static final Setting<Integer> THREAD_COUNT = Setting.integer("netshot.snmptrap.threadcount").defaultValue(2).range(1, 32).live();
+
+	/** The SNMPv3 users. */
+	static final Setting<String> USER = Setting.text("netshot.snmptrap.user").defaultValue("").secret().live();
+
+	/** The SNMPv3 local engine ID (hex). */
+	static final Setting<String> ENGINE_ID = Setting.text("netshot.snmptrap.engineid").live();
 
 	/** The loaded device drivers. */
 	private final DriverRegistry driverRegistry;
@@ -155,8 +174,8 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 		this.autoSnapshotScheduler = autoSnapshotScheduler;
 	}
 
-	private void loadConfig() {
-		if (Netshot.getConfig("netshot.snmptrap.disabled", false)) {
+	private synchronized void loadConfig(Config config) {
+		if (config.get(DISABLED)) {
 			log.warn("The SNMP trap receiver is disabled by configuration.");
 			this.stop();
 			return;
@@ -164,13 +183,13 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 
 		boolean restartNeeded = false;
 
-		int port = Netshot.getConfig("netshot.snmptrap.port", 162, 1, 65535);
+		int port = config.get(PORT);
 		if (port != this.udpPort) {
 			this.udpPort = port;
 			restartNeeded = true;
 		}
 
-		String listenAddress = Netshot.getConfig("netshot.snmptrap.listenaddress", "0.0.0.0");
+		String listenAddress = config.get(LISTEN_ADDRESS);
 		InetAddress address;
 		try {
 			address = InetAddress.getByName(listenAddress);
@@ -185,7 +204,7 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 			restartNeeded = true;
 		}
 
-		String communityConfig = Netshot.getSecretConfig("netshot.snmptrap.community", "");
+		String communityConfig = config.get(COMMUNITY);
 		communities.clear();
 		try {
 			for (String community : communityConfig.split("\\s+")) {
@@ -198,14 +217,14 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 			log.warn("Error while parsing SNMP trap community option", e);
 		}
 
-		int count = Netshot.getConfig("netshot.snmptrap.threadcount", 2, 1, 32);
+		int count = config.get(THREAD_COUNT);
 		if (count != this.threadCount) {
 			this.threadCount = count;
 			restartNeeded = true;
 		}
 
 		this.usmUsers = new ArrayList<>();
-		String userConfig = Netshot.getSecretConfig("netshot.snmptrap.user", "");
+		String userConfig = config.get(USER);
 		// Example:   user1 AES128|SHA authpass1 privpass1 user2 AES192|AES256|HMAC128SHA224 authpass2 privpass2
 		// i.e. {user} {list of auth/priv protocols with pipe separators} {auth pass if needed} {priv pass if needed}
 		try {
@@ -303,7 +322,7 @@ public class SnmpTrapReceiver implements CommandResponder, AuthenticationFailure
 				newEngineId = OctetString.fromByteArray(this.engineId.toByteArray());
 			}
 			try {
-				newEngineId = OctetString.fromHexString(Netshot.getConfig("netshot.snmptrap.engineid"));
+				newEngineId = OctetString.fromHexString(config.get(ENGINE_ID));
 			}
 			catch (Exception e) {
 				// Ignore

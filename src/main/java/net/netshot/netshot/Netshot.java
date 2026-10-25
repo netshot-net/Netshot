@@ -52,9 +52,6 @@ import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
 import ch.qos.logback.core.util.FileSize;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.auth.Oidc;
-import net.netshot.netshot.access.Ssh;
-import net.netshot.netshot.access.Telnet;
-import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
@@ -508,9 +505,6 @@ public class Netshot extends Thread {
 		Wiring.reloadTaskConfigs();
 		Wiring.reloadRuleRuntimeConfigs();
 		PythonFileSystem.loadConfig();
-		Ssh.loadConfig();
-		Telnet.loadConfig();
-		Collector.loadConfig();
 		ConfigBinaryFileAttribute.loadConfig();
 		VaultManager.loadConfig();
 	}
@@ -632,7 +626,6 @@ public class Netshot extends Thread {
 					Netshot.initAuditLogging();
 					Netshot.initSyslogLogging();
 					Netshot.loadModuleConfigs();
-					SnmpTrapReceiver.reload();
 				}
 			});
 			log.warn("Netshot is started");

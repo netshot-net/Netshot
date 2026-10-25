@@ -53,7 +53,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
  * {@code maxRekeyInterval}/{@code maxRekeyBytes}/{@code maxRekyPackets} into the fields
  * {@code isRekeyRequired()} checks - runs once, synchronously, from inside the session
  * constructor, strictly before that point. Only the *global* {@code Ssh.client}-wide default
- * (set once via {@code Ssh.loadConfig()}, before any session exists) is visible in time.
+ * (applied to the shared client on each configuration change, before any session exists) is visible in time.
  * <p>
  * These tests don't rely on any specific vendor driver, or on transferring enough data to
  * naturally cross a byte-based rekey threshold (impractical against the real OpenSSH-backed
@@ -105,7 +105,8 @@ public class RekeyTest {
 		originalRekeyDataLimit = config.getProperty("netshot.cli.ssh.rekeydatalimit");
 		config.setProperty("netshot.cli.ssh.rekeydatalimit", TINY_REKEY_DATA_LIMIT);
 		TestConfig.init(config);
-		Ssh.loadConfig();
+		// Make sure the shared client exists (it applies the current settings when it is created)
+		Ssh.settings();
 	}
 
 	@AfterAll
@@ -118,7 +119,8 @@ public class RekeyTest {
 			config.setProperty("netshot.cli.ssh.rekeydatalimit", originalRekeyDataLimit);
 		}
 		TestConfig.init(config);
-		Ssh.loadConfig();
+		// Make sure the shared client exists (it applies the current settings when it is created)
+		Ssh.settings();
 	}
 
 	/**

@@ -88,6 +88,9 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -100,31 +103,50 @@ public class Ssh extends Cli {
 	public static final int DEFAULT_PORT = 22;
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the SSH client.
+	 *
+	 * @param connectionTimeout the connection timeout (ms)
+	 * @param receiveTimeout the receive timeout (ms)
+	 * @param commandTimeout the command timeout (ms)
+	 * @param rekeyTimeLimit the rekey time limit (ms), i.e. maximum session duration before a rekey is triggered
+	 * @param rekeyDataLimit the rekey data limit (bytes), i.e. maximum amount of data exchanged before a rekey is triggered
+	 * @param rekeyBlocksLimit the rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed
+	 *        before a rekey is triggered. Note: unlike the time/data limits, a non-positive value does NOT disable this
+	 *        trigger - it makes the SSH library fall back to its own RFC 4344-based automatic computation. To actually
+	 *        disable it, this must be set to a very large positive value.
+	 * @param rekeyPacketsLimit the rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered
+	 * @param kexAlgorithms the key exchange algorithms
+	 * @param hostKeyAlgorithms the host key algorithms
+	 * @param ciphers the ciphers
+	 * @param macs the MACs
+	 * @param compressionAlgorithms the compression algorithms
 	 */
-	public static final class Settings {
+	public record Settings(int connectionTimeout, int receiveTimeout, int commandTimeout,
+		long rekeyTimeLimit, long rekeyDataLimit, long rekeyBlocksLimit, long rekeyPacketsLimit,
+		List<String> kexAlgorithms, List<String> hostKeyAlgorithms, List<String> ciphers, List<String> macs,
+		List<String> compressionAlgorithms) {
 
-		private static final String[] DEFAULT_SSH_KEX_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_KEX_ALGORITHMS = List.of(
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP18_SHA512,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP16_SHA512,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP14_SHA256,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP14_SHA1,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP_EXCHANGE_SHA256,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP_EXCHANGE_SHA1,
-			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP1_SHA1,
-		};
+			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP1_SHA1
+		);
 
-		private static final String[] DEFAULT_SSH_HOST_KEY_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_HOST_KEY_ALGORITHMS = List.of(
 			KeyPairProvider.SSH_ED25519,
 			KeyPairProvider.ECDSA_SHA2_NISTP521,
 			KeyPairProvider.ECDSA_SHA2_NISTP256,
 			KeyUtils.RSA_SHA256_KEY_TYPE_ALIAS,
 			KeyUtils.RSA_SHA512_KEY_TYPE_ALIAS,
 			KeyPairProvider.SSH_RSA,
-			KeyPairProvider.SSH_DSS,
-		};
+			KeyPairProvider.SSH_DSS
+		);
 
-		private static final String[] DEFAULT_SSH_CIPHERS = {
+		private static final List<String> DEFAULT_SSH_CIPHERS = List.of(
 			BuiltinCiphers.Constants.AES256_GCM,
 			BuiltinCiphers.Constants.AES128_GCM,
 			BuiltinCiphers.Constants.AES256_CTR,
@@ -134,10 +156,10 @@ public class Ssh extends Cli {
 			BuiltinCiphers.Constants.AES128_CTR,
 			BuiltinCiphers.Constants.AES128_CBC,
 			BuiltinCiphers.Constants.TRIPLE_DES_CBC,
-			BuiltinCiphers.Constants.BLOWFISH_CBC,
-		};
+			BuiltinCiphers.Constants.BLOWFISH_CBC
+		);
 
-		private static final String[] DEFAULT_SSH_MACS = {
+		private static final List<String> DEFAULT_SSH_MACS = List.of(
 			BuiltinMacs.Constants.ETM_HMAC_SHA2_512,
 			BuiltinMacs.Constants.ETM_HMAC_SHA2_256,
 			BuiltinMacs.Constants.HMAC_SHA2_512,
@@ -146,118 +168,74 @@ public class Ssh extends Cli {
 			BuiltinMacs.Constants.HMAC_SHA1_96,
 			BuiltinMacs.Constants.HMAC_MD5,
 			BuiltinMacs.Constants.HMAC_MD5_96,
-			BuiltinMacs.Constants.ETM_HMAC_SHA1,
-		};
+			BuiltinMacs.Constants.ETM_HMAC_SHA1
+		);
 
-		private static final String[] DEFAULT_SSH_COMPRESSION_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_COMPRESSION_ALGORITHMS = List.of(
 			BuiltinCompressions.Constants.NONE,
-			BuiltinCompressions.Constants.ZLIB,
-		};
+			BuiltinCompressions.Constants.ZLIB
+		);
 
-		/** SSH connection timeout. */
-		@Getter
-		private int connectionTimeout;
+		/** Connection timeout (ms). */
+		static final Setting<Integer> CONNECTION_TIMEOUT = Setting.integer("netshot.cli.ssh.connectiontimeout")
+			.defaultValue(5000).range(1, Integer.MAX_VALUE).live();
 
-		/** SSH receive timeout. */
-		@Getter
-		private int receiveTimeout;
+		/** Receive timeout (ms). */
+		static final Setting<Integer> RECEIVE_TIMEOUT = Setting.integer("netshot.cli.ssh.receivetimeout")
+			.defaultValue(60000).range(1, Integer.MAX_VALUE).live();
 
-		/** SSH command timeout. */
-		@Getter
-		private int commandTimeout;
+		/** Command timeout (ms). */
+		static final Setting<Integer> COMMAND_TIMEOUT = Setting.integer("netshot.cli.ssh.commandtimeout")
+			.defaultValue(120000).range(1, Integer.MAX_VALUE).live();
 
-		/** SSH rekey time limit (ms), i.e. maximum session duration before a rekey is triggered. */
-		@Getter
-		private long rekeyTimeLimit;
+		/** Rekey time limit (ms). */
+		static final Setting<Long> REKEY_TIME_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeytimelimit")
+			.defaultValue(Duration.ofHours(1).toMillis()).live();
 
-		/** SSH rekey data limit (bytes), i.e. maximum amount of data exchanged before a rekey is triggered. */
-		@Getter
-		private long rekeyDataLimit;
+		/** Rekey data limit (bytes). */
+		static final Setting<Long> REKEY_DATA_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeydatalimit")
+			.defaultValue(1024L * 1024L * 1024L).live();
 
-		/** SSH rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed before a rekey
-		 * is triggered. Note: unlike the time/data limits, a non-positive value does NOT disable this trigger -
-		 * it makes the SSH library fall back to its own RFC 4344-based automatic computation. To actually disable
-		 * it, this must be set to a very large positive value. */
-		@Getter
-		private long rekeyBlocksLimit;
+		/** Rekey blocks limit. */
+		static final Setting<Long> REKEY_BLOCKS_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeyblockslimit")
+			.defaultValue(0L).live();
 
-		/** SSH rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered. */
-		@Getter
-		private long rekeyPacketsLimit;
+		/** Rekey packets limit. */
+		static final Setting<Long> REKEY_PACKETS_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeypacketslimit")
+			.defaultValue(1L << 31).live();
 
 		/** Key exchange algorithms. */
-		@Getter
-		private String[] kexAlgorithms;
+		static final Setting<List<String>> KEX_ALGORITHMS = Setting.list("netshot.cli.ssh.kexalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_KEX_ALGORITHMS).live();
 
 		/** Host key algorithms. */
-		@Getter
-		private String[] hostKeyAlgorithms;
+		static final Setting<List<String>> HOST_KEY_ALGORITHMS = Setting.list("netshot.cli.ssh.hostkeyalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_HOST_KEY_ALGORITHMS).live();
 
 		/** Ciphers. */
-		@Getter
-		private String[] ciphers;
+		static final Setting<List<String>> CIPHERS = Setting.list("netshot.cli.ssh.ciphers", ", *")
+			.defaultValue(DEFAULT_SSH_CIPHERS).live();
 
 		/** MACs. */
-		@Getter
-		private String[] macs;
+		static final Setting<List<String>> MACS = Setting.list("netshot.cli.ssh.macs", ", *")
+			.defaultValue(DEFAULT_SSH_MACS).live();
 
 		/** Compression algorithms. */
-		@Getter
-		private String[] compressionAlgorithms;
-
-		private String[] readAlgorithms(String configKey, String[] defaultValue) {
-			String value = Netshot.getConfig("netshot.cli.ssh.%s".formatted(configKey));
-			if (value == null) {
-				return defaultValue;
-			}
-			return value.split(", *");
-		}
-
-		private long readLong(String configKey, long defaultValue) {
-			String value = Netshot.getConfig("netshot.cli.ssh.%s".formatted(configKey));
-			if (value == null) {
-				return defaultValue;
-			}
-			try {
-				return Long.parseLong(value);
-			}
-			catch (NumberFormatException e) {
-				log.error("Unable to parse the long value of configuration item 'netshot.cli.ssh.{}', "
-					+ "using default value {}.", configKey, defaultValue);
-				return defaultValue;
-			}
-		}
+		static final Setting<List<String>> COMPRESSION_ALGORITHMS = Setting.list("netshot.cli.ssh.compressionalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_COMPRESSION_ALGORITHMS).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.connectionTimeout = Netshot.getConfig("netshot.cli.ssh.connectiontimeout", 5000, 1, Integer.MAX_VALUE);
-			log.debug("The default connection timeout value for SSH sessions is {}s", this.connectionTimeout);
-
-			this.receiveTimeout = Netshot.getConfig("netshot.cli.ssh.receivetimeout", 60000, 1, Integer.MAX_VALUE);
-			log.debug("The default receive timeout value for SSH sessions is {}s", this.receiveTimeout);
-
-			this.commandTimeout = Netshot.getConfig("netshot.cli.ssh.commandtimeout", 120000, 1, Integer.MAX_VALUE);
-			log.debug("The default command timeout value for SSH sessions is {}s", this.commandTimeout);
-
-			this.rekeyTimeLimit = this.readLong("rekeytimelimit", Duration.ofHours(1).toMillis());
-			log.debug("The default rekey time limit for SSH sessions is {}ms", this.rekeyTimeLimit);
-
-			this.rekeyDataLimit = this.readLong("rekeydatalimit", 1024L * 1024L * 1024L);
-			log.debug("The default rekey data limit for SSH sessions is {} bytes", this.rekeyDataLimit);
-
-			this.rekeyBlocksLimit = this.readLong("rekeyblockslimit", 0L);
-			log.debug("The default rekey blocks limit for SSH sessions is {} blocks", this.rekeyBlocksLimit);
-
-			this.rekeyPacketsLimit = this.readLong("rekeypacketslimit", 1L << 31);
-			log.debug("The default rekey packets limit for SSH sessions is {} packets", this.rekeyPacketsLimit);
-
-			this.kexAlgorithms = this.readAlgorithms("kexalgorithms", DEFAULT_SSH_KEX_ALGORITHMS);
-			this.hostKeyAlgorithms = this.readAlgorithms("hostkeyalgorithms", DEFAULT_SSH_HOST_KEY_ALGORITHMS);
-			this.ciphers = this.readAlgorithms("ciphers", DEFAULT_SSH_CIPHERS);
-			this.macs = this.readAlgorithms("macs", DEFAULT_SSH_MACS);
-			this.compressionAlgorithms = this.readAlgorithms("compressionalgorithms", DEFAULT_SSH_COMPRESSION_ALGORITHMS);
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT),
+				config.get(COMMAND_TIMEOUT), config.get(REKEY_TIME_LIMIT), config.get(REKEY_DATA_LIMIT),
+				config.get(REKEY_BLOCKS_LIMIT), config.get(REKEY_PACKETS_LIMIT), config.get(KEX_ALGORITHMS),
+				config.get(HOST_KEY_ALGORITHMS), config.get(CIPHERS), config.get(MACS), config.get(COMPRESSION_ALGORITHMS));
+			log.debug("The default SSH settings are {}", settings);
+			return settings;
 		}
 	}
 
@@ -380,15 +358,16 @@ public class Ssh extends Cli {
 		 */
 		public SshConfig(boolean withDefaults) {
 			if (withDefaults) {
-				this.kexAlgorithms = Arrays.asList(Ssh.SETTINGS.getKexAlgorithms());
-				this.hostKeyAlgorithms = Arrays.asList(Ssh.SETTINGS.getHostKeyAlgorithms());
-				this.ciphers = Arrays.asList(Ssh.SETTINGS.getCiphers());
-				this.macs = Arrays.asList(Ssh.SETTINGS.getMacs());
-				this.compressionAlgorithms = Arrays.asList(Ssh.SETTINGS.getCompressionAlgorithms());
-				this.rekeyTimeLimit = Ssh.SETTINGS.getRekeyTimeLimit();
-				this.rekeyDataLimit = Ssh.SETTINGS.getRekeyDataLimit();
-				this.rekeyBlocksLimit = Ssh.SETTINGS.getRekeyBlocksLimit();
-				this.rekeyPacketsLimit = Ssh.SETTINGS.getRekeyPacketsLimit();
+				Settings settings = Ssh.settings();
+				this.kexAlgorithms = new ArrayList<>(settings.kexAlgorithms());
+				this.hostKeyAlgorithms = new ArrayList<>(settings.hostKeyAlgorithms());
+				this.ciphers = new ArrayList<>(settings.ciphers());
+				this.macs = new ArrayList<>(settings.macs());
+				this.compressionAlgorithms = new ArrayList<>(settings.compressionAlgorithms());
+				this.rekeyTimeLimit = settings.rekeyTimeLimit();
+				this.rekeyDataLimit = settings.rekeyDataLimit();
+				this.rekeyBlocksLimit = settings.rekeyBlocksLimit();
+				this.rekeyPacketsLimit = settings.rekeyPacketsLimit();
 				this.usePty = true;
 				this.terminalType = "vt100";
 				this.terminalCols = 80;
@@ -419,20 +398,29 @@ public class Ssh extends Cli {
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * Initialize some additional static variables from global configuration.
+	 * Gets the settings of the SSH client.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		Ssh.SETTINGS.load();
-		CoreModuleProperties.NIO2_READ_TIMEOUT.set(Ssh.client, Duration.ofMillis(Ssh.SETTINGS.receiveTimeout));
-		CoreModuleProperties.REKEY_TIME_LIMIT.set(Ssh.client, Duration.ofMillis(Ssh.SETTINGS.rekeyTimeLimit));
-		CoreModuleProperties.REKEY_BYTES_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyDataLimit);
-		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyBlocksLimit);
-		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyPacketsLimit);
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
+
+	/**
+	 * Applies the settings to the shared SSH client.
+	 */
+	private static void applyClientSettings() {
+		Settings settings = Ssh.settings();
+		CoreModuleProperties.NIO2_READ_TIMEOUT.set(Ssh.client, Duration.ofMillis(settings.receiveTimeout()));
+		CoreModuleProperties.REKEY_TIME_LIMIT.set(Ssh.client, Duration.ofMillis(settings.rekeyTimeLimit()));
+		CoreModuleProperties.REKEY_BYTES_LIMIT.set(Ssh.client, settings.rekeyDataLimit());
+		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(Ssh.client, settings.rekeyBlocksLimit());
+		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(Ssh.client, settings.rekeyPacketsLimit());
+	}
+
 
 	/**
 	 * Attribute key carrying a per-access {@link DeviceHostKeyVerifier} into a session created by
@@ -529,6 +517,9 @@ public class Ssh extends Cli {
 				}
 			}
 		});
+		Ssh.applyClientSettings();
+		// Applied again on each configuration change
+		Netshot.config().addListener(_ -> Ssh.applyClientSettings());
 		Ssh.client.start();
 	}
 
@@ -580,9 +571,9 @@ public class Ssh extends Cli {
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 	/**
@@ -602,9 +593,9 @@ public class Ssh extends Cli {
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 	/**
@@ -622,9 +613,9 @@ public class Ssh extends Cli {
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 
@@ -641,9 +632,9 @@ public class Ssh extends Cli {
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 	/**

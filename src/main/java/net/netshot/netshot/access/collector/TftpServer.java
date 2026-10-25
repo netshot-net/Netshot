@@ -39,6 +39,7 @@ import org.apache.commons.net.tftp.TFTPWriteRequestPacket;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.access.collector.TftpServer.TftpTransfer.Status;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.NetworkAddress;
@@ -50,8 +51,14 @@ import net.netshot.netshot.inventory.device.NetworkAddress;
 @Slf4j
 public class TftpServer extends Collector {
 
+	/** Whether the TFTP server is disabled. */
+	static final Setting<Boolean> DISABLED = Setting.bool("netshot.tftpserver.disabled").defaultValue(true).restart();
+
 	/** The UDP port to listen TFTP packets on. */
-	private int udpPort = 69;
+	static final Setting<Integer> PORT = Setting.integer("netshot.tftpserver.port").defaultValue(69).range(1, 65535).restart();
+
+	/** The UDP port to listen TFTP packets on. */
+	private int udpPort;
 
 	/** The TFTP object. */
 	private TFTP tftp;
@@ -73,7 +80,7 @@ public class TftpServer extends Collector {
 	 * Initializes the TFTP server.
 	 */
 	public static void init() {
-		if (Netshot.getConfig("netshot.tftpserver.disabled", true)) {
+		if (Netshot.config().current().get(DISABLED)) {
 			log.warn("The TFTP server is disabled.");
 			return;
 		}
@@ -96,7 +103,7 @@ public class TftpServer extends Collector {
 	public TftpServer() {
 		this.setName("TFTP Server");
 		this.setDaemon(true);
-		this.udpPort = Netshot.getConfig("netshot.tftpserver.port", this.udpPort, 1, 65535);
+		this.udpPort = Netshot.config().current().get(PORT);
 		this.tftp = new TFTP();
 	}
 

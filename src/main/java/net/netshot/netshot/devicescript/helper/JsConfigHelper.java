@@ -756,7 +756,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			throw e;
 		}
 
-		int port = SshServer.SETTINGS.getExternalTcpPort();
+		int port = SshServer.settings().externalTcpPort();
 
 		log.debug("Upload ticket details: username '{}', password '{}...', host '{}:{}', hostkeys '{}'",
 			ticket.username, ticket.password.substring(0, 1), host.getIp(), port, hostKeys);
