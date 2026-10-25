@@ -35,4 +35,12 @@ public final class TestConfig {
 	public static void init(Properties config) {
 		Netshot.initConfig(config);
 	}
+
+	/**
+	 * Gets a copy of the items of the current Netshot configuration (to modify and init again).
+	 * @return the configuration items
+	 */
+	public static Properties properties() {
+		return Netshot.config().current().toProperties();
+	}
 }

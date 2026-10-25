@@ -19,20 +19,11 @@
 package net.netshot.netshot;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.instrument.Instrumentation;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.util.Enumeration;
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -77,6 +68,8 @@ import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
 import net.netshot.netshot.task.engine.TaskLockManager;
@@ -100,14 +93,8 @@ public class Netshot extends Thread {
 	private static final String[] CONFIG_FILENAMES = new String[] {
 		"netshot.conf", "/etc/netshot.conf"};
 
-	/** The application configuration as retrieved from the configuration file. */
-	private static Properties config;
-
-	/** Max size of a secret file (see {@link #getSecretConfig(String)}). */
-	private static final long MAX_SECRET_FILE_SIZE = 64 * 1024;
-
-	/** Cache of the secret config items (empty if not set), cleared when the config is reloaded. */
-	private static final Map<String, Optional<String>> SECRET_CACHE = new ConcurrentHashMap<>();
+	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
+	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
 
 	/** Authentication, Authorization, Accounting logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
@@ -141,12 +128,12 @@ public class Netshot extends Thread {
 	}
 
 	/**
-	 * Gets the config.
+	 * Gets the configuration store, which holds the current configuration snapshot.
 	 *
-	 * @return the config
+	 * @return the configuration store
 	 */
-	public static Properties getConfig() {
-		return config;
+	public static ConfigStore config() {
+		return CONFIG;
 	}
 
 	/**
@@ -157,18 +144,7 @@ public class Netshot extends Thread {
 	 * @return the config
 	 */
 	public static boolean getConfig(String key, boolean defaultValue) {
-		String value = getConfig(key);
-		if ("false".equals(value)) {
-			return false;
-		}
-		if ("true".equals(value)) {
-			return true;
-		}
-		if (value != null) {
-			log.error("Unable to parse the boolean value of configuration item '{}', using default value {}.",
-				key, defaultValue);
-		}
-		return defaultValue;
+		return CONFIG.current().getBoolean(key, defaultValue);
 	}
 
 	/**
@@ -179,8 +155,7 @@ public class Netshot extends Thread {
 	 * @return the config
 	 */
 	public static String getConfig(String key, String defaultValue) {
-		String value = getConfig(key);
-		return value == null ? defaultValue : value;
+		return CONFIG.current().get(key, defaultValue);
 	}
 
 	/**
@@ -191,17 +166,7 @@ public class Netshot extends Thread {
 	 * @return the config
 	 */
 	public static int getConfig(String key, int defaultValue) {
-		String textValue = getConfig(key);
-		if (textValue != null) {
-			try {
-				return Integer.parseInt(textValue);
-			}
-			catch (Exception e) {
-				log.error("Unable to parse the integer value of configuration item '{}', using default value {}.",
-					key, defaultValue);
-			}
-		}
-		return defaultValue;
+		return CONFIG.current().getInt(key, defaultValue);
 	}
 
 	/**
@@ -214,13 +179,7 @@ public class Netshot extends Thread {
 	 * @return the config
 	 */
 	public static int getConfig(String key, int defaultValue, int min, int max) {
-		int value = Netshot.getConfig(key, defaultValue);
-		if (value < min || value > max) {
-			log.error("Unacceptable integer value for configuration item '{}' (not in the range {} to {}), using default value {}",
-					key, min, max, defaultValue);
-			return defaultValue;
-		}
-		return value;
+		return CONFIG.current().getInt(key, defaultValue, min, max);
 	}
 
 	/**
@@ -230,87 +189,29 @@ public class Netshot extends Thread {
 	 * @return the config
 	 */
 	public static String getConfig(String key) {
-		String envKey = key.replace(".", "_").toUpperCase();
-		try {
-			String value = System.getenv(envKey);
-			if (value != null) {
-				return value;
-			}
-		}
-		catch (SecurityException e) {
-			log.warn("Security exception raised while getting environment variable {}", envKey, e);
-		}
-		return config.getProperty(key);
+		return CONFIG.current().get(key);
 	}
 
 	/**
-	 * Gets a secret config item, see {@link #getSecretConfig(String)}.
+	 * Gets a secret config item, see {@link Config#getSecret(String)}.
 	 *
 	 * @param key the key
 	 * @param defaultValue the default value
 	 * @return the config
 	 */
 	public static String getSecretConfig(String key, String defaultValue) {
-		String value = getSecretConfig(key);
-		return value == null ? defaultValue : value;
+		return CONFIG.current().getSecret(key, defaultValue);
 	}
 
 	/**
-	 * Gets a secret config item. If the {@code <key>.file} item is set (e.g. via the
-	 * {@code NETSHOT_DB_PASSWORD_FILE} environment variable), the secret is read from that file;
-	 * otherwise, it is read as a normal (inline) config item.
-	 * The value is read once, then cached until the configuration is reloaded.
+	 * Gets a secret config item, see {@link Config#getSecret(String)}.
 	 *
 	 * @param key the key
 	 * @return the config
 	 * @throws IllegalStateException if the secret file is set but can't be read, is empty or too big
 	 */
 	public static String getSecretConfig(String key) {
-		return Netshot.SECRET_CACHE.computeIfAbsent(key, k -> Optional.ofNullable(readSecretConfig(k))).orElse(null);
-	}
-
-	/**
-	 * Reads a secret config item, from the secret file or inline.
-	 *
-	 * @param key the key
-	 * @return the config
-	 */
-	private static String readSecretConfig(String key) {
-		String fileKey = key + ".file";
-		String fileName = getConfig(fileKey);
-		if (fileName == null) {
-			return getConfig(key);
-		}
-		String envKey = key.replace(".", "_").toUpperCase();
-		if (System.getenv(envKey) != null) {
-			// Likely a leftover, and the secret is still exposed (e.g. to user scripts) through the environment
-			log.warn("Both '{}' and environment variable {} are set: the environment variable is ignored, "
-				+ "it should be removed.", fileKey, envKey);
-		}
-		else if (config.getProperty(key) != null) {
-			log.info("Both configuration items '{}' and '{}' are set, the inline value is ignored.", fileKey, key);
-		}
-		String value;
-		try {
-			Path path = Path.of(fileName);
-			if (Files.size(path) > MAX_SECRET_FILE_SIZE) {
-				throw new IllegalStateException("The secret file '%s' for configuration item '%s' is too big (more than %d bytes)"
-					.formatted(fileName, key, MAX_SECRET_FILE_SIZE));
-			}
-			value = Files.readString(path, StandardCharsets.UTF_8);
-		}
-		catch (IOException | InvalidPathException e) {
-			throw new IllegalStateException("Unable to read the secret file '%s' for configuration item '%s'"
-				.formatted(fileName, key), e);
-		}
-		// Ignore the trailing line break(s), but keep any other whitespace
-		value = value.replaceFirst("[\\r\\n]+\\z", "");
-		if (value.isEmpty()) {
-			throw new IllegalStateException("The secret file '%s' for configuration item '%s' is empty"
-				.formatted(fileName, key));
-		}
-		log.info("Configuration item '{}' was read from secret file {}.", key, fileName);
-		return value;
+		return CONFIG.current().getSecret(key);
 	}
 
 	/**
@@ -323,32 +224,25 @@ public class Netshot extends Thread {
 	}
 
 	/**
-	 * Read the application configuration from the files. If no file can be read,
+	 * Read the application configuration from the files (at startup). If no file can be read,
 	 * the current configuration is kept.
 	 *
 	 * @param filenames the names of the files to read from
 	 * @return true, if successful
 	 */
 	protected static boolean readConfig(String[] filenames) {
-		Properties newConfig = new Properties();
-		for (String fileName : filenames) {
-			try (InputStream fileStream = new FileInputStream(fileName)) {
-				log.trace("Trying to load the configuration file {}.", fileName);
-				newConfig.load(fileStream);
-				log.warn("Configuration file {} successfully read.", fileName);
-				break;
-			}
-			catch (Exception e) {
-				log.warn("Unable to read the configuration file {}.", fileName);
-			}
-		}
-		if (newConfig.isEmpty()) {
-			log.error("No configuration file was found.");
-			return false;
-		}
-		Netshot.config = newConfig;
-		Netshot.SECRET_CACHE.clear();
-		return true;
+		return CONFIG.load(() -> Config.load(List.of(filenames)));
+	}
+
+	/**
+	 * Reload the application configuration from the files (HUP signal). If no file can be read,
+	 * the current configuration is kept.
+	 *
+	 * @param filenames the names of the files to read from
+	 * @return true, if successful
+	 */
+	protected static boolean reloadConfig(String[] filenames) {
+		return CONFIG.reload(() -> Config.load(List.of(filenames)));
 	}
 
 	/**
@@ -358,8 +252,7 @@ public class Netshot extends Thread {
 	 * @return true
 	 */
 	protected static boolean initConfig(Properties newConfig) {
-		Netshot.config = newConfig;
-		Netshot.SECRET_CACHE.clear();
+		CONFIG.replace(Config.of(newConfig));
 		return true;
 	}
 
@@ -450,9 +343,7 @@ public class Netshot extends Thread {
 			.setLevel(Level.ERROR);
 
 		Pattern logSetting = Pattern.compile("^netshot\\.log\\.class\\.(?<class>.*)");
-		Enumeration<?> propertyNames = Netshot.config.propertyNames();
-		while (propertyNames.hasMoreElements()) {
-			String propertyName = (String) propertyNames.nextElement();
+		for (String propertyName : CONFIG.current().fileKeys()) {
 			Matcher matcher = logSetting.matcher(propertyName);
 			if (matcher.find()) {
 				String propertyValue = Netshot.getConfig(propertyName);
@@ -742,8 +633,7 @@ public class Netshot extends Thread {
 			Signal.handle(new Signal("HUP"), new SignalHandler() {
 				@Override
 				public void handle(Signal sig) {
-					if (!Netshot.readConfig(configFileNames)) {
-						log.error("Unable to reload the configuration, the current configuration is kept.");
+					if (!Netshot.reloadConfig(configFileNames)) {
 						return;
 					}
 					Netshot.initMainLogging();
