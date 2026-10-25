@@ -48,11 +48,11 @@ import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDatabase;
 
 /**

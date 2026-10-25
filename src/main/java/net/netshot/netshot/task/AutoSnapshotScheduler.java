@@ -27,11 +27,11 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
-import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 

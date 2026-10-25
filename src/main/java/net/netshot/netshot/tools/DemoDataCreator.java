@@ -52,9 +52,6 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
@@ -69,6 +66,9 @@ import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 @Slf4j
 public class DemoDataCreator {

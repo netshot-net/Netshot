@@ -35,10 +35,10 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskCreation;
 import net.netshot.netshot.task.type.CheckComplianceTask;

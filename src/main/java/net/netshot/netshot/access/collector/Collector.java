@@ -25,11 +25,11 @@ import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 /**
  * The common settings and helpers of the collectors (services receiving data from devices: Syslog server,

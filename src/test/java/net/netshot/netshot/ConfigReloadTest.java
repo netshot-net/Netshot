@@ -38,8 +38,8 @@ import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.vault.VaultManager;
 

@@ -21,8 +21,8 @@ package net.netshot.netshot.inventory.domain;
 import java.time.Instant;
 
 import lombok.Builder;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 
 /**
  * A management domain: a group of devices which a given Netshot server address manages

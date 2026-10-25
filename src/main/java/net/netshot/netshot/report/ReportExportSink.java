@@ -23,7 +23,7 @@ import java.util.List;
 
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
-import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
+import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
 
 /**
  * The receiver of the data export: {@link ReportService#export} pushes the exported data to it,
