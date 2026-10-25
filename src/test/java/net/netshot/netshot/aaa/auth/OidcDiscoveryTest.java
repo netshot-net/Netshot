@@ -42,6 +42,8 @@ public class OidcDiscoveryTest {
 
 	private FakeOidcIdpServer idpServer;
 
+	private Oidc oidc;
+
 	private OidcDiscovery discovery;
 
 	@BeforeEach
@@ -49,7 +51,8 @@ public class OidcDiscoveryTest {
 		this.idpServer = new FakeOidcIdpServer(URI.create("http://127.0.0.1:%d/".formatted(TestNetwork.freePort())));
 		this.idpServer.registerClient("netshot", "secret", URI.create("http://localhost:8080/"));
 		this.idpServer.start();
-		this.discovery = new OidcDiscovery(Netshot.config());
+		this.oidc = new Oidc(Netshot.config());
+		this.discovery = new OidcDiscovery(this.oidc, Netshot.config());
 	}
 
 	@AfterEach
@@ -80,20 +83,20 @@ public class OidcDiscoveryTest {
 	void enableThenDisableOnReload() throws Exception {
 		TestConfig.init(this.oidcConfig());
 		this.discovery.start();
-		await(Oidc::isAvailable, "OIDC wasn't enabled");
-		Assertions.assertEquals("netshot", Oidc.getClientId());
+		await(this.oidc::isAvailable, "OIDC wasn't enabled");
+		Assertions.assertEquals("netshot", this.oidc.getClientId());
 		Assertions.assertTrue(this.discovery.isHealthy());
 		Assertions.assertEquals(1L, this.discovery.stats().get("fetches"));
 
 		// Reload without OIDC
 		TestConfig.init(new Properties());
-		Assertions.assertFalse(Oidc.isAvailable(), "OIDC is still enabled after its removal from the configuration");
+		Assertions.assertFalse(this.oidc.isAvailable(), "OIDC is still enabled after its removal from the configuration");
 		Assertions.assertEquals(false, this.discovery.stats().get("configured"));
 		Assertions.assertTrue(this.discovery.isHealthy(), "Not configured is healthy");
 
 		// Reload with OIDC again
 		TestConfig.init(this.oidcConfig());
-		await(Oidc::isAvailable, "OIDC wasn't enabled again");
+		await(this.oidc::isAvailable, "OIDC wasn't enabled again");
 	}
 
 	@Test
@@ -104,12 +107,12 @@ public class OidcDiscoveryTest {
 		TestConfig.init(config);
 		this.discovery.start();
 		await(() -> (Long) this.discovery.stats().get("failures") > 0, "No failure reported");
-		Assertions.assertFalse(Oidc.isAvailable());
+		Assertions.assertFalse(this.oidc.isAvailable());
 		Assertions.assertFalse(this.discovery.isHealthy());
 
 		TestConfig.init(this.oidcConfig());
-		await(Oidc::isAvailable, "OIDC wasn't enabled with the reachable IdP");
+		await(this.oidc::isAvailable, "OIDC wasn't enabled with the reachable IdP");
 		this.discovery.stop();
-		Assertions.assertFalse(Oidc.isAvailable(), "OIDC still enabled after the stop of the service");
+		Assertions.assertFalse(this.oidc.isAvailable(), "OIDC still enabled after the stop of the service");
 	}
 }

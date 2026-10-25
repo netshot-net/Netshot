@@ -28,18 +28,35 @@ import net.netshot.netshot.aaa.user.UiUser;
  */
 public class ConfiguredRemoteAuthenticator implements RemoteAuthenticator {
 
+	private final Oidc oidc;
+	private final Radius radius;
+	private final Tacacs tacacs;
+
+	/**
+	 * Creates the authenticator.
+	 *
+	 * @param oidc the OIDC authentication
+	 * @param radius the RADIUS authentication
+	 * @param tacacs the TACACS+ authentication
+	 */
+	public ConfiguredRemoteAuthenticator(Oidc oidc, Radius radius, Tacacs tacacs) {
+		this.oidc = oidc;
+		this.radius = radius;
+		this.tacacs = tacacs;
+	}
+
 	@Override
 	public UiUser authenticateWithCode(String authorizationCode, URL redirectUrl) {
-		return Oidc.authenticateWithCode(authorizationCode, redirectUrl);
+		return this.oidc.authenticateWithCode(authorizationCode, redirectUrl);
 	}
 
 	@Override
 	public UiUser authenticateWithRadius(String username, String password, String remoteAddress) {
-		return Radius.authenticate(username, password, remoteAddress);
+		return this.radius.authenticate(username, password, remoteAddress);
 	}
 
 	@Override
 	public UiUser authenticateWithTacacs(String username, String password, String remoteAddress) {
-		return Tacacs.authenticate(username, password, remoteAddress);
+		return this.tacacs.authenticate(username, password, remoteAddress);
 	}
 }

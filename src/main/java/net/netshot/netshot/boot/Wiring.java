@@ -27,7 +27,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
 import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.auth.Oidc;
 import net.netshot.netshot.aaa.auth.OidcDiscovery;
+import net.netshot.netshot.aaa.auth.Radius;
+import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserRepository;
@@ -161,6 +164,8 @@ public final class Wiring {
 	private final SearchService searchService;
 	private final ConfigService configService;
 	// AAA and system
+	private final Oidc oidc;
+	private final Tacacs tacacs;
 	private final UserService userService;
 	private final ApiTokenService apiTokenService;
 	private final LoginService loginService;
@@ -248,10 +253,12 @@ public final class Wiring {
 		this.searchService = new SearchService(this.transactions, new SearchRepository());
 		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
 		// AAA and system
+		this.oidc = new Oidc(config);
+		this.tacacs = new Tacacs(config);
 		UserRepository userRepository = new UserRepository();
 		this.userService = new UserService(this.transactions, userRepository);
 		this.apiTokenService = new ApiTokenService(this.transactions, new ApiTokenRepository());
-		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator());
+		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs));
 		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService();
 		// Diagnostics
@@ -339,7 +346,7 @@ public final class Wiring {
 		List<Service> services = new ArrayList<>();
 		services.add(Service.of("database", Database::init, Database::shutdown));
 		services.add(Service.of("device drivers", this.driverRegistry::refresh, () -> { }));
-		services.add(new OidcDiscovery(this.config));
+		services.add(new OidcDiscovery(this.oidc, this.config));
 		// Before the clustering manager, which can start running tasks
 		services.add(Service.of("task lock manager", () -> { }, this.lockManager::close));
 		if (this.clusterManager != null) {
@@ -472,6 +479,24 @@ public final class Wiring {
 	 */
 	public TaskService taskService() {
 		return this.taskService;
+	}
+
+	/**
+	 * Gets the OIDC authentication.
+	 *
+	 * @return the OIDC authentication
+	 */
+	public Oidc oidc() {
+		return this.oidc;
+	}
+
+	/**
+	 * Gets the TACACS+ authentication.
+	 *
+	 * @return the TACACS+ authentication
+	 */
+	public Tacacs tacacs() {
+		return this.tacacs;
 	}
 
 	/**

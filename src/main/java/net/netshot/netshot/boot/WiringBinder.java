@@ -21,6 +21,8 @@ package net.netshot.netshot.boot;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.cluster.ClusterService;
@@ -84,6 +86,8 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.userService()).to(UserService.class);
 		this.bind(this.wiring.apiTokenService()).to(ApiTokenService.class);
 		this.bind(this.wiring.loginService()).to(LoginService.class);
+		this.bind(this.wiring.oidc()).to(Oidc.class);
+		this.bind(this.wiring.tacacs()).to(Tacacs.class);
 		this.bind(this.wiring.clusterService()).to(ClusterService.class);
 		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
 		// Diagnostics
