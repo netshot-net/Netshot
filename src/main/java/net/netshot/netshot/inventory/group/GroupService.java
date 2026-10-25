@@ -51,13 +51,18 @@ public class GroupService {
 	private final Transactions transactions;
 	private final GroupRepository repository;
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the group repository
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public GroupService(Transactions transactions, GroupRepository repository) {
+	public GroupService(Transactions transactions, GroupRepository repository, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.transactions = transactions;
 		this.repository = repository;
 	}
@@ -264,18 +269,18 @@ public class GroupService {
 		return ids;
 	}
 
-	private static String formatQuery(String query) {
+	private String formatQuery(String query) {
 		try {
-			return DynamicGroups.formatQuery(query);
+			return this.dynamicGroups.formatQuery(query);
 		}
 		catch (FinderParseException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, "Invalid query for the group definition.");
 		}
 	}
 
-	private static void refreshMembers(DSLContext dsl, DynamicDeviceGroup group) {
+	private void refreshMembers(DSLContext dsl, DynamicDeviceGroup group) {
 		try {
-			DynamicGroups.refresh(dsl, group);
+			this.dynamicGroups.refresh(dsl, group);
 		}
 		catch (FinderParseException e) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DYNAMICGROUP_QUERY, "Invalid query for the group definition.");

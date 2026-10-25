@@ -64,7 +64,6 @@ import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.domain.DomainRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
-import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
@@ -768,7 +767,7 @@ public class DemoDataCreator {
 
 			log.info("Refreshing dynamic group");
 			try {
-				DynamicGroups.refresh(dsl, allGroup);
+				Wiring.get().dynamicGroups().refresh(dsl, allGroup);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalStateException("Invalid query of the group", e);

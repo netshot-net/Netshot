@@ -58,15 +58,20 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	private final Transactions transactions = new Transactions();
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
 	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer) {
+		SshServer sshServer, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.sshServer = sshServer;
 		this.taskSubmitter = taskSubmitter;
@@ -136,7 +141,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		}
 
 		log.debug("Task {}. Request to refresh all the groups for the device after the snapshot.", task.id());
-		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
 		if (!spec.dontRunDiagnostics()) {
 			try {

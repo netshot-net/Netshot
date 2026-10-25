@@ -63,11 +63,16 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 
 	private final Transactions transactions = new Transactions();
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Creates the handler.
 	 * @param complianceChecker the compliance checker
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public CheckGroupComplianceHandler(ComplianceChecker complianceChecker) {
+	public CheckGroupComplianceHandler(ComplianceChecker complianceChecker, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.complianceChecker = complianceChecker;
 	}
 
@@ -140,7 +145,7 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 		}
 
 		log.debug("Task {}. Request to refresh all the groups after compliance check.", task.id());
-		DynamicGroups.refreshAllGroups();
+		this.dynamicGroups.refreshAllGroups();
 		log.debug("Task {}. Group refreshing done.", task.id());
 	}
 

@@ -72,9 +72,9 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.domain.DomainRepository;
 import net.netshot.netshot.inventory.domain.DomainService;
+import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.config.Config;
@@ -142,6 +142,7 @@ public final class Wiring {
 	private final ConfigStore config;
 	// Drivers
 	private final DriverRegistry driverRegistry;
+	private final DynamicGroups dynamicGroups;
 	// Device
 	private final DeviceService deviceService;
 	// Compliance
@@ -208,7 +209,7 @@ public final class Wiring {
 		this.config = config;
 		// Drivers
 		this.driverRegistry = driverRegistry;
-		Finder.setDriverRegistry(driverRegistry);
+		this.dynamicGroups = new DynamicGroups(driverRegistry);
 		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
 		this.lockManager = TaskLockManager.create(clustered);
@@ -225,7 +226,7 @@ public final class Wiring {
 		}
 		// Device
 		DeviceRepository deviceRepository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, taskSubmitter, this.driverRegistry);
+		this.deviceService = new DeviceService(this.transactions, deviceRepository, taskSubmitter, this.driverRegistry, this.dynamicGroups);
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
@@ -250,8 +251,8 @@ public final class Wiring {
 			}
 		});
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
-		this.groupService = new GroupService(this.transactions, new GroupRepository());
-		this.searchService = new SearchService(this.transactions, new SearchRepository());
+		this.groupService = new GroupService(this.transactions, new GroupRepository(), this.dynamicGroups);
+		this.searchService = new SearchService(this.transactions, new SearchRepository(), this.driverRegistry);
 		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
 		// AAA and system
 		this.oidc = new Oidc(config);
@@ -287,18 +288,18 @@ public final class Wiring {
 		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.taskManager::addTask);
 		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
 		this.taskHandlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(this.complianceChecker),
-			new CheckGroupComplianceHandler(this.complianceChecker),
+			new CheckComplianceHandler(this.complianceChecker, this.dynamicGroups),
+			new CheckGroupComplianceHandler(this.complianceChecker, this.dynamicGroups),
 			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter),
+			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter),
-			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter),
+			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups),
+			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups),
 			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
 			new ScanSubnetsHandler(childTaskOrchestrator),
 			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer)));
+			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 	}
@@ -498,6 +499,15 @@ public final class Wiring {
 	 */
 	public Tacacs tacacs() {
 		return this.tacacs;
+	}
+
+	/**
+	 * Gets the refresher of the dynamic groups.
+	 *
+	 * @return the dynamic groups
+	 */
+	public DynamicGroups dynamicGroups() {
+		return this.dynamicGroups;
 	}
 
 	/**

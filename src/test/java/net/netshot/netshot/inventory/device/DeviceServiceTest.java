@@ -56,6 +56,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.inventory.group.DynamicGroups;
 
 /**
  * Tests of the device use cases, against a real database and a recording task submitter.
@@ -85,7 +86,7 @@ class DeviceServiceTest {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		this.service = new DeviceService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry());
+		this.service = new DeviceService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry(), new DynamicGroups(TestDrivers.registry()));
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
 		this.sshAccountId = TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("secret").superPassword("enable")

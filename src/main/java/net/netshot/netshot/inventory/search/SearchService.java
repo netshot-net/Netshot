@@ -26,6 +26,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.driver.DriverRegistry;
 
 /**
  * The device search use case: finds the devices matching a string-based query (parsed by {@link Finder}).
@@ -36,13 +37,18 @@ public class SearchService {
 	private final Transactions transactions;
 	private final SearchRepository repository;
 
+	/** The loaded device drivers, to parse the queries against. */
+	private final DriverRegistry driverRegistry;
+
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the search repository
+	 * @param driverRegistry the loaded device drivers, to parse the queries against
 	 */
-	public SearchService(Transactions transactions, SearchRepository repository) {
+	public SearchService(Transactions transactions, SearchRepository repository, DriverRegistry driverRegistry) {
+		this.driverRegistry = driverRegistry;
 		this.transactions = transactions;
 		this.repository = repository;
 	}
@@ -57,7 +63,7 @@ public class SearchService {
 	 */
 	public SearchResult searchDevices(String query, Page page) {
 		try {
-			Finder finder = new Finder(query);
+			Finder finder = new Finder(query, this.driverRegistry);
 			try {
 				// Read-write session, as it has always been used for this query
 				return this.transactions.write(dsl -> new SearchResult(
