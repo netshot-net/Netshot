@@ -10,7 +10,7 @@ parameter = value
 
 Lines starting with `#` are ignored.
 
-Some parameters are re-read and applied when Netshot receives a `HUP` signal; others require a restart to take effect.
+Some parameters are re-read and applied when Netshot receives a `HUP` signal; others require a restart to take effect. If the configuration file can't be read on such a reload, Netshot logs an error and keeps its current configuration.
 
 Every parameter can also be passed as an environment variable: replace `.` with `_` and upper-case it. For example, `netshot.log.file` becomes `NETSHOT_LOG_FILE`.
 

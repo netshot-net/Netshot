@@ -33,7 +33,7 @@ import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
-@DisplayName("Secret configuration items")
+@DisplayName("Configuration items")
 public class NetshotConfigTest {
 
 	private static final String KEY = "netshot.test.secret";
@@ -123,6 +123,29 @@ public class NetshotConfigTest {
 		Assertions.assertEquals("first", Netshot.getSecretConfig(KEY), "The secret wasn't cached");
 		initConfig(null, file);
 		Assertions.assertEquals("second", Netshot.getSecretConfig(KEY), "The cache wasn't cleared on config reload");
+	}
+
+	@Test
+	@DisplayName("Reading the configuration file replaces the configuration")
+	void readConfigFile() throws Exception {
+		Path file = tempDir.resolve("netshot.conf");
+		Files.writeString(file, "netshot.test.item = fromfile\n", StandardCharsets.UTF_8);
+		initConfig("inline", null);
+		Assertions.assertTrue(Netshot.readConfig(new String[] { tempDir.resolve("missing.conf").toString(), file.toString() }));
+		Assertions.assertEquals("fromfile", Netshot.getConfig("netshot.test.item"));
+		Assertions.assertNull(Netshot.getConfig(KEY), "The previous configuration was not replaced");
+	}
+
+	@Test
+	@DisplayName("The current configuration is kept if no configuration file can be read")
+	void readConfigKeepsCurrentOnFailure() throws Exception {
+		initConfig("inline", null);
+		Assertions.assertFalse(Netshot.readConfig(new String[] { tempDir.resolve("missing.conf").toString() }));
+		Assertions.assertEquals("inline", Netshot.getConfig(KEY));
+		Path empty = tempDir.resolve("empty.conf");
+		Files.writeString(empty, "# Nothing\n", StandardCharsets.UTF_8);
+		Assertions.assertFalse(Netshot.readConfig(new String[] { empty.toString() }));
+		Assertions.assertEquals("inline", Netshot.getConfig(KEY));
 	}
 
 	@Test

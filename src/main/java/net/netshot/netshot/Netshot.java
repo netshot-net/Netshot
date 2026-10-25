@@ -323,18 +323,18 @@ public class Netshot extends Thread {
 	}
 
 	/**
-	 * Read the application configuration from the files.
+	 * Read the application configuration from the files. If no file can be read,
+	 * the current configuration is kept.
 	 *
 	 * @param filenames the names of the files to read from
 	 * @return true, if successful
 	 */
 	protected static boolean readConfig(String[] filenames) {
-		Netshot.config = new Properties();
-		Netshot.SECRET_CACHE.clear();
+		Properties newConfig = new Properties();
 		for (String fileName : filenames) {
 			try (InputStream fileStream = new FileInputStream(fileName)) {
 				log.trace("Trying to load the configuration file {}.", fileName);
-				Netshot.config.load(fileStream);
+				newConfig.load(fileStream);
 				log.warn("Configuration file {} successfully read.", fileName);
 				break;
 			}
@@ -342,10 +342,12 @@ public class Netshot extends Thread {
 				log.warn("Unable to read the configuration file {}.", fileName);
 			}
 		}
-		if (Netshot.config.isEmpty()) {
-			log.error(MarkerFactory.getMarker("FATAL"), "No configuration file was found. Exiting.");
+		if (newConfig.isEmpty()) {
+			log.error("No configuration file was found.");
 			return false;
 		}
+		Netshot.config = newConfig;
+		Netshot.SECRET_CACHE.clear();
 		return true;
 	}
 
@@ -682,6 +684,7 @@ public class Netshot extends Thread {
 		}
 
 		if (!Netshot.readConfig(configFileNames)) {
+			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
 			System.exit(1);
 		}
 		if (!Netshot.initMainLogging()
@@ -739,7 +742,10 @@ public class Netshot extends Thread {
 			Signal.handle(new Signal("HUP"), new SignalHandler() {
 				@Override
 				public void handle(Signal sig) {
-					Netshot.readConfig(configFileNames);
+					if (!Netshot.readConfig(configFileNames)) {
+						log.error("Unable to reload the configuration, the current configuration is kept.");
+						return;
+					}
 					Netshot.initMainLogging();
 					Netshot.initAuditLogging();
 					Netshot.initSyslogLogging();
