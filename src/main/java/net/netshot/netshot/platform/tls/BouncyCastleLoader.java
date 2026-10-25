@@ -35,6 +35,7 @@ import org.apache.sshd.common.util.security.SecurityUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Helper to load BouncyCastle library (JAR files).
@@ -47,6 +48,12 @@ import net.netshot.netshot.Netshot;
  */
 @Slf4j
 public final class BouncyCastleLoader {
+
+	/** Whether the additional crypto libraries are loaded. */
+	static final Setting<Boolean> LOAD = Setting.bool("netshot.cryptolibs.load").defaultValue(true).restart();
+
+	/** The folder to extract the crypto libraries to (default: the system temp folder). */
+	static final Setting<String> TMP_PATH = Setting.text("netshot.cryptolibs.tmppath").restart();
 
 	/**
 	 * Private constructor to hide utility class constructor.
@@ -73,7 +80,7 @@ public final class BouncyCastleLoader {
 	private static void loadJar(JarFile jar, JarEntry je) throws Exception {
 		log.debug("Extracting embedded JAR {}", je.getName());
 
-		String tmpPath = Netshot.getConfig("netshot.cryptolibs.tmppath");
+		String tmpPath = Netshot.config().current().get(TMP_PATH);
 
 		try (InputStream in = jar.getInputStream(je)) {
 			String baseName = new File(je.getName()).getName();
@@ -223,7 +230,7 @@ public final class BouncyCastleLoader {
 			return;
 		}
 
-		if (!Netshot.getConfig("netshot.cryptolibs.load", true)) {
+		if (!Netshot.config().current().get(LOAD)) {
 			log.warn("Loading of additional crypto libraries is disabled by configuration.");
 			return;
 		}

@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.compliance;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.TestDevices;
 import java.util.Date;
 import java.util.HashMap;
@@ -75,7 +76,7 @@ class ComplianceServiceTest {
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
-			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry()));
+			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry()));
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry());
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry());
 		this.groupId = TestDevices.addStaticGroup("Group").id();

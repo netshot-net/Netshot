@@ -31,12 +31,39 @@ import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Database class, utilities to access the database.
  */
 @Slf4j
 public final class Database {
+
+	/** The JDBC driver class. */
+	static final Setting<String> DRIVER_CLASS = Setting.text("netshot.db.driverclass").alias("netshot.db.driver_class")
+		.defaultValue("org.postgresql.Driver").restart();
+
+	/** The JDBC URL of the (read-write) database. */
+	static final Setting<String> URL = Setting.text("netshot.db.url")
+		.defaultValue("jdbc:postgresql://localhost:5432/netshot01?sslmode=disable").secret().restart();
+
+	/** The JDBC URL of the read-only database (null to read from the read-write one). */
+	static final Setting<String> READ_URL = Setting.text("netshot.db.readurl").secret().restart();
+
+	/** The database user name. */
+	static final Setting<String> USERNAME = Setting.text("netshot.db.username").defaultValue("netshot").secret().restart();
+
+	/** The database password. */
+	static final Setting<String> PASSWORD = Setting.text("netshot.db.password").defaultValue("netshot").secret().restart();
+
+	/** The password used to encrypt the sensitive data (with a capital P in the legacy key, for historical reasons). */
+	static final Setting<String> ENCRYPTION_PASSWORD = Setting.text("netshot.db.encryptionpassword")
+		.alias("netshot.db.encryptionPassword").secret().restart();
+
+	/** Whether the encryption password must be configured (no default value). */
+	static final Setting<Boolean> ENCRYPTION_PASSWORD_REQUIRED = Setting.bool("netshot.db.encryptionpassword.required")
+		.defaultValue(false).restart();
 
 	/** The connection pools. */
 	private static ConnectionPools pools;
@@ -92,8 +119,7 @@ public final class Database {
 	 * @return the configured driver class
 	 */
 	private static String getDriverClass() {
-		return Netshot.getConfig("netshot.db.driverclass",
-			Netshot.getConfig("netshot.db.driver_class", "org.postgresql.Driver"));
+		return Netshot.config().current().get(DRIVER_CLASS);
 	}
 
 	/**
@@ -102,7 +128,7 @@ public final class Database {
 	 * @return the configured DB URL.
 	 */
 	private static String getUrl() {
-		return Netshot.getSecretConfig("netshot.db.url", "jdbc:postgresql://localhost:5432/netshot01?sslmode=disable");
+		return Netshot.config().current().get(URL);
 	}
 
 	/**
@@ -111,7 +137,7 @@ public final class Database {
 	 * @return the configured DB URL.
 	 */
 	private static String getReadUrl() {
-		return Netshot.getSecretConfig("netshot.db.readurl");
+		return Netshot.config().current().get(READ_URL);
 	}
 
 	/**
@@ -120,7 +146,7 @@ public final class Database {
 	 * @return the configured DB username
 	 */
 	private static String getUsername() {
-		return Netshot.getSecretConfig("netshot.db.username", "netshot");
+		return Netshot.config().current().get(USERNAME);
 	}
 
 	/**
@@ -129,7 +155,7 @@ public final class Database {
 	 * @return the configured DB password
 	 */
 	private static String getPassword() {
-		return Netshot.getSecretConfig("netshot.db.password", "netshot");
+		return Netshot.config().current().get(PASSWORD);
 	}
 
 	/**
@@ -140,13 +166,10 @@ public final class Database {
 	 * @throws IllegalStateException if the password is required but not configured
 	 */
 	public static String getEncryptionPassword() {
-		String password = Netshot.getSecretConfig("netshot.db.encryptionpassword");
+		Config config = Netshot.config().current();
+		String password = config.get(ENCRYPTION_PASSWORD);
 		if (password == null) {
-			// With capital P, for historical reasons
-			password = Netshot.getSecretConfig("netshot.db.encryptionPassword");
-		}
-		if (password == null) {
-			if (Netshot.getConfig("netshot.db.encryptionpassword.required", false)) {
+			if (config.get(ENCRYPTION_PASSWORD_REQUIRED)) {
 				throw new IllegalStateException("The DB encryption password (netshot.db.encryptionpassword) must be configured, "
 					+ "e.g. via the NETSHOT_DB_ENCRYPTIONPASSWORD_FILE environment variable. Note that the Netshot container "
 					+ "image up to version 0.25.0 had 'netshot' as built-in value.");

@@ -26,13 +26,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -45,24 +46,28 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 public class AutoSnapshotScheduler {
 
 	/**
-	 * Settings/config of the automatic snapshots.
+	 * The settings of the automatic snapshots.
+	 *
+	 * @param autoSnapshotAnyIp whether a message from any IP address of a device (not only the management one)
+	 *        triggers an automatic snapshot
+	 * @param autoSnapshotInterval the minutes to wait before starting an automatic snapshot
 	 */
-	public static final class Settings {
+	public record Settings(boolean autoSnapshotAnyIp, int autoSnapshotInterval) {
 
-		/** Allow trap from any IP of a device to trigger a automatic snapshot. */
-		@Getter
-		private boolean autoSnapshotAnyIp;
+		/** Whether a message from any IP address of a device triggers an automatic snapshot. */
+		static final Setting<Boolean> ANY_IP = Setting.bool("netshot.snapshots.auto.anyip").defaultValue(false).live();
 
 		/** Minutes to wait before starting an automatic snapshot. */
-		@Getter
-		private int autoSnapshotInterval;
+		static final Setting<Integer> INTERVAL = Setting.integer("netshot.snapshots.auto.interval")
+			.defaultValue(10).range(1, 60 * 24 * 7).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.autoSnapshotAnyIp = Netshot.getConfig("netshot.snapshots.auto.anyip", false);
-			this.autoSnapshotInterval = Netshot.getConfig("netshot.snapshots.auto.interval", 10, 1, 60 * 24 * 7);
+		static Settings from(Config config) {
+			return new Settings(config.get(ANY_IP), config.get(INTERVAL));
 		}
 	}
 
@@ -72,16 +77,17 @@ public class AutoSnapshotScheduler {
 	 */
 	private static final Set<Long> SCHEDULED_AUTO_SNAPSHOTS = ConcurrentHashMap.newKeySet();
 
-	private final Settings settings = new Settings();
+	private final ConfigStore.Binding<Settings> settings;
 	private final TaskSubmitter taskSubmitter;
 
 	/**
-	 * Creates the scheduler, and loads its settings.
+	 * Creates the scheduler.
 	 * @param taskSubmitter what new tasks are handed to
+	 * @param config the configuration store, to read the settings from
 	 */
-	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter) {
+	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter, ConfigStore config) {
 		this.taskSubmitter = taskSubmitter;
-		this.loadConfig();
+		this.settings = config.bind(Settings::from);
 	}
 
 	/**
@@ -108,14 +114,7 @@ public class AutoSnapshotScheduler {
 	 * @return the settings
 	 */
 	public Settings getSettings() {
-		return this.settings;
-	}
-
-	/**
-	 * Loads (or reloads) the settings from the Netshot config file.
-	 */
-	public void loadConfig() {
-		this.settings.load();
+		return this.settings.get();
 	}
 
 	public boolean scheduleSnapshotIfNeeded(List<String> drivers, Network4Address address) {
@@ -128,7 +127,7 @@ public class AutoSnapshotScheduler {
 				Long deviceId = dsl.select(DEVICE.ID).from(DEVICE)
 					.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name()), DEVICE.CACHED_IP_ADDRESS.eq(address.getInetAddress()))
 					.fetchOne(DEVICE.ID);
-				if (deviceId == null && this.settings.isAutoSnapshotAnyIp()) {
+				if (deviceId == null && this.settings.get().autoSnapshotAnyIp()) {
 					log.warn("No device with such management IP {} in the database. Looking for this address in the interface table.",
 						address.getIp());
 					deviceId = dsl.selectDistinct(DEVICE.ID).from(DEVICE)
@@ -189,7 +188,7 @@ public class AutoSnapshotScheduler {
 		}
 		try {
 			Task snapshot = TakeSnapshotTask.of(device, "Automatic snapshot after config change", "Auto", true, false, false)
-				.scheduledIn(this.settings.getAutoSnapshotInterval());
+				.scheduledIn(this.settings.get().autoSnapshotInterval());
 			this.taskSubmitter.submit(snapshot);
 		}
 		catch (Exception e) {

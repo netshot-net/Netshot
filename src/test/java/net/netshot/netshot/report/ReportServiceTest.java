@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.PolicyDefinition;
@@ -149,7 +150,7 @@ class ReportServiceTest {
 		this.emptyGroup = TestDevices.addStaticGroup("Report empty group").id();
 		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
-			RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry()));
+			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry()));
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).policy().id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();

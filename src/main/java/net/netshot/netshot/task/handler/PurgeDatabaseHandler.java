@@ -195,7 +195,7 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 					.from(CONFIG_ATTRIBUTE).where(CONFIG_ATTRIBUTE.TYPE.eq("F")).fetch(CONFIG_ATTRIBUTE.UID)));
 
 				int count = 0;
-				Path storageFolder = ConfigBinaryFileAttribute.SETTINGS.getStorageFolderPath();
+				Path storageFolder = ConfigBinaryFileAttribute.settings().storageFolderPath();
 				if (storageFolder != null) {
 					Instant pendingSafeBefore = Instant.now().minus(24, ChronoUnit.HOURS);
 					try (Stream<Path> entries = Files.list(storageFolder)) {

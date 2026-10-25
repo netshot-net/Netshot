@@ -28,9 +28,11 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -55,52 +57,53 @@ public final class VaultManager {
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
 	/**
-	 * Settings/config for this class, shared with {@link VaultClient}.
+	 * The settings of the Vault client.
+	 *
+	 * @param tokenRenewMarginMs the margin (ms) before a cached client token's expiry at which it's proactively renewed
+	 * @param secretCacheTtlMs how long (ms) a resolved secret's JSON data is cached for
+	 * @param httpConnectTimeoutMs the HTTP connect timeout (ms) for calls to a Vault instance
+	 * @param httpReadTimeoutMs the HTTP read timeout (ms) for calls to a Vault instance
 	 */
-	public static final class Settings {
+	public record Settings(int tokenRenewMarginMs, int secretCacheTtlMs, int httpConnectTimeoutMs, int httpReadTimeoutMs) {
 
 		/** Margin (ms) before a cached client token's expiry at which it's proactively renewed. */
-		@Getter
-		private int tokenRenewMarginMs;
+		static final Setting<Integer> TOKEN_RENEW_MARGIN = Setting.integer("netshot.vault.token.renewmarginms")
+			.defaultValue(30000).range(0, Integer.MAX_VALUE).live();
 
 		/** How long (ms) a resolved secret's JSON data is cached for. */
-		@Getter
-		private int secretCacheTtlMs;
+		static final Setting<Integer> SECRET_CACHE_TTL = Setting.integer("netshot.vault.secret.cachettlms")
+			.defaultValue(60000).range(0, Integer.MAX_VALUE).live();
 
-		/** HTTP connect timeout (ms) for calls to a Vault instance. */
-		@Getter
-		private int httpConnectTimeoutMs;
+		/** HTTP connect timeout (ms). */
+		static final Setting<Integer> HTTP_CONNECT_TIMEOUT = Setting.integer("netshot.vault.http.connecttimeoutms")
+			.defaultValue(5000).range(100, Integer.MAX_VALUE).live();
 
-		/** HTTP read timeout (ms) for calls to a Vault instance. */
-		@Getter
-		private int httpReadTimeoutMs;
+		/** HTTP read timeout (ms). */
+		static final Setting<Integer> HTTP_READ_TIMEOUT = Setting.integer("netshot.vault.http.readtimeoutms")
+			.defaultValue(10000).range(100, Integer.MAX_VALUE).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.tokenRenewMarginMs = Netshot.getConfig("netshot.vault.token.renewmarginms", 30000, 0, Integer.MAX_VALUE);
-			log.debug("The Vault client token renew margin is {}ms", this.tokenRenewMarginMs);
-
-			this.secretCacheTtlMs = Netshot.getConfig("netshot.vault.secret.cachettlms", 60000, 0, Integer.MAX_VALUE);
-			log.debug("The Vault secret cache TTL is {}ms", this.secretCacheTtlMs);
-
-			this.httpConnectTimeoutMs = Netshot.getConfig("netshot.vault.http.connecttimeoutms", 5000, 100, Integer.MAX_VALUE);
-			log.debug("The Vault HTTP connect timeout is {}ms", this.httpConnectTimeoutMs);
-
-			this.httpReadTimeoutMs = Netshot.getConfig("netshot.vault.http.readtimeoutms", 10000, 100, Integer.MAX_VALUE);
-			log.debug("The Vault HTTP read timeout is {}ms", this.httpReadTimeoutMs);
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(TOKEN_RENEW_MARGIN), config.get(SECRET_CACHE_TTL),
+				config.get(HTTP_CONNECT_TIMEOUT), config.get(HTTP_READ_TIMEOUT));
+			log.debug("The Vault client settings are {}", settings);
+			return settings;
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * Initialize some additional static variables from global configuration.
+	 * Gets the settings of the Vault client.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		VaultManager.SETTINGS.load();
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
 
 	private record SecretCacheKey(long vaultInstanceId, String path) {
@@ -212,7 +215,7 @@ public final class VaultManager {
 	 */
 	static VaultToken getToken(HashicorpVaultKv2Instance instance) throws VaultException {
 		VaultToken cached = TOKEN_CACHE.get(instance.id());
-		if (cached != null && cached.isValid(SETTINGS.getTokenRenewMarginMs())) {
+		if (cached != null && cached.isValid(settings().tokenRenewMarginMs())) {
 			log.trace("Using cached Vault client token for instance '{}'.", instance.name());
 			return cached;
 		}
@@ -257,7 +260,7 @@ public final class VaultManager {
 		if (raceWinner == null) {
 			try {
 				JsonNode data = VaultClient.readKv2(instance, path, token);
-				SECRET_CACHE.put(key, new CachedSecretData(data, System.currentTimeMillis() + SETTINGS.getSecretCacheTtlMs()));
+				SECRET_CACHE.put(key, new CachedSecretData(data, System.currentTimeMillis() + settings().secretCacheTtlMs()));
 				myFuture.complete(data);
 				return data;
 			}

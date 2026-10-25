@@ -35,6 +35,7 @@ import org.graalvm.polyglot.PolyglotException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.devicescript.helper.JsCliHelper;
@@ -61,6 +62,9 @@ import net.netshot.netshot.task.engine.TaskContext;
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
 
+	/** Folder to dump the configurations into, after each snapshot. */
+	static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
+
 	public SnapshotDeviceScript(DriverRegistry driverRegistry, TaskContext logger) {
 		super(driverRegistry, logger);
 	}
@@ -71,7 +75,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param config = the config
 	 */
 	protected void dumpConfig(DeviceDraft device, ConfigDraft config) {
-		String path = Netshot.getConfig("netshot.snapshots.dump");
+		String path = Netshot.config().current().get(DUMP_PATH);
 		if (path != null) {
 			// The device name is reported by the device itself, it must not be able to escape the dump folder
 			Path dumpFolder = Paths.get(path).toAbsolutePath().normalize();

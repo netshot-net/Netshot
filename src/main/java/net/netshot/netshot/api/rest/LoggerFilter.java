@@ -36,6 +36,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.User;
 
@@ -48,11 +49,8 @@ public class LoggerFilter implements ContainerResponseFilter {
 	/** Authentication, Authorization, Accounting logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
-	private static boolean trustXForwardedFor;
-
-	public static void init() {
-		trustXForwardedFor = Netshot.getConfig("netshot.http.trustxforwardedfor", false);
-	}
+	/** Whether the client address is read from the X-Forwarded-For header (behind a reverse proxy). */
+	static final Setting<Boolean> TRUST_X_FORWARDED_FOR = Setting.bool("netshot.http.trustxforwardedfor").defaultValue(false).live();
 
 	@Context
 	private HttpServletRequest httpRequest;
@@ -64,7 +62,7 @@ public class LoggerFilter implements ContainerResponseFilter {
 	 */
 	public static String getClientAddress(HttpServletRequest request) {
 		String address = null;
-		if (trustXForwardedFor) {
+		if (Netshot.config().current().get(TRUST_X_FORWARDED_FOR)) {
 			String forwardedFor = request.getHeader("X-Forwarded-For");
 			if (forwardedFor != null) {
 				String[] addresses = forwardedFor.split(",");
@@ -79,7 +77,7 @@ public class LoggerFilter implements ContainerResponseFilter {
 
 	public static URL getClientRequestUrl(HttpServletRequest request) throws MalformedURLException, URISyntaxException {
 		String scheme = request.getScheme();
-		if (trustXForwardedFor) {
+		if (Netshot.config().current().get(TRUST_X_FORWARDED_FOR)) {
 			String forwardedProto = request.getHeader("X-Forwarded-Proto");
 			if (forwardedProto != null) {
 				scheme = forwardedProto;
@@ -87,7 +85,7 @@ public class LoggerFilter implements ContainerResponseFilter {
 		}
 		int port = request.getServerPort();
 		String serverName = request.getServerName();
-		if (trustXForwardedFor) {
+		if (Netshot.config().current().get(TRUST_X_FORWARDED_FOR)) {
 			String forwardedHost = request.getHeader("X-Forwarded-Host");
 			if (forwardedHost != null) {
 				serverName = forwardedHost;

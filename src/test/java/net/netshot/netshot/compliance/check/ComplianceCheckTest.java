@@ -32,6 +32,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.JavaScriptRule;
@@ -56,7 +57,7 @@ public class ComplianceCheckTest {
 
 	@BeforeAll
 	static void init() throws Exception {
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry());
 	}
 
 	@SuppressWarnings("unchecked")

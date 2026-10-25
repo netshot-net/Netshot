@@ -25,9 +25,11 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.UUID;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * A configuration attribute holding a binary file, stored in the storage folder (not in the
@@ -49,44 +51,50 @@ public record ConfigBinaryFileAttribute(
 	String checksum) implements ConfigAttribute {
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the binary file storage.
+	 *
+	 * @param storageFolderPath where the binary files are stored (null if not usable)
 	 */
-	public static final class Settings {
+	public record Settings(Path storageFolderPath) {
+
 		/** Where the binary files are stored. */
-		@Getter
-		private Path storageFolderPath;
+		static final Setting<String> BINARY_PATH = Setting.text("netshot.snapshots.binary.path")
+			.defaultValue("/var/local/netshot").live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			String folder = Netshot.getConfig("netshot.snapshots.binary.path",
-					"/var/local/netshot");
+		static Settings from(Config config) {
+			String folder = config.get(BINARY_PATH);
 			try {
-				this.storageFolderPath = Path.of(folder).normalize();
-				if (!Files.isDirectory(this.storageFolderPath)) {
+				Path storageFolderPath = Path.of(folder).normalize();
+				if (!Files.isDirectory(storageFolderPath)) {
 					log.error("Storage path '{}' for binary files is not a folder. Binary files won't be saved!",
-						this.storageFolderPath);
-					this.storageFolderPath = null;
+						storageFolderPath);
+					return new Settings(null);
 				}
+				return new Settings(storageFolderPath);
 			}
 			catch (InvalidPathException e) {
 				log.error(
 					"Invalid configured storage path '{}' for binary files. Binary files won't be saved!",
 					folder, e);
-				this.storageFolderPath = null;
+				return new Settings(null);
 			}
 		}
 	}
 
-	/** Settings. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * Load the main policy from configuration.
+	 * Gets the settings of the binary file storage.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		ConfigBinaryFileAttribute.SETTINGS.load();
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
 
 	/**
@@ -97,12 +105,13 @@ public record ConfigBinaryFileAttribute(
 	 * @throws IOException if the folder can't be created
 	 */
 	public static Path makeTempFolder(String prefix) throws IOException {
-		if (ConfigBinaryFileAttribute.SETTINGS.storageFolderPath == null) {
+		Path storageFolderPath = ConfigBinaryFileAttribute.settings().storageFolderPath();
+		if (storageFolderPath == null) {
 			throw new IllegalStateException(
 				"Cannot get a folder path to save temporary binary file attribute. "
 				+ "Is netshot.snapshots.binary.path defined?");
 		}
-		Path folder = Files.createTempDirectory(ConfigBinaryFileAttribute.SETTINGS.storageFolderPath, prefix);
+		Path folder = Files.createTempDirectory(storageFolderPath, prefix);
 		folder.toFile().deleteOnExit();
 		return folder;
 	}
@@ -134,12 +143,13 @@ public record ConfigBinaryFileAttribute(
 	}
 
 	private static Path storageFolder() {
-		if (ConfigBinaryFileAttribute.SETTINGS.storageFolderPath == null) {
+		Path storageFolderPath = ConfigBinaryFileAttribute.settings().storageFolderPath();
+		if (storageFolderPath == null) {
 			throw new IllegalStateException(
 				"Cannot get a file path to save binary file attribute. "
 				+ "Is netshot.snapshots.binary.path defined?");
 		}
-		return ConfigBinaryFileAttribute.SETTINGS.storageFolderPath;
+		return storageFolderPath;
 	}
 
 	/**

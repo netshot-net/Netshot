@@ -27,6 +27,7 @@ import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
@@ -45,6 +46,10 @@ import net.netshot.netshot.task.type.DeviceBasedTask;
 @DisallowConcurrentExecution
 @Slf4j
 public class TaskJob implements Job {
+
+	/** Interval (ms) between two checks of the lock of a device by a waiting task. */
+	static final Setting<Integer> DEVICE_LOCK_POLL_INTERVAL = Setting.integer("netshot.tasks.devicelock.pollintervalms")
+		.defaultValue(3000).range(500, 60000).live();
 
 	/** The Constant NETSHOT_TASK. */
 	public static final String NETSHOT_TASK = "Netshot Task";
@@ -139,7 +144,7 @@ public class TaskJob implements Job {
 		else {
 			run.logger.info("Waiting for the device to be released by task {}.", holderTaskId);
 		}
-		int pollInterval = Netshot.getConfig("netshot.tasks.devicelock.pollintervalms", 3000, 500, 60000);
+		int pollInterval = Netshot.config().current().get(DEVICE_LOCK_POLL_INTERVAL);
 		long startTime = System.currentTimeMillis();
 		while (true) {
 			Thread.sleep(pollInterval);
