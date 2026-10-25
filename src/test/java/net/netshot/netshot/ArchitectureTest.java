@@ -32,6 +32,7 @@ import java.util.Set;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -160,6 +161,25 @@ public final class ArchitectureTest {
 					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.client.."),
 					JavaClass.Predicates.resideInAPackage("jakarta.ws.rs.core.."),
 					JavaClass.Predicates.equivalentTo(jakarta.ws.rs.ProcessingException.class)))
+			.allowEmptyShould(true);
+
+	/**
+	 * The configuration is read through the declared settings ({@code Config.get(Setting)}), never by key, so that each
+	 * setting is declared once (type, default, range, reload mode), checked and documented (see NetshotSettingsTest).
+	 * The database migrations, run before the features are loaded, may read a setting declared by a feature.
+	 */
+	@ArchTest
+	static final ArchRule CONFIGURATION_READ_THROUGH_SETTINGS =
+		noClasses().that().resideOutsideOfPackage(ROOT + "platform.config..")
+			.and().resideOutsideOfPackage(ROOT + "platform.database.migrator..")
+			.should().callMethodWhere(new DescribedPredicate<JavaMethodCall>("read a configuration item by key") {
+				@Override
+				public boolean test(JavaMethodCall call) {
+					return call.getTargetOwner().isEquivalentTo(net.netshot.netshot.platform.config.Config.class)
+						&& !call.getTarget().getRawParameterTypes().isEmpty()
+						&& call.getTarget().getRawParameterTypes().get(0).isEquivalentTo(String.class);
+				}
+			})
 			.allowEmptyShould(true);
 
 	/**

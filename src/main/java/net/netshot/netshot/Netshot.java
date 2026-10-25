@@ -42,6 +42,7 @@ import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.boot.LoggingSetup;
+import net.netshot.netshot.boot.NetshotSettings;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
@@ -241,6 +242,28 @@ public class Netshot extends Thread {
 			configFileNames = new String[] { configFilename };
 		}
 
+		// The crypto libraries are registered before anything initializes the SSH library, which checks the
+		// available crypto providers (EdDSA, X25519...) only once. Building the catalog of the settings initializes
+		// the classes which declare them, the SSH ones included: the settings of the crypto libraries are read from
+		// a first load of the configuration, without catalog (without the secrets), then the configuration is loaded
+		// again with the catalog.
+		if (!Netshot.readConfig(configFileNames)) {
+			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
+			System.exit(1);
+		}
+		if (!LoggingSetup.apply(CONFIG.current())) {
+			System.exit(1);
+		}
+		try {
+			log.info("Registering crypto libraries");
+			BouncyCastleLoader.registerBouncyCastle();
+		}
+		catch (Exception e) {
+			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
+			e.printStackTrace();
+			System.exit(1);
+		}
+		CONFIG.setCatalog(NetshotSettings.catalog());
 		if (!Netshot.readConfig(configFileNames)) {
 			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
 			System.exit(1);
@@ -250,15 +273,13 @@ public class Netshot extends Thread {
 		}
 		// Applied again on each configuration change (first, so that the other changes are logged accordingly)
 		CONFIG.addListener(LoggingSetup::apply);
+		CONFIG.catalog().warnUnknownItems(CONFIG.current());
 
 		try {
 			log.info("Checking current JVM.");
 			Netshot.checkJvm();
 			log.info("Selecting truststore.");
 			Netshot.setTruststore();
-
-			log.info("Registering crypto libraries");
-			BouncyCastleLoader.registerBouncyCastle();
 
 			log.info("Updating the database schema, if necessary.");
 			Database.update();

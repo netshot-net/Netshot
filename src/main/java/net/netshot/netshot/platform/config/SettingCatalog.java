@@ -66,7 +66,8 @@ public final class SettingCatalog {
 	}
 
 	/**
-	 * Creates a catalog from the {@code static final} {@link Setting} fields of the given classes.
+	 * Creates a catalog from the {@code static final} {@link Setting} fields of the given classes
+	 * (and of their nested classes).
 	 *
 	 * @param classes the classes declaring the settings
 	 * @return the catalog
@@ -80,13 +81,17 @@ public final class SettingCatalog {
 	}
 
 	/**
-	 * Gets the settings declared by the {@code static final} {@link Setting} fields of a class.
+	 * Gets the settings declared by the {@code static final} {@link Setting} fields of a class
+	 * and of its nested classes.
 	 *
 	 * @param declaring the class
 	 * @return the settings
 	 */
 	public static List<Setting<?>> declaredSettings(Class<?> declaring) {
 		List<Setting<?>> settings = new ArrayList<>();
+		for (Class<?> nested : declaring.getDeclaredClasses()) {
+			settings.addAll(declaredSettings(nested));
+		}
 		for (Field field : declaring.getDeclaredFields()) {
 			int modifiers = field.getModifiers();
 			if (Setting.class.equals(field.getType()) && Modifier.isStatic(modifiers) && Modifier.isFinal(modifiers)) {
@@ -202,7 +207,7 @@ public final class SettingCatalog {
 	 *
 	 * @param config the configuration
 	 */
-	void warnUnknownItems(Config config) {
+	public void warnUnknownItems(Config config) {
 		for (String key : this.unknownKeys(config)) {
 			log.warn("Unknown configuration item '{}' (or environment variable {}): it is ignored, check its name.",
 				key, Config.environmentName(key));

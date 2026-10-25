@@ -140,6 +140,8 @@ public final class ConfigStore {
 
 	/**
 	 * Loads the initial configuration (at startup): it replaces the current one if it can be loaded.
+	 * The unknown items aren't reported yet (see {@link SettingCatalog#warnUnknownItems(Config)}),
+	 * as the logging is set up from this configuration.
 	 *
 	 * @param loader the loader
 	 * @return true if the configuration was loaded
@@ -153,7 +155,6 @@ public final class ConfigStore {
 			log.error(MarkerFactory.getMarker("FATAL"), "Unable to load the configuration: {}", e.getMessage(), e);
 			return false;
 		}
-		this.catalog.warnUnknownItems(config);
 		this.replace(config);
 		return true;
 	}
