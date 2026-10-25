@@ -39,7 +39,7 @@ import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Evaluates the JavaScript rules: a JavaScript-coded script checks the device

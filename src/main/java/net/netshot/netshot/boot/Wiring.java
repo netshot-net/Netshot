@@ -363,9 +363,9 @@ public final class Wiring {
 			log.warn("The Syslog server is disabled by configuration.");
 		}
 		else {
-			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler, this.config));
+			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
 		}
-		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler, this.config));
+		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
 		if (this.sshServer != null) {
 			services.add(this.sshServer);
 		}

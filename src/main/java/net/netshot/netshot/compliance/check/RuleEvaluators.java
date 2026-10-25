@@ -26,7 +26,7 @@ import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * The registry of the rule evaluators, by type of rule. It refuses to be built if

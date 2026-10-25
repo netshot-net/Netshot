@@ -28,7 +28,7 @@ import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Checks devices against the rules of the policies.

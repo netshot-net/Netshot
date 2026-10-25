@@ -34,8 +34,6 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.task.AutoSnapshotQueue;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestNetwork;
@@ -53,8 +51,7 @@ public class SyslogServerTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.syslog.port", Integer.toString(port));
 		TestConfig.init(config);
-		return new SyslogServer(TestDrivers.registry(), new AutoSnapshotScheduler(_ -> null, Netshot.config(), null, new AutoSnapshotQueue()),
-			Netshot.config());
+		return new SyslogServer(TestDrivers.registry(), (_, _) -> { }, Netshot.config());
 	}
 
 	private static void await(BooleanSupplier condition, String message) throws InterruptedException {

@@ -41,7 +41,6 @@ import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
 
 /**
  * A Syslog server receives the syslog messages from devices and triggers
@@ -65,8 +64,8 @@ public final class SyslogServer implements Service {
 	/** The loaded device drivers. */
 	private final DriverRegistry driverRegistry;
 
-	/** The scheduler of the automatic snapshots. */
-	private final AutoSnapshotScheduler autoSnapshotScheduler;
+	/** Where the configuration changes are reported (the scheduler of the automatic snapshots). */
+	private final SnapshotRequester snapshotRequester;
 
 	/** The configuration store. */
 	private final ConfigStore config;
@@ -96,12 +95,12 @@ public final class SyslogServer implements Service {
 	 * Creates the Syslog server.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
+	 * @param snapshotRequester where the configuration changes are reported (the scheduler of the automatic snapshots)
 	 * @param config the configuration store
 	 */
-	public SyslogServer(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, ConfigStore config) {
+	public SyslogServer(DriverRegistry driverRegistry, SnapshotRequester snapshotRequester, ConfigStore config) {
 		this.driverRegistry = driverRegistry;
-		this.autoSnapshotScheduler = autoSnapshotScheduler;
+		this.snapshotRequester = snapshotRequester;
 		this.config = config;
 	}
 
@@ -204,7 +203,7 @@ public final class SyslogServer implements Service {
 				}
 				if (matchingDrivers.size() > 0) {
 					this.matched.incrementAndGet();
-					this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(matchingDrivers, source);
+					this.snapshotRequester.requestSnapshot(matchingDrivers, source);
 				}
 			}
 		}

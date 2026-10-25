@@ -38,8 +38,8 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
-import net.netshot.netshot.task.engine.TaskContext;
 
 /**
  * Generalizes the credential-set fallback logic that used to be triplicated

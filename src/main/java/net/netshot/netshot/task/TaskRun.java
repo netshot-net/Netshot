@@ -28,7 +28,7 @@ import org.slf4j.helpers.MessageFormatter;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * The state of one run of a task: status, logs, debug log and results. Created by the task engine
