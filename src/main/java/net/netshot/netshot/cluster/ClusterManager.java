@@ -243,6 +243,9 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	/** Whether the service is running (the main loop runs until it's false). */
 	private volatile boolean running;
 
+	/** The ID of the last message sent by this instance. */
+	private final AtomicLong lastMessageId = new AtomicLong();
+
 	/** The number of sent cluster messages. */
 	private final AtomicLong sentMessages = new AtomicLong();
 
@@ -479,6 +482,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	 * @throws SQLException
 	 */
 	private void sendMessage(Connection connection, ClusterMessage message) throws SQLException {
+		message.setMessageId(this.lastMessageId.incrementAndGet());
 		try (Statement statement = connection.createStatement()) {
 			String content = this.jsonWriter.forType(ClusterMessage.class).writeValueAsString(message);
 			// Can't make it work with a prepared statement so escape the quotes
