@@ -57,8 +57,7 @@ public class TaskJobTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		TaskManager.init(Wiring.get().taskJobFactory());
-		TaskLockManager.init(false);
+		Wiring.get().taskManager().startSchedulers();
 	}
 
 	@BeforeEach
@@ -103,7 +102,7 @@ public class TaskJobTest {
 		List<TaskHandler<?>> handlers = Arrays.stream(TaskSpec.class.getPermittedSubclasses())
 			.<TaskHandler<?>>map(type -> throwingHandler(type.asSubclass(TaskSpec.class), exception))
 			.toList();
-		TaskJob taskJob = new TaskJob(new TaskHandlers(handlers), Wiring.get().domainEvents());
+		TaskJob taskJob = new TaskJob(new TaskHandlers(handlers), Wiring.get().domainEvents(), Wiring.get().taskManager());
 		long id = TestTasks.add(TakeSnapshotTask.of(device, "test", "tester", false, true, true), Status.SCHEDULED).id();
 
 		Assertions.assertDoesNotThrow(() -> taskJob.runTask(id));

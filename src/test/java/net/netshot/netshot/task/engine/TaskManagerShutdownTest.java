@@ -60,8 +60,7 @@ public class TaskManagerShutdownTest {
 
 	@BeforeEach
 	void init() throws Exception {
-		TaskLockManager.init(false);
-		TaskManager.init(Wiring.get().taskJobFactory());
+		Wiring.get().taskManager().startSchedulers();
 		Domain domain = TestDevices.addDomain("Test domain", "Fake domain for tests");
 		Device fake = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
 		this.device = TestDevices.add(fake.toBuilder().status(Device.Status.DISABLED).build(),
@@ -85,20 +84,20 @@ public class TaskManagerShutdownTest {
 	@Test
 	@DisplayName("A task still running after the timeout is marked as failed")
 	void runningTaskIsFailed() throws Exception {
-		TaskLockManager lockManager = TaskLockManager.get();
+		TaskLockManager lockManager = Wiring.get().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID));
 		try {
-			Task task = TaskManager.addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
+			Task task = Wiring.get().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true));
 			// Claimed by its job (RUNNING), and waiting for the device
 			await(() -> TestTasks.find(task.id()).status() == Status.RUNNING, "The task isn't running");
 			long start = System.currentTimeMillis();
-			TaskManager.shutdown();
+			Wiring.get().taskManager().shutdown();
 			Assertions.assertTrue(System.currentTimeMillis() - start >= 1000, "The running task wasn't waited for");
 			Task stopped = TestTasks.find(task.id());
 			Assertions.assertEquals(Status.FAILURE, stopped.status());
 			Assertions.assertTrue(stopped.log().contains("Netshot was stopped while the task was running."), stopped.log());
 			// Let the job thread end
-			TaskManager.requestCancel(task.id());
+			Wiring.get().taskManager().requestCancel(task.id());
 		}
 		finally {
 			lockManager.unlock(TaskLockManager.NS_DEVICE, this.device.id(), OTHER_TASK_ID);
@@ -108,10 +107,10 @@ public class TaskManagerShutdownTest {
 	@Test
 	@DisplayName("Without running task, the stop doesn't wait, and the scheduled tasks are kept")
 	void scheduledTaskIsKept() throws Exception {
-		Task task = TaskManager.addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true)
+		Task task = Wiring.get().taskManager().addTask(TakeSnapshotTask.of(this.device, "test", "tester", false, true, true)
 			.scheduledIn(60));
 		long start = System.currentTimeMillis();
-		TaskManager.shutdown();
+		Wiring.get().taskManager().shutdown();
 		Assertions.assertTrue(System.currentTimeMillis() - start < 1000, "The stop waited without running task");
 		Assertions.assertEquals(Status.SCHEDULED, TestTasks.find(task.id()).status());
 	}

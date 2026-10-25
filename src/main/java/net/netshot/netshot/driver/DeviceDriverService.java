@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.cluster.ClusterManager;
 
 /**
  * The device driver use case: list the device types (the drivers loaded by the server), and
@@ -35,13 +34,18 @@ public class DeviceDriverService {
 
 	private final DriverRegistry driverRegistry;
 
+	/** Asks the other cluster members to reload their drivers too (nothing without clustering). */
+	private final Runnable clusterReload;
+
 	/**
 	 * Instantiates the service.
 	 *
 	 * @param driverRegistry the loaded device drivers
+	 * @param clusterReload asks the other cluster members to reload their drivers too
 	 */
-	public DeviceDriverService(DriverRegistry driverRegistry) {
+	public DeviceDriverService(DriverRegistry driverRegistry, Runnable clusterReload) {
 		this.driverRegistry = driverRegistry;
+		this.clusterReload = clusterReload;
 	}
 
 	/**
@@ -54,7 +58,7 @@ public class DeviceDriverService {
 	 */
 	public List<DeviceDriver> list(boolean refresh) {
 		if (refresh) {
-			ClusterManager.requestDriverReload();
+			this.clusterReload.run();
 			try {
 				this.driverRegistry.refresh();
 			}

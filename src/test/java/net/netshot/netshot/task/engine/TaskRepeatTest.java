@@ -51,7 +51,7 @@ public class TaskRepeatTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		TaskManager.init(Wiring.get().taskJobFactory());
+		Wiring.get().taskManager().startSchedulers();
 	}
 
 	@AfterEach
@@ -77,7 +77,7 @@ public class TaskRepeatTest {
 		long taskId = this.persistRecurringPurgeTask(null);
 		Task reloaded = TestTasks.find(taskId);
 
-		Assertions.assertDoesNotThrow(() -> TaskManager.repeatTask(reloaded),
+		Assertions.assertDoesNotThrow(() -> Wiring.get().taskManager().repeatTask(reloaded),
 			"Repeating the task should not throw");
 
 		List<Task> others = others(taskId);
@@ -94,7 +94,7 @@ public class TaskRepeatTest {
 		long taskId = this.persistRecurringPurgeTask(groupId);
 		Task reloaded = TestTasks.find(taskId);
 
-		Assertions.assertDoesNotThrow(() -> TaskManager.repeatTask(reloaded),
+		Assertions.assertDoesNotThrow(() -> Wiring.get().taskManager().repeatTask(reloaded),
 			"Repeating a per-group task should not throw");
 
 		List<Task> others = others(taskId);

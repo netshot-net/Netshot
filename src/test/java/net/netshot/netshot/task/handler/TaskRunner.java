@@ -27,6 +27,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -84,8 +85,8 @@ final class TaskRunner {
 			new RunGroupDiagnosticsHandler(orchestrator),
 			new ScanSubnetsHandler(orchestrator),
 			new TakeGroupSnapshotHandler(orchestrator),
-			new TakeSnapshotHandler(TestDrivers.registry(), submitter)));
-		this.taskJob = new TaskJob(handlers, wiring.domainEvents());
+			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue())));
+		this.taskJob = new TaskJob(handlers, wiring.domainEvents(), wiring.taskManager());
 	}
 
 	/**

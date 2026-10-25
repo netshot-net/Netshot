@@ -62,8 +62,7 @@ public class TaskJobLockingTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		TaskManager.init(Wiring.get().taskJobFactory());
-		TaskLockManager.init(false);
+		Wiring.get().taskManager().startSchedulers();
 	}
 
 	@BeforeEach
@@ -121,7 +120,7 @@ public class TaskJobLockingTest {
 	@DisplayName("A task already running (task lock held) is skipped")
 	void lockedTaskIsSkipped() throws Exception {
 		long id = this.persistSnapshotTask(Status.SCHEDULED, false);
-		TaskLockManager lockManager = TaskLockManager.get();
+		TaskLockManager lockManager = Wiring.get().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_TASK, id, OTHER_TASK_ID));
 		try {
 			Wiring.get().taskJobFactory().newTaskJob().runTask(id);
@@ -137,7 +136,7 @@ public class TaskJobLockingTest {
 	@DisplayName("Snapshot cancelled when another snapshot runs on the device, next occurrence still scheduled")
 	void sameTypeIsCancelledAndRepeated() throws Exception {
 		long id = this.persistSnapshotTask(Status.SCHEDULED, true);
-		TaskLockManager lockManager = TaskLockManager.get();
+		TaskLockManager lockManager = Wiring.get().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_SNAPSHOT, device.id(), OTHER_TASK_ID));
 		try {
 			Wiring.get().taskJobFactory().newTaskJob().runTask(id);
@@ -157,7 +156,7 @@ public class TaskJobLockingTest {
 	@DisplayName("A task waits for the device held by a task of another type, then runs")
 	void waitsForDeviceThenRuns() throws Exception {
 		long id = this.persistSnapshotTask(Status.SCHEDULED, false);
-		TaskLockManager lockManager = TaskLockManager.get();
+		TaskLockManager lockManager = Wiring.get().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, device.id(), OTHER_TASK_ID));
 		Thread thread;
 		try {
@@ -184,12 +183,12 @@ public class TaskJobLockingTest {
 	@DisplayName("A task cancelled while waiting for the device is not repeated")
 	void cancelWhileWaiting() throws Exception {
 		long id = this.persistSnapshotTask(Status.SCHEDULED, true);
-		TaskLockManager lockManager = TaskLockManager.get();
+		TaskLockManager lockManager = Wiring.get().lockManager();
 		Assertions.assertTrue(lockManager.tryLock(TaskLockManager.NS_DEVICE, device.id(), OTHER_TASK_ID));
 		try {
 			Thread thread = this.runInBackground(id);
 			Thread.sleep(2000);
-			TaskManager.requestCancel(id);
+			Wiring.get().taskManager().requestCancel(id);
 			thread.join(10000);
 			Assertions.assertFalse(thread.isAlive(), "The task should have stopped waiting");
 		}

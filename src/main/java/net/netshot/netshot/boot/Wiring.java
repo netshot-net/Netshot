@@ -83,6 +83,7 @@ import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRepository;
@@ -92,8 +93,6 @@ import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJobFactory;
 import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.task.engine.TaskManagerEngine;
-import net.netshot.netshot.task.engine.TaskManagerService;
 import net.netshot.netshot.task.handler.CheckComplianceHandler;
 import net.netshot.netshot.task.handler.CheckGroupComplianceHandler;
 import net.netshot.netshot.task.handler.CheckGroupSoftwareHandler;
@@ -180,8 +179,12 @@ public final class Wiring {
 	private final HookService hookService;
 	// Events
 	private final DomainEvents domainEvents;
-	// Task handlers
+	// Task engine and clustering
+	private final TaskLockManager lockManager;
+	private final TaskManager taskManager;
 	private final AutoSnapshotScheduler autoSnapshotScheduler;
+	private final ClusterManager clusterManager;
+	// Task handlers
 	private final TaskHandlers taskHandlers;
 	private final TaskJobFactory taskJobFactory;
 
@@ -198,9 +201,23 @@ public final class Wiring {
 		// Drivers
 		this.driverRegistry = driverRegistry;
 		Finder.setDriverRegistry(driverRegistry);
+		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
+		boolean clustered = config.current().get(ClusterManager.ENABLED);
+		this.lockManager = TaskLockManager.create(clustered);
+		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
+		this.taskManager = new TaskManager(config, autoSnapshots, this.lockManager);
+		TaskSubmitter taskSubmitter = this.taskManager::addTask;
+		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots);
+		if (clustered) {
+			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager);
+			this.taskManager.setCluster(this.clusterManager);
+		}
+		else {
+			this.clusterManager = null;
+		}
 		// Device
 		DeviceRepository deviceRepository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, TaskManager::addTask, this.driverRegistry);
+		this.deviceService = new DeviceService(this.transactions, deviceRepository, taskSubmitter, this.driverRegistry);
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
@@ -213,13 +230,17 @@ public final class Wiring {
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), this.driverRegistry);
 		// Tasks
 		TaskRepository taskRepository = new TaskRepository();
-		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine(),
+		this.taskService = new TaskService(this.transactions, taskRepository, taskSubmitter, this.taskManager,
 			this.driverRegistry);
 		// Reports
 		this.reportService = new ReportService(this.transactions, new ReportRepository(), this.driverRegistry);
 		// Inventory
 		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
-		this.deviceDriverService = new DeviceDriverService(this.driverRegistry);
+		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, () -> {
+			if (this.clusterManager != null) {
+				this.clusterManager.requestDriverReload();
+			}
+		});
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
 		this.groupService = new GroupService(this.transactions, new GroupRepository());
 		this.searchService = new SearchService(this.transactions, new SearchRepository());
@@ -229,7 +250,7 @@ public final class Wiring {
 		this.userService = new UserService(this.transactions, userRepository);
 		this.apiTokenService = new ApiTokenService(this.transactions, new ApiTokenRepository());
 		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator());
-		this.clusterService = new ClusterService(ClusterManager::getClusterMembers);
+		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService();
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
@@ -242,7 +263,9 @@ public final class Wiring {
 		this.vaultInstanceService = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
 			vaultInstanceId -> {
 				VaultManager.invalidate(vaultInstanceId);
-				ClusterManager.requestVaultInstanceReload(vaultInstanceId);
+				if (this.clusterManager != null) {
+					this.clusterManager.requestVaultInstanceReload(vaultInstanceId);
+				}
 			},
 			VaultManager::testConnection);
 		// Hooks
@@ -251,9 +274,7 @@ public final class Wiring {
 		this.domainEvents = new DomainEvents();
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
-		TaskSubmitter taskSubmitter = TaskManager::addTask;
-		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(TaskManager::addTask);
-		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config);
+		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.taskManager::addTask);
 		this.taskHandlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(this.complianceChecker),
 			new CheckGroupComplianceHandler(this.complianceChecker),
@@ -266,8 +287,9 @@ public final class Wiring {
 			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
 			new ScanSubnetsHandler(childTaskOrchestrator),
 			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter)));
-		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents);
+			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots)));
+		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
+		this.taskManager.setJobFactory(this.taskJobFactory);
 	}
 
 	/**
@@ -311,21 +333,20 @@ public final class Wiring {
 	 */
 	public List<Service> services() {
 		Config current = this.config.current();
-		boolean clustered = current.get(ClusterManager.ENABLED);
 		List<Service> services = new ArrayList<>();
 		services.add(Service.of("database", Database::init, Database::shutdown));
 		services.add(Service.of("device drivers", this.driverRegistry::refresh, () -> { }));
 		services.add(new OidcDiscovery(this.config));
 		// Before the clustering manager, which can start running tasks
-		services.add(Service.of("task lock manager", () -> TaskLockManager.init(clustered), TaskLockManager::shutdown));
-		if (clustered) {
-			services.add(new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler));
+		services.add(Service.of("task lock manager", () -> { }, this.lockManager::close));
+		if (this.clusterManager != null) {
+			services.add(this.clusterManager);
 		}
 		else {
 			log.info("High Availability is not enabled.");
 		}
 		services.add(new VaultTokenRefresher(this.config));
-		services.add(new TaskManagerService(this.taskJobFactory));
+		services.add(this.taskManager);
 		// The receivers submit tasks: after the task manager
 		if (current.get(SyslogServer.DISABLED)) {
 			log.warn("The Syslog server is disabled by configuration.");
@@ -448,6 +469,24 @@ public final class Wiring {
 	 */
 	public TaskService taskService() {
 		return this.taskService;
+	}
+
+	/**
+	 * Gets the task manager.
+	 *
+	 * @return the task manager
+	 */
+	public TaskManager taskManager() {
+		return this.taskManager;
+	}
+
+	/**
+	 * Gets the task and device locks.
+	 *
+	 * @return the lock manager
+	 */
+	public TaskLockManager lockManager() {
+		return this.lockManager;
 	}
 
 	/**
