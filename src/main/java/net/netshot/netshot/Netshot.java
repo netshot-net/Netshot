@@ -68,7 +68,10 @@ public class Netshot {
 	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
 	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
 
-	/** Java instrumentation. */
+	/**
+	 * The instrumentation handed by the JVM to the agent entry point (used to load the crypto libraries):
+	 * the only mutable static field, see the STATIC_FIELDS_ARE_FINAL rule of ArchitectureTest.
+	 */
 	private static volatile Instrumentation instrumentation;
 
 	protected Netshot() {
