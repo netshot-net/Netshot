@@ -25,7 +25,7 @@ import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
