@@ -44,7 +44,6 @@ import net.netshot.netshot.devicescript.helper.JsConfigHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceScriptOptions;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
-import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.DeviceDriver;
@@ -59,6 +58,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.script.JsUtils;
 import net.netshot.netshot.vault.SecretResolver;
 
 @Slf4j

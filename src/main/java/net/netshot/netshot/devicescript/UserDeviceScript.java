@@ -39,13 +39,13 @@ import net.netshot.netshot.devicescript.helper.JsClientFactory;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceScriptOptions;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
-import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.script.JsUtils;
 import net.netshot.netshot.vault.SecretResolver;
 
 /**

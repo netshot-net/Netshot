@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.devicescript.helper;
+package net.netshot.netshot.platform.script;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -142,6 +142,21 @@ public final class JsUtils {
 			return jsErrorToMessage(e.getCause());
 		}
 		return e.getMessage();
+	}
+
+	/**
+	 * Reads a boolean member of a JavaScript object.
+	 * @param value the object
+	 * @param key the name of the member
+	 * @param defaultResult the value to return when the member doesn't exist
+	 * @return the value of the member, or the default value
+	 */
+	public static boolean getBooleanMember(Value value, String key, boolean defaultResult) {
+		Value result = value.getMember(key);
+		if (result != null) {
+			return result.asBoolean();
+		}
+		return defaultResult;
 	}
 
 	
