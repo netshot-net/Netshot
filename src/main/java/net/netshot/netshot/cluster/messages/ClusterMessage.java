@@ -50,12 +50,6 @@ import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 })
 public abstract class ClusterMessage {
 
-	/** Message ID counter. */
-	protected static Long lastLocalMessageId = 0L;
-
-	/** Sync base. */
-	private static final Object LOCK = new Object();
-
 	@Getter(onMethod = @__({
 		@XmlElement, @JsonView(ClusteringView.class)
 	}))
@@ -76,7 +70,7 @@ public abstract class ClusterMessage {
 	@Setter
 	private long upTime;
 
-	/** Message ID. */
+	/** Message ID (set by the cluster manager when it sends the message, increasing for each sending instance). */
 	@Getter(onMethod = @__({
 		@XmlElement, @JsonView(ClusteringView.class)
 	}))
@@ -91,10 +85,6 @@ public abstract class ClusterMessage {
 		this.instanceId = instanceId;
 		this.currentTime = System.currentTimeMillis();
 		this.upTime = ManagementFactory.getRuntimeMXBean().getUptime();
-		synchronized (ClusterMessage.LOCK) {
-			ClusterMessage.lastLocalMessageId += 1;
-			this.messageId = ClusterMessage.lastLocalMessageId;
-		}
 	}
 
 	/**
