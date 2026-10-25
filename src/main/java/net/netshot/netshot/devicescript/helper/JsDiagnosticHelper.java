@@ -27,9 +27,9 @@ import org.graalvm.polyglot.proxy.ProxyObject;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.platform.log.TaskContext;
 
 /**

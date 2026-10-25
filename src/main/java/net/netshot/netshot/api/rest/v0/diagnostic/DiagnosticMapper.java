@@ -25,18 +25,18 @@ import java.util.List;
 
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
 import net.netshot.netshot.diagnostic.DiagnosticDefinition;
-import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 
 /**
  * Maps the diagnostics and their results between the records and their REST representation.
