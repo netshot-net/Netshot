@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import org.jooq.DSLContext;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver;

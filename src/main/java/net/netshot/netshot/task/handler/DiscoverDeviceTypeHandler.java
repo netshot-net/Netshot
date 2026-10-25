@@ -27,7 +27,6 @@ import java.util.List;
 import org.jooq.exception.DataAccessException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -40,6 +39,7 @@ import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;

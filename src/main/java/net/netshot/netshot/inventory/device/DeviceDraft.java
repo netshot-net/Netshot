@@ -30,7 +30,6 @@ import java.util.TreeSet;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.domain.Domain;

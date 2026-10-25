@@ -30,7 +30,6 @@ import org.jooq.DSLContext;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.CredentialSetRepository;
@@ -52,6 +51,7 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.device.NetworkInterface;

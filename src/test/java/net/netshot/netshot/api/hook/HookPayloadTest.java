@@ -43,7 +43,6 @@ import com.fasterxml.jackson.jakarta.rs.yaml.YAMLMediaTypes;
 
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedHashMap;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.hook.payload.TaskPayload;
 import net.netshot.netshot.api.hook.payload.TaskPayloads;
 import net.netshot.netshot.boot.Wiring;
@@ -57,6 +56,7 @@ import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;

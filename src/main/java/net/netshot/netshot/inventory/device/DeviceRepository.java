@@ -64,7 +64,6 @@ import org.jooq.impl.DSL;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.CredentialSetRepository;
