@@ -28,7 +28,6 @@ import javax.net.ssl.SSLContext;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.slf4j.MarkerFactory;
 
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -51,6 +50,7 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.http.HttpServerAddress;
+import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
  * The web server of Netshot: a thread which starts Undertow, serving the Web UI (static files) and the
@@ -58,13 +58,10 @@ import net.netshot.netshot.platform.http.HttpServerAddress;
  * settings of the configuration.
  */
 @Slf4j
-public final class RestServer extends Thread {
-
-	/** The static instance of the server. */
-	private static RestServer instance;
+public final class RestServer implements Service {
 
 	/** Whether the HTTP server is enabled. */
-	static final Setting<Boolean> ENABLED = Setting.bool("netshot.http.enabled").defaultValue(true).restart();
+	public static final Setting<Boolean> ENABLED = Setting.bool("netshot.http.enabled").defaultValue(true).restart();
 
 	/** The path the static files (web UI) are served on. */
 	static final Setting<String> STATIC_PATH = Setting.text("netshot.http.staticpath").defaultValue("/").restart();
@@ -104,54 +101,40 @@ public final class RestServer extends Thread {
 		return Netshot.config().current().get(SESSION_COOKIE_NAME);
 	}
 
-	/**
-	 * Initializes the server, and starts it unless the HTTP server is disabled by the configuration.
-	 *
-	 * @param binder the dependency injection binder exposing the services to the REST resources
-	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
-	 */
-	public static void init(AbstractBinder binder) {
-		if (!Netshot.config().current().get(ENABLED)) {
-			log.info("HTTP server is not enabled.");
-			return;
-		}
-		instance = new RestServer(binder);
-		instance.setUncaughtExceptionHandler(Netshot.exceptionHandler);
-		instance.start();
-	}
-
-	/**
-	 * Stops the server started by {@link #init(AbstractBinder)}, if any, and waits for it to be stopped
-	 * (so the port is free again when this returns).
-	 *
-	 * @throws InterruptedException if interrupted while waiting for the server to stop
-	 */
-	public static void shutdown() throws InterruptedException {
-		RestServer server = instance;
-		if (server == null) {
-			return;
-		}
-		instance = null;
-		server.interrupt();
-		server.join();
-	}
-
 	private URI httpBaseUri;
 	private boolean httpUseSsl;
 	private String httpSslKeystoreFile;
 	private String httpSslKeystorePass;
 
 	/** The dependency injection binder for the web application. */
-	private AbstractBinder binder;
+	private final AbstractBinder binder;
+
+	/** The running Undertow server (null if not started). */
+	private Undertow server;
+
+	/** The servlet deployment of the REST API. */
+	private DeploymentManager manager;
+
+	/** The description of the servlet deployment. */
+	private DeploymentInfo servletBuilder;
 
 	/**
-	 * Instantiates the web server thread.
+	 * Creates the server.
 	 *
-	 * @param binder the dependency injection binder for the web application
+	 * @param binder the dependency injection binder exposing the services to the REST resources
+	 *        (given by the composition root, see {@code net.netshot.netshot.boot.Wiring})
 	 */
-	private RestServer(AbstractBinder binder) {
+	public RestServer(AbstractBinder binder) {
 		this.binder = binder;
-		this.setName("REST Service");
+	}
+
+	@Override
+	public String name() {
+		return "Web/REST server";
+	}
+
+	@Override
+	public synchronized void start() throws Exception {
 		HttpServerAddress address = HttpServerAddress.fromConfig();
 		this.httpBaseUri = address.baseUri();
 		httpUseSsl = address.useSsl();
@@ -159,135 +142,123 @@ public final class RestServer extends Thread {
 			httpSslKeystoreFile = Netshot.config().current().get(KEYSTORE_FILE);
 			httpSslKeystorePass = Netshot.config().current().get(KEYSTORE_PASS);
 		}
-	}
+		Undertow.Builder builder = Undertow.builder()
+			.setServerOption(UndertowOptions.ENABLE_HTTP2, true);
 
-	/*(non-Javadoc)
-	 * @see java.lang.Thread#run()
-	 */
-	@Override
-	public void run() {
-		log.info("Starting the Web/REST service thread.");
-		try {
-			Undertow.Builder builder = Undertow.builder()
-				.setServerOption(UndertowOptions.ENABLE_HTTP2, true);
+		// === SSL Setup ===
+		if (httpUseSsl) {
+			KeyStore keyStore = KeyStore.getInstance(
+				httpSslKeystoreFile.endsWith(".jks") ? "JKS" : "PKCS12"
+			);
+			try (InputStream is = new FileInputStream(httpSslKeystoreFile)) {
+				keyStore.load(is, httpSslKeystorePass.toCharArray());
+			}
+			KeyManagerFactory kmf = KeyManagerFactory.getInstance(
+				KeyManagerFactory.getDefaultAlgorithm()
+			);
+			kmf.init(keyStore, httpSslKeystorePass.toCharArray());
 
-			// === SSL Setup ===
-			if (httpUseSsl) {
-				KeyStore keyStore = KeyStore.getInstance(
-					httpSslKeystoreFile.endsWith(".jks") ? "JKS" : "PKCS12"
-				);
-				try (InputStream is = new FileInputStream(httpSslKeystoreFile)) {
-					keyStore.load(is, httpSslKeystorePass.toCharArray());
-				}
-				KeyManagerFactory kmf = KeyManagerFactory.getInstance(
-					KeyManagerFactory.getDefaultAlgorithm()
-				);
-				kmf.init(keyStore, httpSslKeystorePass.toCharArray());
+			SSLContext sslContext = SSLContext.getInstance("TLS");
+			sslContext.init(kmf.getKeyManagers(), null, null);
 
-				SSLContext sslContext = SSLContext.getInstance("TLS");
-				sslContext.init(kmf.getKeyManagers(), null, null);
+			builder.addHttpsListener(httpBaseUri.getPort(), httpBaseUri.getHost(), sslContext);
+		}
+		else {
+			builder.addHttpListener(httpBaseUri.getPort(), httpBaseUri.getHost());
+		}
 
-				builder.addHttpsListener(httpBaseUri.getPort(), httpBaseUri.getHost(), sslContext);
+		// === Session cookie ===
+		// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
+		Config config = Netshot.config().current();
+		boolean behindProxy = config.get(LoggerFilter.TRUST_X_FORWARDED_FOR);
+		Boolean configuredSecureCookie = config.get(SECURE_COOKIE);
+		boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
+		String apiPath = config.get(API_PATH);
+		String staticPath = config.get(STATIC_PATH);
+		if (!secureCookie) {
+			log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
+				+ "via a reverse proxy, set netshot.http.securecookie to true.");
+		}
+		else if (!httpUseSsl) {
+			log.info("The session cookie is marked as Secure while Netshot serves plain HTTP (expecting a HTTPS reverse proxy). "
+				+ "If users access Netshot over plain HTTP, set netshot.http.securecookie to false.");
+		}
+
+		// === Servlet (Jersey REST API) Deployment ===
+		DeploymentInfo deployment = Servlets.deployment()
+			.setClassLoader(Netshot.class.getClassLoader())
+			.setContextPath(apiPath) // same as Grizzly context path
+			.setDeploymentName("NetshotREST")
+			.addServlets(
+				Servlets.servlet("Jersey", ServletContainer.class,
+					new ImmediateInstanceFactory<>(new ServletContainer(new NetshotWebApplication(this.binder))))
+					.setLoadOnStartup(1)
+					.addMapping("/*")
+			)
+			.setServletSessionConfig(new ServletSessionConfig()
+				.setName(config.get(SESSION_COOKIE_NAME))
+				.setHttpOnly(true)
+				.setSecure(secureCookie)
+				.setAttribute("SameSite", "Strict")
+			)
+			.setDefaultSessionTimeout(UiUser.settings().maxIdleTime());
+
+		DeploymentManager deploymentManager = Servlets
+			.defaultContainer()
+			.addDeployment(deployment);
+		deploymentManager.deploy();
+		HttpHandler servletHandler = deploymentManager.start();
+
+		// === Static files from /www/ (classpath) ===
+		ClassPathResourceManager staticResourceManager =
+			new ClassPathResourceManager(Netshot.class.getClassLoader(), "www");
+		// The WebUI uses client-side routing (React Router), so a direct request or a
+		// refresh on a route like /devices/42 won't match any file on disk. Fall back to
+		// index.html for such requests (i.e. those without a file extension), and leave
+		// genuinely missing static assets (e.g. /assets/missing.js) as real 404s.
+		HttpHandler spaFallbackHandler = exchange -> {
+			String path = exchange.getRelativePath();
+			String lastSegment = path.substring(path.lastIndexOf('/') + 1);
+			Resource index = lastSegment.contains(".") ? null : staticResourceManager.getResource("index.html");
+			if (index != null) {
+				index.serve(exchange.getResponseSender(), exchange, IoCallback.END_EXCHANGE);
 			}
 			else {
-				builder.addHttpListener(httpBaseUri.getPort(), httpBaseUri.getHost());
+				ResponseCodeHandler.HANDLE_404.handleRequest(exchange);
 			}
+		};
+		ResourceHandler staticHandler = new ResourceHandler(staticResourceManager, spaFallbackHandler)
+			.addWelcomeFiles("index.html");
 
-			// === Session cookie ===
-			// Secure by default when serving HTTPS, or when behind a (HTTPS) reverse proxy
-			Config config = Netshot.config().current();
-			boolean behindProxy = config.get(LoggerFilter.TRUST_X_FORWARDED_FOR);
-			Boolean configuredSecureCookie = config.get(SECURE_COOKIE);
-			boolean secureCookie = configuredSecureCookie == null ? httpUseSsl || behindProxy : configuredSecureCookie;
-			String apiPath = config.get(API_PATH);
-			String staticPath = config.get(STATIC_PATH);
-			if (!secureCookie) {
-				log.warn("The session cookie is not marked as Secure. If Netshot is accessed over HTTPS "
-					+ "via a reverse proxy, set netshot.http.securecookie to true.");
-			}
-			else if (!httpUseSsl) {
-				log.info("The session cookie is marked as Secure while Netshot serves plain HTTP (expecting a HTTPS reverse proxy). "
-					+ "If users access Netshot over plain HTTP, set netshot.http.securecookie to false.");
-			}
+		// === Routing ===
+		PathHandler pathHandler = Handlers.path()
+			.addPrefixPath(staticPath, staticHandler)
+			.addPrefixPath(apiPath, servletHandler);
 
-			// === Servlet (Jersey REST API) Deployment ===
-			DeploymentInfo servletBuilder = Servlets.deployment()
-				.setClassLoader(Netshot.class.getClassLoader())
-				.setContextPath(apiPath) // same as Grizzly context path
-				.setDeploymentName("NetshotREST")
-				.addServlets(
-					Servlets.servlet("Jersey", ServletContainer.class,
-						new ImmediateInstanceFactory<>(new ServletContainer(new NetshotWebApplication(this.binder))))
-						.setLoadOnStartup(1)
-						.addMapping("/*")
-				)
-				.setServletSessionConfig(new ServletSessionConfig()
-					.setName(config.get(SESSION_COOKIE_NAME))
-					.setHttpOnly(true)
-					.setSecure(secureCookie)
-					.setAttribute("SameSite", "Strict")
-				)
-				.setDefaultSessionTimeout(UiUser.settings().maxIdleTime());
+		builder.setHandler(pathHandler);
 
-			DeploymentManager manager = Servlets
-				.defaultContainer()
-				.addDeployment(servletBuilder);
-			manager.deploy();
-			HttpHandler servletHandler = manager.start();
+		// === Start Undertow ===
+		this.server = builder.build();
+		this.server.start();
+		this.manager = deploymentManager;
+		this.servletBuilder = deployment;
+		log.info("The Web/REST server listens on {}.", this.httpBaseUri);
+	}
 
-			// === Static files from /www/ (classpath) ===
-			ClassPathResourceManager staticResourceManager =
-				new ClassPathResourceManager(Netshot.class.getClassLoader(), "www");
-			// The WebUI uses client-side routing (React Router), so a direct request or a
-			// refresh on a route like /devices/42 won't match any file on disk. Fall back to
-			// index.html for such requests (i.e. those without a file extension), and leave
-			// genuinely missing static assets (e.g. /assets/missing.js) as real 404s.
-			HttpHandler spaFallbackHandler = exchange -> {
-				String path = exchange.getRelativePath();
-				String lastSegment = path.substring(path.lastIndexOf('/') + 1);
-				Resource index = lastSegment.contains(".") ? null : staticResourceManager.getResource("index.html");
-				if (index != null) {
-					index.serve(exchange.getResponseSender(), exchange, IoCallback.END_EXCHANGE);
-				}
-				else {
-					ResponseCodeHandler.HANDLE_404.handleRequest(exchange);
-				}
-			};
-			ResourceHandler staticHandler = new ResourceHandler(staticResourceManager, spaFallbackHandler)
-				.addWelcomeFiles("index.html");
-
-			// === Routing ===
-			PathHandler pathHandler = Handlers.path()
-				.addPrefixPath(staticPath, staticHandler)
-				.addPrefixPath(apiPath, servletHandler);
-
-			builder.setHandler(pathHandler);
-
-			// === Start Undertow ===
-			Undertow server = builder.build();
-			server.start();
-
-			try {
-				synchronized (this) {
-					while (true) {
-						this.wait();
-					}
-				}
-			}
-			catch (InterruptedException e) {
-				// Stop requested by shutdown()
-				log.info("Stopping the Web/REST service.");
-				server.stop();
-				manager.stop();
-				manager.undeploy();
-				Servlets.defaultContainer().removeDeployment(servletBuilder);
-			}
+	@Override
+	public synchronized void stop() throws Exception {
+		if (this.server == null) {
+			return;
 		}
-		catch (Exception e) {
-			log.error(MarkerFactory.getMarker("FATAL"),
-				"Fatal error with the REST service.", e);
-			throw new RuntimeException(
-				"Error with the REST service, see logs for more details.");
-		}
+		this.server.stop();
+		this.server = null;
+		this.manager.stop();
+		this.manager.undeploy();
+		Servlets.defaultContainer().removeDeployment(this.servletBuilder);
+	}
+
+	@Override
+	public synchronized boolean isHealthy() {
+		return this.server != null;
 	}
 }

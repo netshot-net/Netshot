@@ -35,12 +35,6 @@ import org.apache.commons.cli.help.HelpFormatter;
 import org.slf4j.MarkerFactory;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.aaa.auth.Oidc;
-import net.netshot.netshot.access.collector.SnmpTrapReceiver;
-import net.netshot.netshot.access.collector.SshServer;
-import net.netshot.netshot.access.collector.SyslogServer;
-import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.boot.LoggingSetup;
 import net.netshot.netshot.boot.NetshotSettings;
 import net.netshot.netshot.boot.Wiring;
@@ -48,10 +42,8 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
-import net.netshot.netshot.task.engine.TaskLockManager;
-import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.vault.VaultManager;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -61,7 +53,7 @@ import sun.misc.SignalHandler;
  * The Class Netshot. Starting point of Netshot
  */
 @Slf4j
-public class Netshot extends Thread {
+public class Netshot {
 
 	/** Netshot version. */
 	public static final String VERSION = "0.0.0-dev";
@@ -81,6 +73,9 @@ public class Netshot extends Thread {
 
 	/** Java instrumentation. */
 	private static volatile Instrumentation instrumentation;
+
+	protected Netshot() {
+	}
 
 	/**
 	 * Retrieve the local machine hostname.
@@ -154,16 +149,6 @@ public class Netshot extends Thread {
 		CONFIG.replace(Config.of(newConfig));
 		return true;
 	}
-
-	/** The exception handler. To be used by other threads. */
-	public static Thread.UncaughtExceptionHandler exceptionHandler = new Thread.UncaughtExceptionHandler() {
-		@Override
-		public void uncaughtException(Thread th, Throwable ex) {
-			System.err.println("NETSHOT FATAL ERROR");
-			ex.printStackTrace();
-			System.exit(1);
-		}
-	};
 
 	/**
 	 * Check the JVM name and print a warning message if it's not GraalVM.
@@ -283,40 +268,12 @@ public class Netshot extends Thread {
 
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
-			log.info("Initializing access to the database.");
-			Wiring wiring = Wiring.init();
 
-			log.info("Starting the OIDC IdP discovery, if configured.");
-			Oidc.applySettings();
-
-			log.info("Loading the device drivers.");
-			wiring.driverRegistry().refresh();
-			log.info("Starting the Syslog server.");
-			SyslogServer.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
-			log.info("Starting the SNMP v1/v2c/v3 trap receiver.");
-			SnmpTrapReceiver.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
-			log.info("Starting the SSH/SCP/SFTP server.");
-			SshServer.init();
-			//log.info("Starting the TFTP server.");
-			//TftpServer.init();
-
-			// Before the clustering manager, which can start running tasks
-			TaskLockManager.init(CONFIG.current().get(ClusterManager.ENABLED));
-
-			log.info("Starting the clustering manager.");
-			ClusterManager.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
-
-			log.info("Starting the Vault token refresh daemon.");
-			VaultManager.init();
-
-			log.info("Initializing the task manager.");
-			TaskManager.init(wiring.taskJobFactory());
-			log.info("Scheduling the existing tasks.");
-			TaskManager.rescheduleAll();
-			log.info("Cancelling orphaned delayed tasks.");
-			TaskManager.cancelOrphanedDelayedTasks();
-			log.info("Starting the REST service.");
-			RestServer.init(wiring.binder());
+			Wiring wiring = Wiring.create(CONFIG);
+			ServiceManager services = new ServiceManager(wiring.services());
+			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
+			Runtime.getRuntime().addShutdownHook(services.shutdownHook());
+			services.start();
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {

@@ -75,7 +75,9 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 				scheduler.clear();
 			}
 		}
-		RestServer.init(Wiring.get().binder());
+		RestServer restServer = new RestServer(Wiring.get().binder());
+		restServer.start();
+		context.getStore(Kinds.NAMESPACE).put(RestServer.class, restServer);
 		waitUntilListening(server(context).apiUri());
 	}
 
@@ -85,7 +87,10 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		RestServer.shutdown();
+		RestServer restServer = context.getStore(Kinds.NAMESPACE).remove(RestServer.class, RestServer.class);
+		if (restServer != null) {
+			restServer.stop();
+		}
 		// Drop the tasks scheduled by this class, and let the running ones end, before the next class
 		// initializes the database again (they would otherwise fail on a closed session).
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {

@@ -32,6 +32,7 @@ import java.util.Set;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaConstructorCall;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -181,6 +182,49 @@ public final class ArchitectureTest {
 				}
 			})
 			.allowEmptyShould(true);
+
+	/** Packages allowed to create threads directly: the thread factory, and the shutdown hook. */
+	private static final String[] THREAD_CREATORS = {
+		ROOT + "platform.concurrent..", ROOT + "platform.lifecycle..",
+	};
+
+	/**
+	 * The threads are created by executors, through the named thread factory (platform.concurrent): no class
+	 * extends Thread. Excluded: the embedded TFTP server, which isn't started (to be decided: removed or turned
+	 * into a service).
+	 */
+	@ArchTest
+	static final ArchRule NO_THREAD_SUBCLASS =
+		noClasses().that().doNotBelongToAnyOf(net.netshot.netshot.access.collector.TftpServer.class)
+			.should().beAssignableTo(Thread.class)
+			.allowEmptyShould(true);
+
+	/** Threads aren't created directly, but by the executors of the components (named thread factory). */
+	@ArchTest
+	static final ArchRule NO_DIRECT_THREAD_CREATION =
+		noClasses().that().resideOutsideOfPackages(THREAD_CREATORS)
+			.and().doNotBelongToAnyOf(net.netshot.netshot.access.collector.TftpServer.class)
+			.should().callConstructorWhere(new DescribedPredicate<JavaConstructorCall>("create a thread") {
+				@Override
+				public boolean test(JavaConstructorCall call) {
+					return call.getTargetOwner().isAssignableTo(Thread.class);
+				}
+			})
+			.allowEmptyShould(true);
+
+	/** The executors are given the named thread factory (the default factory makes anonymous, non-daemon threads). */
+	@ArchTest
+	static final ArchRule EXECUTORS_USE_NAMED_THREADS =
+		noClasses().should().callMethodWhere(new DescribedPredicate<JavaMethodCall>("create an executor with the default thread factory") {
+			@Override
+			public boolean test(JavaMethodCall call) {
+				return call.getTargetOwner().isEquivalentTo(java.util.concurrent.Executors.class)
+					&& call.getName().startsWith("new")
+					&& call.getTarget().getRawParameterTypes().stream()
+						.noneMatch(type -> type.isAssignableTo(java.util.concurrent.ThreadFactory.class));
+			}
+		})
+		.allowEmptyShould(true);
 
 	/**
 	 * No cycles between top-level slices (net.netshot.netshot.(*)..). ArchUnit's own slices().beFreeOfCycles()

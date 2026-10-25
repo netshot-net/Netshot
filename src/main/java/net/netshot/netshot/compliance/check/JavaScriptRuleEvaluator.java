@@ -38,6 +38,7 @@ import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -124,7 +125,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 
 		// Both the script top-level code and the check function run on the executor, within the
 		// same deadline, so that an endless loop can't block the calling thread
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotJsRule"));
 		long deadline = System.currentTimeMillis() + this.runtime.getMaxExecutionTime();
 		try (Context context = this.runtime.newContext()) {
 			Value result;

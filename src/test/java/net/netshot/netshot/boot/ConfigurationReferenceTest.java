@@ -21,6 +21,8 @@ package net.netshot.netshot.boot;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -83,6 +85,22 @@ public class ConfigurationReferenceTest {
 		for (Setting<?> setting : NetshotSettings.catalog().settings()) {
 			expected.put(setting.key(), setting.reload() == Setting.Reload.LIVE ? "Yes" : "Restart");
 		}
-		Assertions.assertEquals(expected, documentedSettings());
+		Map<String, String> documented = documentedSettings();
+		List<String> differences = new ArrayList<>();
+		for (Map.Entry<String, String> setting : expected.entrySet()) {
+			String reload = documented.get(setting.getKey());
+			if (reload == null) {
+				differences.add("not documented: " + setting.getKey());
+			}
+			else if (!reload.equals(setting.getValue())) {
+				differences.add("Reload of %s should be %s, not %s".formatted(setting.getKey(), setting.getValue(), reload));
+			}
+		}
+		for (String key : documented.keySet()) {
+			if (!expected.containsKey(key)) {
+				differences.add("documented but not declared: " + key);
+			}
+		}
+		Assertions.assertEquals(List.of(), differences, "Differences between the declared settings and " + REFERENCE);
 	}
 }

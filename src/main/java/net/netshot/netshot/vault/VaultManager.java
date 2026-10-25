@@ -135,14 +135,6 @@ public final class VaultManager {
 	}
 
 	/**
-	 * Starts the background token-refresh warmer. Safe to call even if no
-	 * Vault instance is configured.
-	 */
-	public static void init() {
-		VaultTokenRefreshDaemon.launch();
-	}
-
-	/**
 	 * Gets a Vault instance, from the cache or the database.
 	 *
 	 * @param id the ID of the Vault instance

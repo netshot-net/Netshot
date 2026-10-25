@@ -36,8 +36,10 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.auth.OidcDiscovery;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
@@ -517,6 +519,8 @@ public class RestAuthenticationTest {
 		private final String clientSecret = "iR56DPj4ZX0TrB1NSCHsPNk6LAbrN3HE";
 		private FakeOidcIdpServer idpServer;
 
+		private OidcDiscovery oidcDiscovery;
+
 		@BeforeAll
 		void prepareOidc() throws IOException, InterruptedException, GeneralSecurityException {
 			this.idpServer = new FakeOidcIdpServer();
@@ -527,7 +531,8 @@ public class RestAuthenticationTest {
 			config.setProperty("netshot.aaa.oidc.clientid", clientId);
 			config.setProperty("netshot.aaa.oidc.clientsecret", clientSecret);
 			TestConfig.init(config);
-			Oidc.applySettings();
+			this.oidcDiscovery = new OidcDiscovery(Netshot.config());
+			this.oidcDiscovery.start();
 			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
 			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
 			// after a failed attempt, so a short fixed sleep is flaky on loaded CI runners.
@@ -540,7 +545,8 @@ public class RestAuthenticationTest {
 		}
 
 		@AfterAll
-		void stopOidc() {
+		void stopOidc() throws InterruptedException {
+			this.oidcDiscovery.stop();
 			this.idpServer.shutdown();
 		}
 

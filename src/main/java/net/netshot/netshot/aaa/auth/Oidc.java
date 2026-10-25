@@ -34,6 +34,7 @@ import com.nimbusds.oauth2.sdk.AccessTokenResponse;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.GeneralException;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.TokenErrorResponse;
 import com.nimbusds.oauth2.sdk.TokenRequest;
@@ -168,113 +169,54 @@ public final class Oidc {
 	/** The settings, from the configuration. */
 	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
-	static {
-		// Applied again on each configuration change
-		Netshot.config().addListener(_ -> Oidc.applySettings());
+	/**
+	 * Gets the settings of the OIDC authentication.
+	 * @return the settings
+	 */
+	static Settings settings() {
+		return SETTINGS.get();
 	}
-
-	private static IdPDiscoveryDaemon idpDiscoveryThread;
 
 	/**
-	 * Thread to refresh the IdP Metadata from endpoint URL in background.
+	 * Fetches the metadata of the IdP (without holding the lock of the OIDC state).
+	 * @param endpoint the URL of the IdP (issuer)
+	 * @return the metadata
+	 * @throws Exception if the metadata can't be fetched
 	 */
-	private static final class IdPDiscoveryDaemon extends Thread {
-
-		private String endpoint;
-		private int refreshInterval;
-		private int retryInterval;
-		private boolean stopping;
-
-		private IdPDiscoveryDaemon(String endpoint, int retryInterval, int refreshInterval) {
-			this.endpoint = endpoint;
-			this.refreshInterval = refreshInterval;
-			this.retryInterval = retryInterval;
-			this.setName("NetshotOidcIdPDiscovery");
-			this.setDaemon(true);
-		}
-
-		public void setStopping() {
-			this.stopping = true;
-			synchronized (this) {
-				this.notify();
-			}
-		}
-
-		@Override
-		public void run() {
-			log.info("Starting OIDC IdP metadata discovery daemon");
-			while (!this.stopping) {
-				int waitingTime = this.refreshInterval;
-				try {
-					Oidc.fetchIdpMetadata(this.endpoint);
-				}
-				catch (Exception e) {
-					log.error("Error while fetching/preparing OIDC configuration", e);
-					waitingTime = this.retryInterval;
-				}
-				try {
-					log.trace("OIDC IdP discovery - pausing for {}ms", waitingTime);
-					synchronized (this) {
-						this.wait(waitingTime);
-					}
-				}
-				catch (InterruptedException e) {
-					break;
-				}
-			}
-			log.info("End of OIDC IdP metadata discovery daemon");
-		}
-	}
-
-	private static synchronized void fetchIdpMetadata(String endpoint) throws Exception {
+	static OIDCProviderMetadata fetchIdpMetadata(String endpoint) throws Exception {
 		log.debug("Retrieving OIDC metatada from issuer endpoint {}...", endpoint);
-		Oidc.idpMetadata = OIDCProviderMetadata.resolve(new Issuer(endpoint));
-		log.trace("OIDC IDP metadata {}", Oidc.idpMetadata);
-		Oidc.idTokenValidator = IDTokenValidator.create(Oidc.idpMetadata, Oidc.clientInfo);
+		OIDCProviderMetadata metadata = OIDCProviderMetadata.resolve(new Issuer(endpoint));
+		log.trace("OIDC IDP metadata {}", metadata);
+		return metadata;
 	}
 
 	/**
-	 * Applies the settings: starts (or restarts, if the IdP has changed) the discovery of the IdP metadata.
-	 * Called at startup, then on each configuration change.
+	 * Uses the metadata of the IdP, and prepares the validation of the ID tokens: enables the OIDC authentication.
+	 * @param metadata the metadata of the IdP
+	 * @throws GeneralException if the ID token validation can't be prepared
 	 */
-	public static synchronized void applySettings() {
-		Settings settings = SETTINGS.get();
-		String endpoint = settings.endpoint();
-		String clientId = settings.clientId();
-		String clientSecret = settings.clientSecret();
-		int idpRetryInterval = settings.retryInterval();
-		int idpRefreshInterval = settings.refreshInterval();
+	static synchronized void setIdpMetadata(OIDCProviderMetadata metadata) throws GeneralException {
+		Oidc.idTokenValidator = IDTokenValidator.create(metadata, Oidc.clientInfo);
+		Oidc.idpMetadata = metadata;
+	}
 
+	/**
+	 * Sets the client information (before the IdP metadata is fetched).
+	 * @param clientId the client ID
+	 * @param clientSecret the client secret
+	 */
+	static synchronized void setClient(String clientId, String clientSecret) {
 		OIDCClientMetadata clientMetadata = new OIDCClientMetadata();
 		clientMetadata.applyDefaults();
-		if (endpoint == null) {
-			Oidc.idpMetadata = null;
-		}
-		else if (clientId == null) {
-			log.warn("OIDC client id configuration is missing, OIDC won't be enabled");
-			Oidc.idpMetadata = null;
-		}
-		else if (clientSecret == null) {
-			log.warn("OIDC client secret configuration is missing, OIDC won't be enabled");
-			Oidc.idpMetadata = null;
-		}
-		else {
-			Oidc.clientInfo = new OIDCClientInformation(
-				new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
-			if (Oidc.idpDiscoveryThread != null) {
-				if (!Oidc.idpDiscoveryThread.endpoint.equals(endpoint)) {
-					log.info("OIDC IdP endpoint configuration has changed, stopping the discovery thread");
-					Oidc.idpDiscoveryThread.setStopping();
-					Oidc.idpDiscoveryThread = null;
-					Oidc.idpMetadata = null;
-				}
-			}
-			if (Oidc.idpDiscoveryThread == null) {
-				Oidc.idpDiscoveryThread = new IdPDiscoveryDaemon(
-					endpoint, idpRetryInterval, idpRefreshInterval);
-				Oidc.idpDiscoveryThread.start();
-			}
-		}
+		Oidc.clientInfo = new OIDCClientInformation(new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
+	}
+
+	/**
+	 * Disables the OIDC authentication, until the IdP metadata is fetched again.
+	 */
+	static synchronized void disable() {
+		Oidc.idpMetadata = null;
+		Oidc.idTokenValidator = null;
 	}
 
 	public static synchronized boolean isAvailable() {

@@ -49,7 +49,7 @@ import net.netshot.netshot.inventory.device.NetworkAddress;
  * be prepared before it can be accepted by the server.
  */
 @Slf4j
-public class TftpServer extends Collector {
+public class TftpServer extends Thread {
 
 	/** Whether the TFTP server is disabled. */
 	static final Setting<Boolean> DISABLED = Setting.bool("netshot.tftpserver.disabled").defaultValue(true).restart();

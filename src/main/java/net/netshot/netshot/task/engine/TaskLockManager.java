@@ -91,6 +91,16 @@ public class TaskLockManager {
 	}
 
 	/**
+	 * Closes the lock manager of this instance (releasing the database locks), which then goes back to
+	 * the in-memory mode.
+	 */
+	public static void shutdown() {
+		TaskLockManager current = TaskLockManager.instance;
+		TaskLockManager.instance = new TaskLockManager(false, null);
+		current.close();
+	}
+
+	/**
 	 * Gets the lock manager of this instance.
 	 * @return the lock manager
 	 */
