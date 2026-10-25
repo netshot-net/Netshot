@@ -45,7 +45,8 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/** The refresher of the dynamic groups. */
@@ -56,12 +57,14 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
-	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+	public RunDeviceScriptHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;

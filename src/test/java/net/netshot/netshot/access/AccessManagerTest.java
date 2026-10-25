@@ -41,12 +41,12 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 /**
@@ -96,7 +96,7 @@ public class AccessManagerTest {
 
 	// The auto-try pool of a stored device, read from the database
 	private static Supplier<List<DeviceCredentialSet>> autoPool(DeviceDraft device) {
-		return () -> new Transactions().read(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
+		return () -> TestWiring.get().transactions().read(dsl -> new CredentialSetRepository().findUsableInDomain(dsl, device.getMgmtDomain().id()));
 	}
 
 	@Test
@@ -334,7 +334,7 @@ public class AccessManagerTest {
 			Client client = resolution.ensureResolved(true);
 			Assertions.assertNotNull(client);
 			resolution.confirmCredentialWorks();
-			new Transactions().write(dsl -> new DeviceRepository().saveDraft(dsl, device));
+			TestWiring.get().transactions().write(dsl -> new DeviceRepository().saveDraft(dsl, device));
 
 			Assertions.assertNotNull(device.getDeviceAccess("ssh"),
 				"A DeviceAccess row should have been created to hold the pin");

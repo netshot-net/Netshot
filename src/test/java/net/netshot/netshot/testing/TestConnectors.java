@@ -55,11 +55,11 @@ public final class TestConnectors {
 	}
 
 	/**
-	 * Gets the connectors: the local secrets, and the shared SSH client of the tests.
+	 * Gets the connectors: the local secrets, the shared SSH client of the tests, and no database.
 	 *
 	 * @return the connectors
 	 */
 	public static Connectors local() {
-		return new Connectors(SecretResolver.LOCAL, sshClient());
+		return new Connectors(SecretResolver.LOCAL, sshClient(), null);
 	}
 }

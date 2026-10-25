@@ -38,7 +38,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
@@ -46,6 +45,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
@@ -132,7 +132,7 @@ public class PurgeTest {
 	}
 
 	private static long count(String sql) {
-		return new Transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
+		return TestWiring.get().transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
 	}
 
 	private void assertDeviceCount(long expected) {
@@ -345,7 +345,7 @@ public class PurgeTest {
 	private void purge(int days, int configDays, int configSize, int configKeepDays, int moduleDays, Long groupId, List<Long> deviceIds) {
 		PurgeDatabaseTask spec = new PurgeDatabaseTask(groupId, deviceIds, days, configDays, configSize, configKeepDays, moduleDays, false);
 		Task task = Task.of(spec, "Test", "Global", "tester");
-		new PurgeDatabaseHandler().run(task, spec, new TaskRun(task));
+		new PurgeDatabaseHandler(TestWiring.get().transactions()).run(task, spec, new TaskRun(task));
 	}
 
 	@Test

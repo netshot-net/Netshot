@@ -560,7 +560,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 				// Stopping
 				break;
 			}
-			try (Connection dbConnection = Database.getConnection(false)) {
+			try (Connection dbConnection = Database.openUnpooledConnection()) {
 				PGConnection pgConnection = dbConnection.unwrap(PGConnection.class);
 
 				try (Statement listenStatement = dbConnection.createStatement()) {

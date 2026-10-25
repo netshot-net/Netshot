@@ -85,7 +85,6 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -103,6 +102,7 @@ import net.netshot.netshot.task.type.ScanSubnetsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Deterministic dataset used by the API contract tests.
@@ -222,7 +222,7 @@ public final class ApiContractSeed {
 
 	private void seedAuth() {
 		ApiTokenRepository repository = new ApiTokenRepository();
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			// Remove default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			Object[][] tokens = {
@@ -370,7 +370,7 @@ public final class ApiContractSeed {
 	}
 
 	private void seedDevices() {
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			DomainRepository domainRepository = new DomainRepository();
 			CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
 			DeviceRepository deviceRepository = new DeviceRepository();
@@ -464,7 +464,7 @@ public final class ApiContractSeed {
 	 */
 	private void writeBinaryFiles(long deviceId) {
 		Path folder = ConfigBinaryFileAttribute.settings().storageFolderPath();
-		List<Config> configs = new Transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
+		List<Config> configs = TestWiring.get().transactions().read(dsl -> new ConfigRepository().findByDevice(dsl, deviceId, Page.ALL));
 		for (Config config : configs) {
 			for (net.netshot.netshot.inventory.config.attribute.ConfigAttribute attribute : config.attributes()) {
 				if (attribute instanceof ConfigBinaryFileAttribute file) {
@@ -600,7 +600,7 @@ public final class ApiContractSeed {
 			 "context": "line vty", "field": "runningConfig", "driver": "CiscoIOS12", "enabled": true,
 			 "exemptions": {"%d": %d}}"""
 			.formatted(this.id("rule.text"), this.id("policy.security"), this.id("device.router2"), D2040));
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));
@@ -669,7 +669,7 @@ public final class ApiContractSeed {
 	}
 
 	private void seedTasks() {
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
 			Device router2 = deviceRepository.find(dsl, this.id("device.router2"));

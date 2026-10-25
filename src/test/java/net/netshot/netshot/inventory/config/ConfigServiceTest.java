@@ -51,6 +51,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the configuration use cases, against a real database.
@@ -76,7 +77,7 @@ class ConfigServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new ConfigService(this.transactions, new ConfigRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.domainId = domain.id();

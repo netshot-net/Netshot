@@ -37,7 +37,6 @@ import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -46,6 +45,7 @@ import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestCompliance;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Characterization of {@link CheckGroupComplianceHandler}, run through the task engine: the compliance
@@ -105,7 +105,7 @@ class CheckGroupComplianceHandlerTest {
 	}
 
 	private static Map<String, ResultOption> results() {
-		return new Transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+		return TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
 			.join(Tables.DEVICE).on(Tables.DEVICE.ID.eq(Tables.CHECK_RESULT.DEVICE))
 			.fetch()
 			.stream()

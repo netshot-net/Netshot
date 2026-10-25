@@ -40,6 +40,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @DisplayName("Group task device list / parent-child tracking (DB-backed)")
@@ -124,15 +125,22 @@ public class DeviceListAndParentChildTest {
 			"Child's parentTaskId should be cleared (SET NULL), not cascade-deleted");
 	}
 
-	private final ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(_ -> {
-	});
+	/**
+	 * Gets an orchestrator on the wiring of the class (built once the test instance exists).
+	 *
+	 * @return the orchestrator
+	 */
+	private ChildTaskOrchestrator orchestrator() {
+		return new ChildTaskOrchestrator(TestWiring.get().transactions(), _ -> {
+		});
+	}
 
 	@Test
 	@DisplayName("preCreateChildren persists every child upfront, in order, all DELAYED")
 	void preCreateChildrenPersistsAllAsDelayed() throws Exception {
 		Task parent = TestTasks.add(groupSnapshot(device1, device2).toBuilder().priority(7).build());
 
-		List<Task> children = this.orchestrator.preCreateChildren(new TaskRun(parent), List.of(
+		List<Task> children = this.orchestrator().preCreateChildren(new TaskRun(parent), List.of(
 			TakeSnapshotTask.of(device1, "child", "tester", false, true, true),
 			TakeSnapshotTask.of(device2, "child", "tester", false, true, true)));
 
@@ -153,12 +161,12 @@ public class DeviceListAndParentChildTest {
 	void reloadExistingChildrenResumesAfterRestart() throws Exception {
 		Task parent = TestTasks.add(groupSnapshot(device1, device2));
 
-		List<Task> created = this.orchestrator.preCreateChildren(new TaskRun(parent), List.of(
+		List<Task> created = this.orchestrator().preCreateChildren(new TaskRun(parent), List.of(
 			TakeSnapshotTask.of(device1, "child", "tester", false, true, true),
 			TakeSnapshotTask.of(device2, "child", "tester", false, true, true)));
 
 		// Simulate a Netshot restart: a fresh run of the same task, no memory of `created`.
-		List<Task> resumed = this.orchestrator.reloadExistingChildren(new TaskRun(TestTasks.find(parent.id())));
+		List<Task> resumed = this.orchestrator().reloadExistingChildren(new TaskRun(TestTasks.find(parent.id())));
 		Assertions.assertEquals(2, resumed.size());
 		Assertions.assertEquals(created.get(0).id(), resumed.get(0).id());
 		Assertions.assertEquals(created.get(1).id(), resumed.get(1).id());
@@ -171,7 +179,7 @@ public class DeviceListAndParentChildTest {
 		Task parent = TestTasks.add(groupSnapshot(device1, device2));
 		TaskRun run = new TaskRun(parent);
 
-		List<Task> children = this.orchestrator.preCreateChildren(run, List.of(
+		List<Task> children = this.orchestrator().preCreateChildren(run, List.of(
 			TakeSnapshotTask.of(device1, "child", "tester", false, true, true),
 			TakeSnapshotTask.of(device2, "child", "tester", false, true, true)));
 
@@ -181,7 +189,7 @@ public class DeviceListAndParentChildTest {
 		TestTasks.setStatus(children.get(0).id(), Status.SUCCESS);
 		children.set(0, children.get(0).withStatus(Status.SUCCESS));
 
-		this.orchestrator.cancelRemainingDelayedChildren(run, children, 0);
+		this.orchestrator().cancelRemainingDelayedChildren(run, children, 0);
 
 		Assertions.assertEquals(Status.SUCCESS, TestTasks.find(children.get(0).id()).status(),
 			"Already-completed child should be untouched");

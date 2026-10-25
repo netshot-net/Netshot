@@ -70,6 +70,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the report use cases (statistics, device lists, export), against a real database.
@@ -104,7 +105,7 @@ class ReportServiceTest {
 	void initDb() throws Exception {
 		this.previousTimeZone = TimeZone.getDefault();
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new ReportService(this.transactions, new ReportRepository(), TestDrivers.registry());
 		this.seed();
 	}
@@ -145,12 +146,12 @@ class ReportServiceTest {
 		this.dev4 = d4.id();
 		this.group1 = TestDevices.addStaticGroup("Report group", d1, d2, d3).id();
 		StaticDeviceGroup hidden = TestDevices.addStaticGroup("Report hidden group", d4);
-		new Transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
+		TestWiring.get().transactions().run(dsl -> new GroupRepository().save(dsl, hidden.toBuilder().hiddenFromReports(true).build()));
 		this.hiddenGroup = hidden.id();
 		this.emptyGroup = TestDevices.addStaticGroup("Report empty group").id();
 		PolicyService policyService = new PolicyService(this.transactions, new PolicyRepository());
 		RuleService ruleService = new RuleService(this.transactions, new RuleRepository(), new PolicyRepository(),
-			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry()));
+			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), TestWiring.get().transactions()));
 		this.policy = policyService.create(new PolicyDefinition("Report policy", Set.of(this.group1))).policy().id();
 		this.rule1 = ruleService.create(textRule("Report rule 1", this.policy)).id();
 		this.rule2 = ruleService.create(textRule("Report rule 2", this.policy)).id();

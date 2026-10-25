@@ -49,6 +49,7 @@ import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultInstanceRepository;
 
@@ -68,7 +69,7 @@ class CredentialSetServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new CredentialSetService(this.transactions, new CredentialSetRepository());
 		this.domainId = TestDevices.addDomain(Domain.builder().name("Credentials domain").description("d")
 			.server4Address(new Network4Address("10.255.0.1")).server6Address(new Network6Address("::")).build()).id();

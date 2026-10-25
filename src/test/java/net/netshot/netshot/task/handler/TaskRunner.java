@@ -25,7 +25,6 @@ import java.util.List;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -72,27 +71,27 @@ final class TaskRunner {
 			this.submittedTasks.add(task);
 			return task;
 		};
-		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(child -> {
+		ChildTaskOrchestrator orchestrator = new ChildTaskOrchestrator(TestWiring.get().transactions(), child -> {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
 		});
 		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
-		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient());
+		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient(), wiring.transactions());
 		TaskHandlers handlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
-			new CheckGroupComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
-			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
-			new PurgeDatabaseHandler(),
-			new RunDeviceGroupScriptHandler(orchestrator, TestDrivers.registry()),
-			new RunDeviceScriptHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors),
-			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors),
-			new RunGroupDiagnosticsHandler(orchestrator),
-			new ScanSubnetsHandler(orchestrator),
-			new TakeGroupSnapshotHandler(orchestrator),
-			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
+			new CheckComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups()),
+			new CheckGroupComplianceHandler(TestWiring.get().transactions(), wiring.complianceChecker(), wiring.dynamicGroups()),
+			new CheckGroupSoftwareHandler(TestWiring.get().transactions()),
+			new DiscoverDeviceTypeHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
+			new PurgeDatabaseHandler(TestWiring.get().transactions()),
+			new RunDeviceGroupScriptHandler(TestWiring.get().transactions(), orchestrator, TestDrivers.registry()),
+			new RunDeviceScriptHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors),
+			new RunDiagnosticsHandler(TestWiring.get().transactions(), TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors),
+			new RunGroupDiagnosticsHandler(TestWiring.get().transactions(), orchestrator),
+			new ScanSubnetsHandler(TestWiring.get().transactions(), orchestrator),
+			new TakeGroupSnapshotHandler(TestWiring.get().transactions(), orchestrator),
+			new TakeSnapshotHandler(TestWiring.get().transactions(), TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
 				connectors)));
-		this.taskJob = new TaskJob(handlers, wiring.domainEvents(), wiring.taskManager());
+		this.taskJob = new TaskJob(TestWiring.get().transactions(), handlers, wiring.domainEvents(), wiring.taskManager());
 	}
 
 	/**
@@ -159,7 +158,7 @@ final class TaskRunner {
 	 * Empties every table of the schema of the test class (except the bookkeeping tables of Liquibase).
 	 */
 	static void cleanDatabase() {
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			List<String> tables = new ArrayList<>();
 			for (org.jooq.Record row : dsl.fetch("select tablename from pg_tables where schemaname = current_schema() "
 					+ "and tablename not like 'databasechangelog%'")) {

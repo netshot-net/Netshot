@@ -51,13 +51,16 @@ public class ScanSubnetsHandler implements TaskHandler<ScanSubnetsTask> {
 
 	private final ChildTaskOrchestrator childTaskOrchestrator;
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param childTaskOrchestrator the child task orchestrator
 	 */
-	public ScanSubnetsHandler(ChildTaskOrchestrator childTaskOrchestrator) {
+	public ScanSubnetsHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator) {
+		this.transactions = transactions;
 		this.childTaskOrchestrator = childTaskOrchestrator;
 	}
 

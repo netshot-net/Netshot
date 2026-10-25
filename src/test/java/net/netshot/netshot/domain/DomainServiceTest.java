@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.domain;
 
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestDevices;
 import java.util.List;
 
@@ -50,7 +51,7 @@ class DomainServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new DomainService(this.transactions, new DomainRepository());
 	}
 

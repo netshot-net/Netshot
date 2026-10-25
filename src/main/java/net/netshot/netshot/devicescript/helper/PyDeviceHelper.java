@@ -53,6 +53,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -70,7 +71,7 @@ public final class PyDeviceHelper {
 
 	private final DriverRegistry driverRegistry;
 	private DeviceDraft device;
-	private final DeviceLookup lookup = new DeviceLookup();
+	private final DeviceLookup lookup;
 	private TaskContext taskContext;
 	private boolean readOnly;
 
@@ -106,9 +107,10 @@ public final class PyDeviceHelper {
 		return field;
 	}
 
-	public PyDeviceHelper(DriverRegistry driverRegistry, DeviceDraft device, TaskContext taskContext, boolean readOnly)
+	public PyDeviceHelper(DriverRegistry driverRegistry, Transactions transactions, DeviceDraft device, TaskContext taskContext, boolean readOnly)
 		throws MissingDeviceDriverException {
 		this.driverRegistry = driverRegistry;
+		this.lookup = new DeviceLookup(transactions);
 		this.device = device;
 		this.taskContext = taskContext;
 		this.readOnly = readOnly;

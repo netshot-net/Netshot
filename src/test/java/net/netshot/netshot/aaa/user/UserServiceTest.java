@@ -38,6 +38,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestProperty;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the user use cases (administration and change of the own password), against a real
@@ -62,7 +63,7 @@ class UserServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new UserService(this.transactions, this.repository);
 	}
 

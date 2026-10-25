@@ -60,6 +60,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -78,7 +79,7 @@ public final class JsDeviceHelper {
 	private final DriverRegistry driverRegistry;
 	private DeviceDraft device;
 	private JsCliHelper defaultCliHelper;
-	private final DeviceLookup lookup = new DeviceLookup();
+	private final DeviceLookup lookup;
 	private TaskContext taskContext;
 	private boolean readOnly;
 
@@ -97,9 +98,10 @@ public final class JsDeviceHelper {
 		return JsUtils.getBooleanMember(value, key, defaultResult);
 	}
 
-	public JsDeviceHelper(DriverRegistry driverRegistry, DeviceDraft device, JsCliHelper defaultCliHelper,
+	public JsDeviceHelper(DriverRegistry driverRegistry, Transactions transactions, DeviceDraft device, JsCliHelper defaultCliHelper,
 		TaskContext taskContext, boolean readOnly) throws MissingDeviceDriverException {
 		this.driverRegistry = driverRegistry;
+		this.lookup = new DeviceLookup(transactions);
 		this.device = device;
 		this.defaultCliHelper = defaultCliHelper;
 		this.taskContext = taskContext;

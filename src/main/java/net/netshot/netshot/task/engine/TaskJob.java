@@ -62,16 +62,19 @@ public class TaskJob implements Job {
 
 	private final TaskRepository repository = new TaskRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
 	 * Creates the job.
 	 *
+	 * @param transactions the transaction support
 	 * @param handlers the task handlers
 	 * @param domainEvents where the end of the tasks is published
 	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
 	 */
-	public TaskJob(TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
+	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
+		this.transactions = transactions;
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
 		this.taskManager = taskManager;
