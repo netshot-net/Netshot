@@ -27,9 +27,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
@@ -96,19 +93,8 @@ public class DriverRegistry implements Service {
 	 * @return the driver of the device
 	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
 	 */
-	public DeviceDriver forDevice(Device device) throws MissingDeviceDriverException {
-		return this.forDevice(device.id(), device.driver());
-	}
-
-	/**
-	 * Gets the driver of a device being worked on.
-	 *
-	 * @param device the device
-	 * @return the driver of the device
-	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
-	 */
-	public DeviceDriver forDevice(DeviceDraft device) throws MissingDeviceDriverException {
-		return this.forDevice(device.getId(), device.getDriver());
+	public DeviceDriver forDevice(DrivenDevice device) throws MissingDeviceDriverException {
+		return this.forDevice(device.deviceId(), device.driverName());
 	}
 
 	/**
