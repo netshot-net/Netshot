@@ -27,10 +27,10 @@ import java.util.regex.Pattern;
 
 import org.graalvm.polyglot.Value;
 
-import net.netshot.netshot.access.Http.AuthScheme;
-import net.netshot.netshot.access.Ssh.SshConfig;
-import net.netshot.netshot.access.Ssh.SshInteractionInstruction;
-import net.netshot.netshot.access.Telnet.TelnetConfig;
+import net.netshot.netshot.driver.protocol.AuthScheme;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.driver.protocol.SshInteractionInstruction;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.platform.script.JsUtils;
 
 /**
@@ -46,12 +46,12 @@ public final class DriverConfigParser {
 	 * Also used to parse the {@code sshConfig} advanced option of
 	 * {@code client.create(...)} (see {@code JsClientFactory}), in which case
 	 * the result is a delta merged onto the driver-declared config via
-	 * {@link net.netshot.netshot.access.Ssh#applySshConfig}.
+	 * {@link SshConfig#apply}.
 	 * @param cliSshConfig the JS "config" object (may be null)
 	 * @return the populated SshConfig
 	 */
 	public static SshConfig parseSshConfig(Value cliSshConfig) {
-		SshConfig sshConfig = new SshConfig(false);
+		SshConfig sshConfig = new SshConfig();
 		if (cliSshConfig != null && cliSshConfig.hasMembers()) {
 			Value terminal = cliSshConfig.getMember("terminal");
 			if (terminal != null && terminal.hasMembers()) {
@@ -204,7 +204,7 @@ public final class DriverConfigParser {
 	 * the rest are left {@code null}). Also used to parse the {@code telnetConfig}
 	 * advanced option of {@code client.create(...)} (see {@code JsClientFactory}),
 	 * in which case the result is merged onto the driver-declared config via
-	 * {@link net.netshot.netshot.access.Telnet#applyTelnetConfig}.
+	 * {@link TelnetConfig#apply}.
 	 * @param cliTelnetConfig the JS "config" object (may be null)
 	 * @return the populated TelnetConfig delta
 	 */

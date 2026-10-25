@@ -24,12 +24,12 @@ import org.graalvm.polyglot.HostAccess.Export;
 import org.graalvm.polyglot.Value;
 
 import net.netshot.netshot.access.AccessManager;
-import net.netshot.netshot.access.Http.AuthScheme;
-import net.netshot.netshot.access.Ssh.SshConfig;
-import net.netshot.netshot.access.Telnet.TelnetConfig;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.driver.DriverConfigParser;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
+import net.netshot.netshot.driver.DriverConfigParser;
+import net.netshot.netshot.driver.protocol.AuthScheme;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
 
 /**
  * The Java-side backing of the JS {@code client.create(...)} factory.

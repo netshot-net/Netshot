@@ -51,10 +51,12 @@ import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.protocol.AuthScheme;
+import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
@@ -72,85 +74,7 @@ import net.netshot.netshot.vault.VaultableSecret;
 @Slf4j
 public class Http implements Client {
 
-	public static final int DEFAULT_PORT = 443;
-
-	/**
-	 * Declarative HTTP authentication scheme for an access, inspired by
-	 * OpenAPI's {@code securitySchemes} object.
-	 */
-	public static final class AuthScheme {
-		/** "http", "apiKey", "cookie", "oauth2" or "openIdConnect". */
-		@Getter
-		@Setter
-		private String type;
-
-		/** For type "http": "basic" or "bearer". */
-		@Getter
-		@Setter
-		private String scheme;
-
-		/** For type "apiKey": "header", "query" or "cookie". */
-		@Getter
-		@Setter
-		private String in;
-
-		/** For type "apiKey": the header/query/cookie name. */
-		@Getter
-		@Setter
-		private String name;
-
-		/** For type "cookie": the HTTP method used to log in ("POST" or "PUT"). */
-		@Getter
-		@Setter
-		private String method;
-
-		/** For type "cookie": the login request path (relative to the access's base path). */
-		@Getter
-		@Setter
-		private String path;
-
-		/** For type "cookie": the login request body, with {@code $$NetshotUsername$$}/
-		 * {@code $$NetshotPassword$$} placeholders substituted from the resolved credential. */
-		@Getter
-		@Setter
-		private Map<String, Object> data;
-
-		/** For type "cookie": "json" or "form" - how {@link #data} is encoded in the login request body. */
-		@Getter
-		@Setter
-		private String contentType;
-
-		public AuthScheme() {
-		}
-	}
-
-	/**
-	 * Embedded class to represent HTTP-specific access configuration.
-	 */
-	public static final class HttpConfig {
-		/** Default TCP port for this access, when not overridden on the device. */
-		@Getter
-		@Setter
-		private int defaultPort = DEFAULT_PORT;
-
-		/** Whether this access uses TLS ("https") or plain HTTP. */
-		@Getter
-		@Setter
-		private boolean tls = true;
-
-		/** Optional base path prepended to every request path. */
-		@Getter
-		@Setter
-		private String basePath;
-
-		/** Declared authentication scheme for this access (may be null = no auth). */
-		@Getter
-		@Setter
-		private AuthScheme auth;
-
-		public HttpConfig() {
-		}
-	}
+	public static final int DEFAULT_PORT = DriverProtocol.HTTPS.defaultPort();
 
 	/**
 	 * The result of an HTTP request, handed back to JS.

@@ -63,6 +63,7 @@ import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
@@ -76,7 +77,7 @@ import net.netshot.netshot.vault.VaultableSecret;
 public class Snmp extends Poller implements Client {
 
 	/** The port. */
-	public static final int DEFAULT_PORT = 161;
+	public static final int DEFAULT_PORT = DriverProtocol.SNMPV2C.defaultPort();
 
 	/** The snmp. */
 	private org.snmp4j.Snmp snmp;

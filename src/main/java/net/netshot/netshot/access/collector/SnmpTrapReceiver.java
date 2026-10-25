@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import org.snmp4j.CommandResponder;
 import org.snmp4j.CommandResponderEvent;
@@ -87,6 +88,9 @@ import org.snmp4j.util.ThreadPool;
  */
 @Slf4j
 public final class SnmpTrapReceiver implements CommandResponder, AuthenticationFailureListener, Service {
+
+	/** Where the scripts of the drivers log when they analyze a message. */
+	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SnmpTrapReceiver.class);
 
 
 	/** Whether the trap receiver is disabled. */
@@ -508,7 +512,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 					this.received.incrementAndGet();
 					List<String> matchingDrivers = new ArrayList<>();
 					for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
-						if (driver.analyzeTrap(data, source)) {
+						if (driver.analyzeTrap(data, source, DRIVER_LOG)) {
 							matchingDrivers.add(driver.getName());
 						}
 					}

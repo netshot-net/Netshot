@@ -37,6 +37,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.Ssh;
+import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
@@ -44,7 +45,7 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 /**
  * Exploration/reproduction tests for the NetScaler SDX SSH rekeying bug: a driver can ask to
- * disable/tighten SSH rekeying via {@code CLI.ssh.config.rekey} ({@link Ssh.SshConfig}'s
+ * disable/tighten SSH rekeying via {@code CLI.ssh.config.rekey} ({@link SshConfig}'s
  * {@code rekeyTimeLimit}/{@code rekeyDataLimit}/{@code rekeyPacketsLimit}), but as of this
  * writing that per-connection override is applied too late to matter for those three limits -
  * see {@code Ssh.connect(boolean)}: {@code CoreModuleProperties.REKEY_*.set(this.session, ...)}
@@ -223,7 +224,7 @@ public class RekeyTest {
 		// Exactly what DeviceDriver.java does for a driver's `CLI.ssh.config.rekey.dataLimit: 0`
 		// (see Citrix_NetscalerSDX.js): only this one field is set, everything else stays
 		// unset/null so applySshConfig() leaves it alone.
-		Ssh.SshConfig disableRekey = new Ssh.SshConfig(false);
+		SshConfig disableRekey = new SshConfig();
 		disableRekey.setRekeyDataLimit(0L);
 		ssh.applySshConfig(disableRekey);
 

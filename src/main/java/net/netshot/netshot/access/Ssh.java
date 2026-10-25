@@ -30,7 +30,6 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -83,11 +82,13 @@ import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.driver.protocol.SshInteractionInstruction;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
@@ -100,7 +101,7 @@ import net.netshot.netshot.platform.log.TaskContext;
 public class Ssh extends Cli {
 
 	/** Default SSH TCP port. */
-	public static final int DEFAULT_PORT = 22;
+	public static final int DEFAULT_PORT = DriverProtocol.SSH.defaultPort();
 
 	/**
 	 * The settings of the SSH client.
@@ -124,7 +125,7 @@ public class Ssh extends Cli {
 	public record Settings(int connectionTimeout, int receiveTimeout, int commandTimeout,
 		long rekeyTimeLimit, long rekeyDataLimit, long rekeyBlocksLimit, long rekeyPacketsLimit,
 		List<String> kexAlgorithms, List<String> hostKeyAlgorithms, List<String> ciphers, List<String> macs,
-		List<String> compressionAlgorithms) {
+		List<String> compressionAlgorithms) implements SshConfig.Defaults {
 
 		private static final List<String> DEFAULT_SSH_KEX_ALGORITHMS = List.of(
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP18_SHA512,
@@ -242,162 +243,6 @@ public class Ssh extends Cli {
 	private static SshClient client;
 
 
-	/**
-	 * Instruction for SSH user interactive authentication mode.
-	 */
-	public static final class SshInteractionInstruction {
-		@Getter
-		private Pattern promptPattern;
-
-		@Getter
-		private Boolean echo;
-
-		@Getter
-		private String response;
-
-		public SshInteractionInstruction(Pattern promptPattern, Boolean echo, String response) {
-			this.promptPattern = promptPattern;
-			this.echo = echo;
-			this.response = response;
-		}
-	}
-
-	/**
-	 * One user interaction in the keyboard-interactive authentication process.
-	 */
-	public static final class SshUserInteraction {
-		/** Prompt to match (regular expression). null for any. */
-		@Getter
-		@Setter
-		private String prompt;
-
-		/** Match whether echo option is expected or not. null for any. */
-		@Getter
-		@Setter
-		private Boolean echo;
-
-		/** Response to send. Can be $$NetshotPassword$$. */
-		@Getter
-		@Setter
-		private String response;
-	}
-
-	/**
-	 * Embedded class to represent SSH-specific configuration.
-	 */
-	public static final class SshConfig {
-
-		/** Key exchange algorithms allowed for the session. */
-		private List<String> kexAlgorithms = null;
-
-		/** Host key algorithms allowed for the session. */
-		private List<String> hostKeyAlgorithms = null;
-
-		/** Ciphers allowed for the session. */
-		private List<String> ciphers = null;
-
-		/** MACs allowed for the session. */
-		private List<String> macs = null;
-
-		/** Compression algorithms allowed for the session. */
-		private List<String> compressionAlgorithms = null;
-
-		/** Rekey time limit (ms), i.e. maximum session duration before a rekey is triggered. */
-		@Setter
-		private Long rekeyTimeLimit = null;
-
-		/** Rekey data limit (bytes), i.e. maximum amount of data exchanged before a rekey is triggered. */
-		@Setter
-		private Long rekeyDataLimit = null;
-
-		/** Rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed before a rekey
-		 * is triggered. */
-		@Setter
-		private Long rekeyBlocksLimit = null;
-
-		/** Rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered. */
-		@Setter
-		private Long rekeyPacketsLimit = null;
-
-		/** User interaction instructions. */
-		@Setter
-		@Getter
-		private List<SshInteractionInstruction> interactionInstructions = null;
-
-		/** Whether to allocate a PTY or not. */
-		@Setter
-		private Boolean usePty = null;
-
-		/** Type of terminal. */
-		@Setter
-		private String terminalType = null;
-
-		/** Number of columns in the terminal. */
-		@Setter
-		private Integer terminalCols = null;
-
-		/** Number of rows in the terminal. */
-		@Setter
-		private Integer terminalRows = null;
-
-		/** Height of the terminal. */
-		@Setter
-		private Integer terminalHeight = null;
-
-		/** Width of the terminal. */
-		@Setter
-		private Integer terminalWidth = null;
-
-		/** User interactions. */
-		@Getter
-		@Setter
-		private List<SshUserInteraction> userInteractions;
-
-		/*
-		 * Default constructor.
-		 */
-		public SshConfig(boolean withDefaults) {
-			if (withDefaults) {
-				Settings settings = Ssh.settings();
-				this.kexAlgorithms = new ArrayList<>(settings.kexAlgorithms());
-				this.hostKeyAlgorithms = new ArrayList<>(settings.hostKeyAlgorithms());
-				this.ciphers = new ArrayList<>(settings.ciphers());
-				this.macs = new ArrayList<>(settings.macs());
-				this.compressionAlgorithms = new ArrayList<>(settings.compressionAlgorithms());
-				this.rekeyTimeLimit = settings.rekeyTimeLimit();
-				this.rekeyDataLimit = settings.rekeyDataLimit();
-				this.rekeyBlocksLimit = settings.rekeyBlocksLimit();
-				this.rekeyPacketsLimit = settings.rekeyPacketsLimit();
-				this.usePty = true;
-				this.terminalType = "vt100";
-				this.terminalCols = 80;
-				this.terminalRows = 24;
-				this.terminalHeight = 480;
-				this.terminalWidth = 640;
-			}
-		}
-
-		public void setKexAlgorithms(String[] kexAlgorithms) {
-			this.kexAlgorithms = Arrays.asList(kexAlgorithms);
-		}
-
-		public void setHostKeyAlgorithms(String[] hostKeyAlgorithms) {
-			this.hostKeyAlgorithms = Arrays.asList(hostKeyAlgorithms);
-		}
-
-		public void setCiphers(String[] ciphers) {
-			this.ciphers = Arrays.asList(ciphers);
-		}
-
-		public void setMacs(String[] macs) {
-			this.macs = Arrays.asList(macs);
-		}
-
-		public void setCompressionAlgorithms(String[] compressionAlgorithms) {
-			this.compressionAlgorithms = Arrays.asList(compressionAlgorithms);
-		}
-	}
-
 	/** The settings, from the configuration. */
 	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
@@ -469,14 +314,14 @@ public class Ssh extends Cli {
 			if (config == null) {
 				return;
 			}
-			if (config.rekeyTimeLimit != null) {
-				this.maxRekeyInterval = Duration.ofMillis(config.rekeyTimeLimit);
+			if (config.getRekeyTimeLimit() != null) {
+				this.maxRekeyInterval = Duration.ofMillis(config.getRekeyTimeLimit());
 			}
-			if (config.rekeyDataLimit != null) {
-				this.maxRekeyBytes = config.rekeyDataLimit;
+			if (config.getRekeyDataLimit() != null) {
+				this.maxRekeyBytes = config.getRekeyDataLimit();
 			}
-			if (config.rekeyPacketsLimit != null) {
-				this.maxRekyPackets = config.rekeyPacketsLimit;
+			if (config.getRekeyPacketsLimit() != null) {
+				this.maxRekyPackets = config.getRekeyPacketsLimit();
 			}
 		}
 	}
@@ -542,7 +387,7 @@ public class Ssh extends Cli {
 	private String privateKey;
 
 	/** The SSH connection config. */
-	private SshConfig sshConfig = new SshConfig(true);
+	private SshConfig sshConfig = new SshConfig(settings());
 
 	/** Per-access host key verifier (trust any/on first use/manual), set via {@link #setHostKeyVerifier}. */
 	@Setter
@@ -802,19 +647,19 @@ public class Ssh extends Cli {
 
 			this.session.setKeyExchangeFactories(
 				NamedFactory.setUpTransformedFactories(true,
-					BuiltinDHFactories.parseDHFactoriesList(this.sshConfig.kexAlgorithms).getParsedFactories(),
+					BuiltinDHFactories.parseDHFactoriesList(this.sshConfig.getKexAlgorithms()).getParsedFactories(),
 					ClientBuilder.DH2KEX));
-			this.session.setSignatureFactoriesNames(this.sshConfig.hostKeyAlgorithms);
-			this.session.setCipherFactoriesNames(this.sshConfig.ciphers);
-			this.session.setMacFactoriesNames(this.sshConfig.macs);
-			this.session.setCompressionFactoriesNames(this.sshConfig.compressionAlgorithms);
-			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.rekeyTimeLimit));
-			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.rekeyDataLimit);
-			CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.session, this.sshConfig.rekeyBlocksLimit);
-			CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.session, this.sshConfig.rekeyPacketsLimit);
+			this.session.setSignatureFactoriesNames(this.sshConfig.getHostKeyAlgorithms());
+			this.session.setCipherFactoriesNames(this.sshConfig.getCiphers());
+			this.session.setMacFactoriesNames(this.sshConfig.getMacs());
+			this.session.setCompressionFactoriesNames(this.sshConfig.getCompressionAlgorithms());
+			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.getRekeyTimeLimit()));
+			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.getRekeyDataLimit());
+			CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.session, this.sshConfig.getRekeyBlocksLimit());
+			CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.session, this.sshConfig.getRekeyPacketsLimit());
 			if (privateKey == null) {
 				this.session.addPasswordIdentity(this.password);
-				if (Ssh.this.sshConfig.interactionInstructions != null) {
+				if (Ssh.this.sshConfig.getInteractionInstructions() != null) {
 					PropertyResolverUtils.updateProperty(
 						this.session, UserInteraction.AUTO_DETECT_PASSWORD_PROMPT, false);
 				}
@@ -831,7 +676,7 @@ public class Ssh extends Cli {
 								"SSH user interactive authentication, name '{}', instruction '{}', lang '{}', prompts {}",
 								name, instruction, lang, String.join(", ", promptEchoes));
 						}
-						if (Ssh.this.sshConfig.interactionInstructions == null) {
+						if (Ssh.this.sshConfig.getInteractionInstructions() == null) {
 							if (prompts.length == 1 && echos.length == 1 && !echos[0]) {
 								Ssh.this.taskContext.debug("Password requested in user interactive mode (prompt '{}')",
 									prompts[0]);
@@ -844,24 +689,24 @@ public class Ssh extends Cli {
 						}
 						List<String> responses = new ArrayList<>();
 						for (int p = 0; p < Math.min(prompts.length, echos.length); p++) {
-							for (SshInteractionInstruction configInstruction : Ssh.this.sshConfig.interactionInstructions) {
-								if (configInstruction.promptPattern != null) {
-									Matcher matcher = configInstruction.promptPattern.matcher(prompts[p]);
+							for (SshInteractionInstruction configInstruction : Ssh.this.sshConfig.getInteractionInstructions()) {
+								if (configInstruction.getPromptPattern() != null) {
+									Matcher matcher = configInstruction.getPromptPattern().matcher(prompts[p]);
 									if (!matcher.matches()) {
 										continue;
 									}
 								}
-								if (configInstruction.echo != null && !configInstruction.echo.equals(echos[p])) {
+								if (configInstruction.getEcho() != null && !configInstruction.getEcho().equals(echos[p])) {
 									continue;
 								}
 								Ssh.this.taskContext.trace(
 									"Found matching instruction for SSH user interaction, prompt '{}'", prompts[p]);
-								if (configInstruction.response == null) {
+								if (configInstruction.getResponse() == null) {
 									Ssh.this.taskContext.trace("Will send device password");
 									responses.add(Ssh.this.password);
 								}
 								else {
-									String response = configInstruction.response;
+									String response = configInstruction.getResponse();
 									Ssh.this.taskContext.trace("Will send planned response '{}'", response);
 									response = response.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_USERNAME),
 										Matcher.quoteReplacement(Ssh.this.username));
@@ -999,31 +844,31 @@ public class Ssh extends Cli {
 
 			if (openChannel) {
 				PtyChannelConfigurationHolder ptyConfig = null;
-				if (this.sshConfig.usePty) {
+				if (this.sshConfig.getUsePty()) {
 					ptyConfig = new PtyChannelConfigurationHolder() {
 						@Override
 						public String getPtyType() {
-							return Ssh.this.sshConfig.terminalType;
+							return Ssh.this.sshConfig.getTerminalType();
 						}
 
 						@Override
 						public int getPtyColumns() {
-							return Ssh.this.sshConfig.terminalCols;
+							return Ssh.this.sshConfig.getTerminalCols();
 						}
 
 						@Override
 						public int getPtyLines() {
-							return Ssh.this.sshConfig.terminalRows;
+							return Ssh.this.sshConfig.getTerminalRows();
 						}
 
 						@Override
 						public int getPtyWidth() {
-							return Ssh.this.sshConfig.terminalWidth;
+							return Ssh.this.sshConfig.getTerminalWidth();
 						}
 
 						@Override
 						public int getPtyHeight() {
-							return Ssh.this.sshConfig.terminalHeight;
+							return Ssh.this.sshConfig.getTerminalHeight();
 						}
 
 						@Override
@@ -1033,7 +878,7 @@ public class Ssh extends Cli {
 					};
 				}
 				this.channel = this.session.createShellChannel(ptyConfig, Collections.emptyMap());
-				this.channel.setUsePty(this.sshConfig.usePty);
+				this.channel.setUsePty(this.sshConfig.getUsePty());
 				this.channel.setRedirectErrorStream(true);
 				this.channel.open().verify(Duration.ofMillis(this.connectionTimeout));
 				this.inStream = this.channel.getInvertedOut();
@@ -1172,54 +1017,7 @@ public class Ssh extends Cli {
 	}
 
 	public void applySshConfig(SshConfig other) {
-		if (other.kexAlgorithms != null) {
-			this.sshConfig.kexAlgorithms = other.kexAlgorithms;
-		}
-		if (other.hostKeyAlgorithms != null) {
-			this.sshConfig.hostKeyAlgorithms = other.hostKeyAlgorithms;
-		}
-		if (other.ciphers != null) {
-			this.sshConfig.ciphers = other.ciphers;
-		}
-		if (other.macs != null) {
-			this.sshConfig.macs = other.macs;
-		}
-		if (other.compressionAlgorithms != null) {
-			this.sshConfig.compressionAlgorithms = other.compressionAlgorithms;
-		}
-		if (other.rekeyTimeLimit != null) {
-			this.sshConfig.rekeyTimeLimit = other.rekeyTimeLimit;
-		}
-		if (other.rekeyDataLimit != null) {
-			this.sshConfig.rekeyDataLimit = other.rekeyDataLimit;
-		}
-		if (other.rekeyBlocksLimit != null) {
-			this.sshConfig.rekeyBlocksLimit = other.rekeyBlocksLimit;
-		}
-		if (other.rekeyPacketsLimit != null) {
-			this.sshConfig.rekeyPacketsLimit = other.rekeyPacketsLimit;
-		}
-		if (other.usePty != null) {
-			this.sshConfig.usePty = other.usePty;
-		}
-		if (other.terminalType != null) {
-			this.sshConfig.terminalType = other.terminalType;
-		}
-		if (other.terminalCols != null) {
-			this.sshConfig.terminalCols = other.terminalCols;
-		}
-		if (other.terminalRows != null) {
-			this.sshConfig.terminalRows = other.terminalRows;
-		}
-		if (other.terminalHeight != null) {
-			this.sshConfig.terminalHeight = other.terminalHeight;
-		}
-		if (other.terminalWidth != null) {
-			this.sshConfig.terminalWidth = other.terminalWidth;
-		}
-		if (other.interactionInstructions != null) {
-			this.sshConfig.interactionInstructions = other.interactionInstructions;
-		}
+		this.sshConfig.apply(other);
 	}
 
 }
