@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,9 @@ import org.slf4j.helpers.MessageFormatter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 
 import org.apache.sshd.common.kex.KexProposalOption;
@@ -115,7 +118,7 @@ import org.apache.sshd.common.kex.KexProposalOption;
  * SSH server to receive files via SFTP/SCP.
  */
 @Slf4j
-public final class SshServer {
+public final class SshServer implements Service {
 
 	/** The AAA logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
@@ -184,7 +187,7 @@ public final class SshServer {
 		);
 
 		/** Whether the SSH (SFTP/SCP) server is enabled. */
-		static final Setting<Boolean> ENABLED = Setting.bool("netshot.sshserver.enabled").defaultValue(true).restart();
+		public static final Setting<Boolean> ENABLED = Setting.bool("netshot.sshserver.enabled").defaultValue(true).restart();
 
 		/** Whether SFTP is enabled. */
 		static final Setting<Boolean> SFTP_ENABLED = Setting.bool("netshot.sshserver.sftp.enabled").defaultValue(true).restart();
@@ -358,18 +361,54 @@ public final class SshServer {
 		return current;
 	}
 
-	public static void init() {
-		SshServer.settings = Settings.from(Netshot.config().current());
-		if (!SshServer.settings.enabled()) {
-			log.warn("The SSH server is disabled by configuration.");
-			return;
-		}
-		nsSshServer = new SshServer();
-		nsSshServer.start();
+	/** The running SSH server (for the static accessors, used by the scripts). */
+	private static volatile SshServer nsSshServer;
+
+	/** The configuration store. */
+	private final ConfigStore config;
+
+	/**
+	 * Creates the SSH server.
+	 *
+	 * @param config the configuration store
+	 */
+	public SshServer(ConfigStore config) {
+		this.config = config;
 	}
 
-	/** The static SNMP trap receiver instance. */
-	private static SshServer nsSshServer;
+	@Override
+	public String name() {
+		return "SSH/SCP/SFTP server";
+	}
+
+	@Override
+	public synchronized void start() {
+		SshServer.settings = Settings.from(this.config.current());
+		this.startServer();
+		SshServer.nsSshServer = this;
+	}
+
+	@Override
+	public synchronized void stop() {
+		SshServer.nsSshServer = null;
+		this.stopServer();
+	}
+
+	@Override
+	public boolean isHealthy() {
+		return this.sshd != null;
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		Settings current = SshServer.settings();
+		stats.put("port", current.tcpPort());
+		stats.put("listening", this.sshd != null);
+		stats.put("sessions", this.sshd == null ? 0 : this.sshd.getActiveSessions().size());
+		stats.put("tickets", this.tickets.size());
+		return stats;
+	}
 
 	public static boolean isRunning() {
 		return nsSshServer != null && nsSshServer.sshd != null;
@@ -908,7 +947,7 @@ public final class SshServer {
 	}
 
 	/** The internal SSHd server. */
-	private org.apache.sshd.server.SshServer sshd = null;
+	private volatile org.apache.sshd.server.SshServer sshd = null;
 
 	/** The upload tickets, to accept incoming upload requests. */
 	private Map<String, UploadTicket> tickets = new ConcurrentHashMap<>();
@@ -932,7 +971,7 @@ public final class SshServer {
 	/**
 	 * Start the embedded SSH server.
 	 */
-	private void start() {
+	private void startServer() {
 		this.sshd = org.apache.sshd.server.SshServer.setUpDefaultServer();
 		this.sshd.setPort(SshServer.settings().tcpPort());
 		this.sshd.setHost(SshServer.settings().listenHost().getHostAddress());
@@ -1050,7 +1089,7 @@ public final class SshServer {
 		}
 		catch (IOException e) {
 			log.error("Cannot start the embedded SSH server", e);
-			this.stop();
+			this.stopServer();
 		}
 
 	}
@@ -1058,7 +1097,7 @@ public final class SshServer {
 	/**
 	 * Stop the server.
 	 */
-	private void stop() {
+	private void stopServer() {
 		if (this.sshd == null) {
 			return;
 		}

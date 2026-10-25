@@ -268,6 +268,7 @@ Optional integration with a HashiCorp Vault-compatible backend for externally-st
 | `netshot.tasks.threadcount` | Number of tasks that can run concurrently. Default: `10`. Keep it well below `netshot.db.pooler.maxpoolsize` (see [Database](#database)). | Restart |
 | `netshot.tasks.devicelock.pollintervalms` | Interval (ms) at which a task waiting for its turn on a device checks whether the device is free. Default: `3000`. | Yes |
 | `netshot.tasks.sequentialpollintervalms` | Interval (ms) at which a group task running its devices sequentially checks whether the current device task has finished. Default: `3000` (range `500`–`60000`). | Yes |
+| `netshot.shutdown.timeout` | Max time (seconds) Netshot waits, when it stops (`SIGTERM`, e.g. `systemctl stop` or `docker stop`), for the running tasks to end; the tasks still running after it are marked as failed. Default: `20`. Keep it below the stop timeout of the service manager (Docker: 10 s by default, see `stop_grace_period`; Kubernetes: `terminationGracePeriodSeconds`, 30 s by default; systemd: `TimeoutStopSec`, 90 s by default). | Yes |
 
 ## CLI (SSH / Telnet) connections to devices
 

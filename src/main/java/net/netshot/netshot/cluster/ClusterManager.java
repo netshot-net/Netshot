@@ -26,11 +26,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,8 +45,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.platform.config.Config;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.cluster.messages.AssignTasksMessage;
 import net.netshot.netshot.cluster.messages.AutoSnapshotMessage;
@@ -54,8 +54,12 @@ import net.netshot.netshot.cluster.messages.LoadTasksMessage;
 import net.netshot.netshot.cluster.messages.ReloadDriversMessage;
 import net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.http.HttpServerAddress;
+import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.engine.TaskLockManager;
@@ -69,7 +73,7 @@ import org.postgresql.PGNotification;
  * Cluster Manager - main component of clustering feature.
  */
 @Slf4j
-public class ClusterManager extends Thread {
+public class ClusterManager implements Service {
 
 	/** Name of the PSQL notification channel. */
 	private static final String NOTIFICATION_CHANNEL = "clustering";
@@ -135,24 +139,6 @@ public class ClusterManager extends Thread {
 
 	/** IDs of Vault instances whose cache should be invalidated cluster-wide. */
 	private Set<Long> vaultInstanceReloadIds = new HashSet<>();
-
-	/**
-	 * Initializes the cluster manager.
-	 *
-	 * @param driverRegistry the loaded device drivers
-	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
-	 */
-	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
-		if (!Netshot.config().current().get(ENABLED)) {
-			log.info("High Availability is not enabled.");
-			return;
-		}
-
-		TaskManager.setMode(Mode.CLUSTER_MEMBER);
-		nsClusterManager = new ClusterManager(driverRegistry, autoSnapshotScheduler);
-		nsClusterManager.start();
-		nsClusterManager.startPeriodicActions();
-	}
 
 	/**
 	 * Gets the local cluster member instance ID.
@@ -247,7 +233,7 @@ public class ClusterManager extends Thread {
 	private ClusterMember localMember;
 
 	/** Last master member. */
-	private ClusterMember master;
+	private volatile ClusterMember master;
 
 	/** All cluster members. */
 	private Map<String, ClusterMember> members;
@@ -262,6 +248,15 @@ public class ClusterManager extends Thread {
 	 */
 	private final ScheduledExecutorService worker;
 
+	/** Whether the service is running (the main loop runs until it's false). */
+	private volatile boolean running;
+
+	/** Whether the main loop is connected to the database (listening to the cluster messages). */
+	private volatile boolean connected;
+
+	/** Runs the main loop (hello messages, member expiry, master election). */
+	private ExecutorService mainLoop;
+
 	/** Coalescable actions currently queued (not yet started) in the worker. */
 	private final Set<WorkerAction> pendingActions = ConcurrentHashMap.newKeySet();
 
@@ -274,22 +269,19 @@ public class ClusterManager extends Thread {
 	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
 		this.driverRegistry = driverRegistry;
 		this.autoSnapshotScheduler = autoSnapshotScheduler;
-		// Set thread name
-		this.setName("NetshotClusterManager");
-
 		ObjectMapper jsonMapper = new ObjectMapper();
 		this.jsonReader = jsonMapper.readerWithView(ClusteringView.class);
 		this.jsonWriter = jsonMapper.writerWithView(ClusteringView.class);
 		this.members = new ConcurrentHashMap<>();
 		this.master = null;
 		this.lastSentHelloTime = 0L;
-		this.worker = Executors.newSingleThreadScheduledExecutor(runnable -> {
-			Thread thread = new Thread(runnable, "NetshotClusterWorker");
-			thread.setDaemon(true);
-			return thread;
-		});
+		this.worker = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("NetshotClusterWorker"));
+	}
 
-
+	/**
+	 * Builds the local member (from the configuration and the loaded drivers, when the service starts).
+	 */
+	private void initLocalMember() {
 		String jvmVersion = System.getProperty("java.vm.version");
 		Config config = Netshot.config().current();
 		int masterPriority = config.get(MASTER_PRIORITY);
@@ -336,6 +328,48 @@ public class ClusterManager extends Thread {
 		this.localMember = new ClusterMember(localId, Netshot.getHostname(), ClusterManager.CLUSTERING_VERSION,
 			masterPriority, runnerPriority, runnerWeight, Netshot.VERSION, jvmVersion, this.driverRegistry.getAllDriverHash());
 		this.members.put(localId, this.localMember);
+	}
+
+	@Override
+	public String name() {
+		return "cluster manager";
+	}
+
+	@Override
+	public synchronized void start() {
+		this.initLocalMember();
+		TaskManager.setMode(Mode.CLUSTER_MEMBER);
+		this.running = true;
+		this.mainLoop = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotClusterManager"));
+		this.mainLoop.execute(this::runLoop);
+		ClusterManager.nsClusterManager = this;
+		this.startPeriodicActions();
+	}
+
+	@Override
+	public void stop() throws InterruptedException {
+		this.running = false;
+		this.mainLoop.shutdownNow();
+		this.worker.shutdownNow();
+		this.mainLoop.awaitTermination(10, TimeUnit.SECONDS);
+		this.worker.awaitTermination(10, TimeUnit.SECONDS);
+		ClusterManager.nsClusterManager = null;
+	}
+
+	@Override
+	public boolean isHealthy() {
+		return this.running && this.connected;
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("connected", this.connected);
+		stats.put("localStatus", String.valueOf(this.localMember == null ? null : this.localMember.getStatus()));
+		stats.put("members", this.members.size());
+		ClusterMember currentMaster = this.master;
+		stats.put("master", currentMaster == null ? null : currentMaster.getInstanceId());
+		return stats;
 	}
 
 	/**
@@ -485,22 +519,22 @@ public class ClusterManager extends Thread {
 
 
 	/**
-	 * Main cluster thread code.
+	 * Main loop of the cluster manager.
 	 */
-	@Override
-	public void run() {
+	private void runLoop() {
 		// Reconnection with exponential backoff
 		int bhFactor = 0;
 		boolean memberUpdated = true;
 		boolean runnerChanged = true;
 
-		while (true) {
+		while (this.running) {
 			// Reconnection loop
 			try {
 				Thread.sleep(500 * bhFactor);
 			}
 			catch (InterruptedException e) {
-				log.error("ClusterManager got InterruptedException", e);
+				// Stopping
+				break;
 			}
 			try (Connection dbConnection = Database.getConnection(false)) {
 				PGConnection pgConnection = dbConnection.unwrap(PGConnection.class);
@@ -508,8 +542,9 @@ public class ClusterManager extends Thread {
 				try (Statement listenStatement = dbConnection.createStatement()) {
 					listenStatement.execute(String.format("LISTEN %s", ClusterManager.NOTIFICATION_CHANNEL));
 				}
+				this.connected = true;
 
-				while (true) {
+				while (this.running) {
 					// Wait a bit
 					Thread.sleep(1000);
 					// Main loop
@@ -747,6 +782,10 @@ public class ClusterManager extends Thread {
 				}
 			}
 			catch (SQLException | InterruptedException e) {
+				this.connected = false;
+				if (!this.running) {
+					break;
+				}
 				log.error("ClusterManager got exception", e);
 				bhFactor *= 2;
 				if (bhFactor < 1) {

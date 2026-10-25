@@ -40,6 +40,7 @@ import org.jooq.exception.DataAccessException;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -67,6 +68,10 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
  */
 @Slf4j
 public final class TaskManager {
+
+	/** Max time (s) to wait, when Netshot stops, for the running tasks to end (they're marked as failed after it). */
+	static final Setting<Integer> SHUTDOWN_TIMEOUT = Setting.integer("netshot.shutdown.timeout")
+		.defaultValue(20).range(0, 3600).live();
 
 	/** Number of threads running the tasks. */
 	static final Setting<Integer> THREAD_COUNT = Setting.integer("netshot.tasks.threadcount")
@@ -109,10 +114,13 @@ public final class TaskManager {
 	private static final int MIN_SPARE_DB_CONNECTIONS = 10;
 
 	/** The master scheduler (used in master mode to dispatch jobs). */
-	private static Scheduler masterScheduler;
+	private static volatile Scheduler masterScheduler;
 
 	/** The runner scheduler (used to run jobs). */
-	private static Scheduler runnerScheduler;
+	private static volatile Scheduler runnerScheduler;
+
+	/** Lock of the update of the runners. */
+	private static final Object RUNNERS_LOCK = new Object();
 
 	/** TaskManager mode (set by the cluster thread, read from any thread). */
 	private static volatile Mode mode = Mode.SINGLE;
@@ -176,6 +184,50 @@ public final class TaskManager {
 	}
 
 	/**
+	 * Stops the task manager: no task is started any more, the running tasks are given some time
+	 * ({@code netshot.shutdown.timeout}) to end, then the ones still running are marked as failed.
+	 */
+	public static void shutdown() {
+		Scheduler master = TaskManager.masterScheduler;
+		Scheduler runner = TaskManager.runnerScheduler;
+		if (master == null || runner == null) {
+			return;
+		}
+		try {
+			master.standby();
+			runner.standby();
+			long timeout = Netshot.config().current().get(SHUTDOWN_TIMEOUT) * 1000L;
+			long deadline = System.currentTimeMillis() + timeout;
+			List<JobExecutionContext> running = runner.getCurrentlyExecutingJobs();
+			if (!running.isEmpty()) {
+				log.warn("Waiting up to {}s for {} running task(s) to end.", timeout / 1000, running.size());
+			}
+			while (!running.isEmpty() && System.currentTimeMillis() < deadline) {
+				Thread.sleep(200);
+				running = runner.getCurrentlyExecutingJobs();
+			}
+			for (JobExecutionContext job : running) {
+				Object taskId = job.getJobDetail().getJobDataMap().get(TaskJob.NETSHOT_TASK);
+				if (taskId instanceof Long id) {
+					boolean failed = TRANSACTIONS.write(dsl -> REPOSITORY.failRunning(dsl, id,
+						"Netshot was stopped while the task was running."));
+					if (failed) {
+						log.warn("Task {} was still running, it's marked as failed.", id);
+					}
+				}
+			}
+			master.shutdown(false);
+			runner.shutdown(false);
+		}
+		catch (SchedulerException | DataAccessException e) {
+			log.error("Error while stopping the task manager", e);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
+
+	/**
 	 * Sets the current TaskManager mode.
 	 * @param mode the new mode to set
 	 */
@@ -189,6 +241,23 @@ public final class TaskManager {
 	 */
 	public static Mode getMode() {
 		return TaskManager.mode;
+	}
+
+	/**
+	 * Gets the number of tasks currently running on this instance.
+	 * @return the number of running tasks
+	 */
+	public static int getRunningCount() {
+		Scheduler runner = TaskManager.runnerScheduler;
+		if (runner == null) {
+			return 0;
+		}
+		try {
+			return runner.getCurrentlyExecutingJobs().size();
+		}
+		catch (SchedulerException e) {
+			return 0;
+		}
 	}
 
 	/**
@@ -298,7 +367,7 @@ public final class TaskManager {
 				newRunnerSet.add(member.getRunnerWeight(), member.getInstanceId());
 			}
 		}
-		synchronized (TaskManager.masterScheduler) {
+		synchronized (TaskManager.RUNNERS_LOCK) {
 			TaskManager.runnerSet = newRunnerSet;
 		}
 	}

@@ -32,10 +32,14 @@ import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 
 /**
- * A collector is a service running in background to collect data from devices.
+ * The common settings and helpers of the collectors (services receiving data from devices: Syslog server,
+ * SNMP trap receiver, SSH/TFTP servers).
  */
 @Slf4j
-public abstract class Collector extends Thread {
+public final class Collector {
+
+	private Collector() {
+	}
 
 	/**
 	 * The settings of the collectors.

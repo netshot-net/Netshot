@@ -51,17 +51,15 @@ import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJob;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.vault.VaultTokenRefresher;
 import net.netshot.netshot.platform.config.SettingCatalog;
 
 /**
  * The catalog of all the configuration settings: the classes declaring {@code Setting} fields
  * (with their nested classes). A class declaring settings must be listed here, so that the
- * configuration is checked against its settings (see {@code SettingCatalogTest}).
+ * configuration is checked against its settings (see {@code NetshotSettingsTest}).
  */
 public final class NetshotSettings {
-
-	/** Package-private class declaring settings, referenced by name. */
-	private static final String VAULT_TOKEN_REFRESH_DAEMON = "net.netshot.netshot.vault.VaultTokenRefreshDaemon";
 
 	private NetshotSettings() {
 	}
@@ -72,45 +70,40 @@ public final class NetshotSettings {
 	 * @return the classes
 	 */
 	public static List<Class<?>> declaringClasses() {
-		try {
-			return List.of(
-				Netshot.class,
-				Oidc.class,
-				Radius.class,
-				Tacacs.class,
-				PasswordPolicy.class,
-				UiUser.class,
-				Ssh.class,
-				Telnet.class,
-				Collector.class,
-				SnmpTrapReceiver.class,
-				SshServer.class,
-				SyslogServer.class,
-				TftpServer.class,
-				LoggerFilter.class,
-				RestServer.class,
-				LoggingSetup.class,
-				ClusterManager.class,
-				JsRuleRuntime.class,
-				PyRuleRuntime.class,
-				SnapshotDeviceScript.class,
-				PythonFileSystem.class,
-				DriverLoader.class,
-				ConfigBinaryFileAttribute.class,
-				ConnectionPools.class,
-				Database.class,
-				HttpServerAddress.class,
-				BouncyCastleLoader.class,
-				AutoSnapshotScheduler.class,
-				ChildTaskOrchestrator.class,
-				TaskJob.class,
-				TaskManager.class,
-				VaultManager.class,
-				Class.forName(VAULT_TOKEN_REFRESH_DAEMON));
-		}
-		catch (ClassNotFoundException e) {
-			throw new IllegalStateException("Unable to find a class declaring settings", e);
-		}
+		return List.of(
+			Netshot.class,
+			Oidc.class,
+			Radius.class,
+			Tacacs.class,
+			PasswordPolicy.class,
+			UiUser.class,
+			Ssh.class,
+			Telnet.class,
+			Collector.class,
+			SnmpTrapReceiver.class,
+			SshServer.class,
+			SyslogServer.class,
+			TftpServer.class,
+			LoggerFilter.class,
+			RestServer.class,
+			LoggingSetup.class,
+			ClusterManager.class,
+			JsRuleRuntime.class,
+			PyRuleRuntime.class,
+			SnapshotDeviceScript.class,
+			PythonFileSystem.class,
+			DriverLoader.class,
+			ConfigBinaryFileAttribute.class,
+			ConnectionPools.class,
+			Database.class,
+			HttpServerAddress.class,
+			BouncyCastleLoader.class,
+			AutoSnapshotScheduler.class,
+			ChildTaskOrchestrator.class,
+			TaskJob.class,
+			TaskManager.class,
+			VaultManager.class,
+			VaultTokenRefresher.class);
 	}
 
 	/**
