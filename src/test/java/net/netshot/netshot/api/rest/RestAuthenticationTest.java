@@ -308,7 +308,6 @@ public class RestAuthenticationTest {
 			Properties config = getNetshotConfig();
 			config.setProperty("netshot.aaa.passwordpolicy.maxduration", "90");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			this.passwordAge = 365;
 			this.createTestUser();
 			apiClient.setLogin(testUsername, testPassword);
@@ -327,7 +326,6 @@ public class RestAuthenticationTest {
 			Properties config = getNetshotConfig();
 			config.setProperty("netshot.aaa.passwordpolicy.maxduration", "90");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			String newPassword = "testpassword1";
 			this.passwordAge = 365;
 			this.createTestUser();
@@ -369,7 +367,6 @@ public class RestAuthenticationTest {
 			Properties config = getNetshotConfig();
 			config.setProperty("netshot.aaa.passwordpolicy.maxhistory", "5");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			this.createTestUser();
 			config.setProperty("netshot.aaa.passwordpolicy.mintotalchars", "16");
 			config.setProperty("netshot.aaa.passwordpolicy.minspecialchars", "3");
@@ -377,7 +374,6 @@ public class RestAuthenticationTest {
 			config.setProperty("netshot.aaa.passwordpolicy.minlowercasechars", "3");
 			config.setProperty("netshot.aaa.passwordpolicy.minuppercasechars", "3");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			apiClient.setLogin(testUsername, testPassword);
 			{
 				HttpResponse<JsonNode> response = apiClient.get("/user");
@@ -531,7 +527,7 @@ public class RestAuthenticationTest {
 			config.setProperty("netshot.aaa.oidc.clientid", clientId);
 			config.setProperty("netshot.aaa.oidc.clientsecret", clientSecret);
 			TestConfig.init(config);
-			Oidc.loadConfig();
+			Oidc.applySettings();
 			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
 			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
 			// after a failed attempt, so a short fixed sleep is flaky on loaded CI runners.

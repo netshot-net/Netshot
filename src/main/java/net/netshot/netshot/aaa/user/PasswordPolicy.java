@@ -26,6 +26,9 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Password policy.
@@ -83,23 +86,59 @@ public class PasswordPolicy {
 		}
 	}
 
-	private static PasswordPolicy mainPolicy;
+	/** Max number of previous passwords which can't be used again. */
+	private static final Setting<Integer> MAX_HISTORY = Setting.integer("netshot.aaa.passwordpolicy.maxhistory")
+		.defaultValue(0).range(0, Integer.MAX_VALUE).live();
+
+	/** Max duration of a password, in days. */
+	private static final Setting<Integer> MAX_DURATION = Setting.integer("netshot.aaa.passwordpolicy.maxduration")
+		.defaultValue(0).range(0, Integer.MAX_VALUE).live();
+
+	/** Min total number of characters. */
+	private static final Setting<Integer> MIN_TOTAL_CHARS = minCharsSetting(CharMatch.ANY);
+
+	/** Min number of special characters. */
+	private static final Setting<Integer> MIN_SPECIAL_CHARS = minCharsSetting(CharMatch.SPECIAL);
+
+	/** Min number of numerical characters. */
+	private static final Setting<Integer> MIN_NUMERICAL_CHARS = minCharsSetting(CharMatch.NUMERICAL);
+
+	/** Min number of lowercase characters. */
+	private static final Setting<Integer> MIN_LOWERCASE_CHARS = minCharsSetting(CharMatch.LOWERCASE);
+
+	/** Min number of uppercase characters. */
+	private static final Setting<Integer> MIN_UPPERCASE_CHARS = minCharsSetting(CharMatch.UPPERCASE);
+
+	/** The main policy, from the configuration. */
+	private static final ConfigStore.Binding<PasswordPolicy> MAIN_POLICY = Netshot.config().bind(PasswordPolicy::fromConfig);
+
+	private static Setting<Integer> minCharsSetting(CharMatch match) {
+		return Setting.integer("netshot.aaa.passwordpolicy." + match.getName())
+			.defaultValue(match.getDefaultValue()).range(0, 1024).live();
+	}
 
 	/**
-	 * Load the main policy from configuration.
+	 * Builds the main policy from the configuration.
+	 * @param config the configuration
+	 * @return the policy
 	 */
-	public static void loadConfig() {
-		final String configPrefix = "netshot.aaa.passwordpolicy.";
+	private static PasswordPolicy fromConfig(Config config) {
 		PasswordPolicy policy = new PasswordPolicy();
-		policy.maxHistory = Netshot.getConfig(configPrefix + "maxhistory", 0, 0, Integer.MAX_VALUE);
-		policy.maxDuration = Netshot.getConfig(configPrefix + "maxduration", 0, 0, Integer.MAX_VALUE);
+		policy.maxHistory = config.get(MAX_HISTORY);
+		policy.maxDuration = config.get(MAX_DURATION);
+		Map<CharMatch, Setting<Integer>> minChars = Map.of(
+			CharMatch.ANY, MIN_TOTAL_CHARS,
+			CharMatch.SPECIAL, MIN_SPECIAL_CHARS,
+			CharMatch.NUMERICAL, MIN_NUMERICAL_CHARS,
+			CharMatch.LOWERCASE, MIN_LOWERCASE_CHARS,
+			CharMatch.UPPERCASE, MIN_UPPERCASE_CHARS);
 		for (CharMatch m : CharMatch.values()) {
-			int min = Netshot.getConfig(configPrefix + m.getName(), m.getDefaultValue(), 0, 1024);
+			int min = config.get(minChars.get(m));
 			if (min > 0) {
 				policy.minCharMatchCounts.put(m, min);
 			}
 		}
-		PasswordPolicy.mainPolicy = policy;
+		return policy;
 	}
 
 	/**
@@ -107,7 +146,7 @@ public class PasswordPolicy {
 	 * @return the main password policy
 	 */
 	public static PasswordPolicy getMainPolicy() {
-		return PasswordPolicy.mainPolicy;
+		return MAIN_POLICY.get();
 	}
 
 	/** Max history count. */
