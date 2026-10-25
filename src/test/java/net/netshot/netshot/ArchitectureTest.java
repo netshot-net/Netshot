@@ -20,6 +20,7 @@ package net.netshot.netshot;
 
 import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import java.util.ArrayList;
@@ -219,6 +220,15 @@ public final class ArchitectureTest {
 			}
 		})
 		.allowEmptyShould(true);
+
+	/**
+	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring.
+	 * Frozen: the remaining static state (database pools, query parser, secret resolver, wiring for the tests...)
+	 * may only decrease.
+	 */
+	@ArchTest
+	static final ArchRule STATIC_FIELDS_ARE_FINAL = freeze(
+		fields().that().areStatic().should().beFinal().allowEmptyShould(true));
 
 	/**
 	 * No cycles between top-level slices (net.netshot.netshot.(*)..). ArchUnit's own slices().beFreeOfCycles()
