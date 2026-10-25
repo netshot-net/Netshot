@@ -68,9 +68,6 @@ public class Netshot {
 	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
 	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
 
-	/** The machine hostname. */
-	private static String hostname;
-
 	/** Java instrumentation. */
 	private static volatile Instrumentation instrumentation;
 
@@ -83,20 +80,25 @@ public class Netshot {
 	 * @return the local machine hostname
 	 */
 	public static String getHostname() {
-		if (Netshot.hostname == null) {
+		return Hostname.VALUE;
+	}
+
+	/** Holder of the machine hostname, read once, on first use (lazy, thread-safe class initialization). */
+	private static final class Hostname {
+		static final String VALUE = read();
+
+		private static String read() {
+			String hostname = null;
 			try {
 				Process process = Runtime.getRuntime().exec(new String[] { "hostname" });
 				BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-				Netshot.hostname = stdInput.readLine();
+				hostname = stdInput.readLine();
 			}
 			catch (IOException e) {
 				log.error("Error while getting local machine hostname", e);
 			}
-			if (Netshot.hostname == null) {
-				Netshot.hostname = "unknown";
-			}
+			return hostname == null ? "unknown" : hostname;
 		}
-		return Netshot.hostname;
 	}
 
 	/**
