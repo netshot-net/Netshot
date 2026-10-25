@@ -37,9 +37,6 @@ import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainRepository;
@@ -59,6 +56,9 @@ import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
@@ -259,7 +259,7 @@ public class DemoDataCreator {
 		DeviceAttribute configurationSaved = new DeviceBinaryAttribute("configurationSaved", true);
 		attributes.add(configurationSaved);
 
-		DiagnosticResult reloadReasonDiagResult = diagnostic == null ? null : DiagnosticTextResult.of(diagnostic, "Reload Command");
+		DiagnosticResult reloadReasonDiagResult = diagnostic == null ? null : DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "Reload Command");
 
 		return new FakeDevice(built.toBuilder().attributes(attributes).build(), configs, reloadReasonDiagResult);
 	}

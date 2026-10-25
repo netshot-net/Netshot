@@ -32,6 +32,10 @@ import org.junit.jupiter.api.function.Executable;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
@@ -102,13 +106,19 @@ class DiagnosticServiceTest {
 	}
 
 	private void addLongTextResult(long diagnosticId) {
-		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
-			List.of(DiagnosticLongTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "long value"))));
+		this.transactions.run(dsl -> {
+			Diagnostic diagnostic = new DiagnosticRepository().find(dsl, diagnosticId);
+			new DiagnosticResultRepository().save(dsl, this.deviceId,
+				List.of(DiagnosticLongTextResult.of(diagnostic.id(), diagnostic.name(), "long value")));
+		});
 	}
 
 	private void addResult(long diagnosticId) {
-		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
-			List.of(DiagnosticTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "value"))));
+		this.transactions.run(dsl -> {
+			Diagnostic diagnostic = new DiagnosticRepository().find(dsl, diagnosticId);
+			new DiagnosticResultRepository().save(dsl, this.deviceId,
+				List.of(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "value")));
+		});
 	}
 
 	@Test

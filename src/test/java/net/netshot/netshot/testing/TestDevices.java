@@ -24,8 +24,6 @@ import java.util.List;
 
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.inventory.config.Config;
@@ -33,6 +31,8 @@ import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicGroups;

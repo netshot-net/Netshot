@@ -56,12 +56,7 @@ import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
-import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.inventory.config.Config;
@@ -83,6 +78,11 @@ import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
@@ -632,19 +632,19 @@ public final class ApiContractSeed {
 			Diagnostic longText = new DiagnosticRepository().find(dsl, this.id("diag.js.longtext"));
 			Diagnostic numeric = new DiagnosticRepository().find(dsl, this.id("diag.python.numeric"));
 			Diagnostic binary = new DiagnosticRepository().find(dsl, this.id("diag.simple.binary"));
-			List<net.netshot.netshot.diagnostic.DiagnosticResult> results1 = List.of(
-				DiagnosticTextResult.of(text1, "Reload Command"),
-				DiagnosticLongTextResult.of(longText, "Long diagnostic\nresult\n" + "y".repeat(200)),
-				DiagnosticNumericResult.of(numeric, 42.5),
-				DiagnosticBinaryResult.of(binary, true));
-			List<net.netshot.netshot.diagnostic.DiagnosticResult> results2 = List.of(
-				DiagnosticTextResult.of(text1, "Power failure"),
-				DiagnosticBinaryResult.of(binary, false));
+			List<net.netshot.netshot.inventory.diagnostic.DiagnosticResult> results1 = List.of(
+				DiagnosticTextResult.of(text1.id(), text1.name(), "Reload Command"),
+				DiagnosticLongTextResult.of(longText.id(), longText.name(), "Long diagnostic\nresult\n" + "y".repeat(200)),
+				DiagnosticNumericResult.of(numeric.id(), numeric.name(), 42.5),
+				DiagnosticBinaryResult.of(binary.id(), binary.name(), true));
+			List<net.netshot.netshot.inventory.diagnostic.DiagnosticResult> results2 = List.of(
+				DiagnosticTextResult.of(text1.id(), text1.name(), "Power failure"),
+				DiagnosticBinaryResult.of(binary.id(), binary.name(), false));
 			long date = D2021;
 			DiagnosticResultRepository resultRepository = new DiagnosticResultRepository();
 			for (Device device : List.of(router1, router2)) {
-				List<net.netshot.netshot.diagnostic.DiagnosticResult> dated = new ArrayList<>();
-				for (net.netshot.netshot.diagnostic.DiagnosticResult result : device == router1 ? results1 : results2) {
+				List<net.netshot.netshot.inventory.diagnostic.DiagnosticResult> dated = new ArrayList<>();
+				for (net.netshot.netshot.inventory.diagnostic.DiagnosticResult result : device == router1 ? results1 : results2) {
 					dated.add(result.withDates(Instant.ofEpochMilli(date), Instant.ofEpochMilli(date + 500)));
 					date += 1000;
 				}

@@ -49,11 +49,7 @@ import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
@@ -67,6 +63,10 @@ import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
@@ -217,31 +217,31 @@ public class FinderTest {
 			// Add diagnostic results to specific devices
 			List<DiagnosticResult> results = new ArrayList<>();
 			if (i == 22) {
-				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "OK"));
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT).id(), testDiagnostics.get(AttributeType.TEXT).name(), "OK"));
 			}
 			if (i == 23) {
-				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "WARNING"));
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT).id(), testDiagnostics.get(AttributeType.TEXT).name(), "WARNING"));
 			}
 			if (i == 24) {
-				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "CRITICAL"));
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT).id(), testDiagnostics.get(AttributeType.TEXT).name(), "CRITICAL"));
 			}
 			if (i == 25) {
-				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 45.5));
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC).id(), testDiagnostics.get(AttributeType.NUMERIC).name(), 45.5));
 			}
 			if (i == 26) {
-				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 78.2));
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC).id(), testDiagnostics.get(AttributeType.NUMERIC).name(), 78.2));
 			}
 			if (i == 27) {
-				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 92.8));
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC).id(), testDiagnostics.get(AttributeType.NUMERIC).name(), 92.8));
 			}
 			if (i == 28) {
-				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY).id(), testDiagnostics.get(AttributeType.BINARY).name(), true));
 			}
 			if (i == 29) {
-				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), false));
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY).id(), testDiagnostics.get(AttributeType.BINARY).name(), false));
 			}
 			if (i == 30) {
-				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY).id(), testDiagnostics.get(AttributeType.BINARY).name(), true));
 			}
 
 			Device stored = TestDevices.add(builder.build(), config, results.toArray(new DiagnosticResult[0]));

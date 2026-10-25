@@ -21,11 +21,11 @@ package net.netshot.netshot.diagnostic.run;
 import org.graalvm.polyglot.Value;
 
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 
 /**
  * Builds the diagnostic results from the values returned by the scripts.
@@ -44,13 +44,13 @@ final class DiagnosticResults {
 	static DiagnosticResult make(Diagnostic diagnostic, Value value) {
 		switch (diagnostic.resultType()) {
 			case LONGTEXT:
-				return DiagnosticLongTextResult.of(diagnostic, value.asString());
+				return DiagnosticLongTextResult.of(diagnostic.id(), diagnostic.name(), value.asString());
 			case TEXT:
-				return DiagnosticTextResult.of(diagnostic, value.asString());
+				return DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), value.asString());
 			case NUMERIC:
-				return DiagnosticNumericResult.of(diagnostic, value.asDouble());
+				return DiagnosticNumericResult.of(diagnostic.id(), diagnostic.name(), value.asDouble());
 			case BINARY:
-				return DiagnosticBinaryResult.of(diagnostic, value.asBoolean());
+				return DiagnosticBinaryResult.of(diagnostic.id(), diagnostic.name(), value.asBoolean());
 			default:
 				return null;
 		}
