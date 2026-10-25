@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.inventory.device;
+package net.netshot.netshot.platform.net;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -287,7 +287,7 @@ public final class Network4Address extends NetworkAddress {
 	/*
 	 * (non-Javadoc)
 	 *
-	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getInetAddress()
+	 * @see net.netshot.netshot.platform.net.NetworkAddress#getInetAddress()
 	 */
 	@Override
 	public InetAddress getInetAddress() {
@@ -306,7 +306,7 @@ public final class Network4Address extends NetworkAddress {
 	/*
 	 * (non-Javadoc)
 	 *
-	 * @see net.netshot.netshot.inventory.device.NetworkAddress#getIP()
+	 * @see net.netshot.netshot.platform.net.NetworkAddress#getIP()
 	 */
 	@Override
 	public String getIp() {

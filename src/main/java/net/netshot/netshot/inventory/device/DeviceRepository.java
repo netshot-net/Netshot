@@ -85,6 +85,9 @@ import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp4addressesRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp6addressesRecord;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.net.PhysicalAddress;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**

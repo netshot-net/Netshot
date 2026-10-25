@@ -81,7 +81,7 @@ public class JsSnmpHelper {
 	private Client buildClient(AccessDefinition accessDef, net.netshot.netshot.credentials.DeviceCredentialSet credentialSet)
 			throws IOException {
 		DeviceSnmpCommunity resolvedCommunity = (DeviceSnmpCommunity) credentialSet;
-		net.netshot.netshot.inventory.device.NetworkAddress address = this.accessManager.resolveAddress(accessDef);
+		net.netshot.netshot.platform.net.NetworkAddress address = this.accessManager.resolveAddress(accessDef);
 		int port = this.accessManager.resolvePort(accessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
 			accessDef.getName(), accessDef.getProtocol(), resolvedCommunity.name(), address.getIp(), port);

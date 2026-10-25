@@ -49,10 +49,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.schema.tables.records.TaskRecord;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;

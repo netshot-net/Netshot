@@ -20,7 +20,7 @@ package net.netshot.netshot.access.collector;
 
 import java.util.List;
 
-import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.platform.net.Network4Address;
 
 /**
  * Where the receivers (Syslog server, SNMP trap receiver) report a configuration change signaled by a device:
