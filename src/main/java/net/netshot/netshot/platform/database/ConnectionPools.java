@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
@@ -111,6 +112,8 @@ public final class ConnectionPools implements AutoCloseable {
 	private static ComboPooledDataSource create(Config config, PoolKind identifier, String driverClass, String url,
 		String username, String password, int minPoolSize, int maxPoolSize) {
 		ComboPooledDataSource pool = new ComboPooledDataSource(false);
+		// Not registered (autoregister false), but closing the pool needs an identity token
+		pool.setIdentityToken(C3P0ImplUtils.allocateIdentityToken(pool));
 		try {
 			pool.setDriverClass(driverClass);
 		}

@@ -102,4 +102,16 @@ public class ConnectionPoolsTest {
 			Assertions.assertTrue(readWrite.isTestConnectionOnCheckout());
 		}
 	}
+
+	@Test
+	@DisplayName("The pools close without error")
+	void close() {
+		TestConfig.init(new Properties());
+		try (ConnectionPools pools = new ConnectionPools("org.postgresql.Driver", URL, URL + "-read", "user", "secret")) {
+			for (PoolKind kind : PoolKind.values()) {
+				ComboPooledDataSource pool = (ComboPooledDataSource) pools.get(kind);
+				Assertions.assertDoesNotThrow(() -> pool.close(), "Closing the %s pool".formatted(kind));
+			}
+		}
+	}
 }
