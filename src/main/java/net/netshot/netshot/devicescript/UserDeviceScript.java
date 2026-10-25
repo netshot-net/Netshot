@@ -33,6 +33,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.devicescript.helper.JsCliHelper;
 import net.netshot.netshot.devicescript.helper.JsClientFactory;
@@ -46,7 +47,6 @@ import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
-import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * A JavaScript-based script to execute on a device.
@@ -115,13 +115,13 @@ public class UserDeviceScript extends DeviceScript {
 	/**
 	 * Instantiates a JS-based script.
 	 * @param driverRegistry = The loaded device drivers
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param driverName = The name of the driver
 	 * @param code = The JavaScript code
 	 * @param logger = The task context
 	 */
-	public UserDeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, String driverName, String code, TaskContext logger) {
-		super(driverRegistry, secrets, logger);
+	public UserDeviceScript(DriverRegistry driverRegistry, Connectors connectors, String driverName, String code, TaskContext logger) {
+		super(driverRegistry, connectors, logger);
 		this.driverName = driverName;
 		this.code = code;
 	}

@@ -47,13 +47,10 @@ import org.apache.sshd.client.auth.password.PasswordAuthenticationReporter;
 import org.apache.sshd.client.auth.pubkey.PublicKeyAuthenticationReporter;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannelEvent;
-import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
-import org.apache.sshd.client.config.keys.ClientIdentityLoader;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionImpl;
-import org.apache.sshd.client.session.SessionFactory;
 import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.NamedFactory;
 import org.apache.sshd.common.NamedResource;
@@ -70,7 +67,6 @@ import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
 import org.apache.sshd.common.io.IoSession;
 import org.apache.sshd.common.kex.BuiltinDHFactories;
 import org.apache.sshd.common.kex.KexProposalOption;
-import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.apache.sshd.common.mac.BuiltinMacs;
 import org.apache.sshd.common.session.SessionListener;
@@ -240,9 +236,6 @@ public class Ssh extends Cli {
 		}
 	}
 
-	private static SshClient client;
-
-
 	/** The settings, from the configuration. */
 	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
@@ -255,28 +248,15 @@ public class Ssh extends Cli {
 	}
 
 	/**
-	 * Applies the settings to the shared SSH client.
-	 */
-	private static void applyClientSettings() {
-		Settings settings = Ssh.settings();
-		CoreModuleProperties.NIO2_READ_TIMEOUT.set(Ssh.client, Duration.ofMillis(settings.receiveTimeout()));
-		CoreModuleProperties.REKEY_TIME_LIMIT.set(Ssh.client, Duration.ofMillis(settings.rekeyTimeLimit()));
-		CoreModuleProperties.REKEY_BYTES_LIMIT.set(Ssh.client, settings.rekeyDataLimit());
-		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(Ssh.client, settings.rekeyBlocksLimit());
-		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(Ssh.client, settings.rekeyPacketsLimit());
-	}
-
-
-	/**
 	 * Attribute key carrying a per-access {@link DeviceHostKeyVerifier} into a session created by
-	 * the shared {@link Ssh#client} (see the {@code sessionEstablished} listener below). It can't
+	 * the shared SSH client (see the {@code sessionEstablished} listener of {@link SshClientService}). It can't
 	 * be set on the client directly (shared across all connections), nor after {@code
 	 * connect().verify()} returns (the key exchange may already be under way by then). Read from
 	 * the raw {@code IoSession} attribute, not {@link ClientSession#getConnectionContext()}: the
 	 * latter is only populated after the session's constructor returns, but {@code
 	 * sessionEstablished} fires from inside it.
 	 */
-	private static final AttributeRepository.AttributeKey<ServerKeyVerifier> HOST_KEY_VERIFIER_ATTRIBUTE =
+	static final AttributeRepository.AttributeKey<ServerKeyVerifier> HOST_KEY_VERIFIER_ATTRIBUTE =
 		new AttributeRepository.AttributeKey<>();
 
 	/**
@@ -297,7 +277,7 @@ public class Ssh extends Cli {
 	 * refreshConfiguration()}, before the base implementation's one-shot capture of those limits
 	 * (see that attribute's javadoc for why).
 	 */
-	private static final class NetshotClientSession extends ClientSessionImpl {
+	static final class NetshotClientSession extends ClientSessionImpl {
 
 		NetshotClientSession(ClientFactoryManager client, IoSession ioSession) throws Exception {
 			super(client, ioSession);
@@ -326,47 +306,8 @@ public class Ssh extends Cli {
 		}
 	}
 
-	static {
-		// Build global SSH client
-		Ssh.client = SshClient.setUpDefaultClient();
-		Ssh.client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
-		Ssh.client.setFilePasswordProvider(FilePasswordProvider.EMPTY);
-		Ssh.client.setClientIdentityLoader(ClientIdentityLoader.DEFAULT);
-		Ssh.client.setKeyIdentityProvider(KeyIdentityProvider.EMPTY_KEYS_PROVIDER);
-		Ssh.client.setSessionFactory(new SessionFactory(Ssh.client) {
-			@Override
-			protected ClientSessionImpl doCreateSession(IoSession ioSession) throws Exception {
-				return new NetshotClientSession(getClient(), ioSession);
-			}
-		});
-
-		CoreModuleProperties.CLIENT_IDENTIFICATION.set(Ssh.client, "NETSHOT-%s".formatted(Netshot.VERSION));
-		// Cisco IOS at least doesn't like receiving the identification message from client before sending its own
-		CoreModuleProperties.SEND_IMMEDIATE_IDENTIFICATION.set(Ssh.client, false);
-		CoreModuleProperties.SEND_IMMEDIATE_KEXINIT.set(Ssh.client, false);
-		// Fallback when a connection is established without a per-access verifier
-		// (e.g. tests) - real connections always supply one, see connect(boolean) below.
-		Ssh.client.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
-		Ssh.client.addSessionListener(new SessionListener() {
-			@Override
-			public void sessionEstablished(org.apache.sshd.common.session.Session session) {
-				if (!(session instanceof ClientSession clientSession)) {
-					return;
-				}
-				Object rawContext = session.getIoSession().getAttribute(AttributeRepository.class);
-				ServerKeyVerifier verifier = (rawContext instanceof AttributeRepository context)
-					? context.getAttribute(Ssh.HOST_KEY_VERIFIER_ATTRIBUTE)
-					: null;
-				if (verifier != null) {
-					clientSession.setServerKeyVerifier(verifier);
-				}
-			}
-		});
-		Ssh.applyClientSettings();
-		// Applied again on each configuration change
-		Netshot.config().addListener(_ -> Ssh.applyClientSettings());
-		Ssh.client.start();
-	}
+	/** The shared SSH client, which opens the sessions. */
+	private final SshClient client;
 
 	/** The port. */
 	private int port = DEFAULT_PORT;
@@ -404,14 +345,16 @@ public class Ssh extends Cli {
 	/**
 	 * Instantiates a new SSH connection (password authentication).
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param port the port
 	 * @param username the username
 	 * @param password the password
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, int port, String username, String password, TaskContext taskContext) {
+	public Ssh(SshClient client, String host, int port, String username, String password, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.port = port;
 		this.username = username;
 		this.password = password;
@@ -424,6 +367,7 @@ public class Ssh extends Cli {
 	/**
 	 * Instantiates a new SSH connection (private key authentication).
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param port the port
 	 * @param username the SSH username
@@ -431,9 +375,10 @@ public class Ssh extends Cli {
 	 * @param passphrase the passphrase which protects the private key
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, int port, String username, String privateKey,
+	public Ssh(SshClient client, String host, int port, String username, String privateKey,
 		String passphrase, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.port = port;
 		this.username = username;
 		this.privateKey = privateKey;
@@ -446,15 +391,17 @@ public class Ssh extends Cli {
 	/**
 	 * Instantiates a new SSH connection (private key authentication).
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param username the SSH username
 	 * @param privateKey the RSA/DSA private key
 	 * @param passphrase the passphrase which protects the private key
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, String username, String privateKey,
+	public Ssh(SshClient client, String host, String username, String privateKey,
 		String passphrase, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
@@ -467,13 +414,15 @@ public class Ssh extends Cli {
 	/**
 	 * Instantiates a new ssh.
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param username the username
 	 * @param password the password
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, String username, String password, TaskContext taskContext) {
+	public Ssh(SshClient client, String host, String username, String password, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
@@ -489,6 +438,7 @@ public class Ssh extends Cli {
 	 */
 	public Ssh(Ssh other) {
 		super(other.host, other.taskContext);
+		this.client = other.client;
 		this.port = other.port;
 		this.username = other.username;
 		this.password = other.password;
@@ -519,7 +469,7 @@ public class Ssh extends Cli {
 			contextAttributes.put(Ssh.SSH_CONFIG_ATTRIBUTE, this.sshConfig);
 			AttributeRepository connectContext = AttributeRepository.ofAttributesMap(contextAttributes);
 			try {
-				this.session = Ssh.client
+				this.session = this.client
 					.connect(this.username, this.host, this.port, connectContext, null)
 					.verify(this.connectionTimeout)
 					.getSession();

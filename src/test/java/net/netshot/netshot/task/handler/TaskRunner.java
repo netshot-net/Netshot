@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.database.Transactions;
@@ -34,6 +35,7 @@ import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJob;
 import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.TaskSpec;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
@@ -74,6 +76,8 @@ final class TaskRunner {
 			this.scheduledChildIds.add(child.id());
 			TestTasks.setStatus(child.id(), this.childStatus);
 		});
+		// The SSH client of the wiring isn't started (its services aren't): the one of the tests is
+		Connectors connectors = new Connectors(wiring.vaultManager(), TestConnectors.sshClient());
 		TaskHandlers handlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
 			new CheckGroupComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
@@ -81,13 +85,13 @@ final class TaskRunner {
 			new DiscoverDeviceTypeHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(orchestrator, TestDrivers.registry()),
-			new RunDeviceScriptHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
-			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
+			new RunDeviceScriptHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), connectors),
+			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), connectors),
 			new RunGroupDiagnosticsHandler(orchestrator),
 			new ScanSubnetsHandler(orchestrator),
 			new TakeGroupSnapshotHandler(orchestrator),
 			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
-				wiring.vaultManager())));
+				connectors)));
 		this.taskJob = new TaskJob(handlers, wiring.domainEvents(), wiring.taskManager());
 	}
 

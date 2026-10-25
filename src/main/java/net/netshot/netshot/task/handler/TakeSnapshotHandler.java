@@ -19,6 +19,8 @@
 package net.netshot.netshot.task.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.Connectors;
+import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.devicescript.DeviceScript;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -30,7 +32,6 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -40,7 +41,6 @@ import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
-import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Takes the snapshot of a device.
@@ -62,8 +62,8 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
-	/** Resolves the secrets of the credentials (local or Vault-backed). */
-	private final SecretResolver secrets;
+	/** The secret resolver and the SSH client of the device accesses. */
+	private final Connectors connectors;
 
 	/**
 	 * Creates the handler.
@@ -72,11 +72,11 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
 	 * @param dynamicGroups the refresher of the dynamic groups
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
 	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer, DynamicGroups dynamicGroups, SecretResolver secrets) {
-		this.secrets = secrets;
+		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.sshServer = sshServer;
@@ -100,7 +100,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.secrets, this.sshServer, run.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));

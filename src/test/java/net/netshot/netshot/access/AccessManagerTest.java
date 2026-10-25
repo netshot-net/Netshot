@@ -44,10 +44,10 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
-import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Unit tests for {@link AccessManager}, the generalized lazy connect +
@@ -109,7 +109,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(sshAccess);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(connectCount, null));
 
@@ -128,7 +128,7 @@ public class AccessManagerTest {
 		DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("credB").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(),
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(),
 			new LinkedHashSet<>(List.of(credA, credB)));
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 			if (credentialSet == credA) {
@@ -157,7 +157,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(telnetAccess);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh"), telnetAccess("telnet")),
 			(accessDef, _) -> {
 				if ("ssh".equals(accessDef.getName())) {
@@ -181,7 +181,7 @@ public class AccessManagerTest {
 		DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("credB").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(),
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(),
 			new LinkedHashSet<>(List.of(credA, credB)));
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 			if (credentialSet == credA) {
@@ -205,7 +205,7 @@ public class AccessManagerTest {
 	@DisplayName("Exhausting all candidates without any credential configured throws immediately")
 	void noCredentialsConfigured() {
 		DeviceDraft device = fakeDevice();
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(new AtomicInteger(), null));
 
@@ -223,7 +223,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(connectCount, null));
 
@@ -245,7 +245,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(connectCount, null));
 
@@ -267,7 +267,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 			if (credentialSet == pinnedCred) {
 				return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
@@ -292,7 +292,7 @@ public class AccessManagerTest {
 			TestDevices.addCredentialSet(credB);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
-			AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, autoPool(device), device, null, new FakeTaskContext(), null);
+			AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 				if (credentialSet.name().equals("autoPoolCredA")) {
 					return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
@@ -323,7 +323,7 @@ public class AccessManagerTest {
 			TestDevices.addCredentialSet(credB);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
-			AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, autoPool(device), device, null, new FakeTaskContext(), null);
+			AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")), (_, credentialSet) -> {
 				if (credentialSet.name().equals("autoPinCredA")) {
 					return new FakeClient(connectCount, new InvalidCredentialsException("bad password"));
@@ -362,7 +362,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(access);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(connectCount, null));
 
@@ -384,7 +384,7 @@ public class AccessManagerTest {
 			TestDevices.addCredentialSet(cred);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
-			AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, autoPool(device), device, null, new FakeTaskContext(), null);
+			AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), autoPool(device), device, null, new FakeTaskContext(), null);
 			Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 				(_, _) -> new FakeClient(connectCount, null));
 
@@ -405,7 +405,7 @@ public class AccessManagerTest {
 		DeviceCredentialSet oneTimeCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("oneTimeCred").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(),
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(),
 			new LinkedHashSet<>(List.of(oneTimeCred)));
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(connectCount, null));
@@ -427,7 +427,7 @@ public class AccessManagerTest {
 		device.putDeviceAccess(telnetRow);
 
 		AtomicInteger connectCount = new AtomicInteger(0);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(), null);
 		Resolution resolution = manager.newResolution(List.of(sshAccess("ssh")),
 			(_, _) -> new FakeClient(connectCount, null));
 
@@ -451,7 +451,7 @@ public class AccessManagerTest {
 		// should fall back to the default address and the driver-declared default port.
 		AccessDefinition alternateSsh = new AccessDefinition("alternateSsh", DriverProtocol.SSH, null,
 			null, null, null, 2222);
-		AccessManager manager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, defaultAddress, new FakeTaskContext(), null);
+		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, defaultAddress, new FakeTaskContext(), null);
 		Assertions.assertEquals(defaultAddress, manager.resolveAddress(alternateSsh));
 		Assertions.assertEquals(2222, manager.resolvePort(alternateSsh));
 

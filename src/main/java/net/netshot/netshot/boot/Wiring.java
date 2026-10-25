@@ -35,6 +35,8 @@ import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.access.Connectors;
+import net.netshot.netshot.access.SshClientService;
 import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
@@ -144,6 +146,8 @@ public final class Wiring {
 	private final DynamicGroups dynamicGroups;
 	// Vault client
 	private final VaultManager vaultManager;
+	// SSH client of the device accesses
+	private final SshClientService sshClientService;
 	// Device
 	private final DeviceService deviceService;
 	private final DeviceCreationService deviceCreationService;
@@ -293,6 +297,8 @@ public final class Wiring {
 		// Task handlers
 		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.taskManager::addTask);
 		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
+		this.sshClientService = new SshClientService(config);
+		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client());
 		this.taskHandlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(this.complianceChecker, this.dynamicGroups),
 			new CheckGroupComplianceHandler(this.complianceChecker, this.dynamicGroups),
@@ -300,13 +306,13 @@ public final class Wiring {
 			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
-			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, this.vaultManager),
+			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors),
+			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors),
 			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
 			new ScanSubnetsHandler(childTaskOrchestrator),
 			new TakeGroupSnapshotHandler(childTaskOrchestrator),
 			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
-				this.vaultManager)));
+				connectors)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 	}
@@ -363,6 +369,8 @@ public final class Wiring {
 			log.info("High Availability is not enabled.");
 		}
 		services.add(new VaultTokenRefresher(this.vaultManager, this.config));
+		// Before the task manager, which runs the tasks connecting to the devices
+		services.add(this.sshClientService);
 		services.add(this.taskManager);
 		// The receivers submit tasks: after the task manager
 		if (current.get(SyslogServer.DISABLED)) {

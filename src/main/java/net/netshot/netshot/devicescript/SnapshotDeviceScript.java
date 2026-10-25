@@ -36,6 +36,7 @@ import org.graalvm.polyglot.PolyglotException;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.devicescript.helper.JsCliHelper;
@@ -59,7 +60,6 @@ import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
-import net.netshot.netshot.vault.SecretResolver;
 
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
@@ -74,12 +74,12 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * Creates the snapshot script.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if not running)
 	 * @param logger the task logger
 	 */
-	public SnapshotDeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, SshServer sshServer, TaskContext logger) {
-		super(driverRegistry, secrets, logger);
+	public SnapshotDeviceScript(DriverRegistry driverRegistry, Connectors connectors, SshServer sshServer, TaskContext logger) {
+		super(driverRegistry, connectors, logger);
 		this.sshServer = sshServer;
 	}
 

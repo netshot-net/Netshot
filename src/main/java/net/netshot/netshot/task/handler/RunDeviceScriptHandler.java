@@ -19,6 +19,7 @@
 package net.netshot.netshot.task.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
@@ -35,7 +36,6 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
-import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Runs a script on a device.
@@ -51,18 +51,18 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
-	/** Resolves the secrets of the credentials (local or Vault-backed). */
-	private final SecretResolver secrets;
+	/** The secret resolver and the SSH client of the device accesses. */
+	private final Connectors connectors;
 
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
-	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
-	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets) {
-		this.secrets = secrets;
+	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
@@ -107,7 +107,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 				return;
 			}
 
-			deviceScript = new UserDeviceScript(this.driverRegistry, this.secrets, spec.deviceDriver(), spec.script(), run.logger);
+			deviceScript = new UserDeviceScript(this.driverRegistry, this.connectors, spec.deviceDriver(), spec.script(), run.logger);
 			deviceScript.setUserInputValues(spec.userInputValues());
 			DeviceDraft draft = new DeviceDraft(device);
 			deviceScript.connectRun(draft);
