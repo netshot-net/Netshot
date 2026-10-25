@@ -188,22 +188,16 @@ public final class ArchitectureTest {
 		ROOT + "platform.concurrent..", ROOT + "platform.lifecycle..",
 	};
 
-	/**
-	 * The threads are created by executors, through the named thread factory (platform.concurrent): no class
-	 * extends Thread. Excluded: the embedded TFTP server, which isn't started (to be decided: removed or turned
-	 * into a service).
-	 */
+	/** The threads are created by executors, through the named thread factory (platform.concurrent): no class extends Thread. */
 	@ArchTest
 	static final ArchRule NO_THREAD_SUBCLASS =
-		noClasses().that().doNotBelongToAnyOf(net.netshot.netshot.access.collector.TftpServer.class)
-			.should().beAssignableTo(Thread.class)
+		noClasses().should().beAssignableTo(Thread.class)
 			.allowEmptyShould(true);
 
 	/** Threads aren't created directly, but by the executors of the components (named thread factory). */
 	@ArchTest
 	static final ArchRule NO_DIRECT_THREAD_CREATION =
 		noClasses().that().resideOutsideOfPackages(THREAD_CREATORS)
-			.and().doNotBelongToAnyOf(net.netshot.netshot.access.collector.TftpServer.class)
 			.should().callConstructorWhere(new DescribedPredicate<JavaConstructorCall>("create a thread") {
 				@Override
 				public boolean test(JavaConstructorCall call) {
