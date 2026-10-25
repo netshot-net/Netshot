@@ -35,10 +35,9 @@ import org.graalvm.polyglot.PolyglotException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.access.collector.SshServer;
-import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.InvalidCredentialsException;
+import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.devicescript.helper.JsCliHelper;
 import net.netshot.netshot.devicescript.helper.JsClientFactory;
 import net.netshot.netshot.devicescript.helper.JsConfigHelper;
@@ -57,8 +56,9 @@ import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {

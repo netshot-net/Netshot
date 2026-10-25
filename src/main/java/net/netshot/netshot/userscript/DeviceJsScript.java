@@ -25,7 +25,7 @@ import org.slf4j.event.Level;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * A JavaScript script which users run on devices.

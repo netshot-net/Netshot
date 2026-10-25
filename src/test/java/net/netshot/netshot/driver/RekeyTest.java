@@ -37,7 +37,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.Ssh;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;

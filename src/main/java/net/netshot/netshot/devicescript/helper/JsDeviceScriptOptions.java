@@ -26,7 +26,7 @@ import org.graalvm.polyglot.proxy.ProxyObject;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * The options object to pass data to JavaScript entry function in a generic way.

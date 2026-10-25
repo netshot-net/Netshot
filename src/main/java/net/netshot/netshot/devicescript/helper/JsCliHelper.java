@@ -44,7 +44,7 @@ import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultableSecret;

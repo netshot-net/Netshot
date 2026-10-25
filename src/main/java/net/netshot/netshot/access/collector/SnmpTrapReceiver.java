@@ -44,7 +44,6 @@ import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
 import org.snmp4j.CommandResponder;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.MessageDispatcherImpl;
@@ -114,8 +113,8 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	/** The loaded device drivers. */
 	private final DriverRegistry driverRegistry;
 
-	/** The scheduler of the automatic snapshots. */
-	private final AutoSnapshotScheduler autoSnapshotScheduler;
+	/** Where the configuration changes are reported (the scheduler of the automatic snapshots). */
+	private final SnapshotRequester snapshotRequester;
 
 	/** The dispatcher. */
 	private MultiThreadedMessageDispatcher dispatcher;
@@ -169,12 +168,12 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 	 * Instantiates a new snmp trap receiver.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
+	 * @param snapshotRequester where the configuration changes are reported (the scheduler of the automatic snapshots)
 	 * @param config the configuration store
 	 */
-	public SnmpTrapReceiver(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, ConfigStore config) {
+	public SnmpTrapReceiver(DriverRegistry driverRegistry, SnapshotRequester snapshotRequester, ConfigStore config) {
 		this.driverRegistry = driverRegistry;
-		this.autoSnapshotScheduler = autoSnapshotScheduler;
+		this.snapshotRequester = snapshotRequester;
 		this.config = config;
 	}
 
@@ -515,7 +514,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 					}
 					if (matchingDrivers.size() > 0) {
 						this.matched.incrementAndGet();
-						this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(matchingDrivers, source);
+						this.snapshotRequester.requestSnapshot(matchingDrivers, source);
 					}
 				}
 				catch (Exception e) {

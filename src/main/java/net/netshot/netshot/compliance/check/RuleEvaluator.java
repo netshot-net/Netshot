@@ -22,7 +22,7 @@ package net.netshot.netshot.compliance.check;
 import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Evaluates the rules of one type against a device. The rule entities only hold
