@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
@@ -42,12 +43,17 @@ public class RunDeviceGroupScriptHandler implements TaskHandler<RunDeviceGroupSc
 	private final ChildTaskOrchestrator childTaskOrchestrator;
 	private final DriverRegistry driverRegistry;
 
+	/** The transaction support. */
+	private final Transactions transactions;
+
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param childTaskOrchestrator the child task orchestrator
 	 * @param driverRegistry the driver registry
 	 */
-	public RunDeviceGroupScriptHandler(ChildTaskOrchestrator childTaskOrchestrator, DriverRegistry driverRegistry) {
+	public RunDeviceGroupScriptHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator, DriverRegistry driverRegistry) {
+		this.transactions = transactions;
 		this.childTaskOrchestrator = childTaskOrchestrator;
 		this.driverRegistry = driverRegistry;
 	}
@@ -59,7 +65,7 @@ public class RunDeviceGroupScriptHandler implements TaskHandler<RunDeviceGroupSc
 
 	@Override
 	public void run(Task task, RunDeviceGroupScriptTask spec, TaskRun run) {
-		TaskTargets targets = TaskTargets.load(spec);
+		TaskTargets targets = TaskTargets.load(this.transactions, spec);
 		List<Device> devices = targets.devices();
 		if (targets.group() == null && devices.isEmpty()) {
 			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");

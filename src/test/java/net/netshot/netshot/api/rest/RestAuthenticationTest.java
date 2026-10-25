@@ -46,7 +46,6 @@ import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.error.ErrorCode;
 import org.junit.jupiter.api.AfterAll;
@@ -104,7 +103,7 @@ public class RestAuthenticationTest {
 
 		@AfterEach
 		void cleanUpData() {
-			new Transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
+			TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
 		}
 
 		@Test
@@ -158,7 +157,7 @@ public class RestAuthenticationTest {
 		void currentUser() throws IOException, InterruptedException {
 			String secret = "jmE5C9JHDpLtbGswYfWBdUayKFn7Th6R";
 			ApiToken temp = ApiToken.of("Token get test", secret, UiUser.LEVEL_READONLY);
-			ApiToken token1 = temp.withId(new Transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
+			ApiToken token1 = temp.withId(TestWiring.get().transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
 			apiClient.setApiToken(secret);
 			HttpResponse<JsonNode> response = apiClient.get("/user");
 			Assertions.assertEquals(
@@ -208,7 +207,7 @@ public class RestAuthenticationTest {
 				user = user.withLastPasswordChangeDate(Instant.now().minus(passwordAge, ChronoUnit.DAYS));
 			}
 			UiUser stored = user;
-			this.testUser = stored.withId(new Transactions().write(dsl -> new UserRepository().add(dsl, stored)));
+			this.testUser = stored.withId(TestWiring.get().transactions().write(dsl -> new UserRepository().add(dsl, stored)));
 		}
 
 		@Test
@@ -338,7 +337,7 @@ public class RestAuthenticationTest {
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response");
 			{
-				UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 					"Password not changed as expected");
 			}
@@ -356,7 +355,7 @@ public class RestAuthenticationTest {
 				() -> apiClient.get("/domains"),
 				"Login should have failed");
 			{
-				UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(testPassword, null),
 					"Password should not have changed");
 			}
@@ -500,7 +499,7 @@ public class RestAuthenticationTest {
 					Response.Status.OK.getStatusCode(), response.statusCode(),
 					"Not getting 200 response");
 				{
-					UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+					UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 					Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 						"Password should have changed");
 				}

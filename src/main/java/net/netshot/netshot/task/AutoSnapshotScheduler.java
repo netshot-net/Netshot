@@ -30,7 +30,6 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -101,7 +100,7 @@ public class AutoSnapshotScheduler {
 		Device device;
 		try {
 			log.trace("Retrieving the device.");
-			device = new Transactions().read(dsl -> {
+			device = this.taskManager.transactions().read(dsl -> {
 				Long deviceId = dsl.select(DEVICE.ID).from(DEVICE)
 					.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name()), DEVICE.CACHED_IP_ADDRESS.eq(address.getInetAddress()))
 					.fetchOne(DEVICE.ID);
@@ -145,7 +144,7 @@ public class AutoSnapshotScheduler {
 		Device device;
 		try {
 			log.trace("Retrieving the device.");
-			device = new Transactions().read(dsl -> new DeviceRepository().find(dsl, deviceId));
+			device = this.taskManager.transactions().read(dsl -> new DeviceRepository().find(dsl, deviceId));
 			if (device == null) {
 				log.warn("No device with such ID {} in the database.", deviceId);
 				return false;

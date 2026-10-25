@@ -27,7 +27,6 @@ import java.util.Map;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -108,7 +107,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			return;
 		}
 		ApiTokenRepository tokens = new ApiTokenRepository();
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			// Remove the default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			for (Map.Entry<Integer, String> entry : TestServer.API_TOKENS.entrySet()) {
@@ -123,7 +122,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!managesTokens(context)) {
 			return;
 		}
-		new Transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
+		TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
 	}
 
 	@Override

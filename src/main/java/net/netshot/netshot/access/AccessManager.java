@@ -39,7 +39,6 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -190,7 +189,7 @@ public class AccessManager {
 			}
 		}
 		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
-		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> new Transactions().read(
+		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> connectors.transactions().read(
 			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
 		return new AccessManager(driverRegistry, connectors, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}

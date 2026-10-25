@@ -49,7 +49,8 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	private final DriverRegistry driverRegistry;
 	private final DiagnosticAdapters diagnosticAdapters;
 	private final TaskSubmitter taskSubmitter;
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/** The refresher of the dynamic groups. */
@@ -60,14 +61,16 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param driverRegistry the loaded device drivers
 	 * @param diagnosticAdapters the diagnostic adapters
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
-	public RunDiagnosticsHandler(DriverRegistry driverRegistry, DiagnosticAdapters diagnosticAdapters,
+	public RunDiagnosticsHandler(Transactions transactions, DriverRegistry driverRegistry, DiagnosticAdapters diagnosticAdapters,
 		TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;

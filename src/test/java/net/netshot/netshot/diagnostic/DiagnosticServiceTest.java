@@ -44,6 +44,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the diagnostic use cases, against a real database: error codes and their order,
@@ -62,7 +63,7 @@ class DiagnosticServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository());
 		this.groupId = TestDevices.addStaticGroup("Group").id();
 		this.otherGroupId = TestDevices.addStaticGroup("Other group").id();

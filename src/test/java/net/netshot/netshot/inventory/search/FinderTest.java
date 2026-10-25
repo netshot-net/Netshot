@@ -68,11 +68,11 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
@@ -115,7 +115,7 @@ public class FinderTest {
 				.server4Address(new Network4Address("10.%d.1.1".formatted(i))).build()));
 		}
 
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			// Create test diagnostics BEFORE devices
 			Diagnostic textDiagnostic = new SimpleDiagnostic(0,
 				"System Status", true, null, AttributeType.TEXT,
@@ -258,7 +258,7 @@ public class FinderTest {
 				default -> null;
 			};
 			if (checkResult != null) {
-				new Transactions().run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
+				TestWiring.get().transactions().run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
 			}
 		}
 	}
@@ -278,7 +278,7 @@ public class FinderTest {
 	 */
 	private void assertFinder(String nsQuery, String expectedFormattedQuery,
 			List<String> expectedDeviceNames) throws Exception {
-		Finder finder = new Finder(nsQuery, TestDrivers.registry());
+		Finder finder = new Finder(nsQuery, TestDrivers.registry(), TestWiring.get().transactions());
 		Assertions.assertEquals(
 			expectedFormattedQuery == null ? nsQuery : expectedFormattedQuery,
 			finder.getFormattedQuery(),
@@ -302,7 +302,7 @@ public class FinderTest {
 	 * @return the device names
 	 */
 	private static List<String> findDeviceNames(Finder finder) {
-		return new Transactions().read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
+		return TestWiring.get().transactions().read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
 	}
 
 	@Test
@@ -498,8 +498,8 @@ public class FinderTest {
 		assertFinder("[IP] contains 172.16.0.50",
 			null,
 			List.of());
-		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 10.0.5.0/24", TestDrivers.registry()));
-		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 2016:1:5:1::/64", TestDrivers.registry()));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 10.0.5.0/24", TestDrivers.registry(), TestWiring.get().transactions()));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 2016:1:5:1::/64", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -559,7 +559,7 @@ public class FinderTest {
 	@Test
 	@DisplayName("Query device without a given tag")
 	void queryByNotTag() throws Exception {
-		List<String> deviceNames = findDeviceNames(new Finder("not ([Tag] is \"core\")", TestDrivers.registry()));
+		List<String> deviceNames = findDeviceNames(new Finder("not ([Tag] is \"core\")", TestDrivers.registry(), TestWiring.get().transactions()));
 		Assertions.assertEquals(98, deviceNames.size(), "Unexpected number of devices");
 		Assertions.assertFalse(deviceNames.contains("router00040"));
 	}
@@ -567,7 +567,7 @@ public class FinderTest {
 	@Test
 	@DisplayName("Invalid operator for tag")
 	void queryByTagInvalidOperator() {
-		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[Tag] lessthan \"core\"", TestDrivers.registry()));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[Tag] lessthan \"core\"", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -741,7 +741,7 @@ public class FinderTest {
 	void queryByUnknownDiagnostic() throws Exception {
 		// Unknown diagnostic should throw FinderParseException
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Diagnostic > Nonexistent Diagnostic] is \"value\"", TestDrivers.registry()));
+			() -> new Finder("[Diagnostic > Nonexistent Diagnostic] is \"value\"", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -749,7 +749,7 @@ public class FinderTest {
 	void queryByDiagnosticWrongType() throws Exception {
 		// Try to use IS TRUE on a text diagnostic - should throw FinderParseException
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Diagnostic > System Status] is true", TestDrivers.registry()));
+			() -> new Finder("[Diagnostic > System Status] is true", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -820,14 +820,14 @@ public class FinderTest {
 	@DisplayName("Query device by unknown policy - throws exception")
 	void queryByUnknownPolicy() throws Exception {
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Rule > Unknown Policy > Some Rule] is CONFORMING", TestDrivers.registry()));
+			() -> new Finder("[Rule > Unknown Policy > Some Rule] is CONFORMING", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
 	@DisplayName("Query device by unknown rule - throws exception")
 	void queryByUnknownRule() throws Exception {
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Rule > Security Policy > Unknown Rule] is CONFORMING", TestDrivers.registry()));
+			() -> new Finder("[Rule > Security Policy > Unknown Rule] is CONFORMING", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -842,7 +842,7 @@ public class FinderTest {
 	@DisplayName("Simple parser exception")
 	void throwParserExceptionSimple() throws Exception {
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[INVALID] is true", TestDrivers.registry()),
+			() -> new Finder("[INVALID] is true", TestDrivers.registry(), TestWiring.get().transactions()),
 			"Parser didn't throw exception as expected");
 	}
 
@@ -916,6 +916,6 @@ public class FinderTest {
 	@DisplayName("Query finds the expected number of devices")
 	Stream<DynamicTest> queryCount() {
 		return countedQueries().stream().map(c -> DynamicTest.dynamicTest(c.getKey(),
-			() -> Assertions.assertEquals(c.getValue().intValue(), findDeviceNames(new Finder(c.getKey(), TestDrivers.registry())).size())));
+			() -> Assertions.assertEquals(c.getValue().intValue(), findDeviceNames(new Finder(c.getKey(), TestDrivers.registry(), TestWiring.get().transactions())).size())));
 	}
 }

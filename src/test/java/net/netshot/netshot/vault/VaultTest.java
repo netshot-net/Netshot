@@ -32,13 +32,13 @@ import org.testcontainers.vault.VaultContainer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.credentials.DeviceSshAccount;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
-import net.netshot.netshot.Netshot;
 
 @DatabaseTest(boot = Boot.MANUAL)
 @Testcontainers
@@ -130,7 +130,7 @@ public class VaultTest {
 		private static final VaultContainer<?> VAULT_CONTAINER = buildVaultContainer();
 
 		/** The Vault client, reading the Vault instances from the database. */
-		private final VaultManager vault = new VaultManager(Netshot.config());
+		private final VaultManager vault = new VaultManager(Netshot.config(), TestWiring.get().transactions());
 
 		/**
 		 * Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class.
@@ -164,7 +164,7 @@ public class VaultTest {
 				.appRoleId(ROLE_ID)
 				.appRoleSecretId(SECRET_ID)
 				.build();
-			vaultInstanceId = new Transactions().write(dsl -> new VaultInstanceRepository().add(dsl, vaultInstance)).id();
+			vaultInstanceId = TestWiring.get().transactions().write(dsl -> new VaultInstanceRepository().add(dsl, vaultInstance)).id();
 
 			DeviceSshAccount account = DeviceSshAccount.builder().superPassword(LOCAL_SUPER_PASSWORD).name("vault-test-account")
 				.usernameVaultInstanceId(vaultInstanceId).usernameVaultPath(SECRET_PATH + "/username")
@@ -217,7 +217,7 @@ public class VaultTest {
 				.appRoleId(ROLE_ID)
 				.appRoleSecretId("not-the-right-secret-id")
 				.build();
-			long wrongInstanceId = new Transactions().write(dsl -> new VaultInstanceRepository().add(dsl, wrongInstance)).id();
+			long wrongInstanceId = TestWiring.get().transactions().write(dsl -> new VaultInstanceRepository().add(dsl, wrongInstance)).id();
 
 			VaultableSecret secret = new VaultableSecret(null, wrongInstanceId, SECRET_PATH + "/username");
 

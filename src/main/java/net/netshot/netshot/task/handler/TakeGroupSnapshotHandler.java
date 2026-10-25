@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -40,11 +41,16 @@ public class TakeGroupSnapshotHandler implements TaskHandler<TakeGroupSnapshotTa
 
 	private final ChildTaskOrchestrator childTaskOrchestrator;
 
+	/** The transaction support. */
+	private final Transactions transactions;
+
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param childTaskOrchestrator the child task orchestrator
 	 */
-	public TakeGroupSnapshotHandler(ChildTaskOrchestrator childTaskOrchestrator) {
+	public TakeGroupSnapshotHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator) {
+		this.transactions = transactions;
 		this.childTaskOrchestrator = childTaskOrchestrator;
 	}
 
@@ -55,7 +61,7 @@ public class TakeGroupSnapshotHandler implements TaskHandler<TakeGroupSnapshotTa
 
 	@Override
 	public void run(Task task, TakeGroupSnapshotTask spec, TaskRun run) {
-		TaskTargets targets = TaskTargets.load(spec);
+		TaskTargets targets = TaskTargets.load(this.transactions, spec);
 		List<Device> allDevices = targets.devices();
 		if (targets.group() == null && allDevices.isEmpty()) {
 			run.logger.info("Neither a device group nor a device list is set, the task will be cancelled.");

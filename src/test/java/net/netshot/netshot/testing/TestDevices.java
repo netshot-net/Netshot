@@ -48,7 +48,14 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  */
 public final class TestDevices {
 
-	private static final Transactions TRANSACTIONS = new Transactions();
+	/**
+	 * Gets the transaction support of the current test class (each one has its own wiring and database).
+	 *
+	 * @return the transaction support
+	 */
+	private static Transactions transactions() {
+		return TestWiring.get().transactions();
+	}
 
 	private static final DeviceRepository DEVICES = new DeviceRepository();
 
@@ -66,7 +73,7 @@ public final class TestDevices {
 	 * @return the stored domain
 	 */
 	public static Domain addDomain(Domain domain) {
-		return TRANSACTIONS.write(dsl -> new DomainRepository().add(dsl, domain));
+		return transactions().write(dsl -> new DomainRepository().add(dsl, domain));
 	}
 
 	/**
@@ -87,7 +94,7 @@ public final class TestDevices {
 	 * @return the stored credential set
 	 */
 	public static DeviceCredentialSet addCredentialSet(DeviceCredentialSet credentialSet) {
-		return TRANSACTIONS.write(dsl -> new CredentialSetRepository().add(dsl, credentialSet));
+		return transactions().write(dsl -> new CredentialSetRepository().add(dsl, credentialSet));
 	}
 
 	/**
@@ -97,7 +104,7 @@ public final class TestDevices {
 	 * @return the credential set, or null if there is none
 	 */
 	public static DeviceCredentialSet findCredentialSet(long id) {
-		return TRANSACTIONS.read(dsl -> new CredentialSetRepository().find(dsl, id));
+		return transactions().read(dsl -> new CredentialSetRepository().find(dsl, id));
 	}
 
 	/**
@@ -106,7 +113,7 @@ public final class TestDevices {
 	 * @return the number of devices
 	 */
 	public static int count() {
-		return TRANSACTIONS.read(dsl -> dsl.fetchCount(net.netshot.netshot.platform.database.schema.Tables.DEVICE));
+		return transactions().read(dsl -> dsl.fetchCount(net.netshot.netshot.platform.database.schema.Tables.DEVICE));
 	}
 
 	/**
@@ -116,7 +123,7 @@ public final class TestDevices {
 	 * @return the stored device
 	 */
 	public static Device add(Device device) {
-		return TRANSACTIONS.write(dsl -> {
+		return transactions().write(dsl -> {
 			CredentialSetRepository credentialSets = new CredentialSetRepository();
 			List<DeviceAccess> accesses = new ArrayList<>();
 			for (DeviceAccess access : device.accesses()) {
@@ -144,7 +151,7 @@ public final class TestDevices {
 			addConfig(added, config);
 		}
 		if (results.length > 0) {
-			TRANSACTIONS.run(dsl -> new DiagnosticResultRepository().save(dsl, added.id(), List.of(results)));
+			transactions().run(dsl -> new DiagnosticResultRepository().save(dsl, added.id(), List.of(results)));
 		}
 		return find(added.id());
 	}
@@ -169,7 +176,7 @@ public final class TestDevices {
 	 * @return the ID of the configuration
 	 */
 	public static long addConfig(Device device, Config config) {
-		return TRANSACTIONS.write(dsl -> {
+		return transactions().write(dsl -> {
 			long configId = CONFIGS.add(dsl, config.toBuilder().deviceId(device.id()).build());
 			Device stored = DEVICES.find(dsl, device.id());
 			DEVICES.save(dsl, stored, stored.toBuilder().lastConfigId(configId).build());
@@ -185,7 +192,7 @@ public final class TestDevices {
 	 * @return the ID of the configuration
 	 */
 	public static long addOldConfig(long deviceId, Config config) {
-		return TRANSACTIONS.write(dsl -> CONFIGS.add(dsl, config.toBuilder().deviceId(deviceId).build()));
+		return transactions().write(dsl -> CONFIGS.add(dsl, config.toBuilder().deviceId(deviceId).build()));
 	}
 
 	/**
@@ -195,7 +202,7 @@ public final class TestDevices {
 	 * @return the saved device
 	 */
 	public static Device save(Device device) {
-		return TRANSACTIONS.write(dsl -> {
+		return transactions().write(dsl -> {
 			DEVICES.save(dsl, DEVICES.find(dsl, device.id()), device);
 			return DEVICES.find(dsl, device.id());
 		});
@@ -208,7 +215,7 @@ public final class TestDevices {
 	 * @param changeDate the change date
 	 */
 	public static void setChangeDate(long deviceId, Instant changeDate) {
-		TRANSACTIONS.run(dsl -> dsl.update(net.netshot.netshot.platform.database.schema.Tables.DEVICE)
+		transactions().run(dsl -> dsl.update(net.netshot.netshot.platform.database.schema.Tables.DEVICE)
 			.set(net.netshot.netshot.platform.database.schema.Tables.DEVICE.CHANGE_DATE, changeDate)
 			.where(net.netshot.netshot.platform.database.schema.Tables.DEVICE.ID.eq(deviceId))
 			.execute());
@@ -220,7 +227,7 @@ public final class TestDevices {
 	 * @param id the device ID
 	 */
 	public static void delete(long id) {
-		TRANSACTIONS.run(dsl -> DEVICES.remove(dsl, id));
+		transactions().run(dsl -> DEVICES.remove(dsl, id));
 	}
 
 	/**
@@ -228,7 +235,7 @@ public final class TestDevices {
 	 * what references them, the tasks included).
 	 */
 	public static void deleteAll() {
-		TRANSACTIONS.run(dsl -> dsl.execute("truncate table device, config, config_attribute, long_text_configuration, "
+		transactions().run(dsl -> dsl.execute("truncate table device, config, config_attribute, long_text_configuration, "
 			+ "device_group, device_credential_set, domain cascade"));
 	}
 
@@ -239,7 +246,7 @@ public final class TestDevices {
 	 * @return the device, or null if there is no such device
 	 */
 	public static Device find(long id) {
-		return TRANSACTIONS.read(dsl -> DEVICES.find(dsl, id));
+		return transactions().read(dsl -> DEVICES.find(dsl, id));
 	}
 
 	/**
@@ -249,7 +256,7 @@ public final class TestDevices {
 	 * @return the configuration, or null if there is no such configuration
 	 */
 	public static Config findConfig(long id) {
-		return TRANSACTIONS.read(dsl -> CONFIGS.find(dsl, id, true));
+		return transactions().read(dsl -> CONFIGS.find(dsl, id, true));
 	}
 
 	/**
@@ -259,7 +266,7 @@ public final class TestDevices {
 	 * @return the results
 	 */
 	public static List<DiagnosticResult> diagnosticResults(long deviceId) {
-		return TRANSACTIONS.read(dsl -> new DiagnosticResultRepository().findByDevice(dsl, deviceId));
+		return transactions().read(dsl -> new DiagnosticResultRepository().findByDevice(dsl, deviceId));
 	}
 
 	/**
@@ -270,7 +277,7 @@ public final class TestDevices {
 	 * @return the stored group
 	 */
 	public static StaticDeviceGroup addStaticGroup(String name, Device... devices) {
-		return TRANSACTIONS.write(dsl -> {
+		return transactions().write(dsl -> {
 			StaticDeviceGroup group = (StaticDeviceGroup) GROUPS.add(dsl, StaticDeviceGroup.builder().name(name).folder("").build());
 			List<Long> ids = new ArrayList<>();
 			for (Device device : devices) {
@@ -289,11 +296,11 @@ public final class TestDevices {
 	 * @return the stored group
 	 */
 	public static DynamicDeviceGroup addDynamicGroup(String name, String query) {
-		return TRANSACTIONS.write(dsl -> {
+		return transactions().write(dsl -> {
 			DynamicDeviceGroup group = (DynamicDeviceGroup) GROUPS.add(dsl,
 				DynamicDeviceGroup.builder().name(name).folder("").query(query).build());
 			try {
-				new DynamicGroups(TestDrivers.registry()).refresh(dsl, group);
+				new DynamicGroups(transactions(), TestDrivers.registry()).refresh(dsl, group);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalArgumentException("Invalid query", e);
@@ -309,7 +316,7 @@ public final class TestDevices {
 	 * @param devices the devices
 	 */
 	public static void addMembers(DeviceGroup group, Device... devices) {
-		TRANSACTIONS.run(dsl -> {
+		transactions().run(dsl -> {
 			for (Device device : devices) {
 				GROUPS.addMember(dsl, group.id(), device.id());
 			}
@@ -323,6 +330,6 @@ public final class TestDevices {
 	 * @return the device IDs
 	 */
 	public static List<Long> memberIds(long groupId) {
-		return TRANSACTIONS.read(dsl -> GROUPS.findMemberIds(dsl, groupId));
+		return transactions().read(dsl -> GROUPS.findMemberIds(dsl, groupId));
 	}
 }
