@@ -48,6 +48,9 @@ public final class VaultTokenRefresher implements Service {
 	static final Setting<Integer> POLL_INTERVAL = Setting.integer("netshot.vault.token.refreshpollintervalseconds")
 		.defaultValue(60).range(5, Integer.MAX_VALUE).live();
 
+	/** The Vault client, whose tokens are refreshed. */
+	private final VaultManager vaultManager;
+
 	/** The configuration store. */
 	private final ConfigStore config;
 
@@ -63,9 +66,11 @@ public final class VaultTokenRefresher implements Service {
 	/**
 	 * Creates the refresher.
 	 *
+	 * @param vaultManager the Vault client, whose tokens are refreshed
 	 * @param config the configuration store
 	 */
-	public VaultTokenRefresher(ConfigStore config) {
+	public VaultTokenRefresher(VaultManager vaultManager, ConfigStore config) {
+		this.vaultManager = vaultManager;
 		this.config = config;
 	}
 
@@ -91,7 +96,7 @@ public final class VaultTokenRefresher implements Service {
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("rounds", this.rounds.get());
 		stats.put("refreshFailures", this.failures.get());
-		stats.putAll(VaultManager.stats());
+		stats.putAll(this.vaultManager.stats());
 		return stats;
 	}
 
@@ -125,7 +130,7 @@ public final class VaultTokenRefresher implements Service {
 				continue;
 			}
 			try {
-				VaultManager.getToken(vaultInstance);
+				this.vaultManager.getToken(vaultInstance);
 			}
 			catch (VaultException e) {
 				this.failures.incrementAndGet();

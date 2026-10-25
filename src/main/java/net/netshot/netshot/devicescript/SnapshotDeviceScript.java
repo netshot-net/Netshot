@@ -59,6 +59,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 @Slf4j
 public final class SnapshotDeviceScript extends DeviceScript {
@@ -73,11 +74,12 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * Creates the snapshot script.
 	 *
 	 * @param driverRegistry the loaded device drivers
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if not running)
 	 * @param logger the task logger
 	 */
-	public SnapshotDeviceScript(DriverRegistry driverRegistry, SshServer sshServer, TaskContext logger) {
-		super(driverRegistry, logger);
+	public SnapshotDeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, SshServer sshServer, TaskContext logger) {
+		super(driverRegistry, secrets, logger);
 		this.sshServer = sshServer;
 	}
 

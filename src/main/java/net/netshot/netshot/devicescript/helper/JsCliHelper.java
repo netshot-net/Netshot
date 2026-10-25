@@ -46,7 +46,6 @@ import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultableSecret;
 
 /**
@@ -152,9 +151,9 @@ public class JsCliHelper {
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private static String resolveSecret(VaultableSecret secret) throws IOException {
+	private String resolveSecret(VaultableSecret secret) throws IOException {
 		try {
-			return VaultManager.resolve(secret);
+			return this.accessManager.secrets().resolve(secret);
 		}
 		catch (VaultException e) {
 			throw new IOException("Unable to resolve a Vault-backed credential: " + e.getMessage(), e);

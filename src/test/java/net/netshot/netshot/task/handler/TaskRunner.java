@@ -77,15 +77,16 @@ final class TaskRunner {
 			new CheckComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
 			new CheckGroupComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
 			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups()),
+			new DiscoverDeviceTypeHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(orchestrator, TestDrivers.registry()),
-			new RunDeviceScriptHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups()),
-			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups()),
+			new RunDeviceScriptHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
+			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups(), wiring.vaultManager()),
 			new RunGroupDiagnosticsHandler(orchestrator),
 			new ScanSubnetsHandler(orchestrator),
 			new TakeGroupSnapshotHandler(orchestrator),
-			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups())));
+			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups(),
+				wiring.vaultManager())));
 		this.taskJob = new TaskJob(handlers, wiring.domainEvents(), wiring.taskManager());
 	}
 

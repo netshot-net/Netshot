@@ -59,7 +59,7 @@ import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultableSecret;
 
 /**
@@ -217,14 +217,19 @@ public class Http implements Client {
 	/** PEM-encoded trust anchor certificate(s), used when {@link #caTrustMode} is {@code CUSTOM_CA}. */
 	private String customCaCertificate;
 
+	/** Resolves the secrets of the HTTP accounts. */
+	private final SecretResolver secrets;
+
 	/**
 	 * Instantiates a new HTTP access.
 	 * @param host the target host (IPv4/IPv6 literal or FQDN)
 	 * @param port the target TCP port
 	 * @param tls whether to use TLS (https) or not
 	 * @param taskContext the current task context
+	 * @param secrets resolves the secrets of the HTTP accounts (local or Vault-backed)
 	 */
-	public Http(String host, int port, boolean tls, TaskContext taskContext) {
+	public Http(String host, int port, boolean tls, TaskContext taskContext, SecretResolver secrets) {
+		this.secrets = secrets;
 		this.host = host;
 		this.port = port;
 		this.tls = tls;
@@ -347,9 +352,9 @@ public class Http implements Client {
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private static String resolveSecret(VaultableSecret secret) throws IOException {
+	private String resolveSecret(VaultableSecret secret) throws IOException {
 		try {
-			return VaultManager.resolve(secret);
+			return this.secrets.resolve(secret);
 		}
 		catch (VaultException e) {
 			throw new IOException("Unable to resolve a Vault-backed credential: " + e.getMessage(), e);

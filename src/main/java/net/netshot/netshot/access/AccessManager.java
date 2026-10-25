@@ -40,6 +40,7 @@ import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Generalizes the credential-set fallback logic that used to be triplicated
@@ -87,6 +88,9 @@ public class AccessManager {
 	}
 
 	private final DriverRegistry driverRegistry;
+
+	/** Resolves the secrets of the credentials (local or Vault-backed). */
+	private final SecretResolver secrets;
 	private final Supplier<List<DeviceCredentialSet>> autoPoolLoader;
 	@Getter
 	private final DeviceDraft device;
@@ -107,6 +111,7 @@ public class AccessManager {
 	/**
 	 * Instantiates a new access manager for one task attempt.
 	 * @param driverRegistry the loaded device drivers
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @param autoPoolLoader loads the auto-try pool of credential sets of the device (may be null, e.g. for
 	 *        ad-hoc/test runs: no pool then)
 	 * @param device the device being accessed
@@ -116,14 +121,24 @@ public class AccessManager {
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 */
-	public AccessManager(DriverRegistry driverRegistry, Supplier<List<DeviceCredentialSet>> autoPoolLoader, DeviceDraft device,
-			NetworkAddress address, TaskContext taskContext, java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
+	public AccessManager(DriverRegistry driverRegistry, SecretResolver secrets, Supplier<List<DeviceCredentialSet>> autoPoolLoader,
+			DeviceDraft device, NetworkAddress address, TaskContext taskContext, java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
 		this.driverRegistry = driverRegistry;
+		this.secrets = secrets;
 		this.autoPoolLoader = autoPoolLoader;
 		this.device = device;
 		this.address = address;
 		this.taskContext = taskContext;
 		this.oneTimeCredentialSets = oneTimeCredentialSets;
+	}
+
+	/**
+	 * Gets the resolver of the secrets of the credentials (local or Vault-backed).
+	 *
+	 * @return the secret resolver
+	 */
+	public SecretResolver secrets() {
+		return this.secrets;
 	}
 
 	/**
@@ -135,12 +150,13 @@ public class AccessManager {
 	 * sets (the global ones of the domain of the device) is read from the database
 	 * when needed.
 	 * @param driverRegistry the loaded device drivers
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @param device the device being accessed
 	 * @param taskContext the current task context
 	 * @param oneTimeCredentialSets one-time credential sets to try first (may be null/empty)
 	 * @return the new access manager
 	 */
-	public static AccessManager forDevice(DriverRegistry driverRegistry, DeviceDraft device, TaskContext taskContext,
+	public static AccessManager forDevice(DriverRegistry driverRegistry, SecretResolver secrets, DeviceDraft device, TaskContext taskContext,
 			java.util.Set<DeviceCredentialSet> oneTimeCredentialSets) {
 		device.setCachedIpAddress(Device.resolveIpAddress(device.getMgmtAddress()));
 		NetworkAddress address = null;
@@ -164,7 +180,7 @@ public class AccessManager {
 		Long domainId = device.getMgmtDomain() == null ? null : device.getMgmtDomain().id();
 		Supplier<List<DeviceCredentialSet>> autoPoolLoader = () -> new Transactions().read(
 			dsl -> new CredentialSetRepository().findUsableInDomain(dsl, domainId));
-		return new AccessManager(driverRegistry, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
+		return new AccessManager(driverRegistry, secrets, autoPoolLoader, device, address, taskContext, oneTimeCredentialSets);
 	}
 
 	/**

@@ -40,6 +40,7 @@ import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Takes the snapshot of a device.
@@ -61,6 +62,9 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
+	/** Resolves the secrets of the credentials (local or Vault-backed). */
+	private final SecretResolver secrets;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
@@ -68,9 +72,11 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
 	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 */
 	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
-		SshServer sshServer, DynamicGroups dynamicGroups) {
+		SshServer sshServer, DynamicGroups dynamicGroups, SecretResolver secrets) {
+		this.secrets = secrets;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.sshServer = sshServer;
@@ -94,7 +100,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.sshServer, run.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.secrets, this.sshServer, run.logger);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));

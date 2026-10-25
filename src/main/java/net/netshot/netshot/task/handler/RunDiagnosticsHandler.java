@@ -38,6 +38,7 @@ import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Runs the diagnostics on a device.
@@ -54,15 +55,20 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
+	/** Resolves the secrets of the credentials (local or Vault-backed). */
+	private final SecretResolver secrets;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param diagnosticAdapters the diagnostic adapters
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 */
 	public RunDiagnosticsHandler(DriverRegistry driverRegistry, DiagnosticAdapters diagnosticAdapters,
-		TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups) {
+		TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets) {
+		this.secrets = secrets;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.diagnosticAdapters = diagnosticAdapters;
@@ -102,7 +108,7 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 			}
 			List<Diagnostic> diagnostics = this.transactions.read(dsl -> new DiagnosticRepository().findEnabledForDevice(dsl, deviceId));
 			if (diagnostics.size() > 0) {
-				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, diagnostics, this.diagnosticAdapters, run.logger);
+				deviceScript = new RunDiagnosticDeviceScript(this.driverRegistry, this.secrets, diagnostics, this.diagnosticAdapters, run.logger);
 				DeviceDraft draft = new DeviceDraft(device);
 				deviceScript.connectRun(draft);
 				this.transactions.write(dsl -> this.deviceRepository.saveDraft(dsl, draft));

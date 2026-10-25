@@ -54,15 +54,15 @@ public class TaskHandlersTest {
 			new CheckComplianceHandler(null, null),
 			new CheckGroupComplianceHandler(null, null),
 			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(null, null, null),
+			new DiscoverDeviceTypeHandler(null, null, null, null),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(null, null),
-			new RunDeviceScriptHandler(null, null, null),
-			new RunDiagnosticsHandler(null, null, null, null),
+			new RunDeviceScriptHandler(null, null, null, null),
+			new RunDiagnosticsHandler(null, null, null, null, null),
 			new RunGroupDiagnosticsHandler(null),
 			new ScanSubnetsHandler(null),
 			new TakeGroupSnapshotHandler(null),
-			new TakeSnapshotHandler(null, null, null, null, null)));
+			new TakeSnapshotHandler(null, null, null, null, null, null)));
 	}
 
 	@Test

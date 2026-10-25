@@ -38,7 +38,6 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultableSecret;
 
 @Slf4j
@@ -54,7 +53,7 @@ public class DeviceListExtractor extends Netshot {
 	 */
 	private static String resolveSecret(VaultableSecret secret, Device device) {
 		try {
-			String value = VaultManager.resolve(secret);
+			String value = Wiring.get().vaultManager().resolve(secret);
 			return value == null ? "" : value;
 		}
 		catch (VaultException e) {

@@ -57,6 +57,7 @@ import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Tests for {@code Http.download()}/{@code http.download(...)}: the
@@ -123,7 +124,7 @@ public class HttpDownloadTest {
 		this.serveBinary("/binary.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext);
+		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Http.HttpDownloadResult result =
@@ -149,7 +150,7 @@ public class HttpDownloadTest {
 		this.serveBinary("/binary2.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext);
+		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		Http.HttpResult result = http.request("GET", "/binary2.bin", null, null, null, null, null, null);
 
 		Assertions.assertEquals(200, result.getStatus());
@@ -182,7 +183,7 @@ public class HttpDownloadTest {
 		});
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext);
+		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Map<String, String> headers = new HashMap<>();
@@ -229,13 +230,13 @@ public class HttpDownloadTest {
 		TestDrivers.registry().getDrivers().put("HttpDownloadTestDriver", driver);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext);
+		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username("user").password("pass").name("test-http-account").build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), null, taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), SecretResolver.LOCAL, null, taskContext);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, taskContext, null);
 		accessManager.forceClientForTest(fakeHttp, credentials);
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
@@ -305,8 +306,8 @@ public class HttpDownloadTest {
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
 		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(httpAccess)).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), null, taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, Set.of(credentials));
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), SecretResolver.LOCAL, null, taskContext);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), SecretResolver.LOCAL, null, device, null, taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {
