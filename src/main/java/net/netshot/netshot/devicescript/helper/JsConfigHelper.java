@@ -64,12 +64,12 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
 import net.netshot.netshot.platform.crypto.PasswordGenerator;
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 /**
  * Class used to control a device config from JavaScript.

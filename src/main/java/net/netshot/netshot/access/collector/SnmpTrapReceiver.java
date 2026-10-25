@@ -37,13 +37,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.platform.net.Network4Address;
 import org.snmp4j.CommandResponder;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.MessageDispatcherImpl;

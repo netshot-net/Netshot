@@ -111,7 +111,7 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.inventory.device.NetworkAddress;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 import org.apache.sshd.common.kex.KexProposalOption;
 

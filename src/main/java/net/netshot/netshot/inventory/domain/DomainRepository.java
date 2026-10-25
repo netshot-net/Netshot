@@ -27,9 +27,9 @@ import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 
 /**
  * The queries on domains. The {@link DSLContext} is always the first parameter: the caller

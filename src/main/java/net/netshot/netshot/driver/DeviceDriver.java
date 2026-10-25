@@ -64,8 +64,8 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.credentials.SshAccount;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
-import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.net.Network4Address;
 
 /**
  * This is a device driver.

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.function.Executable;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchResult;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -40,11 +41,12 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
-import net.netshot.netshot.inventory.group.DynamicGroups;
 
 /**
  * Tests of the device sub-resources (interfaces, modules), the device search, the reference

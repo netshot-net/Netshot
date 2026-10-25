@@ -75,10 +75,10 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.inventory.device.PhysicalAddress;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.net.PhysicalAddress;
 
 /**
  * A Finder finds devices based on a text expression.

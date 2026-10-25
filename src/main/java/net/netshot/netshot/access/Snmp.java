@@ -63,9 +63,9 @@ import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
-import net.netshot.netshot.inventory.device.NetworkAddress;
-import net.netshot.netshot.vault.VaultException;
+import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.vault.SecretResolver;
+import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultableSecret;
 
 

@@ -20,7 +20,7 @@ package net.netshot.netshot.task.type;
 
 import java.util.Set;
 
-import net.netshot.netshot.inventory.device.Network4Address;
+import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.task.Task;
 
 /**
