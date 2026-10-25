@@ -62,7 +62,7 @@ import net.netshot.netshot.platform.http.HttpServerAddress;
 import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.platform.rest.RestViews.ClusteringView;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
-import net.netshot.netshot.task.engine.TaskLockManager;
+import net.netshot.netshot.task.engine.ClusterCoordinator;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManager.Mode;
 import net.netshot.netshot.vault.VaultManager;
@@ -73,7 +73,7 @@ import org.postgresql.PGNotification;
  * Cluster Manager - main component of clustering feature.
  */
 @Slf4j
-public class ClusterManager implements Service {
+public class ClusterManager implements Service, ClusterCoordinator {
 
 	/** Name of the PSQL notification channel. */
 	private static final String NOTIFICATION_CHANNEL = "clustering";
@@ -116,9 +116,6 @@ public class ClusterManager implements Service {
 	/** ID of the local member (20 lowercase hex digits; generated if not set). */
 	static final Setting<String> ID = Setting.text("netshot.cluster.id").restart();
 
-	/** Cluster Manager static instance. */
-	private static ClusterManager nsClusterManager;
-
 	/** The loaded device drivers. */
 	private final DriverRegistry driverRegistry;
 
@@ -140,73 +137,69 @@ public class ClusterManager implements Service {
 	/** IDs of Vault instances whose cache should be invalidated cluster-wide. */
 	private Set<Long> vaultInstanceReloadIds = new HashSet<>();
 
-	/**
-	 * Gets the local cluster member instance ID.
-	 * @return the local instance ID
-	 */
-	public static String getLocalInstanceId() {
-		if (nsClusterManager != null) {
-			return nsClusterManager.localMember.getInstanceId();
-		}
-		return null;
+	/** The task manager. */
+	private final TaskManager taskManager;
+
+	@Override
+	public String localInstanceId() {
+		ClusterMember local = this.localMember;
+		return local == null ? null : local.getInstanceId();
 	}
 
 	/**
 	 * Gets the list of cluster members for external use.
 	 * @return the cluster members
 	 */
-	public static List<ClusterMember> getClusterMembers() {
-		List<ClusterMember> members = new ArrayList<>();
-		if (ClusterManager.nsClusterManager != null) {
-			for (ClusterMember member : ClusterManager.nsClusterManager.members.values()) {
-				try {
-					members.add((ClusterMember) member.clone());
-				}
-				catch (CloneNotSupportedException e) {
-					// Shouldn't happen
-				}
+	public List<ClusterMember> getClusterMembers() {
+		List<ClusterMember> list = new ArrayList<>();
+		for (ClusterMember member : this.members.values()) {
+			try {
+				list.add((ClusterMember) member.clone());
+			}
+			catch (CloneNotSupportedException e) {
+				// Shouldn't happen
 			}
 		}
-		return members;
+		return list;
+	}
+
+	/**
+	 * Gets the active members (master, member or negotiating), as task runners.
+	 * @return the runners
+	 */
+	private List<TaskManager.Runner> activeRunners() {
+		List<TaskManager.Runner> runners = new ArrayList<>();
+		for (ClusterMember member : this.members.values()) {
+			if (MastershipStatus.MASTER.equals(member.getStatus())
+				|| MastershipStatus.MEMBER.equals(member.getStatus())
+				|| MastershipStatus.NEGOTIATING.equals(member.getStatus())) {
+				runners.add(new TaskManager.Runner(member.getInstanceId(), member.getRunnerPriority(), member.getRunnerWeight()));
+			}
+		}
+		return runners;
 	}
 
 	/**
 	 * Request driver reload on all cluster members.
 	 */
-	public static void requestDriverReload() {
-		if (nsClusterManager != null) {
-			nsClusterManager.driverReloadRequested = true;
-		}
+	public void requestDriverReload() {
+		this.driverReloadRequested = true;
 	}
 
-	/**
-	 * Request all runners to load and execute new tasks.
-	 */
-	public static void requestTasksLoad() {
-		if (nsClusterManager != null) {
-			nsClusterManager.loadTasksRequested = true;
-		}
-		TaskManager.scheduleLocalTasks();
+	@Override
+	public void requestTasksLoad() {
+		this.loadTasksRequested = true;
 	}
 
-	/**
-	 * Request the master to assign new tasks.
-	 */
-	public static void requestTasksAssignment() {
-		if (nsClusterManager != null) {
-			nsClusterManager.assignTasksRequested = true;
-		}
+	@Override
+	public void requestTasksAssignment() {
+		this.assignTasksRequested = true;
 	}
 
-	/**
-	 * Add a device ID to the list of IDs to request the master snapshots.
-	 * @param deviceId the device ID
-	 */
-	public static void requestAutoSnapshot(Long deviceId) {
-		if (nsClusterManager != null) {
-			synchronized (nsClusterManager.autoSnapshotDeviceIds) {
-				nsClusterManager.autoSnapshotDeviceIds.add(deviceId);
-			}
+	@Override
+	public void requestAutoSnapshot(long deviceId) {
+		synchronized (this.autoSnapshotDeviceIds) {
+			this.autoSnapshotDeviceIds.add(deviceId);
 		}
 	}
 
@@ -215,11 +208,9 @@ public class ClusterManager implements Service {
 	 * for the given Vault instance (e.g. after its connection settings changed).
 	 * @param vaultInstanceId the ID of the Vault instance
 	 */
-	public static void requestVaultInstanceReload(long vaultInstanceId) {
-		if (nsClusterManager != null) {
-			synchronized (nsClusterManager.vaultInstanceReloadIds) {
-				nsClusterManager.vaultInstanceReloadIds.add(vaultInstanceId);
-			}
+	public void requestVaultInstanceReload(long vaultInstanceId) {
+		synchronized (this.vaultInstanceReloadIds) {
+			this.vaultInstanceReloadIds.add(vaultInstanceId);
 		}
 	}
 
@@ -265,10 +256,12 @@ public class ClusterManager implements Service {
 	 *
 	 * @param driverRegistry the loaded device drivers
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
+	 * @param taskManager the task manager
 	 */
-	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
+	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager) {
 		this.driverRegistry = driverRegistry;
 		this.autoSnapshotScheduler = autoSnapshotScheduler;
+		this.taskManager = taskManager;
 		ObjectMapper jsonMapper = new ObjectMapper();
 		this.jsonReader = jsonMapper.readerWithView(ClusteringView.class);
 		this.jsonWriter = jsonMapper.writerWithView(ClusteringView.class);
@@ -338,11 +331,10 @@ public class ClusterManager implements Service {
 	@Override
 	public synchronized void start() {
 		this.initLocalMember();
-		TaskManager.setMode(Mode.CLUSTER_MEMBER);
+		this.taskManager.setMode(Mode.CLUSTER_MEMBER);
 		this.running = true;
 		this.mainLoop = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotClusterManager"));
 		this.mainLoop.execute(this::runLoop);
-		ClusterManager.nsClusterManager = this;
 		this.startPeriodicActions();
 	}
 
@@ -353,7 +345,6 @@ public class ClusterManager implements Service {
 		this.worker.shutdownNow();
 		this.mainLoop.awaitTermination(10, TimeUnit.SECONDS);
 		this.worker.awaitTermination(10, TimeUnit.SECONDS);
-		ClusterManager.nsClusterManager = null;
 	}
 
 	@Override
@@ -379,13 +370,13 @@ public class ClusterManager implements Service {
 		// Periodic orphan task sweep (on master only): a dead member is only fully released
 		// by the database some time after it went silent
 		this.schedulePeriodic("ORPHAN_SWEEP", ORPHAN_SWEEP_INTERVAL, () -> {
-			if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
-				this.submitCoalesced(WorkerAction.REASSIGN_ORPHANS, TaskManager::reassignOrphanTasks);
+			if (Mode.CLUSTER_MASTER.equals(this.taskManager.getMode())) {
+				this.submitCoalesced(WorkerAction.REASSIGN_ORPHANS, this.taskManager::reassignOrphanTasks);
 			}
 		});
 		// Periodic check of the task lock DB connection, so that a lost connection (and thus
 		// lost locks) is noticed and recovered even when no task starts or ends
-		this.schedulePeriodic("TASK_LOCK_CHECK", TASK_LOCK_CHECK_INTERVAL, () -> TaskLockManager.get().check());
+		this.schedulePeriodic("TASK_LOCK_CHECK", TASK_LOCK_CHECK_INTERVAL, () -> this.taskManager.lockManager().check());
 	}
 
 	/**
@@ -659,14 +650,14 @@ public class ClusterManager implements Service {
 								});
 							}
 							else if (message instanceof LoadTasksMessage) {
-								this.submitCoalesced(WorkerAction.LOAD_TASKS, TaskManager::scheduleLocalTasks);
+								this.submitCoalesced(WorkerAction.LOAD_TASKS, this.taskManager::scheduleLocalTasks);
 							}
 							else if (message instanceof AssignTasksMessage) {
 								if (MastershipStatus.MASTER.equals(this.localMember.getStatus())) {
 									this.submitCoalesced(WorkerAction.ASSIGN_TASKS, () -> {
 										// Mastership may have been lost in the meantime
-										if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
-											TaskManager.scheduleNewTasks();
+										if (Mode.CLUSTER_MASTER.equals(this.taskManager.getMode())) {
+											this.taskManager.scheduleNewTasks();
 										}
 									});
 								}
@@ -675,7 +666,7 @@ public class ClusterManager implements Service {
 								if (MastershipStatus.MASTER.equals(this.localMember.getStatus())) {
 									final Set<Long> deviceIds = new HashSet<>(snapshotMessage.getDeviceIds());
 									this.submit("AUTO_SNAPSHOT", () -> {
-										if (Mode.CLUSTER_MASTER.equals(TaskManager.getMode())) {
+										if (Mode.CLUSTER_MASTER.equals(this.taskManager.getMode())) {
 											for (long deviceId : deviceIds) {
 												this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(deviceId);
 											}
@@ -728,8 +719,8 @@ public class ClusterManager implements Service {
 							memberUpdated = false;
 						}
 						if (runnerChanged) {
-							TaskManager.setRunners(this.members.values());
-							this.submitCoalesced(WorkerAction.REASSIGN_ORPHANS, TaskManager::reassignOrphanTasks);
+							this.taskManager.setRunners(this.activeRunners());
+							this.submitCoalesced(WorkerAction.REASSIGN_ORPHANS, this.taskManager::reassignOrphanTasks);
 							runnerChanged = false;
 						}
 						if (this.master == null) {
@@ -752,10 +743,10 @@ public class ClusterManager implements Service {
 										log.warn("Local cluster member is switching to MASTER status");
 										this.localMember.setStatus(MastershipStatus.MASTER);
 										this.master = this.localMember;
-										TaskManager.setMode(Mode.CLUSTER_MASTER);
+										this.taskManager.setMode(Mode.CLUSTER_MASTER);
 										this.submit("BECOME_MASTER", () -> {
-											TaskManager.rescheduleAll();
-											TaskManager.reassignOrphanTasks();
+											this.taskManager.rescheduleAll();
+											this.taskManager.reassignOrphanTasks();
 										});
 									}
 								}
@@ -771,7 +762,7 @@ public class ClusterManager implements Service {
 								// Master conflict - Downgrade to normal member
 								log.warn("Local cluster member is switching to MEMBER status");
 								this.localMember.setStatus(MastershipStatus.MEMBER);
-								TaskManager.setMode(Mode.CLUSTER_MEMBER);
+								this.taskManager.setMode(Mode.CLUSTER_MEMBER);
 							}
 						}
 					}
