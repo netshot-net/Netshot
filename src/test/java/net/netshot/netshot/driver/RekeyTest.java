@@ -19,6 +19,7 @@
 package net.netshot.netshot.driver;
 
 import java.lang.reflect.Field;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.sshd.client.SshClient;
@@ -34,7 +35,7 @@ import org.testcontainers.junit.jupiter.Container;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.Ssh;
 import net.netshot.netshot.task.engine.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
@@ -100,19 +101,23 @@ public class RekeyTest {
 
 	@BeforeAll
 	static void forceTinyGlobalRekeyDataLimit() {
-		originalRekeyDataLimit = Netshot.getConfig().getProperty("netshot.cli.ssh.rekeydatalimit");
-		Netshot.getConfig().setProperty("netshot.cli.ssh.rekeydatalimit", TINY_REKEY_DATA_LIMIT);
+		Properties config = TestConfig.properties();
+		originalRekeyDataLimit = config.getProperty("netshot.cli.ssh.rekeydatalimit");
+		config.setProperty("netshot.cli.ssh.rekeydatalimit", TINY_REKEY_DATA_LIMIT);
+		TestConfig.init(config);
 		Ssh.loadConfig();
 	}
 
 	@AfterAll
 	static void restoreGlobalRekeyDataLimit() {
+		Properties config = TestConfig.properties();
 		if (originalRekeyDataLimit == null) {
-			Netshot.getConfig().remove("netshot.cli.ssh.rekeydatalimit");
+			config.remove("netshot.cli.ssh.rekeydatalimit");
 		}
 		else {
-			Netshot.getConfig().setProperty("netshot.cli.ssh.rekeydatalimit", originalRekeyDataLimit);
+			config.setProperty("netshot.cli.ssh.rekeydatalimit", originalRekeyDataLimit);
 		}
+		TestConfig.init(config);
 		Ssh.loadConfig();
 	}
 

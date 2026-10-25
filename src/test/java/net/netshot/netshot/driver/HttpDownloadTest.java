@@ -40,7 +40,6 @@ import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.DeviceAccess;
@@ -103,8 +102,7 @@ public class HttpDownloadTest {
 		// each test rather than relying on the default (/var/local/netshot),
 		// which won't exist on a test machine.
 		Path storagePath = Files.createTempDirectory("netshot-test-binary-");
-		Properties props = new Properties();
-		props.putAll(Netshot.getConfig());
+		Properties props = TestConfig.properties();
 		props.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 		TestConfig.init(props);
 		ConfigBinaryFileAttribute.loadConfig();
