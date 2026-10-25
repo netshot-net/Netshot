@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot;
 
-import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -48,8 +47,8 @@ import net.netshot.netshot.testing.UnitTest;
 /**
  * Architecture rules encoding the TARGET layering (see the layering refactor plan).
  *
- * <p>Most rules are strict. The rule which still has violations to remove (mutable static fields) is
- * frozen with FreezingArchRule: violations existing when the store was generated are recorded in
+ * <p>All the rules are strict. A rule with violations which can't be removed at once can be frozen with
+ * FreezingArchRule: the violations existing when the store was generated are recorded in
  * src/test/resources/archunit_store and tolerated; only NEW violations fail the build.</p>
  *
  * <p>Regenerating the store after a planned package move (violation descriptions contain class names, so a
@@ -222,13 +221,14 @@ public final class ArchitectureTest {
 		.allowEmptyShould(true);
 
 	/**
-	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring.
-	 * Frozen: the remaining static state (database pools, query parser, secret resolver, wiring for the tests...)
-	 * may only decrease.
+	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
+	 * and the values read once are held by lazily initialized holder classes. The only exception is the
+	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}).
 	 */
 	@ArchTest
-	static final ArchRule STATIC_FIELDS_ARE_FINAL = freeze(
-		fields().that().areStatic().should().beFinal().allowEmptyShould(true));
+	static final ArchRule STATIC_FIELDS_ARE_FINAL =
+		fields().that().areStatic().and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
+			.should().beFinal().allowEmptyShould(true);
 
 	/**
 	 * No cycles between top-level slices (net.netshot.netshot.(*)..). Unlike ArchUnit's own
