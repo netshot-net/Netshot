@@ -294,8 +294,10 @@ public class TaskJob implements Job {
 			catch (Exception e1) {
 				log.error("Error while setting the task {} to FAILED.", id, e1);
 			}
+			this.taskManager.countFinishedTask(Status.FAILURE);
 			throw new JobExecutionException("Unable to save the task.");
 		}
+		this.taskManager.countFinishedTask(run.getStatus());
 
 		// The listeners (such as the post-task hooks) are called here, in this thread
 		log.trace("Looking for post-task hooks.");

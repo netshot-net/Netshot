@@ -18,9 +18,12 @@
  */
 package net.netshot.netshot.vault;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongFunction;
 
 import org.slf4j.Logger;
@@ -128,10 +131,43 @@ public final class VaultManager {
 	private static final ConcurrentHashMap<Long, CompletableFuture<VaultToken>> LOGIN_IN_FLIGHT = new ConcurrentHashMap<>();
 
 	private static final ConcurrentHashMap<SecretCacheKey, CachedSecretData> SECRET_CACHE = new ConcurrentHashMap<>();
+
+	/** The number of logins to the Vault instances. */
+	private static final AtomicLong LOGINS = new AtomicLong();
+
+	/** The number of failed logins. */
+	private static final AtomicLong LOGIN_FAILURES = new AtomicLong();
+
+	/** The number of reads of secrets from the Vault instances. */
+	private static final AtomicLong READS = new AtomicLong();
+
+	/** The number of failed reads. */
+	private static final AtomicLong READ_FAILURES = new AtomicLong();
+
+	/** The number of secrets taken from the cache. */
+	private static final AtomicLong CACHE_HITS = new AtomicLong();
 	private static final ConcurrentHashMap<SecretCacheKey, CompletableFuture<JsonNode>> READ_IN_FLIGHT =
 		new ConcurrentHashMap<>();
 
 	private VaultManager() {
+	}
+
+	/**
+	 * Gets the statistics of the Vault client: logins, reads, cache.
+	 *
+	 * @return the statistics
+	 */
+	static Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("logins", LOGINS.get());
+		stats.put("loginFailures", LOGIN_FAILURES.get());
+		stats.put("reads", READS.get());
+		stats.put("readFailures", READ_FAILURES.get());
+		stats.put("cacheHits", CACHE_HITS.get());
+		stats.put("cachedTokens", TOKEN_CACHE.size());
+		stats.put("cachedSecrets", SECRET_CACHE.size());
+		stats.put("cachedInstances", INSTANCE_CACHE.size());
+		return stats;
 	}
 
 	/**
@@ -217,6 +253,7 @@ public final class VaultManager {
 		if (raceWinner == null) {
 			// We're the one responsible for actually logging in; everyone else waits on myFuture.
 			try {
+				LOGINS.incrementAndGet();
 				VaultToken token = VaultClient.login(instance);
 				TOKEN_CACHE.put(instance.id(), token);
 				AAA_LOG.info("Logged in to Vault instance '{}' (auth method {})",
@@ -225,6 +262,7 @@ public final class VaultManager {
 				return token;
 			}
 			catch (VaultException e) {
+				LOGIN_FAILURES.incrementAndGet();
 				AAA_LOG.warn("Failed to log in to Vault instance '{}': {}", instance.name(), e.getMessage());
 				myFuture.completeExceptionally(e);
 				throw e;
@@ -243,6 +281,7 @@ public final class VaultManager {
 		CachedSecretData cached = SECRET_CACHE.get(key);
 		if (cached != null && cached.isValid()) {
 			log.trace("Using cached Vault secret data for instance '{}', path '{}'.", instance.name(), path);
+			CACHE_HITS.incrementAndGet();
 			return cached.data();
 		}
 		log.trace("No valid cached Vault secret data for instance '{}', path '{}', reading from Vault.",
@@ -251,12 +290,14 @@ public final class VaultManager {
 		CompletableFuture<JsonNode> raceWinner = READ_IN_FLIGHT.putIfAbsent(key, myFuture);
 		if (raceWinner == null) {
 			try {
+				READS.incrementAndGet();
 				JsonNode data = VaultClient.readKv2(instance, path, token);
 				SECRET_CACHE.put(key, new CachedSecretData(data, System.currentTimeMillis() + settings().secretCacheTtlMs()));
 				myFuture.complete(data);
 				return data;
 			}
 			catch (VaultException e) {
+				READ_FAILURES.incrementAndGet();
 				myFuture.completeExceptionally(e);
 				throw e;
 			}

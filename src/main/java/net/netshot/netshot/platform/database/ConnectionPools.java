@@ -19,7 +19,9 @@
 package net.netshot.netshot.platform.database;
 
 import java.beans.PropertyVetoException;
+import java.sql.SQLException;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.sql.DataSource;
@@ -150,6 +152,30 @@ public final class ConnectionPools implements AutoCloseable {
 	public DataSource get(PoolKind identifier) {
 		ComboPooledDataSource pool = this.pools.get(identifier);
 		return pool == null ? this.pools.get(PoolKind.READ_WRITE) : pool;
+	}
+
+	/**
+	 * Gets the statistics of the pools: the connections (total, busy, idle) and the threads waiting for one.
+	 *
+	 * @return the statistics, by pool name
+	 */
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		for (ComboPooledDataSource pool : this.pools.values()) {
+			Map<String, Object> poolStats = new LinkedHashMap<>();
+			try {
+				poolStats.put("connections", pool.getNumConnectionsDefaultUser());
+				poolStats.put("busy", pool.getNumBusyConnectionsDefaultUser());
+				poolStats.put("idle", pool.getNumIdleConnectionsDefaultUser());
+				poolStats.put("waiting", pool.getNumThreadsAwaitingCheckoutDefaultUser());
+				poolStats.put("max", pool.getMaxPoolSize());
+			}
+			catch (SQLException e) {
+				poolStats.put("error", e.getMessage());
+			}
+			stats.put(pool.getDataSourceName(), poolStats);
+		}
+		return stats;
 	}
 
 	/**
