@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
 import net.netshot.netshot.aaa.auth.LoginService;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
@@ -66,6 +67,7 @@ import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
@@ -173,8 +175,9 @@ public final class Wiring {
 	 * (repositories, then services).
 	 *
 	 * @param driverRegistry the registry of the device drivers
+	 * @param config the configuration store
 	 */
-	private Wiring(DriverRegistry driverRegistry) {
+	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
 		this.transactions = new Transactions();
 		// Drivers
 		this.driverRegistry = driverRegistry;
@@ -185,8 +188,8 @@ public final class Wiring {
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
-		this.jsRuleRuntime = new JsRuleRuntime();
-		this.pyRuleRuntime = new PyRuleRuntime();
+		this.jsRuleRuntime = new JsRuleRuntime(config);
+		this.pyRuleRuntime = new PyRuleRuntime(config);
 		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry);
 		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository, this.ruleEvaluators);
@@ -234,7 +237,7 @@ public final class Wiring {
 		// Task handlers
 		TaskSubmitter taskSubmitter = TaskManager::addTask;
 		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(TaskManager::addTask);
-		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter);
+		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config);
 		this.taskHandlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(this.complianceChecker),
 			new CheckGroupComplianceHandler(this.complianceChecker),
@@ -268,7 +271,7 @@ public final class Wiring {
 	 */
 	public static synchronized Wiring init(DriverRegistry driverRegistry) {
 		Database.init();
-		instance = new Wiring(driverRegistry);
+		instance = new Wiring(driverRegistry, Netshot.config());
 		return instance;
 	}
 
@@ -288,29 +291,6 @@ public final class Wiring {
 			throw new IllegalStateException("The wiring has not been initialized");
 		}
 		return wiring;
-	}
-
-	/**
-	 * Reloads the configuration of the rule runtimes (JavaScript and Python), if the wiring
-	 * has been initialized. Their settings are also read when the wiring is built.
-	 */
-	public static void reloadRuleRuntimeConfigs() {
-		Wiring wiring = instance;
-		if (wiring != null) {
-			wiring.jsRuleRuntime.loadConfig();
-			wiring.pyRuleRuntime.loadConfig();
-		}
-	}
-
-	/**
-	 * Reloads the configuration of the task settings (such as the automatic snapshots), if the wiring
-	 * has been initialized. Their settings are also read when the wiring is built.
-	 */
-	public static void reloadTaskConfigs() {
-		Wiring wiring = instance;
-		if (wiring != null) {
-			wiring.autoSnapshotScheduler.loadConfig();
-		}
 	}
 
 	/**

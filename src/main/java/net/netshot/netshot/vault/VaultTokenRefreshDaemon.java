@@ -23,6 +23,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 
@@ -39,6 +40,10 @@ import net.netshot.netshot.platform.database.Transactions;
  */
 @Slf4j
 final class VaultTokenRefreshDaemon extends Thread {
+
+	/** Interval (seconds) between two refreshes of the tokens. */
+	static final Setting<Integer> POLL_INTERVAL = Setting.integer("netshot.vault.token.refreshpollintervalseconds")
+		.defaultValue(60).range(5, Integer.MAX_VALUE).live();
 
 	private static VaultTokenRefreshDaemon instance;
 
@@ -60,8 +65,7 @@ final class VaultTokenRefreshDaemon extends Thread {
 	public void run() {
 		log.info("Starting Vault token refresh daemon");
 		while (!this.stopping) {
-			int pollIntervalSeconds = Netshot.getConfig(
-				"netshot.vault.token.refreshpollintervalseconds", 60, 5, Integer.MAX_VALUE);
+			int pollIntervalSeconds = Netshot.config().current().get(POLL_INTERVAL);
 			try {
 				this.refreshAll();
 			}

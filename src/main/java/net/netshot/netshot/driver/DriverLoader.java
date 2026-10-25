@@ -37,6 +37,7 @@ import org.apache.commons.codec.binary.Hex;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Reads the device drivers from their sources (the user drivers folder, then the drivers bundled
@@ -44,6 +45,9 @@ import net.netshot.netshot.Netshot;
  */
 @Slf4j
 public class DriverLoader {
+
+	/** Folder of the additional drivers (read on each load of the drivers). */
+	public static final Setting<String> DRIVERS_PATH = Setting.text("netshot.drivers.path").live();
 
 	/**
 	 * The drivers read by one load.
@@ -64,7 +68,7 @@ public class DriverLoader {
 	public LoadedDrivers load() throws Exception {
 		Map<String, DeviceDriver> newDrivers = new HashMap<>();
 
-		final String addPath = Netshot.getConfig("netshot.drivers.path");
+		final String addPath = Netshot.config().current().get(DRIVERS_PATH);
 		if (addPath != null) {
 			final File folder = new File(addPath);
 			if (folder.isDirectory()) {

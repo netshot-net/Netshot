@@ -22,6 +22,7 @@ import java.util.Properties;
 import java.util.Set;
 
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
@@ -45,8 +46,8 @@ public class JsRuleTest {
 
 	@BeforeAll
 	static void initNetshot() throws Exception {
-		jsRuntime = new JsRuleRuntime();
-		evaluators = RuleEvaluators.standard(jsRuntime, new PyRuleRuntime(), TestDrivers.registry());
+		jsRuntime = new JsRuleRuntime(Netshot.config());
+		evaluators = RuleEvaluators.standard(jsRuntime, new PyRuleRuntime(Netshot.config()), TestDrivers.registry());
 	}
 
 	Policy policy = new Policy(0, "Fake policy", null);
@@ -443,7 +444,6 @@ public class JsRuleTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.javascript.maxexecutiontime", "5000");
 		TestConfig.init(config);
-		jsRuntime.loadConfig();
 		// Check
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
 		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(),
@@ -465,7 +465,6 @@ public class JsRuleTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.javascript.maxexecutiontime", "5000");
 		TestConfig.init(config);
-		jsRuntime.loadConfig();
 		// Check
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
 		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(),

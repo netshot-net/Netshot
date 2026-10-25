@@ -47,9 +47,11 @@ import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.MarkerFactory;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.database.ConnectionPools;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterMember;
 import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
@@ -66,21 +68,9 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 @Slf4j
 public final class TaskManager {
 
-	/**
-	 * Settings/config for the current class.
-	 */
-	public static final class Settings {
-		/** Max thread count for task execution. */
-		@Getter
-		private int threadCount;
-
-		/**
-		 * Load settings from config.
-		 */
-		private void load() {
-			this.threadCount = Netshot.getConfig("netshot.tasks.threadcount", 10, 1, 65535);
-		}
-	}
+	/** Number of threads running the tasks. */
+	static final Setting<Integer> THREAD_COUNT = Setting.integer("netshot.tasks.threadcount")
+		.defaultValue(10).range(1, 65535).restart();
 
 	/** Possible modes for the task manager. */
 	public enum Mode {
@@ -112,8 +102,8 @@ public final class TaskManager {
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The number of threads running the tasks (read when the task manager is initialized). */
+	private static volatile int threadCount = THREAD_COUNT.defaultValue();
 
 	/** Minimum number of DB pool connections to keep available beyond the task threads. */
 	private static final int MIN_SPARE_DB_CONNECTIONS = 10;
@@ -142,20 +132,21 @@ public final class TaskManager {
 	 * @param taskJobFactory the factory of the jobs, which run the tasks through their handlers
 	 */
 	public static void init(TaskJobFactory taskJobFactory) {
-		TaskManager.SETTINGS.load();
+		Config config = Netshot.config().current();
+		TaskManager.threadCount = config.get(THREAD_COUNT);
 		// Running device tasks hold a DB connection from the main pool, so the pool must be
 		// comfortably larger than the number of task threads
-		int maxPoolSize = Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE);
-		if (TaskManager.SETTINGS.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
+		int maxPoolSize = config.get(ConnectionPools.MAX_POOL_SIZE);
+		if (TaskManager.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
 			log.warn("The task thread count ({}) is too close to the DB pool max size ({}): "
 				+ "tasks may starve the connection pool. Set netshot.db.pooler.maxpoolsize to at least {}.",
-				TaskManager.SETTINGS.threadCount, maxPoolSize,
-				TaskManager.SETTINGS.threadCount + MIN_SPARE_DB_CONNECTIONS);
+				TaskManager.threadCount, maxPoolSize,
+				TaskManager.threadCount + MIN_SPARE_DB_CONNECTIONS);
 		}
 		try {
 			Properties params = new Properties();
 			params.put(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, "org.quartz.simpl.SimpleThreadPool");
-			params.put("org.quartz.threadPool.threadCount", Integer.toString(TaskManager.SETTINGS.threadCount));
+			params.put("org.quartz.threadPool.threadCount", Integer.toString(TaskManager.threadCount));
 			params.put(StdSchedulerFactory.PROP_SCHED_INSTANCE_NAME, "NetshotMasterScheduler");
 			params.put("org.quartz.scheduler.skipUpdateCheck", "true");
 			StdSchedulerFactory factory = new StdSchedulerFactory(params);
@@ -169,7 +160,7 @@ public final class TaskManager {
 		try {
 			Properties params = new Properties();
 			params.put(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, "org.quartz.simpl.SimpleThreadPool");
-			params.put("org.quartz.threadPool.threadCount", Integer.toString(TaskManager.SETTINGS.threadCount));
+			params.put("org.quartz.threadPool.threadCount", Integer.toString(TaskManager.threadCount));
 			params.put(StdSchedulerFactory.PROP_SCHED_INSTANCE_NAME, "NetshotRunnerScheduler");
 			params.put("org.quartz.scheduler.skipUpdateCheck", "true");
 			StdSchedulerFactory factory = new StdSchedulerFactory(params);
@@ -205,7 +196,7 @@ public final class TaskManager {
 	 * @return the thread count
 	 */
 	public static int getThreadCount() {
-		return TaskManager.SETTINGS.threadCount;
+		return TaskManager.threadCount;
 	}
 
 	/**

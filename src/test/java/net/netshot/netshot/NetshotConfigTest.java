@@ -29,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.testing.UnitTest;
 
@@ -40,6 +41,10 @@ public class NetshotConfigTest {
 
 	@TempDir
 	Path tempDir;
+
+	private static Config current() {
+		return Netshot.config().current();
+	}
 
 	@AfterEach
 	void resetConfig() {
@@ -67,50 +72,50 @@ public class NetshotConfigTest {
 	@DisplayName("Secret is read from the file, which takes precedence over the inline value")
 	void fileOverInline() throws Exception {
 		initConfig("inline", writeSecretFile("fromfile"));
-		Assertions.assertEquals("fromfile", Netshot.getSecretConfig(KEY, "default"));
+		Assertions.assertEquals("fromfile", current().getSecret(KEY, "default"));
 	}
 
 	@Test
 	@DisplayName("Inline value is used when no secret file is set")
 	void inlineValue() {
 		initConfig("inline", null);
-		Assertions.assertEquals("inline", Netshot.getSecretConfig(KEY, "default"));
+		Assertions.assertEquals("inline", current().getSecret(KEY, "default"));
 	}
 
 	@Test
 	@DisplayName("Default value is used when nothing is set")
 	void defaultValue() {
 		initConfig(null, null);
-		Assertions.assertEquals("default", Netshot.getSecretConfig(KEY, "default"));
-		Assertions.assertNull(Netshot.getSecretConfig(KEY));
+		Assertions.assertEquals("default", current().getSecret(KEY, "default"));
+		Assertions.assertNull(current().getSecret(KEY));
 	}
 
 	@Test
 	@DisplayName("Trailing line breaks are removed, other whitespace is kept")
 	void trailingLineBreaks() throws Exception {
 		initConfig(null, writeSecretFile(" pass word \r\n\n"));
-		Assertions.assertEquals(" pass word ", Netshot.getSecretConfig(KEY));
+		Assertions.assertEquals(" pass word ", current().getSecret(KEY));
 	}
 
 	@Test
 	@DisplayName("Missing secret file is an error, without fallback")
 	void missingFile() {
 		initConfig("inline", tempDir.resolve("missing"));
-		Assertions.assertThrows(IllegalStateException.class, () -> Netshot.getSecretConfig(KEY, "default"));
+		Assertions.assertThrows(IllegalStateException.class, () -> current().getSecret(KEY, "default"));
 	}
 
 	@Test
 	@DisplayName("Empty secret file is an error")
 	void emptyFile() throws Exception {
 		initConfig("inline", writeSecretFile("\n"));
-		Assertions.assertThrows(IllegalStateException.class, () -> Netshot.getSecretConfig(KEY, "default"));
+		Assertions.assertThrows(IllegalStateException.class, () -> current().getSecret(KEY, "default"));
 	}
 
 	@Test
 	@DisplayName("Too big secret file is an error")
 	void tooBigFile() throws Exception {
 		initConfig(null, writeSecretFile("x".repeat(64 * 1024 + 1)));
-		Assertions.assertThrows(IllegalStateException.class, () -> Netshot.getSecretConfig(KEY));
+		Assertions.assertThrows(IllegalStateException.class, () -> current().getSecret(KEY));
 	}
 
 	@Test
@@ -118,11 +123,11 @@ public class NetshotConfigTest {
 	void cache() throws Exception {
 		Path file = writeSecretFile("first");
 		initConfig(null, file);
-		Assertions.assertEquals("first", Netshot.getSecretConfig(KEY));
+		Assertions.assertEquals("first", current().getSecret(KEY));
 		Files.writeString(file, "second", StandardCharsets.UTF_8);
-		Assertions.assertEquals("first", Netshot.getSecretConfig(KEY), "The secret wasn't cached");
+		Assertions.assertEquals("first", current().getSecret(KEY), "The secret wasn't cached");
 		initConfig(null, file);
-		Assertions.assertEquals("second", Netshot.getSecretConfig(KEY), "The cache wasn't cleared on config reload");
+		Assertions.assertEquals("second", current().getSecret(KEY), "The cache wasn't cleared on config reload");
 	}
 
 	@Test
@@ -132,8 +137,8 @@ public class NetshotConfigTest {
 		Files.writeString(file, "netshot.test.item = fromfile\n", StandardCharsets.UTF_8);
 		initConfig("inline", null);
 		Assertions.assertTrue(Netshot.readConfig(new String[] { tempDir.resolve("missing.conf").toString(), file.toString() }));
-		Assertions.assertEquals("fromfile", Netshot.getConfig("netshot.test.item"));
-		Assertions.assertNull(Netshot.getConfig(KEY), "The previous configuration was not replaced");
+		Assertions.assertEquals("fromfile", current().get("netshot.test.item"));
+		Assertions.assertNull(current().get(KEY), "The previous configuration was not replaced");
 	}
 
 	@Test
@@ -141,11 +146,11 @@ public class NetshotConfigTest {
 	void readConfigKeepsCurrentOnFailure() throws Exception {
 		initConfig("inline", null);
 		Assertions.assertFalse(Netshot.readConfig(new String[] { tempDir.resolve("missing.conf").toString() }));
-		Assertions.assertEquals("inline", Netshot.getConfig(KEY));
+		Assertions.assertEquals("inline", current().get(KEY));
 		Path empty = tempDir.resolve("empty.conf");
 		Files.writeString(empty, "# Nothing\n", StandardCharsets.UTF_8);
 		Assertions.assertFalse(Netshot.readConfig(new String[] { empty.toString() }));
-		Assertions.assertEquals("inline", Netshot.getConfig(KEY));
+		Assertions.assertEquals("inline", current().get(KEY));
 	}
 
 	@Test

@@ -40,6 +40,6 @@ public class TaskManagerEngine implements TaskEngine {
 
 	@Override
 	public int threadCount() {
-		return TaskManager.SETTINGS.getThreadCount();
+		return TaskManager.getThreadCount();
 	}
 }

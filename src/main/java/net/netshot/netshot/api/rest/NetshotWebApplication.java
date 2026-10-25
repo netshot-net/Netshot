@@ -110,13 +110,13 @@ public class NetshotWebApplication extends ResourceConfig {
 			.description("Network Infrastructure Configuration and Compliance Management Software")
 			.contact(new Contact().email("contact@netshot.net"))
 			.license(new License().name("GPLv3").url("https://www.gnu.org/licenses/gpl-3.0.txt")));
-		oas.servers(Arrays.asList(new Server().url(RestServer.HTTP_API_PATH)));
+		oas.servers(Arrays.asList(new Server().url(RestServer.apiPath())));
 		oas.components(new Components()
 			.addSecuritySchemes("ApiTokenAuth", new SecurityScheme()
 				.name(ApiTokenAuthFilter.HTTP_API_TOKEN_HEADER)
 				.type(Type.APIKEY).in(In.HEADER))
 			.addSecuritySchemes("CookieAuth", new SecurityScheme()
-				.name(RestServer.SESSION_COOKIE_NAME)
+				.name(RestServer.sessionCookieName())
 				.type(Type.APIKEY).in(In.COOKIE)));
 		oas.addSecurityItem(new SecurityRequirement().addList("ApiTokenAuth"));
 		oas.addSecurityItem(new SecurityRequirement().addList("CookieAuth"));

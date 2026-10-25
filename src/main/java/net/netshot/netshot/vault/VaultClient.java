@@ -77,9 +77,9 @@ final class VaultClient {
 				}
 			}
 			clientBuilder.connectTimeout(
-				VaultManager.SETTINGS.getHttpConnectTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
+				VaultManager.settings().httpConnectTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
 			clientBuilder.readTimeout(
-				VaultManager.SETTINGS.getHttpReadTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
+				VaultManager.settings().httpReadTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
 			return clientBuilder.build();
 		}
 		catch (GeneralSecurityException | java.io.IOException e) {
