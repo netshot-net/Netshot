@@ -32,7 +32,7 @@ import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Per-access SSH server host key verifier, implementing the two

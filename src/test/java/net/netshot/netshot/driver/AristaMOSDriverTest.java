@@ -44,7 +44,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestDrivers;

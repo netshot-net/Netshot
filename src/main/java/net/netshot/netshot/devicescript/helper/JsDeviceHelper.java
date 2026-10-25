@@ -65,7 +65,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Class used to get  and set data on a device object from JavaScript.

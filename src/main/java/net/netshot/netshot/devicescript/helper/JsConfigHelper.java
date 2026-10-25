@@ -69,7 +69,7 @@ import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
 import net.netshot.netshot.platform.crypto.PasswordGenerator;
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Class used to control a device config from JavaScript.

@@ -45,7 +45,7 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * A JavaScript-based script to execute on a device.

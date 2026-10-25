@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.task.engine;
+package net.netshot.netshot.platform.log;
 
 import org.graalvm.polyglot.HostAccess.Export;
 import org.slf4j.event.Level;

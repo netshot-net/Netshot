@@ -34,7 +34,7 @@ import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * This class is used to pass SNMP control to JavaScript.
