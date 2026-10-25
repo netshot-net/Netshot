@@ -27,7 +27,6 @@ import java.util.Map;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.api.NetshotApiClient;
@@ -65,7 +64,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		Wiring.get().taskManager().start();
+		TestWiring.get().taskManager().start();
 		if (Kinds.isContract(testClass)) {
 			// Tasks must be stored but never run: keep the schedulers in standby, and drop
 			// any job left by another test class sharing the JVM.
@@ -74,7 +73,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 				scheduler.clear();
 			}
 		}
-		RestServer restServer = new RestServer(Wiring.get().binder());
+		RestServer restServer = new RestServer(TestWiring.get().binder());
 		restServer.start();
 		context.getStore(Kinds.NAMESPACE).put(RestServer.class, restServer);
 		waitUntilListening(server(context).apiUri());

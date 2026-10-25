@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.aaa.auth.OidcDiscovery;
@@ -45,7 +46,6 @@ import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.error.ErrorCode;
@@ -63,8 +63,8 @@ import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
 import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
 import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -531,17 +531,17 @@ public class RestAuthenticationTest {
 			config.setProperty("netshot.aaa.oidc.clientid", clientId);
 			config.setProperty("netshot.aaa.oidc.clientsecret", clientSecret);
 			TestConfig.init(config);
-			this.oidcDiscovery = new OidcDiscovery(Wiring.get().oidc(), Netshot.config());
+			this.oidcDiscovery = new OidcDiscovery(TestWiring.get().oidc(), Netshot.config());
 			this.oidcDiscovery.start();
 			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
 			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
 			// after a failed attempt, so a short fixed sleep is flaky on loaded CI runners.
 			final Duration idpDiscoveryTimeout = Duration.ofSeconds(35);
 			final Instant deadline = Instant.now().plus(idpDiscoveryTimeout);
-			while (!Wiring.get().oidc().isAvailable() && Instant.now().isBefore(deadline)) {
+			while (!TestWiring.get().oidc().isAvailable() && Instant.now().isBefore(deadline)) {
 				Thread.sleep(200);
 			}
-			Assertions.assertTrue(Wiring.get().oidc().isAvailable(), "OIDC IdP metadata was not discovered in time");
+			Assertions.assertTrue(TestWiring.get().oidc().isAvailable(), "OIDC IdP metadata was not discovered in time");
 		}
 
 		@AfterAll

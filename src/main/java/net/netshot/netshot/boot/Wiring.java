@@ -136,8 +136,6 @@ import net.netshot.netshot.vault.VaultTokenRefresher;
 @Slf4j
 public final class Wiring {
 
-	private static volatile Wiring instance;
-
 	private final Transactions transactions;
 	// Configuration
 	private final ConfigStore config;
@@ -330,8 +328,7 @@ public final class Wiring {
 	 */
 	public static synchronized Wiring init(DriverRegistry driverRegistry) {
 		Database.init();
-		instance = new Wiring(driverRegistry, Netshot.config());
-		return instance;
+		return new Wiring(driverRegistry, Netshot.config());
 	}
 
 	/**
@@ -342,8 +339,7 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring create(ConfigStore config) {
-		instance = new Wiring(new DriverRegistry(new DriverLoader()), config);
-		return instance;
+		return new Wiring(new DriverRegistry(new DriverLoader()), config);
 	}
 
 	/**
@@ -390,24 +386,6 @@ public final class Wiring {
 			log.info("HTTP server is not enabled.");
 		}
 		return services;
-	}
-
-	/**
-	 * Gets the wiring, for the code which cannot receive its dependencies by injection.
-	 *
-	 * <p><b>Transitional:</b> a static lookup is a service locator, which hides the dependencies
-	 * of its callers. Nothing in the main code uses it any more; it remains for the tests.
-	 * Do not use it from new code.</p>
-	 *
-	 * @return the wiring
-	 * @throws IllegalStateException if {@link #init()} has not been called yet
-	 */
-	public static Wiring get() {
-		Wiring wiring = instance;
-		if (wiring == null) {
-			throw new IllegalStateException("The wiring has not been initialized");
-		}
-		return wiring;
 	}
 
 	/**

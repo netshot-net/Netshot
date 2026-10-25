@@ -25,9 +25,9 @@ import java.util.List;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
-import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
@@ -36,6 +36,7 @@ import net.netshot.netshot.task.type.GroupBasedTask;
 import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Runs tasks the way the task engine does ({@link TaskJob#runTask(long)}: claim, preparation, device
@@ -64,7 +65,7 @@ final class TaskRunner {
 	 * Builds the runner on the current wiring.
 	 */
 	TaskRunner() {
-		Wiring wiring = Wiring.get();
+		Wiring wiring = TestWiring.get();
 		TaskSubmitter submitter = task -> {
 			this.submittedTasks.add(task);
 			return task;

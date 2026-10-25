@@ -61,6 +61,7 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
+import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
@@ -73,6 +74,9 @@ import net.netshot.netshot.platform.net.NetworkAddress;
 @Slf4j
 public class DemoDataCreator {
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	private long domainCount = 3;
 	private List<Domain> testDomains = new ArrayList<>();
 
@@ -80,6 +84,15 @@ public class DemoDataCreator {
 	private long junosDeviceCount = 1000;
 	private long fortiosDeviceCount = 1000;
 	private List<Device> testDevices = new ArrayList<>();
+
+	/**
+	 * Instantiates the creator.
+	 *
+	 * @param dynamicGroups the refresher of the dynamic groups
+	 */
+	public DemoDataCreator(DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
+	}
 
 	/**
 	 * A device to create, with its configurations (the oldest first) and its diagnostic result.
@@ -767,7 +780,7 @@ public class DemoDataCreator {
 
 			log.info("Refreshing dynamic group");
 			try {
-				Wiring.get().dynamicGroups().refresh(dsl, allGroup);
+				this.dynamicGroups.refresh(dsl, allGroup);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalStateException("Invalid query of the group", e);
@@ -816,18 +829,19 @@ public class DemoDataCreator {
 			System.exit(1);
 		}
 
+		Wiring wiring = null;
 		try {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Wiring.init();
+			wiring = Wiring.init();
 		}
 		catch (Exception e) {
 			log.error("Error while updating/initializing DB", e);
 			System.exit(-1);
 		}
 
-		DemoDataCreator creator = new DemoDataCreator();
+		DemoDataCreator creator = new DemoDataCreator(wiring.dynamicGroups());
 		creator.createData();
 	}
 
