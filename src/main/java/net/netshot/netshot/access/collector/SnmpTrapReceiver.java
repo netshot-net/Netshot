@@ -532,8 +532,8 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 			}
 			else {
 				this.rejected.incrementAndGet();
-				log.warn("Invalid community {} (vs {}) received from {}.", receivedCommunity,
-					String.join(" ", communities), event.getPeerAddress());
+				// The accepted communities are secrets: not logged
+				log.warn("Invalid community {} received from {}.", receivedCommunity, event.getPeerAddress());
 			}
 		}
 		else if (event.getSecurityModel() == SecurityModel.SECURITY_MODEL_USM) {
