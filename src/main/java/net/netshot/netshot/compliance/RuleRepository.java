@@ -38,7 +38,8 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SelectField;
 
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 

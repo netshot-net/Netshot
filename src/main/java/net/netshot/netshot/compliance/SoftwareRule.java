@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 
 import lombok.Builder;
-import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
 
@@ -45,24 +45,6 @@ import net.netshot.netshot.inventory.device.Module;
 @Builder(toBuilder = true)
 public record SoftwareRule(long id, double priority, Long targetGroupId, String driver, String family, boolean familyRegExp,
 	String version, boolean versionRegExp, String partNumber, boolean partNumberRegExp, ConformanceLevel level) {
-
-	/**
-	 * The Enum ConformanceLevel.
-	 */
-	public enum ConformanceLevel implements EnumAttribute {
-
-		/** The gold. */
-		GOLD,
-
-		/** The silver. */
-		SILVER,
-
-		/** The bronze. */
-		BRONZE,
-
-		/** The unknown. */
-		UNKNOWN
-	}
 
 	/**
 	 * Gets a copy of the rule with another ID.

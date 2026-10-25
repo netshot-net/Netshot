@@ -45,8 +45,8 @@ import org.jooq.Record;
 import org.jooq.SelectField;
 import org.jooq.impl.DSL;
 
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceSummary;

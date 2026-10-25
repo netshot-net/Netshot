@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.compliance;
 
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 
 /**
  * The properties of a software rule to create, or to replace on an existing rule.

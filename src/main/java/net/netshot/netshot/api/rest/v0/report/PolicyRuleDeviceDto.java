@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 
 /**
  * The result of a compliance rule for a device.

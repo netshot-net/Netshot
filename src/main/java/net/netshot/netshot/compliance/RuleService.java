@@ -32,6 +32,7 @@ import org.slf4j.helpers.MessageFormatter;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;

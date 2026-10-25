@@ -20,7 +20,7 @@ package net.netshot.netshot.api.rest.v0.compliance;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 
 /**
  * The outcome of the test of a rule against a device.
