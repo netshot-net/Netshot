@@ -52,6 +52,7 @@ import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Discovers the type of a device.
@@ -66,13 +67,18 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
+	/** Resolves the secrets of the SNMP credentials (local or Vault-backed). */
+	private final SecretResolver secrets;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the driver registry
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param secrets resolves the secrets of the SNMP credentials (local or Vault-backed)
 	 */
-	public DiscoverDeviceTypeHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups) {
+	public DiscoverDeviceTypeHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets) {
+		this.secrets = secrets;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
@@ -243,7 +249,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			task.id(), community.name());
 		run.logger.trace("Trying SNMPv1 discovery (credentials {})", community.name());
 		try {
-			Snmp poller = new Snmp(address, community);
+			Snmp poller = new Snmp(address, community, this.secrets);
 			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
@@ -262,7 +268,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			task.id(), community.name());
 		run.logger.trace("Trying SNMPv2c discovery (credential set {})", community.name());
 		try {
-			Snmp poller = new Snmp(address, community);
+			Snmp poller = new Snmp(address, community, this.secrets);
 			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {
@@ -281,7 +287,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			task.id(), cred.name());
 		run.logger.trace("Trying SNMPv3 discovery (credentials {})", cred.name());
 		try {
-			Snmp poller = new Snmp(address, cred);
+			Snmp poller = new Snmp(address, cred, this.secrets);
 			return this.snmpDiscover(task, run, poller);
 		}
 		catch (UnknownHostException e) {

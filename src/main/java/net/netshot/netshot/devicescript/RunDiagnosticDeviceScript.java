@@ -44,6 +44,7 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 @Slf4j
 public final class RunDiagnosticDeviceScript extends DeviceScript {
@@ -57,13 +58,14 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 	/**
 	 * Instantiates a diagnostic CLI script.
 	 * @param driverRegistry = the loaded device drivers
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @param diagnostics = the list of diagnostics
 	 * @param adapters = the diagnostic adapters
 	 * @param logger = the task context
 	 */
-	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
+	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
 		TaskContext logger) {
-		super(driverRegistry, logger);
+		super(driverRegistry, secrets, logger);
 		this.diagnostics = diagnostics;
 		this.adapters = adapters;
 	}

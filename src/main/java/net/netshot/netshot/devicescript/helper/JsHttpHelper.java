@@ -123,7 +123,7 @@ public class JsHttpHelper {
 		int port = this.accessManager.resolvePort(candidateAccessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
 			candidateAccessDef.getName(), candidateAccessDef.getProtocol(), credentialSet.name(), host, port);
-		Http httpClient = new Http(host, port, httpConfig.isTls(), this.taskContext);
+		Http httpClient = new Http(host, port, httpConfig.isTls(), this.taskContext, this.accessManager.secrets());
 		this.accessManager.applyHttpsTrustPolicy(candidateAccessDef, httpClient);
 		return httpClient;
 	}

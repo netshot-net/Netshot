@@ -35,6 +35,7 @@ import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDeviceScriptTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Runs a script on a device.
@@ -50,13 +51,18 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
+	/** Resolves the secrets of the credentials (local or Vault-backed). */
+	private final SecretResolver secrets;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 */
-	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups) {
+	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets) {
+		this.secrets = secrets;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
@@ -101,7 +107,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 				return;
 			}
 
-			deviceScript = new UserDeviceScript(this.driverRegistry, spec.deviceDriver(), spec.script(), run.logger);
+			deviceScript = new UserDeviceScript(this.driverRegistry, this.secrets, spec.deviceDriver(), spec.script(), run.logger);
 			deviceScript.setUserInputValues(spec.userInputValues());
 			DeviceDraft draft = new DeviceDraft(device);
 			deviceScript.connectRun(draft);

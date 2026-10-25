@@ -26,6 +26,7 @@ import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * A JavaScript script which users run on devices.
@@ -119,7 +120,7 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 		if (this.userInputDefinitions != null) {
 			return this;
 		}
-		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, this.deviceDriver, this.script, makeVoidLogger());
+		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, SecretResolver.LOCAL, this.deviceDriver, this.script, makeVoidLogger());
 		return new DeviceJsScript(this.id, this.name, this.folder, this.script, this.deviceDriver, this.author,
 			jsScript.extractInputDefinitions());
 	}
@@ -132,7 +133,7 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 	 * @throws IllegalArgumentException if validation fails
 	 */
 	public void validateUserInputs(DriverRegistry driverRegistry, Map<String, String> userInputs) throws IllegalArgumentException {
-		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, this.deviceDriver, this.script, makeVoidLogger());
+		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, SecretResolver.LOCAL, this.deviceDriver, this.script, makeVoidLogger());
 		jsScript.setUserInputValues(userInputs);
 		jsScript.validateUserInputs();
 	}

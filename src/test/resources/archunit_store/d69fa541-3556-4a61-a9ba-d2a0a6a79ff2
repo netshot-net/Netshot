@@ -5,4 +5,3 @@ Field <net.netshot.netshot.boot.Wiring.instance> does not have modifier FINAL in
 Field <net.netshot.netshot.cluster.messages.ClusterMessage.lastLocalMessageId> does not have modifier FINAL in (ClusterMessage.java:0)
 Field <net.netshot.netshot.platform.database.Database.pools> does not have modifier FINAL in (Database.java:0)
 Field <net.netshot.netshot.platform.database.EncryptedStringConverter.cryptPassword> does not have modifier FINAL in (EncryptedStringConverter.java:0)
-Field <net.netshot.netshot.vault.VaultManager.instanceLoader> does not have modifier FINAL in (VaultManager.java:0)
