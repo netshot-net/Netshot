@@ -42,7 +42,6 @@ import com.sun.net.httpserver.HttpServer;
 
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.AccessManager;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.Http;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
@@ -52,6 +51,7 @@ import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;

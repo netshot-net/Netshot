@@ -44,7 +44,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -54,6 +53,7 @@ import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.ApiTest;

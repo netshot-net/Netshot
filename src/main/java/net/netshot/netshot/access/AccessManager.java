@@ -35,6 +35,7 @@ import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;

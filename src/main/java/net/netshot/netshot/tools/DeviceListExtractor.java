@@ -29,12 +29,12 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.VaultException;

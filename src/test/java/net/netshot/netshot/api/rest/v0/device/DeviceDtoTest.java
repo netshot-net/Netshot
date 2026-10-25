@@ -38,8 +38,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
@@ -53,6 +51,8 @@ import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.inventory.device.DeviceCreation;
 import net.netshot.netshot.inventory.device.DeviceUpdate;
 import net.netshot.netshot.inventory.device.Module;

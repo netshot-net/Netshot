@@ -20,8 +20,8 @@ package net.netshot.netshot.api.rest.v0.device;
 
 import java.util.Date;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.rest.v0.credentials.CredentialSetMapper;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**

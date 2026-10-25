@@ -31,7 +31,7 @@ import org.apache.sshd.common.config.keys.PublicKeyEntry;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
+import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.platform.log.TaskContext;
 
 /**

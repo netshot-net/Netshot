@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.UnitTest;

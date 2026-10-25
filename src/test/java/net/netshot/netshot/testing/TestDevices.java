@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.diagnostic.DiagnosticResult;
@@ -32,6 +31,7 @@ import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
