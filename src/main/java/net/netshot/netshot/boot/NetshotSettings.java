@@ -32,7 +32,6 @@ import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.access.collector.SnmpTrapReceiver;
 import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
-import net.netshot.netshot.access.collector.TftpServer;
 import net.netshot.netshot.api.rest.LoggerFilter;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
@@ -83,7 +82,6 @@ public final class NetshotSettings {
 			SnmpTrapReceiver.class,
 			SshServer.class,
 			SyslogServer.class,
-			TftpServer.class,
 			LoggerFilter.class,
 			RestServer.class,
 			LoggingSetup.class,

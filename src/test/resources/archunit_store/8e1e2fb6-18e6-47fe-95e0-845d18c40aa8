@@ -50,9 +50,6 @@ Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends
 Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.SyslogServer> (slice access) depends on <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) which is part of a dependency cycle
-Class <net.netshot.netshot.access.collector.TftpServer$TftpTransfer> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
-Class <net.netshot.netshot.access.collector.TftpServer$TftpTransfer> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
-Class <net.netshot.netshot.access.collector.TftpServer> (slice access) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.access.collector.UploadTicket> (slice access) depends on <net.netshot.netshot.inventory.device.NetworkAddress> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.cluster.ClusterManager> (slice cluster) depends on <net.netshot.netshot.task.AutoSnapshotScheduler> (slice task) which is part of a dependency cycle

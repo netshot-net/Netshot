@@ -33,7 +33,7 @@ import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The common settings and helpers of the collectors (services receiving data from devices: Syslog server,
- * SNMP trap receiver, SSH/TFTP servers).
+ * SNMP trap receiver, SSH server).
  */
 @Slf4j
 public final class Collector {
