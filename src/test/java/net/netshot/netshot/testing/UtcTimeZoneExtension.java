@@ -25,8 +25,9 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
- * Extension of {@link ContractTest}: sets the default time zone of the JVM to UTC for the test class (some
- * outputs, such as download file names, format dates in it), and restores the previous one after it.
+ * Sets the default time zone of the JVM to UTC for the test class, and restores the previous one after it: for
+ * the {@link ContractTest}s (some outputs, such as download file names, format dates in it), and the tests whose
+ * results depend on calendar days in the default time zone (daylight saving time changes).
  */
 public final class UtcTimeZoneExtension implements BeforeAllCallback, AfterAllCallback {
 
