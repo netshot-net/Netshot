@@ -34,20 +34,17 @@ public class EncryptedStringConverter extends AbstractConverter<String, String> 
 
 	private static final long serialVersionUID = 1L;
 
-	/** The encryption password, read on first use. */
-	private static volatile String cryptPassword;
-
 	public EncryptedStringConverter() {
 		super(String.class, String.class);
 	}
 
+	/** Holder of the encryption password, read once, on first use (lazy, thread-safe class initialization). */
+	private static final class Password {
+		static final String VALUE = Database.getEncryptionPassword();
+	}
+
 	private static Sha2AesPasswordBasedEncryptor encryptor() {
-		String password = cryptPassword;
-		if (password == null) {
-			password = Database.getEncryptionPassword();
-			cryptPassword = password;
-		}
-		return new Sha2AesPasswordBasedEncryptor(password);
+		return new Sha2AesPasswordBasedEncryptor(Password.VALUE);
 	}
 
 	@Override
