@@ -666,6 +666,22 @@ public class TaskRepository {
 	}
 
 	/**
+	 * Marks a task which is still running (or waiting for its device) as failed, appending the reason to its log.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @param reason the reason, appended to the log
+	 * @return true if the task was still running (and is now failed)
+	 */
+	public boolean failRunning(DSLContext dsl, long id, String reason) {
+		return this.touch(dsl)
+			.set(TASK.STATUS, Task.Status.FAILURE.name())
+			.set(TASK.LOG, DSL.coalesce(TASK.LOG, "").concat(DSL.val(TaskRun.formatLine(org.slf4j.event.Level.ERROR, reason))))
+			.where(TASK.ID.eq(id), TaskRepository.statusIn(Task.Status.RUNNING, Task.Status.WAITING))
+			.execute() > 0;
+	}
+
+	/**
 	 * Cancels a task, logging the reason.
 	 *
 	 * @param dsl the jOOQ context

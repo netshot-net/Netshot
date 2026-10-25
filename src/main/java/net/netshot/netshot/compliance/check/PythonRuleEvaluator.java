@@ -38,6 +38,7 @@ import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
 import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.task.engine.TaskContext;
 
 /**
@@ -127,7 +128,7 @@ public class PythonRuleEvaluator implements RuleEvaluator<PythonRule> {
 		// endless loop can't block the calling thread. Closing the context on the same thread
 		// also matters: once the 'threading' module is loaded, Python considers this thread
 		// as the main thread, and would wait forever for it to end if closing from another one
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotPyRule"));
 		long deadline = System.currentTimeMillis() + this.runtime.getMaxExecutionTime();
 		Context context = null;
 		try {

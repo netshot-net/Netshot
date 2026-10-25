@@ -18,18 +18,25 @@
  */
 package net.netshot.netshot.boot;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
 import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.auth.OidcDiscovery;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.access.collector.SnmpTrapReceiver;
+import net.netshot.netshot.access.collector.SshServer;
+import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.hook.HookDispatcher;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.api.hook.WebHookSender;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterService;
@@ -67,10 +74,12 @@ import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
+import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
@@ -81,8 +90,10 @@ import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJobFactory;
+import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.task.engine.TaskManagerEngine;
+import net.netshot.netshot.task.engine.TaskManagerService;
 import net.netshot.netshot.task.handler.CheckComplianceHandler;
 import net.netshot.netshot.task.handler.CheckGroupComplianceHandler;
 import net.netshot.netshot.task.handler.CheckGroupSoftwareHandler;
@@ -100,6 +111,7 @@ import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.VaultInstanceRepository;
 import net.netshot.netshot.vault.VaultInstanceService;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.vault.VaultTokenRefresher;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -117,11 +129,14 @@ import net.netshot.netshot.vault.VaultManager;
  * not created by an injection container (Quartz jobs, cluster code, entities)
  * gets what it needs from the entry point ({@code Netshot.main}) or from the handlers.</p>
  */
+@Slf4j
 public final class Wiring {
 
 	private static volatile Wiring instance;
 
 	private final Transactions transactions;
+	// Configuration
+	private final ConfigStore config;
 	// Drivers
 	private final DriverRegistry driverRegistry;
 	// Device
@@ -179,6 +194,7 @@ public final class Wiring {
 	 */
 	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
 		this.transactions = new Transactions();
+		this.config = config;
 		// Drivers
 		this.driverRegistry = driverRegistry;
 		Finder.setDriverRegistry(driverRegistry);
@@ -273,6 +289,65 @@ public final class Wiring {
 		Database.init();
 		instance = new Wiring(driverRegistry, Netshot.config());
 		return instance;
+	}
+
+	/**
+	 * Builds the wiring, without side effect: the database access is initialized by the first of the
+	 * {@link #services()}.
+	 *
+	 * @param config the configuration store
+	 * @return the new wiring
+	 */
+	public static synchronized Wiring create(ConfigStore config) {
+		instance = new Wiring(new DriverRegistry(new DriverLoader()), config);
+		return instance;
+	}
+
+	/**
+	 * Gets the services of the server, in start order (they're stopped in the reverse order).
+	 * The services disabled by the configuration aren't part of the list.
+	 *
+	 * @return the services
+	 */
+	public List<Service> services() {
+		Config current = this.config.current();
+		boolean clustered = current.get(ClusterManager.ENABLED);
+		List<Service> services = new ArrayList<>();
+		services.add(Service.of("database", Database::init, Database::shutdown));
+		services.add(Service.of("device drivers", this.driverRegistry::refresh, () -> { }));
+		services.add(new OidcDiscovery(this.config));
+		// Before the clustering manager, which can start running tasks
+		services.add(Service.of("task lock manager", () -> TaskLockManager.init(clustered), TaskLockManager::shutdown));
+		if (clustered) {
+			services.add(new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler));
+		}
+		else {
+			log.info("High Availability is not enabled.");
+		}
+		services.add(new VaultTokenRefresher(this.config));
+		services.add(new TaskManagerService(this.taskJobFactory));
+		// The receivers submit tasks: after the task manager
+		if (current.get(SyslogServer.DISABLED)) {
+			log.warn("The Syslog server is disabled by configuration.");
+		}
+		else {
+			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler, this.config));
+		}
+		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler, this.config));
+		if (current.get(SshServer.Settings.ENABLED)) {
+			services.add(new SshServer(this.config));
+		}
+		else {
+			log.warn("The SSH server is disabled by configuration.");
+		}
+		// Last: the server is ready when it accepts the requests
+		if (current.get(RestServer.ENABLED)) {
+			services.add(new RestServer(this.binder()));
+		}
+		else {
+			log.info("HTTP server is not enabled.");
+		}
+		return services;
 	}
 
 	/**
