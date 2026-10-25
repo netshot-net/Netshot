@@ -250,7 +250,7 @@ public class OptionsBlockTest {
 			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
 			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 			FakeTaskContext taskContext = new FakeTaskContext();
-			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), null, taskContext);
 			AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 			runMethod.setAccessible(true);

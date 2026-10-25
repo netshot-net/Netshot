@@ -137,6 +137,7 @@ Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice device
 Class <net.netshot.netshot.devicescript.RunDiagnosticDeviceScript> (slice devicescript) depends on <net.netshot.netshot.task.engine.TaskContext> (slice task) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.AccessManager> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.InvalidCredentialsException> (slice access) which is part of a dependency cycle
+Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.access.collector.SshServer> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition$AttributeLevel> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.AttributeDefinition> (slice driver) which is part of a dependency cycle
 Class <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) depends on <net.netshot.netshot.driver.DeviceDriver> (slice driver) which is part of a dependency cycle
@@ -528,6 +529,7 @@ Class <net.netshot.netshot.task.handler.ScanSubnetsHandler> (slice task) depends
 Class <net.netshot.netshot.task.handler.ScanSubnetsHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Network4Address> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeGroupSnapshotHandler> (slice task) depends on <net.netshot.netshot.inventory.device.Device> (slice inventory) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeGroupSnapshotHandler> (slice task) depends on <net.netshot.netshot.inventory.group.DeviceGroup> (slice inventory) which is part of a dependency cycle
+Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.access.collector.SshServer> (slice access) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.devicescript.DeviceScript> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.devicescript.SnapshotDeviceScript> (slice devicescript) which is part of a dependency cycle
 Class <net.netshot.netshot.task.handler.TakeSnapshotHandler> (slice task) depends on <net.netshot.netshot.driver.DriverRegistry> (slice driver) which is part of a dependency cycle

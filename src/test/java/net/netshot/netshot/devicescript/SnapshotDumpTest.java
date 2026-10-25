@@ -62,7 +62,7 @@ public class SnapshotDumpTest {
 	private void dump(String deviceName) {
 		DeviceDraft device = new DeviceDraft(FakeDeviceFactory.getFakeCiscoIosDevice());
 		device.setName(deviceName);
-		new SnapshotDeviceScript(TestDrivers.registry(), new FakeTaskContext()).dumpConfig(device, new ConfigDraft(device.getId()));
+		new SnapshotDeviceScript(TestDrivers.registry(), null, new FakeTaskContext()).dumpConfig(device, new ConfigDraft(device.getId()));
 	}
 
 	@Test

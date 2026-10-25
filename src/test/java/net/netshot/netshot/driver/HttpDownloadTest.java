@@ -234,7 +234,7 @@ public class HttpDownloadTest {
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), null, taskContext);
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
 		accessManager.forceClientForTest(fakeHttp, credentials);
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
@@ -305,7 +305,7 @@ public class HttpDownloadTest {
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
 		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(httpAccess)).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), null, taskContext);
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);

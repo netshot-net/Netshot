@@ -85,7 +85,7 @@ final class TaskRunner {
 			new RunGroupDiagnosticsHandler(orchestrator),
 			new ScanSubnetsHandler(orchestrator),
 			new TakeGroupSnapshotHandler(orchestrator),
-			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue())));
+			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null)));
 		this.taskJob = new TaskJob(handlers, wiring.domainEvents(), wiring.taskManager());
 	}
 

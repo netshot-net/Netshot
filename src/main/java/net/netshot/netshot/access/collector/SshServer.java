@@ -345,27 +345,11 @@ public final class SshServer implements Service {
 		}
 	}
 
-	/** The settings the server was started with (read once: a change needs a restart). */
-	private static volatile Settings settings;
-
-	/**
-	 * Gets the settings of the SSH server: the ones it was started with.
-	 * @return the settings
-	 */
-	public static Settings settings() {
-		Settings current = SshServer.settings;
-		if (current == null) {
-			current = Settings.from(Netshot.config().current());
-			SshServer.settings = current;
-		}
-		return current;
-	}
-
-	/** The running SSH server (for the static accessors, used by the scripts). */
-	private static volatile SshServer nsSshServer;
-
 	/** The configuration store. */
 	private final ConfigStore config;
+
+	/** The settings (read when the server is created, then when it starts: a change needs a restart). */
+	private volatile Settings settings;
 
 	/**
 	 * Creates the SSH server.
@@ -374,6 +358,15 @@ public final class SshServer implements Service {
 	 */
 	public SshServer(ConfigStore config) {
 		this.config = config;
+		this.settings = Settings.from(config.current());
+	}
+
+	/**
+	 * Gets the settings of the SSH server: the ones it was started with.
+	 * @return the settings
+	 */
+	public Settings settings() {
+		return this.settings;
 	}
 
 	@Override
@@ -383,14 +376,12 @@ public final class SshServer implements Service {
 
 	@Override
 	public synchronized void start() {
-		SshServer.settings = Settings.from(this.config.current());
+		this.settings = Settings.from(this.config.current());
 		this.startServer();
-		SshServer.nsSshServer = this;
 	}
 
 	@Override
 	public synchronized void stop() {
-		SshServer.nsSshServer = null;
 		this.stopServer();
 	}
 
@@ -402,7 +393,7 @@ public final class SshServer implements Service {
 	@Override
 	public Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
-		Settings current = SshServer.settings();
+		Settings current = this.settings;
 		stats.put("port", current.tcpPort());
 		stats.put("listening", this.sshd != null);
 		stats.put("sessions", this.sshd == null ? 0 : this.sshd.getActiveSessions().size());
@@ -410,16 +401,21 @@ public final class SshServer implements Service {
 		return stats;
 	}
 
-	public static boolean isRunning() {
-		return nsSshServer != null && nsSshServer.sshd != null;
+	/**
+	 * Whether the server is running (listening).
+	 * @return true if running
+	 */
+	public boolean isRunning() {
+		return this.sshd != null;
 	}
 
-	public static boolean isRunning(TransferProtocol protocol) {
-		return isRunning() && settings().isProtocolEnabled(protocol);
-	}
-
-	public static SshServer getServer() {
-		return nsSshServer;
+	/**
+	 * Whether the server is running, with the given transfer protocol enabled.
+	 * @param protocol the transfer protocol
+	 * @return true if running with the protocol enabled
+	 */
+	public boolean isRunning(TransferProtocol protocol) {
+		return this.isRunning() && this.settings.isProtocolEnabled(protocol);
 	}
 
 	/**
@@ -959,7 +955,7 @@ public final class SshServer implements Service {
 	 * @return The path to use
 	 */
 	private Path getHostKeyPath(String algorithm, int keySize) {
-		Path keyBasePath = SshServer.settings().hostKeyPath();
+		Path keyBasePath = this.settings.hostKeyPath();
 		String central = algorithm.toLowerCase();
 		if (keySize != 0) {
 			central += Integer.toString(keySize);
@@ -973,22 +969,22 @@ public final class SshServer implements Service {
 	 */
 	private void startServer() {
 		this.sshd = org.apache.sshd.server.SshServer.setUpDefaultServer();
-		this.sshd.setPort(SshServer.settings().tcpPort());
-		this.sshd.setHost(SshServer.settings().listenHost().getHostAddress());
+		this.sshd.setPort(this.settings.tcpPort());
+		this.sshd.setHost(this.settings.listenHost().getHostAddress());
 
-		CoreModuleProperties.MAX_CONCURRENT_SESSIONS.set(this.sshd, SshServer.settings().maxConcurrentSessions());
+		CoreModuleProperties.MAX_CONCURRENT_SESSIONS.set(this.sshd, this.settings.maxConcurrentSessions());
 		CoreModuleProperties.SERVER_IDENTIFICATION.set(this.sshd, "NETSHOT-%s".formatted(Netshot.VERSION));
 		// The default value causes an error on Cisco ISE SFTP client: "Outbound message too long 262169"
 		SftpModuleProperties.MAX_WRITEDATA_PACKET_LENGTH.set(this.sshd, 255 * 1024);
 
 		this.sshd.setKeyExchangeFactories(
 			NamedFactory.setUpTransformedFactories(true,
-				BuiltinDHFactories.parseDHFactoriesList(SshServer.settings().kexAlgorithms()).getParsedFactories(),
+				BuiltinDHFactories.parseDHFactoriesList(this.settings.kexAlgorithms()).getParsedFactories(),
 				ServerBuilder.DH2KEX));
-		this.sshd.setSignatureFactoriesNames(SshServer.settings().hostKeyAlgorithms());
-		this.sshd.setCipherFactoriesNames(SshServer.settings().ciphers());
-		this.sshd.setMacFactoriesNames(SshServer.settings().macs());
-		this.sshd.setCompressionFactoriesNames(SshServer.settings().compressionAlgorithms());
+		this.sshd.setSignatureFactoriesNames(this.settings.hostKeyAlgorithms());
+		this.sshd.setCipherFactoriesNames(this.settings.ciphers());
+		this.sshd.setMacFactoriesNames(this.settings.macs());
+		this.sshd.setCompressionFactoriesNames(this.settings.compressionAlgorithms());
 		this.sshd.setForwardingFilter(RejectAllForwardingFilter.INSTANCE);
 
 		// Configure host key provider to generate keys for all supported algorithms
@@ -999,7 +995,7 @@ public final class SshServer implements Service {
 		// Track which algorithms we've created providers for to avoid duplicate providers
 		final Map<String, SimpleGeneratorHostKeyProvider> providersByAlgorithm = new HashMap<>();
 
-		for (String hostKeyAlgorithm : SshServer.settings().hostKeyAlgorithms()) {
+		for (String hostKeyAlgorithm : this.settings.hostKeyAlgorithms()) {
 			String algorithm = null;
 			int keySize = 0;
 
@@ -1064,7 +1060,7 @@ public final class SshServer implements Service {
 		this.sshd.setGSSAuthenticator(null);
 
 		this.sshd.setShellFactory(null);
-		if (SshServer.settings().isProtocolEnabled(TransferProtocol.SCP)) {
+		if (this.settings.isProtocolEnabled(TransferProtocol.SCP)) {
 			ScpCommandFactory scpCommandFactory = new ScpCommandFactory();
 			scpCommandFactory.setScpFileOpener(new DeviceScpFileOpener());
 			this.sshd.setCommandFactory(scpCommandFactory);
@@ -1073,7 +1069,7 @@ public final class SshServer implements Service {
 			log.info("SCP is disabled by configuration.");
 		}
 
-		if (SshServer.settings().isProtocolEnabled(TransferProtocol.SFTP)) {
+		if (this.settings.isProtocolEnabled(TransferProtocol.SFTP)) {
 			SftpSubsystemFactory sftpFactory = new SftpSubsystemFactory.Builder()
 				.withFileSystemAccessor(new DeviceSftpFileSystemAccessor())
 				.build();

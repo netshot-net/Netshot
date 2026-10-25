@@ -35,6 +35,7 @@ import org.graalvm.polyglot.PolyglotException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.access.InvalidCredentialsException;
@@ -65,8 +66,19 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	/** Folder to dump the configurations into, after each snapshot. */
 	static final Setting<String> DUMP_PATH = Setting.text("netshot.snapshots.dump").live();
 
-	public SnapshotDeviceScript(DriverRegistry driverRegistry, TaskContext logger) {
+	/** The embedded SSH server, where the devices upload files (null if not running). */
+	private final SshServer sshServer;
+
+	/**
+	 * Creates the snapshot script.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param sshServer the embedded SSH server, where the devices upload files (null if not running)
+	 * @param logger the task logger
+	 */
+	public SnapshotDeviceScript(DriverRegistry driverRegistry, SshServer sshServer, TaskContext logger) {
 		super(driverRegistry, logger);
+		this.sshServer = sshServer;
 	}
 
 	/**
@@ -178,7 +190,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			ConfigDraft config = new ConfigDraft(device.getId());
 			Config lastConfig = device.getLastConfig() != null ? device.getLastConfig() : loadLastConfig(device);
 			device.setLastConfig(lastConfig);
-			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.taskContext);
+			JsConfigHelper configHelper = new JsConfigHelper(this.driverRegistry, device, config, lastConfig, jsCliHelper, this.sshServer, this.taskContext);
 			options.setConfigHelper(configHelper);
 			context.getBindings("js").getMember("_connect")
 				.execute("snapshot", options);

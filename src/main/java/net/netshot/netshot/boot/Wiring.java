@@ -184,6 +184,8 @@ public final class Wiring {
 	private final TaskManager taskManager;
 	private final AutoSnapshotScheduler autoSnapshotScheduler;
 	private final ClusterManager clusterManager;
+	// Receivers
+	private final SshServer sshServer;
 	// Task handlers
 	private final TaskHandlers taskHandlers;
 	private final TaskJobFactory taskJobFactory;
@@ -275,6 +277,7 @@ public final class Wiring {
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
 		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.taskManager::addTask);
+		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
 		this.taskHandlers = new TaskHandlers(List.of(
 			new CheckComplianceHandler(this.complianceChecker),
 			new CheckGroupComplianceHandler(this.complianceChecker),
@@ -287,7 +290,7 @@ public final class Wiring {
 			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
 			new ScanSubnetsHandler(childTaskOrchestrator),
 			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots)));
+			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 	}
@@ -355,8 +358,8 @@ public final class Wiring {
 			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler, this.config));
 		}
 		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler, this.config));
-		if (current.get(SshServer.Settings.ENABLED)) {
-			services.add(new SshServer(this.config));
+		if (this.sshServer != null) {
+			services.add(this.sshServer);
 		}
 		else {
 			log.warn("The SSH server is disabled by configuration.");
