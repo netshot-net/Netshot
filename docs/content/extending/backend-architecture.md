@@ -248,6 +248,7 @@ The files of the worked example:
 |---|---|
 | `inventory/device/DeviceRepository` | queries and fetch plan |
 | `inventory/device/DeviceService` | use cases, transactions, side effects |
+| `task/DeviceCreationService` | the use case which adds a device (it creates the discovery or initial snapshot task) |
 | `inventory/device/DeviceCreation`, `DeviceUpdate` | commands (inputs of the use cases) |
 | `inventory/device/DeviceSummary` | projection of the list query |
 | `inventory/device/DeviceValidation` | validation helpers (they used to be in `RestService`) |
@@ -258,7 +259,7 @@ The files of the worked example:
 | `api/rest/v0/device/DeviceDto`, `DeviceSummaryDto`, `NewDeviceRequest`, `UpdateDeviceRequest` | the DTOs of the endpoints |
 | `api/rest/v0/device/DeviceAccessDto`, `CredentialSetDto`, `DeviceAttributeDto`, `DeviceGroupDto`, `DomainDto`, `ModuleDto` | the DTOs of the nested types |
 | `api/rest/v0/device/DeviceMapper`, `DeviceAccessMapper` | entity/projection to DTO, request to command |
-| `DeviceServiceTest`, `DeviceDtoTest` (tests) | service tests, entity/DTO differential test |
+| `DeviceServiceTest`, `DeviceCreationServiceTest`, `DeviceDtoTest` (tests) | service tests, entity/DTO differential test |
 
 ### 1. Check the safety nets
 

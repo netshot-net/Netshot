@@ -43,7 +43,6 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
-import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -67,8 +66,7 @@ class DeviceInventoryServiceTest {
 	void initDb() throws Exception {
 		this.transactions = new Transactions();
 		DeviceRepository repository = new DeviceRepository();
-		TaskSubmitter noTask = task -> task;
-		this.deviceService = new DeviceService(this.transactions, repository, noTask, TestDrivers.registry(), new DynamicGroups(TestDrivers.registry()));
+		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestDrivers.registry()));
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
 		this.searchService = new SearchService(this.transactions, new SearchRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");

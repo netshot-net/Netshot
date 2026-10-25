@@ -89,6 +89,7 @@ import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
 import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.TaskService;
@@ -147,6 +148,7 @@ public final class Wiring {
 	private final VaultManager vaultManager;
 	// Device
 	private final DeviceService deviceService;
+	private final DeviceCreationService deviceCreationService;
 	// Compliance
 	private final PolicyService policyService;
 	private final RuleService ruleService;
@@ -230,7 +232,9 @@ public final class Wiring {
 		}
 		// Device
 		DeviceRepository deviceRepository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, taskSubmitter, this.driverRegistry, this.dynamicGroups);
+		this.deviceService = new DeviceService(this.transactions, deviceRepository, this.driverRegistry, this.dynamicGroups);
+		this.deviceCreationService = new DeviceCreationService(this.transactions, deviceRepository, taskSubmitter,
+			this.driverRegistry, this.dynamicGroups);
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
@@ -432,6 +436,15 @@ public final class Wiring {
 	 */
 	public DeviceService deviceService() {
 		return this.deviceService;
+	}
+
+	/**
+	 * Gets the use case which adds a device.
+	 *
+	 * @return the device creation service
+	 */
+	public DeviceCreationService deviceCreationService() {
+		return this.deviceCreationService;
 	}
 
 	/**

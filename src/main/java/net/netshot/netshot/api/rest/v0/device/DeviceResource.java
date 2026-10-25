@@ -50,12 +50,14 @@ import net.netshot.netshot.api.rest.v0.task.TaskDto;
 import net.netshot.netshot.api.rest.v0.task.TaskMapper;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceService;
+import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
 
 /**
  * The REST resource of the devices: list, read, add, edit and delete.
  *
- * <p>It only translates between HTTP and the {@link DeviceService}: it reads the request into a
+ * <p>It only translates between HTTP and the {@link DeviceService} (and the {@link DeviceCreationService}
+ * to add a device): it reads the request into a
  * command, calls the service, maps the result to a DTO, and chooses the status code. The class
  * is mounted on {@code /} with the full path on each method, because a narrower class-level
  * path would hide the other {@code /devices/...} methods which are served by the other resources.</p>
@@ -65,6 +67,7 @@ import net.netshot.netshot.task.Task;
 public class DeviceResource {
 
 	private final DeviceService deviceService;
+	private final DeviceCreationService deviceCreationService;
 	private final DriverRegistry driverRegistry;
 
 	@Context
@@ -77,11 +80,13 @@ public class DeviceResource {
 	 * Instantiates the resource.
 	 *
 	 * @param deviceService the device use cases
+	 * @param deviceCreationService the use case which adds a device
 	 * @param driverRegistry the loaded device drivers
 	 */
 	@Inject
-	public DeviceResource(DeviceService deviceService, DriverRegistry driverRegistry) {
+	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, DriverRegistry driverRegistry) {
 		this.deviceService = deviceService;
+		this.deviceCreationService = deviceCreationService;
 		this.driverRegistry = driverRegistry;
 	}
 
@@ -154,7 +159,7 @@ public class DeviceResource {
 	public TaskDto addDevice(NewDeviceRequest device) throws WebApplicationException {
 		log.debug("REST request, new device.");
 		User user = (User) this.securityContext.getUserPrincipal();
-		Task task = this.deviceService.create(DeviceMapper.toCreation(device, user.username()));
+		Task task = this.deviceCreationService.create(DeviceMapper.toCreation(device, user.username()));
 		ResponseCodeFilter.suggest(this.request, Response.Status.CREATED);
 		return TaskMapper.toDto(this.driverRegistry, task);
 	}
