@@ -25,6 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.access.Telnet;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
@@ -33,16 +34,16 @@ import net.netshot.netshot.testing.fake.FakeTaskContext;
 public class TelnetConfigMergeTest {
 
 	/**
-	 * Reads a private {@link Telnet.TelnetConfig} field via reflection - mirrors how
+	 * Reads a private {@link TelnetConfig} field via reflection - mirrors how
 	 * {@link RekeyTest} already reaches into {@code Ssh}'s own private state, since
 	 * {@code TelnetConfig} deliberately exposes no public getters (same minimalism as
-	 * {@link Ssh.SshConfig}).
+	 * {@link SshConfig}).
 	 * @param config the Telnet configuration
 	 * @param fieldName the name of the field
 	 * @return the value of the field
 	 */
-	private Object getTelnetConfigField(Telnet.TelnetConfig config, String fieldName) throws Exception {
-		Field field = Telnet.TelnetConfig.class.getDeclaredField(fieldName);
+	private Object getTelnetConfigField(TelnetConfig config, String fieldName) throws Exception {
+		Field field = TelnetConfig.class.getDeclaredField(fieldName);
 		field.setAccessible(true);
 		return field.get(config);
 	}
@@ -53,17 +54,17 @@ public class TelnetConfigMergeTest {
 		Telnet telnet = new Telnet("127.0.0.1", 23, new FakeTaskContext());
 
 		// Fresh session: seeded with the historical defaults (vt100/80/24).
-		Telnet.TelnetConfig initial = telnet.getTelnetConfig();
+		TelnetConfig initial = telnet.getTelnetConfig();
 		Assertions.assertEquals("vt100", this.getTelnetConfigField(initial, "terminalType"));
 		Assertions.assertEquals(80, this.getTelnetConfigField(initial, "terminalCols"));
 		Assertions.assertEquals(24, this.getTelnetConfigField(initial, "terminalRows"));
 
 		// Driver-declared delta (as DeviceDriver.parseTelnetConfig would produce from
 		// `CLI.telnet.config`): only terminalCols set.
-		Telnet.TelnetConfig declared = new Telnet.TelnetConfig(false);
+		TelnetConfig declared = new TelnetConfig(false);
 		declared.setTerminalCols(132);
 		telnet.applyTelnetConfig(declared);
-		Telnet.TelnetConfig afterDeclared = telnet.getTelnetConfig();
+		TelnetConfig afterDeclared = telnet.getTelnetConfig();
 		Assertions.assertEquals("vt100", this.getTelnetConfigField(afterDeclared, "terminalType"),
 			"Unset fields in the declared delta must leave the default untouched");
 		Assertions.assertEquals(132, this.getTelnetConfigField(afterDeclared, "terminalCols"));
@@ -71,10 +72,10 @@ public class TelnetConfigMergeTest {
 
 		// client.create(...) "telnetConfig" advanced-option override: only terminalRows set -
 		// must merge on top without disturbing the already-applied terminalCols=132.
-		Telnet.TelnetConfig override = new Telnet.TelnetConfig(false);
+		TelnetConfig override = new TelnetConfig(false);
 		override.setTerminalRows(50);
 		telnet.applyTelnetConfig(override);
-		Telnet.TelnetConfig afterOverride = telnet.getTelnetConfig();
+		TelnetConfig afterOverride = telnet.getTelnetConfig();
 		Assertions.assertEquals("vt100", this.getTelnetConfigField(afterOverride, "terminalType"));
 		Assertions.assertEquals(132, this.getTelnetConfigField(afterOverride, "terminalCols"),
 			"The client.create(...) override must not clobber a field it didn't set itself");

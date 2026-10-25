@@ -40,6 +40,7 @@ import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 
 /**
@@ -51,6 +52,9 @@ import net.netshot.netshot.platform.net.Network4Address;
  */
 @Slf4j
 public final class SyslogServer implements Service {
+
+	/** Where the scripts of the drivers log when they analyze a message. */
+	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SyslogServer.class);
 
 	/** Whether the Syslog server is disabled. */
 	public static final Setting<Boolean> DISABLED = Setting.bool("netshot.syslog.disabled").defaultValue(false).restart();
@@ -197,7 +201,7 @@ public final class SyslogServer implements Service {
 				log.trace("Received Syslog message: '{}'.", message);
 				List<String> matchingDrivers = new ArrayList<>();
 				for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
-					if (driver.analyzeSyslog(message, source)) {
+					if (driver.analyzeSyslog(message, source, DRIVER_LOG)) {
 						matchingDrivers.add(driver.getName());
 					}
 				}

@@ -36,10 +36,10 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.access.Http.AuthScheme;
-import net.netshot.netshot.access.Http.HttpConfig;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
+import net.netshot.netshot.driver.protocol.AuthScheme;
+import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 import net.netshot.netshot.vault.SecretResolver;

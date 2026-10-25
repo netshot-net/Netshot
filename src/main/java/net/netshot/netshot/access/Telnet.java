@@ -25,9 +25,10 @@ import org.apache.commons.net.telnet.InvalidTelnetOptionException;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.apache.commons.net.telnet.WindowSizeOptionHandler;
 
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
@@ -40,7 +41,7 @@ import net.netshot.netshot.platform.log.TaskContext;
 public class Telnet extends Cli {
 
 	/** Default Telnet TCP port. */
-	public static final int DEFAULT_PORT = 23;
+	public static final int DEFAULT_PORT = DriverProtocol.TELNET.defaultPort();
 
 	/**
 	 * The settings of the Telnet client.
@@ -86,37 +87,6 @@ public class Telnet extends Cli {
 		return SETTINGS.get();
 	}
 
-	/**
-	 * Embedded class to represent Telnet-specific configuration.
-	 */
-	public static class TelnetConfig {
-
-		/** Type of terminal. Null means "not set" (see {@link #withDefaults}). */
-		@Setter
-		private String terminalType = null;
-
-		/** Number of columns in the terminal (negotiated via the Telnet Window Size option). Null means "not set". */
-		@Setter
-		private Integer terminalCols = null;
-
-		/** Number of rows in the terminal (negotiated via the Telnet Window Size option). Null means "not set". */
-		@Setter
-		private Integer terminalRows = null;
-
-		/**
-		 * @param withDefaults true to populate every field with its historical default value,
-		 *        false to leave every field {@code null} (a "delta", only ever merged onto
-		 *        another config via {@link Telnet#applyTelnetConfig})
-		 */
-		public TelnetConfig(boolean withDefaults) {
-			if (withDefaults) {
-				this.terminalType = "vt100";
-				this.terminalCols = 80;
-				this.terminalRows = 24;
-			}
-		}
-	}
-
 	/** The port. */
 	private int port = DEFAULT_PORT;
 
@@ -156,11 +126,11 @@ public class Telnet extends Cli {
 	 */
 	@Override
 	public void connect() throws IOException {
-		this.telnet = new TelnetClient(this.telnetConfig.terminalType.toUpperCase());
+		this.telnet = new TelnetClient(this.telnetConfig.getTerminalType().toUpperCase());
 		telnet.setConnectTimeout(this.connectionTimeout);
 		try {
 			telnet.addOptionHandler(new WindowSizeOptionHandler(
-				this.telnetConfig.terminalCols, this.telnetConfig.terminalRows, true, false, false, false));
+				this.telnetConfig.getTerminalCols(), this.telnetConfig.getTerminalRows(), true, false, false, false));
 		}
 		catch (InvalidTelnetOptionException e) {
 			log.warn("Unable to register the Telnet Window Size option handler.", e);
@@ -197,15 +167,7 @@ public class Telnet extends Cli {
 	 * @param other the config delta to merge in
 	 */
 	public void applyTelnetConfig(TelnetConfig other) {
-		if (other.terminalType != null) {
-			this.telnetConfig.terminalType = other.terminalType;
-		}
-		if (other.terminalCols != null) {
-			this.telnetConfig.terminalCols = other.terminalCols;
-		}
-		if (other.terminalRows != null) {
-			this.telnetConfig.terminalRows = other.terminalRows;
-		}
+		this.telnetConfig.apply(other);
 	}
 
 }
