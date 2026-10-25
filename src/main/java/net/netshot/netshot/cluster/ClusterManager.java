@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -242,6 +243,21 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	/** Whether the service is running (the main loop runs until it's false). */
 	private volatile boolean running;
 
+	/** The number of sent cluster messages. */
+	private final AtomicLong sentMessages = new AtomicLong();
+
+	/** The number of received cluster messages (from the other members). */
+	private final AtomicLong receivedMessages = new AtomicLong();
+
+	/** The number of received notifications which aren't valid cluster messages. */
+	private final AtomicLong invalidMessages = new AtomicLong();
+
+	/** The number of times the local member became the master. */
+	private final AtomicLong masterships = new AtomicLong();
+
+	/** The number of (re)connections of the main loop to the database. */
+	private final AtomicLong connections = new AtomicLong();
+
 	/** Whether the main loop is connected to the database (listening to the cluster messages). */
 	private volatile boolean connected;
 
@@ -360,6 +376,11 @@ public class ClusterManager implements Service, ClusterCoordinator {
 		stats.put("members", this.members.size());
 		ClusterMember currentMaster = this.master;
 		stats.put("master", currentMaster == null ? null : currentMaster.getInstanceId());
+		stats.put("sentMessages", this.sentMessages.get());
+		stats.put("receivedMessages", this.receivedMessages.get());
+		stats.put("invalidMessages", this.invalidMessages.get());
+		stats.put("masterships", this.masterships.get());
+		stats.put("connections", this.connections.get());
 		return stats;
 	}
 
@@ -463,6 +484,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 			else {
 				log.trace("Sending message to {}: {}", ClusterManager.NOTIFICATION_CHANNEL, content);
 				statement.execute(String.format("NOTIFY %s, '%s'", ClusterManager.NOTIFICATION_CHANNEL, content));
+				this.sentMessages.incrementAndGet();
 			}
 		}
 		catch (JsonProcessingException e) {
@@ -498,9 +520,11 @@ public class ClusterManager implements Service, ClusterCoordinator {
 						// Ignore my own messages
 						continue;
 					}
+					this.receivedMessages.incrementAndGet();
 					messages.add(message);
 				}
 				catch (JsonProcessingException e) {
+					this.invalidMessages.incrementAndGet();
 					log.error("Error while parsing PGSQL notification as cluster message", e);
 				}
 			}
@@ -534,6 +558,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 					listenStatement.execute(String.format("LISTEN %s", ClusterManager.NOTIFICATION_CHANNEL));
 				}
 				this.connected = true;
+				this.connections.incrementAndGet();
 
 				while (this.running) {
 					// Wait a bit
@@ -741,6 +766,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 									if (this.localMember.getLastStatusChangeTime() + NEGOTIATION_DURATION < currentTime) {
 										// Negotiation done, upgrade to master
 										log.warn("Local cluster member is switching to MASTER status");
+										this.masterships.incrementAndGet();
 										this.localMember.setStatus(MastershipStatus.MASTER);
 										this.master = this.localMember;
 										this.taskManager.setMode(Mode.CLUSTER_MASTER);

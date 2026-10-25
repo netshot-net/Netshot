@@ -21,6 +21,7 @@ package net.netshot.netshot.platform.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Map;
 
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.command.CommandScope;
@@ -101,6 +102,24 @@ public final class Database {
 		// Initialized again (tests): release the connections of the previous initialization
 		shutdown();
 		pools = new ConnectionPools(getDriverClass(), getUrl(), getReadUrl(), getUsername(), getPassword());
+	}
+
+	/**
+	 * Gets the statistics of the connection pools.
+	 *
+	 * @return the statistics, by pool name (empty if not initialized)
+	 */
+	public static synchronized Map<String, Object> stats() {
+		return pools == null ? Map.of() : pools.stats();
+	}
+
+	/**
+	 * Whether the database access is initialized (the connection pools exist).
+	 *
+	 * @return true if initialized
+	 */
+	public static synchronized boolean isInitialized() {
+		return pools != null;
 	}
 
 	/**
