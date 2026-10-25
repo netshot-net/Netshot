@@ -262,13 +262,57 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 			restartNeeded = true;
 		}
 
-		this.usmUsers = new ArrayList<>();
-		String userConfig = newConfig.get(USER);
+		this.usmUsers = parseUsers(newConfig.get(USER));
+
+		if (this.usmUsers.size() > 0) {
+			OctetString newEngineId = null;
+			if (this.engineId != null) {
+				newEngineId = OctetString.fromByteArray(this.engineId.toByteArray());
+			}
+			try {
+				newEngineId = OctetString.fromHexString(newConfig.get(ENGINE_ID));
+			}
+			catch (Exception e) {
+				// Ignore
+			}
+			if (newEngineId == null) {
+				newEngineId = OctetString.fromByteArray(MPv3.createLocalEngineID());
+				log.warn(
+					"Couldn't read/parse SNMP engine ID, a random one {} will be used... please set a static one in config file",
+					newEngineId.toHexString());
+			}
+			if (!newEngineId.equals(this.engineId)) {
+				this.engineId = newEngineId;
+				restartNeeded = true;
+				log.info("SNMP local engine ID is {}", this.engineId.toHexString());
+			}
+		}
+
+		if (restartNeeded) {
+			this.closeReceiver();
+		}
+		this.openReceiver();
+		if (this.snmp.getUSM() != null) {
+			this.snmp.getUSM().setUsers(this.usmUsers.toArray(UsmUser[]::new));
+		}
+	}
+
+	/**
+	 * Parses the SNMPv3 users of the configuration ({@code netshot.snmptrap.user}).
+	 *
+	 * @param userConfig the users, e.g. {@code user1 AES128|SHA authpass1 privpass1}
+	 * @return the USM users (none for an empty value)
+	 */
+	static List<UsmUser> parseUsers(String userConfig) {
+		List<UsmUser> users = new ArrayList<>();
+		if (userConfig == null || userConfig.isBlank()) {
+			return users;
+		}
 		// Example:   user1 AES128|SHA authpass1 privpass1 user2 AES192|AES256|HMAC128SHA224 authpass2 privpass2
 		// i.e. {user} {list of auth/priv protocols with pipe separators} {auth pass if needed} {priv pass if needed}
 		try {
 			String userName = null;
-			Iterator<String> part = Arrays.asList(userConfig.split(" +")).iterator();
+			Iterator<String> part = Arrays.asList(userConfig.trim().split(" +")).iterator();
 			while (part.hasNext()) {
 				userName = part.next();
 				Set<OID> authProtocols = new HashSet<>();
@@ -346,7 +390,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 						UsmUser usmUser = new UsmUser(new OctetString(userName),
 							authProtocol, authKey == null ? null : new OctetString(authKey),
 							privProtocol, privKey == null ? null : new OctetString(privKey));
-						this.usmUsers.add(usmUser);
+						users.add(usmUser);
 					}
 				}
 			}
@@ -354,38 +398,7 @@ public final class SnmpTrapReceiver implements CommandResponder, AuthenticationF
 		catch (Exception e) {
 			log.warn("Error while parsing SNMP trap user option", e);
 		}
-
-		if (this.usmUsers.size() > 0) {
-			OctetString newEngineId = null;
-			if (this.engineId != null) {
-				newEngineId = OctetString.fromByteArray(this.engineId.toByteArray());
-			}
-			try {
-				newEngineId = OctetString.fromHexString(newConfig.get(ENGINE_ID));
-			}
-			catch (Exception e) {
-				// Ignore
-			}
-			if (newEngineId == null) {
-				newEngineId = OctetString.fromByteArray(MPv3.createLocalEngineID());
-				log.warn(
-					"Couldn't read/parse SNMP engine ID, a random one {} will be used... please set a static one in config file",
-					newEngineId.toHexString());
-			}
-			if (!newEngineId.equals(this.engineId)) {
-				this.engineId = newEngineId;
-				restartNeeded = true;
-				log.info("SNMP local engine ID is {}", this.engineId.toHexString());
-			}
-		}
-
-		if (restartNeeded) {
-			this.closeReceiver();
-		}
-		this.openReceiver();
-		if (this.snmp.getUSM() != null) {
-			this.snmp.getUSM().setUsers(this.usmUsers.toArray(UsmUser[]::new));
-		}
+		return users;
 	}
 
 	/**
