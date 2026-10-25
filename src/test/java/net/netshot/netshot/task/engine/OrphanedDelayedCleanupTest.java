@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
@@ -39,6 +38,7 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @DisplayName("Orphaned DELAYED task cleanup (TaskManager, DB-backed)")
@@ -75,7 +75,7 @@ public class OrphanedDelayedCleanupTest {
 			null, "test", "tester"));
 		long childId = this.persistDelayed(parent.id());
 
-		Wiring.get().taskManager().cancelOrphanedDelayedTasks();
+		TestWiring.get().taskManager().cancelOrphanedDelayedTasks();
 
 		Assertions.assertEquals(Status.CANCELLED, TestTasks.find(orphanId).status(),
 			"Parentless DELAYED task should be cancelled");

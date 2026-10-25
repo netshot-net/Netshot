@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.task.Task;
@@ -43,6 +42,7 @@ import net.netshot.netshot.task.type.TaskSpec;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 /**
@@ -57,7 +57,7 @@ public class TaskJobTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		Wiring.get().taskManager().startSchedulers();
+		TestWiring.get().taskManager().startSchedulers();
 	}
 
 	@BeforeEach
@@ -102,7 +102,7 @@ public class TaskJobTest {
 		List<TaskHandler<?>> handlers = Arrays.stream(TaskSpec.class.getPermittedSubclasses())
 			.<TaskHandler<?>>map(type -> throwingHandler(type.asSubclass(TaskSpec.class), exception))
 			.toList();
-		TaskJob taskJob = new TaskJob(new TaskHandlers(handlers), Wiring.get().domainEvents(), Wiring.get().taskManager());
+		TaskJob taskJob = new TaskJob(new TaskHandlers(handlers), TestWiring.get().domainEvents(), TestWiring.get().taskManager());
 		long id = TestTasks.add(TakeSnapshotTask.of(device, "test", "tester", false, true, true), Status.SCHEDULED).id();
 
 		Assertions.assertDoesNotThrow(() -> taskJob.runTask(id));
