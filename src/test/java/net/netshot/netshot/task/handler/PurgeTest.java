@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import net.netshot.netshot.domain.Domain;
@@ -46,9 +47,16 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.UtcTimeZoneExtension;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
+/**
+ * The purge of the tasks, configurations and modules. The test data are dated by elapsed time from now (every
+ * 6 hours), while the purge counts calendar days in the default time zone: the class runs in UTC, so that the
+ * expected counts don't change by one when the purge window crosses a daylight saving time change.
+ */
 @DatabaseTest
+@ExtendWith(UtcTimeZoneExtension.class)
 public class PurgeTest {
 	static final int DEVICES = 10;
 	static final int CONFIGS_PER_DAY = 4;
