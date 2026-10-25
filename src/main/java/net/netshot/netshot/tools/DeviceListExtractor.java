@@ -37,6 +37,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultableSecret;
 
@@ -49,11 +50,12 @@ public class DeviceListExtractor extends Netshot {
 	 * aborting the whole export for one bad/unreachable Vault-backed field.
 	 * @param secret the vaultable secret to resolve
 	 * @param device the device the secret belongs to, used for the warning log message
+	 * @param secrets resolves the secrets (local, or from Vault)
 	 * @return the resolved value, or an empty string on failure
 	 */
-	private static String resolveSecret(VaultableSecret secret, Device device) {
+	private static String resolveSecret(VaultableSecret secret, Device device, SecretResolver secrets) {
 		try {
-			String value = Wiring.get().vaultManager().resolve(secret);
+			String value = secrets.resolve(secret);
 			return value == null ? "" : value;
 		}
 		catch (VaultException e) {
@@ -101,7 +103,7 @@ public class DeviceListExtractor extends Netshot {
 
 		try {
 			log.info("Initializing access to the database.");
-			Wiring.init();
+			Wiring wiring = Wiring.init();
 
 			log.info("Requesting data from the DB...");
 			List<Device> devices = new Transactions().read(dsl -> new DeviceRepository().findAll(dsl,
@@ -154,7 +156,7 @@ public class DeviceListExtractor extends Netshot {
 				fields.add("");							// Col. 6 = SysObjectID
 				fields.add("");							// Col. 7 = DCR Device Type
 				fields.add("");							// Col. 8 = MDF Type
-				fields.add(community == null ? "" : resolveSecret(community.communitySecret(), device));			// Col. 9 = SNMP RO <<<
+				fields.add(community == null ? "" : resolveSecret(community.communitySecret(), device, wiring.vaultManager()));			// Col. 9 = SNMP RO <<<
 				fields.add("");							// Col. 10 = SNMP RW
 				fields.add("");							// Col. 11 = SNMPv3 User Name
 				fields.add("");							// Col. 12 = SNMPv3 Auth Pass 
@@ -162,9 +164,9 @@ public class DeviceListExtractor extends Netshot {
 				fields.add("");							// Col. 14 = SNMPv3 Auth Algorithm
 				fields.add("");							// Col. 15 = RX Boot Mode User
 				fields.add("");							// Col. 16 = RX Boot Mode Pass
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.usernameSecret(), device));			// Col. 17 = Primary User <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.passwordSecret(), device));			// Col. 18 = Primary Pass <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPasswordSecret(), device));	// Col. 19 = Primary Enable Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.usernameSecret(), device, wiring.vaultManager()));			// Col. 17 = Primary User <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.passwordSecret(), device, wiring.vaultManager()));			// Col. 18 = Primary Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPasswordSecret(), device, wiring.vaultManager()));	// Col. 19 = Primary Enable Pass <<<
 				fields.add("");							// Col. 20 = HTTP User
 				fields.add("");							// Col. 21 = HTTP Pass
 				fields.add("");							// Col. 22 = HTTP Mode

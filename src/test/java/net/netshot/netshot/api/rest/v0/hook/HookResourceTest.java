@@ -28,12 +28,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.hook.WebHook;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -85,7 +85,7 @@ public class HookResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		Wiring.get().hookService().list(Page.ALL).forEach(hook -> Wiring.get().hookService().delete(hook.id()));
+		TestWiring.get().hookService().list(Page.ALL).forEach(hook -> TestWiring.get().hookService().delete(hook.id()));
 	}
 
 	private ObjectNode newWebhookData(String name, String url) {
@@ -98,7 +98,7 @@ public class HookResourceTest {
 	}
 
 	private WebHook getWebHookByName(String name) {
-		return (WebHook) Wiring.get().hookService().list(Page.ALL).stream()
+		return (WebHook) TestWiring.get().hookService().list(Page.ALL).stream()
 			.filter(hook -> name.equals(hook.name())).findFirst().orElse(null);
 	}
 

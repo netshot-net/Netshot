@@ -30,18 +30,17 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import net.netshot.netshot.api.rest.NetshotWebApplication;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.lifecycle.Service;
-import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
 
 @DatabaseTest(boot = Boot.MIGRATED)
 @TestInstance(Lifecycle.PER_CLASS)
 public class WiringTest {
 
 	@Test
-	@DisplayName("Wiring.init() builds the wiring, available through Wiring.get()")
-	void getAfterInit() {
+	@DisplayName("Wiring.init() builds the wiring")
+	void init() {
 		Wiring wiring = Wiring.init();
-		Assertions.assertSame(wiring, Wiring.get());
 		Assertions.assertNotNull(wiring.transactions());
 	}
 

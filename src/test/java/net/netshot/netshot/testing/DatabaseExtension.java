@@ -77,7 +77,7 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		TestConfig.init(config);
 		TestDrivers.reload();
 		if (boot == Boot.WIRED) {
-			Wiring.init(TestDrivers.registry());
+			TestWiring.set(Wiring.init(TestDrivers.registry()));
 		}
 	}
 
