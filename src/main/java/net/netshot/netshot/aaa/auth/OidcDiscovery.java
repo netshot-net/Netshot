@@ -56,6 +56,9 @@ public final class OidcDiscovery implements Service {
 	private record Target(String endpoint, String clientId, String clientSecret, int retryInterval, int refreshInterval) {
 	}
 
+	/** The OIDC authentication, enabled by this service. */
+	private final Oidc oidc;
+
 	/** The configuration store. */
 	private final ConfigStore config;
 
@@ -80,9 +83,11 @@ public final class OidcDiscovery implements Service {
 	/**
 	 * Creates the service.
 	 *
+	 * @param oidc the OIDC authentication, enabled by this service
 	 * @param config the configuration store
 	 */
-	public OidcDiscovery(ConfigStore config) {
+	public OidcDiscovery(Oidc oidc, ConfigStore config) {
+		this.oidc = oidc;
 		this.config = config;
 	}
 
@@ -106,19 +111,19 @@ public final class OidcDiscovery implements Service {
 			this.executor.shutdownNow();
 		}
 		this.executor.awaitTermination(10, TimeUnit.SECONDS);
-		Oidc.disable();
+		this.oidc.disable();
 	}
 
 	@Override
 	public synchronized boolean isHealthy() {
-		return this.target == null || Oidc.isAvailable();
+		return this.target == null || this.oidc.isAvailable();
 	}
 
 	@Override
 	public synchronized Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("configured", this.target != null);
-		stats.put("available", Oidc.isAvailable());
+		stats.put("available", this.oidc.isAvailable());
 		stats.put("fetches", this.fetches.get());
 		stats.put("failures", this.failures.get());
 		return stats;
@@ -147,7 +152,7 @@ public final class OidcDiscovery implements Service {
 		if (this.executor == null || this.executor.isShutdown()) {
 			return;
 		}
-		Target newTarget = targetOf(Oidc.settings());
+		Target newTarget = targetOf(this.oidc.settings());
 		if (Objects.equals(newTarget, this.target)) {
 			return;
 		}
@@ -155,13 +160,13 @@ public final class OidcDiscovery implements Service {
 			this.next.cancel(false);
 		}
 		this.target = newTarget;
-		Oidc.disable();
+		this.oidc.disable();
 		if (newTarget == null) {
 			log.info("OIDC is not configured.");
 			return;
 		}
 		log.info("Starting the discovery of the OIDC IdP {}", newTarget.endpoint());
-		Oidc.setClient(newTarget.clientId(), newTarget.clientSecret());
+		this.oidc.setClient(newTarget.clientId(), newTarget.clientSecret());
 		this.schedule(newTarget, 0);
 	}
 
@@ -187,7 +192,7 @@ public final class OidcDiscovery implements Service {
 					// Changed in the meantime, the new target is fetched
 					return;
 				}
-				Oidc.setIdpMetadata(metadata);
+				this.oidc.setIdpMetadata(metadata);
 			}
 			this.fetches.incrementAndGet();
 			delay = fetched.refreshInterval();

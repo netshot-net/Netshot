@@ -54,7 +54,6 @@ import com.nimbusds.openid.connect.sdk.rp.OIDCClientMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.platform.config.Config;
@@ -71,13 +70,13 @@ public final class Oidc {
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
 	/** IdP metadata (retrieved from issuer endpoint URL). */
-	private static OIDCProviderMetadata idpMetadata;
+	private OIDCProviderMetadata idpMetadata;
 
 	/** OIDC client info. */
-	private static OIDCClientInformation clientInfo;
+	private OIDCClientInformation clientInfo;
 
 	/** ID Token validator based on IdP metadata and client info. */
-	private static IDTokenValidator idTokenValidator;
+	private IDTokenValidator idTokenValidator;
 
 	/**
 	 * The settings of the OIDC authentication.
@@ -167,14 +166,14 @@ public final class Oidc {
 	}
 
 	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+	private final ConfigStore.Binding<Settings> settings;
 
 	/**
 	 * Gets the settings of the OIDC authentication.
 	 * @return the settings
 	 */
-	static Settings settings() {
-		return SETTINGS.get();
+	Settings settings() {
+		return this.settings.get();
 	}
 
 	/**
@@ -195,9 +194,9 @@ public final class Oidc {
 	 * @param metadata the metadata of the IdP
 	 * @throws GeneralException if the ID token validation can't be prepared
 	 */
-	static synchronized void setIdpMetadata(OIDCProviderMetadata metadata) throws GeneralException {
-		Oidc.idTokenValidator = IDTokenValidator.create(metadata, Oidc.clientInfo);
-		Oidc.idpMetadata = metadata;
+	synchronized void setIdpMetadata(OIDCProviderMetadata metadata) throws GeneralException {
+		this.idTokenValidator = IDTokenValidator.create(metadata, this.clientInfo);
+		this.idpMetadata = metadata;
 	}
 
 	/**
@@ -205,43 +204,43 @@ public final class Oidc {
 	 * @param clientId the client ID
 	 * @param clientSecret the client secret
 	 */
-	static synchronized void setClient(String clientId, String clientSecret) {
+	synchronized void setClient(String clientId, String clientSecret) {
 		OIDCClientMetadata clientMetadata = new OIDCClientMetadata();
 		clientMetadata.applyDefaults();
-		Oidc.clientInfo = new OIDCClientInformation(new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
+		this.clientInfo = new OIDCClientInformation(new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
 	}
 
 	/**
 	 * Disables the OIDC authentication, until the IdP metadata is fetched again.
 	 */
-	static synchronized void disable() {
-		Oidc.idpMetadata = null;
-		Oidc.idTokenValidator = null;
+	synchronized void disable() {
+		this.idpMetadata = null;
+		this.idTokenValidator = null;
 	}
 
-	public static synchronized boolean isAvailable() {
-		return Oidc.idpMetadata != null;
+	public synchronized boolean isAvailable() {
+		return this.idpMetadata != null;
 	}
 
-	public static synchronized URI getAuthorizationEndpointURI() {
-		if (!Oidc.isAvailable()) {
+	public synchronized URI getAuthorizationEndpointURI() {
+		if (!this.isAvailable()) {
 			return null;
 		}
-		return Oidc.idpMetadata.getAuthorizationEndpointURI();
+		return this.idpMetadata.getAuthorizationEndpointURI();
 	}
 
-	public static synchronized String getClientId() {
-		if (!Oidc.isAvailable()) {
+	public synchronized String getClientId() {
+		if (!this.isAvailable()) {
 			return null;
 		}
-		return Oidc.clientInfo.getID().getValue();
+		return this.clientInfo.getID().getValue();
 	}
 
-	public static synchronized URI getEndSessionEndpointURI() {
-		if (!Oidc.isAvailable()) {
+	public synchronized URI getEndSessionEndpointURI() {
+		if (!this.isAvailable()) {
 			return null;
 		}
-		return Oidc.idpMetadata.getEndSessionEndpointURI();
+		return this.idpMetadata.getEndSessionEndpointURI();
 	}
 
 	/**
@@ -251,7 +250,7 @@ public final class Oidc {
 	 * @return the OIDC tokens
 	 * @throws Exception in case of problem
 	 */
-	private static OIDCTokens codeToTokens(String code, URL redirectUrl) throws Exception {
+	private OIDCTokens codeToTokens(String code, URL redirectUrl) throws Exception {
 		// Create token request
 		AuthorizationCode authCode = new AuthorizationCode(code);
 		AuthorizationGrant codeGrant = new AuthorizationCodeGrant(authCode, redirectUrl.toURI());
@@ -261,7 +260,7 @@ public final class Oidc {
 
 		// Prepare request
 		TokenRequest tokenRequest = new TokenRequest
-			.Builder(Oidc.idpMetadata.getTokenEndpointURI(), clientAuth, codeGrant)
+			.Builder(this.idpMetadata.getTokenEndpointURI(), clientAuth, codeGrant)
 			.scope(new Scope(OIDCScopeValue.OPENID))
 			.build();
 		HTTPRequest request = tokenRequest.toHTTPRequest();
@@ -285,8 +284,8 @@ public final class Oidc {
 	 * @param redirectUrl = the redirect URL
 	 * @return the authenticated user or null if authentication failed
 	 */
-	public static synchronized UiUser authenticateWithCode(String authorizationCode, URL redirectUrl) {
-		if (!Oidc.isAvailable()) {
+	public synchronized UiUser authenticateWithCode(String authorizationCode, URL redirectUrl) {
+		if (!this.isAvailable()) {
 			return null;
 		}
 		try {
@@ -296,15 +295,15 @@ public final class Oidc {
 				MarkerFactory.getMarker("AAA"),
 				"OIDC authorization code exchanged for OIDC tokens"
 			);
-			final IDTokenClaimsSet tokenClaims = Oidc.idTokenValidator
+			final IDTokenClaimsSet tokenClaims = this.idTokenValidator
 				.validate(tokens.getIDToken(), null);
 			AAA_LOG.debug(
 				MarkerFactory.getMarker("AAA"),
 				"ID token successfully validated"
 			);
-			Settings settings = SETTINGS.get();
-			String usernameClaim = settings.usernameClaim();
-			String roleClaim = settings.roleClaim();
+			Settings current = this.settings.get();
+			String usernameClaim = current.usernameClaim();
+			String roleClaim = current.roleClaim();
 			String username = tokenClaims.getStringClaim(usernameClaim);
 			if (username == null) {
 				throw new RuntimeException("The ID token is missing the expected claim %s".formatted(usernameClaim));
@@ -323,7 +322,7 @@ public final class Oidc {
 			}
 			// Select the highest role level among passed roles
 			for (String passedRole : passedRoles) {
-				Integer roleLevel = settings.roles().get(passedRole);
+				Integer roleLevel = current.roles().get(passedRole);
 				if (roleLevel != null) {
 					if (level == null || roleLevel > level) {
 						level = roleLevel;
@@ -331,7 +330,7 @@ public final class Oidc {
 				}
 			}
 			if (level == null) {
-				level = settings.defaultLevel();
+				level = current.defaultLevel();
 			}
 			UiUser user = UiUser.remote(username, level);
 			AAA_LOG.info("User {} successfully authenticated via OIDC (level {})", username, level);
@@ -344,6 +343,12 @@ public final class Oidc {
 		}
 	}
 
-	private Oidc() {
+	/**
+	 * Creates the OIDC authentication.
+	 *
+	 * @param config the configuration store, to read the settings from
+	 */
+	public Oidc(ConfigStore config) {
+		this.settings = config.bind(Settings::from);
 	}
 }

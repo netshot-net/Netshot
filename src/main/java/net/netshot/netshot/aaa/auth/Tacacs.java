@@ -41,7 +41,6 @@ import com.augur.tacacs.TAC_PLUS.AUTHEN.TYPE;
 import com.augur.tacacs.TAC_PLUS.PRIV_LVL;
 import com.augur.tacacs.TacacsClient;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.platform.config.Config;
@@ -171,30 +170,30 @@ public final class Tacacs {
 	}
 
 	/** The settings, from the configuration. */
-	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+	private final ConfigStore.Binding<Settings> settings;
 
 	/** The current client. */
-	private static Client currentClient;
+	private Client currentClient;
 
 	/**
 	 * Gets the client, built again when the settings changed.
 	 * @return the client
 	 */
-	private static synchronized Client client() {
-		Settings settings = SETTINGS.get();
-		if (currentClient == null || currentClient.settings() != settings) {
+	private synchronized Client client() {
+		Settings current = this.settings.get();
+		if (this.currentClient == null || this.currentClient.settings() != current) {
 			TacacsClient tacacsClient = null;
-			if (!settings.servers().isEmpty()) {
-				tacacsClient = new TacacsClient(String.join(", ", settings.servers()), String.join(", ", settings.keys()),
-					settings.timeout() * 1000, false);
-				log.info("Using TACACS+ servers {}", settings.servers());
+			if (!current.servers().isEmpty()) {
+				tacacsClient = new TacacsClient(String.join(", ", current.servers()), String.join(", ", current.keys()),
+					current.timeout() * 1000, false);
+				log.info("Using TACACS+ servers {}", current.servers());
 			}
-			currentClient = new Client(settings, tacacsClient);
+			this.currentClient = new Client(current, tacacsClient);
 		}
-		return currentClient;
+		return this.currentClient;
 	}
 
-	public static boolean isAvailable() {
+	public boolean isAvailable() {
 		return client().client() != null;
 	}
 
@@ -206,7 +205,7 @@ public final class Tacacs {
 	 * @param remoteAddress = the remote address of the user
 	 * @return the resulting user or null if authentication failed
 	 */
-	public static UiUser authenticate(String username, String password, String remoteAddress) {
+	public UiUser authenticate(String username, String password, String remoteAddress) {
 		Client current = client();
 		TacacsClient client = current.client();
 		if (client == null) {
@@ -301,7 +300,7 @@ public final class Tacacs {
 	 * @param response = the response
 	 * @param remoteAddress = the user IP address
 	 */
-	public static void account(String method, String path, String username, String response, String remoteAddress) {
+	public void account(String method, String path, String username, String response, String remoteAddress) {
 		Client current = client();
 		TacacsClient client = current.client();
 		if (!current.settings().accounting() || client == null) {
@@ -318,6 +317,12 @@ public final class Tacacs {
 		}
 	}
 
-	private Tacacs() {
+	/**
+	 * Creates the TACACS+ authentication.
+	 *
+	 * @param config the configuration store, to read the settings from
+	 */
+	public Tacacs(ConfigStore config) {
+		this.settings = config.bind(Settings::from);
 	}
 }
