@@ -19,7 +19,7 @@
 package net.netshot.netshot.api.rest.v0.device;
 
 
-import net.netshot.netshot.compliance.SoftwareRule;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 
 /**
@@ -47,6 +47,6 @@ public record DeviceSummaryDto(
 	Boolean eol,
 	Boolean eos,
 	Boolean configCompliant,
-	SoftwareRule.ConformanceLevel softwareLevel,
+	ConformanceLevel softwareLevel,
 	Device.NetworkClass networkClass) {
 }

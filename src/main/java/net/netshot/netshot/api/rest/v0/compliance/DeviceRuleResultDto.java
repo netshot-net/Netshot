@@ -22,7 +22,7 @@ import java.util.Date;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 
 /**
  * The compliance state of a device for one rule.

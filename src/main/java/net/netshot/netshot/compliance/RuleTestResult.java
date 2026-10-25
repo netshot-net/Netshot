@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.compliance;
 
+import net.netshot.netshot.inventory.compliance.CheckResult;
+
 /**
  * The outcome of a test of a rule against a device.
  *

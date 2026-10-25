@@ -33,13 +33,13 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;

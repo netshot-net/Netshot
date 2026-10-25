@@ -19,7 +19,7 @@
 package net.netshot.netshot.api.rest.v0.compliance;
 
 
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 
 /**
  * The request to add or edit a software compliance rule. A property absent from the request

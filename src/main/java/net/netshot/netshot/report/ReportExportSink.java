@@ -21,7 +21,7 @@ package net.netshot.netshot.report;
 import java.util.Date;
 import java.util.List;
 
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
 
