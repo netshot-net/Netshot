@@ -71,7 +71,7 @@ public class GenericSNMPDriverTest {
 		snmpAccess.port(port);
 		deviceAccesses.add(snmpAccess.build());
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), null, this.taskContext);
 
 		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, this.taskContext, Set.of(community));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
