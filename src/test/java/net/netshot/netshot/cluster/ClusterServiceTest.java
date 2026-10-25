@@ -127,6 +127,6 @@ class ClusterServiceTest {
 	void serverInfo() {
 		ServerInfo info = new ServerInfoService().get();
 		Assertions.assertEquals(Netshot.VERSION, info.serverVersion());
-		Assertions.assertEquals(UiUser.SETTINGS.getMaxIdleTime(), info.maxIdleTimeout());
+		Assertions.assertEquals(UiUser.settings().maxIdleTime(), info.maxIdleTimeout());
 	}
 }

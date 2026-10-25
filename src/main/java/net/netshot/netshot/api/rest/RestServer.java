@@ -188,7 +188,7 @@ public final class RestServer extends Thread {
 					.setSecure(secureCookie)
 					.setAttribute("SameSite", "Strict")
 				)
-				.setDefaultSessionTimeout(UiUser.SETTINGS.getMaxIdleTime());
+				.setDefaultSessionTimeout(UiUser.settings().maxIdleTime());
 
 			DeploymentManager manager = Servlets
 				.defaultContainer()

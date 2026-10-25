@@ -33,6 +33,6 @@ public class ServerInfoService {
 	 * @return the server information
 	 */
 	public ServerInfo get() {
-		return new ServerInfo(Netshot.VERSION, UiUser.SETTINGS.getMaxIdleTime());
+		return new ServerInfo(Netshot.VERSION, UiUser.settings().maxIdleTime());
 	}
 }

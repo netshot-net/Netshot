@@ -183,6 +183,8 @@ public class LoginResource {
 		}
 		if (user != null) {
 			HttpSession httpSession = this.request.getSession(true);
+			// The current max idle time (the default timeout of the sessions is set when the server starts)
+			httpSession.setMaxInactiveInterval(UiUser.settings().maxIdleTime());
 			httpSession.setAttribute(SecurityFilter.USER_ATTRIBUTE, user);
 			return UserMapper.toDto(user);
 		}

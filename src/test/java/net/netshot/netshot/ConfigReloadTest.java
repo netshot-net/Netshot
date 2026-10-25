@@ -79,7 +79,7 @@ public class ConfigReloadTest {
 			Map.entry("netshot.snapshots.binary.path", this.tempDir.toString()),
 			Map.entry("netshot.python.virtualenv", this.tempDir.toString())));
 		Assertions.assertEquals(7, PasswordPolicy.getMainPolicy().getMaxHistory());
-		Assertions.assertEquals(600, UiUser.SETTINGS.getMaxIdleTime());
+		Assertions.assertEquals(600, UiUser.settings().maxIdleTime());
 		Assertions.assertEquals(1234, Ssh.SETTINGS.getConnectionTimeout());
 		Assertions.assertArrayEquals(new String[] { "aes256-ctr", "aes128-ctr" }, Ssh.SETTINGS.getCiphers());
 		Assertions.assertEquals(4321, Telnet.SETTINGS.getReceiveTimeout());
@@ -91,7 +91,7 @@ public class ConfigReloadTest {
 
 		reload(Map.of());
 		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory());
-		Assertions.assertEquals(1800, UiUser.SETTINGS.getMaxIdleTime());
+		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime());
 		Assertions.assertEquals(5000, Ssh.SETTINGS.getConnectionTimeout());
 		Assertions.assertEquals(60000, Telnet.SETTINGS.getReceiveTimeout());
 		Assertions.assertTrue(Collector.SETTINGS.getClusterIpOverrides().isEmpty());
@@ -129,7 +129,7 @@ public class ConfigReloadTest {
 			"netshot.aaa.maxidletime", "1",
 			"netshot.cli.ssh.rekeydatalimit", "big"));
 		Assertions.assertEquals(0, PasswordPolicy.getMainPolicy().getMaxHistory(), "Not a number");
-		Assertions.assertEquals(1800, UiUser.SETTINGS.getMaxIdleTime(), "Out of range");
+		Assertions.assertEquals(1800, UiUser.settings().maxIdleTime(), "Out of range");
 		Assertions.assertEquals(1024L * 1024L * 1024L, Ssh.SETTINGS.getRekeyDataLimit(), "Not a long");
 	}
 

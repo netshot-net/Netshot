@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
 
@@ -49,18 +51,23 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	List<String> oldHashedPasswords, Instant lastPasswordChangeDate) implements User {
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the users.
+	 *
+	 * @param maxIdleTime the max idle time of a user session (in seconds)
 	 */
-	public static final class Settings {
-		/** The max idle time of user (in seconds). */
-		@Getter
-		private int maxIdleTime;
+	public record Settings(int maxIdleTime) {
+
+		/** The max idle time of a user session (in seconds). */
+		static final Setting<Integer> MAX_IDLE_TIME = Setting.integer("netshot.aaa.maxidletime")
+			.defaultValue(1800).range(5, Integer.MAX_VALUE).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.maxIdleTime = Netshot.getConfig("netshot.aaa.maxidletime", 1800, 5, Integer.MAX_VALUE);
+		static Settings from(Config config) {
+			return new Settings(config.get(MAX_IDLE_TIME));
 		}
 	}
 
@@ -75,8 +82,16 @@ public record UiUser(long id, String username, boolean local, int level, String 
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+
+	/**
+	 * Gets the settings of the users.
+	 * @return the settings
+	 */
+	public static Settings settings() {
+		return SETTINGS.get();
+	}
 
 	/**
 	 * Hash the password for future storage.
@@ -87,13 +102,6 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	private static String hash(String password) {
 		Hash hash = new Argon2idHash(password);
 		return hash.toHashString();
-	}
-
-	/**
-	 * Load the main policy from configuration.
-	 */
-	public static void loadConfig() {
-		UiUser.SETTINGS.load();
 	}
 
 	/**

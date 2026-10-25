@@ -56,6 +56,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Oidc class authenticates the users using JSON Web Token.
@@ -75,17 +78,100 @@ public final class Oidc {
 	/** ID Token validator based on IdP metadata and client info. */
 	private static IDTokenValidator idTokenValidator;
 
-	/** Name of the claim that will carry the role. */
-	private static String roleClaim;
+	/**
+	 * The settings of the OIDC authentication.
+	 *
+	 * @param roleClaim the name of the claim carrying the role
+	 * @param roles the levels by role name (value of the role claim)
+	 * @param defaultLevel the level of an authenticated user without known role
+	 * @param usernameClaim the name of the claim carrying the username
+	 * @param endpoint the URL of the IdP (issuer), null if OIDC isn't configured
+	 * @param clientId the client ID
+	 * @param clientSecret the client secret
+	 * @param retryInterval the interval (ms) before retrying to fetch the IdP metadata after a failure
+	 * @param refreshInterval the interval (ms) between two fetches of the IdP metadata
+	 */
+	record Settings(String roleClaim, Map<String, Integer> roles, int defaultLevel, String usernameClaim,
+		String endpoint, String clientId, String clientSecret, int retryInterval, int refreshInterval) {
 
-	/** Default permission level for authenticated user. */
-	private static int defaultLevel;
+		/** Name of the claim carrying the role. */
+		static final Setting<String> ROLE_CLAIM = Setting.text("netshot.aaa.oidc.role.claimname").defaultValue("role").live();
 
-	/** Name of the claim that will carry the username. */
-	private static String usernameClaim;
+		/** Value of the role claim for the read-only role. */
+		static final Setting<String> READONLY_ROLE = roleSetting(User.Role.READONLY);
 
-	/** Configured roles. */
-	private static Map<String, Integer> roles = new HashMap<>();
+		/** Value of the role claim for the operator role. */
+		static final Setting<String> OPERATOR_ROLE = roleSetting(User.Role.OPERATOR);
+
+		/** Value of the role claim for the read-write role. */
+		static final Setting<String> READWRITE_ROLE = roleSetting(User.Role.READWRITE);
+
+		/** Value of the role claim for the execute-read-write role. */
+		static final Setting<String> EXECUTEREADWRITE_ROLE = roleSetting(User.Role.EXECUTEREADWRITE);
+
+		/** Value of the role claim for the admin role. */
+		static final Setting<String> ADMIN_ROLE = roleSetting(User.Role.ADMIN);
+
+		/** Level of an authenticated user without known role. */
+		static final Setting<Integer> DEFAULT_LEVEL = Setting.integer("netshot.aaa.oidc.role.defaultlevel")
+			.defaultValue(0).range(0, 9999).live();
+
+		/** Name of the claim carrying the username. */
+		static final Setting<String> USERNAME_CLAIM = Setting.text("netshot.aaa.oidc.usernameclaimname")
+			.defaultValue("preferred_username").live();
+
+		/** URL of the IdP (issuer). */
+		static final Setting<String> IDP_URL = Setting.text("netshot.aaa.oidc.idp.url").live();
+
+		/** Client ID. */
+		static final Setting<String> CLIENT_ID = Setting.text("netshot.aaa.oidc.clientid").live();
+
+		/** Client secret. */
+		static final Setting<String> CLIENT_SECRET = Setting.text("netshot.aaa.oidc.clientsecret").secret().live();
+
+		/** Interval (ms) before retrying to fetch the IdP metadata after a failure. */
+		static final Setting<Integer> IDP_RETRY_INTERVAL = Setting.integer("netshot.aaa.oidc.idp.retryinterval")
+			.defaultValue(30000).range(1000, Integer.MAX_VALUE).live();
+
+		/** Interval (ms) between two fetches of the IdP metadata. */
+		static final Setting<Integer> IDP_REFRESH_INTERVAL = Setting.integer("netshot.aaa.oidc.idp.refreshinterval")
+			.defaultValue(43200000).range(60000, Integer.MAX_VALUE).live();
+
+		private static Setting<String> roleSetting(User.Role role) {
+			return Setting.text("netshot.aaa.oidc.role.%srole".formatted(role.getName().replaceAll("-", "")))
+				.defaultValue(role.getName()).live();
+		}
+
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			Map<String, Integer> roles = new HashMap<>();
+			for (User.Role role : User.Role.values()) {
+				Setting<String> roleSetting = switch (role) {
+					case READONLY -> READONLY_ROLE;
+					case OPERATOR -> OPERATOR_ROLE;
+					case READWRITE -> READWRITE_ROLE;
+					case EXECUTEREADWRITE -> EXECUTEREADWRITE_ROLE;
+					case ADMIN -> ADMIN_ROLE;
+				};
+				roles.put(config.get(roleSetting), role.getLevel());
+			}
+			return new Settings(config.get(ROLE_CLAIM), Map.copyOf(roles), config.get(DEFAULT_LEVEL),
+				config.get(USERNAME_CLAIM), config.get(IDP_URL), config.get(CLIENT_ID), config.get(CLIENT_SECRET),
+				config.get(IDP_RETRY_INTERVAL), config.get(IDP_REFRESH_INTERVAL));
+		}
+	}
+
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+
+	static {
+		// Applied again on each configuration change
+		Netshot.config().addListener(_ -> Oidc.applySettings());
+	}
 
 	private static IdPDiscoveryDaemon idpDiscoveryThread;
 
@@ -148,23 +234,16 @@ public final class Oidc {
 	}
 
 	/**
-	 * Load the configuration from Netshot config file.
+	 * Applies the settings: starts (or restarts, if the IdP has changed) the discovery of the IdP metadata.
+	 * Called at startup, then on each configuration change.
 	 */
-	public static synchronized void loadConfig() {
-		roleClaim = Netshot.getConfig("netshot.aaa.oidc.role.claimname", "role");
-		roles.clear();
-		for (User.Role role : User.Role.values()) {
-			String roleKey = role.getName().replaceAll("-", "");
-			String claimValue = Netshot.getConfig("netshot.aaa.oidc.role.%srole".formatted(roleKey), role.getName());
-			roles.put(claimValue, role.getLevel());
-		}
-		defaultLevel = Netshot.getConfig("netshot.aaa.oidc.role.defaultlevel", 0, 0, 9999);
-		usernameClaim = Netshot.getConfig("netshot.aaa.oidc.usernameclaimname", "preferred_username");
-		String endpoint = Netshot.getConfig("netshot.aaa.oidc.idp.url");
-		String clientId = Netshot.getConfig("netshot.aaa.oidc.clientid");
-		String clientSecret = Netshot.getSecretConfig("netshot.aaa.oidc.clientsecret");
-		int idpRetryInterval = Netshot.getConfig("netshot.aaa.oidc.idp.retryinterval", 30000, 1000, Integer.MAX_VALUE);
-		int idpRefreshInterval = Netshot.getConfig("netshot.aaa.oidc.idp.refreshinterval", 43200000, 60000, Integer.MAX_VALUE);
+	public static synchronized void applySettings() {
+		Settings settings = SETTINGS.get();
+		String endpoint = settings.endpoint();
+		String clientId = settings.clientId();
+		String clientSecret = settings.clientSecret();
+		int idpRetryInterval = settings.retryInterval();
+		int idpRefreshInterval = settings.refreshInterval();
 
 		OIDCClientMetadata clientMetadata = new OIDCClientMetadata();
 		clientMetadata.applyDefaults();
@@ -281,6 +360,9 @@ public final class Oidc {
 				MarkerFactory.getMarker("AAA"),
 				"ID token successfully validated"
 			);
+			Settings settings = SETTINGS.get();
+			String usernameClaim = settings.usernameClaim();
+			String roleClaim = settings.roleClaim();
 			String username = tokenClaims.getStringClaim(usernameClaim);
 			if (username == null) {
 				throw new RuntimeException("The ID token is missing the expected claim %s".formatted(usernameClaim));
@@ -299,7 +381,7 @@ public final class Oidc {
 			}
 			// Select the highest role level among passed roles
 			for (String passedRole : passedRoles) {
-				Integer roleLevel = roles.get(passedRole);
+				Integer roleLevel = settings.roles().get(passedRole);
 				if (roleLevel != null) {
 					if (level == null || roleLevel > level) {
 						level = roleLevel;
@@ -307,7 +389,7 @@ public final class Oidc {
 				}
 			}
 			if (level == null) {
-				level = Oidc.defaultLevel;
+				level = settings.defaultLevel();
 			}
 			UiUser user = UiUser.remote(username, level);
 			AAA_LOG.info("User {} successfully authenticated via OIDC (level {})", username, level);
