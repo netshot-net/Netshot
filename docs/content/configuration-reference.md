@@ -166,13 +166,6 @@ netshot.sshserver.externalport = 22
 iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-port 11022 -s 10.255.255.0/24
 ```
 
-## Embedded TFTP server
-
-| Parameter | Description | Reload |
-|---|---|---|
-| `netshot.tftpserver.disabled` | Disables the embedded TFTP server. **Disabled by default** — enable explicitly if a driver relies on TFTP transfer. | Restart |
-| `netshot.tftpserver.port` | UDP port to listen on. Default: `69`. | Restart |
-
 ## User authentication
 
 Local authentication / password policy:
