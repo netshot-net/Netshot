@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import net.netshot.netshot.aaa.auth.Radius;
+import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.access.Ssh;
@@ -107,6 +108,17 @@ public class ConfigReloadTest {
 		Assertions.assertTrue(Radius.isAvailable());
 		reload(Map.of());
 		Assertions.assertFalse(Radius.isAvailable());
+	}
+
+	@Test
+	@DisplayName("Reload adds and removes the TACACS+ servers")
+	void reloadTacacsServers() {
+		reload(Map.of(
+			"netshot.aaa.tacacs1.ip", "127.0.0.1",
+			"netshot.aaa.tacacs1.secret", "secret"));
+		Assertions.assertTrue(Tacacs.isAvailable());
+		reload(Map.of());
+		Assertions.assertFalse(Tacacs.isAvailable());
 	}
 
 	@Test
