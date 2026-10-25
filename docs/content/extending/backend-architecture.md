@@ -17,14 +17,16 @@ platform/          technical building blocks; depends on no feature
 │   └── schema/    jOOQ classes generated from the schema (committed under src/main/jooq)
 ├── error/         ErrorCode, NetshotException
 ├── event/         DomainEvents: synchronous in-process publish/subscribe
-├── crypto/ tls/ rest/
+├── crypto/ tls/ rest/ config/ lifecycle/ concurrent/ log/
+├── net/           IPv4, IPv6 and MAC address value types
+├── script/        script toolbox and JavaScript value helpers
 api/               API channels: how the outside world talks to the core
 ├── rest/          web server (RestServer), Jersey application, filters, exception mapper, shared REST bits
 │   └── v0/        the current (legacy, unversioned) REST API, served on /api
 ├── hook/          webhook channel: HookDispatcher (reacts to domain events), WebHookSender (HTTP), payload/ (payload DTOs and mapper)
 └── grpc/          (later)
-inventory/ driver/ access/ credentials/ vault/ devicescript/ userscript/
-compliance/ diagnostic/ task/ report/ hook/ aaa/ cluster/ system/ tools/
+domain/ credentials/ driver/ inventory/ access/ vault/ diagnostic/ devicescript/
+compliance/ userscript/ task/ report/ hook/ aaa/ cluster/ system/ tools/
                    features: domain records, repositories, services, engines
 ```
 
@@ -42,9 +44,20 @@ The REST API must stay byte-for-byte equivalent (JSON, XML, YAML) while it is re
 
 The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; `api` does not reach the database (neither jOOQ nor `platform.database`, except the `Page` window); JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; `@JsonView` and the JAXB annotations are only used by the API channels and the cluster wire format; and there is no cycle between top-level packages.
 
-The device accesses (`access`) log into the log of the running task through `platform.log.TaskContext`, and the receivers report the configuration changes through the `access.collector.SnapshotRequester` port (implemented by the automatic snapshot scheduler): `access` doesn't depend on `task`. The feature packages around the devices (`access`, `compliance`, `credentials`, `devicescript`, `diagnostic`, `driver`, `inventory`, `task`, `userscript`) still form one dependency cycle, mainly through the device record (`inventory` holding `access.DeviceAccess`, the compliance results and the credentials), the drivers opening the device sessions (`driver` → `access`) and the device service submitting tasks (`inventory` → `task`).
+The feature packages around the devices are layered, each one only depending on the ones before it:
 
-Most rules are *strict*: any violation fails the build. Two rules still have violations and are *frozen*: the cycles between top-level packages, and the mutable static fields. Its existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
+1. `domain` (the management domains), `vault` (the Vault instances and the resolution of the Vault-backed secrets) and `credentials` (the credential sets, scoped by domain);
+2. `driver`: the drivers, with the settings of their accesses (`driver.protocol`: SSH, Telnet and HTTP), looked up for a device through the `DrivenDevice` port;
+3. `inventory`: the devices and what is known about them, including their per-access settings (`DeviceAccess`) and the last results of the diagnostics (`inventory.diagnostic`) and of the compliance checks (`inventory.compliance`). The device search refers to the policies, rules and diagnostics by name and ID only;
+4. `access`: the device accesses and the receivers. They log into the log of the running task through `platform.log.TaskContext`, and the receivers report the configuration changes through the `access.collector.SnapshotRequester` port (implemented by the automatic snapshot scheduler);
+5. `diagnostic`, `devicescript`, `compliance`, `userscript`: the definitions and the scripts run on the devices;
+6. `task`: the task engine, the handlers, and the use cases which create tasks (`TaskService`, `DeviceCreationService` which adds a device).
+
+Above them: `report` and `cluster` (which depend on `task`), then the API channels (`api`) and the composition root (`boot`). `aaa`, `hook` and `system` only depend on `platform` (and `system` on `aaa`).
+
+When a lower package needs something of an upper one, the type belongs lower (a value type or a result, as the address types moved to `platform.net`), or the lower package declares a port that the upper one implements (`DrivenDevice`, `SnapshotRequester`, `ClusterCoordinator`), or the use case belongs to the upper package (`DeviceCreationService`).
+
+Most rules are *strict*: any violation fails the build, including the rule against the cycles between top-level packages (it reports each class dependency which belongs to a cycle). One rule still has violations and is *frozen*: the mutable static fields. Its existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
 
 ```bash
 ./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
@@ -205,9 +218,9 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 
 - **Adding a service** (a use case class): build it in the `Wiring` constructor, give it an accessor, and bind it in `boot.WiringBinder`.
 - **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, given to the `RestServer` service which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
-- **Code outside Jersey** receives its dependencies explicitly from the wiring, which builds the services with them: `new SyslogServer(driverRegistry, autoSnapshotScheduler, config)`, `new SnmpTrapReceiver(...)`, `new ClusterManager(...)`, `new TaskManagerService(taskJobFactory)`. No static facade is left: the device drivers are looked up in the injected `DriverRegistry` (`forDevice(device)`, `getDriverByName(name)`), which the handlers pass to the device scripts and helpers they create, and the automatic snapshots are scheduled through `AutoSnapshotScheduler`. The static `Wiring.get()` has no caller in `src/main` any more; it remains for the tests.
+- **Code outside Jersey** receives its dependencies explicitly from the wiring, which builds the services with them: `new SyslogServer(driverRegistry, snapshotRequester, config)`, `new SnmpTrapReceiver(...)`, `new ClusterManager(...)`, `new TaskManager(config, autoSnapshots, lockManager)`. No static facade is left: the device drivers are looked up in the injected `DriverRegistry` (`forDevice(device)`, `getDriverByName(name)`), which the handlers pass to the device scripts and helpers they create, and the automatic snapshots are scheduled through `AutoSnapshotScheduler`. The static `Wiring.get()` has no caller in `src/main` any more; it remains for the tests.
 - **Descriptions of the drivers belong to the mappers.** The description of the driver of a rule, a diagnostic, a script, a discovered type or a device is computed by the mapper (`api/rest/v0`, and `TaskPayloads` for the webhooks) from the `DriverRegistry` it receives as first argument; the resources get the registry by injection and the hook dispatcher by constructor. Domain records have no accessor that looks a driver up.
-- **Remaining static state.** `Finder` parses its queries with static methods, so it reads the drivers from a static `DriverRegistry` set by `Wiring` (`Finder.setDriverRegistry`); `AutoSnapshotScheduler` holds the process-wide set of the devices with a queued automatic snapshot (marked and cleared by the task lifecycle, which has no access to the scheduler). Both remain to be removed.
+- **Remaining static state**: see [Services](#services).
 
 Resources are discovered by Jersey package scanning of `net.netshot.netshot.api.rest` (sub-packages included): a new `@Path` class is picked up with no registration. Filters, providers and the exception mapper carry no `@Provider` annotation and are registered explicitly in `NetshotWebApplication`.
 
