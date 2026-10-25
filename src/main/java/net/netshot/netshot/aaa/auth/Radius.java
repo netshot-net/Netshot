@@ -50,6 +50,9 @@ import net.jradius.packet.attribute.AttributeFactory;
 import net.jradius.packet.attribute.AttributeList;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Radius class authenticates the users against a RADIUS server.
@@ -60,93 +63,153 @@ public final class Radius {
 	/** The AAA logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
-	/** The clients. */
-	private static List<RadiusClient> clients = new ArrayList<>();
-
-	/** The authentication method. */
-	private static Class<? extends RadiusAuthenticator> authMethod = MSCHAPv2Authenticator.class;
-
-	/** The nasIdentifier. */
-	private static String nasIdentifier;
-
 	/**
-	 * Load server config.
+	 * The settings of the RADIUS authentication.
 	 *
-	 * @param id the id
+	 * @param servers the RADIUS servers
+	 * @param authMethod the authentication method
+	 * @param nasIdentifier the NAS identifier to send (null for none)
 	 */
-	private static void loadServerConfig(int id) {
-		String path = String.format("netshot.aaa.radius%d", id);
-		String ip = Netshot.getConfig(path + ".ip");
-		if (ip == null) {
-			return;
+	record Settings(List<Server> servers, Class<? extends RadiusAuthenticator> authMethod, String nasIdentifier) {
+
+		/**
+		 * A RADIUS server.
+		 *
+		 * @param id the number of the server in the configuration
+		 * @param address the address
+		 * @param authPort the authentication port
+		 * @param acctPort the accounting port
+		 * @param timeout the timeout (seconds)
+		 * @param secret the shared secret
+		 */
+		record Server(int id, InetAddress address, int authPort, int acctPort, int timeout, String secret) {
 		}
-		InetAddress address;
-		try {
-			address = InetAddress.getByName(ip);
-		}
-		catch (UnknownHostException e) {
-			if (ip != null) {
-				log.error("Invalid IP address for RADIUS server {}. Will be ignored.", id);
+
+		/** Max number of servers. */
+		private static final int MAX_SERVERS = 3;
+
+		/** IP address of a server. */
+		static final Setting<String> IP = Setting.text("netshot.aaa.radiusN.ip").live();
+
+		/** Authentication port of a server. */
+		static final Setting<Integer> AUTH_PORT = Setting.integer("netshot.aaa.radiusN.authport")
+			.defaultValue(1812).range(1, 65535).live();
+
+		/** Accounting port of a server. */
+		static final Setting<Integer> ACCT_PORT = Setting.integer("netshot.aaa.radiusN.acctport")
+			.defaultValue(1813).range(1, 65535).live();
+
+		/** Timeout (seconds) for a server. */
+		static final Setting<Integer> TIMEOUT = Setting.integer("netshot.aaa.radiusN.timeout")
+			.defaultValue(5).range(1, 300).live();
+
+		/** Shared secret of a server. */
+		static final Setting<String> SECRET = Setting.text("netshot.aaa.radiusN.secret").secret().live();
+
+		/** Authentication method. */
+		static final Setting<String> METHOD = Setting.text("netshot.aaa.radius.method").defaultValue("mschapv2").live();
+
+		/** NAS identifier. */
+		static final Setting<String> NAS_IDENTIFIER = Setting.text("netshot.aaa.radius.nasidentifier").live();
+
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			List<Server> servers = new ArrayList<>();
+			for (int id = 1; id <= MAX_SERVERS; id++) {
+				String ip = config.get(IP.at(id));
+				if (ip == null) {
+					continue;
+				}
+				InetAddress address;
+				try {
+					address = InetAddress.getByName(ip);
+				}
+				catch (UnknownHostException e) {
+					log.error("Invalid IP address for RADIUS server {}. Will be ignored.", id);
+					continue;
+				}
+				int authPort = config.get(AUTH_PORT.at(id));
+				int acctPort = config.get(ACCT_PORT.at(id));
+				int timeout = config.get(TIMEOUT.at(id));
+				String secret = config.get(SECRET.at(id));
+				if (secret == null) {
+					log.error("No key configured for RADIUS server {}. Will be ignored.", id);
+					continue;
+				}
+				servers.add(new Server(id, address, authPort, acctPort, timeout, secret));
 			}
-			return;
-		}
-		int authPort = Netshot.getConfig(path + ".authport", 1812, 1, 65535);
-		int acctPort = Netshot.getConfig(path + ".acctport", 1813, 1, 65535);
-		int timeout = Netshot.getConfig(path + ".timeout", 5, 1, 300);
-		String key = Netshot.getSecretConfig(path + ".secret");
-		if (key == null) {
-			log.error("No key configured for RADIUS server {}. Will be ignored.", id);
-			return;
-		}
-		RadiusClient client;
-		try {
-			client = new RadiusClient(address, key, authPort, acctPort, timeout);
-		}
-		catch (IOException e) {
-			log.error("Unable to create the RADIUS client for server {}.", id, e);
-			return;
-		}
-		log.info("Added RADIUS server {}", address);
-		String method = Netshot.getConfig("netshot.aaa.radius.method", "mschapv2");
-		switch (method) {
-			case "pap":
-				authMethod = PAPAuthenticator.class;
-				break;
-			case "chap":
-				authMethod = CHAPAuthenticator.class;
-				break;
-			case "eap-md5":
-				authMethod = EAPMD5Authenticator.class;
-				break;
-			case "eap-mschapv2":
-				authMethod = EAPMSCHAPv2Authenticator.class;
-				break;
-			case "mschapv2":
-				break;
-			default:
-				log.error("Invalid configured RADIUS method '{}'. Defaulting to MSCHAPv2.", method);
-		}
-		nasIdentifier = Netshot.getConfig("netshot.aaa.radius.nasidentifier", null);
-		clients.add(client);
-	}
-
-	/**
-	 * Load configuration of all servers (up to 4).
-	 */
-	private static void loadAllServersConfig() {
-		synchronized (Radius.clients) {
-			Radius.clients = new ArrayList<>();
-		}
-		for (int i = 1; i < 4; i++) {
-			loadServerConfig(i);
+			String method = config.get(METHOD);
+			Class<? extends RadiusAuthenticator> authMethod = switch (method) {
+				case "pap" -> PAPAuthenticator.class;
+				case "chap" -> CHAPAuthenticator.class;
+				case "eap-md5" -> EAPMD5Authenticator.class;
+				case "eap-mschapv2" -> EAPMSCHAPv2Authenticator.class;
+				case "mschapv2" -> MSCHAPv2Authenticator.class;
+				default -> {
+					log.error("Invalid configured RADIUS method '{}'. Defaulting to MSCHAPv2.", method);
+					yield MSCHAPv2Authenticator.class;
+				}
+			};
+			return new Settings(List.copyOf(servers), authMethod, config.get(NAS_IDENTIFIER));
 		}
 	}
 
 	/**
-	 * Load the configuration from Netshot config file.
+	 * The RADIUS clients built from the settings, in the order to try them.
+	 *
+	 * @param settings the settings they are built from
+	 * @param clients the clients
 	 */
-	public static void loadConfig() {
-		Radius.loadAllServersConfig();
+	private record Clients(Settings settings, List<RadiusClient> clients) {
+	}
+
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+
+	/** The current clients. */
+	private static Clients clients;
+
+	/**
+	 * Gets the clients, built again when the settings changed.
+	 * @return the clients
+	 */
+	private static synchronized Clients clients() {
+		Settings settings = SETTINGS.get();
+		if (clients == null || clients.settings() != settings) {
+			List<RadiusClient> newClients = new ArrayList<>();
+			for (Settings.Server server : settings.servers()) {
+				try {
+					newClients.add(new RadiusClient(server.address(), server.secret(), server.authPort(), server.acctPort(),
+						server.timeout()));
+					log.info("Added RADIUS server {}", server.address());
+				}
+				catch (IOException e) {
+					log.error("Unable to create the RADIUS client for server {}.", server.id(), e);
+				}
+			}
+			clients = new Clients(settings, List.copyOf(newClients));
+		}
+		return clients;
+	}
+
+	/**
+	 * Moves a client which answered first in the list, for the next authentications.
+	 * @param from the clients the client was taken from
+	 * @param client the client
+	 */
+	private static synchronized void promote(Clients from, RadiusClient client) {
+		if (clients != from) {
+			// Rebuilt in the meantime
+			return;
+		}
+		List<RadiusClient> ordered = new ArrayList<>(from.clients());
+		ordered.remove(client);
+		ordered.add(0, client);
+		clients = new Clients(from.settings(), List.copyOf(ordered));
 	}
 
 	static {
@@ -154,7 +217,7 @@ public final class Radius {
 	}
 
 	public static boolean isAvailable() {
-		return clients.size() > 0;
+		return !clients().clients().isEmpty();
 	}
 
 	/**
@@ -166,9 +229,12 @@ public final class Radius {
 	 * @return the resulting user or null if authentication failed
 	 */
 	public static UiUser authenticate(String username, String password, String remoteAddress) {
-		if (!isAvailable()) {
+		Clients allClients = clients();
+		if (allClients.clients().isEmpty()) {
 			return null;
 		}
+		Settings settings = allClients.settings();
+		String nasIdentifier = settings.nasIdentifier();
 		AttributeList attributeList = new AttributeList();
 		attributeList.add(new Attr_UserName(username));
 		attributeList.add(new Attr_NASPortType(Attr_NASPortType.Virtual));
@@ -181,16 +247,12 @@ public final class Radius {
 		}
 
 		boolean first = true;
-		List<RadiusClient> allClients;
-		synchronized (Radius.clients) {
-			allClients = Radius.clients;
-		}
-		for (RadiusClient radiusClient : allClients) {
+		for (RadiusClient radiusClient : allClients.clients()) {
 			AccessRequest request = new AccessRequest(radiusClient, attributeList);
 			request.addAttribute(new Attr_UserPassword(password));
 			RadiusResponse reply;
 			try {
-				reply = radiusClient.authenticate(request, authMethod.getDeclaredConstructor().newInstance(), 3);
+				reply = radiusClient.authenticate(request, settings.authMethod().getDeclaredConstructor().newInstance(), 3);
 				if (reply == null) {
 					log.error("Request to RADIUS server {} timed out.", radiusClient.getRemoteInetAddress().toString());
 					AAA_LOG.error(MarkerFactory.getMarker("AAA"), "Request to RADIUS server {} timed out.",
@@ -199,8 +261,7 @@ public final class Radius {
 				else {
 					// We got a reply
 					if (!first) {
-						allClients.remove(radiusClient);
-						allClients.add(0, radiusClient);
+						promote(allClients, radiusClient);
 					}
 					if (reply instanceof AccessAccept) {
 						int level = UiUser.LEVEL_READONLY;

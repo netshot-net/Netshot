@@ -44,6 +44,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Tacacs class authenticates the users against a TACACS+ server.
@@ -54,90 +57,145 @@ public final class Tacacs {
 	/** The AAA logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
-	/** TACACS+ attribute name that will carry the role. */
-	private static String roleAttribute;
-
-	/** Configured roles. */
-	private static Map<String, Integer> roles = new HashMap<>();
-
-	/** The client. */
-	private static TacacsClient client;
-
-	/** Whether TACACS+ accounting is enabled. */
-	private static boolean enableAccounting;
-
 	/**
-	 * Load server config.
+	 * The settings of the TACACS+ authentication.
 	 *
-	 * @param id = the id of the server in the config file
-	 * @param hosts = the list where to add the found host
-	 * @param keys = the list where to add the found key
+	 * @param servers the servers, as {@code address:port}
+	 * @param keys the keys of the servers (same order)
+	 * @param timeout the timeout (seconds)
+	 * @param accounting whether the accounting is enabled
+	 * @param roleAttribute the name of the TACACS+ attribute carrying the role
+	 * @param roles the levels by role name (value of the role attribute)
 	 */
-	private static void loadServerConfig(int id, List<String> hosts, List<String> keys) {
-		String path = String.format("netshot.aaa.tacacs%d", id);
-		String ip = Netshot.getConfig(path + ".ip");
-		if (ip == null) {
-			return;
+	record Settings(List<String> servers, List<String> keys, int timeout, boolean accounting,
+		String roleAttribute, Map<String, Integer> roles) {
+
+		/** Max number of servers. */
+		private static final int MAX_SERVERS = 3;
+
+		/** IP address of a server. */
+		static final Setting<String> IP = Setting.text("netshot.aaa.tacacsN.ip").live();
+
+		/** Port of a server. */
+		static final Setting<Integer> PORT = Setting.integer("netshot.aaa.tacacsN.port").defaultValue(49).range(1, 65535).live();
+
+		/** Key of a server. */
+		static final Setting<String> SECRET = Setting.text("netshot.aaa.tacacsN.secret").secret().live();
+
+		/** Timeout (seconds). */
+		static final Setting<Integer> TIMEOUT = Setting.integer("netshot.aaa.tacacs.timeout").defaultValue(5).range(1, 300).live();
+
+		/** Whether the accounting is enabled. */
+		static final Setting<Boolean> ACCOUNTING = Setting.bool("netshot.aaa.tacacs.accounting").defaultValue(false).live();
+
+		/** Name of the attribute carrying the role. */
+		static final Setting<String> ROLE_ATTRIBUTE = Setting.text("netshot.aaa.tacacs.role.attributename").defaultValue("role").live();
+
+		/** Value of the role attribute for the read-only role. */
+		static final Setting<String> READONLY_ROLE = roleSetting(User.Role.READONLY);
+
+		/** Value of the role attribute for the operator role. */
+		static final Setting<String> OPERATOR_ROLE = roleSetting(User.Role.OPERATOR);
+
+		/** Value of the role attribute for the read-write role. */
+		static final Setting<String> READWRITE_ROLE = roleSetting(User.Role.READWRITE);
+
+		/** Value of the role attribute for the execute-read-write role. */
+		static final Setting<String> EXECUTEREADWRITE_ROLE = roleSetting(User.Role.EXECUTEREADWRITE);
+
+		/** Value of the role attribute for the admin role. */
+		static final Setting<String> ADMIN_ROLE = roleSetting(User.Role.ADMIN);
+
+		private static Setting<String> roleSetting(User.Role role) {
+			return Setting.text("netshot.aaa.tacacs.role.%srole".formatted(role.getName().replaceAll("-", "")))
+				.defaultValue(role.getName()).live();
 		}
-		InetAddress address;
-		try {
-			address = InetAddress.getByName(ip);
-		}
-		catch (Exception e) {
-			if (ip != null) {
-				log.error("Invalid IP address for TACACS+ server {}. Will be ignored.", id);
+
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			List<String> hosts = new ArrayList<>();
+			List<String> keys = new ArrayList<>();
+			for (int id = 1; id <= MAX_SERVERS; id++) {
+				String ip = config.get(IP.at(id));
+				if (ip == null) {
+					continue;
+				}
+				InetAddress address;
+				try {
+					address = InetAddress.getByName(ip);
+				}
+				catch (Exception e) {
+					log.error("Invalid IP address for TACACS+ server {}. Will be ignored.", id);
+					continue;
+				}
+				int port = config.get(PORT.at(id));
+				String key = config.get(SECRET.at(id));
+				if (key == null) {
+					log.error("No key configured for TACACS+ server {}. Will be ignored.", id);
+					continue;
+				}
+				hosts.add(String.format("%s:%d", address.getHostAddress(), port));
+				keys.add(key);
 			}
-			return;
-		}
-		int port = Netshot.getConfig(path + ".port", 49, 1, 65535);
-		String key = Netshot.getSecretConfig(path + ".secret");
-		if (key == null) {
-			log.error("No key configured for TACACS+ server {}. Will be ignored.", id);
-			return;
-		}
-		hosts.add(String.format("%s:%d", address.getHostAddress(), port));
-		keys.add(key);
-		log.info("Added TACACS+ server {}", address.getHostAddress());
-	}
-
-	/**
-	 * Load the config of all servers (up to 4) from the config file.
-	 */
-	private static void loadAllServersConfig() {
-		List<String> hosts = new ArrayList<>();
-		List<String> keys = new ArrayList<>();
-		for (int i = 1; i < 4; i++) {
-			loadServerConfig(i, hosts, keys);
-		}
-		int timeout = Netshot.getConfig("netshot.aaa.tacacs.timeout", 5, 1, 300);
-		if (hosts.size() > 0) {
-			Tacacs.client = new TacacsClient(String.join(", ", hosts), String.join(", ", keys), timeout * 1000, false);
-		}
-		else {
-			Tacacs.client = null;
-		}
-		enableAccounting = Netshot.getConfig("netshot.aaa.tacacs.accounting", false);
-		if (enableAccounting) {
-			log.info("TACACS+ accounting is enabled");
+			boolean accounting = config.get(ACCOUNTING);
+			if (accounting) {
+				log.info("TACACS+ accounting is enabled");
+			}
+			Map<String, Integer> roles = new HashMap<>();
+			for (User.Role role : User.Role.values()) {
+				Setting<String> roleSetting = switch (role) {
+					case READONLY -> READONLY_ROLE;
+					case OPERATOR -> OPERATOR_ROLE;
+					case READWRITE -> READWRITE_ROLE;
+					case EXECUTEREADWRITE -> EXECUTEREADWRITE_ROLE;
+					case ADMIN -> ADMIN_ROLE;
+				};
+				roles.put(config.get(roleSetting), role.getLevel());
+			}
+			return new Settings(List.copyOf(hosts), List.copyOf(keys), config.get(TIMEOUT), accounting,
+				config.get(ROLE_ATTRIBUTE), Map.copyOf(roles));
 		}
 	}
 
 	/**
-	 * Load the configuration from Netshot config file.
+	 * The TACACS+ client built from the settings.
+	 *
+	 * @param settings the settings it is built from
+	 * @param client the client, null if no server is configured
 	 */
-	public static void loadConfig() {
-		roleAttribute = Netshot.getConfig("netshot.aaa.tacacs.role.attributename", "role");
-		roles.clear();
-		for (User.Role role : User.Role.values()) {
-			String roleKey = role.getName().replaceAll("-", "");
-			String attrValue = Netshot.getConfig("netshot.aaa.tacacs.role.%srole".formatted(roleKey), role.getName());
-			roles.put(attrValue, role.getLevel());
+	private record Client(Settings settings, TacacsClient client) {
+	}
+
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+
+	/** The current client. */
+	private static Client currentClient;
+
+	/**
+	 * Gets the client, built again when the settings changed.
+	 * @return the client
+	 */
+	private static synchronized Client client() {
+		Settings settings = SETTINGS.get();
+		if (currentClient == null || currentClient.settings() != settings) {
+			TacacsClient tacacsClient = null;
+			if (!settings.servers().isEmpty()) {
+				tacacsClient = new TacacsClient(String.join(", ", settings.servers()), String.join(", ", settings.keys()),
+					settings.timeout() * 1000, false);
+				log.info("Using TACACS+ servers {}", settings.servers());
+			}
+			currentClient = new Client(settings, tacacsClient);
 		}
-		Tacacs.loadAllServersConfig();
+		return currentClient;
 	}
 
 	public static boolean isAvailable() {
-		return Tacacs.client != null;
+		return client().client() != null;
 	}
 
 	/**
@@ -149,9 +207,13 @@ public final class Tacacs {
 	 * @return the resulting user or null if authentication failed
 	 */
 	public static UiUser authenticate(String username, String password, String remoteAddress) {
-		if (!isAvailable()) {
+		Client current = client();
+		TacacsClient client = current.client();
+		if (client == null) {
 			return null;
 		}
+		String roleAttribute = current.settings().roleAttribute();
+		Map<String, Integer> roles = current.settings().roles();
 
 		try {
 			SessionClient authenSession = client.newSession(SVC.LOGIN, "rest", remoteAddress, PRIV_LVL.USER.code());
@@ -240,7 +302,9 @@ public final class Tacacs {
 	 * @param remoteAddress = the user IP address
 	 */
 	public static void account(String method, String path, String username, String response, String remoteAddress) {
-		if (!Tacacs.enableAccounting || !Tacacs.isAvailable()) {
+		Client current = client();
+		TacacsClient client = current.client();
+		if (!current.settings().accounting() || client == null) {
 			return;
 		}
 		SessionClient acctSession = client.newSession(SVC.LOGIN, "rest", remoteAddress, PRIV_LVL.USER.code());
