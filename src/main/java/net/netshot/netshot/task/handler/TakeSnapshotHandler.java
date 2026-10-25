@@ -30,6 +30,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -51,6 +52,9 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	/** The devices with a queued automatic snapshot. */
 	private final AutoSnapshotQueue autoSnapshots;
+
+	/** The embedded SSH server, where the devices upload files (null if disabled). */
+	private final SshServer sshServer;
 	private final Transactions transactions = new Transactions();
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
@@ -59,9 +63,12 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
+	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
 	 */
-	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots) {
+	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
+		SshServer sshServer) {
 		this.driverRegistry = driverRegistry;
+		this.sshServer = sshServer;
 		this.taskSubmitter = taskSubmitter;
 		this.autoSnapshots = autoSnapshots;
 	}
@@ -82,7 +89,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, run.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.sshServer, run.logger);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
