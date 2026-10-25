@@ -31,7 +31,7 @@ import net.netshot.netshot.access.Http.AuthScheme;
 import net.netshot.netshot.access.Ssh.SshConfig;
 import net.netshot.netshot.access.Ssh.SshInteractionInstruction;
 import net.netshot.netshot.access.Telnet.TelnetConfig;
-import net.netshot.netshot.devicescript.helper.JsUtils;
+import net.netshot.netshot.platform.script.JsUtils;
 
 /**
  * Parsers of the access configuration objects declared by the drivers (or overridden by scripts).

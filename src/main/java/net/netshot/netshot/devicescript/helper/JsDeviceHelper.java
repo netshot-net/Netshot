@@ -66,6 +66,7 @@ import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
 import net.netshot.netshot.platform.net.PhysicalAddress;
+import net.netshot.netshot.platform.script.JsUtils;
 
 /**
  * Class used to get  and set data on a device object from JavaScript.
@@ -93,11 +94,7 @@ public final class JsDeviceHelper {
 	}
 
 	public static boolean getBooleanMember(Value value, String key, boolean defaultResult) {
-		Value result = value.getMember(key);
-		if (result != null) {
-			return result.asBoolean();
-		}
-		return defaultResult;
+		return JsUtils.getBooleanMember(value, key, defaultResult);
 	}
 
 	public JsDeviceHelper(DriverRegistry driverRegistry, DeviceDraft device, JsCliHelper defaultCliHelper,
