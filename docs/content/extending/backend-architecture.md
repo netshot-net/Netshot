@@ -57,11 +57,7 @@ Above them: `report` and `cluster` (which depend on `task`), then the API channe
 
 When a lower package needs something of an upper one, the type belongs lower (a value type or a result, as the address types moved to `platform.net`), or the lower package declares a port that the upper one implements (`DrivenDevice`, `SnapshotRequester`, `ClusterCoordinator`), or the use case belongs to the upper package (`DeviceCreationService`).
 
-Most rules are *strict*: any violation fails the build, including the rule against the cycles between top-level packages (it reports each class dependency which belongs to a cycle). One rule still has violations and is *frozen*: the mutable static fields. Its existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
-
-```bash
-./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
-```
+All the rules are *strict*: any violation fails the build, including the rule against the cycles between top-level packages (it reports each class dependency which belongs to a cycle) and the one against the mutable static fields. Should a new rule have violations which can't be removed at once, it can be *frozen* (ArchUnit's `FreezingArchRule`): its existing violations are then recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail, and that store must only shrink (`./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true` after a cleanup, then review the diff).
 
 ## Transactions
 
@@ -220,7 +216,6 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 - **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, given to the `RestServer` service which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
 - **Code outside Jersey** receives its dependencies explicitly from the wiring, which builds the services with them: `new SyslogServer(driverRegistry, snapshotRequester, config)`, `new SnmpTrapReceiver(...)`, `new ClusterManager(...)`, `new TaskManager(config, autoSnapshots, lockManager)`. No static facade is left: the device drivers are looked up in the injected `DriverRegistry` (`forDevice(device)`, `getDriverByName(name)`), which the handlers pass to the device scripts and helpers they create, and the automatic snapshots are scheduled through `AutoSnapshotScheduler`.
 - **Descriptions of the drivers belong to the mappers.** The description of the driver of a rule, a diagnostic, a script, a discovered type or a device is computed by the mapper (`api/rest/v0`, and `TaskPayloads` for the webhooks) from the `DriverRegistry` it receives as first argument; the resources get the registry by injection and the hook dispatcher by constructor. Domain records have no accessor that looks a driver up.
-- **Remaining static state**: see [Services](#services).
 
 Resources are discovered by Jersey package scanning of `net.netshot.netshot.api.rest` (sub-packages included): a new `@Path` class is picked up with no registration. Filters, providers and the exception mapper carry no `@Provider` annotation and are registered explicitly in `NetshotWebApplication`.
 
@@ -249,7 +244,7 @@ The long-running components (listeners, schedulers, background refreshers, conne
 - **No static state for the services**: the task manager, the task lock manager, the cluster manager, the SSH server, the SSH client and the RADIUS, TACACS+ and OIDC authentications are instances, built by the wiring and given to what uses them (constructor parameters, the job factory or the scheduler context for the Quartz jobs, HK2 injection for the REST layer). The task engine only knows the clustering through `ClusterCoordinator` (implemented by `ClusterManager`, `ClusterCoordinator.NONE` without clustering), so the `cluster` slice depends on `task`, not the other way round.
 - **Queries**: `Finder` parses a query against the drivers given to its constructor (bound to a `ScopedValue` while the static parsing methods run), and `DynamicGroups` (built by the wiring with the drivers) refreshes the members of the dynamic groups.
 - **Secrets and SSH client**: the device accesses get what they need from the server as `access.Connectors`: the `vault.SecretResolver` which resolves the Vault-backed credential fields (the `VaultManager` instance built by the wiring, with its token and secret caches) and the SSH client (`access.SshClientService`, a service of the wiring). The wiring gives them to the task handlers, which pass them to the device scripts and their `AccessManager` (`AccessManager.secrets()` and `sshClient()` for the script helpers). `Connectors.OFFLINE` resolves the local values only and has no SSH client (input definitions of the user scripts); the tests use `testing.TestConnectors`.
-- **Remaining static state**, frozen by the `STATIC_FIELDS_ARE_FINAL` rule of `ArchitectureTest` (it may only decrease): the `Instrumentation` given by the JVM to the agent entry point. The values read once (the hostname, the database encryption password of the jOOQ converter) are held by lazily initialized holder classes, and the wiring built for the tests by `testing.TestWiring`. The value-like helpers called from the device scripts and the entities (`Ssh`, `Telnet`, `UiUser`, `PasswordPolicy`...) read their settings through `static final` bindings to `Netshot.config()`.
+- **No mutable static field** (the `STATIC_FIELDS_ARE_FINAL` rule of `ArchitectureTest`), except the `Instrumentation` given by the JVM to the static agent entry point. The values read once (the hostname, the database encryption password of the jOOQ converter) are held by lazily initialized holder classes, and the wiring built for the tests by `testing.TestWiring`. The value-like helpers called from the device scripts and the entities (`Ssh`, `Telnet`, `UiUser`, `PasswordPolicy`...) read their settings through `static final` bindings to `Netshot.config()`.
 
 ## Adding or moving a v0 endpoint
 
@@ -324,14 +319,7 @@ Domain records carry no `@JsonView`, JAXB or Jackson annotation: do not add any 
 
 ### 11. Run the checks
 
-`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule gets one entry per dependency of each new class of the feature on the other slices of the model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices still form one big cycle, so any class of the model that uses another one is counted, until the slices are decoupled. Refreeze and check that no new pair of slices appears:
-
-```bash
-./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
-git diff --stat src/test/resources/archunit_store
-```
-
-The refreeze rewrites the line numbers of the stored entries; compare the entries without them (they are ignored when matching).
+`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule fails on any dependency of the new classes which closes a cycle between top-level packages; place the classes according to the layering described in [Dependency rules](#dependency-rules).
 
 ### 12. Document
 
