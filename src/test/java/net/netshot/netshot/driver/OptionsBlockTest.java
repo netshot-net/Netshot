@@ -197,7 +197,7 @@ public class OptionsBlockTest {
 	 * Registers a driver directly into {@link DeviceDriver}'s private static
 	 * registry (there's no public API for this - drivers are normally only
 	 * discovered from disk by {@link net.netshot.netshot.driver.DriverRegistry#refresh()}), so that
-	 * {@link net.netshot.netshot.driver.DriverRegistry#forDevice(Device)} can resolve it by name like any other
+	 * {@link net.netshot.netshot.driver.DriverRegistry#forDevice(net.netshot.netshot.driver.DrivenDevice)} can resolve it by name like any other
 	 * driver. Callers must remove it again with {@link #unregisterDriver}.
 	 * @param driver the driver to register
 	 */
