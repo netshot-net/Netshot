@@ -81,7 +81,6 @@ import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
-import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
@@ -138,6 +137,7 @@ import net.netshot.netshot.vault.VaultTokenRefresher;
 @Slf4j
 public final class Wiring {
 
+	private final DatabaseService database;
 	private final Transactions transactions;
 	// Configuration
 	private final ConfigStore config;
@@ -211,18 +211,19 @@ public final class Wiring {
 	 * @param config the configuration store
 	 */
 	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
-		this.transactions = new Transactions();
+		this.database = new DatabaseService();
+		this.transactions = new Transactions(this.database);
 		this.config = config;
 		// Drivers
 		this.driverRegistry = driverRegistry;
-		this.dynamicGroups = new DynamicGroups(driverRegistry);
+		this.dynamicGroups = new DynamicGroups(this.transactions, driverRegistry);
 		// Vault (the secret resolver of the device accesses)
-		this.vaultManager = new VaultManager(config);
+		this.vaultManager = new VaultManager(config, this.transactions);
 		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
 		this.lockManager = TaskLockManager.create(clustered);
 		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
-		this.taskManager = new TaskManager(config, autoSnapshots, this.lockManager);
+		this.taskManager = new TaskManager(this.transactions, config, autoSnapshots, this.lockManager);
 		TaskSubmitter taskSubmitter = this.taskManager::addTask;
 		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots);
 		if (clustered) {
@@ -242,7 +243,7 @@ public final class Wiring {
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.jsRuleRuntime = new JsRuleRuntime(config);
 		this.pyRuleRuntime = new PyRuleRuntime(config);
-		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry);
+		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry, this.transactions);
 		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository, this.ruleEvaluators);
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), this.driverRegistry);
@@ -295,23 +296,23 @@ public final class Wiring {
 		this.domainEvents = new DomainEvents();
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
-		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.taskManager::addTask);
+		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask);
 		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
 		this.sshClientService = new SshClientService(config);
-		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client());
+		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), this.transactions);
 		this.taskHandlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(this.complianceChecker, this.dynamicGroups),
-			new CheckGroupComplianceHandler(this.complianceChecker, this.dynamicGroups),
-			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
-			new PurgeDatabaseHandler(),
-			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors),
-			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors),
-			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
-			new ScanSubnetsHandler(childTaskOrchestrator),
-			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
+			new CheckComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups),
+			new CheckGroupComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups),
+			new CheckGroupSoftwareHandler(this.transactions),
+			new DiscoverDeviceTypeHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
+			new PurgeDatabaseHandler(this.transactions),
+			new RunDeviceGroupScriptHandler(this.transactions, childTaskOrchestrator, this.driverRegistry),
+			new RunDeviceScriptHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors),
+			new RunDiagnosticsHandler(this.transactions, this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors),
+			new RunGroupDiagnosticsHandler(this.transactions, childTaskOrchestrator),
+			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator),
+			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator),
+			new TakeSnapshotHandler(this.transactions, this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
 				connectors)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
 		this.taskManager.setJobFactory(this.taskJobFactory);
@@ -333,8 +334,9 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring init(DriverRegistry driverRegistry) {
-		Database.init();
-		return new Wiring(driverRegistry, Netshot.config());
+		Wiring wiring = new Wiring(driverRegistry, Netshot.config());
+		wiring.database.start();
+		return wiring;
 	}
 
 	/**
@@ -357,7 +359,7 @@ public final class Wiring {
 	public List<Service> services() {
 		Config current = this.config.current();
 		List<Service> services = new ArrayList<>();
-		services.add(new DatabaseService());
+		services.add(this.database);
 		services.add(this.driverRegistry);
 		services.add(new OidcDiscovery(this.oidc, this.config));
 		// Before the clustering manager, which can start running tasks
@@ -368,7 +370,7 @@ public final class Wiring {
 		else {
 			log.info("High Availability is not enabled.");
 		}
-		services.add(new VaultTokenRefresher(this.vaultManager, this.config));
+		services.add(new VaultTokenRefresher(this.transactions, this.vaultManager, this.config));
 		// Before the task manager, which runs the tasks connecting to the devices
 		services.add(this.sshClientService);
 		services.add(this.taskManager);
@@ -413,6 +415,16 @@ public final class Wiring {
 	 */
 	public Transactions transactions() {
 		return this.transactions;
+	}
+
+	/**
+	 * Gets the database access (the connection pools), started by {@link #init()} or as the first of the
+	 * {@link #services()}.
+	 *
+	 * @return the database service
+	 */
+	public DatabaseService database() {
+		return this.database;
 	}
 
 	/**

@@ -25,7 +25,6 @@ import org.quartz.JobExecutionException;
 import org.quartz.SchedulerException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 
@@ -62,7 +61,7 @@ public class MasterJob implements Job {
 		}
 		try {
 			Thread.sleep(500);
-			new Transactions().system(dsl -> {
+			taskManager.transactions().system(dsl -> {
 				Task task = new TaskRepository().find(dsl, id);
 				if (task == null) {
 					log.error("The retrieved task {} is null.", id);

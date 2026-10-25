@@ -18,15 +18,21 @@
  */
 package net.netshot.netshot.platform.database;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Map;
 
 import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
- * The database access as a service: creates the connection pools when started, closes them when stopped.
+ * The database access as a service: creates the connection pools when started, closes them when stopped,
+ * and gives the connections of the pools to {@link Transactions}.
  * Its statistics are the ones of the pools (connections total, busy, idle, threads waiting for one).
  */
 public final class DatabaseService implements Service {
+
+	/** The connection pools, while started. */
+	private volatile ConnectionPools pools;
 
 	@Override
 	public String name() {
@@ -34,22 +40,45 @@ public final class DatabaseService implements Service {
 	}
 
 	@Override
-	public void start() {
-		Database.init();
+	public synchronized void start() {
+		if (this.pools == null) {
+			this.pools = new ConnectionPools(Database.getDriverClass(), Database.getUrl(), Database.getReadUrl(),
+				Database.getUsername(), Database.getPassword());
+		}
 	}
 
 	@Override
-	public void stop() {
-		Database.shutdown();
+	public synchronized void stop() {
+		if (this.pools != null) {
+			this.pools.close();
+			this.pools = null;
+		}
 	}
 
 	@Override
 	public boolean isHealthy() {
-		return Database.isInitialized();
+		return this.pools != null;
 	}
 
 	@Override
 	public Map<String, Object> stats() {
-		return Database.stats();
+		ConnectionPools current = this.pools;
+		return current == null ? Map.of() : current.stats();
+	}
+
+	/**
+	 * Gets a connection from one of the pools.
+	 *
+	 * @param pool the kind of connection
+	 * @return the connection (to be closed by the caller, which gives it back to the pool)
+	 * @throws SQLException if no connection can be obtained
+	 * @throws IllegalStateException if the service isn't started
+	 */
+	Connection getConnection(PoolKind pool) throws SQLException {
+		ConnectionPools current = this.pools;
+		if (current == null) {
+			throw new IllegalStateException("The database access isn't started");
+		}
+		return current.get(pool).getConnection();
 	}
 }

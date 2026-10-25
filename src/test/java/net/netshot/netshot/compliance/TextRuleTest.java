@@ -43,7 +43,7 @@ public class TextRuleTest {
 
 	@BeforeAll
 	static void initNetshot() throws Exception {
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
 	}
 
 	Policy policy = new Policy(0, "Fake policy", null);

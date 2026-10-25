@@ -74,6 +74,9 @@ import net.netshot.netshot.platform.net.NetworkAddress;
 @Slf4j
 public class DemoDataCreator {
 
+	/** The transaction support. */
+	private final Transactions transactions;
+
 	/** The refresher of the dynamic groups. */
 	private final DynamicGroups dynamicGroups;
 
@@ -88,9 +91,11 @@ public class DemoDataCreator {
 	/**
 	 * Instantiates the creator.
 	 *
+	 * @param transactions the transaction support
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public DemoDataCreator(DynamicGroups dynamicGroups) {
+	public DemoDataCreator(Transactions transactions, DynamicGroups dynamicGroups) {
+		this.transactions = transactions;
 		this.dynamicGroups = dynamicGroups;
 	}
 
@@ -659,7 +664,7 @@ public class DemoDataCreator {
 	public void createData() {
 		log.info("Creating data...");
 		try {
-			new Transactions().run(this::createData);
+			this.transactions.run(this::createData);
 			log.info("Success");
 		}
 		catch (Exception e) {
@@ -841,7 +846,7 @@ public class DemoDataCreator {
 			System.exit(-1);
 		}
 
-		DemoDataCreator creator = new DemoDataCreator(wiring.dynamicGroups());
+		DemoDataCreator creator = new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups());
 		creator.createData();
 	}
 

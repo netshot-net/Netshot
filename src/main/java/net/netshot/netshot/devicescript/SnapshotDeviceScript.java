@@ -57,7 +57,6 @@ import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.config.Setting;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.script.JsUtils;
 
@@ -160,12 +159,12 @@ public final class SnapshotDeviceScript extends DeviceScript {
 	 * @param device the device
 	 * @return the last configuration, or null if the device has none
 	 */
-	private static Config loadLastConfig(DeviceDraft device) {
+	private Config loadLastConfig(DeviceDraft device) {
 		Long lastConfigId = device.getOriginal().lastConfigId();
 		if (lastConfigId == null) {
 			return null;
 		}
-		return new Transactions().read(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
+		return this.connectors.transactions().read(dsl -> new ConfigRepository().find(dsl, lastConfigId, true));
 	}
 
 	@Override
@@ -184,7 +183,7 @@ public final class SnapshotDeviceScript extends DeviceScript {
 			this.taskContext.info("Starting snapshot of device {} using driver {} version {}",
 				device.getId(), driver.getName(), driver.getVersion());
 			driver.loadCode(context);
-			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, this.taskContext, false);
+			JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.connectors.transactions(), device, jsCliHelper, this.taskContext, false);
 			options.setDeviceHelper(deviceHelper);
 			if (this.taskContext.isTracing()) {
 				this.taskContext.trace("Device {} options: {}", device.getId(), deviceHelper.resolveOptionValues());

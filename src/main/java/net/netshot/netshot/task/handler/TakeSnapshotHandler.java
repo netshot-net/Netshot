@@ -56,7 +56,8 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	/** The embedded SSH server, where the devices upload files (null if disabled). */
 	private final SshServer sshServer;
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
 	/** The refresher of the dynamic groups. */
@@ -67,6 +68,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
 	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
@@ -74,8 +76,9 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
-	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
+	public TakeSnapshotHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
 		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.transactions = transactions;
 		this.connectors = connectors;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;

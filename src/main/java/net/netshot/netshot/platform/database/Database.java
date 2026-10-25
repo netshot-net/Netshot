@@ -21,7 +21,6 @@ package net.netshot.netshot.platform.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Map;
 
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.command.CommandScope;
@@ -66,9 +65,6 @@ public final class Database {
 	static final Setting<Boolean> ENCRYPTION_PASSWORD_REQUIRED = Setting.bool("netshot.db.encryptionpassword.required")
 		.defaultValue(false).restart();
 
-	/** The connection pools. */
-	private static ConnectionPools pools;
-
 	/**
 	 * Update the database schema (to be run at startup).
 	 * @throws Exception 
@@ -79,7 +75,7 @@ public final class Database {
 		try {
 			System.setProperty("liquibase.analytics.enabled", "false");
 			Class.forName("org.postgresql.Driver");
-			try (Connection connection = Database.getConnection(false)) {
+			try (Connection connection = Database.openUnpooledConnection()) {
 				liquibase.database.Database database = DatabaseFactory.getInstance()
 					.findCorrectDatabaseImplementation(new JdbcConnection(connection));
 				new CommandScope(UpdateCommandStep.COMMAND_NAME)
@@ -96,48 +92,11 @@ public final class Database {
 	}
 
 	/**
-	 * Initializes the database access: creates the connection pools.
-	 */
-	public static synchronized void init() {
-		// Initialized again (tests): release the connections of the previous initialization
-		shutdown();
-		pools = new ConnectionPools(getDriverClass(), getUrl(), getReadUrl(), getUsername(), getPassword());
-	}
-
-	/**
-	 * Gets the statistics of the connection pools.
-	 *
-	 * @return the statistics, by pool name (empty if not initialized)
-	 */
-	public static synchronized Map<String, Object> stats() {
-		return pools == null ? Map.of() : pools.stats();
-	}
-
-	/**
-	 * Whether the database access is initialized (the connection pools exist).
-	 *
-	 * @return true if initialized
-	 */
-	public static synchronized boolean isInitialized() {
-		return pools != null;
-	}
-
-	/**
-	 * Closes the connection pools, if initialized.
-	 */
-	public static synchronized void shutdown() {
-		if (pools != null) {
-			pools.close();
-			pools = null;
-		}
-	}
-
-	/**
 	 * Retrieve the configured driver class.
 	 * 
 	 * @return the configured driver class
 	 */
-	private static String getDriverClass() {
+	static String getDriverClass() {
 		return Netshot.config().current().get(DRIVER_CLASS);
 	}
 
@@ -146,7 +105,7 @@ public final class Database {
 	 * 
 	 * @return the configured DB URL.
 	 */
-	private static String getUrl() {
+	static String getUrl() {
 		return Netshot.config().current().get(URL);
 	}
 
@@ -155,7 +114,7 @@ public final class Database {
 	 * 
 	 * @return the configured DB URL.
 	 */
-	private static String getReadUrl() {
+	static String getReadUrl() {
 		return Netshot.config().current().get(READ_URL);
 	}
 
@@ -164,7 +123,7 @@ public final class Database {
 	 * 
 	 * @return the configured DB username
 	 */
-	private static String getUsername() {
+	static String getUsername() {
 		return Netshot.config().current().get(USERNAME);
 	}
 
@@ -173,7 +132,7 @@ public final class Database {
 	 * 
 	 * @return the configured DB password
 	 */
-	private static String getPassword() {
+	static String getPassword() {
 		return Netshot.config().current().get(PASSWORD);
 	}
 
@@ -199,37 +158,13 @@ public final class Database {
 	}
 
 	/**
-	 * Retrieves a raw SQL connection.
-	 * 
-	 * @return the connection
-	 * @throws SQLException
-	 */
-	public static Connection getConnection() throws SQLException {
-		return getConnection(PoolKind.READ_WRITE);
-	}
-
-	/**
-	 * Retrieves a connection from one of the pools.
+	 * Opens a raw SQL connection, out of the connection pools (for the schema update, and the
+	 * long-lived connections of the task locks and the cluster notifications). The caller closes it.
 	 *
-	 * @param pool the kind of connection
 	 * @return the connection
-	 * @throws SQLException if no connection can be obtained
+	 * @throws SQLException if the connection can't be opened
 	 */
-	static Connection getConnection(PoolKind pool) throws SQLException {
-		return pools.get(pool).getConnection();
-	}
-
-	/**
-	 * Retrieves a raw SQL connection.
-	 * @param pooled = whether to take the connection from the (C3P0) pool or not
-	 *                  (pooled connection expire with C3P0 timeout mechanisms).
-	 * @return the connection
-	 * @throws SQLException
-	 */
-	public static Connection getConnection(boolean pooled) throws SQLException {
-		if (pooled) {
-			return Database.getConnection();
-		}
+	public static Connection openUnpooledConnection() throws SQLException {
 		return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
 	}
 

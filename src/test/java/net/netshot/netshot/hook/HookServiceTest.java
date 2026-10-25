@@ -38,6 +38,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the hook use cases, against a real database: error codes and their order, the
@@ -53,7 +54,7 @@ class HookServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new HookService(this.transactions, new HookRepository());
 	}
 

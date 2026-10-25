@@ -37,11 +37,11 @@ import jakarta.ws.rs.core.Response;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.Page;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 
 @ApiTest
@@ -146,7 +146,7 @@ public class DomainResourceTest {
 			Response.Status.CREATED.getStatusCode(), response.statusCode(),
 			"Not getting 201 response for created domain");
 
-		Domain newDomain = new Transactions().read(dsl -> new DomainRepository().findAll(dsl, Page.ALL)).stream()
+		Domain newDomain = TestWiring.get().transactions().read(dsl -> new DomainRepository().findAll(dsl, Page.ALL)).stream()
 			.filter(d -> d.name().equals(domain.name())).findFirst().orElseThrow();
 		Assertions.assertEquals(domain.description(), newDomain.description(), "Domain not created as expected");
 		Assertions.assertEquals(domain.server4Address(), newDomain.server4Address(), "Domain not created as expected");
@@ -219,7 +219,7 @@ public class DomainResourceTest {
 				"Not getting 200 response for domain update");
 		}
 		long targetId = targetDomain.id();
-		Domain dbDomain = new Transactions().read(dsl -> new DomainRepository().find(dsl, targetId));
+		Domain dbDomain = TestWiring.get().transactions().read(dsl -> new DomainRepository().find(dsl, targetId));
 		Assertions.assertEquals(targetDomain.name(), dbDomain.name(), "Domain not updated as expected");
 		Assertions.assertEquals(targetDomain.description(), dbDomain.description(), "Domain not updated as expected");
 		Assertions.assertEquals(targetDomain.server4Address(), dbDomain.server4Address(), "Domain not updated as expected");

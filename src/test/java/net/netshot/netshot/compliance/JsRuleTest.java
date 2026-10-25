@@ -48,7 +48,7 @@ public class JsRuleTest {
 	@BeforeAll
 	static void initNetshot() throws Exception {
 		jsRuntime = new JsRuleRuntime(Netshot.config());
-		evaluators = RuleEvaluators.standard(jsRuntime, new PyRuleRuntime(Netshot.config()), TestDrivers.registry());
+		evaluators = RuleEvaluators.standard(jsRuntime, new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
 	}
 
 	Policy policy = new Policy(0, "Fake policy", null);

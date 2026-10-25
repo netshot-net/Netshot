@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.compliance;
 
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.testing.TestDevices;
 import java.util.Date;
@@ -73,11 +74,11 @@ class ComplianceServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository,
-			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry()));
+			RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), TestWiring.get().transactions()));
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), TestDrivers.registry());
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), TestDrivers.registry());
 		this.groupId = TestDevices.addStaticGroup("Group").id();

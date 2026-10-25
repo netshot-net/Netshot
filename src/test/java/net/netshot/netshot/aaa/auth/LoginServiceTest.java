@@ -45,6 +45,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestProperty;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the authentication of the users who log in (local password, expired password, remote
@@ -103,7 +104,7 @@ class LoginServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.users = new UserService(this.transactions, this.repository);
 		this.service = new LoginService(this.transactions, this.repository, this.remote);
 	}

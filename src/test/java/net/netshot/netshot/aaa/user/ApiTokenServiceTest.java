@@ -33,6 +33,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the API token use cases, against a real database.
@@ -50,7 +51,7 @@ class ApiTokenServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new ApiTokenService(this.transactions, this.repository);
 	}
 

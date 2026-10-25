@@ -70,14 +70,19 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 	/** Resolves the secrets of the SNMP credentials (local or Vault-backed). */
 	private final SecretResolver secrets;
 
+	/** The transaction support. */
+	private final Transactions transactions;
+
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param driverRegistry the driver registry
 	 * @param taskSubmitter the task submitter
 	 * @param dynamicGroups the refresher of the dynamic groups
 	 * @param secrets resolves the secrets of the SNMP credentials (local or Vault-backed)
 	 */
-	public DiscoverDeviceTypeHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets) {
+	public DiscoverDeviceTypeHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, SecretResolver secrets) {
+		this.transactions = transactions;
 		this.secrets = secrets;
 		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
@@ -90,11 +95,11 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 	}
 
 	// Loads the credential sets to try, by ID
-	private static List<DeviceCredentialSet> loadCredentialSets(DiscoverDeviceTypeTask spec) {
+	private List<DeviceCredentialSet> loadCredentialSets(DiscoverDeviceTypeTask spec) {
 		if (spec.credentialSetIds().isEmpty()) {
 			return List.of();
 		}
-		return new Transactions().read(dsl -> new CredentialSetRepository().findAll(dsl, spec.credentialSetIds()));
+		return this.transactions.read(dsl -> new CredentialSetRepository().findAll(dsl, spec.credentialSetIds()));
 	}
 
 	@Override
@@ -143,7 +148,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			Device newDevice = null;
 			try {
 				final String deviceType = discoveredDeviceType;
-				Object[] created = new Transactions().write(dsl -> {
+				Object[] created = this.transactions.write(dsl -> {
 					Domain domain = spec.domainId() == null ? null : new DomainRepository().find(dsl, spec.domainId());
 					Device.DeviceBuilder device = Device.create(deviceType, spec.deviceAddress(), domain, task.author()).toBuilder();
 					// Create a bare (enabled, no pin) DeviceAccess row for every access the

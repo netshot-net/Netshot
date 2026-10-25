@@ -69,13 +69,16 @@ public class ChildTaskOrchestrator {
 
 	private final TaskRepository repository = new TaskRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
 	 * Creates the orchestrator.
+	 * @param transactions the transaction support
 	 * @param scheduler the scheduler to promote children with
 	 */
-	public ChildTaskOrchestrator(ChildScheduler scheduler) {
+	public ChildTaskOrchestrator(Transactions transactions, ChildScheduler scheduler) {
+		this.transactions = transactions;
 		this.scheduler = scheduler;
 	}
 

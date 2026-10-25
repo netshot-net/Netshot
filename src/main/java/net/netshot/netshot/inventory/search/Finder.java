@@ -104,10 +104,16 @@ public class Finder {
 
 	/**
 	 * The loaded device drivers, which the expressions on the drivers and their attributes are parsed against:
-	 * bound while a query is parsed (see {@link #Finder(String, DriverRegistry)}), as the expressions are parsed
-	 * by static methods.
+	 * bound while a query is parsed (see {@link #Finder(String, DriverRegistry, Transactions)}), as the expressions
+	 * are parsed by static methods.
 	 */
 	private static final ScopedValue<DriverRegistry> DRIVERS = ScopedValue.newInstance();
+
+	/**
+	 * The transaction support, to look the policies, rules and diagnostics of the expressions up: bound while a
+	 * query is parsed, as {@link #DRIVERS}.
+	 */
+	private static final ScopedValue<Transactions> TRANSACTIONS = ScopedValue.newInstance();
 
 	/**
 	 * Gets the drivers the current query is parsed against.
@@ -119,6 +125,18 @@ public class Finder {
 			throw new IllegalStateException("No driver registry bound to parse the query");
 		}
 		return DRIVERS.get();
+	}
+
+	/**
+	 * Gets the transaction support of the query being parsed.
+	 *
+	 * @return the transaction support
+	 */
+	private static Transactions transactions() {
+		if (!TRANSACTIONS.isBound()) {
+			throw new IllegalStateException("No transaction support bound to parse the query");
+		}
+		return TRANSACTIONS.get();
 	}
 
 	/**
@@ -1654,7 +1672,7 @@ public class Finder {
 		private static DiagnosticRef getDiagnosticByName(Token token) throws FinderParseException {
 			String diagnosticName = token.key2;
 			try {
-				return new Transactions().read(dsl -> dsl.select(DIAGNOSTIC.ID, DIAGNOSTIC.NAME, DIAGNOSTIC.RESULT_TYPE)
+				return transactions().read(dsl -> dsl.select(DIAGNOSTIC.ID, DIAGNOSTIC.NAME, DIAGNOSTIC.RESULT_TYPE)
 					.from(DIAGNOSTIC)
 					.where(DIAGNOSTIC.NAME.eq(diagnosticName))
 					.limit(1)
@@ -1996,7 +2014,7 @@ public class Finder {
 		 */
 		private static NamedRef getPolicyByName(String policyName) throws FinderParseException {
 			try {
-				return new Transactions().read(dsl -> dsl.select(POLICY.ID, POLICY.NAME)
+				return transactions().read(dsl -> dsl.select(POLICY.ID, POLICY.NAME)
 					.from(POLICY)
 					.where(POLICY.NAME.eq(policyName))
 					.limit(1)
@@ -2018,7 +2036,7 @@ public class Finder {
 		 */
 		private static NamedRef getRuleByPolicyAndName(NamedRef policy, String ruleName) throws FinderParseException {
 			try {
-				return new Transactions().read(dsl -> dsl.select(RULE.ID, RULE.NAME)
+				return transactions().read(dsl -> dsl.select(RULE.ID, RULE.NAME)
 					.from(RULE)
 					.where(RULE.POLICY.eq(policy.id()), RULE.NAME.eq(ruleName))
 					.limit(1)
@@ -3144,9 +3162,10 @@ public class Finder {
 	 *
 	 * @param query the query
 	 * @param driverRegistry the loaded device drivers, for the expressions on the drivers and their attributes
+	 * @param transactions the transaction support, to look the policies, rules and diagnostics up
 	 * @throws FinderParseException the finder parse exception
 	 */
-	public Finder(String query, DriverRegistry driverRegistry)
+	public Finder(String query, DriverRegistry driverRegistry, Transactions transactions)
 		throws FinderParseException {
 		this.tokens = Expression.tokenize(query);
 		if (this.tokens.size() == 0) {
@@ -3154,7 +3173,8 @@ public class Finder {
 		}
 		else {
 			List<Token> parsed = this.tokens;
-			this.expression = ScopedValue.where(DRIVERS, driverRegistry).call(() -> Expression.parse(parsed));
+			this.expression = ScopedValue.where(DRIVERS, driverRegistry).where(TRANSACTIONS, transactions)
+				.call(() -> Expression.parse(parsed));
 		}
 	}
 

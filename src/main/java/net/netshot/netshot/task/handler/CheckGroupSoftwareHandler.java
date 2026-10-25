@@ -50,7 +50,17 @@ public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftware
 
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
+
+	/**
+	 * Instantiates the handler.
+	 *
+	 * @param transactions the transaction support
+	 */
+	public CheckGroupSoftwareHandler(Transactions transactions) {
+		this.transactions = transactions;
+	}
 
 	@Override
 	public Class<CheckGroupSoftwareTask> taskType() {

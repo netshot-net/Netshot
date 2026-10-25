@@ -50,7 +50,7 @@ public class PyRuleTest {
 	@BeforeAll
 	static void initNetshot() throws Exception {
 		pyRuntime = new PyRuleRuntime(Netshot.config());
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), pyRuntime, TestDrivers.registry());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), pyRuntime, TestDrivers.registry(), null);
 	}
 
 	Policy policy = new Policy(0, "Fake policy", null);

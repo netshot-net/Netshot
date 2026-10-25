@@ -83,7 +83,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
 			clientFactory.setOptions(options);
-			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, this.taskContext, false));
+			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, this.connectors.transactions(), device, jsCliHelper, this.taskContext, false));
 
 			Map<String, Object> jsDiagnostics = new HashMap<String, Object>();
 			for (Diagnostic diagnostic : this.diagnostics) {

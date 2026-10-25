@@ -34,6 +34,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the command script use cases, against a real database: validation (driver, name,
@@ -51,7 +52,7 @@ class ScriptServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new ScriptService(this.transactions, new ScriptRepository(), TestDrivers.registry());
 	}
 

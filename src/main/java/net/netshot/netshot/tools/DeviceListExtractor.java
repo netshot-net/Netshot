@@ -36,7 +36,6 @@ import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
 import net.netshot.netshot.vault.VaultableSecret;
@@ -106,7 +105,7 @@ public class DeviceListExtractor extends Netshot {
 			Wiring wiring = Wiring.init();
 
 			log.info("Requesting data from the DB...");
-			List<Device> devices = new Transactions().read(dsl -> new DeviceRepository().findAll(dsl,
+			List<Device> devices = wiring.transactions().read(dsl -> new DeviceRepository().findAll(dsl,
 				dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())).fetch(DEVICE.ID)));
 			for (Device device : devices) {
 				DeviceCliAccount cliAccount = null;

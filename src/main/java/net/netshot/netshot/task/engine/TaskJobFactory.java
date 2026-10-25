@@ -61,7 +61,7 @@ public class TaskJobFactory implements JobFactory {
 	 * @return a new task job
 	 */
 	public TaskJob newTaskJob() {
-		return new TaskJob(this.handlers, this.domainEvents, this.taskManager);
+		return new TaskJob(this.taskManager.transactions(), this.handlers, this.domainEvents, this.taskManager);
 	}
 
 	@Override

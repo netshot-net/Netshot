@@ -171,17 +171,19 @@ public final class TaskManager implements Service, TaskEngine {
 	/** The task queries. */
 	private static final TaskRepository REPOSITORY = new TaskRepository();
 
-	/** The transactions on the main pools. */
-	private static final Transactions TRANSACTIONS = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
 	 * Creates the task manager.
 	 *
+	 * @param transactions the transaction support
 	 * @param config the configuration store
 	 * @param autoSnapshots the devices with a queued automatic snapshot
 	 * @param lockManager the task and device locks
 	 */
-	public TaskManager(ConfigStore config, AutoSnapshotQueue autoSnapshots, TaskLockManager lockManager) {
+	public TaskManager(Transactions transactions, ConfigStore config, AutoSnapshotQueue autoSnapshots, TaskLockManager lockManager) {
+		this.transactions = transactions;
 		this.config = config;
 		this.autoSnapshots = autoSnapshots;
 		this.lockManager = lockManager;
@@ -216,6 +218,15 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	public ClusterCoordinator cluster() {
 		return this.cluster;
+	}
+
+	/**
+	 * Gets the transaction support of the task engine.
+	 *
+	 * @return the transaction support
+	 */
+	public Transactions transactions() {
+		return this.transactions;
 	}
 
 	/**
@@ -374,7 +385,7 @@ public final class TaskManager implements Service, TaskEngine {
 			for (JobExecutionContext job : running) {
 				Object taskId = job.getJobDetail().getJobDataMap().get(TaskJob.NETSHOT_TASK);
 				if (taskId instanceof Long id) {
-					boolean failed = TRANSACTIONS.write(dsl -> REPOSITORY.failRunning(dsl, id,
+					boolean failed = this.transactions.write(dsl -> REPOSITORY.failRunning(dsl, id,
 						"Netshot was stopped while the task was running."));
 					if (failed) {
 						this.interruptedTasks.incrementAndGet();
@@ -443,7 +454,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 * @return the result
 	 */
 	private <T> T inSystemTransaction(Function<DSLContext, T> work) {
-		return TRANSACTIONS.system(work);
+		return this.transactions.system(work);
 	}
 
 	/**
@@ -544,7 +555,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	public void requestCancel(long taskId) {
 		try {
-			TRANSACTIONS.run(dsl -> REPOSITORY.requestCancel(dsl, taskId));
+			this.transactions.run(dsl -> REPOSITORY.requestCancel(dsl, taskId));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while requesting cancellation of task {}.", taskId, e);
@@ -564,7 +575,7 @@ public final class TaskManager implements Service, TaskEngine {
 		this.runnerScheduler.deleteJob(task.identity());
 		this.masterScheduler.deleteJob(task.identity());
 		try {
-			TRANSACTIONS.run(dsl -> {
+			this.transactions.run(dsl -> {
 				onCancel(task);
 				REPOSITORY.cancel(dsl, task.id(), reason);
 			});
@@ -621,7 +632,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	private Task store(Task task, Status status, boolean schedule) {
 		try {
-			return TRANSACTIONS.write(dsl -> {
+			return this.transactions.write(dsl -> {
 				if (schedule) {
 					onSchedule(task);
 				}
@@ -687,7 +698,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	public void scheduleLocalTasks() {
 		try {
-			List<Task> tasks = TRANSACTIONS.read(dsl -> REPOSITORY.findWhere(dsl,
+			List<Task> tasks = this.transactions.read(dsl -> REPOSITORY.findWhere(dsl,
 				TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(this.cluster.localInstanceId()))));
 			for (Task task : tasks) {
 				log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
@@ -815,7 +826,7 @@ public final class TaskManager implements Service, TaskEngine {
 	 */
 	public void cancelOrphanedDelayedTasks() {
 		try {
-			int count = TRANSACTIONS.write(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
+			int count = this.transactions.write(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
 				Status.CANCELLED, Status.DELAYED));
 			log.info("{} orphaned DELAYED task(s) cancelled at startup", count);
 		}

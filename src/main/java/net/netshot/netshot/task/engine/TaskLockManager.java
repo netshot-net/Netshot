@@ -82,7 +82,7 @@ public class TaskLockManager implements Service {
 		log.info("Initializing the task lock manager ({} mode).", distributed ? "distributed" : "local");
 		return new TaskLockManager(distributed, () -> {
 			try {
-				return Database.getConnection(false);
+				return Database.openUnpooledConnection();
 			}
 			catch (SQLException e) {
 				throw new IllegalStateException("Unable to open the task lock DB connection", e);

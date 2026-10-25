@@ -31,15 +31,23 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
 public class TransactionsTest {
 
-	private final Transactions transactions = new Transactions();
+	/**
+	 * Gets the transaction support of the wiring of the class.
+	 *
+	 * @return the transaction support
+	 */
+	private Transactions transactions() {
+		return TestWiring.get().transactions();
+	}
 
 	private long countDomains(String name) {
-		return this.transactions.read(dsl -> (long) dsl.fetchCount(Tables.DOMAIN, Tables.DOMAIN.NAME.eq(name)));
+		return this.transactions().read(dsl -> (long) dsl.fetchCount(Tables.DOMAIN, Tables.DOMAIN.NAME.eq(name)));
 	}
 
 	private static int insertDomain(DSLContext dsl, String name, String description) {
@@ -57,7 +65,7 @@ public class TransactionsTest {
 	@DisplayName("write() commits, returns the result of the work and gives the connection back")
 	void writeCommits() throws Exception {
 		AtomicReference<Connection> used = new AtomicReference<>();
-		long id = this.transactions.write(dsl -> {
+		long id = this.transactions().write(dsl -> {
 			used.set(connectionOf(dsl));
 			insertDomain(dsl, "tx-commit", "committed");
 			return dsl.select(Tables.DOMAIN.ID).from(Tables.DOMAIN).where(Tables.DOMAIN.NAME.eq("tx-commit"))
@@ -71,13 +79,13 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("write() runs the work in a transaction (no auto-commit)")
 	void writeHasTransaction() {
-		this.transactions.run(dsl -> Assertions.assertDoesNotThrow(() -> Assertions.assertFalse(connectionOf(dsl).getAutoCommit())));
+		this.transactions().run(dsl -> Assertions.assertDoesNotThrow(() -> Assertions.assertFalse(connectionOf(dsl).getAutoCommit())));
 	}
 
 	@Test
 	@DisplayName("run() commits")
 	void runCommits() {
-		this.transactions.run(dsl -> insertDomain(dsl, "tx-run", "committed"));
+		this.transactions().run(dsl -> insertDomain(dsl, "tx-run", "committed"));
 		Assertions.assertEquals(1, this.countDomains("tx-run"));
 	}
 
@@ -87,7 +95,7 @@ public class TransactionsTest {
 		AtomicReference<Connection> used = new AtomicReference<>();
 		IllegalStateException failure = new IllegalStateException("boom");
 		IllegalStateException thrown = Assertions.assertThrows(IllegalStateException.class,
-			() -> this.transactions.write(dsl -> {
+			() -> this.transactions().write(dsl -> {
 				used.set(connectionOf(dsl));
 				insertDomain(dsl, "tx-rollback", "rolled back");
 				throw failure;
@@ -101,7 +109,7 @@ public class TransactionsTest {
 	@DisplayName("run() rolls back on exception")
 	void runRollsBack() {
 		Assertions.assertThrows(UnsupportedOperationException.class,
-			() -> this.transactions.run(dsl -> {
+			() -> this.transactions().run(dsl -> {
 				insertDomain(dsl, "tx-run-rollback", "rolled back");
 				throw new UnsupportedOperationException();
 			}));
@@ -111,9 +119,9 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("A failing statement rolls back the whole transaction (constraint violation)")
 	void constraintViolationRollsBack() {
-		this.transactions.run(dsl -> insertDomain(dsl, "tx-unique", "first"));
+		this.transactions().run(dsl -> insertDomain(dsl, "tx-unique", "first"));
 		DataAccessException thrown = Assertions.assertThrows(DataAccessException.class,
-			() -> this.transactions.run(dsl -> {
+			() -> this.transactions().run(dsl -> {
 				insertDomain(dsl, "tx-unique-other", "other");
 				insertDomain(dsl, "tx-unique", "duplicate");
 			}));
@@ -125,9 +133,9 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("read() sees the committed data and gives the connection back")
 	void readSeesCommittedData() throws Exception {
-		this.transactions.run(dsl -> insertDomain(dsl, "tx-read", "readable"));
+		this.transactions().run(dsl -> insertDomain(dsl, "tx-read", "readable"));
 		AtomicReference<Connection> used = new AtomicReference<>();
-		String description = this.transactions.read(dsl -> {
+		String description = this.transactions().read(dsl -> {
 			used.set(connectionOf(dsl));
 			return dsl.select(Tables.DOMAIN.DESCRIPTION).from(Tables.DOMAIN).where(Tables.DOMAIN.NAME.eq("tx-read"))
 				.fetchOne(Tables.DOMAIN.DESCRIPTION);
@@ -139,7 +147,7 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("read() never commits; without netshot.db.readurl the read pool is the read-write database")
 	void readDoesNotCommit() {
-		int inserted = this.transactions.read(dsl -> insertDomain(dsl, "tx-read-only", "not committed"));
+		int inserted = this.transactions().read(dsl -> insertDomain(dsl, "tx-read-only", "not committed"));
 		Assertions.assertEquals(1, inserted);
 		Assertions.assertEquals(0, this.countDomains("tx-read-only"));
 	}
@@ -147,9 +155,9 @@ public class TransactionsTest {
 	@Test
 	@DisplayName("system() commits, and rolls back on exception")
 	void systemCommitsAndRollsBack() {
-		this.transactions.system(dsl -> insertDomain(dsl, "tx-system", "committed"));
+		this.transactions().system(dsl -> insertDomain(dsl, "tx-system", "committed"));
 		Assertions.assertEquals(1, this.countDomains("tx-system"));
-		Assertions.assertThrows(IllegalStateException.class, () -> this.transactions.system(dsl -> {
+		Assertions.assertThrows(IllegalStateException.class, () -> this.transactions().system(dsl -> {
 			insertDomain(dsl, "tx-system-rollback", "rolled back");
 			throw new IllegalStateException();
 		}));

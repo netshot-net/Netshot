@@ -57,7 +57,7 @@ public class ComplianceCheckTest {
 
 	@BeforeAll
 	static void init() throws Exception {
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -90,14 +90,14 @@ public class ComplianceCheckTest {
 	@Test
 	@DisplayName("The registry refuses to be built without the evaluator of a rule type")
 	void missingEvaluator() {
-		Assertions.assertThrows(IllegalStateException.class, () -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry()))));
+		Assertions.assertThrows(IllegalStateException.class, () -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry(), null))));
 	}
 
 	@Test
 	@DisplayName("The registry refuses two evaluators for the same type")
 	void duplicateEvaluator() {
 		Assertions.assertThrows(IllegalStateException.class,
-			() -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry()), new TextRuleEvaluator(TestDrivers.registry()))));
+			() -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry(), null), new TextRuleEvaluator(TestDrivers.registry(), null))));
 	}
 
 	@Test

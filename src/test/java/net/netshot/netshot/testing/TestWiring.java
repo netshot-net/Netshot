@@ -32,12 +32,17 @@ public final class TestWiring {
 	}
 
 	/**
-	 * Sets the wiring of the tests.
+	 * Sets the wiring of the tests, stopping the database access of the previous one (its connection pools
+	 * point to the database of a previous test class).
 	 *
 	 * @param wiring the wiring
 	 * @return the wiring
 	 */
-	public static Wiring set(Wiring wiring) {
+	public static synchronized Wiring set(Wiring wiring) {
+		Wiring previous = current;
+		if (previous != null && previous != wiring) {
+			previous.database().stop();
+		}
 		current = wiring;
 		return wiring;
 	}

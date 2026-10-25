@@ -63,7 +63,7 @@ public class SearchService {
 	 */
 	public SearchResult searchDevices(String query, Page page) {
 		try {
-			Finder finder = new Finder(query, this.driverRegistry);
+			Finder finder = new Finder(query, this.driverRegistry, this.transactions);
 			try {
 				// Read-write session, as it has always been used for this query
 				return this.transactions.write(dsl -> new SearchResult(

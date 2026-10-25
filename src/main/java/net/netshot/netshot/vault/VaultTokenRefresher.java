@@ -63,13 +63,18 @@ public final class VaultTokenRefresher implements Service {
 	/** The executor running the refreshes. */
 	private ScheduledExecutorService executor;
 
+	/** The transaction support. */
+	private final Transactions transactions;
+
 	/**
 	 * Creates the refresher.
 	 *
+	 * @param transactions the transaction support, to read the Vault instances
 	 * @param vaultManager the Vault client, whose tokens are refreshed
 	 * @param config the configuration store
 	 */
-	public VaultTokenRefresher(VaultManager vaultManager, ConfigStore config) {
+	public VaultTokenRefresher(Transactions transactions, VaultManager vaultManager, ConfigStore config) {
+		this.transactions = transactions;
 		this.vaultManager = vaultManager;
 		this.config = config;
 	}
@@ -124,7 +129,7 @@ public final class VaultTokenRefresher implements Service {
 
 	private void refreshAll() {
 		// The instances are read first: no transaction is held during the logins
-		List<VaultInstance> instances = new Transactions().read(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
+		List<VaultInstance> instances = this.transactions.read(dsl -> new VaultInstanceRepository().findAll(dsl, Page.ALL));
 		for (VaultInstance candidate : instances) {
 			if (!(candidate instanceof HashicorpVaultKv2Instance vaultInstance)) {
 				continue;

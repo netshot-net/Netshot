@@ -37,6 +37,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the device group use cases, against a real database.
@@ -57,8 +58,8 @@ class GroupServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
-		this.service = new GroupService(this.transactions, new GroupRepository(), new DynamicGroups(TestDrivers.registry()));
+		this.transactions = TestWiring.get().transactions();
+		this.service = new GroupService(this.transactions, new GroupRepository(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		this.routerA = this.createDevice(domain, "router-a", "10.30.0.1");
 		this.routerB = this.createDevice(domain, "router-b", "10.30.0.2");
@@ -273,7 +274,7 @@ class GroupServiceTest {
 		DeviceGroup notMatching = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
 		// Stale membership, which the refresh must remove
 		TestDevices.addMembers(notMatching, TestDevices.find(this.routerA));
-		new DynamicGroups(TestDrivers.registry()).refreshAllGroupsOfOneDevice(this.routerA);
+		new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()).refreshAllGroupsOfOneDevice(this.routerA);
 		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.id()));
 		Assertions.assertEquals(List.of(this.routerA), this.members(matching.id()));
 		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.id()));

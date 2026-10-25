@@ -46,6 +46,7 @@ import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the device sub-resources (interfaces, modules), the device search, the reference
@@ -64,9 +65,9 @@ class DeviceInventoryServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		DeviceRepository repository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestDrivers.registry()));
+		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
 		this.searchService = new SearchService(this.transactions, new SearchRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");

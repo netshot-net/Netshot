@@ -65,7 +65,17 @@ public class PurgeDatabaseHandler implements TaskHandler<PurgeDatabaseTask> {
 
 	private final TaskRepository taskRepository = new TaskRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
+
+	/**
+	 * Instantiates the handler.
+	 *
+	 * @param transactions the transaction support
+	 */
+	public PurgeDatabaseHandler(Transactions transactions) {
+		this.transactions = transactions;
+	}
 
 	@Override
 	public Class<PurgeDatabaseTask> taskType() {

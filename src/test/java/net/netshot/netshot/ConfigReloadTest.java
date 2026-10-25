@@ -38,6 +38,7 @@ import net.netshot.netshot.access.Telnet;
 import net.netshot.netshot.access.collector.Collector;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.testing.UnitTest;
@@ -93,7 +94,7 @@ public class ConfigReloadTest {
 		Assertions.assertEquals(4321, Telnet.settings().receiveTimeout());
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
 			Collector.settings().clusterIpOverrides().get(NetworkAddress.getNetworkAddress("10.0.0.1")));
-		Assertions.assertEquals(2222, new VaultManager(Netshot.config()).settings().httpReadTimeoutMs());
+		Assertions.assertEquals(2222, new VaultManager(Netshot.config(), (Transactions) null).settings().httpReadTimeoutMs());
 		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.settings().storageFolderPath());
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.settings().venvFolder());
 
@@ -103,7 +104,7 @@ public class ConfigReloadTest {
 		Assertions.assertEquals(5000, Ssh.settings().connectionTimeout());
 		Assertions.assertEquals(60000, Telnet.settings().receiveTimeout());
 		Assertions.assertTrue(Collector.settings().clusterIpOverrides().isEmpty());
-		Assertions.assertEquals(10000, new VaultManager(Netshot.config()).settings().httpReadTimeoutMs());
+		Assertions.assertEquals(10000, new VaultManager(Netshot.config(), (Transactions) null).settings().httpReadTimeoutMs());
 		Assertions.assertNull(PythonFileSystem.settings().venvFolder());
 	}
 

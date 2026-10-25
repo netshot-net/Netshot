@@ -223,7 +223,7 @@ public class OptionsBlockTest {
 			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
 			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 
-			JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), device, null, new FakeTaskContext(), false);
+			JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), null, device, null, new FakeTaskContext(), false);
 			ProxyObject options = (ProxyObject) helper.getOptions();
 			Assertions.assertEquals(Boolean.TRUE, options.getMember("fullBackup"),
 				"Default Boolean option value should be a real boolean, not a string");
@@ -231,7 +231,7 @@ public class OptionsBlockTest {
 				"Text option value should remain a plain string");
 
 			DeviceDraft updated = new DeviceDraft(deviceBuilder.options(Map.of("fullBackup", Boolean.FALSE)).build());
-			helper = new JsDeviceHelper(TestDrivers.registry(), updated, null, new FakeTaskContext(), false);
+			helper = new JsDeviceHelper(TestDrivers.registry(), null, updated, null, new FakeTaskContext(), false);
 			ProxyObject updatedOptions = (ProxyObject) helper.getOptions();
 			Assertions.assertEquals(Boolean.FALSE, updatedOptions.getMember("fullBackup"),
 				"An explicitly stored false value should be exposed as boolean false");

@@ -102,7 +102,7 @@ public class TaskJobTest {
 		List<TaskHandler<?>> handlers = Arrays.stream(TaskSpec.class.getPermittedSubclasses())
 			.<TaskHandler<?>>map(type -> throwingHandler(type.asSubclass(TaskSpec.class), exception))
 			.toList();
-		TaskJob taskJob = new TaskJob(new TaskHandlers(handlers), TestWiring.get().domainEvents(), TestWiring.get().taskManager());
+		TaskJob taskJob = new TaskJob(TestWiring.get().transactions(), new TaskHandlers(handlers), TestWiring.get().domainEvents(), TestWiring.get().taskManager());
 		long id = TestTasks.add(TakeSnapshotTask.of(device, "test", "tester", false, true, true), Status.SCHEDULED).id();
 
 		Assertions.assertDoesNotThrow(() -> taskJob.runTask(id));
