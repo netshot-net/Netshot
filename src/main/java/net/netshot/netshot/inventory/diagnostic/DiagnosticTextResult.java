@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.diagnostic;
+package net.netshot.netshot.inventory.diagnostic;
 
 import java.time.Instant;
 import java.util.Objects;
+
 
 /**
  * A text diagnostic result.
@@ -36,13 +37,14 @@ public record DiagnosticTextResult(Long diagnosticId, String diagnosticName, Ins
 	/**
 	 * Builds a new result of a diagnostic (created and checked now).
 	 *
-	 * @param diagnostic the diagnostic
+	 * @param diagnosticId the ID of the diagnostic
+	 * @param diagnosticName the name of the diagnostic
 	 * @param value the value
 	 * @return the result
 	 */
-	public static DiagnosticTextResult of(Diagnostic diagnostic, String value) {
+	public static DiagnosticTextResult of(long diagnosticId, String diagnosticName, String value) {
 		Instant now = DiagnosticResult.now();
-		return new DiagnosticTextResult(diagnostic.id(), diagnostic.name(), now, now, value);
+		return new DiagnosticTextResult(diagnosticId, diagnosticName, now, now, value);
 	}
 
 	@Override

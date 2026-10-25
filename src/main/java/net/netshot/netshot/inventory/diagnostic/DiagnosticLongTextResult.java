@@ -16,52 +16,54 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.diagnostic;
+package net.netshot.netshot.inventory.diagnostic;
 
 import java.time.Instant;
 import java.util.Objects;
 
+
 /**
- * A numeric diagnostic result.
+ * A long text diagnostic result (stored apart).
  *
  * @param diagnosticId the ID of the diagnostic
  * @param diagnosticName the name of the diagnostic
  * @param creationDate when the diagnostic first gave this value
  * @param lastCheckDate when the diagnostic last gave this value
- * @param number the value
+ * @param text the value
  */
-public record DiagnosticNumericResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, Double number)
+public record DiagnosticLongTextResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, String text)
 	implements DiagnosticResult {
 
 	/**
 	 * Builds a new result of a diagnostic (created and checked now).
 	 *
-	 * @param diagnostic the diagnostic
+	 * @param diagnosticId the ID of the diagnostic
+	 * @param diagnosticName the name of the diagnostic
 	 * @param value the value
 	 * @return the result
 	 */
-	public static DiagnosticNumericResult of(Diagnostic diagnostic, Double value) {
+	public static DiagnosticLongTextResult of(long diagnosticId, String diagnosticName, String value) {
 		Instant now = DiagnosticResult.now();
-		return new DiagnosticNumericResult(diagnostic.id(), diagnostic.name(), now, now, value);
+		return new DiagnosticLongTextResult(diagnosticId, diagnosticName, now, now, value);
 	}
 
 	@Override
-	public DiagnosticNumericResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
-		return new DiagnosticNumericResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.number);
+	public DiagnosticLongTextResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticLongTextResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.text);
 	}
 
 	@Override
 	public String getAsText() {
-		return this.number == null ? "" : this.number.toString();
+		return this.text == null ? "" : this.text;
 	}
 
 	@Override
 	public Object getData() {
-		return this.number;
+		return this.text;
 	}
 
 	@Override
 	public boolean valueEquals(DiagnosticResult other) {
-		return other instanceof DiagnosticNumericResult o && Objects.equals(this.number, o.number);
+		return other instanceof DiagnosticLongTextResult o && Objects.equals(this.text, o.text);
 	}
 }

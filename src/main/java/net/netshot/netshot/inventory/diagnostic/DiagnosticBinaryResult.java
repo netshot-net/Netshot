@@ -16,52 +16,54 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.diagnostic;
+package net.netshot.netshot.inventory.diagnostic;
 
 import java.time.Instant;
 import java.util.Objects;
 
+
 /**
- * A long text diagnostic result (stored apart).
+ * A binary (true/false) diagnostic result.
  *
  * @param diagnosticId the ID of the diagnostic
  * @param diagnosticName the name of the diagnostic
  * @param creationDate when the diagnostic first gave this value
  * @param lastCheckDate when the diagnostic last gave this value
- * @param text the value
+ * @param assumption the value
  */
-public record DiagnosticLongTextResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, String text)
+public record DiagnosticBinaryResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, Boolean assumption)
 	implements DiagnosticResult {
 
 	/**
 	 * Builds a new result of a diagnostic (created and checked now).
 	 *
-	 * @param diagnostic the diagnostic
+	 * @param diagnosticId the ID of the diagnostic
+	 * @param diagnosticName the name of the diagnostic
 	 * @param value the value
 	 * @return the result
 	 */
-	public static DiagnosticLongTextResult of(Diagnostic diagnostic, String value) {
+	public static DiagnosticBinaryResult of(long diagnosticId, String diagnosticName, Boolean value) {
 		Instant now = DiagnosticResult.now();
-		return new DiagnosticLongTextResult(diagnostic.id(), diagnostic.name(), now, now, value);
+		return new DiagnosticBinaryResult(diagnosticId, diagnosticName, now, now, value);
 	}
 
 	@Override
-	public DiagnosticLongTextResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
-		return new DiagnosticLongTextResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.text);
+	public DiagnosticBinaryResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticBinaryResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.assumption);
 	}
 
 	@Override
 	public String getAsText() {
-		return this.text == null ? "" : this.text;
+		return Boolean.TRUE.equals(this.assumption) ? "true" : "false";
 	}
 
 	@Override
 	public Object getData() {
-		return this.text;
+		return this.assumption;
 	}
 
 	@Override
 	public boolean valueEquals(DiagnosticResult other) {
-		return other instanceof DiagnosticLongTextResult o && Objects.equals(this.text, o.text);
+		return other instanceof DiagnosticBinaryResult o && Objects.equals(this.assumption, o.assumption);
 	}
 }

@@ -37,7 +37,7 @@ import net.netshot.netshot.platform.database.Page;
 
 /**
  * The queries on the diagnostics. The {@link DSLContext} is always the first parameter: the
- * caller (the service) owns the transaction. The results are queried by {@link DiagnosticResultRepository}.
+ * caller (the service) owns the transaction. The results are queried by {@link net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository}.
  */
 public class DiagnosticRepository {
 

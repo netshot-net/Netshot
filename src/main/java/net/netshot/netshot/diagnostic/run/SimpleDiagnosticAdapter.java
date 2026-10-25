@@ -21,14 +21,14 @@ package net.netshot.netshot.diagnostic.run;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic.JsSimpleDiagnostic;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 
 /**
  * Adapts the simple (CLI command) diagnostics.
@@ -56,14 +56,14 @@ public class SimpleDiagnosticAdapter implements DiagnosticAdapter<SimpleDiagnost
 		}
 		switch (diagnostic.resultType()) {
 			case LONGTEXT:
-				return DiagnosticLongTextResult.of(diagnostic, newValue);
+				return DiagnosticLongTextResult.of(diagnostic.id(), diagnostic.name(), newValue);
 			case TEXT:
-				return DiagnosticTextResult.of(diagnostic, newValue);
+				return DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), newValue);
 			case NUMERIC:
-				return DiagnosticNumericResult.of(diagnostic, Double.parseDouble(newValue));
+				return DiagnosticNumericResult.of(diagnostic.id(), diagnostic.name(), Double.parseDouble(newValue));
 			case BINARY:
 				boolean booleanValue = !"".equals(newValue) && !"false".equals(newValue.toLowerCase()) && !"no".equals(newValue.toLowerCase());
-				return DiagnosticBinaryResult.of(diagnostic, booleanValue);
+				return DiagnosticBinaryResult.of(diagnostic.id(), diagnostic.name(), booleanValue);
 			default:
 				return null;
 		}

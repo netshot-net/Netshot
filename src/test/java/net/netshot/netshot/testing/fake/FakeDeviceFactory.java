@@ -29,8 +29,6 @@ import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
@@ -47,6 +45,8 @@ import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
@@ -69,7 +69,7 @@ public final class FakeDeviceFactory {
 		Device device = getFakeCiscoIosDevice(domain, null, 100);
 		DeviceDraft draft = new DeviceDraft(device);
 		draft.setLastConfig(getFakeCiscoIosConfig(device).toBuilder().id(1).build());
-		draft.setStoredDiagnosticResults(List.of(DiagnosticTextResult.of(diagnostic, "Reload Command")));
+		draft.setStoredDiagnosticResults(List.of(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "Reload Command")));
 		return draft;
 	}
 
@@ -90,7 +90,7 @@ public final class FakeDeviceFactory {
 	 * @return the result
 	 */
 	public static DiagnosticResult getFakeCiscoIosDiagnosticResult(Diagnostic diagnostic) {
-		return DiagnosticTextResult.of(diagnostic, "Reload Command");
+		return DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "Reload Command");
 	}
 
 	/**

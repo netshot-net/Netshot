@@ -16,52 +16,54 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.diagnostic;
+package net.netshot.netshot.inventory.diagnostic;
 
 import java.time.Instant;
 import java.util.Objects;
 
+
 /**
- * A binary (true/false) diagnostic result.
+ * A numeric diagnostic result.
  *
  * @param diagnosticId the ID of the diagnostic
  * @param diagnosticName the name of the diagnostic
  * @param creationDate when the diagnostic first gave this value
  * @param lastCheckDate when the diagnostic last gave this value
- * @param assumption the value
+ * @param number the value
  */
-public record DiagnosticBinaryResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, Boolean assumption)
+public record DiagnosticNumericResult(Long diagnosticId, String diagnosticName, Instant creationDate, Instant lastCheckDate, Double number)
 	implements DiagnosticResult {
 
 	/**
 	 * Builds a new result of a diagnostic (created and checked now).
 	 *
-	 * @param diagnostic the diagnostic
+	 * @param diagnosticId the ID of the diagnostic
+	 * @param diagnosticName the name of the diagnostic
 	 * @param value the value
 	 * @return the result
 	 */
-	public static DiagnosticBinaryResult of(Diagnostic diagnostic, Boolean value) {
+	public static DiagnosticNumericResult of(long diagnosticId, String diagnosticName, Double value) {
 		Instant now = DiagnosticResult.now();
-		return new DiagnosticBinaryResult(diagnostic.id(), diagnostic.name(), now, now, value);
+		return new DiagnosticNumericResult(diagnosticId, diagnosticName, now, now, value);
 	}
 
 	@Override
-	public DiagnosticBinaryResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
-		return new DiagnosticBinaryResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.assumption);
+	public DiagnosticNumericResult withDates(Instant newCreationDate, Instant newLastCheckDate) {
+		return new DiagnosticNumericResult(this.diagnosticId, this.diagnosticName, newCreationDate, newLastCheckDate, this.number);
 	}
 
 	@Override
 	public String getAsText() {
-		return Boolean.TRUE.equals(this.assumption) ? "true" : "false";
+		return this.number == null ? "" : this.number.toString();
 	}
 
 	@Override
 	public Object getData() {
-		return this.assumption;
+		return this.number;
 	}
 
 	@Override
 	public boolean valueEquals(DiagnosticResult other) {
-		return other instanceof DiagnosticBinaryResult o && Objects.equals(this.assumption, o.assumption);
+		return other instanceof DiagnosticNumericResult o && Objects.equals(this.number, o.number);
 	}
 }

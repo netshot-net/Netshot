@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.diagnostic;
+package net.netshot.netshot.inventory.diagnostic;
 
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC;
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;

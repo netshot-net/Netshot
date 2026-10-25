@@ -31,12 +31,12 @@ import java.util.TreeSet;
 import lombok.Getter;
 import lombok.Setter;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DrivenDevice;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 
 /**
  * The working copy of a device while a script runs on it (snapshot, script, diagnostics):
