@@ -85,7 +85,7 @@ public class JsSnmpHelper {
 		int port = this.accessManager.resolvePort(accessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
 			accessDef.getName(), accessDef.getProtocol(), resolvedCommunity.name(), address.getIp(), port);
-		Snmp snmp = new Snmp(address, port, resolvedCommunity);
+		Snmp snmp = new Snmp(address, port, resolvedCommunity, this.accessManager.secrets());
 		try {
 			snmp.getAsString("1.3.6.1.2.1.1.3.0"); /* sysUptime.0 */
 		}

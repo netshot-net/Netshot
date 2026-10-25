@@ -267,14 +267,19 @@ public class ClusterManager implements Service, ClusterCoordinator {
 	/** Coalescable actions currently queued (not yet started) in the worker. */
 	private final Set<WorkerAction> pendingActions = ConcurrentHashMap.newKeySet();
 
+	/** The Vault client (its caches are invalidated on request of the other members). */
+	private final VaultManager vaultManager;
+
 	/**
 	 * Constructor.
 	 *
 	 * @param driverRegistry the loaded device drivers
 	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
 	 * @param taskManager the task manager
+	 * @param vaultManager the Vault client (its caches are invalidated on request of the other members)
 	 */
-	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager) {
+	public ClusterManager(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler, TaskManager taskManager, VaultManager vaultManager) {
+		this.vaultManager = vaultManager;
 		this.driverRegistry = driverRegistry;
 		this.autoSnapshotScheduler = autoSnapshotScheduler;
 		this.taskManager = taskManager;
@@ -703,7 +708,7 @@ public class ClusterManager implements Service, ClusterCoordinator {
 								final Set<Long> vaultInstanceIds = new HashSet<>(vaultMessage.getVaultInstanceIds());
 								this.submit("VAULT_INVALIDATE", () -> {
 									for (long vaultInstanceId : vaultInstanceIds) {
-										VaultManager.invalidate(vaultInstanceId);
+										this.vaultManager.invalidate(vaultInstanceId);
 									}
 								});
 							}

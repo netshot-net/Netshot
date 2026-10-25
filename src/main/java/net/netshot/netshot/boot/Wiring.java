@@ -143,6 +143,8 @@ public final class Wiring {
 	// Drivers
 	private final DriverRegistry driverRegistry;
 	private final DynamicGroups dynamicGroups;
+	// Vault client
+	private final VaultManager vaultManager;
 	// Device
 	private final DeviceService deviceService;
 	// Compliance
@@ -210,6 +212,8 @@ public final class Wiring {
 		// Drivers
 		this.driverRegistry = driverRegistry;
 		this.dynamicGroups = new DynamicGroups(driverRegistry);
+		// Vault (the secret resolver of the device accesses)
+		this.vaultManager = new VaultManager(config);
 		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
 		boolean clustered = config.current().get(ClusterManager.ENABLED);
 		this.lockManager = TaskLockManager.create(clustered);
@@ -218,7 +222,7 @@ public final class Wiring {
 		TaskSubmitter taskSubmitter = this.taskManager::addTask;
 		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots);
 		if (clustered) {
-			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager);
+			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager, this.vaultManager);
 			this.taskManager.setCluster(this.clusterManager);
 		}
 		else {
@@ -273,12 +277,12 @@ public final class Wiring {
 		// Vault
 		this.vaultInstanceService = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
 			vaultInstanceId -> {
-				VaultManager.invalidate(vaultInstanceId);
+				this.vaultManager.invalidate(vaultInstanceId);
 				if (this.clusterManager != null) {
 					this.clusterManager.requestVaultInstanceReload(vaultInstanceId);
 				}
 			},
-			VaultManager::testConnection);
+			this.vaultManager::testConnection);
 		// Hooks
 		this.hookService = new HookService(this.transactions, new HookRepository());
 		// Events
@@ -291,15 +295,16 @@ public final class Wiring {
 			new CheckComplianceHandler(this.complianceChecker, this.dynamicGroups),
 			new CheckGroupComplianceHandler(this.complianceChecker, this.dynamicGroups),
 			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups),
+			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups),
-			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups),
+			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
+			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, this.vaultManager),
 			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
 			new ScanSubnetsHandler(childTaskOrchestrator),
 			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups)));
+			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
+				this.vaultManager)));
 		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
 		this.taskManager.setJobFactory(this.taskJobFactory);
 	}
@@ -357,7 +362,7 @@ public final class Wiring {
 		else {
 			log.info("High Availability is not enabled.");
 		}
-		services.add(new VaultTokenRefresher(this.config));
+		services.add(new VaultTokenRefresher(this.vaultManager, this.config));
 		services.add(this.taskManager);
 		// The receivers submit tasks: after the task manager
 		if (current.get(SyslogServer.DISABLED)) {
@@ -499,6 +504,15 @@ public final class Wiring {
 	 */
 	public Tacacs tacacs() {
 		return this.tacacs;
+	}
+
+	/**
+	 * Gets the Vault client (the secret resolver of the device accesses).
+	 *
+	 * @return the Vault client
+	 */
+	public VaultManager vaultManager() {
+		return this.vaultManager;
 	}
 
 	/**

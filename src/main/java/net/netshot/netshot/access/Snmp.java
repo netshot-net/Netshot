@@ -65,7 +65,7 @@ import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultableSecret;
 
 
@@ -113,10 +113,11 @@ public class Snmp extends Poller implements Client {
 	 * using the default SNMP port ({@link #DEFAULT_PORT}).
 	 * @param address The target
 	 * @param community The SNMP credentials
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @throws IOException it can happen
 	 */
-	public Snmp(NetworkAddress address, DeviceSnmpCommunity community) throws IOException {
-		this(address, DEFAULT_PORT, community);
+	public Snmp(NetworkAddress address, DeviceSnmpCommunity community, SecretResolver secrets) throws IOException {
+		this(address, DEFAULT_PORT, community, secrets);
 	}
 
 	/**
@@ -124,18 +125,19 @@ public class Snmp extends Poller implements Client {
 	 * @param address The target
 	 * @param port The target UDP port
 	 * @param community The SNMP credentials
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @throws IOException it can happen
 	 */
-	public Snmp(NetworkAddress address, int port, DeviceSnmpCommunity community) throws IOException {
+	public Snmp(NetworkAddress address, int port, DeviceSnmpCommunity community, SecretResolver secrets) throws IOException {
 		if (community instanceof DeviceSnmpv1Community) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
-				new OctetString(resolveSecret(community.communitySecret())));
+				new OctetString(resolveSecret(secrets, community.communitySecret())));
 			this.target.setVersion(SnmpConstants.version1);
 			start();
 		}
 		else if (community instanceof DeviceSnmpv2cCommunity) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
-				new OctetString(resolveSecret(community.communitySecret())));
+				new OctetString(resolveSecret(secrets, community.communitySecret())));
 			this.target.setVersion(SnmpConstants.version2c);
 			start();
 		}
@@ -161,7 +163,7 @@ public class Snmp extends Poller implements Client {
 			else {
 				this.target.setSecurityLevel(SecurityLevel.AUTH_PRIV);
 			}
-			String v3Username = resolveSecret(v3Credentials.usernameSecret());
+			String v3Username = resolveSecret(secrets, v3Credentials.usernameSecret());
 			this.target.setSecurityName(new OctetString(v3Username));
 
 			// Prepare transport
@@ -193,9 +195,9 @@ public class Snmp extends Poller implements Client {
 				new UsmUser(
 					new OctetString(v3Username),
 					hasAuth ? this.authProtocol : null,
-					hasAuth ? new OctetString(resolveSecret(v3Credentials.authKeySecret())) : null,
+					hasAuth ? new OctetString(resolveSecret(secrets, v3Credentials.authKeySecret())) : null,
 					hasPriv ? this.privProtocol : null,
-					hasPriv ? new OctetString(resolveSecret(v3Credentials.privKeySecret())) : null));
+					hasPriv ? new OctetString(resolveSecret(secrets, v3Credentials.privKeySecret())) : null));
 			SecurityModels.getInstance().addSecurityModel(usm);
 
 			start();
@@ -206,12 +208,13 @@ public class Snmp extends Poller implements Client {
 	 * Resolves a credential field's actual value (local, or from Vault),
 	 * wrapping a Vault failure as an {@link IOException} so it's handled the
 	 * same way as any other connection failure by callers.
+	 * @param secrets the resolver
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private static String resolveSecret(VaultableSecret secret) throws IOException {
+	private static String resolveSecret(SecretResolver secrets, VaultableSecret secret) throws IOException {
 		try {
-			return VaultManager.resolve(secret);
+			return secrets.resolve(secret);
 		}
 		catch (VaultException e) {
 			throw new IOException("Unable to resolve a Vault-backed credential: " + e.getMessage(), e);

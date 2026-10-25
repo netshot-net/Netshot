@@ -38,6 +38,7 @@ import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
+import net.netshot.netshot.Netshot;
 
 @DatabaseTest(boot = Boot.MANUAL)
 @Testcontainers
@@ -128,6 +129,9 @@ public class VaultTest {
 		@Container
 		private static final VaultContainer<?> VAULT_CONTAINER = buildVaultContainer();
 
+		/** The Vault client, reading the Vault instances from the database. */
+		private final VaultManager vault = new VaultManager(Netshot.config());
+
 		/**
 		 * Builds (but does not start) the Vault container; {@code @Container} starts/stops it around this class.
 		 * @return the container
@@ -182,8 +186,8 @@ public class VaultTest {
 		void resolvesVaultBackedFields() throws VaultException {
 			DeviceSshAccount account = this.reloadAccount();
 
-			Assertions.assertEquals("vaultadmin", VaultManager.resolve(account.usernameSecret()));
-			Assertions.assertEquals("Sup3rS3cr3tPassword!", VaultManager.resolve(account.passwordSecret()));
+			Assertions.assertEquals("vaultadmin", this.vault.resolve(account.usernameSecret()));
+			Assertions.assertEquals("Sup3rS3cr3tPassword!", this.vault.resolve(account.passwordSecret()));
 		}
 
 		@Test
@@ -192,7 +196,7 @@ public class VaultTest {
 			DeviceSshAccount account = this.reloadAccount();
 
 			Assertions.assertFalse(account.superPasswordSecret().isVaultBacked());
-			Assertions.assertEquals(LOCAL_SUPER_PASSWORD, VaultManager.resolve(account.superPasswordSecret()));
+			Assertions.assertEquals(LOCAL_SUPER_PASSWORD, this.vault.resolve(account.superPasswordSecret()));
 		}
 
 		@Test
@@ -200,7 +204,7 @@ public class VaultTest {
 		void resolutionFailsForMissingKey() {
 			VaultableSecret missingKeySecret = new VaultableSecret(null, vaultInstanceId, SECRET_PATH + "/no-such-key");
 
-			Assertions.assertThrows(VaultException.class, () -> VaultManager.resolve(missingKeySecret));
+			Assertions.assertThrows(VaultException.class, () -> this.vault.resolve(missingKeySecret));
 		}
 
 		@Test
@@ -217,7 +221,7 @@ public class VaultTest {
 
 			VaultableSecret secret = new VaultableSecret(null, wrongInstanceId, SECRET_PATH + "/username");
 
-			Assertions.assertThrows(VaultException.class, () -> VaultManager.resolve(secret));
+			Assertions.assertThrows(VaultException.class, () -> this.vault.resolve(secret));
 		}
 
 	}

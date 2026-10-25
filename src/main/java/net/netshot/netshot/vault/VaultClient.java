@@ -62,7 +62,7 @@ final class VaultClient {
 	private VaultClient() {
 	}
 
-	private static Client buildHttpClient(VaultInstance instance) throws VaultException {
+	private static Client buildHttpClient(VaultInstance instance, VaultManager.Settings settings) throws VaultException {
 		try {
 			log.trace("Building HTTP client for Vault instance '{}' (base URL '{}').",
 				instance.name(), instance.baseUrl());
@@ -77,9 +77,9 @@ final class VaultClient {
 				}
 			}
 			clientBuilder.connectTimeout(
-				VaultManager.settings().httpConnectTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
+				settings.httpConnectTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
 			clientBuilder.readTimeout(
-				VaultManager.settings().httpReadTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
+				settings.httpReadTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS);
 			return clientBuilder.build();
 		}
 		catch (GeneralSecurityException | java.io.IOException e) {
@@ -92,20 +92,21 @@ final class VaultClient {
 	/**
 	 * Logs in to the given Vault instance, using its configured auth method.
 	 * @param instance the Vault instance
+	 * @param settings the settings of the Vault client (HTTP timeouts)
 	 * @return the resulting client token
 	 * @throws VaultException in case of login failure
 	 */
-	static VaultToken login(HashicorpVaultKv2Instance instance) throws VaultException {
+	static VaultToken login(HashicorpVaultKv2Instance instance, VaultManager.Settings settings) throws VaultException {
 		log.trace("Logging in to Vault instance '{}' using {} auth.", instance.name(), instance.authMethod());
 		if (instance.authMethod() == AuthMethod.JWT) {
 			String jwt = obtainJwtFromIdp(instance);
-			return loginWithPayload(instance, "%s/login".formatted(instance.jwtMountPath()), Map.of(
+			return loginWithPayload(instance, settings, "%s/login".formatted(instance.jwtMountPath()), Map.of(
 				"role", instance.jwtVaultRole(),
 				"jwt", jwt
 			));
 		}
 		else {
-			return loginWithPayload(instance, "%s/login".formatted(instance.appRoleMountPath()), Map.of(
+			return loginWithPayload(instance, settings, "%s/login".formatted(instance.appRoleMountPath()), Map.of(
 				"role_id", instance.appRoleId(),
 				"secret_id", instance.appRoleSecretId()
 			));
@@ -144,9 +145,9 @@ final class VaultClient {
 		}
 	}
 
-	private static VaultToken loginWithPayload(HashicorpVaultKv2Instance instance, String authPath,
+	private static VaultToken loginWithPayload(HashicorpVaultKv2Instance instance, VaultManager.Settings settings, String authPath,
 			Map<String, String> payload) throws VaultException {
-		Client client = buildHttpClient(instance);
+		Client client = buildHttpClient(instance, settings);
 		try {
 			String uri = "%s/v1/auth/%s".formatted(stripTrailingSlash(instance.baseUrl()), authPath);
 			log.trace("POSTing Vault login request to '{}'.", uri);
@@ -191,12 +192,13 @@ final class VaultClient {
 	 * @param instance the Vault instance
 	 * @param path the KV v2 secret path (relative to the mount)
 	 * @param clientToken the Vault client token to authenticate with
+	 * @param settings the settings of the Vault client (HTTP timeouts)
 	 * @return the secret's data node
 	 * @throws VaultException in case of read failure
 	 */
-	static JsonNode readKv2(HashicorpVaultKv2Instance instance, String path, String clientToken)
+	static JsonNode readKv2(HashicorpVaultKv2Instance instance, String path, String clientToken, VaultManager.Settings settings)
 			throws VaultException {
-		Client client = buildHttpClient(instance);
+		Client client = buildHttpClient(instance, settings);
 		try {
 			String mount = instance.kvMountPath() == null || instance.kvMountPath().isBlank()
 				? "secret" : instance.kvMountPath();

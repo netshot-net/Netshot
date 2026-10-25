@@ -28,6 +28,7 @@ import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -74,7 +75,7 @@ public class UserDeviceScriptTest {
 
 	private UserDeviceScript buildScript(String code, Map<String, String> userInputValues) {
 		TaskContext taskContext = new FakeTaskContext();
-		UserDeviceScript script = new UserDeviceScript(TestDrivers.registry(), DRIVER_NAME, code, taskContext);
+		UserDeviceScript script = new UserDeviceScript(TestDrivers.registry(), SecretResolver.LOCAL, DRIVER_NAME, code, taskContext);
 		script.setUserInputValues(userInputValues);
 		return script;
 	}

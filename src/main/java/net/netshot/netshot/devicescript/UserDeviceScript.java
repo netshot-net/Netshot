@@ -46,6 +46,7 @@ import net.netshot.netshot.driver.DriverValueType;
 import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * A JavaScript-based script to execute on a device.
@@ -114,12 +115,13 @@ public class UserDeviceScript extends DeviceScript {
 	/**
 	 * Instantiates a JS-based script.
 	 * @param driverRegistry = The loaded device drivers
+	 * @param secrets resolves the secrets of the credentials (local or Vault-backed)
 	 * @param driverName = The name of the driver
 	 * @param code = The JavaScript code
 	 * @param logger = The task context
 	 */
-	public UserDeviceScript(DriverRegistry driverRegistry, String driverName, String code, TaskContext logger) {
-		super(driverRegistry, logger);
+	public UserDeviceScript(DriverRegistry driverRegistry, SecretResolver secrets, String driverName, String code, TaskContext logger) {
+		super(driverRegistry, secrets, logger);
 		this.driverName = driverName;
 		this.code = code;
 	}
