@@ -32,8 +32,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;

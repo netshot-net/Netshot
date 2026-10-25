@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.PaginationParams;
 import net.netshot.netshot.api.rest.ResponseCodeFilter;
-import net.netshot.netshot.inventory.domain.DomainService;
+import net.netshot.netshot.domain.DomainService;
 
 /**
  * The REST resource of the device domains: list, add, edit and delete.

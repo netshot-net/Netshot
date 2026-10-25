@@ -31,7 +31,7 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.domain.Domain;
 
 /**
  * Maps the credential sets between the records and their REST representation, in both directions.
