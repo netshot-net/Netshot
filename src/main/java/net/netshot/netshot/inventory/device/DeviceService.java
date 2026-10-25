@@ -97,6 +97,9 @@ public class DeviceService {
 	private final DomainRepository domainRepository = new DomainRepository();
 	private final CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Instantiates the service.
 	 *
@@ -104,9 +107,11 @@ public class DeviceService {
 	 * @param repository the device repository
 	 * @param taskSubmitter how to hand a new task over to the task engine
 	 * @param driverRegistry the loaded device drivers
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
 	public DeviceService(Transactions transactions, DeviceRepository repository, TaskSubmitter taskSubmitter,
-		DriverRegistry driverRegistry) {
+		DriverRegistry driverRegistry, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.transactions = transactions;
 		this.repository = repository;
 		this.taskSubmitter = taskSubmitter;
@@ -310,7 +315,7 @@ public class DeviceService {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Database error");
 		}
 		AAA_LOG.info("{} has been created.", created.device());
-		DynamicGroups.refreshAllGroupsOfOneDevice(created.device().id());
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(created.device().id());
 		try {
 			return this.taskSubmitter.submit(created.snapshotTask());
 		}
@@ -372,7 +377,7 @@ public class DeviceService {
 			log.error("Cannot edit the device.", e);
 			throw e;
 		}
-		DynamicGroups.refreshAllGroupsOfOneDevice(device.id());
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(device.id());
 		return this.get(id);
 	}
 

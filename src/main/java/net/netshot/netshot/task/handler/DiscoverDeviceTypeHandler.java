@@ -63,12 +63,17 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 	private final TaskSubmitter taskSubmitter;
 	private final TaskRepository taskRepository = new TaskRepository();
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the driver registry
 	 * @param taskSubmitter the task submitter
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public DiscoverDeviceTypeHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+	public DiscoverDeviceTypeHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
 	}
@@ -175,7 +180,7 @@ public class DiscoverDeviceTypeHandler implements TaskHandler<DiscoverDeviceType
 			}
 
 			if (newDevice != null) {
-				DynamicGroups.refreshAllGroupsOfOneDevice(newDevice.id());
+				this.dynamicGroups.refreshAllGroupsOfOneDevice(newDevice.id());
 			}
 
 			try {

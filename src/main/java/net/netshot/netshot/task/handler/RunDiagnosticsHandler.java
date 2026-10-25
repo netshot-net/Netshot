@@ -51,14 +51,19 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 	private final Transactions transactions = new Transactions();
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param diagnosticAdapters the diagnostic adapters
 	 * @param taskSubmitter the task submitter
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
 	public RunDiagnosticsHandler(DriverRegistry driverRegistry, DiagnosticAdapters diagnosticAdapters,
-		TaskSubmitter taskSubmitter) {
+		TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.diagnosticAdapters = diagnosticAdapters;
 		this.taskSubmitter = taskSubmitter;
@@ -130,7 +135,7 @@ public class RunDiagnosticsHandler implements TaskHandler<RunDiagnosticsTask> {
 		}
 
 		log.debug("Task {}. Request to refresh all the groups for the device after the diagnostics.", task.id());
-		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
 		if (!spec.dontCheckCompliance()) {
 			try {

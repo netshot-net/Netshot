@@ -51,18 +51,18 @@ public class TaskHandlersTest {
 	 */
 	private static List<TaskHandler<?>> allHandlers() {
 		return new ArrayList<>(List.of(
-			new CheckComplianceHandler(null),
-			new CheckGroupComplianceHandler(null),
+			new CheckComplianceHandler(null, null),
+			new CheckGroupComplianceHandler(null, null),
 			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(null, null),
+			new DiscoverDeviceTypeHandler(null, null, null),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(null, null),
-			new RunDeviceScriptHandler(null, null),
-			new RunDiagnosticsHandler(null, null, null),
+			new RunDeviceScriptHandler(null, null, null),
+			new RunDiagnosticsHandler(null, null, null, null),
 			new RunGroupDiagnosticsHandler(null),
 			new ScanSubnetsHandler(null),
 			new TakeGroupSnapshotHandler(null),
-			new TakeSnapshotHandler(null, null, null, null)));
+			new TakeSnapshotHandler(null, null, null, null, null)));
 	}
 
 	@Test

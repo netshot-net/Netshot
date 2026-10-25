@@ -293,7 +293,7 @@ public final class TestDevices {
 			DynamicDeviceGroup group = (DynamicDeviceGroup) GROUPS.add(dsl,
 				DynamicDeviceGroup.builder().name(name).folder("").query(query).build());
 			try {
-				DynamicGroups.refresh(dsl, group);
+				new DynamicGroups(TestDrivers.registry()).refresh(dsl, group);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalArgumentException("Invalid query", e);

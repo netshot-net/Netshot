@@ -87,18 +87,22 @@ import net.netshot.netshot.platform.database.Transactions;
 public class Finder {
 
 	/**
-	 * The loaded device drivers, which the expressions on the drivers and their attributes are parsed against.
-	 * Transitional static state: the expressions are parsed by static methods, and finders are also created by entities.
+	 * The loaded device drivers, which the expressions on the drivers and their attributes are parsed against:
+	 * bound while a query is parsed (see {@link #Finder(String, DriverRegistry)}), as the expressions are parsed
+	 * by static methods.
 	 */
-	private static volatile DriverRegistry driverRegistry;
+	private static final ScopedValue<DriverRegistry> DRIVERS = ScopedValue.newInstance();
 
 	/**
-	 * Sets the loaded device drivers to parse the queries against.
+	 * Gets the drivers the current query is parsed against.
 	 *
-	 * @param driverRegistry the registry
+	 * @return the driver registry
 	 */
-	public static void setDriverRegistry(DriverRegistry driverRegistry) {
-		Finder.driverRegistry = driverRegistry;
+	private static DriverRegistry drivers() {
+		if (!DRIVERS.isBound()) {
+			throw new IllegalStateException("No driver registry bound to parse the query");
+		}
+		return DRIVERS.get();
 	}
 
 	/**
@@ -1143,6 +1147,9 @@ public class Finder {
 		/** The value. */
 		private String value;
 
+		/** The drivers (their descriptions are compared to the value). */
+		private DriverRegistry driverRegistry;
+
 		/**
 		 * Parses the tokens to create an expression.
 		 *
@@ -1169,6 +1176,7 @@ public class Finder {
 							DriverExpression driverExpr = new DriverExpression();
 							driverExpr.sign = comparator.type;
 							driverExpr.value = value.value;
+							driverExpr.driverRegistry = drivers();
 							return driverExpr;
 						}
 						else {
@@ -1194,7 +1202,7 @@ public class Finder {
 		public Condition toCondition(String itemPrefix) {
 			CaseValueStep<String> choose = DSL.choose(DEVICE.DRIVER);
 			CaseWhenStep<String, String> cases = null;
-			for (DeviceDriver driver : Finder.driverRegistry.getAllDrivers()) {
+			for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
 				cases = cases == null
 					? choose.when(DSL.inline(driver.getName()), DSL.inline(driver.getDescription()))
 					: cases.when(DSL.inline(driver.getName()), DSL.inline(driver.getDescription()));
@@ -2068,7 +2076,7 @@ public class Finder {
 
 		protected static AttributeDefinition getDriverAttributeDefinition(
 				Token itemToken, List<AttributeType> possibleTypes) throws FinderParseException {
-			DeviceDriver driver = Finder.driverRegistry.getDriverByDescription(itemToken.key1);
+			DeviceDriver driver = drivers().getDriverByDescription(itemToken.key1);
 			if (driver == null) {
 				throw new FinderParseException(
 					"Parsing error at character %d, unknown driver '%s'."
@@ -3103,19 +3111,21 @@ public class Finder {
 	private Expression expression;
 
 	/**
-	 * Instantiates a new finder.
+	 * Parses a query.
 	 *
 	 * @param query the query
+	 * @param driverRegistry the loaded device drivers, for the expressions on the drivers and their attributes
 	 * @throws FinderParseException the finder parse exception
 	 */
-	public Finder(String query)
+	public Finder(String query, DriverRegistry driverRegistry)
 		throws FinderParseException {
 		this.tokens = Expression.tokenize(query);
 		if (this.tokens.size() == 0) {
 			this.expression = new NullExpression();
 		}
 		else {
-			this.expression = Expression.parse(tokens);
+			List<Token> parsed = this.tokens;
+			this.expression = ScopedValue.where(DRIVERS, driverRegistry).call(() -> Expression.parse(parsed));
 		}
 	}
 

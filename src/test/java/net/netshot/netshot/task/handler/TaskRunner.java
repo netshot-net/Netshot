@@ -74,18 +74,18 @@ final class TaskRunner {
 			TestTasks.setStatus(child.id(), this.childStatus);
 		});
 		TaskHandlers handlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(wiring.complianceChecker()),
-			new CheckGroupComplianceHandler(wiring.complianceChecker()),
+			new CheckComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
+			new CheckGroupComplianceHandler(wiring.complianceChecker(), wiring.dynamicGroups()),
 			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(TestDrivers.registry(), submitter),
+			new DiscoverDeviceTypeHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups()),
 			new PurgeDatabaseHandler(),
 			new RunDeviceGroupScriptHandler(orchestrator, TestDrivers.registry()),
-			new RunDeviceScriptHandler(TestDrivers.registry(), submitter),
-			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter),
+			new RunDeviceScriptHandler(TestDrivers.registry(), submitter, wiring.dynamicGroups()),
+			new RunDiagnosticsHandler(TestDrivers.registry(), wiring.diagnosticAdapters(), submitter, wiring.dynamicGroups()),
 			new RunGroupDiagnosticsHandler(orchestrator),
 			new ScanSubnetsHandler(orchestrator),
 			new TakeGroupSnapshotHandler(orchestrator),
-			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null)));
+			new TakeSnapshotHandler(TestDrivers.registry(), submitter, new AutoSnapshotQueue(), null, wiring.dynamicGroups())));
 		this.taskJob = new TaskJob(handlers, wiring.domainEvents(), wiring.taskManager());
 	}
 

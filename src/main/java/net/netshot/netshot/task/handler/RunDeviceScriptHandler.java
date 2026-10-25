@@ -47,12 +47,17 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 	private final Transactions transactions = new Transactions();
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
 	/**
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups) {
+		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
 	}
@@ -121,7 +126,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 		}
 
 		// The script may have changed the device tags/comments
-		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
 		if (spec.runSnapshot()) {
 			try {
