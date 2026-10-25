@@ -48,7 +48,7 @@ import net.netshot.netshot.testing.UnitTest;
 /**
  * Architecture rules encoding the TARGET layering (see the layering refactor plan).
  *
- * <p>Most rules are strict. The rule which still has violations to remove (cycles between feature slices) is
+ * <p>Most rules are strict. The rule which still has violations to remove (mutable static fields) is
  * frozen with FreezingArchRule: violations existing when the store was generated are recorded in
  * src/test/resources/archunit_store and tolerated; only NEW violations fail the build.</p>
  *
@@ -231,13 +231,13 @@ public final class ArchitectureTest {
 		fields().that().areStatic().should().beFinal().allowEmptyShould(true));
 
 	/**
-	 * No cycles between top-level slices (net.netshot.netshot.(*)..). ArchUnit's own slices().beFreeOfCycles()
-	 * reports an arbitrary subset of cycles which varies between runs, which makes it unusable when frozen; this
-	 * rule instead reports each class-to-class dependency crossing two slices that are part of the same cycle.
+	 * No cycles between top-level slices (net.netshot.netshot.(*)..). Unlike ArchUnit's own
+	 * slices().beFreeOfCycles(), which reports an arbitrary subset of the cycles, this rule reports each
+	 * class-to-class dependency crossing two slices that are part of the same cycle: the dependencies to cut.
 	 */
 	@ArchTest
-	static final ArchRule NO_CYCLES_BETWEEN_FEATURE_SLICES = freeze(
-		classes().should(new SliceCycleCondition()).allowEmptyShould(true));
+	static final ArchRule NO_CYCLES_BETWEEN_FEATURE_SLICES =
+		classes().should(new SliceCycleCondition()).allowEmptyShould(true);
 
 	private static String sliceOf(JavaClass javaClass) {
 		String name = javaClass.getPackageName();
