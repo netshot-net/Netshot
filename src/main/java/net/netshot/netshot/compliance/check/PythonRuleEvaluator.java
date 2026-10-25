@@ -31,11 +31,11 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.log.TaskContext;

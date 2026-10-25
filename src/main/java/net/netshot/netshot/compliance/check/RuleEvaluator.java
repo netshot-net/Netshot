@@ -19,8 +19,8 @@
 package net.netshot.netshot.compliance.check;
 
 
-import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 

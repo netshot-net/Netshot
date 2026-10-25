@@ -26,12 +26,15 @@ import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_ATTRIBU
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_TAGS;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_VIRTUAL_DEVICES;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_VRF_INSTANCES;
+import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC;
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;
 import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
 import static net.netshot.netshot.platform.database.schema.Tables.MODULE;
 import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE;
 import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP4ADDRESSES;
 import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP6ADDRESSES;
+import static net.netshot.netshot.platform.database.schema.Tables.POLICY;
+import static net.netshot.netshot.platform.database.schema.Tables.RULE;
 
 import java.net.UnknownHostException;
 import java.text.NumberFormat;
@@ -59,20 +62,14 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.Policy;
-import net.netshot.netshot.compliance.PolicyRepository;
-import net.netshot.netshot.compliance.Rule;
-import net.netshot.netshot.compliance.RuleRepository;
-import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.platform.database.Transactions;
@@ -85,6 +82,25 @@ import net.netshot.netshot.platform.net.PhysicalAddress;
  */
 @Slf4j
 public class Finder {
+
+	/**
+	 * A diagnostic, as referenced by an expression.
+	 *
+	 * @param id the ID of the diagnostic
+	 * @param name the name of the diagnostic
+	 * @param resultType the type of the results of the diagnostic
+	 */
+	public record DiagnosticRef(long id, String name, AttributeType resultType) {
+	}
+
+	/**
+	 * A compliance policy or rule, as referenced by an expression.
+	 *
+	 * @param id the ID of the policy or rule
+	 * @param name the name of the policy or rule
+	 */
+	public record NamedRef(long id, String name) {
+	}
 
 	/**
 	 * The loaded device drivers, which the expressions on the drivers and their attributes are parsed against:
@@ -1544,7 +1560,7 @@ public class Finder {
 	public abstract static class DiagnosticExpression extends Expression {
 
 		/** The diagnostic. */
-		protected Diagnostic diagnostic;
+		protected DiagnosticRef diagnostic;
 
 		/** The sign/operator. */
 		protected TokenType sign;
@@ -1554,7 +1570,7 @@ public class Finder {
 		 *
 		 * @param diagnostic the diagnostic
 		 */
-		public DiagnosticExpression(Diagnostic diagnostic) {
+		public DiagnosticExpression(DiagnosticRef diagnostic) {
 			super();
 			this.diagnostic = diagnostic;
 		}
@@ -1592,7 +1608,7 @@ public class Finder {
 
 			// Fetch diagnostic once and cache it
 			Token token = tokens.get(0);
-			Diagnostic diagnostic = getDiagnosticByName(token);
+			DiagnosticRef diagnostic = getDiagnosticByName(token);
 			if (diagnostic == null) {
 				throw new FinderParseException("Unknown diagnostic '%s' at character %d."
 					.formatted(token.key2, token.position));
@@ -1635,10 +1651,15 @@ public class Finder {
 		 * @return the diagnostic
 		 * @throws FinderParseException the finder parse exception
 		 */
-		private static Diagnostic getDiagnosticByName(Token token) throws FinderParseException {
+		private static DiagnosticRef getDiagnosticByName(Token token) throws FinderParseException {
 			String diagnosticName = token.key2;
 			try {
-				return new Transactions().read(dsl -> new DiagnosticRepository().findByName(dsl, diagnosticName));
+				return new Transactions().read(dsl -> dsl.select(DIAGNOSTIC.ID, DIAGNOSTIC.NAME, DIAGNOSTIC.RESULT_TYPE)
+					.from(DIAGNOSTIC)
+					.where(DIAGNOSTIC.NAME.eq(diagnosticName))
+					.limit(1)
+					.fetchOne(r -> new DiagnosticRef(r.value1(), r.value2(),
+						r.value3() == null ? null : AttributeType.valueOf(r.value3()))));
 			}
 			catch (DataAccessException e) {
 				log.error("Error while retrieving diagnostic '{}'.", diagnosticName, e);
@@ -1676,7 +1697,7 @@ public class Finder {
 		 *
 		 * @param diagnostic the diagnostic
 		 */
-		public TextDiagnosticExpression(Diagnostic diagnostic) {
+		public TextDiagnosticExpression(DiagnosticRef diagnostic) {
 			super(diagnostic);
 		}
 
@@ -1693,7 +1714,7 @@ public class Finder {
 		 * @return the expression
 		 * @throws FinderParseException the finder parse exception
 		 */
-		public static Expression parse(List<Token> tokens, Diagnostic diagnostic) throws FinderParseException {
+		public static Expression parse(List<Token> tokens, DiagnosticRef diagnostic) throws FinderParseException {
 			if (tokens.size() != 3) {
 				return null;
 			}
@@ -1746,7 +1767,7 @@ public class Finder {
 		 *
 		 * @param diagnostic the diagnostic
 		 */
-		public NumericDiagnosticExpression(Diagnostic diagnostic) {
+		public NumericDiagnosticExpression(DiagnosticRef diagnostic) {
 			super(diagnostic);
 		}
 
@@ -1766,7 +1787,7 @@ public class Finder {
 		 * @return the expression
 		 * @throws FinderParseException the finder parse exception
 		 */
-		public static Expression parse(List<Token> tokens, Diagnostic diagnostic) throws FinderParseException {
+		public static Expression parse(List<Token> tokens, DiagnosticRef diagnostic) throws FinderParseException {
 			if (tokens.size() != 3) {
 				return null;
 			}
@@ -1823,7 +1844,7 @@ public class Finder {
 		 *
 		 * @param diagnostic the diagnostic
 		 */
-		public BinaryDiagnosticExpression(Diagnostic diagnostic) {
+		public BinaryDiagnosticExpression(DiagnosticRef diagnostic) {
 			super(diagnostic);
 		}
 
@@ -1840,7 +1861,7 @@ public class Finder {
 		 * @return the expression
 		 * @throws FinderParseException the finder parse exception
 		 */
-		public static Expression parse(List<Token> tokens, Diagnostic diagnostic) throws FinderParseException {
+		public static Expression parse(List<Token> tokens, DiagnosticRef diagnostic) throws FinderParseException {
 			if (tokens.size() != 3) {
 				return null;
 			}
@@ -1882,10 +1903,10 @@ public class Finder {
 	public static class ComplianceRuleExpression extends Expression {
 
 		/** The policy. */
-		protected Policy policy;
+		protected NamedRef policy;
 
 		/** The rule. */
-		protected Rule rule;
+		protected NamedRef rule;
 
 		/** The result value. */
 		private CheckResult.ResultOption value;
@@ -1896,7 +1917,7 @@ public class Finder {
 		 * @param policy the policy
 		 * @param rule the rule
 		 */
-		public ComplianceRuleExpression(Policy policy, Rule rule) {
+		public ComplianceRuleExpression(NamedRef policy, NamedRef rule) {
 			super();
 			this.policy = policy;
 			this.rule = rule;
@@ -1929,13 +1950,13 @@ public class Finder {
 
 			// Fetch policy and rule once and cache them
 			Token token = tokens.get(0);
-			Policy policy = getPolicyByName(token.key1);
+			NamedRef policy = getPolicyByName(token.key1);
 			if (policy == null) {
 				throw new FinderParseException("Unknown policy '%s' at character %d.".formatted(
 					token.key1, token.position));
 			}
 
-			Rule rule = getRuleByPolicyAndName(policy, token.key2);
+			NamedRef rule = getRuleByPolicyAndName(policy, token.key2);
 			if (rule == null) {
 				throw new FinderParseException("Unknown rule '%s' for policy '%s' at character %d.".formatted(
 					token.key2, policy.name(), token.position));
@@ -1973,9 +1994,13 @@ public class Finder {
 		 * @return the policy
 		 * @throws FinderParseException the finder parse exception
 		 */
-		private static Policy getPolicyByName(String policyName) throws FinderParseException {
+		private static NamedRef getPolicyByName(String policyName) throws FinderParseException {
 			try {
-				return new Transactions().read(dsl -> new PolicyRepository().findByName(dsl, policyName));
+				return new Transactions().read(dsl -> dsl.select(POLICY.ID, POLICY.NAME)
+					.from(POLICY)
+					.where(POLICY.NAME.eq(policyName))
+					.limit(1)
+					.fetchOne(r -> new NamedRef(r.value1(), r.value2())));
 			}
 			catch (DataAccessException e) {
 				log.error("Error while retrieving policy '{}'.", policyName, e);
@@ -1991,9 +2016,13 @@ public class Finder {
 		 * @return the rule
 		 * @throws FinderParseException the finder parse exception
 		 */
-		private static Rule getRuleByPolicyAndName(Policy policy, String ruleName) throws FinderParseException {
+		private static NamedRef getRuleByPolicyAndName(NamedRef policy, String ruleName) throws FinderParseException {
 			try {
-				return new Transactions().read(dsl -> new RuleRepository().findOfPolicyByName(dsl, policy.id(), ruleName));
+				return new Transactions().read(dsl -> dsl.select(RULE.ID, RULE.NAME)
+					.from(RULE)
+					.where(RULE.POLICY.eq(policy.id()), RULE.NAME.eq(ruleName))
+					.limit(1)
+					.fetchOne(r -> new NamedRef(r.value1(), r.value2())));
 			}
 			catch (DataAccessException e) {
 				log.error("Error while retrieving rule '{}' for policy '{}'.", ruleName, policy.name(), e);
@@ -2331,7 +2360,7 @@ public class Finder {
 						AttributeLevel.DEVICE,
 						"softwareLevel",
 					"Software Level");
-					theEnum = SoftwareRule.ConformanceLevel.class;
+					theEnum = ConformanceLevel.class;
 				}
 				else if ("Status".equalsIgnoreCase(tokens.get(0).key2)) {
 					attribute = new AttributeDefinition(

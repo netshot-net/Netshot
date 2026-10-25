@@ -20,6 +20,8 @@ package net.netshot.netshot.compliance;
 
 import java.util.Date;
 
+import net.netshot.netshot.inventory.compliance.CheckResult;
+
 /**
  * The compliance state of a device for one rule (projection of the compliance results of a device).
  *

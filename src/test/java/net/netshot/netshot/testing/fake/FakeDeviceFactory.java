@@ -25,13 +25,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;

@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.HardwareRuleRepository;
 import net.netshot.netshot.compliance.Policy;
@@ -32,6 +31,7 @@ import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.SoftwareRuleRepository;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.platform.database.Transactions;
 
 /**

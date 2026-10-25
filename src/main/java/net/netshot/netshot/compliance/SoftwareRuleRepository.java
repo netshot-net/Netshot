@@ -25,7 +25,7 @@ import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.platform.database.Page;
 
 /**

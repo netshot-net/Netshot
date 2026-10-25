@@ -23,11 +23,11 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 

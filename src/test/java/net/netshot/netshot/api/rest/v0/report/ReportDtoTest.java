@@ -30,8 +30,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.report.AccessFailureDevice;

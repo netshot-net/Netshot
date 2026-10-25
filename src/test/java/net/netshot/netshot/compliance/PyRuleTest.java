@@ -28,6 +28,7 @@ import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
