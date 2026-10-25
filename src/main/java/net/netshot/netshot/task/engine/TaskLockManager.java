@@ -71,16 +71,14 @@ public class TaskLockManager {
 	/** Network timeout on the lock connection (ms). */
 	private static final int NETWORK_TIMEOUT = 15000;
 
-	/** The lock manager of this instance (in-memory only until {@link #init(boolean)} is called). */
-	private static volatile TaskLockManager instance = new TaskLockManager(false, null);
-
 	/**
-	 * Initializes the lock manager of this instance.
-	 * @param distributed true to use database locks (cluster mode), false for in-memory locks only
+	 * Creates the lock manager of this instance.
+	 * @param distributed true to also hold the locks in the database (cluster mode), false for in-memory locks only
+	 * @return the lock manager
 	 */
-	public static void init(boolean distributed) {
+	public static TaskLockManager create(boolean distributed) {
 		log.info("Initializing the task lock manager ({} mode).", distributed ? "distributed" : "local");
-		TaskLockManager.instance = new TaskLockManager(distributed, () -> {
+		return new TaskLockManager(distributed, () -> {
 			try {
 				return Database.getConnection(false);
 			}
@@ -88,24 +86,6 @@ public class TaskLockManager {
 				throw new IllegalStateException("Unable to open the task lock DB connection", e);
 			}
 		});
-	}
-
-	/**
-	 * Closes the lock manager of this instance (releasing the database locks), which then goes back to
-	 * the in-memory mode.
-	 */
-	public static void shutdown() {
-		TaskLockManager current = TaskLockManager.instance;
-		TaskLockManager.instance = new TaskLockManager(false, null);
-		current.close();
-	}
-
-	/**
-	 * Gets the lock manager of this instance.
-	 * @return the lock manager
-	 */
-	public static TaskLockManager get() {
-		return TaskLockManager.instance;
 	}
 
 	/**
@@ -136,7 +116,7 @@ public class TaskLockManager {
 	 * @param distributed true to use database locks
 	 * @param connectionSupplier provider of DB connections (used in distributed mode only)
 	 */
-	TaskLockManager(boolean distributed, Supplier<Connection> connectionSupplier) {
+	public TaskLockManager(boolean distributed, Supplier<Connection> connectionSupplier) {
 		this.distributed = distributed;
 		this.connectionSupplier = connectionSupplier;
 	}
@@ -266,7 +246,7 @@ public class TaskLockManager {
 	/**
 	 * Closes the lock connection (releasing all the database locks).
 	 */
-	synchronized void close() {
+	public synchronized void close() {
 		this.closeConnection();
 	}
 

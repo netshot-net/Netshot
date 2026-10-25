@@ -30,7 +30,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
@@ -48,6 +48,9 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
+
+	/** The devices with a queued automatic snapshot. */
+	private final AutoSnapshotQueue autoSnapshots;
 	private final Transactions transactions = new Transactions();
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
@@ -55,10 +58,12 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 	 * Creates the handler.
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
+	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
 	 */
-	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots) {
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
+		this.autoSnapshots = autoSnapshots;
 	}
 
 	@Override
@@ -119,7 +124,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 				log.error("Task {}. Error while saving the debug logs.", task.id(), e1);
 			}
 			if (spec.automatic()) {
-				AutoSnapshotScheduler.clearScheduledAutoSnapshot(deviceId);
+				this.autoSnapshots.clear(deviceId);
 			}
 		}
 

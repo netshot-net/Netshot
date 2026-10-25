@@ -30,7 +30,6 @@ import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
-import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -66,7 +65,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		TaskManager.init(Wiring.get().taskJobFactory());
+		Wiring.get().taskManager().start();
 		if (Kinds.isContract(testClass)) {
 			// Tasks must be stored but never run: keep the schedulers in standby, and drop
 			// any job left by another test class sharing the JVM.

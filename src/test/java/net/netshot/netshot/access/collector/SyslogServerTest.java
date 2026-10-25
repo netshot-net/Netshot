@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
@@ -52,7 +53,7 @@ public class SyslogServerTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.syslog.port", Integer.toString(port));
 		TestConfig.init(config);
-		return new SyslogServer(TestDrivers.registry(), new AutoSnapshotScheduler(_ -> null, Netshot.config()),
+		return new SyslogServer(TestDrivers.registry(), new AutoSnapshotScheduler(_ -> null, Netshot.config(), null, new AutoSnapshotQueue()),
 			Netshot.config());
 	}
 

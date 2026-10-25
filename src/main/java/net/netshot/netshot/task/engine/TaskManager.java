@@ -25,13 +25,14 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import org.jooq.Condition;
@@ -49,25 +50,29 @@ import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.MarkerFactory;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.ConnectionPools;
-import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.cluster.ClusterMember;
-import net.netshot.netshot.cluster.ClusterMember.MastershipStatus;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
+import net.netshot.netshot.task.TaskEngine;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 /**
- * The TaskManager schedules and runs the tasks.
+ * The TaskManager schedules and runs the tasks (Quartz master and runner schedulers), as a service:
+ * when started, it schedules the existing tasks again; when stopped, it gives the running tasks some time
+ * to end (see {@link #stop()}).
  */
 @Slf4j
-public final class TaskManager {
+public final class TaskManager implements Service, TaskEngine {
+
+	/** Key of the task manager in the context of the master scheduler (for the master jobs). */
+	static final String CONTEXT_KEY = "netshotTaskManager";
 
 	/** Max time (s) to wait, when Netshot stops, for the running tasks to end (they're marked as failed after it). */
 	static final Setting<Integer> SHUTDOWN_TIMEOUT = Setting.integer("netshot.shutdown.timeout")
@@ -82,6 +87,16 @@ public final class TaskManager {
 		SINGLE,
 		CLUSTER_MASTER,
 		CLUSTER_MEMBER,
+	}
+
+	/**
+	 * A cluster member which can run tasks.
+	 *
+	 * @param instanceId the ID of the member
+	 * @param priority the runner priority (only the members with the highest priority run tasks)
+	 * @param weight the runner weight (share of the tasks among the members with the same priority)
+	 */
+	public record Runner(String instanceId, int priority, int weight) {
 	}
 
 	/** Store the available runners with weighted-random selector. */
@@ -108,25 +123,46 @@ public final class TaskManager {
 	}
 
 	/** The number of threads running the tasks (read when the task manager is initialized). */
-	private static volatile int threadCount = THREAD_COUNT.defaultValue();
+	private volatile int threadCount = THREAD_COUNT.defaultValue();
 
 	/** Minimum number of DB pool connections to keep available beyond the task threads. */
 	private static final int MIN_SPARE_DB_CONNECTIONS = 10;
 
 	/** The master scheduler (used in master mode to dispatch jobs). */
-	private static volatile Scheduler masterScheduler;
+	private volatile Scheduler masterScheduler;
 
 	/** The runner scheduler (used to run jobs). */
-	private static volatile Scheduler runnerScheduler;
+	private volatile Scheduler runnerScheduler;
 
 	/** Lock of the update of the runners. */
-	private static final Object RUNNERS_LOCK = new Object();
+	private final Object runnersLock = new Object();
 
 	/** TaskManager mode (set by the cluster thread, read from any thread). */
-	private static volatile Mode mode = Mode.SINGLE;
+	private volatile Mode mode = Mode.SINGLE;
 
 	/** Available runners (replaced as a whole by the cluster thread, never mutated after publication). */
-	private static volatile RunnerSet runnerSet;
+	private volatile RunnerSet runnerSet;
+
+	/** The configuration store. */
+	private final ConfigStore config;
+
+	/** The devices with a queued automatic snapshot. */
+	private final AutoSnapshotQueue autoSnapshots;
+
+	/** The task and device locks. */
+	private final TaskLockManager lockManager;
+
+	/** The clustering (none by default). */
+	private volatile ClusterCoordinator cluster = ClusterCoordinator.NONE;
+
+	/** The factory of the jobs which run the tasks. */
+	private TaskJobFactory jobFactory;
+
+	/** The number of tasks started on this instance. */
+	private final AtomicLong startedTasks = new AtomicLong();
+
+	/** The number of tasks marked as failed when this instance stopped. */
+	private final AtomicLong interruptedTasks = new AtomicLong();
 
 	/** The task queries. */
 	private static final TaskRepository REPOSITORY = new TaskRepository();
@@ -135,31 +171,138 @@ public final class TaskManager {
 	private static final Transactions TRANSACTIONS = new Transactions();
 
 	/**
-	 * Initializes the task manager.
+	 * Creates the task manager.
 	 *
-	 * @param taskJobFactory the factory of the jobs, which run the tasks through their handlers
+	 * @param config the configuration store
+	 * @param autoSnapshots the devices with a queued automatic snapshot
+	 * @param lockManager the task and device locks
 	 */
-	public static void init(TaskJobFactory taskJobFactory) {
-		Config config = Netshot.config().current();
-		TaskManager.threadCount = config.get(THREAD_COUNT);
+	public TaskManager(ConfigStore config, AutoSnapshotQueue autoSnapshots, TaskLockManager lockManager) {
+		this.config = config;
+		this.autoSnapshots = autoSnapshots;
+		this.lockManager = lockManager;
+	}
+
+	/**
+	 * Sets the factory of the jobs, which run the tasks through their handlers (built after the
+	 * task manager, as the handlers submit tasks to it).
+	 *
+	 * @param taskJobFactory the factory
+	 */
+	public void setJobFactory(TaskJobFactory taskJobFactory) {
+		this.jobFactory = taskJobFactory;
+	}
+
+	/**
+	 * Sets the clustering (when enabled; built after the task manager, as it uses it).
+	 *
+	 * @param coordinator the cluster coordinator
+	 */
+	public void setCluster(ClusterCoordinator coordinator) {
+		this.cluster = coordinator;
+	}
+
+	/**
+	 * Gets the clustering.
+	 *
+	 * @return the cluster coordinator ({@link ClusterCoordinator#NONE} without clustering)
+	 */
+	public ClusterCoordinator cluster() {
+		return this.cluster;
+	}
+
+	/**
+	 * Gets the task and device locks.
+	 *
+	 * @return the lock manager
+	 */
+	public TaskLockManager lockManager() {
+		return this.lockManager;
+	}
+
+	@Override
+	public String name() {
+		return "task manager";
+	}
+
+	@Override
+	public void start() {
+		this.startSchedulers();
+		this.rescheduleAll();
+		this.cancelOrphanedDelayedTasks();
+	}
+
+	@Override
+	public void stop() {
+		this.shutdown();
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("mode", this.mode.name());
+		stats.put("threads", this.threadCount);
+		stats.put("running", this.getRunningCount());
+		stats.put("started", this.startedTasks.get());
+		stats.put("interruptedOnStop", this.interruptedTasks.get());
+		stats.put("queuedAutoSnapshots", this.autoSnapshots.size());
+		return stats;
+	}
+
+	@Override
+	public void cancel(Task task, String reason) throws SchedulerException {
+		this.cancelTask(task, reason);
+	}
+
+	@Override
+	public int threadCount() {
+		return this.threadCount;
+	}
+
+	/**
+	 * Requests all the runners (the other cluster members, and this instance) to load and run their new tasks.
+	 */
+	public void requestTasksLoad() {
+		this.cluster.requestTasksLoad();
+		this.scheduleLocalTasks();
+	}
+
+	/**
+	 * Counts a task started by a job of this instance.
+	 */
+	void countStartedTask() {
+		this.startedTasks.incrementAndGet();
+	}
+
+	/**
+	 * Starts the schedulers (without scheduling the existing tasks again, as {@link #start()} does: tests).
+	 */
+	void startSchedulers() {
+		if (this.jobFactory == null) {
+			throw new IllegalStateException("The job factory of the task manager isn't set");
+		}
+		Config current = this.config.current();
+		this.threadCount = current.get(THREAD_COUNT);
 		// Running device tasks hold a DB connection from the main pool, so the pool must be
 		// comfortably larger than the number of task threads
-		int maxPoolSize = config.get(ConnectionPools.MAX_POOL_SIZE);
-		if (TaskManager.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
+		int maxPoolSize = current.get(ConnectionPools.MAX_POOL_SIZE);
+		if (this.threadCount > maxPoolSize - MIN_SPARE_DB_CONNECTIONS) {
 			log.warn("The task thread count ({}) is too close to the DB pool max size ({}): "
 				+ "tasks may starve the connection pool. Set netshot.db.pooler.maxpoolsize to at least {}.",
-				TaskManager.threadCount, maxPoolSize,
-				TaskManager.threadCount + MIN_SPARE_DB_CONNECTIONS);
+				this.threadCount, maxPoolSize,
+				this.threadCount + MIN_SPARE_DB_CONNECTIONS);
 		}
 		try {
 			Properties params = new Properties();
 			params.put(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, "org.quartz.simpl.SimpleThreadPool");
-			params.put("org.quartz.threadPool.threadCount", Integer.toString(TaskManager.threadCount));
+			params.put("org.quartz.threadPool.threadCount", Integer.toString(this.threadCount));
 			params.put(StdSchedulerFactory.PROP_SCHED_INSTANCE_NAME, "NetshotMasterScheduler");
 			params.put("org.quartz.scheduler.skipUpdateCheck", "true");
 			StdSchedulerFactory factory = new StdSchedulerFactory(params);
-			TaskManager.masterScheduler = factory.getScheduler();
-			TaskManager.masterScheduler.start();
+			this.masterScheduler = factory.getScheduler();
+			// The master jobs get the task manager from the context of their scheduler
+			this.masterScheduler.getContext().put(CONTEXT_KEY, this);
+			this.masterScheduler.start();
 		}
 		catch (Exception e) {
 			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate the Master Task Manager", e);
@@ -168,14 +311,14 @@ public final class TaskManager {
 		try {
 			Properties params = new Properties();
 			params.put(StdSchedulerFactory.PROP_THREAD_POOL_CLASS, "org.quartz.simpl.SimpleThreadPool");
-			params.put("org.quartz.threadPool.threadCount", Integer.toString(TaskManager.threadCount));
+			params.put("org.quartz.threadPool.threadCount", Integer.toString(this.threadCount));
 			params.put(StdSchedulerFactory.PROP_SCHED_INSTANCE_NAME, "NetshotRunnerScheduler");
 			params.put("org.quartz.scheduler.skipUpdateCheck", "true");
 			StdSchedulerFactory factory = new StdSchedulerFactory(params);
-			TaskManager.runnerScheduler = factory.getScheduler();
+			this.runnerScheduler = factory.getScheduler();
 			// The task jobs get their handlers from the factory (Quartz is the one creating them)
-			TaskManager.runnerScheduler.setJobFactory(taskJobFactory);
-			TaskManager.runnerScheduler.start();
+			this.runnerScheduler.setJobFactory(this.jobFactory);
+			this.runnerScheduler.start();
 		}
 		catch (Exception e) {
 			log.error(MarkerFactory.getMarker("FATAL"), "Unable to instantiate the Runner Task Manager", e);
@@ -187,16 +330,16 @@ public final class TaskManager {
 	 * Stops the task manager: no task is started any more, the running tasks are given some time
 	 * ({@code netshot.shutdown.timeout}) to end, then the ones still running are marked as failed.
 	 */
-	public static void shutdown() {
-		Scheduler master = TaskManager.masterScheduler;
-		Scheduler runner = TaskManager.runnerScheduler;
+	public void shutdown() {
+		Scheduler master = this.masterScheduler;
+		Scheduler runner = this.runnerScheduler;
 		if (master == null || runner == null) {
 			return;
 		}
 		try {
 			master.standby();
 			runner.standby();
-			long timeout = Netshot.config().current().get(SHUTDOWN_TIMEOUT) * 1000L;
+			long timeout = this.config.current().get(SHUTDOWN_TIMEOUT) * 1000L;
 			long deadline = System.currentTimeMillis() + timeout;
 			List<JobExecutionContext> running = runner.getCurrentlyExecutingJobs();
 			if (!running.isEmpty()) {
@@ -212,6 +355,7 @@ public final class TaskManager {
 					boolean failed = TRANSACTIONS.write(dsl -> REPOSITORY.failRunning(dsl, id,
 						"Netshot was stopped while the task was running."));
 					if (failed) {
+						this.interruptedTasks.incrementAndGet();
 						log.warn("Task {} was still running, it's marked as failed.", id);
 					}
 				}
@@ -231,24 +375,24 @@ public final class TaskManager {
 	 * Sets the current TaskManager mode.
 	 * @param mode the new mode to set
 	 */
-	public static void setMode(Mode mode) {
-		TaskManager.mode = mode;
+	public void setMode(Mode mode) {
+		this.mode = mode;
 	}
 
 	/**
 	 * Returns the current TaskManager mode.
 	 * @return the mode
 	 */
-	public static Mode getMode() {
-		return TaskManager.mode;
+	public Mode getMode() {
+		return this.mode;
 	}
 
 	/**
 	 * Gets the number of tasks currently running on this instance.
 	 * @return the number of running tasks
 	 */
-	public static int getRunningCount() {
-		Scheduler runner = TaskManager.runnerScheduler;
+	public int getRunningCount() {
+		Scheduler runner = this.runnerScheduler;
 		if (runner == null) {
 			return 0;
 		}
@@ -264,8 +408,8 @@ public final class TaskManager {
 	 * Gets the number of task threads.
 	 * @return the thread count
 	 */
-	public static int getThreadCount() {
-		return TaskManager.threadCount;
+	public int getThreadCount() {
+		return this.threadCount;
 	}
 
 	/**
@@ -276,7 +420,7 @@ public final class TaskManager {
 	 * @param work the work
 	 * @return the result
 	 */
-	private static <T> T inSystemTransaction(Function<DSLContext, T> work) {
+	private <T> T inSystemTransaction(Function<DSLContext, T> work) {
 		return TRANSACTIONS.system(work);
 	}
 
@@ -285,9 +429,9 @@ public final class TaskManager {
 	 *
 	 * @param task the task
 	 */
-	private static void onSchedule(Task task) {
+	private void onSchedule(Task task) {
 		if (task.spec() instanceof TakeSnapshotTask snapshot && snapshot.automatic() && snapshot.deviceId() != null) {
-			AutoSnapshotScheduler.checkAutoSnapshot(snapshot.deviceId());
+			this.autoSnapshots.markQueued(snapshot.deviceId());
 		}
 	}
 
@@ -296,16 +440,16 @@ public final class TaskManager {
 	 *
 	 * @param task the task
 	 */
-	private static void onCancel(Task task) {
+	private void onCancel(Task task) {
 		if (task.spec() instanceof TakeSnapshotTask snapshot && snapshot.deviceId() != null) {
-			AutoSnapshotScheduler.clearScheduledAutoSnapshot(snapshot.deviceId());
+			this.autoSnapshots.clear(snapshot.deviceId());
 		}
 	}
 
 	/**
 	 * Add new tasks to master scheduler.
 	 */
-	public static void scheduleNewTasks() {
+	public void scheduleNewTasks() {
 		try {
 			inSystemTransaction(dsl -> {
 				for (Task task : REPOSITORY.findByStatus(dsl, Task.Status.NEW)) {
@@ -333,44 +477,37 @@ public final class TaskManager {
 	 * @param dsl the jOOQ context
 	 * @param task the task
 	 */
-	public static void assignTaskRunner(DSLContext dsl, Task task) {
+	public void assignTaskRunner(DSLContext dsl, Task task) {
 		long hash = task.runnerHash();
-		String runnerId = TaskManager.runnerSet.getNextRunnerId();
+		String runnerId = this.runnerSet.getNextRunnerId();
 		log.info("Task {} (hash {}) is being assigned to runner {}.", task.id(), hash, runnerId);
 		REPOSITORY.assignRunner(dsl, task.id(), runnerId);
 	}
 
 	/**
-	 * Sets the possible task runners (to be called from ClusterManager).
+	 * Sets the possible task runners (the active cluster members, from the cluster manager).
 	 * In-memory only: the caller is responsible for triggering {@link #reassignOrphanTasks()}
 	 * afterwards (outside of the cluster network thread, as it hits the database).
-	 * @param members the list of cluster members.
+	 * @param runners the active cluster members
 	 */
-	public static void setRunners(Collection<ClusterMember> members) {
+	public void setRunners(Collection<Runner> runners) {
 		Integer maxPriority = null;
-		Set<ClusterMember> activeMembers = new HashSet<>();
-		for (ClusterMember member : members) {
-			if (MastershipStatus.MASTER.equals(member.getStatus())
-				|| MastershipStatus.MEMBER.equals(member.getStatus())
-				|| MastershipStatus.NEGOTIATING.equals(member.getStatus())) {
-				activeMembers.add(member);
-			}
-		}
-		for (ClusterMember member : activeMembers) {
-			if (maxPriority == null || member.getRunnerPriority() > maxPriority) {
-				maxPriority = member.getRunnerPriority();
+		for (Runner runner : runners) {
+			if (maxPriority == null || runner.priority() > maxPriority) {
+				maxPriority = runner.priority();
 			}
 		}
 		RunnerSet newRunnerSet = new RunnerSet();
-		for (ClusterMember member : activeMembers) {
-			if (member.getRunnerPriority() == maxPriority) {
-				newRunnerSet.add(member.getRunnerWeight(), member.getInstanceId());
+		for (Runner runner : runners) {
+			if (runner.priority() == maxPriority) {
+				newRunnerSet.add(runner.weight(), runner.instanceId());
 			}
 		}
-		synchronized (TaskManager.RUNNERS_LOCK) {
-			TaskManager.runnerSet = newRunnerSet;
+		synchronized (this.runnersLock) {
+			this.runnerSet = newRunnerSet;
 		}
 	}
+
 
 
 	/**
@@ -383,7 +520,7 @@ public final class TaskManager {
 	 * @param taskId the ID of the task to request cancellation of
 	 * @throws DataAccessException if the task can't be updated
 	 */
-	public static void requestCancel(long taskId) {
+	public void requestCancel(long taskId) {
 		try {
 			TRANSACTIONS.run(dsl -> REPOSITORY.requestCancel(dsl, taskId));
 		}
@@ -401,9 +538,9 @@ public final class TaskManager {
 	 * @throws SchedulerException the scheduler exception
 	 * @throws DataAccessException if the task can't be updated
 	 */
-	public static void cancelTask(Task task, String reason) throws SchedulerException {
-		TaskManager.runnerScheduler.deleteJob(task.identity());
-		TaskManager.masterScheduler.deleteJob(task.identity());
+	public void cancelTask(Task task, String reason) throws SchedulerException {
+		this.runnerScheduler.deleteJob(task.identity());
+		this.masterScheduler.deleteJob(task.identity());
 		try {
 			TRANSACTIONS.run(dsl -> {
 				onCancel(task);
@@ -424,7 +561,7 @@ public final class TaskManager {
 	 * @param forceNow force immediate execution or use task's execution time
 	 * @throws SchedulerException
 	 */
-	private static void addTaskToScheduler(Task task, boolean runnerTask,
+	private void addTaskToScheduler(Task task, boolean runnerTask,
 		boolean checkExistence, boolean forceNow) throws SchedulerException {
 		Scheduler scheduler = runnerTask ? runnerScheduler : masterScheduler;
 		if (checkExistence) {
@@ -460,7 +597,7 @@ public final class TaskManager {
 	 * @param schedule true to call the schedule hook
 	 * @return the stored task
 	 */
-	private static Task store(Task task, Status status, boolean schedule) {
+	private Task store(Task task, Status status, boolean schedule) {
 		try {
 			return TRANSACTIONS.write(dsl -> {
 				if (schedule) {
@@ -487,9 +624,9 @@ public final class TaskManager {
 	 * @throws SchedulerException the scheduler exception
 	 * @throws DataAccessException if the task can't be stored
 	 */
-	public static Task addTask(Task task) throws SchedulerException {
-		log.debug("Adding the task {} (mode {}).", task.id(), TaskManager.mode);
-		switch (TaskManager.mode) {
+	public Task addTask(Task task) throws SchedulerException {
+		log.debug("Adding the task {} (mode {}).", task.id(), this.mode);
+		switch (this.mode) {
 			case CLUSTER_MASTER: {
 				Task stored = store(task, Status.SCHEDULED, true);
 				addTaskToScheduler(stored, false, false, false);
@@ -497,7 +634,7 @@ public final class TaskManager {
 			}
 			case CLUSTER_MEMBER: {
 				Task stored = store(task, Status.NEW, false);
-				ClusterManager.requestTasksAssignment();
+				this.cluster.requestTasksAssignment();
 				return stored;
 			}
 			case SINGLE:
@@ -516,20 +653,20 @@ public final class TaskManager {
 	 * @throws SchedulerException the scheduler exception
 	 * @throws DataAccessException if the task can't be stored
 	 */
-	public static void repeatTask(Task task) throws SchedulerException {
+	public void repeatTask(Task task) throws SchedulerException {
 		if (!task.isRepeating()) {
 			return;
 		}
-		TaskManager.addTask(task.nextOccurrence());
+		this.addTask(task.nextOccurrence());
 	}
 
 	/**
 	 * Retrieve the tasks assigned to the local instance and add them to the runner scheduler.
 	 */
-	public static void scheduleLocalTasks() {
+	public void scheduleLocalTasks() {
 		try {
 			List<Task> tasks = TRANSACTIONS.read(dsl -> REPOSITORY.findWhere(dsl,
-				TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(ClusterManager.getLocalInstanceId()))));
+				TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(this.cluster.localInstanceId()))));
 			for (Task task : tasks) {
 				log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
 				addTaskToScheduler(task, true, true, true);
@@ -546,11 +683,11 @@ public final class TaskManager {
 	/**
 	 * Finds and reassigns tasks currently assigned to a failed runner.
 	 */
-	public static void reassignOrphanTasks() {
-		if (!Mode.CLUSTER_MASTER.equals(TaskManager.mode)) {
+	public void reassignOrphanTasks() {
+		if (!Mode.CLUSTER_MASTER.equals(this.mode)) {
 			return;
 		}
-		RunnerSet currentRunnerSet = TaskManager.runnerSet;
+		RunnerSet currentRunnerSet = this.runnerSet;
 		if (currentRunnerSet == null || currentRunnerSet.map.isEmpty()) {
 			return;
 		}
@@ -565,13 +702,12 @@ public final class TaskManager {
 					return 0;
 				}
 				int count = 0;
-				TaskLockManager lockManager = TaskLockManager.get();
 				for (Task task : REPOSITORY.findWhere(dsl, active.and(TASK.RUNNER_ID.in(runnerIds).or(TASK.RUNNER_ID.isNull())))) {
 					// A member considered as gone may actually still be running the task (e.g. it was
 					// just unable to send hello messages for a while): only reassign the task if its
 					// lock isn't held anymore (released by the database when the member really died)
 					try {
-						if (lockManager.isHeld(TaskLockManager.NS_TASK, task.id())) {
+						if (this.lockManager.isHeld(TaskLockManager.NS_TASK, task.id())) {
 							log.info("Task {} (runner {}) is still being executed, not reassigning it.",
 								task.id(), task.runnerId());
 							continue;
@@ -594,18 +730,18 @@ public final class TaskManager {
 		}
 		if (reassignedCount > 0) {
 			log.info("{} orphan task(s) reassigned", reassignedCount);
-			ClusterManager.requestTasksLoad();
+			this.requestTasksLoad();
 		}
 	}
 
 	/**
 	 * Reschedules all tasks. To be executed at startup.
 	 */
-	public static void rescheduleAll() {
+	public void rescheduleAll() {
 		List<Task> tasks;
 		try {
-			String myId = ClusterManager.getLocalInstanceId();
-			Condition condition = switch (TaskManager.mode) {
+			String myId = this.cluster.localInstanceId();
+			Condition condition = switch (this.mode) {
 				case CLUSTER_MASTER -> TaskRepository.statusIn(Status.NEW, Status.SCHEDULED)
 					.or(TaskRepository.statusIn(Status.WAITING, Status.RUNNING).and(TASK.RUNNER_ID.eq(myId)));
 				case CLUSTER_MEMBER -> TaskRepository.statusIn(Status.WAITING, Status.RUNNING).and(TASK.RUNNER_ID.eq(myId));
@@ -636,10 +772,10 @@ public final class TaskManager {
 			try {
 				Date when = task.nextExecutionDate();
 				if (when == null || when.after(inThirtySeconds.getTime())) {
-					TaskManager.addTask(task);
+					this.addTask(task);
 				}
 				else {
-					TaskManager.cancelTask(task, "Task skipped, too late to run.");
+					this.cancelTask(task, "Task skipped, too late to run.");
 				}
 			}
 			catch (SchedulerException e) {
@@ -655,7 +791,7 @@ public final class TaskManager {
 	 * startup, on every node regardless of clustering mode: it's a plain, idempotent bulk update,
 	 * so no cross-node coordination is needed the way {@link #reassignOrphanTasks()} needs.
 	 */
-	public static void cancelOrphanedDelayedTasks() {
+	public void cancelOrphanedDelayedTasks() {
 		try {
 			int count = TRANSACTIONS.write(dsl -> REPOSITORY.setStatus(dsl, TASK.PARENT_TASK_ID.isNull(),
 				Status.CANCELLED, Status.DELAYED));
@@ -664,8 +800,5 @@ public final class TaskManager {
 		catch (DataAccessException e) {
 			log.error("Error while cancelling orphaned DELAYED tasks", e);
 		}
-	}
-
-	private TaskManager() {
 	}
 }

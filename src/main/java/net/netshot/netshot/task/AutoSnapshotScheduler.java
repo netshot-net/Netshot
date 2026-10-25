@@ -23,11 +23,8 @@ import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERF
 import static net.netshot.netshot.platform.database.schema.Tables.NETWORK_INTERFACE_IP4ADDRESSES;
 
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Network4Address;
@@ -71,42 +68,23 @@ public class AutoSnapshotScheduler {
 		}
 	}
 
-	/**
-	 * The devices with an automatic snapshot queued. One set for the whole process: the task lifecycle
-	 * (scheduling, cancellation, end of the snapshot) marks and clears it whichever scheduler asked for the task.
-	 */
-	private static final Set<Long> SCHEDULED_AUTO_SNAPSHOTS = ConcurrentHashMap.newKeySet();
-
 	private final ConfigStore.Binding<Settings> settings;
 	private final TaskSubmitter taskSubmitter;
+	private final TaskManager taskManager;
+	private final AutoSnapshotQueue queue;
 
 	/**
 	 * Creates the scheduler.
 	 * @param taskSubmitter what new tasks are handed to
 	 * @param config the configuration store, to read the settings from
+	 * @param taskManager the task manager (to know whether the local instance is a cluster member)
+	 * @param queue the devices with a queued automatic snapshot
 	 */
-	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter, ConfigStore config) {
+	public AutoSnapshotScheduler(TaskSubmitter taskSubmitter, ConfigStore config, TaskManager taskManager, AutoSnapshotQueue queue) {
 		this.taskSubmitter = taskSubmitter;
 		this.settings = config.bind(Settings::from);
-	}
-
-	/**
-	 * Clear scheduled auto snapshot.
-	 *
-	 * @param deviceId the device
-	 */
-	public static void clearScheduledAutoSnapshot(Long deviceId) {
-		SCHEDULED_AUTO_SNAPSHOTS.remove(deviceId);
-	}
-
-	/**
-	 * Check whether an automatic snapshot is queued for the given device, and mark it as queued if not.
-	 *
-	 * @param deviceId the device
-	 * @return true if no snapshot was queued for the device (it is now)
-	 */
-	public static boolean checkAutoSnapshot(Long deviceId) {
-		return SCHEDULED_AUTO_SNAPSHOTS.add(deviceId);
+		this.taskManager = taskManager;
+		this.queue = queue;
 	}
 
 	/**
@@ -153,9 +131,9 @@ public class AutoSnapshotScheduler {
 			return true;
 		}
 
-		if (TaskManager.Mode.CLUSTER_MEMBER.equals(TaskManager.getMode())) {
+		if (TaskManager.Mode.CLUSTER_MEMBER.equals(this.taskManager.getMode())) {
 			log.debug("The local instance is cluster member: sending notification to master for an auto snapshot of device ID {}", device.id());
-			ClusterManager.requestAutoSnapshot(device.id());
+			this.taskManager.cluster().requestAutoSnapshot(device.id());
 			return true;
 		}
 
@@ -182,7 +160,7 @@ public class AutoSnapshotScheduler {
 	}
 
 	private boolean scheduleSnapshotIfNeeded(Device device) {
-		if (!checkAutoSnapshot(device.id())) {
+		if (!this.queue.markQueued(device.id())) {
 			log.debug("A snapshot task is already scheduled.");
 			return true;
 		}
