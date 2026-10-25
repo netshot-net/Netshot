@@ -80,6 +80,7 @@ import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.platform.lifecycle.Service;
@@ -344,11 +345,11 @@ public final class Wiring {
 	public List<Service> services() {
 		Config current = this.config.current();
 		List<Service> services = new ArrayList<>();
-		services.add(Service.of("database", Database::init, Database::shutdown));
-		services.add(Service.of("device drivers", this.driverRegistry::refresh, () -> { }));
+		services.add(new DatabaseService());
+		services.add(this.driverRegistry);
 		services.add(new OidcDiscovery(this.oidc, this.config));
 		// Before the clustering manager, which can start running tasks
-		services.add(Service.of("task lock manager", () -> { }, this.lockManager::close));
+		services.add(this.lockManager);
 		if (this.clusterManager != null) {
 			services.add(this.clusterManager);
 		}

@@ -24,11 +24,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
  * Task and device locks, preventing a task from running twice, and two tasks from working on the
@@ -46,7 +48,7 @@ import net.netshot.netshot.platform.database.Database;
  * every task thread behind the shared connection.
  */
 @Slf4j
-public class TaskLockManager {
+public class TaskLockManager implements Service {
 
 	/** Lock namespace for tasks (lock ID = task ID). */
 	public static final int NS_TASK = 1;
@@ -107,6 +109,9 @@ public class TaskLockManager {
 
 	/** Locks held by this instance, with the ID of the owning task. */
 	private final Map<LockKey, Long> heldLocks = new HashMap<>();
+
+	/** Whether the last check of the lock connection failed (distributed mode). */
+	private volatile boolean connectionLost;
 
 	/** The DB connection holding the advisory locks (distributed mode), opened lazily. */
 	private Connection connection;
@@ -239,8 +244,40 @@ public class TaskLockManager {
 			});
 		}
 		catch (SQLException e) {
+			this.connectionLost = true;
 			log.error("The task lock connection is not working.", e);
+			return;
 		}
+		this.connectionLost = false;
+	}
+
+	@Override
+	public String name() {
+		return "task lock manager";
+	}
+
+	@Override
+	public void start() {
+		// The lock connection is opened when first needed
+	}
+
+	@Override
+	public void stop() {
+		this.close();
+	}
+
+	@Override
+	public boolean isHealthy() {
+		return !this.connectionLost;
+	}
+
+	@Override
+	public synchronized Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("distributed", this.distributed);
+		stats.put("heldLocks", this.heldLocks.size());
+		stats.put("connected", this.connection != null);
+		return stats;
 	}
 
 	/**

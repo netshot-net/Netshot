@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.vault;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -87,7 +88,11 @@ public final class VaultTokenRefresher implements Service {
 
 	@Override
 	public Map<String, Object> stats() {
-		return Map.of("rounds", this.rounds.get(), "failures", this.failures.get());
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("rounds", this.rounds.get());
+		stats.put("refreshFailures", this.failures.get());
+		stats.putAll(VaultManager.stats());
+		return stats;
 	}
 
 	private void schedule(long delaySeconds) {

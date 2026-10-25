@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,6 +162,9 @@ public final class TaskManager implements Service, TaskEngine {
 	/** The number of tasks started on this instance. */
 	private final AtomicLong startedTasks = new AtomicLong();
 
+	/** The number of tasks finished on this instance, by status. */
+	private final Map<Status, AtomicLong> finishedTasks = new EnumMap<>(Status.class);
+
 	/** The number of tasks marked as failed when this instance stopped. */
 	private final AtomicLong interruptedTasks = new AtomicLong();
 
@@ -181,6 +185,9 @@ public final class TaskManager implements Service, TaskEngine {
 		this.config = config;
 		this.autoSnapshots = autoSnapshots;
 		this.lockManager = lockManager;
+		for (Status status : Status.values()) {
+			this.finishedTasks.put(status, new AtomicLong());
+		}
 	}
 
 	/**
@@ -244,6 +251,13 @@ public final class TaskManager implements Service, TaskEngine {
 		stats.put("threads", this.threadCount);
 		stats.put("running", this.getRunningCount());
 		stats.put("started", this.startedTasks.get());
+		Map<String, Object> finished = new LinkedHashMap<>();
+		for (Map.Entry<Status, AtomicLong> count : this.finishedTasks.entrySet()) {
+			if (count.getValue().get() > 0) {
+				finished.put(count.getKey().name(), count.getValue().get());
+			}
+		}
+		stats.put("finished", finished);
 		stats.put("interruptedOnStop", this.interruptedTasks.get());
 		stats.put("queuedAutoSnapshots", this.autoSnapshots.size());
 		return stats;
@@ -265,6 +279,14 @@ public final class TaskManager implements Service, TaskEngine {
 	public void requestTasksLoad() {
 		this.cluster.requestTasksLoad();
 		this.scheduleLocalTasks();
+	}
+
+	/**
+	 * Counts a task finished by a job of this instance.
+	 * @param status the final status of the task
+	 */
+	void countFinishedTask(Status status) {
+		this.finishedTasks.get(status).incrementAndGet();
 	}
 
 	/**

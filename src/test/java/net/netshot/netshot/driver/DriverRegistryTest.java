@@ -76,6 +76,7 @@ public class DriverRegistryTest {
 	void emptyBeforeRefresh() {
 		Assertions.assertTrue(this.registry.getAllDrivers().isEmpty());
 		Assertions.assertEquals("", this.registry.getAllDriverHash());
+		Assertions.assertEquals(0L, this.registry.stats().get("loads"));
 		Assertions.assertNull(this.registry.getDriverByName(BUNDLED_DRIVER));
 	}
 
@@ -83,7 +84,10 @@ public class DriverRegistryTest {
 	@DisplayName("Lookups by name and description")
 	void lookups() throws Exception {
 		this.writeUserDriver("1.0");
-		this.registry.refresh();
+		this.registry.start();
+		Assertions.assertEquals(1L, this.registry.stats().get("loads"));
+		Assertions.assertEquals(this.registry.getAllDrivers().size(), this.registry.stats().get("drivers"));
+		Assertions.assertNotNull(this.registry.stats().get("lastLoad"));
 		DeviceDriver bundled = this.registry.getDriverByName(BUNDLED_DRIVER);
 		Assertions.assertNotNull(bundled);
 		Assertions.assertSame(bundled, this.registry.getDriverByDescription(bundled.getDescription().toUpperCase()));

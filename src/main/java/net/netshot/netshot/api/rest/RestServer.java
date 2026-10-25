@@ -22,6 +22,10 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.KeyStore;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -109,11 +113,17 @@ public final class RestServer implements Service {
 	/** The dependency injection binder for the web application. */
 	private final AbstractBinder binder;
 
+	/** The number of handled requests. */
+	private final AtomicLong requests = new AtomicLong();
+
+	/** The number of handled requests by status class (1xx to 5xx). */
+	private final AtomicLongArray requestsByClass = new AtomicLongArray(5);
+
 	/** The running Undertow server (null if not started). */
 	private Undertow server;
 
 	/** The servlet deployment of the REST API. */
-	private DeploymentManager manager;
+	private volatile DeploymentManager manager;
 
 	/** The description of the servlet deployment. */
 	private DeploymentInfo servletBuilder;
@@ -235,7 +245,14 @@ public final class RestServer implements Service {
 			.addPrefixPath(staticPath, staticHandler)
 			.addPrefixPath(apiPath, servletHandler);
 
-		builder.setHandler(pathHandler);
+		// Counts the requests by status class (statistics of the service)
+		builder.setHandler(exchange -> {
+			exchange.addExchangeCompleteListener((completed, next) -> {
+				this.countRequest(completed.getStatusCode());
+				next.proceed();
+			});
+			pathHandler.handleRequest(exchange);
+		});
 
 		// === Start Undertow ===
 		this.server = builder.build();
@@ -260,5 +277,31 @@ public final class RestServer implements Service {
 	@Override
 	public synchronized boolean isHealthy() {
 		return this.server != null;
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("requests", this.requests.get());
+		for (int statusClass = 0; statusClass < this.requestsByClass.length(); statusClass++) {
+			stats.put("%dxx".formatted(statusClass + 1), this.requestsByClass.get(statusClass));
+		}
+		DeploymentManager currentManager = this.manager;
+		if (currentManager != null) {
+			stats.put("sessions", currentManager.getDeployment().getSessionManager().getActiveSessions().size());
+		}
+		return stats;
+	}
+
+	/**
+	 * Counts a request.
+	 * @param statusCode the HTTP status code of the response
+	 */
+	private void countRequest(int statusCode) {
+		this.requests.incrementAndGet();
+		int statusClass = statusCode / 100 - 1;
+		if (statusClass >= 0 && statusClass < this.requestsByClass.length()) {
+			this.requestsByClass.incrementAndGet(statusClass);
+		}
 	}
 }

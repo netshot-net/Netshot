@@ -96,6 +96,8 @@ public class TaskManagerShutdownTest {
 			Task stopped = TestTasks.find(task.id());
 			Assertions.assertEquals(Status.FAILURE, stopped.status());
 			Assertions.assertTrue(stopped.log().contains("Netshot was stopped while the task was running."), stopped.log());
+			Assertions.assertEquals(1L, Wiring.get().taskManager().stats().get("interruptedOnStop"));
+			Assertions.assertEquals(1L, Wiring.get().taskManager().stats().get("started"));
 			// Let the job thread end
 			Wiring.get().taskManager().requestCancel(task.id());
 		}

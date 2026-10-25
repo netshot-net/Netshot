@@ -61,6 +61,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.sshd.common.AttributeRepository.AttributeKey;
 import org.apache.sshd.common.NamedFactory;
@@ -348,6 +349,15 @@ public final class SshServer implements Service {
 	/** The configuration store. */
 	private final ConfigStore config;
 
+	/** The number of accepted logins (valid upload ticket). */
+	private final AtomicLong acceptedLogins = new AtomicLong();
+
+	/** The number of rejected logins. */
+	private final AtomicLong rejectedLogins = new AtomicLong();
+
+	/** The number of registered upload tickets. */
+	private final AtomicLong registeredTickets = new AtomicLong();
+
 	/** The settings (read when the server is created, then when it starts: a change needs a restart). */
 	private volatile Settings settings;
 
@@ -398,6 +408,9 @@ public final class SshServer implements Service {
 		stats.put("listening", this.sshd != null);
 		stats.put("sessions", this.sshd == null ? 0 : this.sshd.getActiveSessions().size());
 		stats.put("tickets", this.tickets.size());
+		stats.put("registeredTickets", this.registeredTickets.get());
+		stats.put("acceptedLogins", this.acceptedLogins.get());
+		stats.put("rejectedLogins", this.rejectedLogins.get());
 		return stats;
 	}
 
@@ -1107,13 +1120,26 @@ public final class SshServer implements Service {
 	}
 
 	/**
-	 * Common authentication callback for SFTP and SCP requests.
+	 * Common authentication callback for SFTP and SCP requests (counted for the statistics).
 	 * @param session the server session
 	 * @param username the passed username
 	 * @param password the passed password
 	 * @return true for successful authentication
 	 */
 	private boolean authenticate(ServerSession session, String username, String password) {
+		boolean accepted = this.checkCredentials(session, username, password);
+		(accepted ? this.acceptedLogins : this.rejectedLogins).incrementAndGet();
+		return accepted;
+	}
+
+	/**
+	 * Checks the credentials of a SFTP or SCP request against the upload tickets.
+	 * @param session the server session
+	 * @param username the passed username
+	 * @param password the passed password
+	 * @return true for successful authentication
+	 */
+	private boolean checkCredentials(ServerSession session, String username, String password) {
 		UploadTicket ticket = SshServer.this.tickets.get(username);
 		if (ticket == null) {
 			log.warn("Authentication failed for incoming request on embedded SSH server from {}: unknown ticket {}",
@@ -1157,6 +1183,7 @@ public final class SshServer implements Service {
 	 * @throws IOException
 	 */
 	public void registerUploadTicket(UploadTicket ticket) throws IOException {
+		this.registeredTickets.incrementAndGet();
 		synchronized (ticket) {
 			UploadTicket existing = this.tickets.putIfAbsent(ticket.getUsername(), ticket);
 			if (existing != null) {
