@@ -267,13 +267,15 @@ public class Ssh extends Cli {
 	 * refreshConfiguration()} itself - see {@link NetshotClientSession} below - applies them in
 	 * time. The rekey-blocks limit doesn't have this problem (recomputed at each actual key
 	 * exchange from a live session property), so the plain post-{@code verify()} property set in
-	 * {@link #connect(boolean)} already works for it.
+	 * {@link #connect(boolean)} already works for it. The algorithms (key exchange, host key, cipher,
+	 * MAC, compression) it carries are set by the {@link NetshotClientSession} constructor, before the
+	 * first key exchange.
 	 */
-	private static final AttributeRepository.AttributeKey<SshConfig> SSH_CONFIG_ATTRIBUTE =
+	static final AttributeRepository.AttributeKey<SshConfig> SSH_CONFIG_ATTRIBUTE =
 		new AttributeRepository.AttributeKey<>();
 
 	/**
-	 * Applies {@link #SSH_CONFIG_ATTRIBUTE}'s rekey time/data/packets limits during {@code
+	 * Applies {@link #SSH_CONFIG_ATTRIBUTE}'s algorithms when created, and its rekey time/data/packets limits during {@code
 	 * refreshConfiguration()}, before the base implementation's one-shot capture of those limits
 	 * (see that attribute's javadoc for why).
 	 */
@@ -281,16 +283,35 @@ public class Ssh extends Cli {
 
 		NetshotClientSession(ClientFactoryManager client, IoSession ioSession) throws Exception {
 			super(client, ioSession);
+			// The algorithms of the access, set before the first key exchange: once the session is returned by
+			// connect(), the server's KEXINIT may already have been answered with the defaults of the client
+			SshConfig config = sshConfigOf(ioSession);
+			if (config != null) {
+				this.setKeyExchangeFactories(NamedFactory.setUpTransformedFactories(true,
+					BuiltinDHFactories.parseDHFactoriesList(config.getKexAlgorithms()).getParsedFactories(),
+					ClientBuilder.DH2KEX));
+				this.setSignatureFactoriesNames(config.getHostKeyAlgorithms());
+				this.setCipherFactoriesNames(config.getCiphers());
+				this.setMacFactoriesNames(config.getMacs());
+				this.setCompressionFactoriesNames(config.getCompressionAlgorithms());
+			}
+		}
+
+		/**
+		 * Gets the configuration of the access a session is opened for.
+		 *
+		 * @param ioSession the I/O session
+		 * @return the configuration, or null if the session isn't opened by an access
+		 */
+		private static SshConfig sshConfigOf(IoSession ioSession) {
+			Object rawContext = ioSession.getAttribute(AttributeRepository.class);
+			return rawContext instanceof AttributeRepository context ? context.getAttribute(Ssh.SSH_CONFIG_ATTRIBUTE) : null;
 		}
 
 		@Override
 		protected void refreshConfiguration() {
 			super.refreshConfiguration();
-			Object rawContext = getIoSession().getAttribute(AttributeRepository.class);
-			if (!(rawContext instanceof AttributeRepository context)) {
-				return;
-			}
-			SshConfig config = context.getAttribute(Ssh.SSH_CONFIG_ATTRIBUTE);
+			SshConfig config = sshConfigOf(getIoSession());
 			if (config == null) {
 				return;
 			}
@@ -595,14 +616,6 @@ public class Ssh extends Cli {
 				}
 			});
 
-			this.session.setKeyExchangeFactories(
-				NamedFactory.setUpTransformedFactories(true,
-					BuiltinDHFactories.parseDHFactoriesList(this.sshConfig.getKexAlgorithms()).getParsedFactories(),
-					ClientBuilder.DH2KEX));
-			this.session.setSignatureFactoriesNames(this.sshConfig.getHostKeyAlgorithms());
-			this.session.setCipherFactoriesNames(this.sshConfig.getCiphers());
-			this.session.setMacFactoriesNames(this.sshConfig.getMacs());
-			this.session.setCompressionFactoriesNames(this.sshConfig.getCompressionAlgorithms());
 			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.getRekeyTimeLimit()));
 			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.getRekeyDataLimit());
 			CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.session, this.sshConfig.getRekeyBlocksLimit());
