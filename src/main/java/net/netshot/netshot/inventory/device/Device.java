@@ -36,9 +36,9 @@ import java.util.TreeSet;
 import lombok.Builder;
 import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**

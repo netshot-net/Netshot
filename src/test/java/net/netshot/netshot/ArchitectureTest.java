@@ -67,7 +67,7 @@ public final class ArchitectureTest {
 
 	/** Feature packages of the target architecture. */
 	private static final String[] FEATURES = {
-		ROOT + "api..", ROOT + "inventory..", ROOT + "driver..", ROOT + "access..", ROOT + "credentials..",
+		ROOT + "api..", ROOT + "inventory..", ROOT + "domain..", ROOT + "driver..", ROOT + "access..", ROOT + "credentials..",
 		ROOT + "vault..", ROOT + "devicescript..", ROOT + "userscript..", ROOT + "compliance..",
 		ROOT + "diagnostic..", ROOT + "task..", ROOT + "report..", ROOT + "hook..", ROOT + "aaa..",
 		ROOT + "boot..", ROOT + "tools..", ROOT + "cluster..",

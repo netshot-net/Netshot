@@ -30,9 +30,9 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriverService;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchResult;

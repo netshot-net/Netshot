@@ -21,7 +21,7 @@ package net.netshot.netshot.credentials;
 import java.time.Instant;
 
 import lombok.Builder;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.domain.Domain;
 
 /**
  * An SNMPv1 community.

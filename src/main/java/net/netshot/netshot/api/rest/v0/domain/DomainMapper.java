@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.domain.DomainDefinition;
+import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.domain.DomainDefinition;
 
 /**
  * Maps the domains between the records of the inventory and their REST representations.
