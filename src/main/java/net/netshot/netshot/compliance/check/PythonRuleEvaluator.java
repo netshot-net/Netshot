@@ -35,11 +35,11 @@ import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.devicescript.helper.PyDeviceHelper;
-import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.script.ScriptToolbox;
 
 /**
  * Evaluates the Python rules: a Python-coded script checks the device attributes,
