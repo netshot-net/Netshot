@@ -34,7 +34,6 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.platform.commons.support.AnnotationSupport;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
@@ -76,10 +75,9 @@ public final class DatabaseExtension implements BeforeAllCallback, AfterAllCallb
 		Properties config = Kinds.config(testClass, base);
 		database.setNetshotConfig(config);
 		TestConfig.init(config);
-		Netshot.loadModuleConfigs();
 		TestDrivers.reload();
 		if (boot == Boot.WIRED) {
-			Wiring.init(TestDrivers.registry());
+			TestWiring.set(Wiring.init(TestDrivers.registry()));
 		}
 	}
 

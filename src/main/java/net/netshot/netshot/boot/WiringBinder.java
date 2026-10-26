@@ -21,6 +21,8 @@ package net.netshot.netshot.boot;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
 import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.cluster.ClusterService;
@@ -30,18 +32,19 @@ import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticService;
+import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.hook.HookService;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.inventory.domain.DomainService;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.VaultInstanceService;
@@ -66,6 +69,7 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.transactions()).to(Transactions.class);
 		this.bind(this.wiring.driverRegistry()).to(DriverRegistry.class);
 		this.bind(this.wiring.deviceService()).to(DeviceService.class);
+		this.bind(this.wiring.deviceCreationService()).to(DeviceCreationService.class);
 		// Compliance
 		this.bind(this.wiring.policyService()).to(PolicyService.class);
 		this.bind(this.wiring.ruleService()).to(RuleService.class);
@@ -84,6 +88,8 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.userService()).to(UserService.class);
 		this.bind(this.wiring.apiTokenService()).to(ApiTokenService.class);
 		this.bind(this.wiring.loginService()).to(LoginService.class);
+		this.bind(this.wiring.oidc()).to(Oidc.class);
+		this.bind(this.wiring.tacacs()).to(Tacacs.class);
 		this.bind(this.wiring.clusterService()).to(ClusterService.class);
 		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
 		// Diagnostics

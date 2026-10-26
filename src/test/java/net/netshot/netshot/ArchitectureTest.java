@@ -18,8 +18,8 @@
  */
 package net.netshot.netshot;
 
-import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import java.util.ArrayList;
@@ -32,6 +32,8 @@ import java.util.Set;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaConstructorCall;
+import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -45,8 +47,8 @@ import net.netshot.netshot.testing.UnitTest;
 /**
  * Architecture rules encoding the TARGET layering (see the layering refactor plan).
  *
- * <p>Most rules are strict. The rule which still has violations to remove (cycles between feature slices) is
- * frozen with FreezingArchRule: violations existing when the store was generated are recorded in
+ * <p>All the rules are strict. A rule with violations which can't be removed at once can be frozen with
+ * FreezingArchRule: the violations existing when the store was generated are recorded in
  * src/test/resources/archunit_store and tolerated; only NEW violations fail the build.</p>
  *
  * <p>Regenerating the store after a planned package move (violation descriptions contain class names, so a
@@ -64,7 +66,7 @@ public final class ArchitectureTest {
 
 	/** Feature packages of the target architecture. */
 	private static final String[] FEATURES = {
-		ROOT + "api..", ROOT + "inventory..", ROOT + "driver..", ROOT + "access..", ROOT + "credentials..",
+		ROOT + "api..", ROOT + "inventory..", ROOT + "domain..", ROOT + "driver..", ROOT + "access..", ROOT + "credentials..",
 		ROOT + "vault..", ROOT + "devicescript..", ROOT + "userscript..", ROOT + "compliance..",
 		ROOT + "diagnostic..", ROOT + "task..", ROOT + "report..", ROOT + "hook..", ROOT + "aaa..",
 		ROOT + "boot..", ROOT + "tools..", ROOT + "cluster..",
@@ -163,13 +165,79 @@ public final class ArchitectureTest {
 			.allowEmptyShould(true);
 
 	/**
-	 * No cycles between top-level slices (net.netshot.netshot.(*)..). ArchUnit's own slices().beFreeOfCycles()
-	 * reports an arbitrary subset of cycles which varies between runs, which makes it unusable when frozen; this
-	 * rule instead reports each class-to-class dependency crossing two slices that are part of the same cycle.
+	 * The configuration is read through the declared settings ({@code Config.get(Setting)}), never by key, so that each
+	 * setting is declared once (type, default, range, reload mode), checked and documented (see NetshotSettingsTest).
+	 * The database migrations, run before the features are loaded, may read a setting declared by a feature.
 	 */
 	@ArchTest
-	static final ArchRule NO_CYCLES_BETWEEN_FEATURE_SLICES = freeze(
-		classes().should(new SliceCycleCondition()).allowEmptyShould(true));
+	static final ArchRule CONFIGURATION_READ_THROUGH_SETTINGS =
+		noClasses().that().resideOutsideOfPackage(ROOT + "platform.config..")
+			.and().resideOutsideOfPackage(ROOT + "platform.database.migrator..")
+			.should().callMethodWhere(new DescribedPredicate<JavaMethodCall>("read a configuration item by key") {
+				@Override
+				public boolean test(JavaMethodCall call) {
+					return call.getTargetOwner().isEquivalentTo(net.netshot.netshot.platform.config.Config.class)
+						&& !call.getTarget().getRawParameterTypes().isEmpty()
+						&& call.getTarget().getRawParameterTypes().get(0).isEquivalentTo(String.class);
+				}
+			})
+			.allowEmptyShould(true);
+
+	/** Packages allowed to create threads directly: the thread factory, and the shutdown hook. */
+	private static final String[] THREAD_CREATORS = {
+		ROOT + "platform.concurrent..", ROOT + "platform.lifecycle..",
+	};
+
+	/** The threads are created by executors, through the named thread factory (platform.concurrent): no class extends Thread. */
+	@ArchTest
+	static final ArchRule NO_THREAD_SUBCLASS =
+		noClasses().should().beAssignableTo(Thread.class)
+			.allowEmptyShould(true);
+
+	/** Threads aren't created directly, but by the executors of the components (named thread factory). */
+	@ArchTest
+	static final ArchRule NO_DIRECT_THREAD_CREATION =
+		noClasses().that().resideOutsideOfPackages(THREAD_CREATORS)
+			.should().callConstructorWhere(new DescribedPredicate<JavaConstructorCall>("create a thread") {
+				@Override
+				public boolean test(JavaConstructorCall call) {
+					return call.getTargetOwner().isAssignableTo(Thread.class);
+				}
+			})
+			.allowEmptyShould(true);
+
+	/** The executors are given the named thread factory (the default factory makes anonymous, non-daemon threads). */
+	@ArchTest
+	static final ArchRule EXECUTORS_USE_NAMED_THREADS =
+		noClasses().should().callMethodWhere(new DescribedPredicate<JavaMethodCall>("create an executor with the default thread factory") {
+			@Override
+			public boolean test(JavaMethodCall call) {
+				return call.getTargetOwner().isEquivalentTo(java.util.concurrent.Executors.class)
+					&& call.getName().startsWith("new")
+					&& call.getTarget().getRawParameterTypes().stream()
+						.noneMatch(type -> type.isAssignableTo(java.util.concurrent.ThreadFactory.class));
+			}
+		})
+		.allowEmptyShould(true);
+
+	/**
+	 * No mutable static state: the long-lived objects (services, clients, caches) are instances built by the wiring,
+	 * and the values read once are held by lazily initialized holder classes. The only exception is the
+	 * {@code Instrumentation} handed by the JVM to the static agent entry point ({@code Netshot.agentmain}).
+	 */
+	@ArchTest
+	static final ArchRule STATIC_FIELDS_ARE_FINAL =
+		fields().that().areStatic().and().doNotHaveFullName(ROOT + "Netshot.instrumentation")
+			.should().beFinal().allowEmptyShould(true);
+
+	/**
+	 * No cycles between top-level slices (net.netshot.netshot.(*)..). Unlike ArchUnit's own
+	 * slices().beFreeOfCycles(), which reports an arbitrary subset of the cycles, this rule reports each
+	 * class-to-class dependency crossing two slices that are part of the same cycle: the dependencies to cut.
+	 */
+	@ArchTest
+	static final ArchRule NO_CYCLES_BETWEEN_FEATURE_SLICES =
+		classes().should(new SliceCycleCondition()).allowEmptyShould(true);
 
 	private static String sliceOf(JavaClass javaClass) {
 		String name = javaClass.getPackageName();

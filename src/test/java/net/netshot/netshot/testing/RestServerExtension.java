@@ -27,10 +27,7 @@ import java.util.Map;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
-import net.netshot.netshot.task.engine.TaskManager;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -66,7 +63,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		TaskManager.init(Wiring.get().taskJobFactory());
+		TestWiring.get().taskManager().start();
 		if (Kinds.isContract(testClass)) {
 			// Tasks must be stored but never run: keep the schedulers in standby, and drop
 			// any job left by another test class sharing the JVM.
@@ -75,7 +72,9 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 				scheduler.clear();
 			}
 		}
-		RestServer.init(Wiring.get().binder());
+		RestServer restServer = new RestServer(TestWiring.get().binder());
+		restServer.start();
+		context.getStore(Kinds.NAMESPACE).put(RestServer.class, restServer);
 		waitUntilListening(server(context).apiUri());
 	}
 
@@ -85,7 +84,10 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!Kinds.usesRestServer(testClass)) {
 			return;
 		}
-		RestServer.shutdown();
+		RestServer restServer = context.getStore(Kinds.NAMESPACE).remove(RestServer.class, RestServer.class);
+		if (restServer != null) {
+			restServer.stop();
+		}
 		// Drop the tasks scheduled by this class, and let the running ones end, before the next class
 		// initializes the database again (they would otherwise fail on a closed session).
 		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
@@ -105,7 +107,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			return;
 		}
 		ApiTokenRepository tokens = new ApiTokenRepository();
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			// Remove the default admin account
 			dsl.deleteFrom(Tables.USER).execute();
 			for (Map.Entry<Integer, String> entry : TestServer.API_TOKENS.entrySet()) {
@@ -120,7 +122,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		if (!managesTokens(context)) {
 			return;
 		}
-		new Transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
+		TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.API_TOKEN).execute());
 	}
 
 	@Override

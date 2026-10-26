@@ -23,7 +23,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.compliance.SoftwareRule;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 
 /**
@@ -84,7 +84,7 @@ public record DevicePayload(
 	List<DeviceGroupPayload> ownerGroups,
 	String realDeviceType,
 	String serialNumber,
-	SoftwareRule.ConformanceLevel softwareLevel,
+	ConformanceLevel softwareLevel,
 	String softwareVersion,
 	Device.Status status,
 	List<String> tags) {

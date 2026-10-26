@@ -32,13 +32,14 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 
-import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
@@ -56,7 +57,7 @@ public class ComplianceCheckTest {
 
 	@BeforeAll
 	static void init() throws Exception {
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(), new PyRuleRuntime(), TestDrivers.registry());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -89,14 +90,14 @@ public class ComplianceCheckTest {
 	@Test
 	@DisplayName("The registry refuses to be built without the evaluator of a rule type")
 	void missingEvaluator() {
-		Assertions.assertThrows(IllegalStateException.class, () -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry()))));
+		Assertions.assertThrows(IllegalStateException.class, () -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry(), null))));
 	}
 
 	@Test
 	@DisplayName("The registry refuses two evaluators for the same type")
 	void duplicateEvaluator() {
 		Assertions.assertThrows(IllegalStateException.class,
-			() -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry()), new TextRuleEvaluator(TestDrivers.registry()))));
+			() -> new RuleEvaluators(List.of(new TextRuleEvaluator(TestDrivers.registry(), null), new TextRuleEvaluator(TestDrivers.registry(), null))));
 	}
 
 	@Test

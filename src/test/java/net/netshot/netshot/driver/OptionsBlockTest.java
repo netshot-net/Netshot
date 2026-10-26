@@ -31,12 +31,13 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.access.AccessManager;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver.Location;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
@@ -196,7 +197,7 @@ public class OptionsBlockTest {
 	 * Registers a driver directly into {@link DeviceDriver}'s private static
 	 * registry (there's no public API for this - drivers are normally only
 	 * discovered from disk by {@link net.netshot.netshot.driver.DriverRegistry#refresh()}), so that
-	 * {@link net.netshot.netshot.driver.DriverRegistry#forDevice(Device)} can resolve it by name like any other
+	 * {@link net.netshot.netshot.driver.DriverRegistry#forDevice(net.netshot.netshot.driver.DrivenDevice)} can resolve it by name like any other
 	 * driver. Callers must remove it again with {@link #unregisterDriver}.
 	 * @param driver the driver to register
 	 */
@@ -222,7 +223,7 @@ public class OptionsBlockTest {
 			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
 			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 
-			JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), device, null, new FakeTaskContext(), false);
+			JsDeviceHelper helper = new JsDeviceHelper(TestDrivers.registry(), null, device, null, new FakeTaskContext(), false);
 			ProxyObject options = (ProxyObject) helper.getOptions();
 			Assertions.assertEquals(Boolean.TRUE, options.getMember("fullBackup"),
 				"Default Boolean option value should be a real boolean, not a string");
@@ -230,7 +231,7 @@ public class OptionsBlockTest {
 				"Text option value should remain a plain string");
 
 			DeviceDraft updated = new DeviceDraft(deviceBuilder.options(Map.of("fullBackup", Boolean.FALSE)).build());
-			helper = new JsDeviceHelper(TestDrivers.registry(), updated, null, new FakeTaskContext(), false);
+			helper = new JsDeviceHelper(TestDrivers.registry(), null, updated, null, new FakeTaskContext(), false);
 			ProxyObject updatedOptions = (ProxyObject) helper.getOptions();
 			Assertions.assertEquals(Boolean.FALSE, updatedOptions.getMember("fullBackup"),
 				"An explicitly stored false value should be exposed as boolean false");
@@ -250,8 +251,8 @@ public class OptionsBlockTest {
 			Device.DeviceBuilder deviceBuilder = Device.create("OptionsTestDriver", null, domain, "test").toBuilder();
 			DeviceDraft device = new DeviceDraft(deviceBuilder.build());
 			FakeTaskContext taskContext = new FakeTaskContext();
-			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
-			AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
+			SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+			AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, null);
 			Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 			runMethod.setAccessible(true);
 			runMethod.invoke(script, device, accessManager);

@@ -40,6 +40,18 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Transactions {
 
+	/** The database access, which gives the connections. */
+	private final DatabaseService database;
+
+	/**
+	 * Instantiates the transaction support.
+	 *
+	 * @param database the database access, which gives the connections
+	 */
+	public Transactions(DatabaseService database) {
+		this.database = database;
+	}
+
 	/**
 	 * Runs some work with a connection of the read-only pool. The work is meant for
 	 * queries: whatever it does is rolled back at the end. Note that the read-only pool
@@ -93,8 +105,8 @@ public class Transactions {
 		return inTransaction(PoolKind.SYSTEM, true, work);
 	}
 
-	private static <T> T inTransaction(PoolKind pool, boolean commit, Function<DSLContext, T> work) {
-		try (Connection connection = Database.getConnection(pool)) {
+	private <T> T inTransaction(PoolKind pool, boolean commit, Function<DSLContext, T> work) {
+		try (Connection connection = this.database.getConnection(pool)) {
 			connection.setAutoCommit(false);
 			try {
 				T result = work.apply(Jooq.dsl(connection));

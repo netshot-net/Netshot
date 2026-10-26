@@ -32,6 +32,7 @@ import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -52,7 +53,7 @@ public class UserResourceTest {
 		this.apiClient = client;
 	}
 
-	private final Transactions transactions = new Transactions();
+	private final Transactions transactions = TestWiring.get().transactions();
 
 	private final UserRepository repository = new UserRepository();
 

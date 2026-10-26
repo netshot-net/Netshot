@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.boot;
 
+import java.util.List;
+
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -27,25 +29,35 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import net.netshot.netshot.api.rest.NetshotWebApplication;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.testing.TestWiring;
 
 @DatabaseTest(boot = Boot.MIGRATED)
 @TestInstance(Lifecycle.PER_CLASS)
 public class WiringTest {
 
 	@Test
-	@DisplayName("Wiring.init() builds the wiring, available through Wiring.get()")
-	void getAfterInit() {
-		Wiring wiring = Wiring.init();
-		Assertions.assertSame(wiring, Wiring.get());
+	@DisplayName("Wiring.init() builds the wiring")
+	void init() {
+		Wiring wiring = TestWiring.set(Wiring.init());
 		Assertions.assertNotNull(wiring.transactions());
+	}
+
+	@Test
+	@DisplayName("The services, in start order")
+	void services() {
+		Wiring wiring = TestWiring.set(Wiring.init());
+		Assertions.assertEquals(List.of("database", "device drivers", "OIDC IdP discovery", "task lock manager",
+			"Vault token refresher", "SSH client", "task manager", "Syslog server", "SNMP trap receiver", "SSH/SCP/SFTP server",
+			"Web/REST server"), wiring.services().stream().map(Service::name).toList());
 	}
 
 	@Test
 	@DisplayName("The web application makes the wiring injectable into the resources")
 	void injection() {
-		Wiring wiring = Wiring.init();
+		Wiring wiring = TestWiring.set(Wiring.init());
 		ApplicationHandler handler = new ApplicationHandler(new NetshotWebApplication(wiring.binder()));
 		Transactions injected = handler.getInjectionManager().getInstance(Transactions.class);
 		Assertions.assertSame(wiring.transactions(), injected);

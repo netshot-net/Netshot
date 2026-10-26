@@ -18,9 +18,12 @@
  */
 package net.netshot.netshot.vault;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongFunction;
 
 import org.slf4j.Logger;
@@ -28,9 +31,10 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -50,57 +54,58 @@ import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
  * cached entry, and callers must treat that as a hard connection failure.
  */
 @Slf4j
-public final class VaultManager {
+public final class VaultManager implements SecretResolver {
 
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
 	/**
-	 * Settings/config for this class, shared with {@link VaultClient}.
+	 * The settings of the Vault client.
+	 *
+	 * @param tokenRenewMarginMs the margin (ms) before a cached client token's expiry at which it's proactively renewed
+	 * @param secretCacheTtlMs how long (ms) a resolved secret's JSON data is cached for
+	 * @param httpConnectTimeoutMs the HTTP connect timeout (ms) for calls to a Vault instance
+	 * @param httpReadTimeoutMs the HTTP read timeout (ms) for calls to a Vault instance
 	 */
-	public static final class Settings {
+	public record Settings(int tokenRenewMarginMs, int secretCacheTtlMs, int httpConnectTimeoutMs, int httpReadTimeoutMs) {
 
 		/** Margin (ms) before a cached client token's expiry at which it's proactively renewed. */
-		@Getter
-		private int tokenRenewMarginMs;
+		static final Setting<Integer> TOKEN_RENEW_MARGIN = Setting.integer("netshot.vault.token.renewmarginms")
+			.defaultValue(30000).range(0, Integer.MAX_VALUE).live();
 
 		/** How long (ms) a resolved secret's JSON data is cached for. */
-		@Getter
-		private int secretCacheTtlMs;
+		static final Setting<Integer> SECRET_CACHE_TTL = Setting.integer("netshot.vault.secret.cachettlms")
+			.defaultValue(60000).range(0, Integer.MAX_VALUE).live();
 
-		/** HTTP connect timeout (ms) for calls to a Vault instance. */
-		@Getter
-		private int httpConnectTimeoutMs;
+		/** HTTP connect timeout (ms). */
+		static final Setting<Integer> HTTP_CONNECT_TIMEOUT = Setting.integer("netshot.vault.http.connecttimeoutms")
+			.defaultValue(5000).range(100, Integer.MAX_VALUE).live();
 
-		/** HTTP read timeout (ms) for calls to a Vault instance. */
-		@Getter
-		private int httpReadTimeoutMs;
+		/** HTTP read timeout (ms). */
+		static final Setting<Integer> HTTP_READ_TIMEOUT = Setting.integer("netshot.vault.http.readtimeoutms")
+			.defaultValue(10000).range(100, Integer.MAX_VALUE).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.tokenRenewMarginMs = Netshot.getConfig("netshot.vault.token.renewmarginms", 30000, 0, Integer.MAX_VALUE);
-			log.debug("The Vault client token renew margin is {}ms", this.tokenRenewMarginMs);
-
-			this.secretCacheTtlMs = Netshot.getConfig("netshot.vault.secret.cachettlms", 60000, 0, Integer.MAX_VALUE);
-			log.debug("The Vault secret cache TTL is {}ms", this.secretCacheTtlMs);
-
-			this.httpConnectTimeoutMs = Netshot.getConfig("netshot.vault.http.connecttimeoutms", 5000, 100, Integer.MAX_VALUE);
-			log.debug("The Vault HTTP connect timeout is {}ms", this.httpConnectTimeoutMs);
-
-			this.httpReadTimeoutMs = Netshot.getConfig("netshot.vault.http.readtimeoutms", 10000, 100, Integer.MAX_VALUE);
-			log.debug("The Vault HTTP read timeout is {}ms", this.httpReadTimeoutMs);
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(TOKEN_RENEW_MARGIN), config.get(SECRET_CACHE_TTL),
+				config.get(HTTP_CONNECT_TIMEOUT), config.get(HTTP_READ_TIMEOUT));
+			log.debug("The Vault client settings are {}", settings);
+			return settings;
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private final ConfigStore.Binding<Settings> settings;
 
 	/**
-	 * Initialize some additional static variables from global configuration.
+	 * Gets the settings of the Vault client.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		VaultManager.SETTINGS.load();
+	public Settings settings() {
+		return this.settings.get();
 	}
 
 	private record SecretCacheKey(long vaultInstanceId, String path) {
@@ -115,28 +120,70 @@ public final class VaultManager {
 	/**
 	 * The Vault instances, by ID, read from the database on first use (dropped by {@link #invalidate}).
 	 */
-	private static final ConcurrentHashMap<Long, VaultInstance> INSTANCE_CACHE = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, VaultInstance> instanceCache = new ConcurrentHashMap<>();
 
 	/** Reads a Vault instance from the database (null if it doesn't exist). */
-	private static volatile LongFunction<VaultInstance> instanceLoader =
-		id -> new Transactions().read(dsl -> new VaultInstanceRepository().find(dsl, id));
+	private final LongFunction<VaultInstance> instanceLoader;
 
-		private static final ConcurrentHashMap<Long, VaultToken> TOKEN_CACHE = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<Long, CompletableFuture<VaultToken>> LOGIN_IN_FLIGHT = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, VaultToken> tokenCache = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, CompletableFuture<VaultToken>> loginInFlight = new ConcurrentHashMap<>();
 
-	private static final ConcurrentHashMap<SecretCacheKey, CachedSecretData> SECRET_CACHE = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<SecretCacheKey, CompletableFuture<JsonNode>> READ_IN_FLIGHT =
+	private final ConcurrentHashMap<SecretCacheKey, CachedSecretData> secretCache = new ConcurrentHashMap<>();
+
+	/** The number of logins to the Vault instances. */
+	private final AtomicLong logins = new AtomicLong();
+
+	/** The number of failed logins. */
+	private final AtomicLong loginFailures = new AtomicLong();
+
+	/** The number of reads of secrets from the Vault instances. */
+	private final AtomicLong reads = new AtomicLong();
+
+	/** The number of failed reads. */
+	private final AtomicLong readFailures = new AtomicLong();
+
+	/** The number of secrets taken from the cache. */
+	private final AtomicLong cacheHits = new AtomicLong();
+	private final ConcurrentHashMap<SecretCacheKey, CompletableFuture<JsonNode>> readInFlight =
 		new ConcurrentHashMap<>();
 
-	private VaultManager() {
+	/**
+	 * Creates the Vault client, reading the Vault instances from the database.
+	 *
+	 * @param config the configuration store, to read the settings from
+	 * @param transactions the transaction support, to read the Vault instances
+	 */
+	public VaultManager(ConfigStore config, Transactions transactions) {
+		this(config, id -> transactions.read(dsl -> new VaultInstanceRepository().find(dsl, id)));
 	}
 
 	/**
-	 * Starts the background token-refresh warmer. Safe to call even if no
-	 * Vault instance is configured.
+	 * Creates the Vault client.
+	 *
+	 * @param config the configuration store, to read the settings from
+	 * @param instanceLoader reads a Vault instance, by ID (null if it doesn't exist)
 	 */
-	public static void init() {
-		VaultTokenRefreshDaemon.launch();
+	public VaultManager(ConfigStore config, LongFunction<VaultInstance> instanceLoader) {
+		this.settings = config.bind(Settings::from);
+		this.instanceLoader = instanceLoader;
+	}
+
+	/**
+	 * Gets the statistics of the Vault client: logins, reads, cache.
+	 *
+	 * @return the statistics
+	 */
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("logins", this.logins.get());
+		stats.put("loginFailures", this.loginFailures.get());
+		stats.put("reads", this.reads.get());
+		stats.put("readFailures", this.readFailures.get());
+		stats.put("cacheHits", this.cacheHits.get());
+		stats.put("cachedTokens", this.tokenCache.size());
+		stats.put("cachedSecrets", this.secretCache.size());
+		stats.put("cachedInstances", this.instanceCache.size());
+		return stats;
 	}
 
 	/**
@@ -145,26 +192,16 @@ public final class VaultManager {
 	 * @param id the ID of the Vault instance
 	 * @return the instance, or null if there is no such instance
 	 */
-	static VaultInstance instance(long id) {
-		VaultInstance cached = INSTANCE_CACHE.get(id);
+	VaultInstance instance(long id) {
+		VaultInstance cached = this.instanceCache.get(id);
 		if (cached != null) {
 			return cached;
 		}
-		VaultInstance instance = instanceLoader.apply(id);
+		VaultInstance instance = this.instanceLoader.apply(id);
 		if (instance != null) {
-			INSTANCE_CACHE.put(id, instance);
+			this.instanceCache.put(id, instance);
 		}
 		return instance;
-	}
-
-	/**
-	 * Replaces the reader of the Vault instances (tests).
-	 *
-	 * @param loader the reader, by ID
-	 */
-	static void setInstanceLoader(LongFunction<VaultInstance> loader) {
-		instanceLoader = loader;
-		INSTANCE_CACHE.clear();
 	}
 
 	/**
@@ -176,7 +213,8 @@ public final class VaultManager {
 	 *         couldn't be resolved (unreachable/auth failure/missing key) -
 	 *         callers must treat this as a hard failure, there is no fallback
 	 */
-	public static String resolve(VaultableSecret secret) throws VaultException {
+	@Override
+	public String resolve(VaultableSecret secret) throws VaultException {
 		if (!secret.isVaultBacked()) {
 			log.trace("Resolving a non-Vault-backed field, returning its local value.");
 			return secret.localValue();
@@ -210,63 +248,68 @@ public final class VaultManager {
 	 * @return the client token
 	 * @throws VaultException in case of login failure
 	 */
-	static VaultToken getToken(HashicorpVaultKv2Instance instance) throws VaultException {
-		VaultToken cached = TOKEN_CACHE.get(instance.id());
-		if (cached != null && cached.isValid(SETTINGS.getTokenRenewMarginMs())) {
+	VaultToken getToken(HashicorpVaultKv2Instance instance) throws VaultException {
+		VaultToken cached = this.tokenCache.get(instance.id());
+		if (cached != null && cached.isValid(this.settings().tokenRenewMarginMs())) {
 			log.trace("Using cached Vault client token for instance '{}'.", instance.name());
 			return cached;
 		}
 		log.trace("No valid cached Vault client token for instance '{}', logging in.", instance.name());
 		CompletableFuture<VaultToken> myFuture = new CompletableFuture<>();
-		CompletableFuture<VaultToken> raceWinner = LOGIN_IN_FLIGHT.putIfAbsent(instance.id(), myFuture);
+		CompletableFuture<VaultToken> raceWinner = this.loginInFlight.putIfAbsent(instance.id(), myFuture);
 		if (raceWinner == null) {
 			// We're the one responsible for actually logging in; everyone else waits on myFuture.
 			try {
-				VaultToken token = VaultClient.login(instance);
-				TOKEN_CACHE.put(instance.id(), token);
+				this.logins.incrementAndGet();
+				VaultToken token = VaultClient.login(instance, this.settings());
+				this.tokenCache.put(instance.id(), token);
 				AAA_LOG.info("Logged in to Vault instance '{}' (auth method {})",
 					instance.name(), instance.authMethod());
 				myFuture.complete(token);
 				return token;
 			}
 			catch (VaultException e) {
+				this.loginFailures.incrementAndGet();
 				AAA_LOG.warn("Failed to log in to Vault instance '{}': {}", instance.name(), e.getMessage());
 				myFuture.completeExceptionally(e);
 				throw e;
 			}
 			finally {
-				LOGIN_IN_FLIGHT.remove(instance.id(), myFuture);
+				this.loginInFlight.remove(instance.id(), myFuture);
 			}
 		}
 		log.trace("A login to Vault instance '{}' is already in flight, waiting for it.", instance.name());
 		return awaitFuture(raceWinner, "Vault login for instance '%s'".formatted(instance.name()));
 	}
 
-	private static JsonNode getSecretData(HashicorpVaultKv2Instance instance, String path, String token)
+	private JsonNode getSecretData(HashicorpVaultKv2Instance instance, String path, String token)
 			throws VaultException {
 		SecretCacheKey key = new SecretCacheKey(instance.id(), path);
-		CachedSecretData cached = SECRET_CACHE.get(key);
+		CachedSecretData cached = this.secretCache.get(key);
 		if (cached != null && cached.isValid()) {
 			log.trace("Using cached Vault secret data for instance '{}', path '{}'.", instance.name(), path);
+			this.cacheHits.incrementAndGet();
 			return cached.data();
 		}
 		log.trace("No valid cached Vault secret data for instance '{}', path '{}', reading from Vault.",
 			instance.name(), path);
 		CompletableFuture<JsonNode> myFuture = new CompletableFuture<>();
-		CompletableFuture<JsonNode> raceWinner = READ_IN_FLIGHT.putIfAbsent(key, myFuture);
+		CompletableFuture<JsonNode> raceWinner = this.readInFlight.putIfAbsent(key, myFuture);
 		if (raceWinner == null) {
 			try {
-				JsonNode data = VaultClient.readKv2(instance, path, token);
-				SECRET_CACHE.put(key, new CachedSecretData(data, System.currentTimeMillis() + SETTINGS.getSecretCacheTtlMs()));
+				this.reads.incrementAndGet();
+				JsonNode data = VaultClient.readKv2(instance, path, token, this.settings());
+				this.secretCache.put(key, new CachedSecretData(data, System.currentTimeMillis() + this.settings().secretCacheTtlMs()));
 				myFuture.complete(data);
 				return data;
 			}
 			catch (VaultException e) {
+				this.readFailures.incrementAndGet();
 				myFuture.completeExceptionally(e);
 				throw e;
 			}
 			finally {
-				READ_IN_FLIGHT.remove(key, myFuture);
+				this.readInFlight.remove(key, myFuture);
 			}
 		}
 		log.trace("A read of Vault path '{}' on instance '{}' is already in flight, waiting for it.",
@@ -274,7 +317,7 @@ public final class VaultManager {
 		return awaitFuture(raceWinner, "Vault read of path '%s' on instance '%s'".formatted(path, instance.name()));
 	}
 
-	private static <T> T awaitFuture(CompletableFuture<T> future, String description) throws VaultException {
+	private <T> T awaitFuture(CompletableFuture<T> future, String description) throws VaultException {
 		try {
 			return future.get();
 		}
@@ -297,7 +340,7 @@ public final class VaultManager {
 	 * @param instance the Vault instance to test (possibly not yet persisted)
 	 * @throws VaultException if the login fails
 	 */
-	public static void testConnection(HashicorpVaultKv2Instance instance) throws VaultException {
+	public void testConnection(HashicorpVaultKv2Instance instance) throws VaultException {
 		if (instance.authMethod() == null) {
 			throw new VaultException("No authentication method configured");
 		}
@@ -310,7 +353,7 @@ public final class VaultManager {
 				&& (instance.appRoleId() == null || instance.appRoleSecretId() == null)) {
 			throw new VaultException("Incomplete AppRole authentication configuration");
 		}
-		VaultClient.login(instance);
+		VaultClient.login(instance, this.settings());
 	}
 
 	/**
@@ -320,10 +363,10 @@ public final class VaultManager {
 	 * {@link net.netshot.netshot.cluster.messages.VaultInstanceChangedMessage}).
 	 * @param vaultInstanceId the ID of the Vault instance
 	 */
-	public static void invalidate(long vaultInstanceId) {
-		INSTANCE_CACHE.remove(vaultInstanceId);
-		TOKEN_CACHE.remove(vaultInstanceId);
-		SECRET_CACHE.keySet().removeIf(key -> key.vaultInstanceId() == vaultInstanceId);
+	public void invalidate(long vaultInstanceId) {
+		this.instanceCache.remove(vaultInstanceId);
+		this.tokenCache.remove(vaultInstanceId);
+		this.secretCache.keySet().removeIf(key -> key.vaultInstanceId() == vaultInstanceId);
 		AAA_LOG.info("Invalidated local Vault cache for instance ID {}", vaultInstanceId);
 	}
 

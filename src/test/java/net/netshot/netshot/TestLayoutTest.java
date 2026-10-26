@@ -67,7 +67,7 @@ public class TestLayoutTest {
 	private static final String ROOT = "net.netshot.netshot";
 
 	/** Tests allowed in the root package, as they cover the whole application. */
-	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "NetshotConfigTest", "TestLayoutTest");
+	private static final Set<String> ROOT_TESTS = Set.of("ArchitectureTest", "ConfigReloadTest", "NetshotConfigTest", "TestLayoutTest");
 
 	/** Helpers allowed in the root package: TestConfig calls the protected Netshot.initConfig. */
 	private static final Set<String> ROOT_HELPERS = Set.of("TestConfig");

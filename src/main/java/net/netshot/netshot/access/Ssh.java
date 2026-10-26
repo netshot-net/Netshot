@@ -30,7 +30,6 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -48,13 +47,10 @@ import org.apache.sshd.client.auth.password.PasswordAuthenticationReporter;
 import org.apache.sshd.client.auth.pubkey.PublicKeyAuthenticationReporter;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannelEvent;
-import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
-import org.apache.sshd.client.config.keys.ClientIdentityLoader;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.keyverifier.ServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.client.session.ClientSessionImpl;
-import org.apache.sshd.client.session.SessionFactory;
 import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.NamedFactory;
 import org.apache.sshd.common.NamedResource;
@@ -71,7 +67,6 @@ import org.apache.sshd.common.config.keys.loader.KeyPairResourceLoader;
 import org.apache.sshd.common.io.IoSession;
 import org.apache.sshd.common.kex.BuiltinDHFactories;
 import org.apache.sshd.common.kex.KexProposalOption;
-import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.apache.sshd.common.mac.BuiltinMacs;
 import org.apache.sshd.common.session.SessionListener;
@@ -83,12 +78,17 @@ import org.apache.sshd.scp.client.ScpClientCreator;
 import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.driver.protocol.SshInteractionInstruction;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * An SSH CLI access.
@@ -97,34 +97,53 @@ import net.netshot.netshot.task.engine.TaskContext;
 public class Ssh extends Cli {
 
 	/** Default SSH TCP port. */
-	public static final int DEFAULT_PORT = 22;
+	public static final int DEFAULT_PORT = DriverProtocol.SSH.defaultPort();
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the SSH client.
+	 *
+	 * @param connectionTimeout the connection timeout (ms)
+	 * @param receiveTimeout the receive timeout (ms)
+	 * @param commandTimeout the command timeout (ms)
+	 * @param rekeyTimeLimit the rekey time limit (ms), i.e. maximum session duration before a rekey is triggered
+	 * @param rekeyDataLimit the rekey data limit (bytes), i.e. maximum amount of data exchanged before a rekey is triggered
+	 * @param rekeyBlocksLimit the rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed
+	 *        before a rekey is triggered. Note: unlike the time/data limits, a non-positive value does NOT disable this
+	 *        trigger - it makes the SSH library fall back to its own RFC 4344-based automatic computation. To actually
+	 *        disable it, this must be set to a very large positive value.
+	 * @param rekeyPacketsLimit the rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered
+	 * @param kexAlgorithms the key exchange algorithms
+	 * @param hostKeyAlgorithms the host key algorithms
+	 * @param ciphers the ciphers
+	 * @param macs the MACs
+	 * @param compressionAlgorithms the compression algorithms
 	 */
-	public static final class Settings {
+	public record Settings(int connectionTimeout, int receiveTimeout, int commandTimeout,
+		long rekeyTimeLimit, long rekeyDataLimit, long rekeyBlocksLimit, long rekeyPacketsLimit,
+		List<String> kexAlgorithms, List<String> hostKeyAlgorithms, List<String> ciphers, List<String> macs,
+		List<String> compressionAlgorithms) implements SshConfig.Defaults {
 
-		private static final String[] DEFAULT_SSH_KEX_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_KEX_ALGORITHMS = List.of(
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP18_SHA512,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP16_SHA512,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP14_SHA256,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP14_SHA1,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP_EXCHANGE_SHA256,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP_EXCHANGE_SHA1,
-			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP1_SHA1,
-		};
+			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP1_SHA1
+		);
 
-		private static final String[] DEFAULT_SSH_HOST_KEY_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_HOST_KEY_ALGORITHMS = List.of(
 			KeyPairProvider.SSH_ED25519,
 			KeyPairProvider.ECDSA_SHA2_NISTP521,
 			KeyPairProvider.ECDSA_SHA2_NISTP256,
 			KeyUtils.RSA_SHA256_KEY_TYPE_ALIAS,
 			KeyUtils.RSA_SHA512_KEY_TYPE_ALIAS,
 			KeyPairProvider.SSH_RSA,
-			KeyPairProvider.SSH_DSS,
-		};
+			KeyPairProvider.SSH_DSS
+		);
 
-		private static final String[] DEFAULT_SSH_CIPHERS = {
+		private static final List<String> DEFAULT_SSH_CIPHERS = List.of(
 			BuiltinCiphers.Constants.AES256_GCM,
 			BuiltinCiphers.Constants.AES128_GCM,
 			BuiltinCiphers.Constants.AES256_CTR,
@@ -134,10 +153,10 @@ public class Ssh extends Cli {
 			BuiltinCiphers.Constants.AES128_CTR,
 			BuiltinCiphers.Constants.AES128_CBC,
 			BuiltinCiphers.Constants.TRIPLE_DES_CBC,
-			BuiltinCiphers.Constants.BLOWFISH_CBC,
-		};
+			BuiltinCiphers.Constants.BLOWFISH_CBC
+		);
 
-		private static final String[] DEFAULT_SSH_MACS = {
+		private static final List<String> DEFAULT_SSH_MACS = List.of(
 			BuiltinMacs.Constants.ETM_HMAC_SHA2_512,
 			BuiltinMacs.Constants.ETM_HMAC_SHA2_256,
 			BuiltinMacs.Constants.HMAC_SHA2_512,
@@ -146,304 +165,98 @@ public class Ssh extends Cli {
 			BuiltinMacs.Constants.HMAC_SHA1_96,
 			BuiltinMacs.Constants.HMAC_MD5,
 			BuiltinMacs.Constants.HMAC_MD5_96,
-			BuiltinMacs.Constants.ETM_HMAC_SHA1,
-		};
+			BuiltinMacs.Constants.ETM_HMAC_SHA1
+		);
 
-		private static final String[] DEFAULT_SSH_COMPRESSION_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_COMPRESSION_ALGORITHMS = List.of(
 			BuiltinCompressions.Constants.NONE,
-			BuiltinCompressions.Constants.ZLIB,
-		};
+			BuiltinCompressions.Constants.ZLIB
+		);
 
-		/** SSH connection timeout. */
-		@Getter
-		private int connectionTimeout;
+		/** Connection timeout (ms). */
+		static final Setting<Integer> CONNECTION_TIMEOUT = Setting.integer("netshot.cli.ssh.connectiontimeout")
+			.defaultValue(5000).range(1, Integer.MAX_VALUE).live();
 
-		/** SSH receive timeout. */
-		@Getter
-		private int receiveTimeout;
+		/** Receive timeout (ms). */
+		static final Setting<Integer> RECEIVE_TIMEOUT = Setting.integer("netshot.cli.ssh.receivetimeout")
+			.defaultValue(60000).range(1, Integer.MAX_VALUE).live();
 
-		/** SSH command timeout. */
-		@Getter
-		private int commandTimeout;
+		/** Command timeout (ms). */
+		static final Setting<Integer> COMMAND_TIMEOUT = Setting.integer("netshot.cli.ssh.commandtimeout")
+			.defaultValue(120000).range(1, Integer.MAX_VALUE).live();
 
-		/** SSH rekey time limit (ms), i.e. maximum session duration before a rekey is triggered. */
-		@Getter
-		private long rekeyTimeLimit;
+		/** Rekey time limit (ms). */
+		static final Setting<Long> REKEY_TIME_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeytimelimit")
+			.defaultValue(Duration.ofHours(1).toMillis()).live();
 
-		/** SSH rekey data limit (bytes), i.e. maximum amount of data exchanged before a rekey is triggered. */
-		@Getter
-		private long rekeyDataLimit;
+		/** Rekey data limit (bytes). */
+		static final Setting<Long> REKEY_DATA_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeydatalimit")
+			.defaultValue(1024L * 1024L * 1024L).live();
 
-		/** SSH rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed before a rekey
-		 * is triggered. Note: unlike the time/data limits, a non-positive value does NOT disable this trigger -
-		 * it makes the SSH library fall back to its own RFC 4344-based automatic computation. To actually disable
-		 * it, this must be set to a very large positive value. */
-		@Getter
-		private long rekeyBlocksLimit;
+		/** Rekey blocks limit. */
+		static final Setting<Long> REKEY_BLOCKS_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeyblockslimit")
+			.defaultValue(0L).live();
 
-		/** SSH rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered. */
-		@Getter
-		private long rekeyPacketsLimit;
+		/** Rekey packets limit. */
+		static final Setting<Long> REKEY_PACKETS_LIMIT = Setting.longInteger("netshot.cli.ssh.rekeypacketslimit")
+			.defaultValue(1L << 31).live();
 
 		/** Key exchange algorithms. */
-		@Getter
-		private String[] kexAlgorithms;
+		static final Setting<List<String>> KEX_ALGORITHMS = Setting.list("netshot.cli.ssh.kexalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_KEX_ALGORITHMS).live();
 
 		/** Host key algorithms. */
-		@Getter
-		private String[] hostKeyAlgorithms;
+		static final Setting<List<String>> HOST_KEY_ALGORITHMS = Setting.list("netshot.cli.ssh.hostkeyalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_HOST_KEY_ALGORITHMS).live();
 
 		/** Ciphers. */
-		@Getter
-		private String[] ciphers;
+		static final Setting<List<String>> CIPHERS = Setting.list("netshot.cli.ssh.ciphers", ", *")
+			.defaultValue(DEFAULT_SSH_CIPHERS).live();
 
 		/** MACs. */
-		@Getter
-		private String[] macs;
+		static final Setting<List<String>> MACS = Setting.list("netshot.cli.ssh.macs", ", *")
+			.defaultValue(DEFAULT_SSH_MACS).live();
 
 		/** Compression algorithms. */
-		@Getter
-		private String[] compressionAlgorithms;
-
-		private String[] readAlgorithms(String configKey, String[] defaultValue) {
-			String value = Netshot.getConfig("netshot.cli.ssh.%s".formatted(configKey));
-			if (value == null) {
-				return defaultValue;
-			}
-			return value.split(", *");
-		}
-
-		private long readLong(String configKey, long defaultValue) {
-			String value = Netshot.getConfig("netshot.cli.ssh.%s".formatted(configKey));
-			if (value == null) {
-				return defaultValue;
-			}
-			try {
-				return Long.parseLong(value);
-			}
-			catch (NumberFormatException e) {
-				log.error("Unable to parse the long value of configuration item 'netshot.cli.ssh.{}', "
-					+ "using default value {}.", configKey, defaultValue);
-				return defaultValue;
-			}
-		}
+		static final Setting<List<String>> COMPRESSION_ALGORITHMS = Setting.list("netshot.cli.ssh.compressionalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_COMPRESSION_ALGORITHMS).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.connectionTimeout = Netshot.getConfig("netshot.cli.ssh.connectiontimeout", 5000, 1, Integer.MAX_VALUE);
-			log.debug("The default connection timeout value for SSH sessions is {}s", this.connectionTimeout);
-
-			this.receiveTimeout = Netshot.getConfig("netshot.cli.ssh.receivetimeout", 60000, 1, Integer.MAX_VALUE);
-			log.debug("The default receive timeout value for SSH sessions is {}s", this.receiveTimeout);
-
-			this.commandTimeout = Netshot.getConfig("netshot.cli.ssh.commandtimeout", 120000, 1, Integer.MAX_VALUE);
-			log.debug("The default command timeout value for SSH sessions is {}s", this.commandTimeout);
-
-			this.rekeyTimeLimit = this.readLong("rekeytimelimit", Duration.ofHours(1).toMillis());
-			log.debug("The default rekey time limit for SSH sessions is {}ms", this.rekeyTimeLimit);
-
-			this.rekeyDataLimit = this.readLong("rekeydatalimit", 1024L * 1024L * 1024L);
-			log.debug("The default rekey data limit for SSH sessions is {} bytes", this.rekeyDataLimit);
-
-			this.rekeyBlocksLimit = this.readLong("rekeyblockslimit", 0L);
-			log.debug("The default rekey blocks limit for SSH sessions is {} blocks", this.rekeyBlocksLimit);
-
-			this.rekeyPacketsLimit = this.readLong("rekeypacketslimit", 1L << 31);
-			log.debug("The default rekey packets limit for SSH sessions is {} packets", this.rekeyPacketsLimit);
-
-			this.kexAlgorithms = this.readAlgorithms("kexalgorithms", DEFAULT_SSH_KEX_ALGORITHMS);
-			this.hostKeyAlgorithms = this.readAlgorithms("hostkeyalgorithms", DEFAULT_SSH_HOST_KEY_ALGORITHMS);
-			this.ciphers = this.readAlgorithms("ciphers", DEFAULT_SSH_CIPHERS);
-			this.macs = this.readAlgorithms("macs", DEFAULT_SSH_MACS);
-			this.compressionAlgorithms = this.readAlgorithms("compressionalgorithms", DEFAULT_SSH_COMPRESSION_ALGORITHMS);
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT),
+				config.get(COMMAND_TIMEOUT), config.get(REKEY_TIME_LIMIT), config.get(REKEY_DATA_LIMIT),
+				config.get(REKEY_BLOCKS_LIMIT), config.get(REKEY_PACKETS_LIMIT), config.get(KEX_ALGORITHMS),
+				config.get(HOST_KEY_ALGORITHMS), config.get(CIPHERS), config.get(MACS), config.get(COMPRESSION_ALGORITHMS));
+			log.debug("The default SSH settings are {}", settings);
+			return settings;
 		}
 	}
 
-	private static SshClient client;
-
-
-	/**
-	 * Instruction for SSH user interactive authentication mode.
-	 */
-	public static final class SshInteractionInstruction {
-		@Getter
-		private Pattern promptPattern;
-
-		@Getter
-		private Boolean echo;
-
-		@Getter
-		private String response;
-
-		public SshInteractionInstruction(Pattern promptPattern, Boolean echo, String response) {
-			this.promptPattern = promptPattern;
-			this.echo = echo;
-			this.response = response;
-		}
-	}
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * One user interaction in the keyboard-interactive authentication process.
+	 * Gets the settings of the SSH client.
+	 * @return the settings
 	 */
-	public static final class SshUserInteraction {
-		/** Prompt to match (regular expression). null for any. */
-		@Getter
-		@Setter
-		private String prompt;
-
-		/** Match whether echo option is expected or not. null for any. */
-		@Getter
-		@Setter
-		private Boolean echo;
-
-		/** Response to send. Can be $$NetshotPassword$$. */
-		@Getter
-		@Setter
-		private String response;
-	}
-
-	/**
-	 * Embedded class to represent SSH-specific configuration.
-	 */
-	public static final class SshConfig {
-
-		/** Key exchange algorithms allowed for the session. */
-		private List<String> kexAlgorithms = null;
-
-		/** Host key algorithms allowed for the session. */
-		private List<String> hostKeyAlgorithms = null;
-
-		/** Ciphers allowed for the session. */
-		private List<String> ciphers = null;
-
-		/** MACs allowed for the session. */
-		private List<String> macs = null;
-
-		/** Compression algorithms allowed for the session. */
-		private List<String> compressionAlgorithms = null;
-
-		/** Rekey time limit (ms), i.e. maximum session duration before a rekey is triggered. */
-		@Setter
-		private Long rekeyTimeLimit = null;
-
-		/** Rekey data limit (bytes), i.e. maximum amount of data exchanged before a rekey is triggered. */
-		@Setter
-		private Long rekeyDataLimit = null;
-
-		/** Rekey blocks limit (cipher blocks), i.e. maximum amount of cipher blocks processed before a rekey
-		 * is triggered. */
-		@Setter
-		private Long rekeyBlocksLimit = null;
-
-		/** Rekey packets limit, i.e. maximum number of packets exchanged before a rekey is triggered. */
-		@Setter
-		private Long rekeyPacketsLimit = null;
-
-		/** User interaction instructions. */
-		@Setter
-		@Getter
-		private List<SshInteractionInstruction> interactionInstructions = null;
-
-		/** Whether to allocate a PTY or not. */
-		@Setter
-		private Boolean usePty = null;
-
-		/** Type of terminal. */
-		@Setter
-		private String terminalType = null;
-
-		/** Number of columns in the terminal. */
-		@Setter
-		private Integer terminalCols = null;
-
-		/** Number of rows in the terminal. */
-		@Setter
-		private Integer terminalRows = null;
-
-		/** Height of the terminal. */
-		@Setter
-		private Integer terminalHeight = null;
-
-		/** Width of the terminal. */
-		@Setter
-		private Integer terminalWidth = null;
-
-		/** User interactions. */
-		@Getter
-		@Setter
-		private List<SshUserInteraction> userInteractions;
-
-		/*
-		 * Default constructor.
-		 */
-		public SshConfig(boolean withDefaults) {
-			if (withDefaults) {
-				this.kexAlgorithms = Arrays.asList(Ssh.SETTINGS.getKexAlgorithms());
-				this.hostKeyAlgorithms = Arrays.asList(Ssh.SETTINGS.getHostKeyAlgorithms());
-				this.ciphers = Arrays.asList(Ssh.SETTINGS.getCiphers());
-				this.macs = Arrays.asList(Ssh.SETTINGS.getMacs());
-				this.compressionAlgorithms = Arrays.asList(Ssh.SETTINGS.getCompressionAlgorithms());
-				this.rekeyTimeLimit = Ssh.SETTINGS.getRekeyTimeLimit();
-				this.rekeyDataLimit = Ssh.SETTINGS.getRekeyDataLimit();
-				this.rekeyBlocksLimit = Ssh.SETTINGS.getRekeyBlocksLimit();
-				this.rekeyPacketsLimit = Ssh.SETTINGS.getRekeyPacketsLimit();
-				this.usePty = true;
-				this.terminalType = "vt100";
-				this.terminalCols = 80;
-				this.terminalRows = 24;
-				this.terminalHeight = 480;
-				this.terminalWidth = 640;
-			}
-		}
-
-		public void setKexAlgorithms(String[] kexAlgorithms) {
-			this.kexAlgorithms = Arrays.asList(kexAlgorithms);
-		}
-
-		public void setHostKeyAlgorithms(String[] hostKeyAlgorithms) {
-			this.hostKeyAlgorithms = Arrays.asList(hostKeyAlgorithms);
-		}
-
-		public void setCiphers(String[] ciphers) {
-			this.ciphers = Arrays.asList(ciphers);
-		}
-
-		public void setMacs(String[] macs) {
-			this.macs = Arrays.asList(macs);
-		}
-
-		public void setCompressionAlgorithms(String[] compressionAlgorithms) {
-			this.compressionAlgorithms = Arrays.asList(compressionAlgorithms);
-		}
-	}
-
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
-
-	/**
-	 * Initialize some additional static variables from global configuration.
-	 */
-	public static void loadConfig() {
-		Ssh.SETTINGS.load();
-		CoreModuleProperties.NIO2_READ_TIMEOUT.set(Ssh.client, Duration.ofMillis(Ssh.SETTINGS.receiveTimeout));
-		CoreModuleProperties.REKEY_TIME_LIMIT.set(Ssh.client, Duration.ofMillis(Ssh.SETTINGS.rekeyTimeLimit));
-		CoreModuleProperties.REKEY_BYTES_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyDataLimit);
-		CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyBlocksLimit);
-		CoreModuleProperties.REKEY_PACKETS_LIMIT.set(Ssh.client, Ssh.SETTINGS.rekeyPacketsLimit);
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
 
 	/**
 	 * Attribute key carrying a per-access {@link DeviceHostKeyVerifier} into a session created by
-	 * the shared {@link Ssh#client} (see the {@code sessionEstablished} listener below). It can't
+	 * the shared SSH client (see the {@code sessionEstablished} listener of {@link SshClientService}). It can't
 	 * be set on the client directly (shared across all connections), nor after {@code
 	 * connect().verify()} returns (the key exchange may already be under way by then). Read from
 	 * the raw {@code IoSession} attribute, not {@link ClientSession#getConnectionContext()}: the
 	 * latter is only populated after the session's constructor returns, but {@code
 	 * sessionEstablished} fires from inside it.
 	 */
-	private static final AttributeRepository.AttributeKey<ServerKeyVerifier> HOST_KEY_VERIFIER_ATTRIBUTE =
+	static final AttributeRepository.AttributeKey<ServerKeyVerifier> HOST_KEY_VERIFIER_ATTRIBUTE =
 		new AttributeRepository.AttributeKey<>();
 
 	/**
@@ -454,83 +267,68 @@ public class Ssh extends Cli {
 	 * refreshConfiguration()} itself - see {@link NetshotClientSession} below - applies them in
 	 * time. The rekey-blocks limit doesn't have this problem (recomputed at each actual key
 	 * exchange from a live session property), so the plain post-{@code verify()} property set in
-	 * {@link #connect(boolean)} already works for it.
+	 * {@link #connect(boolean)} already works for it. The algorithms (key exchange, host key, cipher,
+	 * MAC, compression) it carries are set by the {@link NetshotClientSession} constructor, before the
+	 * first key exchange.
 	 */
-	private static final AttributeRepository.AttributeKey<SshConfig> SSH_CONFIG_ATTRIBUTE =
+	static final AttributeRepository.AttributeKey<SshConfig> SSH_CONFIG_ATTRIBUTE =
 		new AttributeRepository.AttributeKey<>();
 
 	/**
-	 * Applies {@link #SSH_CONFIG_ATTRIBUTE}'s rekey time/data/packets limits during {@code
+	 * Applies {@link #SSH_CONFIG_ATTRIBUTE}'s algorithms when created, and its rekey time/data/packets limits during {@code
 	 * refreshConfiguration()}, before the base implementation's one-shot capture of those limits
 	 * (see that attribute's javadoc for why).
 	 */
-	private static final class NetshotClientSession extends ClientSessionImpl {
+	static final class NetshotClientSession extends ClientSessionImpl {
 
 		NetshotClientSession(ClientFactoryManager client, IoSession ioSession) throws Exception {
 			super(client, ioSession);
+			// The algorithms of the access, set before the first key exchange: once the session is returned by
+			// connect(), the server's KEXINIT may already have been answered with the defaults of the client
+			SshConfig config = sshConfigOf(ioSession);
+			if (config != null) {
+				this.setKeyExchangeFactories(NamedFactory.setUpTransformedFactories(true,
+					BuiltinDHFactories.parseDHFactoriesList(config.getKexAlgorithms()).getParsedFactories(),
+					ClientBuilder.DH2KEX));
+				this.setSignatureFactoriesNames(config.getHostKeyAlgorithms());
+				this.setCipherFactoriesNames(config.getCiphers());
+				this.setMacFactoriesNames(config.getMacs());
+				this.setCompressionFactoriesNames(config.getCompressionAlgorithms());
+			}
+		}
+
+		/**
+		 * Gets the configuration of the access a session is opened for.
+		 *
+		 * @param ioSession the I/O session
+		 * @return the configuration, or null if the session isn't opened by an access
+		 */
+		private static SshConfig sshConfigOf(IoSession ioSession) {
+			Object rawContext = ioSession.getAttribute(AttributeRepository.class);
+			return rawContext instanceof AttributeRepository context ? context.getAttribute(Ssh.SSH_CONFIG_ATTRIBUTE) : null;
 		}
 
 		@Override
 		protected void refreshConfiguration() {
 			super.refreshConfiguration();
-			Object rawContext = getIoSession().getAttribute(AttributeRepository.class);
-			if (!(rawContext instanceof AttributeRepository context)) {
-				return;
-			}
-			SshConfig config = context.getAttribute(Ssh.SSH_CONFIG_ATTRIBUTE);
+			SshConfig config = sshConfigOf(getIoSession());
 			if (config == null) {
 				return;
 			}
-			if (config.rekeyTimeLimit != null) {
-				this.maxRekeyInterval = Duration.ofMillis(config.rekeyTimeLimit);
+			if (config.getRekeyTimeLimit() != null) {
+				this.maxRekeyInterval = Duration.ofMillis(config.getRekeyTimeLimit());
 			}
-			if (config.rekeyDataLimit != null) {
-				this.maxRekeyBytes = config.rekeyDataLimit;
+			if (config.getRekeyDataLimit() != null) {
+				this.maxRekeyBytes = config.getRekeyDataLimit();
 			}
-			if (config.rekeyPacketsLimit != null) {
-				this.maxRekyPackets = config.rekeyPacketsLimit;
+			if (config.getRekeyPacketsLimit() != null) {
+				this.maxRekyPackets = config.getRekeyPacketsLimit();
 			}
 		}
 	}
 
-	static {
-		// Build global SSH client
-		Ssh.client = SshClient.setUpDefaultClient();
-		Ssh.client.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
-		Ssh.client.setFilePasswordProvider(FilePasswordProvider.EMPTY);
-		Ssh.client.setClientIdentityLoader(ClientIdentityLoader.DEFAULT);
-		Ssh.client.setKeyIdentityProvider(KeyIdentityProvider.EMPTY_KEYS_PROVIDER);
-		Ssh.client.setSessionFactory(new SessionFactory(Ssh.client) {
-			@Override
-			protected ClientSessionImpl doCreateSession(IoSession ioSession) throws Exception {
-				return new NetshotClientSession(getClient(), ioSession);
-			}
-		});
-
-		CoreModuleProperties.CLIENT_IDENTIFICATION.set(Ssh.client, "NETSHOT-%s".formatted(Netshot.VERSION));
-		// Cisco IOS at least doesn't like receiving the identification message from client before sending its own
-		CoreModuleProperties.SEND_IMMEDIATE_IDENTIFICATION.set(Ssh.client, false);
-		CoreModuleProperties.SEND_IMMEDIATE_KEXINIT.set(Ssh.client, false);
-		// Fallback when a connection is established without a per-access verifier
-		// (e.g. tests) - real connections always supply one, see connect(boolean) below.
-		Ssh.client.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
-		Ssh.client.addSessionListener(new SessionListener() {
-			@Override
-			public void sessionEstablished(org.apache.sshd.common.session.Session session) {
-				if (!(session instanceof ClientSession clientSession)) {
-					return;
-				}
-				Object rawContext = session.getIoSession().getAttribute(AttributeRepository.class);
-				ServerKeyVerifier verifier = (rawContext instanceof AttributeRepository context)
-					? context.getAttribute(Ssh.HOST_KEY_VERIFIER_ATTRIBUTE)
-					: null;
-				if (verifier != null) {
-					clientSession.setServerKeyVerifier(verifier);
-				}
-			}
-		});
-		Ssh.client.start();
-	}
+	/** The shared SSH client, which opens the sessions. */
+	private final SshClient client;
 
 	/** The port. */
 	private int port = DEFAULT_PORT;
@@ -551,7 +349,7 @@ public class Ssh extends Cli {
 	private String privateKey;
 
 	/** The SSH connection config. */
-	private SshConfig sshConfig = new SshConfig(true);
+	private SshConfig sshConfig = new SshConfig(settings());
 
 	/** Per-access host key verifier (trust any/on first use/manual), set via {@link #setHostKeyVerifier}. */
 	@Setter
@@ -568,26 +366,29 @@ public class Ssh extends Cli {
 	/**
 	 * Instantiates a new SSH connection (password authentication).
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param port the port
 	 * @param username the username
 	 * @param password the password
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, int port, String username, String password, TaskContext taskContext) {
+	public Ssh(SshClient client, String host, int port, String username, String password, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.port = port;
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 	/**
 	 * Instantiates a new SSH connection (private key authentication).
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param port the port
 	 * @param username the SSH username
@@ -595,55 +396,60 @@ public class Ssh extends Cli {
 	 * @param passphrase the passphrase which protects the private key
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, int port, String username, String privateKey,
+	public Ssh(SshClient client, String host, int port, String username, String privateKey,
 		String passphrase, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.port = port;
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 	/**
 	 * Instantiates a new SSH connection (private key authentication).
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param username the SSH username
 	 * @param privateKey the RSA/DSA private key
 	 * @param passphrase the passphrase which protects the private key
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, String username, String privateKey,
+	public Ssh(SshClient client, String host, String username, String privateKey,
 		String passphrase, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.username = username;
 		this.privateKey = privateKey;
 		this.password = passphrase;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 
 	/**
 	 * Instantiates a new ssh.
 	 *
+	 * @param client the shared SSH client
 	 * @param host the host
 	 * @param username the username
 	 * @param password the password
 	 * @param taskContext the current task context
 	 */
-	public Ssh(String host, String username, String password, TaskContext taskContext) {
+	public Ssh(SshClient client, String host, String username, String password, TaskContext taskContext) {
 		super(host, taskContext);
+		this.client = client;
 		this.username = username;
 		this.password = password;
 		this.privateKey = null;
-		this.connectionTimeout = Ssh.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Ssh.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Ssh.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Ssh.settings().connectionTimeout();
+		this.commandTimeout = Ssh.settings().commandTimeout();
+		this.receiveTimeout = Ssh.settings().receiveTimeout();
 	}
 
 	/**
@@ -653,6 +459,7 @@ public class Ssh extends Cli {
 	 */
 	public Ssh(Ssh other) {
 		super(other.host, other.taskContext);
+		this.client = other.client;
 		this.port = other.port;
 		this.username = other.username;
 		this.password = other.password;
@@ -683,7 +490,7 @@ public class Ssh extends Cli {
 			contextAttributes.put(Ssh.SSH_CONFIG_ATTRIBUTE, this.sshConfig);
 			AttributeRepository connectContext = AttributeRepository.ofAttributesMap(contextAttributes);
 			try {
-				this.session = Ssh.client
+				this.session = this.client
 					.connect(this.username, this.host, this.port, connectContext, null)
 					.verify(this.connectionTimeout)
 					.getSession();
@@ -809,21 +616,13 @@ public class Ssh extends Cli {
 				}
 			});
 
-			this.session.setKeyExchangeFactories(
-				NamedFactory.setUpTransformedFactories(true,
-					BuiltinDHFactories.parseDHFactoriesList(this.sshConfig.kexAlgorithms).getParsedFactories(),
-					ClientBuilder.DH2KEX));
-			this.session.setSignatureFactoriesNames(this.sshConfig.hostKeyAlgorithms);
-			this.session.setCipherFactoriesNames(this.sshConfig.ciphers);
-			this.session.setMacFactoriesNames(this.sshConfig.macs);
-			this.session.setCompressionFactoriesNames(this.sshConfig.compressionAlgorithms);
-			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.rekeyTimeLimit));
-			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.rekeyDataLimit);
-			CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.session, this.sshConfig.rekeyBlocksLimit);
-			CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.session, this.sshConfig.rekeyPacketsLimit);
+			CoreModuleProperties.REKEY_TIME_LIMIT.set(this.session, Duration.ofMillis(this.sshConfig.getRekeyTimeLimit()));
+			CoreModuleProperties.REKEY_BYTES_LIMIT.set(this.session, this.sshConfig.getRekeyDataLimit());
+			CoreModuleProperties.REKEY_BLOCKS_LIMIT.set(this.session, this.sshConfig.getRekeyBlocksLimit());
+			CoreModuleProperties.REKEY_PACKETS_LIMIT.set(this.session, this.sshConfig.getRekeyPacketsLimit());
 			if (privateKey == null) {
 				this.session.addPasswordIdentity(this.password);
-				if (Ssh.this.sshConfig.interactionInstructions != null) {
+				if (Ssh.this.sshConfig.getInteractionInstructions() != null) {
 					PropertyResolverUtils.updateProperty(
 						this.session, UserInteraction.AUTO_DETECT_PASSWORD_PROMPT, false);
 				}
@@ -840,7 +639,7 @@ public class Ssh extends Cli {
 								"SSH user interactive authentication, name '{}', instruction '{}', lang '{}', prompts {}",
 								name, instruction, lang, String.join(", ", promptEchoes));
 						}
-						if (Ssh.this.sshConfig.interactionInstructions == null) {
+						if (Ssh.this.sshConfig.getInteractionInstructions() == null) {
 							if (prompts.length == 1 && echos.length == 1 && !echos[0]) {
 								Ssh.this.taskContext.debug("Password requested in user interactive mode (prompt '{}')",
 									prompts[0]);
@@ -853,24 +652,24 @@ public class Ssh extends Cli {
 						}
 						List<String> responses = new ArrayList<>();
 						for (int p = 0; p < Math.min(prompts.length, echos.length); p++) {
-							for (SshInteractionInstruction configInstruction : Ssh.this.sshConfig.interactionInstructions) {
-								if (configInstruction.promptPattern != null) {
-									Matcher matcher = configInstruction.promptPattern.matcher(prompts[p]);
+							for (SshInteractionInstruction configInstruction : Ssh.this.sshConfig.getInteractionInstructions()) {
+								if (configInstruction.getPromptPattern() != null) {
+									Matcher matcher = configInstruction.getPromptPattern().matcher(prompts[p]);
 									if (!matcher.matches()) {
 										continue;
 									}
 								}
-								if (configInstruction.echo != null && !configInstruction.echo.equals(echos[p])) {
+								if (configInstruction.getEcho() != null && !configInstruction.getEcho().equals(echos[p])) {
 									continue;
 								}
 								Ssh.this.taskContext.trace(
 									"Found matching instruction for SSH user interaction, prompt '{}'", prompts[p]);
-								if (configInstruction.response == null) {
+								if (configInstruction.getResponse() == null) {
 									Ssh.this.taskContext.trace("Will send device password");
 									responses.add(Ssh.this.password);
 								}
 								else {
-									String response = configInstruction.response;
+									String response = configInstruction.getResponse();
 									Ssh.this.taskContext.trace("Will send planned response '{}'", response);
 									response = response.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_USERNAME),
 										Matcher.quoteReplacement(Ssh.this.username));
@@ -1008,31 +807,31 @@ public class Ssh extends Cli {
 
 			if (openChannel) {
 				PtyChannelConfigurationHolder ptyConfig = null;
-				if (this.sshConfig.usePty) {
+				if (this.sshConfig.getUsePty()) {
 					ptyConfig = new PtyChannelConfigurationHolder() {
 						@Override
 						public String getPtyType() {
-							return Ssh.this.sshConfig.terminalType;
+							return Ssh.this.sshConfig.getTerminalType();
 						}
 
 						@Override
 						public int getPtyColumns() {
-							return Ssh.this.sshConfig.terminalCols;
+							return Ssh.this.sshConfig.getTerminalCols();
 						}
 
 						@Override
 						public int getPtyLines() {
-							return Ssh.this.sshConfig.terminalRows;
+							return Ssh.this.sshConfig.getTerminalRows();
 						}
 
 						@Override
 						public int getPtyWidth() {
-							return Ssh.this.sshConfig.terminalWidth;
+							return Ssh.this.sshConfig.getTerminalWidth();
 						}
 
 						@Override
 						public int getPtyHeight() {
-							return Ssh.this.sshConfig.terminalHeight;
+							return Ssh.this.sshConfig.getTerminalHeight();
 						}
 
 						@Override
@@ -1042,7 +841,7 @@ public class Ssh extends Cli {
 					};
 				}
 				this.channel = this.session.createShellChannel(ptyConfig, Collections.emptyMap());
-				this.channel.setUsePty(this.sshConfig.usePty);
+				this.channel.setUsePty(this.sshConfig.getUsePty());
 				this.channel.setRedirectErrorStream(true);
 				this.channel.open().verify(Duration.ofMillis(this.connectionTimeout));
 				this.inStream = this.channel.getInvertedOut();
@@ -1181,54 +980,7 @@ public class Ssh extends Cli {
 	}
 
 	public void applySshConfig(SshConfig other) {
-		if (other.kexAlgorithms != null) {
-			this.sshConfig.kexAlgorithms = other.kexAlgorithms;
-		}
-		if (other.hostKeyAlgorithms != null) {
-			this.sshConfig.hostKeyAlgorithms = other.hostKeyAlgorithms;
-		}
-		if (other.ciphers != null) {
-			this.sshConfig.ciphers = other.ciphers;
-		}
-		if (other.macs != null) {
-			this.sshConfig.macs = other.macs;
-		}
-		if (other.compressionAlgorithms != null) {
-			this.sshConfig.compressionAlgorithms = other.compressionAlgorithms;
-		}
-		if (other.rekeyTimeLimit != null) {
-			this.sshConfig.rekeyTimeLimit = other.rekeyTimeLimit;
-		}
-		if (other.rekeyDataLimit != null) {
-			this.sshConfig.rekeyDataLimit = other.rekeyDataLimit;
-		}
-		if (other.rekeyBlocksLimit != null) {
-			this.sshConfig.rekeyBlocksLimit = other.rekeyBlocksLimit;
-		}
-		if (other.rekeyPacketsLimit != null) {
-			this.sshConfig.rekeyPacketsLimit = other.rekeyPacketsLimit;
-		}
-		if (other.usePty != null) {
-			this.sshConfig.usePty = other.usePty;
-		}
-		if (other.terminalType != null) {
-			this.sshConfig.terminalType = other.terminalType;
-		}
-		if (other.terminalCols != null) {
-			this.sshConfig.terminalCols = other.terminalCols;
-		}
-		if (other.terminalRows != null) {
-			this.sshConfig.terminalRows = other.terminalRows;
-		}
-		if (other.terminalHeight != null) {
-			this.sshConfig.terminalHeight = other.terminalHeight;
-		}
-		if (other.terminalWidth != null) {
-			this.sshConfig.terminalWidth = other.terminalWidth;
-		}
-		if (other.interactionInstructions != null) {
-			this.sshConfig.interactionInstructions = other.interactionInstructions;
-		}
+		this.sshConfig.apply(other);
 	}
 
 }

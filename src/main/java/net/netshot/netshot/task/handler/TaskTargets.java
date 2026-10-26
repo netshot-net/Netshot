@@ -41,14 +41,15 @@ record TaskTargets(DeviceGroup group, List<Device> devices) {
 	/**
 	 * Loads the targets of a task.
 	 *
+	 * @param transactions the transaction support
 	 * @param spec the task specification
 	 * @return the targets
 	 */
-	static TaskTargets load(GroupBasedTask spec) {
+	static TaskTargets load(Transactions transactions, GroupBasedTask spec) {
 		if (spec.deviceGroupId() == null && spec.deviceIds().isEmpty()) {
 			return new TaskTargets(null, List.of());
 		}
-		return new Transactions().read(dsl -> {
+		return transactions.read(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			if (spec.deviceGroupId() != null) {
 				GroupRepository groupRepository = new GroupRepository();

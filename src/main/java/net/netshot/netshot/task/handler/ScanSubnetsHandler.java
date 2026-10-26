@@ -33,8 +33,8 @@ import org.jooq.impl.DSL;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
@@ -51,13 +51,16 @@ public class ScanSubnetsHandler implements TaskHandler<ScanSubnetsTask> {
 
 	private final ChildTaskOrchestrator childTaskOrchestrator;
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param childTaskOrchestrator the child task orchestrator
 	 */
-	public ScanSubnetsHandler(ChildTaskOrchestrator childTaskOrchestrator) {
+	public ScanSubnetsHandler(Transactions transactions, ChildTaskOrchestrator childTaskOrchestrator) {
+		this.transactions = transactions;
 		this.childTaskOrchestrator = childTaskOrchestrator;
 	}
 

@@ -25,12 +25,13 @@ import javax.script.ScriptException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * Something to execute on a device.
@@ -47,10 +48,21 @@ public abstract class DeviceScript {
 
 	protected final transient DriverRegistry driverRegistry;
 
+	/** The secret resolver and the SSH client of the device accesses. */
+	protected final transient Connectors connectors;
+
 	protected transient TaskContext taskContext;
 
-	protected DeviceScript(DriverRegistry driverRegistry, TaskContext taskContext) {
+	/**
+	 * Creates the script.
+	 *
+	 * @param driverRegistry the loaded device drivers
+	 * @param connectors the secret resolver and the SSH client of the device accesses
+	 * @param taskContext the task context
+	 */
+	protected DeviceScript(DriverRegistry driverRegistry, Connectors connectors, TaskContext taskContext) {
 		this.driverRegistry = driverRegistry;
+		this.connectors = connectors;
 		this.taskContext = taskContext;
 	}
 
@@ -76,7 +88,7 @@ public abstract class DeviceScript {
 		// override. Failure there isn't immediately fatal: an access with its
 		// own override address may still be usable, so it only surfaces as a
 		// warning, not an exception.
-		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, device, this.taskContext, credentialSets);
+		AccessManager accessManager = AccessManager.forDevice(this.driverRegistry, this.connectors, device, this.taskContext, credentialSets);
 
 		try {
 			this.run(device, accessManager);

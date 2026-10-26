@@ -17,14 +17,16 @@ platform/          technical building blocks; depends on no feature
 │   └── schema/    jOOQ classes generated from the schema (committed under src/main/jooq)
 ├── error/         ErrorCode, NetshotException
 ├── event/         DomainEvents: synchronous in-process publish/subscribe
-├── crypto/ tls/ rest/
+├── crypto/ tls/ rest/ config/ lifecycle/ concurrent/ log/
+├── net/           IPv4, IPv6 and MAC address value types
+├── script/        script toolbox and JavaScript value helpers
 api/               API channels: how the outside world talks to the core
 ├── rest/          web server (RestServer), Jersey application, filters, exception mapper, shared REST bits
 │   └── v0/        the current (legacy, unversioned) REST API, served on /api
 ├── hook/          webhook channel: HookDispatcher (reacts to domain events), WebHookSender (HTTP), payload/ (payload DTOs and mapper)
 └── grpc/          (later)
-inventory/ driver/ access/ credentials/ vault/ devicescript/ userscript/
-compliance/ diagnostic/ task/ report/ hook/ aaa/ cluster/ system/ tools/
+domain/ credentials/ driver/ inventory/ access/ vault/ diagnostic/ devicescript/
+compliance/ userscript/ task/ report/ hook/ aaa/ cluster/ system/ tools/
                    features: domain records, repositories, services, engines
 ```
 
@@ -42,15 +44,24 @@ The REST API must stay byte-for-byte equivalent (JSON, XML, YAML) while it is re
 
 The rules are enforced by `ArchitectureTest` (ArchUnit): `platform` depends on no feature; only `boot` (and `Netshot`) depend on `api`, and `api` does not depend on `boot`; `api.rest` and `api.hook` do not depend on each other; `api` does not reach the database (neither jOOQ nor `platform.database`, except the `Page` window); JAX-RS server classes are used only by the REST layer, and the JAX-RS client and `core` types only by the packages making outgoing calls; `@JsonView` and the JAXB annotations are only used by the API channels and the cluster wire format; and there is no cycle between top-level packages.
 
-Most rules are *strict*: any violation fails the build. One rule still has violations and is *frozen*: the cycles between top-level packages. Its existing violations are recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail. That store must only shrink. After a planned move or a cleanup, refreeze and review the diff, which must only remove entries (or follow renames):
+The feature packages around the devices are layered, each one only depending on the ones before it:
 
-```bash
-./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
-```
+1. `domain` (the management domains), `vault` (the Vault instances and the resolution of the Vault-backed secrets) and `credentials` (the credential sets, scoped by domain);
+2. `driver`: the drivers, with the settings of their accesses (`driver.protocol`: SSH, Telnet and HTTP), looked up for a device through the `DrivenDevice` port;
+3. `inventory`: the devices and what is known about them, including their per-access settings (`DeviceAccess`) and the last results of the diagnostics (`inventory.diagnostic`) and of the compliance checks (`inventory.compliance`). The device search refers to the policies, rules and diagnostics by name and ID only;
+4. `access`: the device accesses and the receivers. They log into the log of the running task through `platform.log.TaskContext`, and the receivers report the configuration changes through the `access.collector.SnapshotRequester` port (implemented by the automatic snapshot scheduler);
+5. `diagnostic`, `devicescript`, `compliance`, `userscript`: the definitions and the scripts run on the devices;
+6. `task`: the task engine, the handlers, and the use cases which create tasks (`TaskService`, `DeviceCreationService` which adds a device).
+
+Above them: `report` and `cluster` (which depend on `task`), then the API channels (`api`) and the composition root (`boot`). `aaa`, `hook` and `system` only depend on `platform` (and `system` on `aaa`).
+
+When a lower package needs something of an upper one, the type belongs lower (a value type or a result, as the address types moved to `platform.net`), or the lower package declares a port that the upper one implements (`DrivenDevice`, `SnapshotRequester`, `ClusterCoordinator`), or the use case belongs to the upper package (`DeviceCreationService`).
+
+All the rules are *strict*: any violation fails the build, including the rule against the cycles between top-level packages (it reports each class dependency which belongs to a cycle) and the one against the mutable static fields. Should a new rule have violations which can't be removed at once, it can be *frozen* (ArchUnit's `FreezingArchRule`): its existing violations are then recorded in `src/test/resources/archunit_store/` and tolerated, only new ones fail, and that store must only shrink (`./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true` after a cleanup, then review the diff).
 
 ## Transactions
 
-Services open their transactions through `platform.database.Transactions`, never by taking a connection themselves. Each method takes a connection from a pool, gives the work a jOOQ `DSLContext` on it and gives the connection back:
+Services open their transactions through `platform.database.Transactions`, never by taking a connection themselves. The wiring builds one `Transactions` on the `DatabaseService` (which owns the connection pools while it runs) and gives it to the services, the task engine and handlers, and the device scripts (as part of `access.Connectors` for the scripts); nothing builds its own. Each method takes a connection from a pool, gives the work a jOOQ `DSLContext` on it and gives the connection back:
 
 | Method | Pool | Transaction |
 |---|---|---|
@@ -106,7 +117,7 @@ The device use cases (`inventory.device`) show how the layers fit together.
 - **`DeviceRepository`** only holds queries. Every method takes the `DSLContext` first, none opens a transaction or catches an exception. `find` loads the whole `Device` record; the other aggregates the use case needs (domain, credential sets, configurations, groups) are read by their own repositories.
 - **`DeviceService`** has one public method per use case, named after it (`list`, `get`, `create`, `update`, `delete`). It is constructed with its collaborators (`Transactions`, repository, ports): no static lookup, no `Wiring.get()`. Inputs are *command records* (`DeviceCreation`, `DeviceUpdate`): plain data, no `api` type. In a command, a `null` component means "not provided / unchanged".
 - **What a service returns** is a domain record (complete: there is nothing left to load), a service-level record (`DeviceSummary`, a projection), or a primitive (`delete` returns whether there was a device). Never a DTO, never a `Response`.
-- **Side effects** which must not happen if the transaction fails (refresh of the dynamic groups, scheduling of tasks, removal of files) are explicit statements *after* the `Transactions` call. A service reaches the static task engine only through a port, here `task.TaskSubmitter`, which `Wiring` implements with `TaskManager::addTask` and the tests with a recording lambda.
+- **Side effects** which must not happen if the transaction fails (refresh of the dynamic groups, scheduling of tasks, removal of files) are explicit statements *after* the `Transactions` call. A service reaches the task engine only through a port, here `task.TaskSubmitter`, which `Wiring` implements with `TaskManager::addTask` and the tests with a recording lambda.
 - **Pagination**: a list use case takes a `platform.database.Page` (offset and limit, validated by its constructor); `PaginationParams.toPage()` builds it in the REST layer.
 - **Input objects which are domain records**: some inputs are too rich to duplicate as service records (the accesses of a device and their credential sets). The API mapper builds the domain records from the request (`DeviceAccess`, `DeviceSshAccount`, a `Domain.reference(id)`...), the command carries them, and the service validates them and resolves them against the stored ones (global credential set by ID, Vault instance by ID...). They are never stored as they are.
 - **Validation** (`DeviceValidation`) is made of static, side-effect free functions which throw `NetshotException`. Other services which need the same checks call them.
@@ -149,7 +160,7 @@ Webhook payloads are the DTOs of `api.hook.payload` (a sealed `TaskPayload` fami
 
 A `Task` record holds a task as stored: its header (target, schedule, status, log...) and the `TaskSpec` of its type, a sealed interface whose records in `task.type` keep the names of the former task classes (`TakeSnapshotTask`, `RunDeviceScriptTask`...); it does not run itself. While a task runs, its mutable state (status, logs, debug log, result attributes) is a `TaskRun`, saved by the engine at the end. Each task specification has one `task.TaskHandler<S>` in `task.handler` (`taskType()` and `run(Task task, S spec, TaskRun run)`). A handler sets the status, the log and the result on the run exactly as the engine expects, and takes its collaborators by constructor (`DriverRegistry`, `ComplianceChecker`, `DiagnosticAdapters`, `TaskSubmitter`, `ChildTaskOrchestrator`). `task.TaskHandlers` is the registry: it refuses to be built when a permitted subtype of `TaskSpec` has no handler (or has two), and `TaskHandlers.run(task, run)` dispatches on the type of the specification.
 
-`TaskJob` is built by Quartz through `TaskJobFactory` (handed to `TaskManager.init(taskJobFactory)` by `Netshot.main`, built by `Wiring`), which gives it the registry and `DomainEvents`; a test runs a task with `Wiring.get().taskJobFactory().newTaskJob().runTask(id)`. The handler tests (`task.handler.*HandlerTest`) use `TaskRunner` instead: the same task engine and handlers, with the follow-up tasks recorded rather than scheduled, and the child tasks of the group tasks given a terminal status rather than run; the handlers which connect to a device run against the device simulator. The group tasks (`TakeGroupSnapshotTask`, `RunGroupDiagnosticsTask`, `RunDeviceGroupScriptTask`, `ScanSubnetsTask`) delegate the pre-creation, promotion and polling of their child tasks to `task.engine.ChildTaskOrchestrator`; the pure decision functions stay in `Task.SequentialScheduling`. To add a task type: the specification record in `task.type` (a permitted subtype of `TaskSpec`), its handler, its DTO and payload (with their `@JsonSubTypes` entries), and its line in `Wiring`.
+`TaskJob` is built by Quartz through `TaskJobFactory` (built by `Wiring`, which sets it on the `TaskManager`), which gives it the registry and `DomainEvents`; a test runs a task with `TestWiring.get().taskJobFactory().newTaskJob().runTask(id)` (`testing.TestWiring` holds the wiring built for the database tests). The handler tests (`task.handler.*HandlerTest`) use `TaskRunner` instead: the same task engine and handlers, with the follow-up tasks recorded rather than scheduled, and the child tasks of the group tasks given a terminal status rather than run; the handlers which connect to a device run against the device simulator. The group tasks (`TakeGroupSnapshotTask`, `RunGroupDiagnosticsTask`, `RunDeviceGroupScriptTask`, `ScanSubnetsTask`) delegate the pre-creation, promotion and polling of their child tasks to `task.engine.ChildTaskOrchestrator`; the pure decision functions stay in `Task.SequentialScheduling`. To add a task type: the specification record in `task.type` (a permitted subtype of `TaskSpec`), its handler, its DTO and payload (with their `@JsonSubTypes` entries), and its line in `Wiring`.
 
 ### Domain events
 
@@ -199,15 +210,41 @@ The kinds decide where a test can run: the unit and script engine tests need no 
 
 ## Wiring
 
-`boot.Wiring` is the composition root. `Wiring.init()` initializes the database access (the connection pools) and builds the long-lived objects: `Transactions`, then each repository and service (today `DeviceRepository` and `DeviceService`), in dependency order. `Netshot.main` calls it right after the schema update; tests needing a database call the same method.
+`boot.Wiring` is the composition root: it builds the long-lived objects (`Transactions`, then each repository and service, in dependency order) without side effect, and lists the [services](#configuration-and-services) of the server in start order (`Wiring.services()`). `Netshot.main` builds it with `Wiring.create(config)` right after the schema update, and hands the services to a `ServiceManager`. Tests needing a database call `Wiring.init()`, which also initializes the database access (the connection pools).
 
-- **Adding a service**: build it in `Wiring.init()`, give it an accessor, and bind it in `boot.WiringBinder`.
-- **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, `Netshot.main` hands it to `RestServer.init(binder)` which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
-- **Code outside Jersey** receives its dependencies explicitly from `Netshot.main`, which keeps the `Wiring` returned by `Wiring.init()`: `SyslogServer.init(driverRegistry, autoSnapshotScheduler)`, `SnmpTrapReceiver.init(...)`, `ClusterManager.init(...)`, `TaskManager.init(taskJobFactory)`. No static facade is left: the device drivers are looked up in the injected `DriverRegistry` (`forDevice(device)`, `getDriverByName(name)`), which the handlers pass to the device scripts and helpers they create, and the automatic snapshots are scheduled through `AutoSnapshotScheduler`. The static `Wiring.get()` has no caller in `src/main` any more; it remains for the tests, and `Wiring.reloadTaskConfigs()` / `reloadRuleRuntimeConfigs()` (called by `Netshot.loadModuleConfigs()`, which runs before the wiring exists in tests) use the same static instance.
+- **Adding a service** (a use case class): build it in the `Wiring` constructor, give it an accessor, and bind it in `boot.WiringBinder`.
+- **REST resources** get their dependencies by injection. The dependency goes from `boot` to `api`, never the other way: `Wiring.binder()` returns the HK2 binder, given to the `RestServer` service which gives it to `NetshotWebApplication`, which registers it into Jersey. A resource declares its services in an `@Inject` constructor (`DeviceResource(DeviceService)`). A rule of `ArchitectureTest` forbids `api` to depend on `boot`.
+- **Code outside Jersey** receives its dependencies explicitly from the wiring, which builds the services with them: `new SyslogServer(driverRegistry, snapshotRequester, config)`, `new SnmpTrapReceiver(...)`, `new ClusterManager(...)`, `new TaskManager(config, autoSnapshots, lockManager)`. No static facade is left: the device drivers are looked up in the injected `DriverRegistry` (`forDevice(device)`, `getDriverByName(name)`), which the handlers pass to the device scripts and helpers they create, and the automatic snapshots are scheduled through `AutoSnapshotScheduler`.
 - **Descriptions of the drivers belong to the mappers.** The description of the driver of a rule, a diagnostic, a script, a discovered type or a device is computed by the mapper (`api/rest/v0`, and `TaskPayloads` for the webhooks) from the `DriverRegistry` it receives as first argument; the resources get the registry by injection and the hook dispatcher by constructor. Domain records have no accessor that looks a driver up.
-- **Remaining static state.** `Finder` parses its queries with static methods, so it reads the drivers from a static `DriverRegistry` set by `Wiring` (`Finder.setDriverRegistry`); `AutoSnapshotScheduler` holds the process-wide set of the devices with a queued automatic snapshot (marked and cleared by the task lifecycle, which has no access to the scheduler). Both remain to be removed.
 
 Resources are discovered by Jersey package scanning of `net.netshot.netshot.api.rest` (sub-packages included): a new `@Path` class is picked up with no registration. Filters, providers and the exception mapper carry no `@Provider` annotation and are registered explicitly in `NetshotWebApplication`.
+
+## Configuration and services
+
+### Settings
+
+The configuration is an immutable snapshot (`platform.config.Config`: the configuration file overridden by the environment variables, the secrets read from their files once per snapshot), held by the `ConfigStore` (`Netshot.config()`), which replaces it as a whole on a reload (`HUP` signal). A reload is all or nothing: if the configuration file or a secret file can't be read, the current snapshot is kept.
+
+- **A setting is declared once**, as a `static final Setting<T>` field of the class which uses it, with its key, type, default value, range, whether it's a secret, and whether a reload applies it: `Setting.integer("netshot.syslog.port").defaultValue(514).range(1, 65535).restart()`. Settings read together go in a nested `Settings` record of the component, built by a `from(Config)` method (which logs the invalid values). Template keys have a placeholder: `netshot.aaa.radiusN.ip` (`SECRET.at(2)` is `netshot.aaa.radius2.secret`), `netshot.log.class.<ClassName>`.
+- **Reading**: `config.get(SETTING)`, never by key (an `ArchitectureTest` rule forbids `Config.get(String)` outside `platform.config`, except in the database migrations).
+  - A **live** setting is read through a binding, `config.bind(Settings::from)`: a supplier of the settings mapped from the current snapshot, mapped again once after each change (`Ssh.settings()`, `UiUser.settings()`...).
+  - A **restart** setting is read once, when the component starts (`SshServer`, `RestServer`, the database pools...); a reload which changes it logs a warning.
+  - A component which must act on a change (rebuild a client, restart a listener) adds a listener to the store (`ConfigStore.addListener`): the SNMP trap receiver, the OIDC discovery, the shared SSH client, the logging. The listeners are called after the bindings are refreshed, in registration order (the logging first).
+- **Catalog**: `boot.NetshotSettings` lists the classes declaring settings. Building it initializes these classes, the SSH ones included: `Netshot.main` registers the crypto libraries (Bouncy Castle) before, from a first load of the configuration without catalog, because the SSH library checks the available crypto providers (EdDSA...) only once. The configuration is checked against it: the secret files of the secret settings are read when the configuration is loaded, and a warning is logged for each unknown `netshot.*` item (or `NETSHOT_*` variable). `NetshotSettingsTest` checks that every class declaring settings is listed, `ConfigurationReferenceTest` that the [configuration reference](../configuration-reference.md) documents exactly the declared settings, with the right **Reload** value.
+- **Tests** replace the configuration with `TestConfig.init(properties)` (the bindings and listeners follow), and read a copy of it with `TestConfig.properties()`.
+
+### Services
+
+The long-running components (listeners, schedulers, background refreshers, connection pools) implement `platform.lifecycle.Service`: `start()` returns once the service runs, `stop()` once its threads are stopped and its resources released, `isHealthy()` and `stats()` give its status. `Wiring.services()` lists them in start order, leaving out the ones disabled by the configuration: database, device drivers, OIDC IdP discovery, task lock manager, cluster manager, Vault token refresher, SSH client of the device accesses, task manager (`TaskManager` itself), then the receivers (Syslog server, SNMP trap receiver, SSH server) which submit tasks, and the Web/REST server last.
+
+- **`ServiceManager`** (built by `Netshot.main`) starts them in order; if one fails to start, the started ones are stopped in the reverse order, and Netshot exits. A JVM shutdown hook (`SIGTERM`, `SIGINT`) stops them in the reverse order; a stop failure doesn't prevent the next services from being stopped. `ServiceManager.status()` gives the state (`NEW`, `STARTING`, `RUNNING`, `STOPPING`, `STOPPED`, `FAILED`, with the error), the health and the statistics of each service (not exposed by the API yet).
+- **Statistics** (`Service.stats()`, counters since the start): connections of each database pool (total, busy, idle, waiting threads), loads of the device drivers, held task locks, IdP metadata fetches, Vault logins, reads and cache, tasks started, finished (by status) and failed by a stop, cluster messages and masterships, SSH client sessions, messages and traps received and matched by the receivers, SSH logins and upload tickets, HTTP requests by status class and sessions.
+- **Stopping the task manager** (`TaskManager.shutdown()`): the schedulers stop starting tasks, the running tasks get `netshot.shutdown.timeout` seconds to end, then the ones still running are marked as failed.
+- **Threads** are created by executors, with `platform.concurrent.NamedThreadFactory` (named, daemon, logging the uncaught exceptions). `ArchitectureTest` forbids `extends Thread`, `new Thread(...)` outside `platform.concurrent`/`platform.lifecycle`, and the `Executors` factories without thread factory. A receive loop (Syslog server) keeps trying to open its socket with an increasing delay instead of dying, and reports itself unhealthy meanwhile.
+- **No static state for the services**: the task manager, the task lock manager, the cluster manager, the SSH server, the SSH client and the RADIUS, TACACS+ and OIDC authentications are instances, built by the wiring and given to what uses them (constructor parameters, the job factory or the scheduler context for the Quartz jobs, HK2 injection for the REST layer). The task engine only knows the clustering through `ClusterCoordinator` (implemented by `ClusterManager`, `ClusterCoordinator.NONE` without clustering), so the `cluster` slice depends on `task`, not the other way round.
+- **Queries**: `Finder` parses a query against the drivers given to its constructor (bound to a `ScopedValue` while the static parsing methods run), and `DynamicGroups` (built by the wiring with the drivers) refreshes the members of the dynamic groups.
+- **Secrets and SSH client**: the device accesses get what they need from the server as `access.Connectors`: the `vault.SecretResolver` which resolves the Vault-backed credential fields (the `VaultManager` instance built by the wiring, with its token and secret caches) and the SSH client (`access.SshClientService`, a service of the wiring). The wiring gives them to the task handlers, which pass them to the device scripts and their `AccessManager` (`AccessManager.secrets()` and `sshClient()` for the script helpers). `Connectors.OFFLINE` resolves the local values only and has no SSH client (input definitions of the user scripts); the tests use `testing.TestConnectors`.
+- **No mutable static field** (the `STATIC_FIELDS_ARE_FINAL` rule of `ArchitectureTest`), except the `Instrumentation` given by the JVM to the static agent entry point. The values read once (the hostname, the database encryption password of the jOOQ converter) are held by lazily initialized holder classes, and the wiring built for the tests by `testing.TestWiring`. The value-like helpers called from the device scripts and the entities (`Ssh`, `Telnet`, `UiUser`, `PasswordPolicy`...) read their settings through `static final` bindings to `Netshot.config()`.
 
 ## Adding or moving a v0 endpoint
 
@@ -219,6 +256,7 @@ The files of the worked example:
 |---|---|
 | `inventory/device/DeviceRepository` | queries and fetch plan |
 | `inventory/device/DeviceService` | use cases, transactions, side effects |
+| `task/DeviceCreationService` | the use case which adds a device (it creates the discovery or initial snapshot task) |
 | `inventory/device/DeviceCreation`, `DeviceUpdate` | commands (inputs of the use cases) |
 | `inventory/device/DeviceSummary` | projection of the list query |
 | `inventory/device/DeviceValidation` | validation helpers (they used to be in `RestService`) |
@@ -229,7 +267,7 @@ The files of the worked example:
 | `api/rest/v0/device/DeviceDto`, `DeviceSummaryDto`, `NewDeviceRequest`, `UpdateDeviceRequest` | the DTOs of the endpoints |
 | `api/rest/v0/device/DeviceAccessDto`, `CredentialSetDto`, `DeviceAttributeDto`, `DeviceGroupDto`, `DomainDto`, `ModuleDto` | the DTOs of the nested types |
 | `api/rest/v0/device/DeviceMapper`, `DeviceAccessMapper` | entity/projection to DTO, request to command |
-| `DeviceServiceTest`, `DeviceDtoTest` (tests) | service tests, entity/DTO differential test |
+| `DeviceServiceTest`, `DeviceCreationServiceTest`, `DeviceDtoTest` (tests) | service tests, entity/DTO differential test |
 
 ### 1. Check the safety nets
 
@@ -253,7 +291,7 @@ In `boot.Wiring.init()` build the repository and the service (a `new` chain, dep
 
 ### 6. Service tests
 
-Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own database, migrated and wired by the extension, the service built in `@BeforeAll` with `new Transactions()`, its repository and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, and the side effects. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
+Write `<Entity>ServiceTest` in the package of the service, annotated `@DatabaseTest` (see `inventory.device.DeviceServiceTest`: its own database, migrated and wired by the extension, the service built in `@BeforeAll` with the transaction support of the test wiring, `TestWiring.get().transactions()`, its repository and a recording `TaskSubmitter`; see [Test layout](#test-layout)). Cover each error code with its trigger, the order of the checks, the semantics of the null components, that a failing use case leaves nothing behind, and the side effects. This is where the logic of the use cases is tested; the contract tests only prove that the HTTP surface did not move.
 
 ### 7. DTOs and mapper
 
@@ -281,14 +319,7 @@ Domain records carry no `@JsonView`, JAXB or Jackson annotation: do not add any 
 
 ### 11. Run the checks
 
-`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule gets one entry per dependency of each new class of the feature on the other slices of the model (`inventory` -> `access`, `credentials`, `driver`, `task`, `compliance`...): those slices still form one big cycle, so any class of the model that uses another one is counted, until the slices are decoupled. Refreeze and check that no new pair of slices appears:
-
-```bash
-./mvnw test -Dtest=ArchitectureTest -DargLine=-Darchunit.freeze.refreeze=true
-git diff --stat src/test/resources/archunit_store
-```
-
-The refreeze rewrites the line numbers of the stored entries; compare the entries without them (they are ignored when matching).
+`./mvnw checkstyle:check`, then `ApiContractTest`, `ApiContractCoverageTest`, `WebHookContractTest`, your two new test classes, `ArchitectureTest`, and finally the whole `./mvnw test`. For `ArchitectureTest`: the `NO_CYCLES_BETWEEN_FEATURE_SLICES` rule fails on any dependency of the new classes which closes a cycle between top-level packages; place the classes according to the layering described in [Dependency rules](#dependency-rules).
 
 ### 12. Document
 
@@ -336,10 +367,10 @@ Update [REST API](../api/rest-api.md) if the behavior changed (it should not), t
 
 - **Entities are equal by id, caches must be keyed by identity.** The compiled state of a rule (text patterns, validity of a script) used to live in transient fields, so it lasted as long as the instance. The evaluators keep it in `RuleStateCache`, a weak map keyed by the identity of the rule instance: a `WeakHashMap` would use `Rule.equals` (the id) and share a stale state between two instances of the same rule (another session, or after an edit). A cached value must not reference the rule, or it is never released.
 - **Evaluators and adapters are looked up by the real class.** A rule or a diagnostic can be a Hibernate proxy: the registries (`RuleEvaluators`, `DiagnosticAdapters`) unproxy it first, and refuse to be built when a type listed in `Rule.getRuleClasses()` / `Diagnostic.getDiagnosticClasses()` has no evaluator or adapter (`ComplianceCheckTest` and `DiagnosticAdaptersTest` check it against a scan of the classes).
-- **Runtimes read their settings when built.** `JsRuleRuntime` and `PyRuleRuntime` load `netshot.javascript.maxexecutiontime` / `netshot.python.maxexecutiontime` in their constructor (tests call `Netshot.loadModuleConfigs()` before `Wiring.init()`), and again on a configuration reload (`Wiring.reloadRuleRuntimeConfigs()`, called by `Netshot.loadModuleConfigs()`).
+- **Runtimes read their settings through bindings.** `JsRuleRuntime` and `PyRuleRuntime` get the configuration store in their constructor and bind their settings (`netshot.javascript.maxexecutiontime`, `netshot.python.*`), so a configuration reload applies them (see [Configuration and services](#configuration-and-services)).
 
 - **A handler works on the task, not on a copy.** `TaskJob` saves what the handler wrote on the task (`copyResultsTo`), so a handler keeps writing the status and the log on the `Task` it receives, and reads the entity fields through its getters (the fields stay `protected`). When the handler replaces the device by a fresh one loaded from the database, it also calls `task.setDevice(...)`.
-- **Settings belong to the component that uses them.** `netshot.snapshots.auto.*` is read by `AutoSnapshotScheduler` (not by the task), which `Netshot.loadModuleConfigs()` reloads through `Wiring.reloadTaskConfigs()`. The syslog server, the SNMP trap receiver and the cluster manager receive the scheduler from `Netshot.main`.
+- **Settings belong to the component that uses them.** `netshot.snapshots.auto.*` is declared and read by `AutoSnapshotScheduler` (not by the task). The syslog server, the SNMP trap receiver and the cluster manager receive the scheduler from the wiring.
 
 ### Pitfalls met on the inventory slice
 

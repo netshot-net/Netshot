@@ -22,7 +22,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
-import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
+import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
 
 /**
  * The representation of a network interface of a device, with its IP addresses.

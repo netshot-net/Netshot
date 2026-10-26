@@ -22,10 +22,9 @@ import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.quartz.SchedulerException;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 
@@ -53,9 +52,16 @@ public class MasterJob implements Job {
 		Long id = (Long) context.getJobDetail().getJobDataMap()
 			.get(NETSHOT_TASK);
 		log.trace("The task id is {}.", id);
+		TaskManager taskManager;
+		try {
+			taskManager = (TaskManager) context.getScheduler().getContext().get(TaskManager.CONTEXT_KEY);
+		}
+		catch (SchedulerException e) {
+			throw new JobExecutionException("Unable to get the task manager.", e);
+		}
 		try {
 			Thread.sleep(500);
-			new Transactions().system(dsl -> {
+			taskManager.transactions().system(dsl -> {
 				Task task = new TaskRepository().find(dsl, id);
 				if (task == null) {
 					log.error("The retrieved task {} is null.", id);
@@ -65,7 +71,7 @@ public class MasterJob implements Job {
 					log.debug("Task {} was cancelled before being assigned to a runner, skipping.", id);
 				}
 				else {
-					TaskManager.assignTaskRunner(dsl, task);
+					taskManager.assignTaskRunner(dsl, task);
 				}
 				return null;
 			});
@@ -74,7 +80,7 @@ public class MasterJob implements Job {
 			log.error("Error while retrieving and assigning the task to a runner.", e);
 			throw new JobExecutionException("Unable to assign the task to a runner.");
 		}
-		ClusterManager.requestTasksLoad();
+		taskManager.requestTasksLoad();
 	}
 
 }

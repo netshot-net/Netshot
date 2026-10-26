@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;

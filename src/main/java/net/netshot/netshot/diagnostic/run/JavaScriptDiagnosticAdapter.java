@@ -24,9 +24,9 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 
 /**
  * Adapts the JavaScript diagnostics.

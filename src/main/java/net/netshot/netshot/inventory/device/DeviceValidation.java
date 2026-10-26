@@ -29,13 +29,14 @@ import java.util.regex.Pattern;
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import org.jooq.DSLContext;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.OptionDefinition;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.tls.CaCertificates;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 

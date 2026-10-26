@@ -30,6 +30,7 @@ import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Transactions;
@@ -42,8 +43,35 @@ public final class DynamicGroups {
 
 	private static final GroupRepository REPOSITORY = new GroupRepository();
 
-	private DynamicGroups() {
-		// Static helpers only
+	/** The loaded device drivers, to parse the queries against. */
+	private final DriverRegistry driverRegistry;
+
+	/** The transaction support. */
+	private final Transactions transactions;
+
+	/** Serializes the refreshes of all the groups. */
+	private final Object refreshAllLock = new Object();
+
+	/**
+	 * Creates the refresher.
+	 *
+	 * @param transactions the transaction support
+	 * @param driverRegistry the loaded device drivers, to parse the queries against
+	 */
+	public DynamicGroups(Transactions transactions, DriverRegistry driverRegistry) {
+		this.transactions = transactions;
+		this.driverRegistry = driverRegistry;
+	}
+
+	/**
+	 * Parses the query of a dynamic group.
+	 *
+	 * @param group the group
+	 * @return the finder
+	 * @throws FinderParseException if the query of the group is invalid
+	 */
+	public Finder finder(DynamicDeviceGroup group) throws FinderParseException {
+		return new Finder(group.query(), this.driverRegistry, this.transactions);
 	}
 
 	/**
@@ -53,8 +81,8 @@ public final class DynamicGroups {
 	 * @param group the group (already stored)
 	 * @throws FinderParseException if the query of the group is invalid
 	 */
-	public static void refresh(DSLContext dsl, DynamicDeviceGroup group) throws FinderParseException {
-		Finder finder = group.getFinder();
+	public void refresh(DSLContext dsl, DynamicDeviceGroup group) throws FinderParseException {
+		Finder finder = this.finder(group);
 		List<Long> deviceIds = dsl.select(DEVICE.ID).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.ID);
 		REPOSITORY.setMembers(dsl, group.id(), deviceIds);
 	}
@@ -66,11 +94,11 @@ public final class DynamicGroups {
 	 * @return the formatted query
 	 * @throws FinderParseException if the query is invalid
 	 */
-	public static String formatQuery(String query) throws FinderParseException {
-		return new Finder(query).getFormattedQuery();
+	public String formatQuery(String query) throws FinderParseException {
+		return new Finder(query, this.driverRegistry, this.transactions).getFormattedQuery();
 	}
 
-	private static void insertMemberships(DSLContext dsl, DynamicDeviceGroup group, Finder finder) {
+	private void insertMemberships(DSLContext dsl, DynamicDeviceGroup group, Finder finder) {
 		dsl.insertInto(DEVICE_GROUP_CACHED_DEVICES, DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES,
 				DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION)
 			.select(DSL.select(DEVICE.ID, DSL.val(group.id()), DSL.val(0)).from(DEVICE).where(finder.getCondition()))
@@ -85,7 +113,7 @@ public final class DynamicGroups {
 	 * @param dsl the jOOQ context
 	 * @param deviceId the device ID
 	 */
-	public static void refreshAllGroupsOfOneDevice(DSLContext dsl, long deviceId) {
+	public void refreshAllGroupsOfOneDevice(DSLContext dsl, long deviceId) {
 		List<DynamicDeviceGroup> allGroups = REPOSITORY.findDynamic(dsl);
 		dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES)
 			.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId))
@@ -100,7 +128,7 @@ public final class DynamicGroups {
 					deviceQuery += " and (%s)".formatted(group.query());
 				}
 				log.trace("Finder query for group: '{}'.", deviceQuery);
-				insertMemberships(dsl, group, new Finder(deviceQuery));
+				this.insertMemberships(dsl, group, new Finder(deviceQuery, this.driverRegistry, this.transactions));
 			}
 			catch (FinderParseException e) {
 				log.error("Parse error while updating the group {}.", group.id(), e);
@@ -114,10 +142,10 @@ public final class DynamicGroups {
 	 *
 	 * @param deviceId the device ID
 	 */
-	public static void refreshAllGroupsOfOneDevice(long deviceId) {
+	public void refreshAllGroupsOfOneDevice(long deviceId) {
 		log.debug("Refreshing all groups for device {}.", deviceId);
 		try {
-			new Transactions().run(dsl -> refreshAllGroupsOfOneDevice(dsl, deviceId));
+			this.transactions.run(dsl -> this.refreshAllGroupsOfOneDevice(dsl, deviceId));
 		}
 		catch (Exception e) {
 			log.error("Error while refreshing the dynamic groups.", e);
@@ -128,16 +156,22 @@ public final class DynamicGroups {
 	 * Refreshes the members of all the dynamic groups, in a transaction of its own.
 	 * A failure is only logged.
 	 */
-	public static synchronized void refreshAllGroups() {
+	public void refreshAllGroups() {
+		synchronized (this.refreshAllLock) {
+			this.refreshAllGroupsLocked();
+		}
+	}
+
+	private void refreshAllGroupsLocked() {
 		log.debug("Refreshing all dynamic groups.");
 		Instant before = Instant.now();
 		try {
-			new Transactions().run(dsl -> {
+			this.transactions.run(dsl -> {
 				for (DynamicDeviceGroup group : REPOSITORY.findDynamic(dsl)) {
 					try {
 						log.trace("Refreshing group {} ({})", group.id(), group.name());
 						dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES).where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(group.id())).execute();
-						insertMemberships(dsl, group, group.getFinder());
+						this.insertMemberships(dsl, group, this.finder(group));
 					}
 					catch (FinderParseException e) {
 						log.error("Parse error while updating the group {}.", group.id(), e);

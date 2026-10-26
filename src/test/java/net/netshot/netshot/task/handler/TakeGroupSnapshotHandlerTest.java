@@ -30,8 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;

@@ -33,17 +33,18 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
 import net.netshot.netshot.access.AccessManager;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
@@ -71,9 +72,9 @@ public class GenericSNMPDriverTest {
 		snmpAccess.port(port);
 		deviceAccesses.add(snmpAccess.build());
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(deviceAccesses).tags(deviceTags).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), this.taskContext);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, this.taskContext);
 
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, this.taskContext, Set.of(community));
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, this.taskContext, Set.of(community));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		runMethod.invoke(script, device, accessManager);

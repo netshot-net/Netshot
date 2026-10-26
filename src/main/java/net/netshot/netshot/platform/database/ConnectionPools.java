@@ -19,15 +19,20 @@
 package net.netshot.netshot.platform.database;
 
 import java.beans.PropertyVetoException;
+import java.sql.SQLException;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.sql.DataSource;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.mchange.v2.c3p0.impl.C3P0ImplUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The pools of database connections (c3p0), one per {@link PoolKind}: read-write, system
@@ -36,6 +41,51 @@ import net.netshot.netshot.Netshot;
  */
 @Slf4j
 public final class ConnectionPools implements AutoCloseable {
+
+	/** Min size of the main (read-write and read-only) pools. */
+	static final Setting<Integer> MIN_POOL_SIZE = poolSetting("netshot.db.pooler.minpoolsize", 5, 0);
+
+	/** Max size of the main (read-write and read-only) pools. */
+	public static final Setting<Integer> MAX_POOL_SIZE = poolSetting("netshot.db.pooler.maxpoolsize", 50, 0);
+
+	/** Min size of the system pool. */
+	static final Setting<Integer> SYSTEM_MIN_POOL_SIZE = poolSetting("netshot.db.pooler.system.minpoolsize", 1, 0);
+
+	/** Max size of the system pool. */
+	static final Setting<Integer> SYSTEM_MAX_POOL_SIZE = poolSetting("netshot.db.pooler.system.maxpoolsize", 5, 1);
+
+	/** Checkout timeout (ms, 0 = wait indefinitely). */
+	static final Setting<Integer> CHECKOUT_TIMEOUT = poolSetting("netshot.db.pooler.checkouttimeout", 0, 0);
+
+	/** Max idle time (s) of a pooled connection. */
+	static final Setting<Integer> MAX_IDLE_TIMEOUT = poolSetting("netshot.db.pooler.maxidletimeout", 1800, 0);
+
+	/** Max age (s) of a pooled connection. */
+	static final Setting<Integer> MAX_CONNECTION_AGE = poolSetting("netshot.db.pooler.maxconnectionage", 0, 0);
+
+	/** Whether the connections are tested on checkout. */
+	static final Setting<Boolean> TEST_CONNECTION_ON_CHECKOUT = Setting.bool("netshot.db.pooler.testconnectiononcheckout")
+		.defaultValue(true).restart();
+
+	/** Whether the connections are tested on checkin. */
+	static final Setting<Boolean> TEST_CONNECTION_ON_CHECKIN = Setting.bool("netshot.db.pooler.testconnectiononcheckin")
+		.defaultValue(false).restart();
+
+	/** Period (s) of the tests of the idle connections. */
+	static final Setting<Integer> IDLE_CONNECTION_TEST_PERIOD = poolSetting("netshot.db.pooler.idleconnectiontestperiod", 0, 0);
+
+	/** Timeout (s) of the connection validity check. */
+	static final Setting<Integer> CONNECTION_IS_VALID_TIMEOUT = poolSetting("netshot.db.pooler.connectionisvalidtimeout", 0, 0);
+
+	/** Max number of cached statements. */
+	static final Setting<Integer> MAX_STATEMENTS = poolSetting("netshot.db.pooler.maxstatements", 50, 0);
+
+	/** Timeout (s) after which a connection which wasn't returned to the pool is closed. */
+	static final Setting<Integer> UNRETURNED_CONNECTION_TIMEOUT = poolSetting("netshot.db.pooler.unreturnedconnectiontimeout", 1800, 0);
+
+	private static Setting<Integer> poolSetting(String key, int defaultValue, int min) {
+		return Setting.integer(key).defaultValue(defaultValue).range(min, Integer.MAX_VALUE).restart();
+	}
 
 	/** The pools. */
 	private final Map<PoolKind, ComboPooledDataSource> pools = new EnumMap<>(PoolKind.class);
@@ -50,22 +100,22 @@ public final class ConnectionPools implements AutoCloseable {
 	 * @param password the password
 	 */
 	public ConnectionPools(String driverClass, String url, String readUrl, String username, String password) {
-		this.pools.put(PoolKind.READ_WRITE, create(PoolKind.READ_WRITE, driverClass, url, username, password,
-			Netshot.getConfig("netshot.db.pooler.minpoolsize", 5, 0, Integer.MAX_VALUE),
-			Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE)));
-		this.pools.put(PoolKind.SYSTEM, create(PoolKind.SYSTEM, driverClass, url, username, password,
-			Netshot.getConfig("netshot.db.pooler.system.minpoolsize", 1, 0, Integer.MAX_VALUE),
-			Netshot.getConfig("netshot.db.pooler.system.maxpoolsize", 5, 1, Integer.MAX_VALUE)));
+		Config config = Netshot.config().current();
+		this.pools.put(PoolKind.READ_WRITE, create(config, PoolKind.READ_WRITE, driverClass, url, username, password,
+			config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
+		this.pools.put(PoolKind.SYSTEM, create(config, PoolKind.SYSTEM, driverClass, url, username, password,
+			config.get(SYSTEM_MIN_POOL_SIZE), config.get(SYSTEM_MAX_POOL_SIZE)));
 		if (readUrl != null) {
-			this.pools.put(PoolKind.READ_ONLY, create(PoolKind.READ_ONLY, driverClass, readUrl, username, password,
-				Netshot.getConfig("netshot.db.pooler.minpoolsize", 5, 0, Integer.MAX_VALUE),
-				Netshot.getConfig("netshot.db.pooler.maxpoolsize", 50, 0, Integer.MAX_VALUE)));
+			this.pools.put(PoolKind.READ_ONLY, create(config, PoolKind.READ_ONLY, driverClass, readUrl, username, password,
+				config.get(MIN_POOL_SIZE), config.get(MAX_POOL_SIZE)));
 		}
 	}
 
-	private static ComboPooledDataSource create(PoolKind identifier, String driverClass, String url,
+	private static ComboPooledDataSource create(Config config, PoolKind identifier, String driverClass, String url,
 		String username, String password, int minPoolSize, int maxPoolSize) {
 		ComboPooledDataSource pool = new ComboPooledDataSource(false);
+		// Not registered (autoregister false), but closing the pool needs an identity token
+		pool.setIdentityToken(C3P0ImplUtils.allocateIdentityToken(pool));
 		try {
 			pool.setDriverClass(driverClass);
 		}
@@ -79,15 +129,15 @@ public final class ConnectionPools implements AutoCloseable {
 		pool.setMinPoolSize(minPoolSize);
 		pool.setInitialPoolSize(minPoolSize);
 		pool.setMaxPoolSize(maxPoolSize);
-		pool.setCheckoutTimeout(Netshot.getConfig("netshot.db.pooler.checkouttimeout", 0, 0, Integer.MAX_VALUE));
-		pool.setMaxIdleTime(Netshot.getConfig("netshot.db.pooler.maxidletimeout", 1800, 0, Integer.MAX_VALUE));
-		pool.setMaxConnectionAge(Netshot.getConfig("netshot.db.pooler.maxconnectionage", 0, 0, Integer.MAX_VALUE));
-		pool.setTestConnectionOnCheckout(Netshot.getConfig("netshot.db.pooler.testconnectiononcheckout", true));
-		pool.setTestConnectionOnCheckin(Netshot.getConfig("netshot.db.pooler.testconnectiononcheckin", false));
-		pool.setIdleConnectionTestPeriod(Netshot.getConfig("netshot.db.pooler.idleconnectiontestperiod", 0, 0, Integer.MAX_VALUE));
-		pool.setConnectionIsValidTimeout(Netshot.getConfig("netshot.db.pooler.connectionisvalidtimeout", 0, 0, Integer.MAX_VALUE));
-		pool.setMaxStatements(Netshot.getConfig("netshot.db.pooler.maxstatements", 50, 0, Integer.MAX_VALUE));
-		pool.setUnreturnedConnectionTimeout(Netshot.getConfig("netshot.db.pooler.unreturnedconnectiontimeout", 1800, 0, Integer.MAX_VALUE));
+		pool.setCheckoutTimeout(config.get(CHECKOUT_TIMEOUT));
+		pool.setMaxIdleTime(config.get(MAX_IDLE_TIMEOUT));
+		pool.setMaxConnectionAge(config.get(MAX_CONNECTION_AGE));
+		pool.setTestConnectionOnCheckout(config.get(TEST_CONNECTION_ON_CHECKOUT));
+		pool.setTestConnectionOnCheckin(config.get(TEST_CONNECTION_ON_CHECKIN));
+		pool.setIdleConnectionTestPeriod(config.get(IDLE_CONNECTION_TEST_PERIOD));
+		pool.setConnectionIsValidTimeout(config.get(CONNECTION_IS_VALID_TIMEOUT));
+		pool.setMaxStatements(config.get(MAX_STATEMENTS));
+		pool.setUnreturnedConnectionTimeout(config.get(UNRETURNED_CONNECTION_TIMEOUT));
 		pool.setDebugUnreturnedConnectionStackTraces(true);
 		return pool;
 	}
@@ -102,6 +152,30 @@ public final class ConnectionPools implements AutoCloseable {
 	public DataSource get(PoolKind identifier) {
 		ComboPooledDataSource pool = this.pools.get(identifier);
 		return pool == null ? this.pools.get(PoolKind.READ_WRITE) : pool;
+	}
+
+	/**
+	 * Gets the statistics of the pools: the connections (total, busy, idle) and the threads waiting for one.
+	 *
+	 * @return the statistics, by pool name
+	 */
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		for (ComboPooledDataSource pool : this.pools.values()) {
+			Map<String, Object> poolStats = new LinkedHashMap<>();
+			try {
+				poolStats.put("connections", pool.getNumConnectionsDefaultUser());
+				poolStats.put("busy", pool.getNumBusyConnectionsDefaultUser());
+				poolStats.put("idle", pool.getNumIdleConnectionsDefaultUser());
+				poolStats.put("waiting", pool.getNumThreadsAwaitingCheckoutDefaultUser());
+				poolStats.put("max", pool.getMaxPoolSize());
+			}
+			catch (SQLException e) {
+				poolStats.put("error", e.getMessage());
+			}
+			stats.put(pool.getDataSourceName(), poolStats);
+		}
+		return stats;
 	}
 
 	/**

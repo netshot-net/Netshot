@@ -24,7 +24,11 @@ import java.util.List;
 import java.util.Set;
 
 import lombok.Builder;
-import net.netshot.netshot.inventory.device.NetworkAddress.AddressUsage;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
+import net.netshot.netshot.platform.net.PhysicalAddress;
 
 /**
  * A network interface is attached to a device, has a physical
