@@ -74,6 +74,17 @@ public final class DeviceSimulators {
 	}
 
 	/**
+	 * Same as {@link #ssh(String)}, for one of the platform variants the
+	 * simulator script of the driver knows.
+	 * @param driverName the driver to emulate, see {@link #ssh(String)}
+	 * @param variant the platform variant (NETSHOT_SIMULATOR_VARIANT), see the simulator script
+	 * @return the not-yet-started container
+	 */
+	public static GenericContainer<?> ssh(String driverName, String variant) {
+		return ssh(driverName).withEnv("NETSHOT_SIMULATOR_VARIANT", variant);
+	}
+
+	/**
 	 * Builds (but does not start) the device-simulator container in SNMP-only
 	 * mode ({@code Generic_SNMP}, UDP port 161), with the given container
 	 * hostname (net-snmp reports the container's own hostname as sysName, so
