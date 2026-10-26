@@ -29,7 +29,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +48,9 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 
 import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.session.ClientSession;
+import org.apache.sshd.common.AttributeRepository;
+import org.apache.sshd.common.kex.KexProposalOption;
 import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.common.session.SessionListener.Event;
 
@@ -430,6 +436,104 @@ public class DeviceDriverTest {
 				"Expected no rekey (1 KeyEstablished event, the initial exchange) now that the driver "
 					+ "explicitly disabled it via rekey.dataLimit=0, got " + keyEstablishedCount
 					+ " - the per-connection override did not take effect (see this class's javadoc)");
+		}
+	}
+
+	@Nested
+	@DisplayName("SSH algorithms of an access")
+	class SshAlgorithmsTest {
+
+		@Container
+		private static final GenericContainer<?> container = buildSshDeviceSimulator("Cisco_IOS");
+
+		/**
+		 * Records the client proposal of each key exchange of the shared {@code Ssh.client} while some
+		 * work runs ({@code Ssh.client} has no public accessor: reached by reflection, as in {@link RekeyTest}).
+		 */
+		private static List<Map<KexProposalOption, String>> clientProposals(ThrowingRunnable work) throws Exception {
+			SshClient client = sharedClient();
+			List<Map<KexProposalOption, String>> proposals = Collections.synchronizedList(new ArrayList<>());
+			SessionListener listener = new SessionListener() {
+				@Override
+				public void sessionNegotiationEnd(org.apache.sshd.common.session.Session session,
+					Map<KexProposalOption, String> clientProposal, Map<KexProposalOption, String> serverProposal,
+					Map<KexProposalOption, String> negotiatedOptions, Throwable reason) {
+					proposals.add(Map.copyOf(clientProposal));
+				}
+			};
+			client.addSessionListener(listener);
+			try {
+				work.run();
+			}
+			finally {
+				client.removeSessionListener(listener);
+			}
+			return proposals;
+		}
+
+		private static SshClient sharedClient() throws Exception {
+			Field clientField = Ssh.class.getDeclaredField("client");
+			clientField.setAccessible(true);
+			return (SshClient) clientField.get(null);
+		}
+
+		/** Some work which can throw. */
+		@FunctionalInterface
+		private interface ThrowingRunnable {
+			void run() throws Exception;
+		}
+
+		/** The configuration of the access: one cipher and one MAC. */
+		private static Ssh.SshConfig restrictedConfig(boolean withDefaults) {
+			Ssh.SshConfig config = new Ssh.SshConfig(withDefaults);
+			config.setCiphers(new String[] { "aes128-ctr" });
+			config.setMacs(new String[] { "hmac-sha2-256" });
+			return config;
+		}
+
+		private static void assertRestricted(List<Map<KexProposalOption, String>> proposals, int expectedCount) {
+			Assertions.assertEquals(expectedCount, proposals.size(), "One (initial) key exchange per connection");
+			for (Map<KexProposalOption, String> proposal : proposals) {
+				Assertions.assertEquals("aes128-ctr", proposal.get(KexProposalOption.C2SENC), "Proposed ciphers " + proposal);
+				Assertions.assertEquals("aes128-ctr", proposal.get(KexProposalOption.S2CENC), "Proposed ciphers " + proposal);
+				Assertions.assertEquals("hmac-sha2-256", proposal.get(KexProposalOption.C2SMAC), "Proposed MACs " + proposal);
+			}
+		}
+
+		@Test
+		@DisplayName("A connection proposes the configured algorithms only")
+		void connectionProposesTheConfiguredAlgorithms() throws Exception {
+			List<Map<KexProposalOption, String>> proposals = clientProposals(() -> {
+				for (int i = 0; i < 5; i++) {
+					Ssh ssh = new Ssh(container.getHost(), container.getMappedPort(22), "admin", "admin", new FakeTaskContext());
+					ssh.applySshConfig(restrictedConfig(false));
+					ssh.connect(false);
+					ssh.disconnect();
+				}
+			});
+			assertRestricted(proposals, 5);
+		}
+
+		@Test
+		@DisplayName("The algorithms are set before the first key exchange, however late the caller gets the session")
+		void algorithmsAreSetBeforeTheFirstKeyExchange() throws Exception {
+			Field attributeField = Ssh.class.getDeclaredField("SSH_CONFIG_ATTRIBUTE");
+			attributeField.setAccessible(true);
+			@SuppressWarnings("unchecked")
+			AttributeRepository.AttributeKey<Ssh.SshConfig> attribute =
+				(AttributeRepository.AttributeKey<Ssh.SshConfig>) attributeField.get(null);
+			List<Map<KexProposalOption, String>> proposals = clientProposals(() -> {
+				// As Ssh.connect opens the session, with a caller stalled after the connection (a loaded server)
+				AttributeRepository context = AttributeRepository.ofKeyValuePair(attribute, restrictedConfig(true));
+				try (ClientSession session = sharedClient()
+					.connect("admin", container.getHost(), container.getMappedPort(22), context, null)
+					.verify(Duration.ofSeconds(10)).getSession()) {
+					Thread.sleep(500);
+					session.addPasswordIdentity("admin");
+					session.auth().verify(Duration.ofSeconds(10));
+				}
+			});
+			assertRestricted(proposals, 1);
 		}
 	}
 
