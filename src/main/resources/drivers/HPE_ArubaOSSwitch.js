@@ -21,7 +21,7 @@ var Info = {
 	name: "HPEArubaOSSwitch",
 	description: "HPE ArubaOS-Switch",
 	author: "Netshot Team",
-	version: "1.6"
+	version: "1.7"
 };
 
 var Config = {
@@ -72,11 +72,11 @@ var CLI = {
 	telnet: {
 		macros: {
 			enable: {
-				options: [ "continue", "username", "enable", "disable" ],
+				options: [ "continue", "username", "stackSelect", "enable", "disable" ],
 				target: "enable"
 			},
 			configure: {
-				options: [ "continue", "username", "enable", "disable" ],
+				options: [ "continue", "username", "stackSelect", "enable", "disable" ],
 				target: "configure"
 			}
 		}
@@ -84,11 +84,11 @@ var CLI = {
 	ssh: {
 		macros: {
 			enable: {
-				options: [ "continue", "enable", "disable" ],
+				options: [ "continue", "stackSelect", "enable", "disable" ],
 				target: "enable"
 			},
 			configure: {
-				options: [ "continue", "enable", "disable" ],
+				options: [ "continue", "stackSelect", "enable", "disable" ],
 				target: "configure"
 			}
 		}
@@ -98,7 +98,21 @@ var CLI = {
 		macros: {
 			auto: {
 				cmd: "",
-				options: [ "username", "disable", "enable" ]
+				options: [ "username", "stackSelect", "disable", "enable" ]
+			}
+		}
+	},
+	// HP Stack Management Commander: the Commander presents a member
+	// selection menu ("Enter switch number to connect to or <CR>:") before
+	// reaching the CLI. Sending an empty command (CR) connects to the
+	// Commander itself, i.e. the device whose IP Netshot polls. This avoids
+	// having to disable Stack Management (no stack) on every Commander.
+	stackSelect: {
+		prompt: /Enter switch number to connect to or <CR>: *$/,
+		macros: {
+			auto: {
+				cmd: "",
+				options: [ "username", "continue", "disable", "enable" ]
 			}
 		}
 	},
@@ -116,7 +130,7 @@ var CLI = {
 		macros: {
 			auto: {
 				cmd: "$$NetshotPassword$$",
-				options: [ "incorrectCredentials", "disable", "enable" ]
+				options: [ "incorrectCredentials", "continue", "stackSelect", "disable", "enable" ]
 			}
 		}
 	},

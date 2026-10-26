@@ -26,6 +26,10 @@
 # values are baked as literal exports into the generated wrapper scripts
 # below instead of being left to environment inheritance.
 #
+# NETSHOT_SIMULATOR_VARIANT (optional) picks a platform variant in the
+# scripts that model several, e.g. Cisco_Sx "sx220", or HPE_ArubaOSSwitch
+# "commander" - see each script's header for the ones it knows.
+#
 # NETSHOT_SIMULATOR_USERNAME/_PASSWORD (default admin/admin) are the
 # SSH/Telnet login credentials. Telnet checks them itself (see each script's
 # "telnet start" - a real device's CLI does its own prompting, there's no
@@ -66,6 +70,7 @@ export NETSHOT_SIMULATOR_MGMT_IP="${NETSHOT_SIMULATOR_MGMT_IP}"
 export NETSHOT_SIMULATOR_LOCATION="${NETSHOT_SIMULATOR_LOCATION}"
 export NETSHOT_SIMULATOR_CONTACT="${NETSHOT_SIMULATOR_CONTACT}"
 export NETSHOT_SIMULATOR_SERIAL="${NETSHOT_SIMULATOR_SERIAL}"
+export NETSHOT_SIMULATOR_VARIANT="${NETSHOT_SIMULATOR_VARIANT}"
 export NETSHOT_SIMULATOR_USERNAME="${USERNAME}"
 export NETSHOT_SIMULATOR_PASSWORD="${PASSWORD}"
 export NETSHOT_SIMULATOR_ENABLE_SECRET="${NETSHOT_SIMULATOR_ENABLE_SECRET}"
@@ -81,6 +86,7 @@ export NETSHOT_SIMULATOR_MGMT_IP="${NETSHOT_SIMULATOR_MGMT_IP}"
 export NETSHOT_SIMULATOR_LOCATION="${NETSHOT_SIMULATOR_LOCATION}"
 export NETSHOT_SIMULATOR_CONTACT="${NETSHOT_SIMULATOR_CONTACT}"
 export NETSHOT_SIMULATOR_SERIAL="${NETSHOT_SIMULATOR_SERIAL}"
+export NETSHOT_SIMULATOR_VARIANT="${NETSHOT_SIMULATOR_VARIANT}"
 export NETSHOT_SIMULATOR_USERNAME="${USERNAME}"
 export NETSHOT_SIMULATOR_PASSWORD="${PASSWORD}"
 export NETSHOT_SIMULATOR_ENABLE_SECRET="${NETSHOT_SIMULATOR_ENABLE_SECRET}"

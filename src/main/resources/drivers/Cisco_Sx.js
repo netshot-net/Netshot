@@ -19,9 +19,9 @@
 
 var Info = {
 	name: "CiscoSx",
-	description: "Cisco Small Business 2/3/500 series",
+	description: "Cisco Small Business 2/3/5xx and Sx220 series",
 	author: "Netshot Team",
-	version: "1.1"
+	version: "1.5"
 };
 
 var Config = {
@@ -96,7 +96,8 @@ var CLI = {
 		}
 	},
 	username: {
-		prompt: /^User Name:\s?$/,
+		// "User Name:" (Sx300/500, Sx250/350/550) or "Username:" (Sx220)
+		prompt: /^User ?[Nn]ame:\s?$/,
 		macros: {
 			auto: {
 				cmd: "$$NetshotUsername$$",
@@ -109,20 +110,34 @@ var CLI = {
 		macros: {
 			auto: {
 				cmd: "$$NetshotPassword$$",
-				options: [ "usernameAgain", "exec" ]
+				options: [ "usernameAgain", "passwordLifetime", "exec" ]
+			}
+		}
+	},
+	passwordLifetime: {
+		// "Your password has exceeded the maximum lifetime. ...
+		//  Do you want to change it now (Y/N)[N] ?"
+		prompt: /Do you want to change it now \(Y\/N\)\[N\] \?\s*$/,
+		macros: {
+			auto: {
+				cmd: "N",
+				options: [ "exec" ]
 			}
 		}
 	},
 	usernameAgain: {
-		prompt: /^User Name:\s?$/,
+		prompt: /^User ?[Nn]ame:\s?$/,
 		fail: "Authentication failed - Authentication failure."
 	},
 	exec: {
 		prompt: /^([A-Za-z\-_0-9\.\/]+#)$/,
 		error: /^% (.*)/m,
 		pager: {
-			avoid: "terminal datadump",
-			match: /^More: <space>,.*/,
+			// "terminal datadump" on Sx300/500/250/350/550,
+			// "terminal length 0" on Sx220 (each fails on the other platforms)
+			avoid: [ "terminal datadump", "terminal length 0" ],
+			// "More: <space>, ..." on Sx300/500 style, "--More--" on Sx220
+			match: /^(--More--|More: <space>,.*)/,
 			response: " "
 		},
 		macros: {
@@ -172,20 +187,51 @@ function snapshot(cli, device, config) {
 	device.set("configurationSaved", configSaved);
 
 	const showVersion = cli.command("show version");
-	const showSystem = cli.command("show system");
 
-	const hostname = showSystem.match(/^System Name:\s+(.+)$/m);
-	if (hostname) {
-		device.set("name", hostname[1]);
+	// "show system" is not available on every platform (e.g. Sx220)
+	let showSystem = "";
+	try {
+		showSystem = cli.command("show system");
+	}
+	catch (err) {
+		cli.debug("show system doesn't seem to be supported");
 	}
 
-	const swVersion = showVersion.match(/^SW version\s+([0-9\.]+)/m);
+	// Hostname: from "show system", or from the running config (Sx220)
+	const hostname = showSystem.match(/^System Name:\s+(.+)$/m);
+	if (hostname) {
+		device.set("name", hostname[1].trim());
+	}
+	else {
+		const configHostname = runningConfig.match(/^hostname "?([^"\r\n]+)"?\s*$/m);
+		if (configHostname) {
+			device.set("name", configHostname[1].trim());
+		}
+	}
+
+	// Software version, 3 known formats:
+	// 1. Legacy (Sx300/500, fw 1.x/2.x): "SW version    2.5.9.54 ..."
+	// 2. Sx250/350/550 & CBS (fw 2.5+/3.x): "Active-image: flash://..." then "  Version: 3.0.0.69"
+	// 3. Sx220: "Cisco Sx220 Series Switch Software, Version 1.1.0.14, RELEASE SOFTWARE"
+	let swVersion = showVersion.match(/^SW version\s+([0-9\.]+)/m);
+	if (!swVersion) {
+		swVersion = showVersion.match(/^Active-image:[^\r\n]*[\r\n]+\s*Version:\s+([0-9\.]+)/m);
+	}
+	if (!swVersion) {
+		swVersion = showVersion.match(/Switch Software, Version\s+([0-9\.]+)/);
+	}
 	if (swVersion) {
 		device.set("softwareVersion", swVersion[1]);
 		config.set("swVersion", swVersion[1]);
 	}
 
-	const bootVersion = showVersion.match(/^Boot version\s+([0-9\.]+)/m);
+	// Boot version:
+	// Legacy: "Boot version    1.4.0.02"
+	// Sx220: "BOOTLDR: Sx220 Boot Loader Version 1.0.0.6, RELEASE SOFTWARE"
+	let bootVersion = showVersion.match(/^Boot version\s+([0-9\.]+)/m);
+	if (!bootVersion) {
+		bootVersion = showVersion.match(/Boot Loader Version\s+([0-9\.]+)/);
+	}
 	if (bootVersion) {
 		config.set("bootVersion", bootVersion[1]);
 	}
@@ -195,7 +241,11 @@ function snapshot(cli, device, config) {
 		device.set("hwVersion", hwVersion[1]);
 	}
 
-	const systemMac = showSystem.match(/^System MAC Address:\s+([0-9a-fA-F:]+)/m);
+	// System MAC: from "show system" (legacy) or "show version" (Sx220)
+	let systemMac = showSystem.match(/^System MAC Address:\s+([0-9a-fA-F:]+)/m);
+	if (!systemMac) {
+		systemMac = showVersion.match(/^Base MAC Address\s*:\s*([0-9a-fA-F:]+)/m);
+	}
 	if (systemMac) {
 		device.set("systemMac", systemMac[1]);
 	}
@@ -203,9 +253,17 @@ function snapshot(cli, device, config) {
 	device.set("networkClass", "SWITCH");
 	device.set("family", "Small Business switch");
 
-	const systemDesc = showSystem.match(/^System Description:\s+([0-9a-fA-F]+)/m);
+	// e.g. "System Description:   SG300-28 28-Port Gigabit Managed Switch"
+	const systemDesc = showSystem.match(/^System Description:\s+(\S+)/m);
 	if (systemDesc) {
 		device.set("family", `Cisco ${systemDesc[1]}`);
+	}
+	else {
+		// Sx220: model number available in "show version"
+		const modelNumber = showVersion.match(/^Model Number\s*:\s*(\S+)/m);
+		if (modelNumber) {
+			device.set("family", `Cisco ${modelNumber[1]}`);
+		}
 	}
 
 	const sysContact = showSystem.match(/^System Contact:\s+(.+)/m);
@@ -218,9 +276,17 @@ function snapshot(cli, device, config) {
 		device.set("location", sysLocation[1]);
 	}
 
-	const showInventory = cli.command("show inventory");
+	// "show inventory" is not available on every platform (e.g. Sx220)
+	let showInventory = "";
+	try {
+		showInventory = cli.command("show inventory");
+	}
+	catch (err) {
+		cli.debug("show inventory doesn't seem to be supported");
+	}
 	const inventoryPattern = /NAME: \"(.*)\",? +DESCR: \"(.*)\" *[\r\n]+PID: (.*?) *,? +VID: (.*),? +SN: (.*)/g;
 	let match;
+	let serialFound = false;
 	while (match = inventoryPattern.exec(showInventory)) {
 		const module = {
 			slot: match[1],
@@ -231,6 +297,20 @@ function snapshot(cli, device, config) {
 		const partDescription = match[2];
 		if (partDescription.match(/Switch/)) {
 			device.set("serialNumber", module.serialNumber);
+			serialFound = true;
+		}
+	}
+	if (!serialFound) {
+		// Sx220: serial number and PID in "show version"
+		const serialNumber = showVersion.match(/^Serial Number\s*:\s*(\S+)/m);
+		if (serialNumber) {
+			device.set("serialNumber", serialNumber[1]);
+			const pid = showVersion.match(/^PID\s*:\s*(\S+)/m);
+			device.add("module", {
+				slot: "1",
+				partNumber: pid ? pid[1] : "Unknown",
+				serialNumber: serialNumber[1]
+			});
 		}
 	}
 
@@ -306,8 +386,8 @@ function analyzeTrap(trap, debug) {
 
 function snmpAutoDiscover(sysObjectID, sysDesc) {
 	// https://www.cisco.com/c/en/us/support/docs/smb/switches/cisco-small-business-200-series-smart-switches/smb5512-cisco-small-business-switches-model-object-identifiers-oids.html
-	if (sysObjectID.match(/^1\.3\.6\.1\.4\.1\.9\.6\.1\.[89][09]\..*$/)
-		&& sysDesc.match(/^S[GF](200|220|250|300|302|350|500).*/)) {
+	if (sysObjectID.match(/^1\.3\.6\.1\.4\.1\.9\.6\.1\.[89][0-9]\..*$/)
+		&& sysDesc.match(/^S[GF](200|220|250|300|302|350|500|550).*/)) {
 		return true;
 	}
 	return false;
