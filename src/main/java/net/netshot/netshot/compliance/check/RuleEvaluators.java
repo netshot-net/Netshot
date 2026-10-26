@@ -22,11 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.netshot.netshot.compliance.CheckResult;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * The registry of the rule evaluators, by type of rule. It refuses to be built if
@@ -61,13 +62,15 @@ public final class RuleEvaluators {
 	 * @param jsRuntime the JavaScript runtime of the rules
 	 * @param pyRuntime the Python runtime of the rules
 	 * @param driverRegistry the loaded device drivers
+	 * @param transactions the transaction support, for the device helpers of the scripts
 	 * @return the registry
 	 */
-	public static RuleEvaluators standard(JsRuleRuntime jsRuntime, PyRuleRuntime pyRuntime, DriverRegistry driverRegistry) {
+	public static RuleEvaluators standard(JsRuleRuntime jsRuntime, PyRuleRuntime pyRuntime, DriverRegistry driverRegistry,
+		Transactions transactions) {
 		return new RuleEvaluators(List.of(
-			new TextRuleEvaluator(driverRegistry),
-			new JavaScriptRuleEvaluator(jsRuntime, driverRegistry),
-			new PythonRuleEvaluator(pyRuntime, driverRegistry)));
+			new TextRuleEvaluator(driverRegistry, transactions),
+			new JavaScriptRuleEvaluator(jsRuntime, driverRegistry, transactions),
+			new PythonRuleEvaluator(pyRuntime, driverRegistry, transactions)));
 	}
 
 	/**

@@ -19,6 +19,8 @@
 package net.netshot.netshot.task.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.Connectors;
+import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.devicescript.DeviceScript;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -30,7 +32,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.Transactions;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskHandler;
@@ -48,17 +50,41 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
-	private final Transactions transactions = new Transactions();
+
+	/** The devices with a queued automatic snapshot. */
+	private final AutoSnapshotQueue autoSnapshots;
+
+	/** The embedded SSH server, where the devices upload files (null if disabled). */
+	private final SshServer sshServer;
+	/** The transaction support. */
+	private final Transactions transactions;
 	private final DeviceRepository deviceRepository = new DeviceRepository();
+
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
+	/** The secret resolver and the SSH client of the device accesses. */
+	private final Connectors connectors;
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
+	 * @param autoSnapshots the devices with a queued automatic snapshot (cleared at the end of an automatic snapshot)
+	 * @param sshServer the embedded SSH server, where the devices upload files (null if disabled)
+	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
-	public TakeSnapshotHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+	public TakeSnapshotHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, AutoSnapshotQueue autoSnapshots,
+		SshServer sshServer, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.transactions = transactions;
+		this.connectors = connectors;
+		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
+		this.sshServer = sshServer;
 		this.taskSubmitter = taskSubmitter;
+		this.autoSnapshots = autoSnapshots;
 	}
 
 	@Override
@@ -77,7 +103,7 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 			run.setStatus(Status.CANCELLED);
 			return;
 		}
-		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, run.logger);
+		DeviceScript deviceScript = new SnapshotDeviceScript(this.driverRegistry, this.connectors, this.sshServer, run.logger);
 		try {
 			// Start over from a fresh device from DB
 			device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
@@ -119,12 +145,12 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 				log.error("Task {}. Error while saving the debug logs.", task.id(), e1);
 			}
 			if (spec.automatic()) {
-				AutoSnapshotScheduler.clearScheduledAutoSnapshot(deviceId);
+				this.autoSnapshots.clear(deviceId);
 			}
 		}
 
 		log.debug("Task {}. Request to refresh all the groups for the device after the snapshot.", task.id());
-		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
 		if (!spec.dontRunDiagnostics()) {
 			try {

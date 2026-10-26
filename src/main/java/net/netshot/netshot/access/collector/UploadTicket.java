@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.util.Set;
 
 import net.netshot.netshot.access.collector.SshServer.SessionLogBuffer;
-import net.netshot.netshot.inventory.device.NetworkAddress;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 /**
  * This class represents a "ticket" or permission to upload data

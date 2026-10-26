@@ -31,6 +31,8 @@ import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Database class, utilities to access the database.
@@ -38,8 +40,30 @@ import net.netshot.netshot.Netshot;
 @Slf4j
 public final class Database {
 
-	/** The connection pools. */
-	private static ConnectionPools pools;
+	/** The JDBC driver class. */
+	static final Setting<String> DRIVER_CLASS = Setting.text("netshot.db.driverclass").alias("netshot.db.driver_class")
+		.defaultValue("org.postgresql.Driver").restart();
+
+	/** The JDBC URL of the (read-write) database. */
+	static final Setting<String> URL = Setting.text("netshot.db.url")
+		.defaultValue("jdbc:postgresql://localhost:5432/netshot01?sslmode=disable").secret().restart();
+
+	/** The JDBC URL of the read-only database (null to read from the read-write one). */
+	static final Setting<String> READ_URL = Setting.text("netshot.db.readurl").secret().restart();
+
+	/** The database user name. */
+	static final Setting<String> USERNAME = Setting.text("netshot.db.username").defaultValue("netshot").secret().restart();
+
+	/** The database password. */
+	static final Setting<String> PASSWORD = Setting.text("netshot.db.password").defaultValue("netshot").secret().restart();
+
+	/** The password used to encrypt the sensitive data (with a capital P in the legacy key, for historical reasons). */
+	static final Setting<String> ENCRYPTION_PASSWORD = Setting.text("netshot.db.encryptionpassword")
+		.alias("netshot.db.encryptionPassword").secret().restart();
+
+	/** Whether the encryption password must be configured (no default value). */
+	static final Setting<Boolean> ENCRYPTION_PASSWORD_REQUIRED = Setting.bool("netshot.db.encryptionpassword.required")
+		.defaultValue(false).restart();
 
 	/**
 	 * Update the database schema (to be run at startup).
@@ -51,7 +75,7 @@ public final class Database {
 		try {
 			System.setProperty("liquibase.analytics.enabled", "false");
 			Class.forName("org.postgresql.Driver");
-			try (Connection connection = Database.getConnection(false)) {
+			try (Connection connection = Database.openUnpooledConnection()) {
 				liquibase.database.Database database = DatabaseFactory.getInstance()
 					.findCorrectDatabaseImplementation(new JdbcConnection(connection));
 				new CommandScope(UpdateCommandStep.COMMAND_NAME)
@@ -68,32 +92,12 @@ public final class Database {
 	}
 
 	/**
-	 * Initializes the database access: creates the connection pools.
-	 */
-	public static synchronized void init() {
-		// Initialized again (tests): release the connections of the previous initialization
-		shutdown();
-		pools = new ConnectionPools(getDriverClass(), getUrl(), getReadUrl(), getUsername(), getPassword());
-	}
-
-	/**
-	 * Closes the connection pools, if initialized.
-	 */
-	public static synchronized void shutdown() {
-		if (pools != null) {
-			pools.close();
-			pools = null;
-		}
-	}
-
-	/**
 	 * Retrieve the configured driver class.
 	 * 
 	 * @return the configured driver class
 	 */
-	private static String getDriverClass() {
-		return Netshot.getConfig("netshot.db.driverclass",
-			Netshot.getConfig("netshot.db.driver_class", "org.postgresql.Driver"));
+	static String getDriverClass() {
+		return Netshot.config().current().get(DRIVER_CLASS);
 	}
 
 	/**
@@ -101,8 +105,8 @@ public final class Database {
 	 * 
 	 * @return the configured DB URL.
 	 */
-	private static String getUrl() {
-		return Netshot.getSecretConfig("netshot.db.url", "jdbc:postgresql://localhost:5432/netshot01?sslmode=disable");
+	static String getUrl() {
+		return Netshot.config().current().get(URL);
 	}
 
 	/**
@@ -110,8 +114,8 @@ public final class Database {
 	 * 
 	 * @return the configured DB URL.
 	 */
-	private static String getReadUrl() {
-		return Netshot.getSecretConfig("netshot.db.readurl");
+	static String getReadUrl() {
+		return Netshot.config().current().get(READ_URL);
 	}
 
 	/**
@@ -119,8 +123,8 @@ public final class Database {
 	 * 
 	 * @return the configured DB username
 	 */
-	private static String getUsername() {
-		return Netshot.getSecretConfig("netshot.db.username", "netshot");
+	static String getUsername() {
+		return Netshot.config().current().get(USERNAME);
 	}
 
 	/**
@@ -128,8 +132,8 @@ public final class Database {
 	 * 
 	 * @return the configured DB password
 	 */
-	private static String getPassword() {
-		return Netshot.getSecretConfig("netshot.db.password", "netshot");
+	static String getPassword() {
+		return Netshot.config().current().get(PASSWORD);
 	}
 
 	/**
@@ -140,13 +144,10 @@ public final class Database {
 	 * @throws IllegalStateException if the password is required but not configured
 	 */
 	public static String getEncryptionPassword() {
-		String password = Netshot.getSecretConfig("netshot.db.encryptionpassword");
+		Config config = Netshot.config().current();
+		String password = config.get(ENCRYPTION_PASSWORD);
 		if (password == null) {
-			// With capital P, for historical reasons
-			password = Netshot.getSecretConfig("netshot.db.encryptionPassword");
-		}
-		if (password == null) {
-			if (Netshot.getConfig("netshot.db.encryptionpassword.required", false)) {
+			if (config.get(ENCRYPTION_PASSWORD_REQUIRED)) {
 				throw new IllegalStateException("The DB encryption password (netshot.db.encryptionpassword) must be configured, "
 					+ "e.g. via the NETSHOT_DB_ENCRYPTIONPASSWORD_FILE environment variable. Note that the Netshot container "
 					+ "image up to version 0.25.0 had 'netshot' as built-in value.");
@@ -157,37 +158,13 @@ public final class Database {
 	}
 
 	/**
-	 * Retrieves a raw SQL connection.
-	 * 
-	 * @return the connection
-	 * @throws SQLException
-	 */
-	public static Connection getConnection() throws SQLException {
-		return getConnection(PoolKind.READ_WRITE);
-	}
-
-	/**
-	 * Retrieves a connection from one of the pools.
+	 * Opens a raw SQL connection, out of the connection pools (for the schema update, and the
+	 * long-lived connections of the task locks and the cluster notifications). The caller closes it.
 	 *
-	 * @param pool the kind of connection
 	 * @return the connection
-	 * @throws SQLException if no connection can be obtained
+	 * @throws SQLException if the connection can't be opened
 	 */
-	static Connection getConnection(PoolKind pool) throws SQLException {
-		return pools.get(pool).getConnection();
-	}
-
-	/**
-	 * Retrieves a raw SQL connection.
-	 * @param pooled = whether to take the connection from the (C3P0) pool or not
-	 *                  (pooled connection expire with C3P0 timeout mechanisms).
-	 * @return the connection
-	 * @throws SQLException
-	 */
-	public static Connection getConnection(boolean pooled) throws SQLException {
-		if (pooled) {
-			return Database.getConnection();
-		}
+	public static Connection openUnpooledConnection() throws SQLException {
 		return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
 	}
 

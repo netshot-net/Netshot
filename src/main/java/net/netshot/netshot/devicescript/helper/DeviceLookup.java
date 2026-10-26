@@ -22,12 +22,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.platform.database.Transactions;
 
 /**
@@ -37,11 +37,21 @@ import net.netshot.netshot.platform.database.Transactions;
  */
 final class DeviceLookup {
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 	private final ConfigRepository configRepository = new ConfigRepository();
 	private final DiagnosticResultRepository diagnosticResultRepository = new DiagnosticResultRepository();
 	private final Map<Long, Config> configs = new HashMap<>();
+
+	/**
+	 * Instantiates the lookup.
+	 *
+	 * @param transactions the transaction support
+	 */
+	DeviceLookup(Transactions transactions) {
+		this.transactions = transactions;
+	}
 
 	/**
 	 * Finds a device by ID.

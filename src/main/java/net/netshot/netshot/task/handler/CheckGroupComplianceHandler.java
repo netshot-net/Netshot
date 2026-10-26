@@ -61,13 +61,21 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
+
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param complianceChecker the compliance checker
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public CheckGroupComplianceHandler(ComplianceChecker complianceChecker) {
+	public CheckGroupComplianceHandler(Transactions transactions, ComplianceChecker complianceChecker, DynamicGroups dynamicGroups) {
+		this.transactions = transactions;
+		this.dynamicGroups = dynamicGroups;
 		this.complianceChecker = complianceChecker;
 	}
 
@@ -140,7 +148,7 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 		}
 
 		log.debug("Task {}. Request to refresh all the groups after compliance check.", task.id());
-		DynamicGroups.refreshAllGroups();
+		this.dynamicGroups.refreshAllGroups();
 		log.debug("Task {}. Group refreshing done.", task.id());
 	}
 

@@ -64,12 +64,12 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.platform.crypto.Argon2idHash;
 import net.netshot.netshot.platform.crypto.Hash;
 import net.netshot.netshot.platform.crypto.PasswordGenerator;
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 /**
  * Class used to control a device config from JavaScript.
@@ -257,12 +257,17 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 					log.warn("Error while removing upload directory {}", this.getRootPath(), e);
 				}
 			}
-			SshServer.getServer().clearUploadTickets(JsConfigHelper.this);
+			if (JsConfigHelper.this.sshServer != null) {
+				JsConfigHelper.this.sshServer.clearUploadTickets(JsConfigHelper.this);
+			}
 		}
 		
 	}
 
 	private final DriverRegistry driverRegistry;
+
+	/** The embedded SSH server, where the devices upload files (null if not running). */
+	private final SshServer sshServer;
 	private final DeviceDraft device;
 	private ConfigDraft config;
 	private Config lastConfig;
@@ -273,8 +278,9 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	private Map<Long, ConfigUploadTicket> uploadTickets = new HashMap<>();
 
 	public JsConfigHelper(DriverRegistry driverRegistry, DeviceDraft device, ConfigDraft config, Config lastConfig,
-		JsCliHelper defaultCliHelper, TaskContext taskContext) {
+		JsCliHelper defaultCliHelper, SshServer sshServer, TaskContext taskContext) {
 		this.driverRegistry = driverRegistry;
+		this.sshServer = sshServer;
 		this.device = device;
 		this.config = config;
 		this.lastConfig = lastConfig;
@@ -662,7 +668,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 	public ConfigUploadTicket requestUpload(Set<TransferProtocol> protocols,
 		NetworkAddress sourceIp) throws IOException {
 
-		if (!SshServer.isRunning()) {
+		if (this.sshServer == null || !this.sshServer.isRunning()) {
 			log.warn("Error during snapshot while requesting upload ticket: "
 				+ "the embedded SSH server is not running.");
 			taskContext.error("Error while requesting upload ticket for key: "
@@ -670,7 +676,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			throw new IOException("The SSH server is not running.");
 		}
 		for (TransferProtocol protocol : protocols) {
-			if (!SshServer.isRunning(protocol)) {
+			if (!this.sshServer.isRunning(protocol)) {
 				log.warn("Error during snapshot while requesting upload ticket: "
 					+ "the transfer protocol {} is not enabled.", protocol);
 				taskContext.error("Error while requesting upload ticket: "
@@ -694,7 +700,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			protocols, username, password, sourceIp, rootPath);
 		this.uploadTickets.put(ticketId, ticket);
 
-		SshServer.getServer().registerUploadTicket(ticket);
+		this.sshServer.registerUploadTicket(ticket);
 		return ticket;
 	}
 
@@ -728,7 +734,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 		ConfigUploadTicket ticket = this.requestUpload(protocols, sourceAddress);
 
 		Map<String, Object> hostKeys = new HashMap<>();
-		for (PublicKey pk : SshServer.getServer().getPublicHostKeys()) {
+		for (PublicKey pk : this.sshServer.getPublicHostKeys()) {
 			try {
 				// Convert to OpenSSH format: "ssh-rsa AAAAB3NzaC1yc2E..."
 				String opensshFormat = PublicKeyEntry.toString(pk);
@@ -756,7 +762,7 @@ public final class JsConfigHelper implements UploadTicket.Owner {
 			throw e;
 		}
 
-		int port = SshServer.SETTINGS.getExternalTcpPort();
+		int port = this.sshServer.settings().externalTcpPort();
 
 		log.debug("Upload ticket details: username '{}', password '{}...', host '{}:{}', hostkeys '{}'",
 			ticket.username, ticket.password.substring(0, 1), host.getIp(), port, hostKeys);

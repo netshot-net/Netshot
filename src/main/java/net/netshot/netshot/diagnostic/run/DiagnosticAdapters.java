@@ -27,8 +27,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 
 /**
  * The registry of the diagnostic adapters, by type of diagnostic. It refuses to be built if

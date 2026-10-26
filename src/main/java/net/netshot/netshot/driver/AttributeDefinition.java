@@ -22,7 +22,7 @@ import org.graalvm.polyglot.Value;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
+import net.netshot.netshot.platform.script.JsUtils;
 
 public final class AttributeDefinition {
 
@@ -159,9 +159,9 @@ public final class AttributeDefinition {
 			default:
 				throw new IllegalArgumentException("Invalid type for item %s.");
 		}
-		this.searchable = JsDeviceHelper.getBooleanMember(data, "searchable", false);
-		this.comparable = JsDeviceHelper.getBooleanMember(data, "comparable", false);
-		this.checkable = JsDeviceHelper.getBooleanMember(data, "checkable", false);
+		this.searchable = JsUtils.getBooleanMember(data, "searchable", false);
+		this.comparable = JsUtils.getBooleanMember(data, "comparable", false);
+		this.checkable = JsUtils.getBooleanMember(data, "checkable", false);
 		Value dataDump = data.getMember("dump");
 		if (dataDump == null) {
 			this.dump = false;

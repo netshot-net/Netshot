@@ -18,18 +18,31 @@
  */
 package net.netshot.netshot.boot;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 
+import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.auth.ConfiguredRemoteAuthenticator;
 import net.netshot.netshot.aaa.auth.LoginService;
+import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.auth.OidcDiscovery;
+import net.netshot.netshot.aaa.auth.Radius;
+import net.netshot.netshot.aaa.auth.Tacacs;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.UserRepository;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.access.Connectors;
+import net.netshot.netshot.access.SshClientService;
+import net.netshot.netshot.access.collector.SnmpTrapReceiver;
+import net.netshot.netshot.access.collector.SshServer;
+import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.hook.HookDispatcher;
 import net.netshot.netshot.api.hook.WebHookSender;
+import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.cluster.ClusterService;
 import net.netshot.netshot.compliance.HardwareRuleRepository;
@@ -49,6 +62,8 @@ import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
+import net.netshot.netshot.domain.DomainRepository;
+import net.netshot.netshot.domain.DomainService;
 import net.netshot.netshot.driver.DeviceDriverService;
 import net.netshot.netshot.driver.DriverLoader;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -59,28 +74,31 @@ import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceService;
-import net.netshot.netshot.inventory.domain.DomainRepository;
-import net.netshot.netshot.inventory.domain.DomainService;
+import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.Finder;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.database.DatabaseService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
+import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.TaskHandlers;
 import net.netshot.netshot.task.TaskRepository;
-import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.TaskService;
+import net.netshot.netshot.task.TaskSubmitter;
 import net.netshot.netshot.task.engine.ChildTaskOrchestrator;
 import net.netshot.netshot.task.engine.TaskJobFactory;
+import net.netshot.netshot.task.engine.TaskLockManager;
 import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.task.engine.TaskManagerEngine;
 import net.netshot.netshot.task.handler.CheckComplianceHandler;
 import net.netshot.netshot.task.handler.CheckGroupComplianceHandler;
 import net.netshot.netshot.task.handler.CheckGroupSoftwareHandler;
@@ -98,6 +116,7 @@ import net.netshot.netshot.userscript.ScriptService;
 import net.netshot.netshot.vault.VaultInstanceRepository;
 import net.netshot.netshot.vault.VaultInstanceService;
 import net.netshot.netshot.vault.VaultManager;
+import net.netshot.netshot.vault.VaultTokenRefresher;
 
 /**
  * The composition root: builds the long-lived objects of the application
@@ -115,15 +134,23 @@ import net.netshot.netshot.vault.VaultManager;
  * not created by an injection container (Quartz jobs, cluster code, entities)
  * gets what it needs from the entry point ({@code Netshot.main}) or from the handlers.</p>
  */
+@Slf4j
 public final class Wiring {
 
-	private static volatile Wiring instance;
-
+	private final DatabaseService database;
 	private final Transactions transactions;
+	// Configuration
+	private final ConfigStore config;
 	// Drivers
 	private final DriverRegistry driverRegistry;
+	private final DynamicGroups dynamicGroups;
+	// Vault client
+	private final VaultManager vaultManager;
+	// SSH client of the device accesses
+	private final SshClientService sshClientService;
 	// Device
 	private final DeviceService deviceService;
+	private final DeviceCreationService deviceCreationService;
 	// Compliance
 	private final PolicyService policyService;
 	private final RuleService ruleService;
@@ -145,6 +172,8 @@ public final class Wiring {
 	private final SearchService searchService;
 	private final ConfigService configService;
 	// AAA and system
+	private final Oidc oidc;
+	private final Tacacs tacacs;
 	private final UserService userService;
 	private final ApiTokenService apiTokenService;
 	private final LoginService loginService;
@@ -163,8 +192,14 @@ public final class Wiring {
 	private final HookService hookService;
 	// Events
 	private final DomainEvents domainEvents;
-	// Task handlers
+	// Task engine and clustering
+	private final TaskLockManager lockManager;
+	private final TaskManager taskManager;
 	private final AutoSnapshotScheduler autoSnapshotScheduler;
+	private final ClusterManager clusterManager;
+	// Receivers
+	private final SshServer sshServer;
+	// Task handlers
 	private final TaskHandlers taskHandlers;
 	private final TaskJobFactory taskJobFactory;
 
@@ -173,44 +208,71 @@ public final class Wiring {
 	 * (repositories, then services).
 	 *
 	 * @param driverRegistry the registry of the device drivers
+	 * @param config the configuration store
 	 */
-	private Wiring(DriverRegistry driverRegistry) {
-		this.transactions = new Transactions();
+	private Wiring(DriverRegistry driverRegistry, ConfigStore config) {
+		this.database = new DatabaseService();
+		this.transactions = new Transactions(this.database);
+		this.config = config;
 		// Drivers
 		this.driverRegistry = driverRegistry;
-		Finder.setDriverRegistry(driverRegistry);
+		this.dynamicGroups = new DynamicGroups(this.transactions, driverRegistry);
+		// Vault (the secret resolver of the device accesses)
+		this.vaultManager = new VaultManager(config, this.transactions);
+		// Task engine and clustering (the cluster manager, when enabled, coordinates the task manager)
+		boolean clustered = config.current().get(ClusterManager.ENABLED);
+		this.lockManager = TaskLockManager.create(clustered);
+		AutoSnapshotQueue autoSnapshots = new AutoSnapshotQueue();
+		this.taskManager = new TaskManager(this.transactions, config, autoSnapshots, this.lockManager);
+		TaskSubmitter taskSubmitter = this.taskManager::addTask;
+		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter, config, this.taskManager, autoSnapshots);
+		if (clustered) {
+			this.clusterManager = new ClusterManager(this.driverRegistry, this.autoSnapshotScheduler, this.taskManager, this.vaultManager);
+			this.taskManager.setCluster(this.clusterManager);
+		}
+		else {
+			this.clusterManager = null;
+		}
 		// Device
 		DeviceRepository deviceRepository = new DeviceRepository();
-		this.deviceService = new DeviceService(this.transactions, deviceRepository, TaskManager::addTask, this.driverRegistry);
+		this.deviceService = new DeviceService(this.transactions, deviceRepository, this.driverRegistry, this.dynamicGroups);
+		this.deviceCreationService = new DeviceCreationService(this.transactions, deviceRepository, taskSubmitter,
+			this.driverRegistry, this.dynamicGroups);
 		// Compliance
 		PolicyRepository policyRepository = new PolicyRepository();
 		this.policyService = new PolicyService(this.transactions, policyRepository);
-		this.jsRuleRuntime = new JsRuleRuntime();
-		this.pyRuleRuntime = new PyRuleRuntime();
-		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry);
+		this.jsRuleRuntime = new JsRuleRuntime(config);
+		this.pyRuleRuntime = new PyRuleRuntime(config);
+		this.ruleEvaluators = RuleEvaluators.standard(this.jsRuleRuntime, this.pyRuleRuntime, this.driverRegistry, this.transactions);
 		this.complianceChecker = new ComplianceChecker(this.ruleEvaluators);
 		this.ruleService = new RuleService(this.transactions, new RuleRepository(), policyRepository, this.ruleEvaluators);
 		this.softwareRuleService = new SoftwareRuleService(this.transactions, new SoftwareRuleRepository(), this.driverRegistry);
 		this.hardwareRuleService = new HardwareRuleService(this.transactions, new HardwareRuleRepository(), this.driverRegistry);
 		// Tasks
 		TaskRepository taskRepository = new TaskRepository();
-		this.taskService = new TaskService(this.transactions, taskRepository, TaskManager::addTask, new TaskManagerEngine(),
+		this.taskService = new TaskService(this.transactions, taskRepository, taskSubmitter, this.taskManager,
 			this.driverRegistry);
 		// Reports
 		this.reportService = new ReportService(this.transactions, new ReportRepository(), this.driverRegistry);
 		// Inventory
 		this.deviceCatalogService = new DeviceCatalogService(this.transactions, deviceRepository);
-		this.deviceDriverService = new DeviceDriverService(this.driverRegistry);
+		this.deviceDriverService = new DeviceDriverService(this.driverRegistry, () -> {
+			if (this.clusterManager != null) {
+				this.clusterManager.requestDriverReload();
+			}
+		});
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
-		this.groupService = new GroupService(this.transactions, new GroupRepository());
-		this.searchService = new SearchService(this.transactions, new SearchRepository());
+		this.groupService = new GroupService(this.transactions, new GroupRepository(), this.dynamicGroups);
+		this.searchService = new SearchService(this.transactions, new SearchRepository(), this.driverRegistry);
 		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
 		// AAA and system
+		this.oidc = new Oidc(config);
+		this.tacacs = new Tacacs(config);
 		UserRepository userRepository = new UserRepository();
 		this.userService = new UserService(this.transactions, userRepository);
 		this.apiTokenService = new ApiTokenService(this.transactions, new ApiTokenRepository());
-		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator());
-		this.clusterService = new ClusterService(ClusterManager::getClusterMembers);
+		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs));
+		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService();
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
@@ -222,33 +284,38 @@ public final class Wiring {
 		// Vault
 		this.vaultInstanceService = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
 			vaultInstanceId -> {
-				VaultManager.invalidate(vaultInstanceId);
-				ClusterManager.requestVaultInstanceReload(vaultInstanceId);
+				this.vaultManager.invalidate(vaultInstanceId);
+				if (this.clusterManager != null) {
+					this.clusterManager.requestVaultInstanceReload(vaultInstanceId);
+				}
 			},
-			VaultManager::testConnection);
+			this.vaultManager::testConnection);
 		// Hooks
 		this.hookService = new HookService(this.transactions, new HookRepository());
 		// Events
 		this.domainEvents = new DomainEvents();
 		new HookDispatcher(this.hookService, this.taskService, new WebHookSender(), this.driverRegistry).register(this.domainEvents);
 		// Task handlers
-		TaskSubmitter taskSubmitter = TaskManager::addTask;
-		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(TaskManager::addTask);
-		this.autoSnapshotScheduler = new AutoSnapshotScheduler(taskSubmitter);
+		ChildTaskOrchestrator childTaskOrchestrator = new ChildTaskOrchestrator(this.transactions, this.taskManager::addTask);
+		this.sshServer = config.current().get(SshServer.Settings.ENABLED) ? new SshServer(config) : null;
+		this.sshClientService = new SshClientService(config);
+		Connectors connectors = new Connectors(this.vaultManager, this.sshClientService.client(), this.transactions);
 		this.taskHandlers = new TaskHandlers(List.of(
-			new CheckComplianceHandler(this.complianceChecker),
-			new CheckGroupComplianceHandler(this.complianceChecker),
-			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(this.driverRegistry, taskSubmitter),
-			new PurgeDatabaseHandler(),
-			new RunDeviceGroupScriptHandler(childTaskOrchestrator, this.driverRegistry),
-			new RunDeviceScriptHandler(this.driverRegistry, taskSubmitter),
-			new RunDiagnosticsHandler(this.driverRegistry, this.diagnosticAdapters, taskSubmitter),
-			new RunGroupDiagnosticsHandler(childTaskOrchestrator),
-			new ScanSubnetsHandler(childTaskOrchestrator),
-			new TakeGroupSnapshotHandler(childTaskOrchestrator),
-			new TakeSnapshotHandler(this.driverRegistry, taskSubmitter)));
-		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents);
+			new CheckComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups),
+			new CheckGroupComplianceHandler(this.transactions, this.complianceChecker, this.dynamicGroups),
+			new CheckGroupSoftwareHandler(this.transactions),
+			new DiscoverDeviceTypeHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, this.vaultManager),
+			new PurgeDatabaseHandler(this.transactions),
+			new RunDeviceGroupScriptHandler(this.transactions, childTaskOrchestrator, this.driverRegistry),
+			new RunDeviceScriptHandler(this.transactions, this.driverRegistry, taskSubmitter, this.dynamicGroups, connectors),
+			new RunDiagnosticsHandler(this.transactions, this.driverRegistry, this.diagnosticAdapters, taskSubmitter, this.dynamicGroups, connectors),
+			new RunGroupDiagnosticsHandler(this.transactions, childTaskOrchestrator),
+			new ScanSubnetsHandler(this.transactions, childTaskOrchestrator),
+			new TakeGroupSnapshotHandler(this.transactions, childTaskOrchestrator),
+			new TakeSnapshotHandler(this.transactions, this.driverRegistry, taskSubmitter, autoSnapshots, this.sshServer, this.dynamicGroups,
+				connectors)));
+		this.taskJobFactory = new TaskJobFactory(this.taskHandlers, this.domainEvents, this.taskManager);
+		this.taskManager.setJobFactory(this.taskJobFactory);
 	}
 
 	/**
@@ -267,50 +334,68 @@ public final class Wiring {
 	 * @return the new wiring
 	 */
 	public static synchronized Wiring init(DriverRegistry driverRegistry) {
-		Database.init();
-		instance = new Wiring(driverRegistry);
-		return instance;
-	}
-
-	/**
-	 * Gets the wiring, for the code which cannot receive its dependencies by injection.
-	 *
-	 * <p><b>Transitional:</b> a static lookup is a service locator, which hides the dependencies
-	 * of its callers. Nothing in the main code uses it any more; it remains for the tests.
-	 * Do not use it from new code.</p>
-	 *
-	 * @return the wiring
-	 * @throws IllegalStateException if {@link #init()} has not been called yet
-	 */
-	public static Wiring get() {
-		Wiring wiring = instance;
-		if (wiring == null) {
-			throw new IllegalStateException("The wiring has not been initialized");
-		}
+		Wiring wiring = new Wiring(driverRegistry, Netshot.config());
+		wiring.database.start();
 		return wiring;
 	}
 
 	/**
-	 * Reloads the configuration of the rule runtimes (JavaScript and Python), if the wiring
-	 * has been initialized. Their settings are also read when the wiring is built.
+	 * Builds the wiring, without side effect: the database access is initialized by the first of the
+	 * {@link #services()}.
+	 *
+	 * @param config the configuration store
+	 * @return the new wiring
 	 */
-	public static void reloadRuleRuntimeConfigs() {
-		Wiring wiring = instance;
-		if (wiring != null) {
-			wiring.jsRuleRuntime.loadConfig();
-			wiring.pyRuleRuntime.loadConfig();
-		}
+	public static synchronized Wiring create(ConfigStore config) {
+		return new Wiring(new DriverRegistry(new DriverLoader()), config);
 	}
 
 	/**
-	 * Reloads the configuration of the task settings (such as the automatic snapshots), if the wiring
-	 * has been initialized. Their settings are also read when the wiring is built.
+	 * Gets the services of the server, in start order (they're stopped in the reverse order).
+	 * The services disabled by the configuration aren't part of the list.
+	 *
+	 * @return the services
 	 */
-	public static void reloadTaskConfigs() {
-		Wiring wiring = instance;
-		if (wiring != null) {
-			wiring.autoSnapshotScheduler.loadConfig();
+	public List<Service> services() {
+		Config current = this.config.current();
+		List<Service> services = new ArrayList<>();
+		services.add(this.database);
+		services.add(this.driverRegistry);
+		services.add(new OidcDiscovery(this.oidc, this.config));
+		// Before the clustering manager, which can start running tasks
+		services.add(this.lockManager);
+		if (this.clusterManager != null) {
+			services.add(this.clusterManager);
 		}
+		else {
+			log.info("High Availability is not enabled.");
+		}
+		services.add(new VaultTokenRefresher(this.transactions, this.vaultManager, this.config));
+		// Before the task manager, which runs the tasks connecting to the devices
+		services.add(this.sshClientService);
+		services.add(this.taskManager);
+		// The receivers submit tasks: after the task manager
+		if (current.get(SyslogServer.DISABLED)) {
+			log.warn("The Syslog server is disabled by configuration.");
+		}
+		else {
+			services.add(new SyslogServer(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
+		}
+		services.add(new SnmpTrapReceiver(this.driverRegistry, this.autoSnapshotScheduler::scheduleSnapshotIfNeeded, this.config));
+		if (this.sshServer != null) {
+			services.add(this.sshServer);
+		}
+		else {
+			log.warn("The SSH server is disabled by configuration.");
+		}
+		// Last: the server is ready when it accepts the requests
+		if (current.get(RestServer.ENABLED)) {
+			services.add(new RestServer(this.binder()));
+		}
+		else {
+			log.info("HTTP server is not enabled.");
+		}
+		return services;
 	}
 
 	/**
@@ -333,12 +418,31 @@ public final class Wiring {
 	}
 
 	/**
+	 * Gets the database access (the connection pools), started by {@link #init()} or as the first of the
+	 * {@link #services()}.
+	 *
+	 * @return the database service
+	 */
+	public DatabaseService database() {
+		return this.database;
+	}
+
+	/**
 	 * Gets the device use cases.
 	 *
 	 * @return the device service
 	 */
 	public DeviceService deviceService() {
 		return this.deviceService;
+	}
+
+	/**
+	 * Gets the use case which adds a device.
+	 *
+	 * @return the device creation service
+	 */
+	public DeviceCreationService deviceCreationService() {
+		return this.deviceCreationService;
 	}
 
 	/**
@@ -393,6 +497,60 @@ public final class Wiring {
 	 */
 	public TaskService taskService() {
 		return this.taskService;
+	}
+
+	/**
+	 * Gets the OIDC authentication.
+	 *
+	 * @return the OIDC authentication
+	 */
+	public Oidc oidc() {
+		return this.oidc;
+	}
+
+	/**
+	 * Gets the TACACS+ authentication.
+	 *
+	 * @return the TACACS+ authentication
+	 */
+	public Tacacs tacacs() {
+		return this.tacacs;
+	}
+
+	/**
+	 * Gets the Vault client (the secret resolver of the device accesses).
+	 *
+	 * @return the Vault client
+	 */
+	public VaultManager vaultManager() {
+		return this.vaultManager;
+	}
+
+	/**
+	 * Gets the refresher of the dynamic groups.
+	 *
+	 * @return the dynamic groups
+	 */
+	public DynamicGroups dynamicGroups() {
+		return this.dynamicGroups;
+	}
+
+	/**
+	 * Gets the task manager.
+	 *
+	 * @return the task manager
+	 */
+	public TaskManager taskManager() {
+		return this.taskManager;
+	}
+
+	/**
+	 * Gets the task and device locks.
+	 *
+	 * @return the lock manager
+	 */
+	public TaskLockManager lockManager() {
+		return this.lockManager;
 	}
 
 	/**

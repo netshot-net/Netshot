@@ -23,122 +23,196 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.AutoSnapshotScheduler;
+import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.net.Network4Address;
 
 /**
  * A Syslog server receives the syslog messages from devices and triggers
  * snapshots if needed.
+ *
+ * <p>If the UDP port can't be opened (or the socket fails), the server keeps trying to open it again,
+ * with an increasing delay (up to a minute), and reports itself as unhealthy in the meantime.</p>
  */
 @Slf4j
-public class SyslogServer extends Collector {
+public final class SyslogServer implements Service {
 
-	/** The socket. */
-	private DatagramSocket socket;
+	/** Where the scripts of the drivers log when they analyze a message. */
+	private static final TaskContext DRIVER_LOG = new DeviceDriver.ReceiverTaskContext(SyslogServer.class);
+
+	/** Whether the Syslog server is disabled. */
+	public static final Setting<Boolean> DISABLED = Setting.bool("netshot.syslog.disabled").defaultValue(false).restart();
+
+	/** The UDP port to listen Syslog messages on. */
+	static final Setting<Integer> PORT = Setting.integer("netshot.syslog.port").defaultValue(514).range(1, 65535).restart();
+
+	/** Max delay (ms) before trying to open the socket again. */
+	private static final long MAX_RETRY_DELAY = 60000;
 
 	/** The loaded device drivers. */
 	private final DriverRegistry driverRegistry;
 
-	/** The scheduler of the automatic snapshots. */
-	private final AutoSnapshotScheduler autoSnapshotScheduler;
+	/** Where the configuration changes are reported (the scheduler of the automatic snapshots). */
+	private final SnapshotRequester snapshotRequester;
 
-	/** The UDP port to listen Syslog messages on. */
-	private int udpPort = 514;
+	/** The configuration store. */
+	private final ConfigStore config;
 
-	/** The static Syslog server. */
-	private static SyslogServer nsSyslogServer;
+	/** The number of received messages. */
+	private final AtomicLong received = new AtomicLong();
 
-	private static boolean running;
+	/** The number of received messages matched by a driver. */
+	private final AtomicLong matched = new AtomicLong();
 
-	public static boolean isRunning() {
-		return running;
-	}
+	/** The number of socket errors. */
+	private final AtomicLong errors = new AtomicLong();
 
-	/**
-	 * Initializes the Syslog server.
-	 *
-	 * @param driverRegistry the loaded device drivers
-	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
-	 */
-	public static void init(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
-		if (Netshot.getConfig("netshot.syslog.disabled", false)) {
-			log.warn("The Syslog server is disabled by configuration.");
-			return;
-		}
-		nsSyslogServer = new SyslogServer(driverRegistry, autoSnapshotScheduler);
-		nsSyslogServer.start();
-	}
+	/** The UDP port (read when the server starts). */
+	private int udpPort;
+
+	/** Whether the server is running. */
+	private volatile boolean running;
+
+	/** The socket (null if not open). */
+	private volatile DatagramSocket socket;
+
+	/** Runs the receive loop. */
+	private ExecutorService executor;
 
 	/**
-	 * Instantiates a new syslog server.
+	 * Creates the Syslog server.
 	 *
 	 * @param driverRegistry the loaded device drivers
-	 * @param autoSnapshotScheduler the scheduler of the automatic snapshots
+	 * @param snapshotRequester where the configuration changes are reported (the scheduler of the automatic snapshots)
+	 * @param config the configuration store
 	 */
-	public SyslogServer(DriverRegistry driverRegistry, AutoSnapshotScheduler autoSnapshotScheduler) {
+	public SyslogServer(DriverRegistry driverRegistry, SnapshotRequester snapshotRequester, ConfigStore config) {
 		this.driverRegistry = driverRegistry;
-		this.autoSnapshotScheduler = autoSnapshotScheduler;
-		this.setName("Syslog Receiver");
-		this.setDaemon(true);
-		this.udpPort = Netshot.getConfig("netshot.syslog.port", 514, 1, 65535);
+		this.snapshotRequester = snapshotRequester;
+		this.config = config;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Thread#run()
-	 */
 	@Override
-	public void run() {
+	public String name() {
+		return "Syslog server";
+	}
 
+	@Override
+	public synchronized void start() {
+		this.udpPort = this.config.current().get(PORT);
+		this.running = true;
+		this.executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotSyslogServer"));
+		this.executor.execute(this::run);
+	}
+
+	@Override
+	public void stop() throws InterruptedException {
+		this.running = false;
+		DatagramSocket current = this.socket;
+		if (current != null) {
+			// Unblocks the receive call
+			current.close();
+		}
+		this.executor.shutdownNow();
+		this.executor.awaitTermination(10, TimeUnit.SECONDS);
+	}
+
+	@Override
+	public boolean isHealthy() {
+		return this.running && this.socket != null;
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("port", this.udpPort);
+		stats.put("listening", this.socket != null);
+		stats.put("received", this.received.get());
+		stats.put("matched", this.matched.get());
+		stats.put("errors", this.errors.get());
+		return stats;
+	}
+
+	/**
+	 * The receive loop.
+	 */
+	private void run() {
+		long retryDelay = 1000;
+		while (this.running) {
+			try (DatagramSocket newSocket = new DatagramSocket(this.udpPort)) {
+				this.socket = newSocket;
+				log.debug("Now listening for Syslog messages on UDP port {}.", this.udpPort);
+				retryDelay = 1000;
+				while (this.running) {
+					DatagramPacket packet = new DatagramPacket(new byte[4096], 4096);
+					newSocket.receive(packet);
+					this.received.incrementAndGet();
+					this.process(packet);
+				}
+			}
+			catch (IOException e) {
+				if (!this.running) {
+					break;
+				}
+				this.errors.incrementAndGet();
+				log.error("Error with the Syslog server socket (UDP port {}), retrying in {}ms.", this.udpPort, retryDelay, e);
+			}
+			finally {
+				this.socket = null;
+			}
+			try {
+				Thread.sleep(retryDelay);
+			}
+			catch (InterruptedException e) {
+				break;
+			}
+			retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
+		}
+		log.debug("The Syslog server is stopped.");
+	}
+
+	/**
+	 * Processes a received message: asks the drivers whether a snapshot is needed.
+	 *
+	 * @param packet the received packet
+	 */
+	private void process(DatagramPacket packet) {
 		try {
-			socket = new DatagramSocket(udpPort);
-			log.debug("Now listening for Syslog messages on UDP port {}.",
-				udpPort);
-			running = true;
-			while (true) {
-				DatagramPacket dato = new DatagramPacket(new byte[4096], 4096);
-				socket.receive(dato);
-				InetAddress address = dato.getAddress();
+			InetAddress address = packet.getAddress();
+			if (address instanceof Inet4Address ip4Address) {
+				Network4Address source = new Network4Address(ip4Address, 32);
+				String message = new String(packet.getData(), 0, packet.getLength());
+				log.trace("Received Syslog message: '{}'.", message);
 				List<String> matchingDrivers = new ArrayList<>();
-				if (address instanceof Inet4Address ip4Address) {
-					Network4Address source = new Network4Address(ip4Address, 32);
-					String message = new String(dato.getData(), 0, dato.getLength());
-					log.trace("Received Syslog message: '{}'.", message);
-
-					for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
-						if (driver.analyzeSyslog(message, source)) {
-							matchingDrivers.add(driver.getName());
-						}
+				for (DeviceDriver driver : this.driverRegistry.getAllDrivers()) {
+					if (driver.analyzeSyslog(message, source, DRIVER_LOG)) {
+						matchingDrivers.add(driver.getName());
 					}
-					if (matchingDrivers.size() > 0) {
-						this.autoSnapshotScheduler.scheduleSnapshotIfNeeded(matchingDrivers, source);
-					}
+				}
+				if (matchingDrivers.size() > 0) {
+					this.matched.incrementAndGet();
+					this.snapshotRequester.requestSnapshot(matchingDrivers, source);
 				}
 			}
 		}
-		catch (SocketException e) {
-			log.error("Error while starting the Syslog server.", e);
+		catch (UnknownHostException | RuntimeException e) {
+			log.error("Error while processing a Syslog message", e);
 		}
-		catch (IOException e) {
-			log.error("Error while receivng Syslog server datagram.", e);
-		}
-		catch (Exception e) {
-			log.error("Error with the Syslog server", e);
-		}
-		finally {
-			running = false;
-			socket.close();
-		}
-		log.error("The Syslog server is stopping due to an error.");
 	}
-
 }

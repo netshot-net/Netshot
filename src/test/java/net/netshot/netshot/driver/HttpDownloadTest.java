@@ -40,24 +40,25 @@ import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.AccessManager;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.access.Http;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.devicescript.SnapshotDeviceScript;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver.Location;
 import net.netshot.netshot.driver.DeviceDriver.LocationType;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Tests for {@code Http.download()}/{@code http.download(...)}: the
@@ -103,11 +104,9 @@ public class HttpDownloadTest {
 		// each test rather than relying on the default (/var/local/netshot),
 		// which won't exist on a test machine.
 		Path storagePath = Files.createTempDirectory("netshot-test-binary-");
-		Properties props = new Properties();
-		props.putAll(Netshot.getConfig());
+		Properties props = TestConfig.properties();
 		props.setProperty("netshot.snapshots.binary.path", storagePath.toString());
 		TestConfig.init(props);
-		ConfigBinaryFileAttribute.loadConfig();
 
 		this.fakeServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		this.port = this.fakeServer.getAddress().getPort();
@@ -126,7 +125,7 @@ public class HttpDownloadTest {
 		this.serveBinary("/binary.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext);
+		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Http.HttpDownloadResult result =
@@ -152,7 +151,7 @@ public class HttpDownloadTest {
 		this.serveBinary("/binary2.bin", payload);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext);
+		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		Http.HttpResult result = http.request("GET", "/binary2.bin", null, null, null, null, null, null);
 
 		Assertions.assertEquals(200, result.getStatus());
@@ -185,7 +184,7 @@ public class HttpDownloadTest {
 		});
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http http = new Http("127.0.0.1", this.port, false, taskContext);
+		Http http = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		Path target = Files.createTempFile("netshot-test-download-", ".bin");
 		try {
 			Map<String, String> headers = new HashMap<>();
@@ -232,13 +231,13 @@ public class HttpDownloadTest {
 		TestDrivers.registry().getDrivers().put("HttpDownloadTestDriver", driver);
 
 		TaskContext taskContext = new FakeTaskContext();
-		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext);
+		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
 		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username("user").password("pass").name("test-http-account").build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, null);
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, null);
 		accessManager.forceClientForTest(fakeHttp, credentials);
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
@@ -308,8 +307,8 @@ public class HttpDownloadTest {
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
 		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(httpAccess)).build());
-		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), taskContext);
-		AccessManager accessManager = new AccessManager(TestDrivers.registry(), null, device, null, taskContext, Set.of(credentials));
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, Set.of(credentials));
 		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
 		runMethod.setAccessible(true);
 		try {

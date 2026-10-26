@@ -30,6 +30,10 @@ By default, `compose.yaml` passes the passwords as environment variables. These 
 
 Keep a backup of the encryption password: without it, the device credentials stored in the database can't be decrypted.
 
+### Stopping Netshot
+
+When stopped, Netshot gives the running tasks some time to end (`netshot.shutdown.timeout`, 20 seconds by default), then marks the ones still running as failed. The provided `compose.yaml` sets `stop_grace_period: 30s` so that Docker doesn't kill Netshot before (Docker waits 10 seconds by default); keep it, or use `docker stop -t 30` for a container started without Compose.
+
 ### Running the container without the Compose file
 
 The Netshot container image has no built-in secrets: at least the encryption password must be passed (`NETSHOT_DB_ENCRYPTIONPASSWORD_FILE` or `NETSHOT_DB_ENCRYPTIONPASSWORD`), otherwise Netshot refuses to start. See the [configuration reference](../configuration-reference.md) for the other parameters.

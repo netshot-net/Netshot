@@ -34,6 +34,7 @@ import com.nimbusds.oauth2.sdk.AccessTokenResponse;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
+import com.nimbusds.oauth2.sdk.GeneralException;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.TokenErrorResponse;
 import com.nimbusds.oauth2.sdk.TokenRequest;
@@ -53,9 +54,11 @@ import com.nimbusds.openid.connect.sdk.rp.OIDCClientMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Oidc class authenticates the users using JSON Web Token.
@@ -67,160 +70,177 @@ public final class Oidc {
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
 	/** IdP metadata (retrieved from issuer endpoint URL). */
-	private static OIDCProviderMetadata idpMetadata;
+	private OIDCProviderMetadata idpMetadata;
 
 	/** OIDC client info. */
-	private static OIDCClientInformation clientInfo;
+	private OIDCClientInformation clientInfo;
 
 	/** ID Token validator based on IdP metadata and client info. */
-	private static IDTokenValidator idTokenValidator;
-
-	/** Name of the claim that will carry the role. */
-	private static String roleClaim;
-
-	/** Default permission level for authenticated user. */
-	private static int defaultLevel;
-
-	/** Name of the claim that will carry the username. */
-	private static String usernameClaim;
-
-	/** Configured roles. */
-	private static Map<String, Integer> roles = new HashMap<>();
-
-	private static IdPDiscoveryDaemon idpDiscoveryThread;
+	private IDTokenValidator idTokenValidator;
 
 	/**
-	 * Thread to refresh the IdP Metadata from endpoint URL in background.
+	 * The settings of the OIDC authentication.
+	 *
+	 * @param roleClaim the name of the claim carrying the role
+	 * @param roles the levels by role name (value of the role claim)
+	 * @param defaultLevel the level of an authenticated user without known role
+	 * @param usernameClaim the name of the claim carrying the username
+	 * @param endpoint the URL of the IdP (issuer), null if OIDC isn't configured
+	 * @param clientId the client ID
+	 * @param clientSecret the client secret
+	 * @param retryInterval the interval (ms) before retrying to fetch the IdP metadata after a failure
+	 * @param refreshInterval the interval (ms) between two fetches of the IdP metadata
 	 */
-	private static final class IdPDiscoveryDaemon extends Thread {
+	record Settings(String roleClaim, Map<String, Integer> roles, int defaultLevel, String usernameClaim,
+		String endpoint, String clientId, String clientSecret, int retryInterval, int refreshInterval) {
 
-		private String endpoint;
-		private int refreshInterval;
-		private int retryInterval;
-		private boolean stopping;
+		/** Name of the claim carrying the role. */
+		static final Setting<String> ROLE_CLAIM = Setting.text("netshot.aaa.oidc.role.claimname").defaultValue("role").live();
 
-		private IdPDiscoveryDaemon(String endpoint, int retryInterval, int refreshInterval) {
-			this.endpoint = endpoint;
-			this.refreshInterval = refreshInterval;
-			this.retryInterval = retryInterval;
-			this.setName("NetshotOidcIdPDiscovery");
-			this.setDaemon(true);
+		/** Value of the role claim for the read-only role. */
+		static final Setting<String> READONLY_ROLE = roleSetting(User.Role.READONLY);
+
+		/** Value of the role claim for the operator role. */
+		static final Setting<String> OPERATOR_ROLE = roleSetting(User.Role.OPERATOR);
+
+		/** Value of the role claim for the read-write role. */
+		static final Setting<String> READWRITE_ROLE = roleSetting(User.Role.READWRITE);
+
+		/** Value of the role claim for the execute-read-write role. */
+		static final Setting<String> EXECUTEREADWRITE_ROLE = roleSetting(User.Role.EXECUTEREADWRITE);
+
+		/** Value of the role claim for the admin role. */
+		static final Setting<String> ADMIN_ROLE = roleSetting(User.Role.ADMIN);
+
+		/** Level of an authenticated user without known role. */
+		static final Setting<Integer> DEFAULT_LEVEL = Setting.integer("netshot.aaa.oidc.role.defaultlevel")
+			.defaultValue(0).range(0, 9999).live();
+
+		/** Name of the claim carrying the username. */
+		static final Setting<String> USERNAME_CLAIM = Setting.text("netshot.aaa.oidc.usernameclaimname")
+			.defaultValue("preferred_username").live();
+
+		/** URL of the IdP (issuer). */
+		static final Setting<String> IDP_URL = Setting.text("netshot.aaa.oidc.idp.url").live();
+
+		/** Client ID. */
+		static final Setting<String> CLIENT_ID = Setting.text("netshot.aaa.oidc.clientid").live();
+
+		/** Client secret. */
+		static final Setting<String> CLIENT_SECRET = Setting.text("netshot.aaa.oidc.clientsecret").secret().live();
+
+		/** Interval (ms) before retrying to fetch the IdP metadata after a failure. */
+		static final Setting<Integer> IDP_RETRY_INTERVAL = Setting.integer("netshot.aaa.oidc.idp.retryinterval")
+			.defaultValue(30000).range(1000, Integer.MAX_VALUE).live();
+
+		/** Interval (ms) between two fetches of the IdP metadata. */
+		static final Setting<Integer> IDP_REFRESH_INTERVAL = Setting.integer("netshot.aaa.oidc.idp.refreshinterval")
+			.defaultValue(43200000).range(60000, Integer.MAX_VALUE).live();
+
+		private static Setting<String> roleSetting(User.Role role) {
+			return Setting.text("netshot.aaa.oidc.role.%srole".formatted(role.getName().replaceAll("-", "")))
+				.defaultValue(role.getName()).live();
 		}
 
-		public void setStopping() {
-			this.stopping = true;
-			synchronized (this) {
-				this.notify();
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			Map<String, Integer> roles = new HashMap<>();
+			for (User.Role role : User.Role.values()) {
+				Setting<String> roleSetting = switch (role) {
+					case READONLY -> READONLY_ROLE;
+					case OPERATOR -> OPERATOR_ROLE;
+					case READWRITE -> READWRITE_ROLE;
+					case EXECUTEREADWRITE -> EXECUTEREADWRITE_ROLE;
+					case ADMIN -> ADMIN_ROLE;
+				};
+				roles.put(config.get(roleSetting), role.getLevel());
 			}
-		}
-
-		@Override
-		public void run() {
-			log.info("Starting OIDC IdP metadata discovery daemon");
-			while (!this.stopping) {
-				int waitingTime = this.refreshInterval;
-				try {
-					Oidc.fetchIdpMetadata(this.endpoint);
-				}
-				catch (Exception e) {
-					log.error("Error while fetching/preparing OIDC configuration", e);
-					waitingTime = this.retryInterval;
-				}
-				try {
-					log.trace("OIDC IdP discovery - pausing for {}ms", waitingTime);
-					synchronized (this) {
-						this.wait(waitingTime);
-					}
-				}
-				catch (InterruptedException e) {
-					break;
-				}
-			}
-			log.info("End of OIDC IdP metadata discovery daemon");
+			return new Settings(config.get(ROLE_CLAIM), Map.copyOf(roles), config.get(DEFAULT_LEVEL),
+				config.get(USERNAME_CLAIM), config.get(IDP_URL), config.get(CLIENT_ID), config.get(CLIENT_SECRET),
+				config.get(IDP_RETRY_INTERVAL), config.get(IDP_REFRESH_INTERVAL));
 		}
 	}
 
-	private static synchronized void fetchIdpMetadata(String endpoint) throws Exception {
+	/** The settings, from the configuration. */
+	private final ConfigStore.Binding<Settings> settings;
+
+	/**
+	 * Gets the settings of the OIDC authentication.
+	 * @return the settings
+	 */
+	Settings settings() {
+		return this.settings.get();
+	}
+
+	/**
+	 * Fetches the metadata of the IdP (without holding the lock of the OIDC state).
+	 * @param endpoint the URL of the IdP (issuer)
+	 * @return the metadata
+	 * @throws Exception if the metadata can't be fetched
+	 */
+	static OIDCProviderMetadata fetchIdpMetadata(String endpoint) throws Exception {
 		log.debug("Retrieving OIDC metatada from issuer endpoint {}...", endpoint);
-		Oidc.idpMetadata = OIDCProviderMetadata.resolve(new Issuer(endpoint));
-		log.trace("OIDC IDP metadata {}", Oidc.idpMetadata);
-		Oidc.idTokenValidator = IDTokenValidator.create(Oidc.idpMetadata, Oidc.clientInfo);
+		OIDCProviderMetadata metadata = OIDCProviderMetadata.resolve(new Issuer(endpoint));
+		log.trace("OIDC IDP metadata {}", metadata);
+		return metadata;
 	}
 
 	/**
-	 * Load the configuration from Netshot config file.
+	 * Uses the metadata of the IdP, and prepares the validation of the ID tokens: enables the OIDC authentication.
+	 * @param metadata the metadata of the IdP
+	 * @throws GeneralException if the ID token validation can't be prepared
 	 */
-	public static synchronized void loadConfig() {
-		roleClaim = Netshot.getConfig("netshot.aaa.oidc.role.claimname", "role");
-		roles.clear();
-		for (User.Role role : User.Role.values()) {
-			String roleKey = role.getName().replaceAll("-", "");
-			String claimValue = Netshot.getConfig("netshot.aaa.oidc.role.%srole".formatted(roleKey), role.getName());
-			roles.put(claimValue, role.getLevel());
-		}
-		defaultLevel = Netshot.getConfig("netshot.aaa.oidc.role.defaultlevel", 0, 0, 9999);
-		usernameClaim = Netshot.getConfig("netshot.aaa.oidc.usernameclaimname", "preferred_username");
-		String endpoint = Netshot.getConfig("netshot.aaa.oidc.idp.url");
-		String clientId = Netshot.getConfig("netshot.aaa.oidc.clientid");
-		String clientSecret = Netshot.getSecretConfig("netshot.aaa.oidc.clientsecret");
-		int idpRetryInterval = Netshot.getConfig("netshot.aaa.oidc.idp.retryinterval", 30000, 1000, Integer.MAX_VALUE);
-		int idpRefreshInterval = Netshot.getConfig("netshot.aaa.oidc.idp.refreshinterval", 43200000, 60000, Integer.MAX_VALUE);
+	synchronized void setIdpMetadata(OIDCProviderMetadata metadata) throws GeneralException {
+		this.idTokenValidator = IDTokenValidator.create(metadata, this.clientInfo);
+		this.idpMetadata = metadata;
+	}
 
+	/**
+	 * Sets the client information (before the IdP metadata is fetched).
+	 * @param clientId the client ID
+	 * @param clientSecret the client secret
+	 */
+	synchronized void setClient(String clientId, String clientSecret) {
 		OIDCClientMetadata clientMetadata = new OIDCClientMetadata();
 		clientMetadata.applyDefaults();
-		if (endpoint == null) {
-			Oidc.idpMetadata = null;
-		}
-		else if (clientId == null) {
-			log.warn("OIDC client id configuration is missing, OIDC won't be enabled");
-			Oidc.idpMetadata = null;
-		}
-		else if (clientSecret == null) {
-			log.warn("OIDC client secret configuration is missing, OIDC won't be enabled");
-			Oidc.idpMetadata = null;
-		}
-		else {
-			Oidc.clientInfo = new OIDCClientInformation(
-				new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
-			if (Oidc.idpDiscoveryThread != null) {
-				if (!Oidc.idpDiscoveryThread.endpoint.equals(endpoint)) {
-					log.info("OIDC IdP endpoint configuration has changed, stopping the discovery thread");
-					Oidc.idpDiscoveryThread.setStopping();
-					Oidc.idpDiscoveryThread = null;
-					Oidc.idpMetadata = null;
-				}
-			}
-			if (Oidc.idpDiscoveryThread == null) {
-				Oidc.idpDiscoveryThread = new IdPDiscoveryDaemon(
-					endpoint, idpRetryInterval, idpRefreshInterval);
-				Oidc.idpDiscoveryThread.start();
-			}
-		}
+		this.clientInfo = new OIDCClientInformation(new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
 	}
 
-	public static synchronized boolean isAvailable() {
-		return Oidc.idpMetadata != null;
+	/**
+	 * Disables the OIDC authentication, until the IdP metadata is fetched again.
+	 */
+	synchronized void disable() {
+		this.idpMetadata = null;
+		this.idTokenValidator = null;
 	}
 
-	public static synchronized URI getAuthorizationEndpointURI() {
-		if (!Oidc.isAvailable()) {
+	public synchronized boolean isAvailable() {
+		return this.idpMetadata != null;
+	}
+
+	public synchronized URI getAuthorizationEndpointURI() {
+		if (!this.isAvailable()) {
 			return null;
 		}
-		return Oidc.idpMetadata.getAuthorizationEndpointURI();
+		return this.idpMetadata.getAuthorizationEndpointURI();
 	}
 
-	public static synchronized String getClientId() {
-		if (!Oidc.isAvailable()) {
+	public synchronized String getClientId() {
+		if (!this.isAvailable()) {
 			return null;
 		}
-		return Oidc.clientInfo.getID().getValue();
+		return this.clientInfo.getID().getValue();
 	}
 
-	public static synchronized URI getEndSessionEndpointURI() {
-		if (!Oidc.isAvailable()) {
+	public synchronized URI getEndSessionEndpointURI() {
+		if (!this.isAvailable()) {
 			return null;
 		}
-		return Oidc.idpMetadata.getEndSessionEndpointURI();
+		return this.idpMetadata.getEndSessionEndpointURI();
 	}
 
 	/**
@@ -230,7 +250,7 @@ public final class Oidc {
 	 * @return the OIDC tokens
 	 * @throws Exception in case of problem
 	 */
-	private static OIDCTokens codeToTokens(String code, URL redirectUrl) throws Exception {
+	private OIDCTokens codeToTokens(String code, URL redirectUrl) throws Exception {
 		// Create token request
 		AuthorizationCode authCode = new AuthorizationCode(code);
 		AuthorizationGrant codeGrant = new AuthorizationCodeGrant(authCode, redirectUrl.toURI());
@@ -240,7 +260,7 @@ public final class Oidc {
 
 		// Prepare request
 		TokenRequest tokenRequest = new TokenRequest
-			.Builder(Oidc.idpMetadata.getTokenEndpointURI(), clientAuth, codeGrant)
+			.Builder(this.idpMetadata.getTokenEndpointURI(), clientAuth, codeGrant)
 			.scope(new Scope(OIDCScopeValue.OPENID))
 			.build();
 		HTTPRequest request = tokenRequest.toHTTPRequest();
@@ -264,8 +284,8 @@ public final class Oidc {
 	 * @param redirectUrl = the redirect URL
 	 * @return the authenticated user or null if authentication failed
 	 */
-	public static synchronized UiUser authenticateWithCode(String authorizationCode, URL redirectUrl) {
-		if (!Oidc.isAvailable()) {
+	public synchronized UiUser authenticateWithCode(String authorizationCode, URL redirectUrl) {
+		if (!this.isAvailable()) {
 			return null;
 		}
 		try {
@@ -275,12 +295,15 @@ public final class Oidc {
 				MarkerFactory.getMarker("AAA"),
 				"OIDC authorization code exchanged for OIDC tokens"
 			);
-			final IDTokenClaimsSet tokenClaims = Oidc.idTokenValidator
+			final IDTokenClaimsSet tokenClaims = this.idTokenValidator
 				.validate(tokens.getIDToken(), null);
 			AAA_LOG.debug(
 				MarkerFactory.getMarker("AAA"),
 				"ID token successfully validated"
 			);
+			Settings current = this.settings.get();
+			String usernameClaim = current.usernameClaim();
+			String roleClaim = current.roleClaim();
 			String username = tokenClaims.getStringClaim(usernameClaim);
 			if (username == null) {
 				throw new RuntimeException("The ID token is missing the expected claim %s".formatted(usernameClaim));
@@ -299,7 +322,7 @@ public final class Oidc {
 			}
 			// Select the highest role level among passed roles
 			for (String passedRole : passedRoles) {
-				Integer roleLevel = roles.get(passedRole);
+				Integer roleLevel = current.roles().get(passedRole);
 				if (roleLevel != null) {
 					if (level == null || roleLevel > level) {
 						level = roleLevel;
@@ -307,7 +330,7 @@ public final class Oidc {
 				}
 			}
 			if (level == null) {
-				level = Oidc.defaultLevel;
+				level = current.defaultLevel();
 			}
 			UiUser user = UiUser.remote(username, level);
 			AAA_LOG.info("User {} successfully authenticated via OIDC (level {})", username, level);
@@ -320,6 +343,12 @@ public final class Oidc {
 		}
 	}
 
-	private Oidc() {
+	/**
+	 * Creates the OIDC authentication.
+	 *
+	 * @param config the configuration store, to read the settings from
+	 */
+	public Oidc(ConfigStore config) {
+		this.settings = config.bind(Settings::from);
 	}
 }

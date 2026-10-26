@@ -29,13 +29,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.ScheduleType;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of {@link TaskManager#repeatTask(Task)}: once a recurring task has run, its next occurrence
@@ -51,7 +51,7 @@ public class TaskRepeatTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		TaskManager.init(Wiring.get().taskJobFactory());
+		TestWiring.get().taskManager().startSchedulers();
 	}
 
 	@AfterEach
@@ -77,7 +77,7 @@ public class TaskRepeatTest {
 		long taskId = this.persistRecurringPurgeTask(null);
 		Task reloaded = TestTasks.find(taskId);
 
-		Assertions.assertDoesNotThrow(() -> TaskManager.repeatTask(reloaded),
+		Assertions.assertDoesNotThrow(() -> TestWiring.get().taskManager().repeatTask(reloaded),
 			"Repeating the task should not throw");
 
 		List<Task> others = others(taskId);
@@ -94,7 +94,7 @@ public class TaskRepeatTest {
 		long taskId = this.persistRecurringPurgeTask(groupId);
 		Task reloaded = TestTasks.find(taskId);
 
-		Assertions.assertDoesNotThrow(() -> TaskManager.repeatTask(reloaded),
+		Assertions.assertDoesNotThrow(() -> TestWiring.get().taskManager().repeatTask(reloaded),
 			"Repeating a per-group task should not throw");
 
 		List<Task> others = others(taskId);

@@ -28,8 +28,8 @@ import org.jooq.Record;
 import org.jooq.SelectField;
 import org.jooq.impl.DSL;
 
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.SoftwareRule;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 
 /**
  * The few attributes of a device needed to list devices, projected by
@@ -57,7 +57,7 @@ public record DeviceSummary(
 	Boolean eol,
 	Boolean eos,
 	Boolean configCompliant,
-	SoftwareRule.ConformanceLevel softwareLevel,
+	ConformanceLevel softwareLevel,
 	Device.NetworkClass networkClass) {
 
 	/** Whether the device is past its end of life date (jOOQ). */
@@ -90,7 +90,7 @@ public record DeviceSummary(
 	public static DeviceSummary fromRecord(Record r) {
 		return new DeviceSummary(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(DEVICE.FAMILY), r.get(DEVICE.MGMT_ADDRESS),
 			toEnum(Device.Status.class, r.get(DEVICE.STATUS)), r.get(DEVICE.DRIVER), r.get(EOL), r.get(EOS), r.get(CONFIG_COMPLIANT),
-			toEnum(SoftwareRule.ConformanceLevel.class, r.get(DEVICE.SOFTWARE_LEVEL)),
+			toEnum(ConformanceLevel.class, r.get(DEVICE.SOFTWARE_LEVEL)),
 			toEnum(Device.NetworkClass.class, r.get(DEVICE.NETWORK_CLASS)));
 	}
 }

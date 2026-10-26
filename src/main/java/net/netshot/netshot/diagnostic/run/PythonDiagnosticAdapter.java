@@ -24,10 +24,10 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
-import net.netshot.netshot.devicescript.helper.ScriptToolbox;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.platform.script.ScriptToolbox;
 
 /**
  * Adapts the Python diagnostics.

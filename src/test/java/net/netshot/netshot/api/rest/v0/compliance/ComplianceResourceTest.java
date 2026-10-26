@@ -38,11 +38,11 @@ import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestCompliance;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 
 @ApiTest
@@ -60,7 +60,7 @@ public class ComplianceResourceTest {
 
 	@AfterEach
 	void cleanUpData() {
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			dsl.deleteFrom(Tables.RULE).execute();
 			dsl.deleteFrom(Tables.POLICY).execute();
 			dsl.deleteFrom(Tables.DEVICE_GROUP).execute();

@@ -87,7 +87,7 @@ See [REST API](../api/rest-api.md) for how to use a token.
 
 Every device belongs to a management domain, which defines settings that apply to its devices:
 
-- The domain's configured IP address is how devices in it see the Netshot server — relevant for drivers that upload data to Netshot via FTP/TFTP.
+- The domain's configured IP address is how devices in it see the Netshot server — relevant for drivers that upload data to Netshot via SCP/SFTP.
 - Credential sets can be scoped to a domain, in which case only that domain's devices try them.
 
 Domains are created in the Admin page and can't be deleted while they still contain a device or have a credential set scoped to them.

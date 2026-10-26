@@ -26,8 +26,8 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import net.netshot.netshot.access.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.api.rest.v0.credentials.CredentialSetDto;
+import net.netshot.netshot.inventory.device.DeviceAccess.SshHostKeyVerification;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**

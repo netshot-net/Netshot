@@ -21,7 +21,7 @@ package net.netshot.netshot.testing.fake;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 public class FakeTaskContext implements TaskContext {
 

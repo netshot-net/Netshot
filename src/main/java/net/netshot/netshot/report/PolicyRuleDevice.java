@@ -20,7 +20,7 @@ package net.netshot.netshot.report;
 
 import java.util.Date;
 
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 
 /**

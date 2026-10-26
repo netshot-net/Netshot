@@ -25,11 +25,14 @@ import org.apache.commons.net.telnet.InvalidTelnetOptionException;
 import org.apache.commons.net.telnet.TelnetClient;
 import org.apache.commons.net.telnet.WindowSizeOptionHandler;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * A Telnet CLI access.
@@ -38,79 +41,50 @@ import net.netshot.netshot.task.engine.TaskContext;
 public class Telnet extends Cli {
 
 	/** Default Telnet TCP port. */
-	public static final int DEFAULT_PORT = 23;
+	public static final int DEFAULT_PORT = DriverProtocol.TELNET.defaultPort();
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the Telnet client.
+	 *
+	 * @param connectionTimeout the connection timeout (ms)
+	 * @param receiveTimeout the receive timeout (ms)
+	 * @param commandTimeout the command timeout (ms)
 	 */
-	public static final class Settings {
+	public record Settings(int connectionTimeout, int receiveTimeout, int commandTimeout) {
 
-		/** Telnet connection timeout. */
-		@Getter
-		private int connectionTimeout;
+		/** Connection timeout (ms). */
+		static final Setting<Integer> CONNECTION_TIMEOUT = Setting.integer("netshot.cli.telnet.connectiontimeout")
+			.defaultValue(5000).range(1, Integer.MAX_VALUE).live();
 
-		/** Telnet receive timeout. */
-		@Getter
-		private int receiveTimeout;
+		/** Receive timeout (ms). */
+		static final Setting<Integer> RECEIVE_TIMEOUT = Setting.integer("netshot.cli.telnet.receivetimeout")
+			.defaultValue(60000).range(1, Integer.MAX_VALUE).live();
 
-		/** Telnet command timeout. */
-		@Getter
-		private int commandTimeout;
+		/** Command timeout (ms). */
+		static final Setting<Integer> COMMAND_TIMEOUT = Setting.integer("netshot.cli.telnet.commandtimeout")
+			.defaultValue(120000).range(1, Integer.MAX_VALUE).live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.connectionTimeout = Netshot.getConfig("netshot.cli.telnet.connectiontimeout", 5000, 1, Integer.MAX_VALUE);
-			log.debug("The default connection timeout value for Telnet sessions is {}s", this.connectionTimeout);
-
-			this.receiveTimeout = Netshot.getConfig("netshot.cli.telnet.receivetimeout", 60000, 1, Integer.MAX_VALUE);
-			log.debug("The default receive timeout value for Telnet sessions is {}s", this.receiveTimeout);
-
-			this.commandTimeout = Netshot.getConfig("netshot.cli.telnet.commandtimeout", 120000, 1, Integer.MAX_VALUE);
-			log.debug("The default command timeout value for Telnet sessions is {}s", this.commandTimeout);
+		static Settings from(Config config) {
+			Settings settings = new Settings(config.get(CONNECTION_TIMEOUT), config.get(RECEIVE_TIMEOUT), config.get(COMMAND_TIMEOUT));
+			log.debug("The default Telnet settings are {}", settings);
+			return settings;
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * Initialize some additional static variables from global configuration.
+	 * Gets the settings of the Telnet client.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		Telnet.SETTINGS.load();
-	}
-
-	/**
-	 * Embedded class to represent Telnet-specific configuration.
-	 */
-	public static class TelnetConfig {
-
-		/** Type of terminal. Null means "not set" (see {@link #withDefaults}). */
-		@Setter
-		private String terminalType = null;
-
-		/** Number of columns in the terminal (negotiated via the Telnet Window Size option). Null means "not set". */
-		@Setter
-		private Integer terminalCols = null;
-
-		/** Number of rows in the terminal (negotiated via the Telnet Window Size option). Null means "not set". */
-		@Setter
-		private Integer terminalRows = null;
-
-		/**
-		 * @param withDefaults true to populate every field with its historical default value,
-		 *        false to leave every field {@code null} (a "delta", only ever merged onto
-		 *        another config via {@link Telnet#applyTelnetConfig})
-		 */
-		public TelnetConfig(boolean withDefaults) {
-			if (withDefaults) {
-				this.terminalType = "vt100";
-				this.terminalCols = 80;
-				this.terminalRows = 24;
-			}
-		}
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
 
 	/** The port. */
@@ -142,9 +116,9 @@ public class Telnet extends Cli {
 	public Telnet(String host, int port, TaskContext taskContext) {
 		this(host, taskContext);
 		this.port = port;
-		this.connectionTimeout = Telnet.SETTINGS.getConnectionTimeout();
-		this.commandTimeout = Telnet.SETTINGS.getCommandTimeout();
-		this.receiveTimeout = Telnet.SETTINGS.getReceiveTimeout();
+		this.connectionTimeout = Telnet.settings().connectionTimeout();
+		this.commandTimeout = Telnet.settings().commandTimeout();
+		this.receiveTimeout = Telnet.settings().receiveTimeout();
 	}
 
 	/*(non-Javadoc)
@@ -152,11 +126,11 @@ public class Telnet extends Cli {
 	 */
 	@Override
 	public void connect() throws IOException {
-		this.telnet = new TelnetClient(this.telnetConfig.terminalType.toUpperCase());
+		this.telnet = new TelnetClient(this.telnetConfig.getTerminalType().toUpperCase());
 		telnet.setConnectTimeout(this.connectionTimeout);
 		try {
 			telnet.addOptionHandler(new WindowSizeOptionHandler(
-				this.telnetConfig.terminalCols, this.telnetConfig.terminalRows, true, false, false, false));
+				this.telnetConfig.getTerminalCols(), this.telnetConfig.getTerminalRows(), true, false, false, false));
 		}
 		catch (InvalidTelnetOptionException e) {
 			log.warn("Unable to register the Telnet Window Size option handler.", e);
@@ -193,15 +167,7 @@ public class Telnet extends Cli {
 	 * @param other the config delta to merge in
 	 */
 	public void applyTelnetConfig(TelnetConfig other) {
-		if (other.terminalType != null) {
-			this.telnetConfig.terminalType = other.terminalType;
-		}
-		if (other.terminalCols != null) {
-			this.telnetConfig.terminalCols = other.terminalCols;
-		}
-		if (other.terminalRows != null) {
-			this.telnetConfig.terminalRows = other.terminalRows;
-		}
+		this.telnetConfig.apply(other);
 	}
 
 }

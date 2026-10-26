@@ -34,7 +34,7 @@ import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.access.Snmp;
 import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 
 /**
  * This class is used to pass SNMP control to JavaScript.
@@ -81,11 +81,11 @@ public class JsSnmpHelper {
 	private Client buildClient(AccessDefinition accessDef, net.netshot.netshot.credentials.DeviceCredentialSet credentialSet)
 			throws IOException {
 		DeviceSnmpCommunity resolvedCommunity = (DeviceSnmpCommunity) credentialSet;
-		net.netshot.netshot.inventory.device.NetworkAddress address = this.accessManager.resolveAddress(accessDef);
+		net.netshot.netshot.platform.net.NetworkAddress address = this.accessManager.resolveAddress(accessDef);
 		int port = this.accessManager.resolvePort(accessDef);
 		this.taskContext.debug("Trying access '{}' ({}) using credentials '{}', at {}:{}.",
 			accessDef.getName(), accessDef.getProtocol(), resolvedCommunity.name(), address.getIp(), port);
-		Snmp snmp = new Snmp(address, port, resolvedCommunity);
+		Snmp snmp = new Snmp(address, port, resolvedCommunity, this.accessManager.secrets());
 		try {
 			snmp.getAsString("1.3.6.1.2.1.1.3.0"); /* sysUptime.0 */
 		}

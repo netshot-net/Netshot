@@ -30,19 +30,17 @@ import org.jooq.DSLContext;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.boot.Wiring;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.CredentialSetRepository;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
+import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
@@ -50,18 +48,17 @@ import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicGroups;
@@ -70,9 +67,18 @@ import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.Database;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 @Slf4j
 public class DemoDataCreator {
+
+	/** The transaction support. */
+	private final Transactions transactions;
+
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
 
 	private long domainCount = 3;
 	private List<Domain> testDomains = new ArrayList<>();
@@ -81,6 +87,17 @@ public class DemoDataCreator {
 	private long junosDeviceCount = 1000;
 	private long fortiosDeviceCount = 1000;
 	private List<Device> testDevices = new ArrayList<>();
+
+	/**
+	 * Instantiates the creator.
+	 *
+	 * @param transactions the transaction support
+	 * @param dynamicGroups the refresher of the dynamic groups
+	 */
+	public DemoDataCreator(Transactions transactions, DynamicGroups dynamicGroups) {
+		this.transactions = transactions;
+		this.dynamicGroups = dynamicGroups;
+	}
 
 	/**
 	 * A device to create, with its configurations (the oldest first) and its diagnostic result.
@@ -260,7 +277,7 @@ public class DemoDataCreator {
 		DeviceAttribute configurationSaved = new DeviceBinaryAttribute("configurationSaved", true);
 		attributes.add(configurationSaved);
 
-		DiagnosticResult reloadReasonDiagResult = diagnostic == null ? null : DiagnosticTextResult.of(diagnostic, "Reload Command");
+		DiagnosticResult reloadReasonDiagResult = diagnostic == null ? null : DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "Reload Command");
 
 		return new FakeDevice(built.toBuilder().attributes(attributes).build(), configs, reloadReasonDiagResult);
 	}
@@ -647,7 +664,7 @@ public class DemoDataCreator {
 	public void createData() {
 		log.info("Creating data...");
 		try {
-			new Transactions().run(this::createData);
+			this.transactions.run(this::createData);
 			log.info("Success");
 		}
 		catch (Exception e) {
@@ -768,7 +785,7 @@ public class DemoDataCreator {
 
 			log.info("Refreshing dynamic group");
 			try {
-				DynamicGroups.refresh(dsl, allGroup);
+				this.dynamicGroups.refresh(dsl, allGroup);
 			}
 			catch (FinderParseException e) {
 				throw new IllegalStateException("Invalid query of the group", e);
@@ -817,18 +834,19 @@ public class DemoDataCreator {
 			System.exit(1);
 		}
 
+		Wiring wiring = null;
 		try {
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
 			log.info("Initializing access to the database.");
-			Wiring.init();
+			wiring = Wiring.init();
 		}
 		catch (Exception e) {
 			log.error("Error while updating/initializing DB", e);
 			System.exit(-1);
 		}
 
-		DemoDataCreator creator = new DemoDataCreator();
+		DemoDataCreator creator = new DemoDataCreator(wiring.transactions(), wiring.dynamicGroups());
 		creator.createData();
 	}
 

@@ -44,22 +44,22 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.domain.Domain;
-import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.NetshotApiClient;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
@@ -133,7 +133,7 @@ public class DeviceResourceTest {
 	 * @return the device
 	 */
 	private static Device findOnlyDevice() {
-		long id = new Transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE).fetchSingle(DEVICE.ID));
+		long id = TestWiring.get().transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE).fetchSingle(DEVICE.ID));
 		return TestDevices.find(id);
 	}
 
@@ -144,7 +144,7 @@ public class DeviceResourceTest {
 	 * @return the device
 	 */
 	private static Device findDeviceByAddress(String address) {
-		long id = new Transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE)
+		long id = TestWiring.get().transactions().read(dsl -> dsl.select(DEVICE.ID).from(DEVICE)
 			.where(DEVICE.MGMT_ADDRESS.eq(address)).fetchSingle(DEVICE.ID));
 		return TestDevices.find(id);
 	}
@@ -567,7 +567,7 @@ public class DeviceResourceTest {
 			"Not getting 204 response for device deletion");
 
 		long deviceId = device1.id();
-		int deviceAccessCount = new Transactions().read(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(deviceId)));
+		int deviceAccessCount = TestWiring.get().transactions().read(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(deviceId)));
 		Assertions.assertEquals(0, deviceAccessCount,
 			"DeviceAccess rows should be cascade-deleted along with the device");
 		Assertions.assertNull(TestDevices.findCredentialSet(specificCredId),

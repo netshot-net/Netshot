@@ -29,9 +29,9 @@ import net.netshot.netshot.driver.OptionDefinition;
 import net.netshot.netshot.inventory.device.DeviceFamily;
 import net.netshot.netshot.inventory.device.DeviceTagCount;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.NetworkAddress;
 import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.search.SearchResult;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 /**
  * Maps the sub-resources of the devices (interfaces, modules), the search result, the device

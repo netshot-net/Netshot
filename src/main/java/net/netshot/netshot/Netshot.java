@@ -19,23 +19,12 @@
 package net.netshot.netshot;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.instrument.Instrumentation;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.util.Enumeration;
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -43,45 +32,18 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.help.HelpFormatter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.qos.logback.classic.net.SyslogAppender;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.ConsoleAppender;
-import ch.qos.logback.core.OutputStreamAppender;
-import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
-import ch.qos.logback.core.rolling.RollingFileAppender;
-import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
-import ch.qos.logback.core.util.FileSize;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.aaa.auth.Oidc;
-import net.netshot.netshot.aaa.auth.Radius;
-import net.netshot.netshot.aaa.auth.Tacacs;
-import net.netshot.netshot.aaa.user.PasswordPolicy;
-import net.netshot.netshot.aaa.user.UiUser;
-import net.netshot.netshot.access.Ssh;
-import net.netshot.netshot.access.Telnet;
-import net.netshot.netshot.access.collector.Collector;
-import net.netshot.netshot.access.collector.SnmpTrapReceiver;
-import net.netshot.netshot.access.collector.SshServer;
-import net.netshot.netshot.access.collector.SyslogServer;
-import net.netshot.netshot.api.rest.LoggerFilter;
-import net.netshot.netshot.api.rest.RestServer;
-import net.netshot.netshot.cluster.ClusterManager;
-import net.netshot.netshot.devicescript.helper.PythonFileSystem;
-import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
+import net.netshot.netshot.boot.LoggingSetup;
+import net.netshot.netshot.boot.NetshotSettings;
 import net.netshot.netshot.boot.Wiring;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Database;
+import net.netshot.netshot.platform.lifecycle.ServiceManager;
 import net.netshot.netshot.platform.tls.BouncyCastleLoader;
-import net.netshot.netshot.task.engine.TaskLockManager;
-import net.netshot.netshot.task.engine.TaskManager;
-import net.netshot.netshot.vault.VaultManager;
 //CHECKSTYLE:OFF: IllegalImport
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -91,7 +53,7 @@ import sun.misc.SignalHandler;
  * The Class Netshot. Starting point of Netshot
  */
 @Slf4j
-public class Netshot extends Thread {
+public class Netshot {
 
 	/** Netshot version. */
 	public static final String VERSION = "0.0.0-dev";
@@ -100,23 +62,20 @@ public class Netshot extends Thread {
 	private static final String[] CONFIG_FILENAMES = new String[] {
 		"netshot.conf", "/etc/netshot.conf"};
 
-	/** The application configuration as retrieved from the configuration file. */
-	private static Properties config;
+	/** A custom truststore (CA certificates to trust). */
+	static final Setting<String> TRUSTSTORE_FILE = Setting.text("netshot.ssl.truststore.file").restart();
 
-	/** Max size of a secret file (see {@link #getSecretConfig(String)}). */
-	private static final long MAX_SECRET_FILE_SIZE = 64 * 1024;
+	/** The application configuration (the current snapshot, replaced as a whole on a reload). */
+	private static final ConfigStore CONFIG = new ConfigStore(Config.empty());
 
-	/** Cache of the secret config items (empty if not set), cleared when the config is reloaded. */
-	private static final Map<String, Optional<String>> SECRET_CACHE = new ConcurrentHashMap<>();
-
-	/** Authentication, Authorization, Accounting logger. */
-	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
-
-	/** The machine hostname. */
-	private static String hostname;
-
-	/** Java instrumentation. */
+	/**
+	 * The instrumentation handed by the JVM to the agent entry point (used to load the crypto libraries):
+	 * the only mutable static field, see the STATIC_FIELDS_ARE_FINAL rule of ArchitectureTest.
+	 */
 	private static volatile Instrumentation instrumentation;
+
+	protected Netshot() {
+	}
 
 	/**
 	 * Retrieve the local machine hostname.
@@ -124,193 +83,34 @@ public class Netshot extends Thread {
 	 * @return the local machine hostname
 	 */
 	public static String getHostname() {
-		if (Netshot.hostname == null) {
+		return Hostname.VALUE;
+	}
+
+	/** Holder of the machine hostname, read once, on first use (lazy, thread-safe class initialization). */
+	private static final class Hostname {
+		static final String VALUE = read();
+
+		private static String read() {
+			String hostname = null;
 			try {
 				Process process = Runtime.getRuntime().exec(new String[] { "hostname" });
 				BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-				Netshot.hostname = stdInput.readLine();
+				hostname = stdInput.readLine();
 			}
 			catch (IOException e) {
 				log.error("Error while getting local machine hostname", e);
 			}
-			if (Netshot.hostname == null) {
-				Netshot.hostname = "unknown";
-			}
+			return hostname == null ? "unknown" : hostname;
 		}
-		return Netshot.hostname;
 	}
 
 	/**
-	 * Gets the config.
+	 * Gets the configuration store, which holds the current configuration snapshot.
 	 *
-	 * @return the config
+	 * @return the configuration store
 	 */
-	public static Properties getConfig() {
-		return config;
-	}
-
-	/**
-	 * Gets the config item as boolean value.
-	 *
-	 * @param key the key
-	 * @param defaultValue the default value
-	 * @return the config
-	 */
-	public static boolean getConfig(String key, boolean defaultValue) {
-		String value = getConfig(key);
-		if ("false".equals(value)) {
-			return false;
-		}
-		if ("true".equals(value)) {
-			return true;
-		}
-		if (value != null) {
-			log.error("Unable to parse the boolean value of configuration item '{}', using default value {}.",
-				key, defaultValue);
-		}
-		return defaultValue;
-	}
-
-	/**
-	 * Gets the config.
-	 *
-	 * @param key the key
-	 * @param defaultValue the default value
-	 * @return the config
-	 */
-	public static String getConfig(String key, String defaultValue) {
-		String value = getConfig(key);
-		return value == null ? defaultValue : value;
-	}
-
-	/**
-	 * Gets a config item as an Integer.
-	 *
-	 * @param key the config key
-	 * @param defaultValue the default value
-	 * @return the config
-	 */
-	public static int getConfig(String key, int defaultValue) {
-		String textValue = getConfig(key);
-		if (textValue != null) {
-			try {
-				return Integer.parseInt(textValue);
-			}
-			catch (Exception e) {
-				log.error("Unable to parse the integer value of configuration item '{}', using default value {}.",
-					key, defaultValue);
-			}
-		}
-		return defaultValue;
-	}
-
-	/**
-	 * Gets a config item as an Integer.
-	 *
-	 * @param key the config key
-	 * @param defaultValue the default value
-	 * @param min the minimum acceptable value
-	 * @param max the maximum acceptable value
-	 * @return the config
-	 */
-	public static int getConfig(String key, int defaultValue, int min, int max) {
-		int value = Netshot.getConfig(key, defaultValue);
-		if (value < min || value > max) {
-			log.error("Unacceptable integer value for configuration item '{}' (not in the range {} to {}), using default value {}",
-					key, min, max, defaultValue);
-			return defaultValue;
-		}
-		return value;
-	}
-
-	/**
-	 * Gets the config.
-	 *
-	 * @param key the key
-	 * @return the config
-	 */
-	public static String getConfig(String key) {
-		String envKey = key.replace(".", "_").toUpperCase();
-		try {
-			String value = System.getenv(envKey);
-			if (value != null) {
-				return value;
-			}
-		}
-		catch (SecurityException e) {
-			log.warn("Security exception raised while getting environment variable {}", envKey, e);
-		}
-		return config.getProperty(key);
-	}
-
-	/**
-	 * Gets a secret config item, see {@link #getSecretConfig(String)}.
-	 *
-	 * @param key the key
-	 * @param defaultValue the default value
-	 * @return the config
-	 */
-	public static String getSecretConfig(String key, String defaultValue) {
-		String value = getSecretConfig(key);
-		return value == null ? defaultValue : value;
-	}
-
-	/**
-	 * Gets a secret config item. If the {@code <key>.file} item is set (e.g. via the
-	 * {@code NETSHOT_DB_PASSWORD_FILE} environment variable), the secret is read from that file;
-	 * otherwise, it is read as a normal (inline) config item.
-	 * The value is read once, then cached until the configuration is reloaded.
-	 *
-	 * @param key the key
-	 * @return the config
-	 * @throws IllegalStateException if the secret file is set but can't be read, is empty or too big
-	 */
-	public static String getSecretConfig(String key) {
-		return Netshot.SECRET_CACHE.computeIfAbsent(key, k -> Optional.ofNullable(readSecretConfig(k))).orElse(null);
-	}
-
-	/**
-	 * Reads a secret config item, from the secret file or inline.
-	 *
-	 * @param key the key
-	 * @return the config
-	 */
-	private static String readSecretConfig(String key) {
-		String fileKey = key + ".file";
-		String fileName = getConfig(fileKey);
-		if (fileName == null) {
-			return getConfig(key);
-		}
-		String envKey = key.replace(".", "_").toUpperCase();
-		if (System.getenv(envKey) != null) {
-			// Likely a leftover, and the secret is still exposed (e.g. to user scripts) through the environment
-			log.warn("Both '{}' and environment variable {} are set: the environment variable is ignored, "
-				+ "it should be removed.", fileKey, envKey);
-		}
-		else if (config.getProperty(key) != null) {
-			log.info("Both configuration items '{}' and '{}' are set, the inline value is ignored.", fileKey, key);
-		}
-		String value;
-		try {
-			Path path = Path.of(fileName);
-			if (Files.size(path) > MAX_SECRET_FILE_SIZE) {
-				throw new IllegalStateException("The secret file '%s' for configuration item '%s' is too big (more than %d bytes)"
-					.formatted(fileName, key, MAX_SECRET_FILE_SIZE));
-			}
-			value = Files.readString(path, StandardCharsets.UTF_8);
-		}
-		catch (IOException | InvalidPathException e) {
-			throw new IllegalStateException("Unable to read the secret file '%s' for configuration item '%s'"
-				.formatted(fileName, key), e);
-		}
-		// Ignore the trailing line break(s), but keep any other whitespace
-		value = value.replaceFirst("[\\r\\n]+\\z", "");
-		if (value.isEmpty()) {
-			throw new IllegalStateException("The secret file '%s' for configuration item '%s' is empty"
-				.formatted(fileName, key));
-		}
-		log.info("Configuration item '{}' was read from secret file {}.", key, fileName);
-		return value;
+	public static ConfigStore config() {
+		return CONFIG;
 	}
 
 	/**
@@ -323,30 +123,25 @@ public class Netshot extends Thread {
 	}
 
 	/**
-	 * Read the application configuration from the files.
+	 * Read the application configuration from the files (at startup). If no file can be read,
+	 * the current configuration is kept.
 	 *
 	 * @param filenames the names of the files to read from
 	 * @return true, if successful
 	 */
 	protected static boolean readConfig(String[] filenames) {
-		Netshot.config = new Properties();
-		Netshot.SECRET_CACHE.clear();
-		for (String fileName : filenames) {
-			try (InputStream fileStream = new FileInputStream(fileName)) {
-				log.trace("Trying to load the configuration file {}.", fileName);
-				Netshot.config.load(fileStream);
-				log.warn("Configuration file {} successfully read.", fileName);
-				break;
-			}
-			catch (Exception e) {
-				log.warn("Unable to read the configuration file {}.", fileName);
-			}
-		}
-		if (Netshot.config.isEmpty()) {
-			log.error(MarkerFactory.getMarker("FATAL"), "No configuration file was found. Exiting.");
-			return false;
-		}
-		return true;
+		return CONFIG.load(() -> Config.load(List.of(filenames)));
+	}
+
+	/**
+	 * Reload the application configuration from the files (HUP signal). If no file can be read,
+	 * the current configuration is kept.
+	 *
+	 * @param filenames the names of the files to read from
+	 * @return true, if successful
+	 */
+	protected static boolean reloadConfig(String[] filenames) {
+		return CONFIG.reload(() -> Config.load(List.of(filenames)));
 	}
 
 	/**
@@ -356,231 +151,7 @@ public class Netshot extends Thread {
 	 * @return true
 	 */
 	protected static boolean initConfig(Properties newConfig) {
-		Netshot.config = newConfig;
-		Netshot.SECRET_CACHE.clear();
-		return true;
-	}
-
-	/**
-	 * Initializes the logging.
-	 *
-	 * @return true, if successful
-	 */
-	protected static boolean initMainLogging() {
-		// Redirect JUL to SLF4J
-		SLF4JBridgeHandler.removeHandlersForRootLogger();
-		SLF4JBridgeHandler.install();
-
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger)
-			LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-		LoggerContext loggerContext = rootLogger.getLoggerContext();
-
-		System.setProperty("org.jboss.logging.provider", "slf4j");
-
-		String logFile = Netshot.getConfig("netshot.log.file", "netshot.log");
-		String logLevelCfg = Netshot.getConfig("netshot.log.level");
-
-		int logCount = Netshot.getConfig("netshot.log.count", 5, 1, 65535);
-		int logMaxSize = Netshot.getConfig("netshot.log.maxsize", 2, 1, Integer.MAX_VALUE);
-
-		Level logLevel = Level.toLevel(logLevelCfg, Level.WARN);
-		if (logLevelCfg != null && !logLevel.toString().equals(logLevelCfg)) {
-			log.error("Invalid log level (netshot.log.level) '{}'. Using {}.", logLevelCfg, logLevel);
-		}
-
-		OutputStreamAppender<ILoggingEvent> appender;
-
-		if ("CONSOLE".equals(logFile)) {
-			ConsoleAppender<ILoggingEvent> cAppender = new ConsoleAppender<>();
-			log.info("Will go on logging to the console.");
-			appender = cAppender;
-		}
-		else {
-			log.info("Switching to file logging, into {}, level {}, rotation using {} files of max {}MB.",
-				logFile, logLevel, logCount, logMaxSize);
-
-			try {
-				RollingFileAppender<ILoggingEvent> rfAppender = new RollingFileAppender<>();
-				rfAppender.setContext(loggerContext);
-				rfAppender.setFile(logFile);
-
-				FixedWindowRollingPolicy fwRollingPolicy = new FixedWindowRollingPolicy();
-				fwRollingPolicy.setContext(loggerContext);
-				fwRollingPolicy.setFileNamePattern(logFile + ".%i.gz");
-				fwRollingPolicy.setMinIndex(1);
-				fwRollingPolicy.setMaxIndex(logCount);
-				fwRollingPolicy.setParent(rfAppender);
-				fwRollingPolicy.start();
-
-				SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new
-					SizeBasedTriggeringPolicy<>();
-				triggeringPolicy.setMaxFileSize(new FileSize(logMaxSize * FileSize.MB_COEFFICIENT));
-				triggeringPolicy.start();
-
-				rfAppender.setRollingPolicy(fwRollingPolicy);
-				rfAppender.setTriggeringPolicy(triggeringPolicy);
-				appender = rfAppender;
-
-			}
-			catch (Exception e) {
-				log.error(MarkerFactory.getMarker("FATAL"), "Unable to log into file {}. Exiting.", logFile, e);
-				return false;
-			}
-		}
-
-		loggerContext.reset();
-		rootLogger.setLevel(logLevel);
-		PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-		encoder.setContext(loggerContext);
-		encoder.setPattern("%d %-5level [%thread] %logger{0}: %msg%n");
-		encoder.start();
-		appender.setEncoder(encoder);
-		appender.setContext(loggerContext);
-		appender.start();
-		final String appenderName = "Netshot appender";
-		appender.setName(appenderName);
-		rootLogger.detachAppender(appenderName);
-		rootLogger.addAppender(appender);
-
-		// jOOQ (open source edition) warns at each start that the PostgreSQL version is older than the latest one,
-		// the only one it officially supports: the supported versions are tested (see the backend architecture docs)
-		((ch.qos.logback.classic.Logger) LoggerFactory.getLogger("org.jooq.impl.DefaultExecuteContext.logVersionSupport"))
-			.setLevel(Level.ERROR);
-
-		Pattern logSetting = Pattern.compile("^netshot\\.log\\.class\\.(?<class>.*)");
-		Enumeration<?> propertyNames = Netshot.config.propertyNames();
-		while (propertyNames.hasMoreElements()) {
-			String propertyName = (String) propertyNames.nextElement();
-			Matcher matcher = logSetting.matcher(propertyName);
-			if (matcher.find()) {
-				String propertyValue = Netshot.getConfig(propertyName);
-				String className = matcher.group("class").trim();
-				ch.qos.logback.classic.Logger classLogger = (ch.qos.logback.classic.Logger)
-					LoggerFactory.getLogger(className);
-				try {
-					Level classLevel = Level.valueOf(propertyValue);
-					classLogger.setLevel(classLevel);
-					log.info("Assigning level {} to class {}.", classLevel, className);
-				}
-				catch (Exception e) {
-					log.error("Invalid log level for class {}.", className);
-				}
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Initialize the audit logging.
-	 * @return true if everything went well
-	 */
-	protected static boolean initAuditLogging() {
-		String auditFile = Netshot.getConfig("netshot.log.audit.file");
-		String auditLevelCfg = Netshot.getConfig("netshot.log.audit.level");
-		int auditCount = Netshot.getConfig("netshot.log.audit.count", 5, 1, 65535);
-		int auditMaxSize = Netshot.getConfig("netshot.log.audit.maxsize", 2, 1, Integer.MAX_VALUE);
-
-		((ch.qos.logback.classic.Logger) AAA_LOG).setAdditive(false);
-		Level logLevel = Level.toLevel(auditLevelCfg, Level.OFF);
-		if (auditLevelCfg != null && !logLevel.toString().equals(auditLevelCfg)) {
-			log.error("Invalid log level (netshot.log.audit.level) '{}'. Using {}.", auditLevelCfg, logLevel);
-		}
-		((ch.qos.logback.classic.Logger) AAA_LOG).setLevel(logLevel);
-
-		if (auditFile != null) {
-			try {
-				LoggerContext loggerContext = ((ch.qos.logback.classic.Logger) AAA_LOG).getLoggerContext();
-				RollingFileAppender<ILoggingEvent> appender = new RollingFileAppender<>();
-				appender.setContext(loggerContext);
-				appender.setFile(auditFile);
-
-				FixedWindowRollingPolicy fwRollingPolicy = new FixedWindowRollingPolicy();
-				fwRollingPolicy.setContext(loggerContext);
-				fwRollingPolicy.setFileNamePattern(auditFile + ".%i.gz");
-				fwRollingPolicy.setMinIndex(1);
-				fwRollingPolicy.setMaxIndex(auditCount);
-				fwRollingPolicy.setParent(appender);
-				fwRollingPolicy.start();
-
-				SizeBasedTriggeringPolicy<ILoggingEvent> triggeringPolicy = new
-					SizeBasedTriggeringPolicy<>();
-				triggeringPolicy.setMaxFileSize(new FileSize(auditMaxSize * FileSize.MB_COEFFICIENT));
-				triggeringPolicy.start();
-
-				appender.setRollingPolicy(fwRollingPolicy);
-				appender.setTriggeringPolicy(triggeringPolicy);
-				PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-				encoder.setContext(loggerContext);
-				encoder.setPattern("%d %logger{0}: %msg%n");
-				encoder.start();
-				appender.setEncoder(encoder);
-				appender.setContext(loggerContext);
-
-				appender.start();
-				((ch.qos.logback.classic.Logger) AAA_LOG).addAppender(appender);
-				log.warn("Audit information will be logged to {}.", auditFile);
-				AAA_LOG.error("Audit starting.");
-			}
-			catch (Exception e) {
-				log.error("Unable to log AAA data into file {}. Exiting.", auditFile, e);
-			}
-		}
-		LoggerFilter.init();
-		return true;
-	}
-
-	/** The exception handler. To be used by other threads. */
-	public static Thread.UncaughtExceptionHandler exceptionHandler = new Thread.UncaughtExceptionHandler() {
-		@Override
-		public void uncaughtException(Thread th, Throwable ex) {
-			System.err.println("NETSHOT FATAL ERROR");
-			ex.printStackTrace();
-			System.exit(1);
-		}
-	};
-
-	/**
-	 * Initialize remote Syslog logging.
-	 *
-	 * @return true if everything went fine
-	 */
-	protected static boolean initSyslogLogging() {
-
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger)
-			LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
-		LoggerContext loggerContext = rootLogger.getLoggerContext();
-
-		int syslogIndex = 1;
-		while (true) {
-			String host = Netshot.getConfig(String.format("netshot.log.syslog%d.host", syslogIndex));
-			if (host == null) {
-				break;
-			}
-			host = host.trim();
-			if ("".equals(host)) {
-				break;
-			}
-			SyslogAppender appender = new SyslogAppender();
-			appender.setSyslogHost(host);
-			appender.setContext(loggerContext);
-			appender.setSuffixPattern("[Netshot] %logger{0}: %msg");
-			int port = Netshot.getConfig(String.format("netshot.log.syslog%d.port", syslogIndex), 514, 1, 65535);
-			appender.setPort(port);
-			String facility = Netshot.getConfig(String.format("netshot.log.syslog%d.facility", syslogIndex));
-			appender.setFacility(facility == null ? "LOCAL7" : facility);
-			rootLogger.addAppender(appender);
-			((ch.qos.logback.classic.Logger) AAA_LOG).addAppender(appender);
-			try {
-				appender.start();
-			}
-			catch (Exception e) {
-				log.error("Unable to start syslog instance {}: {}.", syslogIndex, e.getMessage());
-			}
-			log.warn("Logging to syslog {}:{} has started", appender.getSyslogHost(), appender.getPort());
-			syslogIndex++;
-		}
-
+		CONFIG.replace(Config.of(newConfig));
 		return true;
 	}
 
@@ -604,30 +175,10 @@ public class Netshot extends Thread {
 	 * Set up a custom truststore (CA certificates to trust).
 	 */
 	protected static void setTruststore() {
-		String path = Netshot.getConfig("netshot.ssl.truststore.file");
+		String path = CONFIG.current().get(TRUSTSTORE_FILE);
 		if (path != null) {
 			System.setProperty("javax.net.ssl.trustStore", path);
 		}
-	}
-
-	/**
-	 * Load (or reload) the configuration of various modules.
-	 */
-	public static void loadModuleConfigs() {
-		log.info("Loading module configurations.");
-		PasswordPolicy.loadConfig();
-		UiUser.loadConfig();
-		Radius.loadConfig();
-		Tacacs.loadConfig();
-		Oidc.loadConfig();
-		Wiring.reloadTaskConfigs();
-		Wiring.reloadRuleRuntimeConfigs();
-		PythonFileSystem.loadConfig();
-		Ssh.loadConfig();
-		Telnet.loadConfig();
-		Collector.loadConfig();
-		ConfigBinaryFileAttribute.loadConfig();
-		VaultManager.loadConfig();
 	}
 
 	/**
@@ -681,14 +232,38 @@ public class Netshot extends Thread {
 			configFileNames = new String[] { configFilename };
 		}
 
+		// The crypto libraries are registered before anything initializes the SSH library, which checks the
+		// available crypto providers (EdDSA, X25519...) only once. Building the catalog of the settings initializes
+		// the classes which declare them, the SSH ones included: the settings of the crypto libraries are read from
+		// a first load of the configuration, without catalog (without the secrets), then the configuration is loaded
+		// again with the catalog.
 		if (!Netshot.readConfig(configFileNames)) {
+			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
 			System.exit(1);
 		}
-		if (!Netshot.initMainLogging()
-				|| !Netshot.initAuditLogging()
-				|| !Netshot.initSyslogLogging()) {
+		if (!LoggingSetup.apply(CONFIG.current())) {
 			System.exit(1);
 		}
+		try {
+			log.info("Registering crypto libraries");
+			BouncyCastleLoader.registerBouncyCastle();
+		}
+		catch (Exception e) {
+			System.err.println("NETSHOT FATAL ERROR: " + e.getMessage());
+			e.printStackTrace();
+			System.exit(1);
+		}
+		CONFIG.setCatalog(NetshotSettings.catalog());
+		if (!Netshot.readConfig(configFileNames)) {
+			log.error(MarkerFactory.getMarker("FATAL"), "Unable to read the configuration. Exiting.");
+			System.exit(1);
+		}
+		if (!LoggingSetup.apply(CONFIG.current())) {
+			System.exit(1);
+		}
+		// Applied again on each configuration change (first, so that the other changes are logged accordingly)
+		CONFIG.addListener(LoggingSetup::apply);
+		CONFIG.catalog().warnUnknownItems(CONFIG.current());
 
 		try {
 			log.info("Checking current JVM.");
@@ -696,55 +271,21 @@ public class Netshot extends Thread {
 			log.info("Selecting truststore.");
 			Netshot.setTruststore();
 
-			log.info("Registering crypto libraries");
-			BouncyCastleLoader.registerBouncyCastle();
-
 			log.info("Updating the database schema, if necessary.");
 			Database.update();
-			log.info("Initializing access to the database.");
-			Wiring wiring = Wiring.init();
 
-			Netshot.loadModuleConfigs();
-
-			log.info("Loading the device drivers.");
-			wiring.driverRegistry().refresh();
-			log.info("Starting the Syslog server.");
-			SyslogServer.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
-			log.info("Starting the SNMP v1/v2c/v3 trap receiver.");
-			SnmpTrapReceiver.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
-			log.info("Starting the SSH/SCP/SFTP server.");
-			SshServer.init();
-			//log.info("Starting the TFTP server.");
-			//TftpServer.init();
-
-			// Before the clustering manager, which can start running tasks
-			TaskLockManager.init(Netshot.getConfig("netshot.cluster.enabled", false));
-
-			log.info("Starting the clustering manager.");
-			ClusterManager.init(wiring.driverRegistry(), wiring.autoSnapshotScheduler());
-
-			log.info("Starting the Vault token refresh daemon.");
-			VaultManager.init();
-
-			log.info("Initializing the task manager.");
-			TaskManager.init(wiring.taskJobFactory());
-			log.info("Scheduling the existing tasks.");
-			TaskManager.rescheduleAll();
-			log.info("Cancelling orphaned delayed tasks.");
-			TaskManager.cancelOrphanedDelayedTasks();
-			log.info("Starting the REST service.");
-			RestServer.init(wiring.binder());
+			Wiring wiring = Wiring.create(CONFIG);
+			ServiceManager services = new ServiceManager(wiring.services());
+			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
+			Runtime.getRuntime().addShutdownHook(services.shutdownHook());
+			services.start();
 
 			log.info("Starting signal listener.");
 			Signal.handle(new Signal("HUP"), new SignalHandler() {
 				@Override
 				public void handle(Signal sig) {
-					Netshot.readConfig(configFileNames);
-					Netshot.initMainLogging();
-					Netshot.initAuditLogging();
-					Netshot.initSyslogLogging();
-					Netshot.loadModuleConfigs();
-					SnmpTrapReceiver.reload();
+					// The components are notified of the change by the configuration store
+					Netshot.reloadConfig(configFileNames);
 				}
 			});
 			log.warn("Netshot is started");

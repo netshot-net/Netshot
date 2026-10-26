@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.sshd.common.AttributeRepository.AttributeKey;
 import org.apache.sshd.common.NamedFactory;
@@ -103,10 +105,13 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.inventory.device.NetworkAddress;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
+import net.netshot.netshot.platform.lifecycle.Service;
+import net.netshot.netshot.platform.net.NetworkAddress;
 
 import org.apache.sshd.common.kex.KexProposalOption;
 
@@ -114,36 +119,51 @@ import org.apache.sshd.common.kex.KexProposalOption;
  * SSH server to receive files via SFTP/SCP.
  */
 @Slf4j
-public final class SshServer {
+public final class SshServer implements Service {
 
 	/** The AAA logger. */
 	private static final Logger AAA_LOG = LoggerFactory.getLogger("AAA");
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the embedded SSH server (applied when it starts).
+	 *
+	 * @param enabled whether the SSH (SFTP/SCP) server is enabled
+	 * @param enabledProtocols the enabled transfer protocols
+	 * @param tcpPort the listening TCP port
+	 * @param externalTcpPort the external TCP port (can be different than tcpPort if port translation is used)
+	 * @param listenHost the listen address (e.g. 0.0.0.0 or 127.0.0.1)
+	 * @param kexAlgorithms the key exchange algorithms
+	 * @param hostKeyAlgorithms the host key algorithms
+	 * @param ciphers the ciphers
+	 * @param macs the MACs
+	 * @param compressionAlgorithms the compression algorithms
+	 * @param hostKeyPath the path to store the host keys
+	 * @param maxConcurrentSessions the max number of concurrent SSH sessions
 	 */
-	public static final class Settings {
+	public record Settings(boolean enabled, List<TransferProtocol> enabledProtocols, int tcpPort, int externalTcpPort,
+		InetAddress listenHost, List<String> kexAlgorithms, List<String> hostKeyAlgorithms, List<String> ciphers,
+		List<String> macs, List<String> compressionAlgorithms, Path hostKeyPath, int maxConcurrentSessions) {
 
 		private static final int DEFAULT_SSH_SERVER_PORT = 2022;
 
-		private static final String[] DEFAULT_SSH_KEX_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_KEX_ALGORITHMS = List.of(
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP18_SHA512,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP16_SHA512,
 			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP14_SHA256,
-			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP_EXCHANGE_SHA256,
-		};
+			BuiltinDHFactories.Constants.DIFFIE_HELLMAN_GROUP_EXCHANGE_SHA256
+		);
 
-		private static final String[] DEFAULT_SSH_HOST_KEY_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_HOST_KEY_ALGORITHMS = List.of(
 			KeyPairProvider.SSH_ED25519,
 			KeyPairProvider.ECDSA_SHA2_NISTP521,
 			KeyPairProvider.ECDSA_SHA2_NISTP256,
 			KeyUtils.RSA_SHA256_KEY_TYPE_ALIAS,
 			KeyUtils.RSA_SHA512_KEY_TYPE_ALIAS,
 			KeyPairProvider.SSH_RSA,
-			KeyPairProvider.SSH_DSS,
-		};
+			KeyPairProvider.SSH_DSS
+		);
 
-		private static final String[] DEFAULT_SSH_CIPHERS = {
+		private static final List<String> DEFAULT_SSH_CIPHERS = List.of(
 			BuiltinCiphers.Constants.CC20P1305_OPENSSH,
 			BuiltinCiphers.Constants.AES256_GCM,
 			BuiltinCiphers.Constants.AES128_GCM,
@@ -152,130 +172,112 @@ public final class SshServer {
 			BuiltinCiphers.Constants.AES192_CTR,
 			BuiltinCiphers.Constants.AES192_CBC,
 			BuiltinCiphers.Constants.AES128_CTR,
-			BuiltinCiphers.Constants.AES128_CBC,
-		};
+			BuiltinCiphers.Constants.AES128_CBC
+		);
 
-		private static final String[] DEFAULT_SSH_MACS = {
+		private static final List<String> DEFAULT_SSH_MACS = List.of(
 			BuiltinMacs.Constants.ETM_HMAC_SHA2_512,
 			BuiltinMacs.Constants.ETM_HMAC_SHA2_256,
 			BuiltinMacs.Constants.HMAC_SHA2_256,
-			BuiltinMacs.Constants.HMAC_SHA2_512,
-		};
+			BuiltinMacs.Constants.HMAC_SHA2_512
+		);
 
-		private static final String[] DEFAULT_SSH_COMPRESSION_ALGORITHMS = {
+		private static final List<String> DEFAULT_SSH_COMPRESSION_ALGORITHMS = List.of(
 			BuiltinCompressions.Constants.NONE,
-			BuiltinCompressions.Constants.ZLIB,
-		};
+			BuiltinCompressions.Constants.ZLIB
+		);
 
 		/** Whether the SSH (SFTP/SCP) server is enabled. */
-		@Getter
-		private boolean enabled;
+		public static final Setting<Boolean> ENABLED = Setting.bool("netshot.sshserver.enabled").defaultValue(true).restart();
 
-		/** Enabled transfer protocols. */
-		@Getter
-		private List<TransferProtocol> enabledProtocols;
+		/** Whether SFTP is enabled. */
+		static final Setting<Boolean> SFTP_ENABLED = Setting.bool("netshot.sshserver.sftp.enabled").defaultValue(true).restart();
+
+		/** Whether SCP is enabled. */
+		static final Setting<Boolean> SCP_ENABLED = Setting.bool("netshot.sshserver.scp.enabled").defaultValue(true).restart();
 
 		/** Listening TCP port. */
-		@Getter
-		private int tcpPort;
+		static final Setting<Integer> PORT = Setting.integer("netshot.sshserver.port")
+			.defaultValue(DEFAULT_SSH_SERVER_PORT).range(1, 65535).restart();
 
-		/** External TCP port (can be different than tcpPort if port translation is used). */
-		@Getter
-		private int externalTcpPort;
+		/** External TCP port (default: the listening port). */
+		static final Setting<Integer> EXTERNAL_PORT = Setting.integer("netshot.sshserver.externalport").range(1, 65535).restart();
 
-		/** The listen address (e.g. 0.0.0.0 or 127.0.0.1) */
-		@Getter
-		private InetAddress listenHost;
-	
+		/** Listen address. */
+		static final Setting<String> LISTEN_ADDRESS = Setting.text("netshot.sshserver.listenaddress").defaultValue("0.0.0.0").restart();
+
+		/** Path to store the host keys. */
+		static final Setting<String> HOST_KEY_PATH = Setting.text("netshot.sshserver.hostkeypath").restart();
+
 		/** Key exchange algorithms. */
-		@Getter
-		private String[] kexAlgorithms;
+		static final Setting<List<String>> KEX_ALGORITHMS = Setting.list("netshot.sshserver.kexalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_KEX_ALGORITHMS).restart();
 
 		/** Host key algorithms. */
-		@Getter
-		private String[] hostKeyAlgorithms;
+		static final Setting<List<String>> HOST_KEY_ALGORITHMS = Setting.list("netshot.sshserver.hostkeyalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_HOST_KEY_ALGORITHMS).restart();
 
 		/** Ciphers. */
-		@Getter
-		private String[] ciphers;
+		static final Setting<List<String>> CIPHERS = Setting.list("netshot.sshserver.ciphers", ", *")
+			.defaultValue(DEFAULT_SSH_CIPHERS).restart();
 
 		/** MACs. */
-		@Getter
-		private String[] macs;
+		static final Setting<List<String>> MACS = Setting.list("netshot.sshserver.macs", ", *")
+			.defaultValue(DEFAULT_SSH_MACS).restart();
 
 		/** Compression algorithms. */
-		@Getter
-		private String[] compressionAlgorithms;
-
-		/** Path to store host keys. */
-		@Getter
-		private Path hostKeyPath;
+		static final Setting<List<String>> COMPRESSION_ALGORITHMS = Setting.list("netshot.sshserver.compressionalgorithms", ", *")
+			.defaultValue(DEFAULT_SSH_COMPRESSION_ALGORITHMS).restart();
 
 		/** Max concurrent SSH sessions. */
-		@Getter
-		private int maxConcurrentSessions;
-
-		private String[] readAlgorithms(String configKey, String[] defaultValue) {
-			String value = Netshot.getConfig("netshot.sshserver.%s".formatted(configKey));
-			if (value == null) {
-				return defaultValue;
-			}
-			return value.split(", *");
-		}
+		static final Setting<Integer> MAX_CONCURRENT_SESSIONS = Setting.integer("netshot.sshserver.maxconcurrentsessions")
+			.defaultValue(10).range(1, 1000).restart();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.enabled = Netshot.getConfig("netshot.sshserver.enabled", true);
-
-			this.enabledProtocols = new ArrayList<>();
-			if (Netshot.getConfig("netshot.sshserver.sftp.enabled", true)) {
-				this.enabledProtocols.add(TransferProtocol.SFTP);
+		static Settings from(Config config) {
+			boolean enabled = config.get(ENABLED);
+			List<TransferProtocol> enabledProtocols = new ArrayList<>();
+			if (config.get(SFTP_ENABLED)) {
+				enabledProtocols.add(TransferProtocol.SFTP);
 			}
-			if (Netshot.getConfig("netshot.sshserver.scp.enabled", true)) {
-				this.enabledProtocols.add(TransferProtocol.SCP);
+			if (config.get(SCP_ENABLED)) {
+				enabledProtocols.add(TransferProtocol.SCP);
 			}
-
-			this.tcpPort = Netshot.getConfig("netshot.sshserver.port", DEFAULT_SSH_SERVER_PORT, 1, 65535);
-			this.externalTcpPort = Netshot.getConfig("netshot.sshserver.externalport", this.tcpPort, 1, 65535);
-
-			String listenAddress = Netshot.getConfig("netshot.sshserver.listenaddress", "0.0.0.0");
+			int tcpPort = config.get(PORT);
+			Integer externalTcpPort = config.get(EXTERNAL_PORT);
+			String listenAddress = config.get(LISTEN_ADDRESS);
+			InetAddress listenHost;
 			try {
-				this.listenHost = InetAddress.getByName(listenAddress);
+				listenHost = InetAddress.getByName(listenAddress);
 			}
 			catch (UnknownHostException e) {
 				log.warn("Unable to parse IP address '{}' for SSH server listen address, using loopback instead",
 					listenAddress, e);
-				this.listenHost = InetAddress.getLoopbackAddress();
+				listenHost = InetAddress.getLoopbackAddress();
 			}
-
-			// Load host key path configuration
-			String hostKeyPathString = Netshot.getConfig("netshot.sshserver.hostkeypath");
+			Path hostKeyPath;
+			String hostKeyPathString = config.get(HOST_KEY_PATH);
 			if (hostKeyPathString == null) {
 				// No configuration set, use system temp directory and warn
-				hostKeyPathString = System.getProperty("java.io.tmpdir");
-				this.hostKeyPath = Paths.get(hostKeyPathString);
-				if (this.enabled) {
+				hostKeyPath = Paths.get(System.getProperty("java.io.tmpdir"));
+				if (enabled) {
 					log.warn("Embedded SSH server host keys will be stored in system temp directory: {}. "
-					+
-						"Set netshot.sshserver.hostkeypath configuration to a persistent location to avoid "
-					+
-						"host key regeneration.", this.hostKeyPath);
+						+ "Set netshot.sshserver.hostkeypath configuration to a persistent location to avoid "
+						+ "host key regeneration.", hostKeyPath);
 				}
 			}
 			else {
-				this.hostKeyPath = Paths.get(hostKeyPathString);
-				log.info("SSH server host keys will be stored in: {}", this.hostKeyPath);
+				hostKeyPath = Paths.get(hostKeyPathString);
+				log.info("SSH server host keys will be stored in: {}", hostKeyPath);
 			}
-
-			this.kexAlgorithms = this.readAlgorithms("kexalgorithms", DEFAULT_SSH_KEX_ALGORITHMS);
-			this.hostKeyAlgorithms = this.readAlgorithms("hostkeyalgorithms", DEFAULT_SSH_HOST_KEY_ALGORITHMS);
-			this.ciphers = this.readAlgorithms("ciphers", DEFAULT_SSH_CIPHERS);
-			this.macs = this.readAlgorithms("macs", DEFAULT_SSH_MACS);
-			this.compressionAlgorithms = this.readAlgorithms("compressionalgorithms", DEFAULT_SSH_COMPRESSION_ALGORITHMS);
-
-			this.maxConcurrentSessions = Netshot.getConfig("netshot.sshserver.maxconcurrentsessions", 10, 1, 1000);
+			return new Settings(enabled, List.copyOf(enabledProtocols), tcpPort,
+				externalTcpPort == null ? tcpPort : externalTcpPort, listenHost,
+				config.get(KEX_ALGORITHMS), config.get(HOST_KEY_ALGORITHMS), config.get(CIPHERS), config.get(MACS),
+				config.get(COMPRESSION_ALGORITHMS), hostKeyPath, config.get(MAX_CONCURRENT_SESSIONS));
 		}
 
 		public boolean isProtocolEnabled(TransferProtocol protocol) {
@@ -344,32 +346,89 @@ public final class SshServer {
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The configuration store. */
+	private final ConfigStore config;
 
-	public static void init() {
-		SshServer.SETTINGS.load();
-		if (!SshServer.SETTINGS.enabled) {
-			log.warn("The SSH server is disabled by configuration.");
-			return;
-		}
-		nsSshServer = new SshServer();
-		nsSshServer.start();
+	/** The number of accepted logins (valid upload ticket). */
+	private final AtomicLong acceptedLogins = new AtomicLong();
+
+	/** The number of rejected logins. */
+	private final AtomicLong rejectedLogins = new AtomicLong();
+
+	/** The number of registered upload tickets. */
+	private final AtomicLong registeredTickets = new AtomicLong();
+
+	/** The settings (read when the server is created, then when it starts: a change needs a restart). */
+	private volatile Settings settings;
+
+	/**
+	 * Creates the SSH server.
+	 *
+	 * @param config the configuration store
+	 */
+	public SshServer(ConfigStore config) {
+		this.config = config;
+		this.settings = Settings.from(config.current());
 	}
 
-	/** The static SNMP trap receiver instance. */
-	private static SshServer nsSshServer;
-
-	public static boolean isRunning() {
-		return nsSshServer != null && nsSshServer.sshd != null;
+	/**
+	 * Gets the settings of the SSH server: the ones it was started with.
+	 * @return the settings
+	 */
+	public Settings settings() {
+		return this.settings;
 	}
 
-	public static boolean isRunning(TransferProtocol protocol) {
-		return isRunning() && SETTINGS.isProtocolEnabled(protocol);
+	@Override
+	public String name() {
+		return "SSH/SCP/SFTP server";
 	}
 
-	public static SshServer getServer() {
-		return nsSshServer;
+	@Override
+	public synchronized void start() {
+		this.settings = Settings.from(this.config.current());
+		this.startServer();
+	}
+
+	@Override
+	public synchronized void stop() {
+		this.stopServer();
+	}
+
+	@Override
+	public boolean isHealthy() {
+		return this.sshd != null;
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		Settings current = this.settings;
+		stats.put("port", current.tcpPort());
+		stats.put("listening", this.sshd != null);
+		stats.put("sessions", this.sshd == null ? 0 : this.sshd.getActiveSessions().size());
+		stats.put("tickets", this.tickets.size());
+		stats.put("registeredTickets", this.registeredTickets.get());
+		stats.put("acceptedLogins", this.acceptedLogins.get());
+		stats.put("rejectedLogins", this.rejectedLogins.get());
+		return stats;
+	}
+
+	/**
+	 * Whether the server is running (listening).
+	 * @return true if running
+	 */
+	public boolean isRunning() {
+		return this.sshd != null;
+	}
+
+	/**
+	 * Whether the server is running, with the given transfer protocol enabled.
+	 * @param protocol the transfer protocol
+	 * @return true if running with the protocol enabled
+	 */
+	public boolean isRunning(TransferProtocol protocol) {
+		return this.isRunning() && this.settings.isProtocolEnabled(protocol);
 	}
 
 	/**
@@ -897,7 +956,7 @@ public final class SshServer {
 	}
 
 	/** The internal SSHd server. */
-	private org.apache.sshd.server.SshServer sshd = null;
+	private volatile org.apache.sshd.server.SshServer sshd = null;
 
 	/** The upload tickets, to accept incoming upload requests. */
 	private Map<String, UploadTicket> tickets = new ConcurrentHashMap<>();
@@ -909,7 +968,7 @@ public final class SshServer {
 	 * @return The path to use
 	 */
 	private Path getHostKeyPath(String algorithm, int keySize) {
-		Path keyBasePath = SshServer.SETTINGS.hostKeyPath;
+		Path keyBasePath = this.settings.hostKeyPath();
 		String central = algorithm.toLowerCase();
 		if (keySize != 0) {
 			central += Integer.toString(keySize);
@@ -921,24 +980,24 @@ public final class SshServer {
 	/**
 	 * Start the embedded SSH server.
 	 */
-	private void start() {
+	private void startServer() {
 		this.sshd = org.apache.sshd.server.SshServer.setUpDefaultServer();
-		this.sshd.setPort(SshServer.SETTINGS.tcpPort);
-		this.sshd.setHost(SshServer.SETTINGS.listenHost.getHostAddress());
+		this.sshd.setPort(this.settings.tcpPort());
+		this.sshd.setHost(this.settings.listenHost().getHostAddress());
 
-		CoreModuleProperties.MAX_CONCURRENT_SESSIONS.set(this.sshd, SshServer.SETTINGS.maxConcurrentSessions);
+		CoreModuleProperties.MAX_CONCURRENT_SESSIONS.set(this.sshd, this.settings.maxConcurrentSessions());
 		CoreModuleProperties.SERVER_IDENTIFICATION.set(this.sshd, "NETSHOT-%s".formatted(Netshot.VERSION));
 		// The default value causes an error on Cisco ISE SFTP client: "Outbound message too long 262169"
 		SftpModuleProperties.MAX_WRITEDATA_PACKET_LENGTH.set(this.sshd, 255 * 1024);
 
 		this.sshd.setKeyExchangeFactories(
 			NamedFactory.setUpTransformedFactories(true,
-				BuiltinDHFactories.parseDHFactoriesList(SshServer.SETTINGS.kexAlgorithms).getParsedFactories(),
+				BuiltinDHFactories.parseDHFactoriesList(this.settings.kexAlgorithms()).getParsedFactories(),
 				ServerBuilder.DH2KEX));
-		this.sshd.setSignatureFactoriesNames(SshServer.SETTINGS.hostKeyAlgorithms);
-		this.sshd.setCipherFactoriesNames(SshServer.SETTINGS.ciphers);
-		this.sshd.setMacFactoriesNames(SshServer.SETTINGS.macs);
-		this.sshd.setCompressionFactoriesNames(SshServer.SETTINGS.compressionAlgorithms);
+		this.sshd.setSignatureFactoriesNames(this.settings.hostKeyAlgorithms());
+		this.sshd.setCipherFactoriesNames(this.settings.ciphers());
+		this.sshd.setMacFactoriesNames(this.settings.macs());
+		this.sshd.setCompressionFactoriesNames(this.settings.compressionAlgorithms());
 		this.sshd.setForwardingFilter(RejectAllForwardingFilter.INSTANCE);
 
 		// Configure host key provider to generate keys for all supported algorithms
@@ -949,7 +1008,7 @@ public final class SshServer {
 		// Track which algorithms we've created providers for to avoid duplicate providers
 		final Map<String, SimpleGeneratorHostKeyProvider> providersByAlgorithm = new HashMap<>();
 
-		for (String hostKeyAlgorithm : SshServer.SETTINGS.hostKeyAlgorithms) {
+		for (String hostKeyAlgorithm : this.settings.hostKeyAlgorithms()) {
 			String algorithm = null;
 			int keySize = 0;
 
@@ -1014,7 +1073,7 @@ public final class SshServer {
 		this.sshd.setGSSAuthenticator(null);
 
 		this.sshd.setShellFactory(null);
-		if (SshServer.SETTINGS.isProtocolEnabled(TransferProtocol.SCP)) {
+		if (this.settings.isProtocolEnabled(TransferProtocol.SCP)) {
 			ScpCommandFactory scpCommandFactory = new ScpCommandFactory();
 			scpCommandFactory.setScpFileOpener(new DeviceScpFileOpener());
 			this.sshd.setCommandFactory(scpCommandFactory);
@@ -1023,7 +1082,7 @@ public final class SshServer {
 			log.info("SCP is disabled by configuration.");
 		}
 
-		if (SshServer.SETTINGS.isProtocolEnabled(TransferProtocol.SFTP)) {
+		if (this.settings.isProtocolEnabled(TransferProtocol.SFTP)) {
 			SftpSubsystemFactory sftpFactory = new SftpSubsystemFactory.Builder()
 				.withFileSystemAccessor(new DeviceSftpFileSystemAccessor())
 				.build();
@@ -1039,7 +1098,7 @@ public final class SshServer {
 		}
 		catch (IOException e) {
 			log.error("Cannot start the embedded SSH server", e);
-			this.stop();
+			this.stopServer();
 		}
 
 	}
@@ -1047,7 +1106,7 @@ public final class SshServer {
 	/**
 	 * Stop the server.
 	 */
-	private void stop() {
+	private void stopServer() {
 		if (this.sshd == null) {
 			return;
 		}
@@ -1061,13 +1120,26 @@ public final class SshServer {
 	}
 
 	/**
-	 * Common authentication callback for SFTP and SCP requests.
+	 * Common authentication callback for SFTP and SCP requests (counted for the statistics).
 	 * @param session the server session
 	 * @param username the passed username
 	 * @param password the passed password
 	 * @return true for successful authentication
 	 */
 	private boolean authenticate(ServerSession session, String username, String password) {
+		boolean accepted = this.checkCredentials(session, username, password);
+		(accepted ? this.acceptedLogins : this.rejectedLogins).incrementAndGet();
+		return accepted;
+	}
+
+	/**
+	 * Checks the credentials of a SFTP or SCP request against the upload tickets.
+	 * @param session the server session
+	 * @param username the passed username
+	 * @param password the passed password
+	 * @return true for successful authentication
+	 */
+	private boolean checkCredentials(ServerSession session, String username, String password) {
 		UploadTicket ticket = SshServer.this.tickets.get(username);
 		if (ticket == null) {
 			log.warn("Authentication failed for incoming request on embedded SSH server from {}: unknown ticket {}",
@@ -1111,6 +1183,7 @@ public final class SshServer {
 	 * @throws IOException
 	 */
 	public void registerUploadTicket(UploadTicket ticket) throws IOException {
+		this.registeredTickets.incrementAndGet();
 		synchronized (ticket) {
 			UploadTicket existing = this.tickets.putIfAbsent(ticket.getUsername(), ticket);
 			if (existing != null) {

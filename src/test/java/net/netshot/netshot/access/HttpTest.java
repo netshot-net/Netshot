@@ -36,12 +36,13 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.access.Http.AuthScheme;
-import net.netshot.netshot.access.Http.HttpConfig;
 import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
+import net.netshot.netshot.driver.protocol.AuthScheme;
+import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import net.netshot.netshot.vault.SecretResolver;
 
 /**
  * Unit tests for {@link Http}, in particular the per-access-declared
@@ -82,7 +83,7 @@ public class HttpTest {
 	}
 
 	private Http newClient() throws IOException {
-		return new Http("127.0.0.1", this.port, false, new FakeTaskContext());
+		return new Http("127.0.0.1", this.port, false, new FakeTaskContext(), SecretResolver.LOCAL);
 	}
 
 	@Test
@@ -155,7 +156,7 @@ public class HttpTest {
 	@Test
 	@DisplayName("the configured host (FQDN or IP) is used as the request's Host, resolved by the HTTP client itself")
 	void configuredHostIsUsedAsRequestHost() throws IOException {
-		Http client = new Http("localhost", this.port, false, new FakeTaskContext());
+		Http client = new Http("localhost", this.port, false, new FakeTaskContext(), SecretResolver.LOCAL);
 
 		HttpResult result = client.request("GET", "/status", null, null, null, null, null, null);
 

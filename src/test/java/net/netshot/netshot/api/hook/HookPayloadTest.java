@@ -43,10 +43,8 @@ import com.fasterxml.jackson.jakarta.rs.yaml.YAMLMediaTypes;
 
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedHashMap;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.api.hook.payload.TaskPayload;
 import net.netshot.netshot.api.hook.payload.TaskPayloads;
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -55,16 +53,18 @@ import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.contract.ApiContractGolden;
 import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
 import net.netshot.netshot.testing.contract.DtoContract;
@@ -142,7 +142,7 @@ public class HookPayloadTest {
 			for (Format format : FORMATS) {
 				tests.add(DynamicTest.dynamicTest(task.getKey() + "." + format.extension, () -> {
 					BodyWriter writer = writerFor(format);
-					TaskPayload payload = Wiring.get().taskService().mapTask(task.getValue(),
+					TaskPayload payload = TestWiring.get().taskService().mapTask(task.getValue(),
 						(mapped, devices) -> TaskPayloads.toPayload(TestDrivers.registry(), mapped, devices));
 					this.contract.checkCanonical(task.getKey(), format, this.canonical(format, writer.write(payload)));
 				}));
