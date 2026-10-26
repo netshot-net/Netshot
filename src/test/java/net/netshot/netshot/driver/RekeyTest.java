@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.driver;
 
-import java.lang.reflect.Field;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.sshd.client.SshClient;
@@ -34,25 +34,27 @@ import org.testcontainers.junit.jupiter.Container;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import net.netshot.netshot.Netshot;
+import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.access.Ssh;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
 /**
  * Exploration/reproduction tests for the NetScaler SDX SSH rekeying bug: a driver can ask to
- * disable/tighten SSH rekeying via {@code CLI.ssh.config.rekey} ({@link Ssh.SshConfig}'s
+ * disable/tighten SSH rekeying via {@code CLI.ssh.config.rekey} ({@link SshConfig}'s
  * {@code rekeyTimeLimit}/{@code rekeyDataLimit}/{@code rekeyPacketsLimit}), but as of this
  * writing that per-connection override is applied too late to matter for those three limits -
  * see {@code Ssh.connect(boolean)}: {@code CoreModuleProperties.REKEY_*.set(this.session, ...)}
- * runs only after {@code Ssh.client.connect(...).verify(...)} returns, while
+ * runs only after {@code client.connect(...).verify(...)} returns, while
  * {@code AbstractSession.refreshConfiguration()} - which is what actually captures
  * {@code maxRekeyInterval}/{@code maxRekeyBytes}/{@code maxRekyPackets} into the fields
  * {@code isRekeyRequired()} checks - runs once, synchronously, from inside the session
- * constructor, strictly before that point. Only the *global* {@code Ssh.client}-wide default
- * (set once via {@code Ssh.loadConfig()}, before any session exists) is visible in time.
+ * constructor, strictly before that point. Only the *global* default of the shared SSH client
+ * (applied to the shared client on each configuration change, before any session exists) is visible in time.
  * <p>
  * These tests don't rely on any specific vendor driver, or on transferring enough data to
  * naturally cross a byte-based rekey threshold (impractical against the real OpenSSH-backed
@@ -94,26 +96,30 @@ public class RekeyTest {
 	private static final String TINY_REKEY_DATA_LIMIT = "900";
 
 	/** Saved so the tiny global rekey data limit set below can be restored afterwards -
-	 *  {@code Ssh.client} is shared process-wide, so leaving it in place would affect every
+	 *  the SSH client of the tests is shared, so leaving it in place would affect every
 	 *  other test in this class/JVM run. */
 	private static String originalRekeyDataLimit;
 
 	@BeforeAll
 	static void forceTinyGlobalRekeyDataLimit() {
-		originalRekeyDataLimit = Netshot.getConfig().getProperty("netshot.cli.ssh.rekeydatalimit");
-		Netshot.getConfig().setProperty("netshot.cli.ssh.rekeydatalimit", TINY_REKEY_DATA_LIMIT);
-		Ssh.loadConfig();
+		Properties config = TestConfig.properties();
+		originalRekeyDataLimit = config.getProperty("netshot.cli.ssh.rekeydatalimit");
+		config.setProperty("netshot.cli.ssh.rekeydatalimit", TINY_REKEY_DATA_LIMIT);
+		// The shared SSH client of the tests applies the new settings (when created, then on each change)
+		TestConfig.init(config);
 	}
 
 	@AfterAll
 	static void restoreGlobalRekeyDataLimit() {
+		Properties config = TestConfig.properties();
 		if (originalRekeyDataLimit == null) {
-			Netshot.getConfig().remove("netshot.cli.ssh.rekeydatalimit");
+			config.remove("netshot.cli.ssh.rekeydatalimit");
 		}
 		else {
-			Netshot.getConfig().setProperty("netshot.cli.ssh.rekeydatalimit", originalRekeyDataLimit);
+			config.setProperty("netshot.cli.ssh.rekeydatalimit", originalRekeyDataLimit);
 		}
-		Ssh.loadConfig();
+		// The shared SSH client of the tests applies the new settings (when created, then on each change)
+		TestConfig.init(config);
 	}
 
 	/**
@@ -159,16 +165,13 @@ public class RekeyTest {
 
 	/**
 	 * Connects (auth only, no shell channel needed) and counts how many
-	 * {@link SessionListener.Event#KeyEstablished} events fire on the shared {@code Ssh.client} for the
-	 * duration of the connection. {@code Ssh.client} has no public accessor, so it's reached
-	 * the same way this test class already reaches {@code SnapshotDeviceScript#run}: reflection.
+	 * {@link SessionListener.Event#KeyEstablished} events fire on the shared SSH client of the tests
+	 * (the one the access was built with) for the duration of the connection.
 	 * @param ssh the SSH access to connect with
 	 * @return the number of KeyEstablished events
 	 */
 	private static int connectAndCountKeyEstablishedEvents(Ssh ssh) throws Exception {
-		Field clientField = Ssh.class.getDeclaredField("client");
-		clientField.setAccessible(true);
-		SshClient client = (SshClient) clientField.get(null);
+		SshClient client = TestConnectors.sshClient();
 
 		AtomicInteger keyEstablishedCount = new AtomicInteger(0);
 		SessionListener listener = new SessionListener() {
@@ -200,7 +203,7 @@ public class RekeyTest {
 	@Test
 	@DisplayName("Tiny global rekey data limit alone forces a rekey (sanity check)")
 	void globalTinyLimitForcesRekey() throws Exception {
-		Ssh ssh = new Ssh(CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
 		int keyEstablishedCount = connectAndCountKeyEstablishedEvents(ssh);
 		Assertions.assertTrue(keyEstablishedCount >= 2,
 			"Expected at least one rekey (2+ KeyEstablished events) with the "
@@ -212,11 +215,11 @@ public class RekeyTest {
 	@Test
 	@DisplayName("Driver-level rekey.dataLimit=0 override should disable the forced rekey")
 	void driverOverrideShouldDisableRekey() throws Exception {
-		Ssh ssh = new Ssh(CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
+		Ssh ssh = new Ssh(TestConnectors.sshClient(), CONTAINER.getHost(), CONTAINER.getMappedPort(22), "admin", "admin", this.taskContext);
 		// Exactly what DeviceDriver.java does for a driver's `CLI.ssh.config.rekey.dataLimit: 0`
 		// (see Citrix_NetscalerSDX.js): only this one field is set, everything else stays
 		// unset/null so applySshConfig() leaves it alone.
-		Ssh.SshConfig disableRekey = new Ssh.SshConfig(false);
+		SshConfig disableRekey = new SshConfig();
 		disableRekey.setRekeyDataLimit(0L);
 		ssh.applySshConfig(disableRekey);
 

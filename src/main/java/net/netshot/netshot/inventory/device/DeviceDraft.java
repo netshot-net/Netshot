@@ -30,13 +30,13 @@ import java.util.TreeSet;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
+import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.driver.DrivenDevice;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 
 /**
  * The working copy of a device while a script runs on it (snapshot, script, diagnostics):
@@ -45,7 +45,7 @@ import net.netshot.netshot.inventory.domain.Domain;
  * (see {@link #toDevice()}), and the new configuration and diagnostic results gathered by
  * the script are stored.
  */
-public final class DeviceDraft {
+public final class DeviceDraft implements DrivenDevice {
 
 	/** The device as it was loaded. */
 	@Getter
@@ -192,6 +192,16 @@ public final class DeviceDraft {
 		for (DeviceAccess access : device.accesses()) {
 			this.accesses.put(access.accessName(), access);
 		}
+	}
+
+	@Override
+	public long deviceId() {
+		return this.getId();
+	}
+
+	@Override
+	public String driverName() {
+		return this.getDriver();
 	}
 
 	/**

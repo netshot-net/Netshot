@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.vault;
 
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestDevices;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +58,7 @@ class VaultInstanceServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new VaultInstanceService(this.transactions, new VaultInstanceRepository(),
 			this.notified::add,
 			instance -> {

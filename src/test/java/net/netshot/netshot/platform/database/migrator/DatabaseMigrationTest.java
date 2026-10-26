@@ -48,11 +48,11 @@ import liquibase.parser.ChangeLogParserFactory;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import liquibase.resource.ResourceAccessor;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.inventory.device.Network6Address;
 import net.netshot.netshot.platform.database.Database;
-import net.netshot.netshot.testing.DatabaseTest.Boot;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.testing.DatabaseTest;
+import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDatabase;
 
 /**
@@ -111,7 +111,7 @@ public class DatabaseMigrationTest {
 	 */
 	private static void updateToChangeSet(String changeSetId, String changeSetAuthor) throws Exception {
 		System.setProperty("liquibase.analytics.enabled", "false");
-		try (Connection connection = Database.getConnection(false)) {
+		try (Connection connection = Database.openUnpooledConnection()) {
 			liquibase.database.Database database = DatabaseFactory.getInstance()
 				.findCorrectDatabaseImplementation(new JdbcConnection(connection));
 
@@ -178,7 +178,7 @@ public class DatabaseMigrationTest {
 			int subnetIpv4Int = Network4Address.inetAddressToInt(
 				(Inet4Address) InetAddress.getByName("172.16.0.0"));
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				statement.execute(
 					"insert into domain (id, name, version, ipv4_address, ipv4_pfxlen, ipv4_usage, "
@@ -213,7 +213,7 @@ public class DatabaseMigrationTest {
 			// Resume the migration to completion: this is where NetworkAddressMigrator runs.
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				assertInetColumn(statement,
 					"select ipv4_address from domain where id = 1", "10.20.30.40");
@@ -312,7 +312,7 @@ public class DatabaseMigrationTest {
 			// legacy ssh_port/telnet_port/connect_address columns are still on device.
 			updateToChangeSet("0.25.0_29", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				// 301: both ports already at their protocol default, no address -> no row at all.
 				statement.execute("insert into device (id, name, auto_try_credentials, version, ssh_port, telnet_port) "
@@ -332,7 +332,7 @@ public class DatabaseMigrationTest {
 			// Resume the migration to completion: this is where 0.25.0_30 runs.
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				assertNoDeviceAccess(statement, 301, "ssh");
 				assertNoDeviceAccess(statement, 301, "telnet");
@@ -372,7 +372,7 @@ public class DatabaseMigrationTest {
 			// columns and the device_credential_sets pool table are still present.
 			updateToChangeSet("0.25.0_31", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 
 				// A credential set for each scenario below.
@@ -466,7 +466,7 @@ public class DatabaseMigrationTest {
 			// Resume the migration to completion: this is where the enhanced 0.25.0_32 logic runs.
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				assertDeviceAccess(statement, 101, "snmpv2c", null, 201L);
 				assertNoDeviceAccess(statement, 101, "snmpv1");
@@ -531,7 +531,7 @@ public class DatabaseMigrationTest {
 			int mgmtIpv4Int = Network4Address.inetAddressToInt(
 				(Inet4Address) InetAddress.getByName("10.1.2.3"));
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				// A device that was never snapshotted: no name, no interface.
 				statement.execute(
@@ -542,7 +542,7 @@ public class DatabaseMigrationTest {
 
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				assertInetColumn(statement,
 					"select mgmt_address from device where id = 501", "10.1.2.3");
@@ -559,7 +559,7 @@ public class DatabaseMigrationTest {
 			// The database of a 0.25.0 installation.
 			updateToChangeSet("0.25.0_41", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				String insert = "insert into device (id, name, version, mgmt_address, cached_ip_address) "
 					+ "values (%d, '[NONAME]', 0, %s, %s)";
@@ -572,7 +572,7 @@ public class DatabaseMigrationTest {
 
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				assertInetColumn(statement,
 					"select cached_ip_address from device where id = 601", "10.1.2.4");
@@ -600,7 +600,7 @@ public class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("hooksingletablemigrationtest"));
 			updateToChangeSet("0.26.0_2", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into hook (id, enabled, name) values (401, true, 'json hook'), (402, false, 'yaml hook'), "
 					+ "(403, true, 'orphan')");
@@ -612,7 +612,7 @@ public class DatabaseMigrationTest {
 
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				try (var rows = statement.executeQuery("select id, type, name, enabled, action, url, https_ca_trust_mode, "
 						+ "https_custom_ca_certificate from hook order by id")) {
@@ -685,7 +685,7 @@ public class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("singletablehierarchiesmigrationtest"));
 			updateToChangeSet("0.26.0_3", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into rule (id, enabled, name) values (501, true, 'text'), (502, false, 'js'), "
 					+ "(503, true, 'python'), (504, true, 'orphan')");
@@ -709,7 +709,7 @@ public class DatabaseMigrationTest {
 
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(
 					List.of("501", "TEXT", "text", "t", "null", "t", "interface .*", "CiscoIOS12", "runningConfig", "f", "t", "t", "f", "shutdown"),
@@ -751,7 +751,7 @@ public class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("enumnamesmigrationtest"));
 			updateToChangeSet("0.26.0_6", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into device (id, version, name, status, network_class, software_level) values "
 					+ "(801, 0, 'r1', 1, 2, 1), (802, 0, 'r2', 2, 10, 3)");
@@ -773,7 +773,7 @@ public class DatabaseMigrationTest {
 
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(
 					List.of("801", "INPRODUCTION", "ROUTER", "SILVER"),
@@ -808,7 +808,7 @@ public class DatabaseMigrationTest {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("orphanedlongtextmigrationtest"));
 			updateToChangeSet("0.26.0_8", "netshot");
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into long_text_configuration (id, text) values "
 					+ "(1001, 'device attribute'), (1002, 'config attribute'), (1003, 'diagnostic result'), (1004, 'orphan')");
@@ -822,7 +822,7 @@ public class DatabaseMigrationTest {
 
 			Database.update();
 
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(List.of("1001"), List.of("1002"), List.of("1003")),
 					rows(statement, "select id from long_text_configuration order by id", 1));
@@ -860,7 +860,7 @@ public class DatabaseMigrationTest {
 			Database.update();
 
 			// Simulate a database created by a version using the legacy class names
-			try (Connection connection = Database.getConnection(false);
+			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
 				for (var entry : LEGACY_CHECKSUMS.entrySet()) {
 					int updated = statement.executeUpdate(

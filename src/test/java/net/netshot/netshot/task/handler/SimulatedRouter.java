@@ -22,10 +22,10 @@ import java.util.List;
 
 import org.testcontainers.containers.GenericContainer;
 
-import net.netshot.netshot.access.DeviceAccess;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.testing.TestDevices;
 
 /**

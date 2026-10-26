@@ -35,7 +35,7 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.report.GroupConfigComplianceStat;
 import net.netshot.netshot.report.PolicyRuleDevice;
 import net.netshot.netshot.report.ReportExportSink;

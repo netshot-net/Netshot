@@ -37,7 +37,7 @@ import org.jooq.SelectFieldOrAsterisk;
 
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
-import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 
@@ -88,7 +88,7 @@ public class CredentialSetRepository {
 		int version = r.get(cs.VERSION);
 		Instant changeDate = r.get(cs.CHANGE_DATE);
 		String name = r.get(cs.NAME);
-		net.netshot.netshot.inventory.domain.Domain domain = DomainRepository.toDomain(r, d);
+		net.netshot.netshot.domain.Domain domain = DomainRepository.toDomain(r, d);
 		boolean deviceSpecific = Boolean.TRUE.equals(r.get(cs.DEVICE_SPECIFIC));
 		return switch (type) {
 			case "DeviceSshAccount" -> new DeviceSshAccount(id, version, changeDate, name, domain, deviceSpecific,

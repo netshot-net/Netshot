@@ -23,10 +23,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
 import net.netshot.netshot.compliance.check.RuleEvaluators;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
@@ -47,8 +49,8 @@ public class PyRuleTest {
 
 	@BeforeAll
 	static void initNetshot() throws Exception {
-		pyRuntime = new PyRuleRuntime();
-		evaluators = RuleEvaluators.standard(new JsRuleRuntime(), pyRuntime, TestDrivers.registry());
+		pyRuntime = new PyRuleRuntime(Netshot.config());
+		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), pyRuntime, TestDrivers.registry(), null);
 	}
 
 	Policy policy = new Policy(0, "Fake policy", null);
@@ -420,7 +422,6 @@ public class PyRuleTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.python.maxexecutiontime", "5000");
 		TestConfig.init(config);
-		pyRuntime.loadConfig();
 		// Check
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
 		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(),
@@ -443,7 +444,6 @@ public class PyRuleTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.python.maxexecutiontime", "5000");
 		TestConfig.init(config);
-		pyRuntime.loadConfig();
 		// Check
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
 		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(),
@@ -484,7 +484,6 @@ public class PyRuleTest {
 		Properties config = new Properties();
 		config.setProperty("netshot.python.maxexecutiontime", "5000");
 		TestConfig.init(config);
-		pyRuntime.loadConfig();
 		// Check
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
 		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, result.result(),

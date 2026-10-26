@@ -34,11 +34,11 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import lombok.Builder;
-import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.EnumAttribute;
+import net.netshot.netshot.driver.DrivenDevice;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 
 /**
@@ -123,22 +123,16 @@ public record Device(
 	List<DeviceAccess> accesses,
 	List<Module> modules,
 	List<NetworkInterface> networkInterfaces,
-	List<DeviceGroup> ownerGroups) {
+	List<DeviceGroup> ownerGroups) implements DrivenDevice {
 
-	/**
-	 * Raised when the driver of a device isn't loaded.
-	 */
-	public static class MissingDeviceDriverException extends Exception {
-		private static final long serialVersionUID = -7286042265874166550L;
+	@Override
+	public long deviceId() {
+		return this.id;
+	}
 
-		/**
-		 * Instantiates the exception.
-		 *
-		 * @param message the message
-		 */
-		public MissingDeviceDriverException(String message) {
-			super(message);
-		}
+	@Override
+	public String driverName() {
+		return this.driver;
 	}
 
 	/**

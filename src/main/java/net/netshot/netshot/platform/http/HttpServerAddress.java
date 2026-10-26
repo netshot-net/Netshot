@@ -22,6 +22,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Address of the embedded HTTP server, as configured by the netshot.http.* settings.
@@ -32,15 +34,27 @@ import net.netshot.netshot.Netshot;
  */
 public record HttpServerAddress(URI baseUri, boolean useSsl) {
 
+	/** Whether the HTTP server uses HTTPS. */
+	public static final Setting<Boolean> SSL_ENABLED = Setting.bool("netshot.http.ssl.enabled").defaultValue(true).restart();
+
+	/** The base URL the server listens on (default: on localhost, port 8443 with HTTPS or 8080 without). */
+	static final Setting<String> BASE_URL = Setting.text("netshot.http.baseurl").restart();
+
+	/** The TCP port overriding the one of the base URL (0 to keep it). */
+	static final Setting<Integer> BASE_PORT = Setting.integer("netshot.http.baseport").defaultValue(0).range(0, 65535).restart();
+
 	/**
 	 * Read the HTTP server address from the configuration.
 	 * @return the configured HTTP server address
 	 */
 	public static HttpServerAddress fromConfig() {
-		boolean useSsl = Netshot.getConfig("netshot.http.ssl.enabled", true);
-		String baseUrl = Netshot.getConfig("netshot.http.baseurl", useSsl ? "http://localhost:8443" : "http://localhost:8080");
-		int basePort = Netshot.getConfig("netshot.http.baseport", 0, 0, 65535);
-		return of(baseUrl, basePort, useSsl);
+		Config config = Netshot.config().current();
+		boolean useSsl = config.get(SSL_ENABLED);
+		String baseUrl = config.get(BASE_URL);
+		if (baseUrl == null) {
+			baseUrl = useSsl ? "http://localhost:8443" : "http://localhost:8080";
+		}
+		return of(baseUrl, config.get(BASE_PORT), useSsl);
 	}
 
 	/**

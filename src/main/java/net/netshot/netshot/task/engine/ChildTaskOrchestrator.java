@@ -30,6 +30,7 @@ import org.quartz.SchedulerException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.ScheduleMode;
@@ -46,6 +47,10 @@ import net.netshot.netshot.task.type.DeviceBasedTask;
  */
 @Slf4j
 public class ChildTaskOrchestrator {
+
+	/** Interval (ms) between two checks of the child tasks run in sequence. */
+	static final Setting<Integer> SEQUENTIAL_POLL_INTERVAL = Setting.integer("netshot.tasks.sequentialpollintervalms")
+		.defaultValue(3000).range(500, 60000).live();
 
 	/**
 	 * Hands a child task over to the task scheduler.
@@ -64,13 +69,16 @@ public class ChildTaskOrchestrator {
 
 	private final TaskRepository repository = new TaskRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
 	 * Creates the orchestrator.
+	 * @param transactions the transaction support
 	 * @param scheduler the scheduler to promote children with
 	 */
-	public ChildTaskOrchestrator(ChildScheduler scheduler) {
+	public ChildTaskOrchestrator(Transactions transactions, ChildScheduler scheduler) {
+		this.transactions = transactions;
 		this.scheduler = scheduler;
 	}
 
@@ -307,8 +315,7 @@ public class ChildTaskOrchestrator {
 			// already marked CANCELLED by cancelRemainingDelayedChildren -- nothing to wait for.
 		}
 
-		int intervalMs = Netshot.getConfig(
-			"netshot.tasks.sequentialpollintervalms", 3000, 500, 60000);
+		int intervalMs = Netshot.config().current().get(SEQUENTIAL_POLL_INTERVAL);
 		try {
 			while (!pending.isEmpty() && !cancelHonored) {
 				Thread.sleep(intervalMs);
@@ -428,8 +435,7 @@ public class ChildTaskOrchestrator {
 	 * @throws InterruptedException if the polling wait is interrupted
 	 */
 	public Status pollChildUntilTerminal(long taskId) throws InterruptedException {
-		int intervalMs = Netshot.getConfig(
-			"netshot.tasks.sequentialpollintervalms", 3000, 500, 60000);
+		int intervalMs = Netshot.config().current().get(SEQUENTIAL_POLL_INTERVAL);
 		while (true) {
 			Thread.sleep(intervalMs);
 			Status childStatus = this.transactions.read(dsl -> this.repository.findStatus(dsl, taskId));

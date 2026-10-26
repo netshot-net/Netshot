@@ -19,6 +19,7 @@
 package net.netshot.netshot.platform.database;
 
 import java.util.Properties;
+import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -95,11 +96,24 @@ public class ConnectionPoolsTest {
 		TestConfig.init(new Properties());
 		try (ConnectionPools pools = new ConnectionPools("org.postgresql.Driver", URL, null, "user", "secret")) {
 			Assertions.assertSame(pools.get(PoolKind.READ_WRITE), pools.get(PoolKind.READ_ONLY));
+			Assertions.assertEquals(Set.of("ReadWrite", "System"), pools.stats().keySet(), "Statistics by pool");
 			ComboPooledDataSource readWrite = (ComboPooledDataSource) pools.get(PoolKind.READ_WRITE);
 			Assertions.assertEquals(5, readWrite.getMinPoolSize());
 			Assertions.assertEquals(50, readWrite.getMaxPoolSize());
 			Assertions.assertEquals(1800, readWrite.getMaxIdleTime());
 			Assertions.assertTrue(readWrite.isTestConnectionOnCheckout());
+		}
+	}
+
+	@Test
+	@DisplayName("The pools close without error")
+	void close() {
+		TestConfig.init(new Properties());
+		try (ConnectionPools pools = new ConnectionPools("org.postgresql.Driver", URL, URL + "-read", "user", "secret")) {
+			for (PoolKind kind : PoolKind.values()) {
+				ComboPooledDataSource pool = (ComboPooledDataSource) pools.get(kind);
+				Assertions.assertDoesNotThrow(() -> pool.close(), "Closing the %s pool".formatted(kind));
+			}
 		}
 	}
 }

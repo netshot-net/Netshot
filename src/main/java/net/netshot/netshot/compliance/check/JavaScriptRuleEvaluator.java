@@ -30,15 +30,17 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
-import net.netshot.netshot.devicescript.helper.JsUtils;
-import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.concurrent.NamedThreadFactory;
+import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.script.JsUtils;
+import net.netshot.netshot.platform.script.ScriptToolbox;
 
 /**
  * Evaluates the JavaScript rules: a JavaScript-coded script checks the device
@@ -57,6 +59,9 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	private final JsRuleRuntime runtime;
 	private final DriverRegistry driverRegistry;
 
+	/** The transaction support, for the device helpers. */
+	private final Transactions transactions;
+
 	/** Is the script of the rule a JS-valid rule (once prepared, for the lifetime of the rule instance)? */
 	private final RuleStateCache<JavaScriptRule, Boolean> validity = new RuleStateCache<>();
 
@@ -65,8 +70,10 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 	 *
 	 * @param runtime the JavaScript runtime of the rules
 	 * @param driverRegistry the loaded device drivers
+	 * @param transactions the transaction support, for the device helpers
 	 */
-	public JavaScriptRuleEvaluator(JsRuleRuntime runtime, DriverRegistry driverRegistry) {
+	public JavaScriptRuleEvaluator(JsRuleRuntime runtime, DriverRegistry driverRegistry, Transactions transactions) {
+		this.transactions = transactions;
 		this.runtime = runtime;
 		this.driverRegistry = driverRegistry;
 	}
@@ -124,7 +131,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 
 		// Both the script top-level code and the check function run on the executor, within the
 		// same deadline, so that an endless loop can't block the calling thread
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NetshotJsRule"));
 		long deadline = System.currentTimeMillis() + this.runtime.getMaxExecutionTime();
 		try (Context context = this.runtime.newContext()) {
 			Value result;
@@ -142,7 +149,7 @@ public class JavaScriptRuleEvaluator implements RuleEvaluator<JavaScriptRule> {
 				if (exempted) {
 					return CheckResult.of(rule.id(), device.getId(), ResultOption.EXEMPTED);
 				}
-				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, device, null, taskContext, true);
+				JsDeviceHelper deviceHelper = new JsDeviceHelper(this.driverRegistry, this.transactions, device, null, taskContext, true);
 				result = runBeforeDeadline(executor,
 					() -> context.getBindings("js").getMember("_check").execute(deviceHelper), deadline);
 			}

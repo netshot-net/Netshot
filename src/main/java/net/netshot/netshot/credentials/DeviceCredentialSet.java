@@ -21,7 +21,7 @@ package net.netshot.netshot.credentials;
 import java.time.Instant;
 import java.util.UUID;
 
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.domain.Domain;
 
 /**
  * A set of credentials to connect to devices: either a global one (which can be used by

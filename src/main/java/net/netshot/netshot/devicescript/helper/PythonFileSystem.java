@@ -35,9 +35,11 @@ import java.util.Set;
 
 import org.graalvm.polyglot.io.FileSystem;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * Implementation of the FileSystem GraalVM interface to restrict
@@ -50,39 +52,42 @@ import net.netshot.netshot.Netshot;
 public final class PythonFileSystem implements FileSystem {
 
 	/**
-	 * Settings/config for the current class.
+	 * The settings of the Python file system.
+	 *
+	 * @param venvFolder the Python virtualenv folder (null if none)
 	 */
-	public static final class Settings {
-		/** Python VirtualEnv folder (if any). */
-		@Getter
-		private String venvFolder;
+	public record Settings(String venvFolder) {
+
+		/** The Python virtualenv folder. */
+		static final Setting<String> VIRTUALENV = Setting.text("netshot.python.virtualenv").live();
 
 		/**
-		 * Load settings from config.
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
 		 */
-		private void load() {
-			this.venvFolder = null;
-			String venv = Netshot.getConfig("netshot.python.virtualenv");
+		static Settings from(Config config) {
+			String venv = config.get(VIRTUALENV);
 			if (venv != null) {
 				File venvFile = new File(venv);
 				if (venvFile.exists() && venvFile.isDirectory()) {
-					this.venvFolder = venvFile.getAbsolutePath();
+					return new Settings(venvFile.getAbsolutePath());
 				}
-				else {
-					log.warn("Python virtualenv folder {} doesn't exist or is not a directory", venv);
-				}
+				log.warn("Python virtualenv folder {} doesn't exist or is not a directory", venv);
 			}
+			return new Settings(null);
 		}
 	}
 
-	/** Settings for this class. */
-	public static final Settings SETTINGS = new Settings();
+	/** The settings, from the configuration. */
+	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
 
 	/**
-	 * Load the main policy from configuration.
+	 * Gets the settings of the Python file system.
+	 * @return the settings
 	 */
-	public static void loadConfig() {
-		PythonFileSystem.SETTINGS.load();
+	public static Settings settings() {
+		return SETTINGS.get();
 	}
 
 	private final FileSystem delegate;
@@ -115,11 +120,12 @@ public final class PythonFileSystem implements FileSystem {
 			log.debug("No languages folder in Java home, ignoring");
 		}
 		this.libFolder = languagesFolder;
-		if (PythonFileSystem.SETTINGS.getVenvFolder() == null) {
+		String venv = PythonFileSystem.settings().venvFolder();
+		if (venv == null) {
 			this.venvFolder = null;
 		}
 		else {
-			this.venvFolder = delegate.toRealPath(delegate.parsePath(PythonFileSystem.SETTINGS.getVenvFolder()));
+			this.venvFolder = delegate.toRealPath(delegate.parsePath(venv));
 		}
 	}
 

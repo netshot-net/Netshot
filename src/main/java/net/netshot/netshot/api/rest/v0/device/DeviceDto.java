@@ -26,7 +26,7 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import net.netshot.netshot.api.rest.v0.domain.DomainDto;
 import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
-import net.netshot.netshot.compliance.SoftwareRule;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 
 /**
@@ -93,7 +93,7 @@ public record DeviceDto(
 	List<DeviceGroupDto> ownerGroups,
 	String realDeviceType,
 	String serialNumber,
-	SoftwareRule.ConformanceLevel softwareLevel,
+	ConformanceLevel softwareLevel,
 	String softwareVersion,
 	Device.Status status,
 	List<String> tags) {

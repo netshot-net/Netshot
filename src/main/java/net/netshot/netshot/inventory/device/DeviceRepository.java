@@ -64,11 +64,11 @@ import org.jooq.impl.DSL;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.netshot.netshot.access.DeviceAccess;
-import net.netshot.netshot.compliance.CheckResult;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.credentials.CredentialSetRepository;
-import net.netshot.netshot.diagnostic.DiagnosticResultRepository;
+import net.netshot.netshot.credentials.CredentialSets;
+import net.netshot.netshot.domain.DomainRepository;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
@@ -77,7 +77,7 @@ import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceLongTextAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
-import net.netshot.netshot.inventory.domain.DomainRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
@@ -85,6 +85,9 @@ import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp4addressesRecord;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp6addressesRecord;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.net.PhysicalAddress;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -823,6 +826,36 @@ public class DeviceRepository {
 		}
 		// Once no access references them anymore (their removal would remove the accesses)
 		new CredentialSetRepository().removeAll(dsl, obsoleteSpecificIds);
+	}
+
+	/**
+	 * Stores the specific credential set of each submitted access (created, or merged into the
+	 * current one of the access, see {@link CredentialSets#applySpecificCredentialSet}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param current the current accesses of the device (none for a new device)
+	 * @param accesses the submitted accesses (already validated)
+	 * @return the accesses, with their stored specific credential sets
+	 */
+	public List<DeviceAccess> saveSpecificCredentialSets(DSLContext dsl, List<DeviceAccess> current, List<DeviceAccess> accesses) {
+		CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
+		List<DeviceAccess> resolved = new ArrayList<>(accesses.size());
+		for (DeviceAccess input : accesses) {
+			if (input.specificCredentialSet() == null) {
+				resolved.add(input);
+				continue;
+			}
+			// The specific credential set of the current access of the same name (the last one if several)
+			var existingSpecific = current.stream()
+				.filter(access -> access.accessName().equals(input.accessName()))
+				.reduce((first, second) -> second)
+				.map(DeviceAccess::specificCredentialSet)
+				.orElse(null);
+			var stored = CredentialSets.applySpecificCredentialSet(dsl, credentialSetRepository,
+				existingSpecific, input.specificCredentialSet());
+			resolved.add(input.toBuilder().specificCredentialSet(stored).build());
+		}
+		return resolved;
 	}
 
 	/**

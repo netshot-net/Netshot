@@ -21,7 +21,6 @@ package net.netshot.netshot.inventory.device;
 import java.util.List;
 import java.util.Map;
 
-import net.netshot.netshot.access.DeviceAccess;
 
 /**
  * The command to edit a device. Every component is optional: a {@code null} one leaves

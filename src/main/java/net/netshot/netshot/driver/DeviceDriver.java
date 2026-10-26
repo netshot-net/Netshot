@@ -49,12 +49,6 @@ import org.slf4j.event.Level;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.access.Http;
-import net.netshot.netshot.access.Http.HttpConfig;
-import net.netshot.netshot.access.Ssh.SshConfig;
-import net.netshot.netshot.access.Telnet.TelnetConfig;
-import net.netshot.netshot.access.collector.SnmpTrapReceiver;
-import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv1Community;
@@ -62,10 +56,13 @@ import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.credentials.SshAccount;
-import net.netshot.netshot.devicescript.helper.ScriptToolbox;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeLevel;
-import net.netshot.netshot.inventory.device.Network4Address;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.driver.protocol.HttpConfig;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
+import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.script.ScriptToolbox;
 
 /**
  * This is a device driver.
@@ -81,22 +78,30 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 * Possible protocols for a device driver.
 	 */
 	public enum DriverProtocol {
-		TELNET("telnet"),
-		SSH("ssh"),
-		SNMPV1("snmpv1"),
-		SNMPV2C("snmpv2c"),
-		SNMPV3("snmpv3"),
-		HTTP("http"),
-		HTTPS("https");
+		TELNET("telnet", 23),
+		SSH("ssh", 22),
+		SNMPV1("snmpv1", 161),
+		SNMPV2C("snmpv2c", 161),
+		SNMPV3("snmpv3", 161),
+		HTTP("http", 80),
+		HTTPS("https", 443);
 
 		private final String protocol;
 
-		DriverProtocol(String protocol) {
+		private final int defaultPort;
+
+		DriverProtocol(String protocol, int defaultPort) {
 			this.protocol = protocol;
+			this.defaultPort = defaultPort;
 		}
 
 		public String value() {
 			return protocol;
+		}
+
+		/** @return the default (TCP or UDP) port of the protocol */
+		public int defaultPort() {
+			return defaultPort;
 		}
 
 		/** @return true for any of the SNMPv1/v2c/v3 family values */
@@ -155,12 +160,6 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 			return this.logger.getName();
 		}
 	}
-
-	/** JS logger for SNMP-related messages. */
-	private static final TaskContext JS_SNMP_LOGGER = new ReceiverTaskContext(SnmpTrapReceiver.class);
-
-	/** JS logger for Syslog-related messages. */
-	private static final TaskContext JS_SYSLOG_LOGGER = new ReceiverTaskContext(SyslogServer.class);
 
 	/** The Javascript loader code. */
 	private static final Source JSLOADER_SOURCE = readLoaderSource();
@@ -649,11 +648,11 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 						int defaultPort;
 						if (accessProtocol == DriverProtocol.SSH) {
 							accessSshConfig = DriverConfigParser.parseSshConfig(configValue);
-							defaultPort = net.netshot.netshot.access.Ssh.DEFAULT_PORT;
+							defaultPort = DriverProtocol.SSH.defaultPort();
 						}
 						else {
 							accessTelnetConfig = DriverConfigParser.parseTelnetConfig(configValue);
-							defaultPort = net.netshot.netshot.access.Telnet.DEFAULT_PORT;
+							defaultPort = DriverProtocol.TELNET.defaultPort();
 						}
 						if (configValue != null && configValue.hasMembers()) {
 							Value defaultPortValue = configValue.getMember("defaultPort");
@@ -722,7 +721,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 						}
 						this.protocols.add(accessProtocol);
 						this.accessDefinitions.put(key, new AccessDefinition(key, accessProtocol,
-							accessDescription, null, null, null, net.netshot.netshot.access.Snmp.DEFAULT_PORT,
+							accessDescription, null, null, null, accessProtocol.defaultPort(),
 							this.parseGroup(accessValue, accessProtocol), this.parsePriority(accessValue, accessProtocol)));
 					}
 				}
@@ -778,11 +777,11 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 								httpConfig.setDefaultPort(defaultPort.asInt());
 							}
 							else {
-								httpConfig.setDefaultPort(httpConfig.isTls() ? Http.DEFAULT_PORT : 80);
+								httpConfig.setDefaultPort((httpConfig.isTls() ? DriverProtocol.HTTPS : DriverProtocol.HTTP).defaultPort());
 							}
 						}
 						else {
-							httpConfig.setDefaultPort(httpConfig.isTls() ? Http.DEFAULT_PORT : 80);
+							httpConfig.setDefaultPort((httpConfig.isTls() ? DriverProtocol.HTTPS : DriverProtocol.HTTP).defaultPort());
 						}
 						Value authValue = accessValue.getMember("auth");
 						if (authValue != null && authValue.hasMembers()) {
@@ -853,9 +852,11 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 	 *                    The syslog message
 	 * @param ip
 	 *                    The IP address the message is coming from
+	 * @param taskContext
+	 *                    Where the script of the driver logs (the log of the receiver)
 	 * @return true to trigger a snapshot of the device
 	 */
-	public boolean analyzeSyslog(String message, Network4Address ip) {
+	public boolean analyzeSyslog(String message, Network4Address ip, TaskContext taskContext) {
 		if (!canAnalyzeSyslog) {
 			return false;
 		}
@@ -863,7 +864,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 			this.loadCode(context);
 			Value result = context.getBindings("js")
 				.getMember("_analyzeSyslog")
-				.execute(message, JS_SYSLOG_LOGGER);
+				.execute(message, taskContext);
 			if (result != null && result.isBoolean()) {
 				return result.asBoolean();
 			}
@@ -881,7 +882,18 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 		return false;
 	}
 
-	public boolean analyzeTrap(Map<String, Object> data, Network4Address ip) {
+	/**
+	 * Asks the driver to analyze a SNMP trap.
+	 *
+	 * @param data
+	 *                    The trap data
+	 * @param ip
+	 *                    The IP address the trap is coming from
+	 * @param taskContext
+	 *                    Where the script of the driver logs (the log of the receiver)
+	 * @return true to trigger a snapshot of the device
+	 */
+	public boolean analyzeTrap(Map<String, Object> data, Network4Address ip, TaskContext taskContext) {
 		if (!canAnalyzeTraps) {
 			return false;
 		}
@@ -889,7 +901,7 @@ public class DeviceDriver implements Comparable<DeviceDriver> {
 			this.loadCode(context);
 			Value result = context.getBindings("js")
 				.getMember("_analyzeTrap")
-				.execute(ProxyObject.fromMap(data), JS_SNMP_LOGGER);
+				.execute(ProxyObject.fromMap(data), taskContext);
 			if (result != null && result.isBoolean()) {
 				return result.asBoolean();
 			}

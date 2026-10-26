@@ -29,9 +29,9 @@ import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.RuleRepository;
 import net.netshot.netshot.compliance.SoftwareRule;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.SoftwareRuleRepository;
 import net.netshot.netshot.compliance.check.ComplianceChecker;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.ConfigRepository;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceDraft;
@@ -64,13 +64,21 @@ public class CheckComplianceHandler implements TaskHandler<CheckComplianceTask> 
 
 	private final DeviceRepository deviceRepository = new DeviceRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
+
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param complianceChecker the compliance checker
+	 * @param dynamicGroups the refresher of the dynamic groups
 	 */
-	public CheckComplianceHandler(ComplianceChecker complianceChecker) {
+	public CheckComplianceHandler(Transactions transactions, ComplianceChecker complianceChecker, DynamicGroups dynamicGroups) {
+		this.transactions = transactions;
+		this.dynamicGroups = dynamicGroups;
 		this.complianceChecker = complianceChecker;
 	}
 
@@ -135,7 +143,7 @@ public class CheckComplianceHandler implements TaskHandler<CheckComplianceTask> 
 		}
 
 		log.debug("Task {}. Request to refresh all the groups for the device after compliance check.", task.id());
-		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 	}
 
 	/**

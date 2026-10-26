@@ -29,9 +29,13 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
@@ -40,6 +44,7 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the diagnostic use cases, against a real database: error codes and their order,
@@ -58,7 +63,7 @@ class DiagnosticServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		this.service = new DiagnosticService(this.transactions, new DiagnosticRepository());
 		this.groupId = TestDevices.addStaticGroup("Group").id();
 		this.otherGroupId = TestDevices.addStaticGroup("Other group").id();
@@ -102,13 +107,19 @@ class DiagnosticServiceTest {
 	}
 
 	private void addLongTextResult(long diagnosticId) {
-		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
-			List.of(DiagnosticLongTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "long value"))));
+		this.transactions.run(dsl -> {
+			Diagnostic diagnostic = new DiagnosticRepository().find(dsl, diagnosticId);
+			new DiagnosticResultRepository().save(dsl, this.deviceId,
+				List.of(DiagnosticLongTextResult.of(diagnostic.id(), diagnostic.name(), "long value")));
+		});
 	}
 
 	private void addResult(long diagnosticId) {
-		this.transactions.run(dsl -> new DiagnosticResultRepository().save(dsl, this.deviceId,
-			List.of(DiagnosticTextResult.of(new DiagnosticRepository().find(dsl, diagnosticId), "value"))));
+		this.transactions.run(dsl -> {
+			Diagnostic diagnostic = new DiagnosticRepository().find(dsl, diagnosticId);
+			new DiagnosticResultRepository().save(dsl, this.deviceId,
+				List.of(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "value")));
+		});
 	}
 
 	@Test

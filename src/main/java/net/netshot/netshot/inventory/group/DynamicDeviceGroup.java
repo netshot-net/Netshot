@@ -21,8 +21,6 @@ package net.netshot.netshot.inventory.group;
 import java.time.Instant;
 
 import lombok.Builder;
-import net.netshot.netshot.inventory.search.Finder;
-import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 
 /**
  * A dynamic group of devices is defined by search criteria: its members are the devices
@@ -48,16 +46,6 @@ public record DynamicDeviceGroup(
 
 	/** The query of a new group. */
 	public static final String DEFAULT_QUERY = "[Name] is \"example\"";
-
-	/**
-	 * Parses the query of the group.
-	 *
-	 * @return the finder
-	 * @throws FinderParseException if the query is invalid
-	 */
-	public Finder getFinder() throws FinderParseException {
-		return new Finder(this.query);
-	}
 
 	@Override
 	public String toString() {

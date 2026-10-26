@@ -30,7 +30,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 import net.netshot.netshot.testing.ScriptEngineTest;
 
@@ -49,7 +48,7 @@ public class DriverRegistryTest {
 
 	@BeforeEach
 	void setUp() {
-		this.previousConfig = Netshot.getConfig();
+		this.previousConfig = TestConfig.properties();
 		Properties config = new Properties();
 		config.setProperty("netshot.drivers.path", this.driversFolder.toString());
 		TestConfig.init(config);
@@ -58,7 +57,7 @@ public class DriverRegistryTest {
 
 	@AfterEach
 	void tearDown() {
-		TestConfig.init(this.previousConfig == null ? new Properties() : this.previousConfig);
+		TestConfig.init(this.previousConfig);
 	}
 
 	private void writeUserDriver(String version) throws Exception {
@@ -77,6 +76,7 @@ public class DriverRegistryTest {
 	void emptyBeforeRefresh() {
 		Assertions.assertTrue(this.registry.getAllDrivers().isEmpty());
 		Assertions.assertEquals("", this.registry.getAllDriverHash());
+		Assertions.assertEquals(0L, this.registry.stats().get("loads"));
 		Assertions.assertNull(this.registry.getDriverByName(BUNDLED_DRIVER));
 	}
 
@@ -84,7 +84,10 @@ public class DriverRegistryTest {
 	@DisplayName("Lookups by name and description")
 	void lookups() throws Exception {
 		this.writeUserDriver("1.0");
-		this.registry.refresh();
+		this.registry.start();
+		Assertions.assertEquals(1L, this.registry.stats().get("loads"));
+		Assertions.assertEquals(this.registry.getAllDrivers().size(), this.registry.stats().get("drivers"));
+		Assertions.assertNotNull(this.registry.stats().get("lastLoad"));
 		DeviceDriver bundled = this.registry.getDriverByName(BUNDLED_DRIVER);
 		Assertions.assertNotNull(bundled);
 		Assertions.assertSame(bundled, this.registry.getDriverByDescription(bundled.getDescription().toUpperCase()));

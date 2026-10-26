@@ -38,7 +38,6 @@ import org.junit.jupiter.api.TestInstance;
 
 import com.sun.net.httpserver.HttpServer;
 
-import net.netshot.netshot.boot.Wiring;
 import net.netshot.netshot.hook.Hook;
 import net.netshot.netshot.hook.HookTrigger;
 import net.netshot.netshot.hook.WebHook;
@@ -47,8 +46,9 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.event.TaskFinished;
 import net.netshot.netshot.testing.ContractTest;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.contract.ApiContractGolden;
+import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
 
 /**
  * Golden file tests of the web hook payloads: the body posted for each task type that can trigger
@@ -114,15 +114,15 @@ public class WebHookContractTest {
 		this.receiver.start();
 
 		// Only the hooks of this test: the hooks of the seed point to the outside
-		for (Hook hook : Wiring.get().hookService().list(Page.ALL)) {
-			Wiring.get().hookService().delete(hook.id());
+		for (Hook hook : TestWiring.get().hookService().list(Page.ALL)) {
+			TestWiring.get().hookService().delete(hook.id());
 		}
 		for (WebHook.Action action : FORMATS.keySet()) {
 			Set<HookTrigger> triggers = new HashSet<>();
 			for (String type : this.taskIds.keySet().stream().map(HookTaskSeed::taskType).distinct().toList()) {
 				triggers.add(new HookTrigger(HookTrigger.TriggerType.POST_TASK, type));
 			}
-			Wiring.get().hookService().create(new WebHook(0, "test-" + action, true, triggers, action,
+			TestWiring.get().hookService().create(new WebHook(0, "test-" + action, true, triggers, action,
 				"http://127.0.0.1:" + this.receiver.getAddress().getPort() + "/" + action, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null));
 		}
 	}
@@ -144,7 +144,7 @@ public class WebHookContractTest {
 		synchronized (this.received) {
 			this.received.clear();
 		}
-		Wiring.get().domainEvents().publish(new TaskFinished(taskId, HookTaskSeed.taskType(caseName)));
+		TestWiring.get().domainEvents().publish(new TaskFinished(taskId, HookTaskSeed.taskType(caseName)));
 		Map<Format, String> payloads = new LinkedHashMap<>();
 		synchronized (this.received) {
 			Assertions.assertEquals(FORMATS.size(), this.received.size(), "Number of hook requests for " + caseName);

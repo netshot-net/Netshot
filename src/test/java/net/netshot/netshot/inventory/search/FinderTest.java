@@ -41,37 +41,38 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
-import net.netshot.netshot.compliance.CheckResult;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleRepository;
-import net.netshot.netshot.compliance.SoftwareRule.ConformanceLevel;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
+import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.device.Network4Address;
 import net.netshot.netshot.inventory.device.NetworkInterface;
 import net.netshot.netshot.inventory.device.attribute.DeviceAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceBinaryAttribute;
 import net.netshot.netshot.inventory.device.attribute.DeviceNumericAttribute;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
-import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @DatabaseTest
@@ -114,7 +115,7 @@ public class FinderTest {
 				.server4Address(new Network4Address("10.%d.1.1".formatted(i))).build()));
 		}
 
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			// Create test diagnostics BEFORE devices
 			Diagnostic textDiagnostic = new SimpleDiagnostic(0,
 				"System Status", true, null, AttributeType.TEXT,
@@ -216,31 +217,31 @@ public class FinderTest {
 			// Add diagnostic results to specific devices
 			List<DiagnosticResult> results = new ArrayList<>();
 			if (i == 22) {
-				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "OK"));
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT).id(), testDiagnostics.get(AttributeType.TEXT).name(), "OK"));
 			}
 			if (i == 23) {
-				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "WARNING"));
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT).id(), testDiagnostics.get(AttributeType.TEXT).name(), "WARNING"));
 			}
 			if (i == 24) {
-				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT), "CRITICAL"));
+				results.add(DiagnosticTextResult.of(testDiagnostics.get(AttributeType.TEXT).id(), testDiagnostics.get(AttributeType.TEXT).name(), "CRITICAL"));
 			}
 			if (i == 25) {
-				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 45.5));
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC).id(), testDiagnostics.get(AttributeType.NUMERIC).name(), 45.5));
 			}
 			if (i == 26) {
-				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 78.2));
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC).id(), testDiagnostics.get(AttributeType.NUMERIC).name(), 78.2));
 			}
 			if (i == 27) {
-				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC), 92.8));
+				results.add(DiagnosticNumericResult.of(testDiagnostics.get(AttributeType.NUMERIC).id(), testDiagnostics.get(AttributeType.NUMERIC).name(), 92.8));
 			}
 			if (i == 28) {
-				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY).id(), testDiagnostics.get(AttributeType.BINARY).name(), true));
 			}
 			if (i == 29) {
-				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), false));
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY).id(), testDiagnostics.get(AttributeType.BINARY).name(), false));
 			}
 			if (i == 30) {
-				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY), true));
+				results.add(DiagnosticBinaryResult.of(testDiagnostics.get(AttributeType.BINARY).id(), testDiagnostics.get(AttributeType.BINARY).name(), true));
 			}
 
 			Device stored = TestDevices.add(builder.build(), config, results.toArray(new DiagnosticResult[0]));
@@ -257,7 +258,7 @@ public class FinderTest {
 				default -> null;
 			};
 			if (checkResult != null) {
-				new Transactions().run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
+				TestWiring.get().transactions().run(dsl -> new RuleRepository().saveCheckResults(dsl, List.of(checkResult)));
 			}
 		}
 	}
@@ -277,7 +278,7 @@ public class FinderTest {
 	 */
 	private void assertFinder(String nsQuery, String expectedFormattedQuery,
 			List<String> expectedDeviceNames) throws Exception {
-		Finder finder = new Finder(nsQuery);
+		Finder finder = new Finder(nsQuery, TestDrivers.registry(), TestWiring.get().transactions());
 		Assertions.assertEquals(
 			expectedFormattedQuery == null ? nsQuery : expectedFormattedQuery,
 			finder.getFormattedQuery(),
@@ -301,7 +302,7 @@ public class FinderTest {
 	 * @return the device names
 	 */
 	private static List<String> findDeviceNames(Finder finder) {
-		return new Transactions().read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
+		return TestWiring.get().transactions().read(dsl -> dsl.select(DEVICE.NAME).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.NAME));
 	}
 
 	@Test
@@ -497,8 +498,8 @@ public class FinderTest {
 		assertFinder("[IP] contains 172.16.0.50",
 			null,
 			List.of());
-		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 10.0.5.0/24"));
-		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 2016:1:5:1::/64"));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 10.0.5.0/24", TestDrivers.registry(), TestWiring.get().transactions()));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[IP] contains 2016:1:5:1::/64", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -558,7 +559,7 @@ public class FinderTest {
 	@Test
 	@DisplayName("Query device without a given tag")
 	void queryByNotTag() throws Exception {
-		List<String> deviceNames = findDeviceNames(new Finder("not ([Tag] is \"core\")"));
+		List<String> deviceNames = findDeviceNames(new Finder("not ([Tag] is \"core\")", TestDrivers.registry(), TestWiring.get().transactions()));
 		Assertions.assertEquals(98, deviceNames.size(), "Unexpected number of devices");
 		Assertions.assertFalse(deviceNames.contains("router00040"));
 	}
@@ -566,7 +567,7 @@ public class FinderTest {
 	@Test
 	@DisplayName("Invalid operator for tag")
 	void queryByTagInvalidOperator() {
-		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[Tag] lessthan \"core\""));
+		Assertions.assertThrows(FinderParseException.class, () -> new Finder("[Tag] lessthan \"core\"", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -740,7 +741,7 @@ public class FinderTest {
 	void queryByUnknownDiagnostic() throws Exception {
 		// Unknown diagnostic should throw FinderParseException
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Diagnostic > Nonexistent Diagnostic] is \"value\""));
+			() -> new Finder("[Diagnostic > Nonexistent Diagnostic] is \"value\"", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -748,7 +749,7 @@ public class FinderTest {
 	void queryByDiagnosticWrongType() throws Exception {
 		// Try to use IS TRUE on a text diagnostic - should throw FinderParseException
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Diagnostic > System Status] is true"));
+			() -> new Finder("[Diagnostic > System Status] is true", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -819,14 +820,14 @@ public class FinderTest {
 	@DisplayName("Query device by unknown policy - throws exception")
 	void queryByUnknownPolicy() throws Exception {
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Rule > Unknown Policy > Some Rule] is CONFORMING"));
+			() -> new Finder("[Rule > Unknown Policy > Some Rule] is CONFORMING", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
 	@DisplayName("Query device by unknown rule - throws exception")
 	void queryByUnknownRule() throws Exception {
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[Rule > Security Policy > Unknown Rule] is CONFORMING"));
+			() -> new Finder("[Rule > Security Policy > Unknown Rule] is CONFORMING", TestDrivers.registry(), TestWiring.get().transactions()));
 	}
 
 	@Test
@@ -841,7 +842,7 @@ public class FinderTest {
 	@DisplayName("Simple parser exception")
 	void throwParserExceptionSimple() throws Exception {
 		Assertions.assertThrows(FinderParseException.class,
-			() -> new Finder("[INVALID] is true"),
+			() -> new Finder("[INVALID] is true", TestDrivers.registry(), TestWiring.get().transactions()),
 			"Parser didn't throw exception as expected");
 	}
 
@@ -915,6 +916,6 @@ public class FinderTest {
 	@DisplayName("Query finds the expected number of devices")
 	Stream<DynamicTest> queryCount() {
 		return countedQueries().stream().map(c -> DynamicTest.dynamicTest(c.getKey(),
-			() -> Assertions.assertEquals(c.getValue().intValue(), findDeviceNames(new Finder(c.getKey())).size())));
+			() -> Assertions.assertEquals(c.getValue().intValue(), findDeviceNames(new Finder(c.getKey(), TestDrivers.registry(), TestWiring.get().transactions())).size())));
 	}
 }

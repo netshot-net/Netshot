@@ -51,18 +51,18 @@ public class TaskHandlersTest {
 	 */
 	private static List<TaskHandler<?>> allHandlers() {
 		return new ArrayList<>(List.of(
-			new CheckComplianceHandler(null),
-			new CheckGroupComplianceHandler(null),
-			new CheckGroupSoftwareHandler(),
-			new DiscoverDeviceTypeHandler(null, null),
-			new PurgeDatabaseHandler(),
-			new RunDeviceGroupScriptHandler(null, null),
-			new RunDeviceScriptHandler(null, null),
-			new RunDiagnosticsHandler(null, null, null),
-			new RunGroupDiagnosticsHandler(null),
-			new ScanSubnetsHandler(null),
-			new TakeGroupSnapshotHandler(null),
-			new TakeSnapshotHandler(null, null)));
+			new CheckComplianceHandler(null, null, null),
+			new CheckGroupComplianceHandler(null, null, null),
+			new CheckGroupSoftwareHandler(null),
+			new DiscoverDeviceTypeHandler(null, null, null, null, null),
+			new PurgeDatabaseHandler(null),
+			new RunDeviceGroupScriptHandler(null, null, null),
+			new RunDeviceScriptHandler(null, null, null, null, null),
+			new RunDiagnosticsHandler(null, null, null, null, null, null),
+			new RunGroupDiagnosticsHandler(null, null),
+			new ScanSubnetsHandler(null, null),
+			new TakeGroupSnapshotHandler(null, null),
+			new TakeSnapshotHandler(null, null, null, null, null, null, null)));
 	}
 
 	@Test
@@ -90,7 +90,7 @@ public class TaskHandlersTest {
 	@DisplayName("The registry refuses two handlers for the same task type")
 	void duplicateHandlerIsRejected() {
 		List<TaskHandler<?>> handlers = allHandlers();
-		handlers.add(new PurgeDatabaseHandler());
+		handlers.add(new PurgeDatabaseHandler(null));
 		Assertions.assertThrows(IllegalStateException.class, () -> new TaskHandlers(handlers));
 	}
 

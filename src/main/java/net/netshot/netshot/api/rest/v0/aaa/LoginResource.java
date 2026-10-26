@@ -76,16 +76,21 @@ public class LoginResource {
 	@Context
 	private SecurityContext securityContext;
 
+	/** The OIDC authentication. */
+	private final Oidc oidc;
+
 	/**
 	 * Instantiates the resource.
 	 *
 	 * @param loginService the login use case
 	 * @param userService the user use cases
+	 * @param oidc the OIDC authentication (for the end session endpoint)
 	 */
 	@Inject
-	public LoginResource(LoginService loginService, UserService userService) {
+	public LoginResource(LoginService loginService, UserService userService, Oidc oidc) {
 		this.loginService = loginService;
 		this.userService = userService;
+		this.oidc = oidc;
 	}
 
 	/**
@@ -116,8 +121,8 @@ public class LoginResource {
 		AAA_LOG.warn("User {} has logged out.", username);
 		Response.ResponseBuilder builder = Response.noContent();
 		builder.status(Response.Status.NO_CONTENT);
-		if (Oidc.isAvailable()) {
-			builder.header("X-OIDC-EndSessionEndpoint", Oidc.getEndSessionEndpointURI());
+		if (this.oidc.isAvailable()) {
+			builder.header("X-OIDC-EndSessionEndpoint", this.oidc.getEndSessionEndpointURI());
 		}
 		return builder.build();
 	}
@@ -183,6 +188,8 @@ public class LoginResource {
 		}
 		if (user != null) {
 			HttpSession httpSession = this.request.getSession(true);
+			// The current max idle time (the default timeout of the sessions is set when the server starts)
+			httpSession.setMaxInactiveInterval(UiUser.settings().maxIdleTime());
 			httpSession.setAttribute(SecurityFilter.USER_ATTRIBUTE, user);
 			return UserMapper.toDto(user);
 		}

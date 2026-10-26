@@ -29,6 +29,7 @@ import org.graalvm.polyglot.Value;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.AccessManager;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.InvalidCredentialsException;
 import net.netshot.netshot.devicescript.helper.JsCliHelper;
 import net.netshot.netshot.devicescript.helper.JsClientFactory;
@@ -36,14 +37,14 @@ import net.netshot.netshot.devicescript.helper.JsDeviceHelper;
 import net.netshot.netshot.devicescript.helper.JsDeviceScriptOptions;
 import net.netshot.netshot.devicescript.helper.JsDiagnosticHelper;
 import net.netshot.netshot.devicescript.helper.JsSnmpHelper;
-import net.netshot.netshot.devicescript.helper.JsUtils;
 import net.netshot.netshot.diagnostic.Diagnostic;
 import net.netshot.netshot.diagnostic.run.DiagnosticAdapters;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
+import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.DeviceDraft;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.script.JsUtils;
 
 @Slf4j
 public final class RunDiagnosticDeviceScript extends DeviceScript {
@@ -57,13 +58,14 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 	/**
 	 * Instantiates a diagnostic CLI script.
 	 * @param driverRegistry = the loaded device drivers
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 * @param diagnostics = the list of diagnostics
 	 * @param adapters = the diagnostic adapters
 	 * @param logger = the task context
 	 */
-	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
+	public RunDiagnosticDeviceScript(DriverRegistry driverRegistry, Connectors connectors, List<Diagnostic> diagnostics, DiagnosticAdapters adapters,
 		TaskContext logger) {
-		super(driverRegistry, logger);
+		super(driverRegistry, connectors, logger);
 		this.diagnostics = diagnostics;
 		this.adapters = adapters;
 	}
@@ -81,7 +83,7 @@ public final class RunDiagnosticDeviceScript extends DeviceScript {
 			JsDeviceScriptOptions options = new JsDeviceScriptOptions(jsCliHelper, jsSnmpHelper, this.taskContext);
 			options.setClientFactory(clientFactory);
 			clientFactory.setOptions(options);
-			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, device, jsCliHelper, this.taskContext, false));
+			options.setDeviceHelper(new JsDeviceHelper(this.driverRegistry, this.connectors.transactions(), device, jsCliHelper, this.taskContext, false));
 
 			Map<String, Object> jsDiagnostics = new HashMap<String, Object>();
 			for (Diagnostic diagnostic : this.diagnostics) {

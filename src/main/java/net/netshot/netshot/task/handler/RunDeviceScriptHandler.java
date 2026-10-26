@@ -19,6 +19,7 @@
 package net.netshot.netshot.task.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.devicescript.UserDeviceScript;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
@@ -44,15 +45,28 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 
 	private final DriverRegistry driverRegistry;
 	private final TaskSubmitter taskSubmitter;
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 	private final DeviceRepository deviceRepository = new DeviceRepository();
+
+	/** The refresher of the dynamic groups. */
+	private final DynamicGroups dynamicGroups;
+
+	/** The secret resolver and the SSH client of the device accesses. */
+	private final Connectors connectors;
 
 	/**
 	 * Creates the handler.
+	 * @param transactions the transaction support
 	 * @param driverRegistry the loaded device drivers
 	 * @param taskSubmitter the task submitter
+	 * @param dynamicGroups the refresher of the dynamic groups
+	 * @param connectors the secret resolver and the SSH client of the device accesses
 	 */
-	public RunDeviceScriptHandler(DriverRegistry driverRegistry, TaskSubmitter taskSubmitter) {
+	public RunDeviceScriptHandler(Transactions transactions, DriverRegistry driverRegistry, TaskSubmitter taskSubmitter, DynamicGroups dynamicGroups, Connectors connectors) {
+		this.transactions = transactions;
+		this.connectors = connectors;
+		this.dynamicGroups = dynamicGroups;
 		this.driverRegistry = driverRegistry;
 		this.taskSubmitter = taskSubmitter;
 	}
@@ -96,7 +110,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 				return;
 			}
 
-			deviceScript = new UserDeviceScript(this.driverRegistry, spec.deviceDriver(), spec.script(), run.logger);
+			deviceScript = new UserDeviceScript(this.driverRegistry, this.connectors, spec.deviceDriver(), spec.script(), run.logger);
 			deviceScript.setUserInputValues(spec.userInputValues());
 			DeviceDraft draft = new DeviceDraft(device);
 			deviceScript.connectRun(draft);
@@ -121,7 +135,7 @@ public class RunDeviceScriptHandler implements TaskHandler<RunDeviceScriptTask> 
 		}
 
 		// The script may have changed the device tags/comments
-		DynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(deviceId);
 
 		if (spec.runSnapshot()) {
 			try {

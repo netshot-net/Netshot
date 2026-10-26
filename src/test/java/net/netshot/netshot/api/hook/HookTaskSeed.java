@@ -28,7 +28,6 @@ import org.jooq.DSLContext;
 
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.CheckGroupSoftwareTask;
@@ -38,6 +37,7 @@ import net.netshot.netshot.task.type.RunDeviceGroupScriptTask;
 import net.netshot.netshot.task.type.RunGroupDiagnosticsTask;
 import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.contract.ApiContractSeed;
 
 /**
@@ -84,7 +84,7 @@ final class HookTaskSeed {
 			String[] parts = entry.split("=");
 			taskIds.put(parts[0], seed.id(parts[1]));
 		}
-		new Transactions().run(dsl -> {
+		TestWiring.get().transactions().run(dsl -> {
 			DeviceGroup group = new GroupRepository().find(dsl, seed.id("group.static"));
 			long created = ApiContractSeed.D2022 + 10000;
 

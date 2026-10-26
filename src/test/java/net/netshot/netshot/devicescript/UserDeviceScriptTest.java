@@ -24,8 +24,9 @@ import java.util.Map;
 
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.driver.DriverValueType;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.testing.ScriptEngineTest;
+import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 
@@ -74,7 +75,7 @@ public class UserDeviceScriptTest {
 
 	private UserDeviceScript buildScript(String code, Map<String, String> userInputValues) {
 		TaskContext taskContext = new FakeTaskContext();
-		UserDeviceScript script = new UserDeviceScript(TestDrivers.registry(), DRIVER_NAME, code, taskContext);
+		UserDeviceScript script = new UserDeviceScript(TestDrivers.registry(), TestConnectors.local(), DRIVER_NAME, code, taskContext);
 		script.setUserInputValues(userInputValues);
 		return script;
 	}

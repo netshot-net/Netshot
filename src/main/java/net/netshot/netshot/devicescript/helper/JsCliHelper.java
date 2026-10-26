@@ -34,9 +34,7 @@ import net.netshot.netshot.access.Cli;
 import net.netshot.netshot.access.Cli.WithBufferIOException;
 import net.netshot.netshot.access.Client;
 import net.netshot.netshot.access.Ssh;
-import net.netshot.netshot.access.Ssh.SshConfig;
 import net.netshot.netshot.access.Telnet;
-import net.netshot.netshot.access.Telnet.TelnetConfig;
 import net.netshot.netshot.credentials.DeviceCliAccount;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
@@ -44,9 +42,10 @@ import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
-import net.netshot.netshot.task.engine.TaskContext;
+import net.netshot.netshot.driver.protocol.SshConfig;
+import net.netshot.netshot.driver.protocol.TelnetConfig;
+import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultManager;
 import net.netshot.netshot.vault.VaultableSecret;
 
 /**
@@ -121,13 +120,13 @@ public class JsCliHelper {
 		if (accessDef.getProtocol() == DriverProtocol.SSH) {
 			Ssh ssh;
 			if (credentialSet instanceof DeviceSshKeyAccount sshKeyAccount) {
-				ssh = new Ssh(host, port, resolveSecret(sshKeyAccount.usernameSecret()),
+				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshKeyAccount.usernameSecret()),
 					resolveSecret(sshKeyAccount.privateKeySecret()),
 					resolveSecret(sshKeyAccount.passwordSecret()), this.taskContext);
 			}
 			else {
 				DeviceSshAccount sshAccount = (DeviceSshAccount) credentialSet;
-				ssh = new Ssh(host, port, resolveSecret(sshAccount.usernameSecret()),
+				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshAccount.usernameSecret()),
 					resolveSecret(sshAccount.passwordSecret()), this.taskContext);
 			}
 			ssh.applySshConfig(accessDef.getSshConfig());
@@ -152,9 +151,9 @@ public class JsCliHelper {
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private static String resolveSecret(VaultableSecret secret) throws IOException {
+	private String resolveSecret(VaultableSecret secret) throws IOException {
 		try {
-			return VaultManager.resolve(secret);
+			return this.accessManager.secrets().resolve(secret);
 		}
 		catch (VaultException e) {
 			throw new IOException("Unable to resolve a Vault-backed credential: " + e.getMessage(), e);

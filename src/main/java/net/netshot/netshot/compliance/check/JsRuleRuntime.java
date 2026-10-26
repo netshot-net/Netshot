@@ -30,8 +30,9 @@ import org.slf4j.MarkerFactory;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The JavaScript runtime of the compliance rules: the shared polyglot engine
@@ -41,8 +42,11 @@ import net.netshot.netshot.driver.DeviceDriver;
 public class JsRuleRuntime {
 
 	/** Max time (ms) to wait for a script to execute. */
-	@Getter
-	private volatile int maxExecutionTime;
+	static final Setting<Integer> MAX_EXECUTION_TIME = Setting.integer("netshot.javascript.maxexecutiontime")
+		.defaultValue(60000).range(1, 60 * 60 * 1000).live();
+
+	/** Max time (ms) to wait for a script to execute, from the configuration. */
+	private final ConfigStore.Binding<Integer> maxExecutionTime;
 
 	/** Rule loader JavaScript source. */
 	@Getter
@@ -52,10 +56,21 @@ public class JsRuleRuntime {
 	private Engine engine;
 
 	/**
-	 * Builds the runtime, with the settings from the current configuration.
+	 * Builds the runtime.
+	 *
+	 * @param config the configuration store, to read the settings from
 	 */
-	public JsRuleRuntime() {
-		this.loadConfig();
+	public JsRuleRuntime(ConfigStore config) {
+		this.maxExecutionTime = config.bind(c -> c.get(MAX_EXECUTION_TIME));
+	}
+
+	/**
+	 * Gets the max time to wait for a script to execute.
+	 *
+	 * @return the max execution time (ms)
+	 */
+	public int getMaxExecutionTime() {
+		return this.maxExecutionTime.get();
 	}
 
 	/**
@@ -89,14 +104,6 @@ public class JsRuleRuntime {
 			System.exit(1);
 		}
 		return source;
-	}
-
-	/**
-	 * Load the settings from the global configuration.
-	 */
-	public void loadConfig() {
-		this.maxExecutionTime = Netshot.getConfig("netshot.javascript.maxexecutiontime",
-			60000, 1, 60 * 60 * 1000);
 	}
 
 	private synchronized Engine engine() {

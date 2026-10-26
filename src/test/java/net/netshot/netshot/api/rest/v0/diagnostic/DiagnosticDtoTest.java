@@ -38,17 +38,17 @@ import net.netshot.netshot.api.rest.v0.script.ScriptMapper;
 import net.netshot.netshot.api.rest.v0.script.ScriptRequest;
 import net.netshot.netshot.devicescript.UserDeviceScript.UserInputDefinition;
 import net.netshot.netshot.diagnostic.Diagnostic;
-import net.netshot.netshot.diagnostic.DiagnosticBinaryResult;
-import net.netshot.netshot.diagnostic.DiagnosticLongTextResult;
-import net.netshot.netshot.diagnostic.DiagnosticNumericResult;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
-import net.netshot.netshot.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.diagnostic.JavaScriptDiagnostic;
 import net.netshot.netshot.diagnostic.PythonDiagnostic;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.driver.DriverValueType;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticBinaryResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
@@ -156,13 +156,13 @@ class DiagnosticDtoTest {
 	@DisplayName("Each type of diagnostic result has the same JSON and XML representation as the entity")
 	void results() throws Exception {
 		PythonDiagnostic diagnostic = new PythonDiagnostic(9, "Diag", true, null, AttributeType.TEXT, "x");
-		DiagnosticTextResult text = dated(DiagnosticTextResult.of(diagnostic, "some text"));
-		DiagnosticTextResult noText = dated(DiagnosticTextResult.of(diagnostic, null));
-		DiagnosticLongTextResult longText = dated(DiagnosticLongTextResult.of(diagnostic, "long\ntext"));
-		DiagnosticNumericResult numeric = dated(DiagnosticNumericResult.of(diagnostic, 42.5));
-		DiagnosticNumericResult noNumber = dated(DiagnosticNumericResult.of(diagnostic, null));
-		DiagnosticBinaryResult binary = dated(DiagnosticBinaryResult.of(diagnostic, true));
-		DiagnosticBinaryResult noAssumption = dated(DiagnosticBinaryResult.of(diagnostic, null));
+		DiagnosticTextResult text = dated(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "some text"));
+		DiagnosticTextResult noText = dated(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), null));
+		DiagnosticLongTextResult longText = dated(DiagnosticLongTextResult.of(diagnostic.id(), diagnostic.name(), "long\ntext"));
+		DiagnosticNumericResult numeric = dated(DiagnosticNumericResult.of(diagnostic.id(), diagnostic.name(), 42.5));
+		DiagnosticNumericResult noNumber = dated(DiagnosticNumericResult.of(diagnostic.id(), diagnostic.name(), null));
+		DiagnosticBinaryResult binary = dated(DiagnosticBinaryResult.of(diagnostic.id(), diagnostic.name(), true));
+		DiagnosticBinaryResult noAssumption = dated(DiagnosticBinaryResult.of(diagnostic.id(), diagnostic.name(), null));
 		for (DiagnosticResult result : List.of(text, noText, longText, numeric, noNumber, binary, noAssumption)) {
 			this.assertRepresentation(DiagnosticMapper.toDto(result));
 		}

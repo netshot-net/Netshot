@@ -28,17 +28,17 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Module;
-import net.netshot.netshot.inventory.domain.Domain;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.PurgeDatabaseTask;
@@ -46,9 +46,17 @@ import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestTasks;
+import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.testing.UtcTimeZoneExtension;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
+/**
+ * The purge of the tasks, configurations and modules. The test data are dated by elapsed time from now (every
+ * 6 hours), while the purge counts calendar days in the default time zone: the class runs in UTC, so that the
+ * expected counts don't change by one when the purge window crosses a daylight saving time change.
+ */
 @DatabaseTest
+@ExtendWith(UtcTimeZoneExtension.class)
 public class PurgeTest {
 	static final int DEVICES = 10;
 	static final int CONFIGS_PER_DAY = 4;
@@ -132,7 +140,7 @@ public class PurgeTest {
 	}
 
 	private static long count(String sql) {
-		return new Transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
+		return TestWiring.get().transactions().read(dsl -> ((Number) dsl.fetchValue(sql)).longValue());
 	}
 
 	private void assertDeviceCount(long expected) {
@@ -345,7 +353,7 @@ public class PurgeTest {
 	private void purge(int days, int configDays, int configSize, int configKeepDays, int moduleDays, Long groupId, List<Long> deviceIds) {
 		PurgeDatabaseTask spec = new PurgeDatabaseTask(groupId, deviceIds, days, configDays, configSize, configKeepDays, moduleDays, false);
 		Task task = Task.of(spec, "Test", "Global", "tester");
-		new PurgeDatabaseHandler().run(task, spec, new TaskRun(task));
+		new PurgeDatabaseHandler(TestWiring.get().transactions()).run(task, spec, new TaskRun(task));
 	}
 
 	@Test

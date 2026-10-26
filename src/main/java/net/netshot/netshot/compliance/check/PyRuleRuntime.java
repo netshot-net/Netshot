@@ -31,9 +31,11 @@ import org.slf4j.MarkerFactory;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.devicescript.helper.PythonFileSystem;
 import net.netshot.netshot.driver.DeviceDriver;
+import net.netshot.netshot.platform.config.Config;
+import net.netshot.netshot.platform.config.ConfigStore;
+import net.netshot.netshot.platform.config.Setting;
 
 /**
  * The Python runtime of the compliance rules: the rule loader source, the settings
@@ -42,19 +44,83 @@ import net.netshot.netshot.driver.DeviceDriver;
 @Slf4j
 public class PyRuleRuntime {
 
-	/** Max time (ms) to wait for a script to execute. */
-	@Getter
-	private volatile int maxExecutionTime;
+	/**
+	 * The settings of the Python runtime of the rules.
+	 *
+	 * @param maxExecutionTime the max time (ms) to wait for a script to execute
+	 * @param fileSystemFilter whether the file system access is restricted to the Python libraries
+	 * @param allowAllAccess whether the scripts get all the accesses (not secure)
+	 * @param allowCreateThread whether the scripts can create threads (not secure)
+	 * @param allowCreateProcess whether the scripts can create processes (not secure)
+	 * @param allowNativeAccess whether the scripts get native access (not secure)
+	 * @param allowHostFileAccess whether the scripts can access the host files (not secure)
+	 * @param allowHostSocketAccess whether the scripts can access the host sockets (not secure)
+	 */
+	record Settings(int maxExecutionTime, boolean fileSystemFilter, boolean allowAllAccess, boolean allowCreateThread,
+		boolean allowCreateProcess, boolean allowNativeAccess, boolean allowHostFileAccess, boolean allowHostSocketAccess) {
+
+		/** Max time (ms) to wait for a script to execute. */
+		static final Setting<Integer> MAX_EXECUTION_TIME = Setting.integer("netshot.python.maxexecutiontime")
+			.defaultValue(60000).range(1, 60 * 60 * 1000).live();
+
+		/** Whether the file system access is restricted to the Python libraries. */
+		static final Setting<Boolean> FILE_SYSTEM_FILTER = Setting.bool("netshot.python.filesystemfilter").defaultValue(true).live();
+
+		/** Whether the scripts get all the accesses. */
+		static final Setting<Boolean> ALLOW_ALL_ACCESS = Setting.bool("netshot.python.allowallaccess").defaultValue(false).live();
+
+		/** Whether the scripts can create threads. */
+		static final Setting<Boolean> ALLOW_CREATE_THREAD = Setting.bool("netshot.python.allowcreatethread").defaultValue(false).live();
+
+		/** Whether the scripts can create processes. */
+		static final Setting<Boolean> ALLOW_CREATE_PROCESS = Setting.bool("netshot.python.allowcreateprocess").defaultValue(false).live();
+
+		/** Whether the scripts get native access. */
+		static final Setting<Boolean> ALLOW_NATIVE_ACCESS = Setting.bool("netshot.python.allownativeaccess").defaultValue(false).live();
+
+		/** Whether the scripts can access the host files. */
+		static final Setting<Boolean> ALLOW_HOST_FILE_ACCESS = Setting.bool("netshot.python.allowhostfileaccess")
+			.defaultValue(false).live();
+
+		/** Whether the scripts can access the host sockets. */
+		static final Setting<Boolean> ALLOW_HOST_SOCKET_ACCESS = Setting.bool("netshot.python.allowhostsocketaccess")
+			.defaultValue(false).live();
+
+		/**
+		 * Reads the settings.
+		 * @param config the configuration
+		 * @return the settings
+		 */
+		static Settings from(Config config) {
+			return new Settings(config.get(MAX_EXECUTION_TIME), config.get(FILE_SYSTEM_FILTER), config.get(ALLOW_ALL_ACCESS),
+				config.get(ALLOW_CREATE_THREAD), config.get(ALLOW_CREATE_PROCESS), config.get(ALLOW_NATIVE_ACCESS),
+				config.get(ALLOW_HOST_FILE_ACCESS), config.get(ALLOW_HOST_SOCKET_ACCESS));
+		}
+	}
+
+	/** The settings, from the configuration. */
+	private final ConfigStore.Binding<Settings> settings;
 
 	/** Rule loader Python source. */
 	@Getter
 	private final Source loaderSource = readLoaderSource();
 
 	/**
-	 * Builds the runtime, with the settings from the current configuration.
+	 * Builds the runtime.
+	 *
+	 * @param config the configuration store, to read the settings from
 	 */
-	public PyRuleRuntime() {
-		this.loadConfig();
+	public PyRuleRuntime(ConfigStore config) {
+		this.settings = config.bind(Settings::from);
+	}
+
+	/**
+	 * Gets the max time to wait for a script to execute.
+	 *
+	 * @return the max execution time (ms)
+	 */
+	public int getMaxExecutionTime() {
+		return this.settings.get().maxExecutionTime();
 	}
 
 	/**
@@ -90,21 +156,14 @@ public class PyRuleRuntime {
 	}
 
 	/**
-	 * Load the settings from the global configuration.
-	 */
-	public void loadConfig() {
-		this.maxExecutionTime = Netshot.getConfig("netshot.python.maxexecutiontime",
-			60000, 1, 60 * 60 * 1000);
-	}
-
-	/**
 	 * Create a GraalVM context to run a rule script.
 	 * @return the context
 	 * @throws IOException if the context can't be created
 	 */
 	public Context newContext() throws IOException {
+		Settings current = this.settings.get();
 		IOAccess.Builder accessBuilder = IOAccess.newBuilder();
-		if (Netshot.getConfig("netshot.python.filesystemfilter", true)) {
+		if (current.fileSystemFilter()) {
 			accessBuilder.fileSystem(PythonFileSystem.newRestrictedFileSystem());
 		}
 		else {
@@ -113,7 +172,7 @@ public class PyRuleRuntime {
 
 		Context.Builder builder = Context.newBuilder("python");
 
-		if (Netshot.getConfig("netshot.python.allowallaccess", false)) {
+		if (current.allowAllAccess()) {
 			log.info("Python VM, allowing all access (this is not secure)");
 			builder.allowAllAccess(true);
 			accessBuilder.allowHostFileAccess(true);
@@ -122,32 +181,33 @@ public class PyRuleRuntime {
 		else {
 			// Don't expose the Netshot process environment (which may contain secrets) to the scripts
 			builder.allowEnvironmentAccess(EnvironmentAccess.NONE);
-			if (Netshot.getConfig("netshot.python.allowcreatethread", false)) {
+			if (current.allowCreateThread()) {
 				log.info("Python VM, allowing thread creation (this is not secure)");
 				builder.allowCreateThread(true);
 			}
-			if (Netshot.getConfig("netshot.python.allowcreateprocess", false)) {
+			if (current.allowCreateProcess()) {
 				log.info("Python VM, allowing process creation (this is not secure)");
 				builder.allowCreateProcess(true);
 			}
-			if (Netshot.getConfig("netshot.python.allownativeaccess", false)) {
+			if (current.allowNativeAccess()) {
 				log.info("Python VM, allowing native access (this is not secure)");
 				builder.allowNativeAccess(true);
 			}
-			if (Netshot.getConfig("netshot.python.allowhostfileaccess", false)) {
+			if (current.allowHostFileAccess()) {
 				log.info("Python VM, allowing host file access (this is not secure)");
 				accessBuilder.allowHostFileAccess(true);
 			}
-			if (Netshot.getConfig("netshot.python.allowhostsocketaccess", false)) {
+			if (current.allowHostSocketAccess()) {
 				log.info("Python VM, allowing host socket access (this is not secure)");
 				accessBuilder.allowHostSocketAccess(true);
 			}
 		}
 		builder.allowIO(accessBuilder.build());
 
-		if (PythonFileSystem.SETTINGS.getVenvFolder() != null) {
+		String venvFolder = PythonFileSystem.settings().venvFolder();
+		if (venvFolder != null) {
 			builder
-				.option("python.Executable", PythonFileSystem.SETTINGS.getVenvFolder() + "/bin/graalpy")
+				.option("python.Executable", venvFolder + "/bin/graalpy")
 				.option("python.ForceImportSite", "true");
 		}
 		Context context = builder.build();

@@ -38,6 +38,8 @@ public class TaskJobFactory implements JobFactory {
 
 	private final DomainEvents domainEvents;
 
+	private final TaskManager taskManager;
+
 	private final JobFactory defaultFactory = new SimpleJobFactory();
 
 	/**
@@ -45,10 +47,12 @@ public class TaskJobFactory implements JobFactory {
 	 *
 	 * @param handlers the task handlers, given to the task jobs
 	 * @param domainEvents where the task jobs publish the end of the tasks
+	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
 	 */
-	public TaskJobFactory(TaskHandlers handlers, DomainEvents domainEvents) {
+	public TaskJobFactory(TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
+		this.taskManager = taskManager;
 	}
 
 	/**
@@ -57,7 +61,7 @@ public class TaskJobFactory implements JobFactory {
 	 * @return a new task job
 	 */
 	public TaskJob newTaskJob() {
-		return new TaskJob(this.handlers, this.domainEvents);
+		return new TaskJob(this.taskManager.transactions(), this.handlers, this.domainEvents, this.taskManager);
 	}
 
 	@Override

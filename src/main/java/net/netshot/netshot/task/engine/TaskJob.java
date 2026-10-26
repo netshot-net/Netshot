@@ -27,7 +27,7 @@ import org.quartz.JobExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.Netshot;
-import net.netshot.netshot.cluster.ClusterManager;
+import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.event.DomainEvents;
 import net.netshot.netshot.task.Task;
@@ -46,6 +46,10 @@ import net.netshot.netshot.task.type.DeviceBasedTask;
 @Slf4j
 public class TaskJob implements Job {
 
+	/** Interval (ms) between two checks of the lock of a device by a waiting task. */
+	static final Setting<Integer> DEVICE_LOCK_POLL_INTERVAL = Setting.integer("netshot.tasks.devicelock.pollintervalms")
+		.defaultValue(3000).range(500, 60000).live();
+
 	/** The Constant NETSHOT_TASK. */
 	public static final String NETSHOT_TASK = "Netshot Task";
 
@@ -53,19 +57,27 @@ public class TaskJob implements Job {
 
 	private final DomainEvents domainEvents;
 
+	/** The task manager (locks, clustering, repetition of the tasks). */
+	private final TaskManager taskManager;
+
 	private final TaskRepository repository = new TaskRepository();
 
-	private final Transactions transactions = new Transactions();
+	/** The transaction support. */
+	private final Transactions transactions;
 
 	/**
-	 * Instantiates a new task job. Quartz builds the jobs through the {@link TaskJobFactory}.
+	 * Creates the job.
 	 *
-	 * @param handlers the task handlers, by task type
-	 * @param domainEvents where the end of a task is published
+	 * @param transactions the transaction support
+	 * @param handlers the task handlers
+	 * @param domainEvents where the end of the tasks is published
+	 * @param taskManager the task manager (locks, clustering, repetition of the tasks)
 	 */
-	public TaskJob(TaskHandlers handlers, DomainEvents domainEvents) {
+	public TaskJob(Transactions transactions, TaskHandlers handlers, DomainEvents domainEvents, TaskManager taskManager) {
+		this.transactions = transactions;
 		this.handlers = handlers;
 		this.domainEvents = domainEvents;
+		this.taskManager = taskManager;
 	}
 
 	/*(non-Javadoc)
@@ -94,7 +106,7 @@ public class TaskJob implements Job {
 		log.trace("The task id is {}.", id);
 		// The task lock prevents the same task from running twice at the same time,
 		// on this instance or (cluster mode) on any other cluster member
-		TaskLockManager lockManager = TaskLockManager.get();
+		TaskLockManager lockManager = this.taskManager.lockManager();
 		try {
 			if (!lockManager.tryLock(TaskLockManager.NS_TASK, id, id)) {
 				log.warn("Task {} is already running (locally or on another cluster member), skipping.", id);
@@ -139,7 +151,7 @@ public class TaskJob implements Job {
 		else {
 			run.logger.info("Waiting for the device to be released by task {}.", holderTaskId);
 		}
-		int pollInterval = Netshot.getConfig("netshot.tasks.devicelock.pollintervalms", 3000, 500, 60000);
+		int pollInterval = Netshot.config().current().get(DEVICE_LOCK_POLL_INTERVAL);
 		long startTime = System.currentTimeMillis();
 		while (true) {
 			Thread.sleep(pollInterval);
@@ -157,7 +169,7 @@ public class TaskJob implements Job {
 	// Claims the task and marks it as started, returns the run (or null if the task was not claimed)
 	private TaskRun start(long id) {
 		return this.transactions.write(dsl -> {
-			if (!this.repository.claim(dsl, id, ClusterManager.getLocalInstanceId())) {
+			if (!this.repository.claim(dsl, id, this.taskManager.cluster().localInstanceId())) {
 				Task skippedTask = this.repository.find(dsl, id);
 				if (skippedTask == null) {
 					log.error("The retrieved task {} is null.", id);
@@ -187,6 +199,7 @@ public class TaskJob implements Job {
 			if (run == null) {
 				return;
 			}
+			this.taskManager.countStartedTask();
 		}
 		catch (Exception e) {
 			log.error("Error while retrieving, updating or preparing the task.", e);
@@ -284,8 +297,10 @@ public class TaskJob implements Job {
 			catch (Exception e1) {
 				log.error("Error while setting the task {} to FAILED.", id, e1);
 			}
+			this.taskManager.countFinishedTask(Status.FAILURE);
 			throw new JobExecutionException("Unable to save the task.");
 		}
+		this.taskManager.countFinishedTask(run.getStatus());
 
 		// The listeners (such as the post-task hooks) are called here, in this thread
 		log.trace("Looking for post-task hooks.");
@@ -298,7 +313,7 @@ public class TaskJob implements Job {
 
 		if (repeat) {
 			try {
-				TaskManager.repeatTask(task);
+				this.taskManager.repeatTask(task);
 			}
 			catch (Exception e) {
 				log.error("Unable to repeat the task {} again.", id, e);

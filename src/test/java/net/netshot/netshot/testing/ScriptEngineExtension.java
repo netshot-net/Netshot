@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.AnnotationSupport;
 
-import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
 
 /**
@@ -44,7 +43,6 @@ public final class ScriptEngineExtension implements BeforeAllCallback {
 			return;
 		}
 		TestConfig.init(Kinds.config(testClass, new Properties()));
-		Netshot.loadModuleConfigs();
 		TestDrivers.reload();
 	}
 }

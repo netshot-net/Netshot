@@ -36,15 +36,16 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import jakarta.ws.rs.core.Response;
+import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
-import net.netshot.netshot.aaa.auth.Oidc;
+import net.netshot.netshot.aaa.auth.OidcDiscovery;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.PasswordPolicy.PasswordPolicyException;
 import net.netshot.netshot.aaa.user.PasswordPolicy;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.UserRepository;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.error.ErrorCode;
 import org.junit.jupiter.api.AfterAll;
@@ -61,8 +62,8 @@ import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDatabase;
 import net.netshot.netshot.testing.TestProperty;
 import net.netshot.netshot.testing.TestServer;
-import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
 import net.netshot.netshot.testing.api.NetshotApiClient;
+import net.netshot.netshot.testing.api.NetshotApiClient.WrongApiResponseException;
 import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -102,7 +103,7 @@ public class RestAuthenticationTest {
 
 		@AfterEach
 		void cleanUpData() {
-			new Transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
+			TestWiring.get().transactions().run(dsl -> dsl.deleteFrom(Tables.USER).execute());
 		}
 
 		@Test
@@ -156,7 +157,7 @@ public class RestAuthenticationTest {
 		void currentUser() throws IOException, InterruptedException {
 			String secret = "jmE5C9JHDpLtbGswYfWBdUayKFn7Th6R";
 			ApiToken temp = ApiToken.of("Token get test", secret, UiUser.LEVEL_READONLY);
-			ApiToken token1 = temp.withId(new Transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
+			ApiToken token1 = temp.withId(TestWiring.get().transactions().write(dsl -> new ApiTokenRepository().add(dsl, temp)));
 			apiClient.setApiToken(secret);
 			HttpResponse<JsonNode> response = apiClient.get("/user");
 			Assertions.assertEquals(
@@ -206,7 +207,7 @@ public class RestAuthenticationTest {
 				user = user.withLastPasswordChangeDate(Instant.now().minus(passwordAge, ChronoUnit.DAYS));
 			}
 			UiUser stored = user;
-			this.testUser = stored.withId(new Transactions().write(dsl -> new UserRepository().add(dsl, stored)));
+			this.testUser = stored.withId(TestWiring.get().transactions().write(dsl -> new UserRepository().add(dsl, stored)));
 		}
 
 		@Test
@@ -308,7 +309,6 @@ public class RestAuthenticationTest {
 			Properties config = getNetshotConfig();
 			config.setProperty("netshot.aaa.passwordpolicy.maxduration", "90");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			this.passwordAge = 365;
 			this.createTestUser();
 			apiClient.setLogin(testUsername, testPassword);
@@ -327,7 +327,6 @@ public class RestAuthenticationTest {
 			Properties config = getNetshotConfig();
 			config.setProperty("netshot.aaa.passwordpolicy.maxduration", "90");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			String newPassword = "testpassword1";
 			this.passwordAge = 365;
 			this.createTestUser();
@@ -338,7 +337,7 @@ public class RestAuthenticationTest {
 				Response.Status.OK.getStatusCode(), response.statusCode(),
 				"Not getting 200 response");
 			{
-				UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 					"Password not changed as expected");
 			}
@@ -356,7 +355,7 @@ public class RestAuthenticationTest {
 				() -> apiClient.get("/domains"),
 				"Login should have failed");
 			{
-				UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+				UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 				Assertions.assertDoesNotThrow(() -> user.checkPassword(testPassword, null),
 					"Password should not have changed");
 			}
@@ -369,7 +368,6 @@ public class RestAuthenticationTest {
 			Properties config = getNetshotConfig();
 			config.setProperty("netshot.aaa.passwordpolicy.maxhistory", "5");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			this.createTestUser();
 			config.setProperty("netshot.aaa.passwordpolicy.mintotalchars", "16");
 			config.setProperty("netshot.aaa.passwordpolicy.minspecialchars", "3");
@@ -377,7 +375,6 @@ public class RestAuthenticationTest {
 			config.setProperty("netshot.aaa.passwordpolicy.minlowercasechars", "3");
 			config.setProperty("netshot.aaa.passwordpolicy.minuppercasechars", "3");
 			TestConfig.init(config);
-			PasswordPolicy.loadConfig();
 			apiClient.setLogin(testUsername, testPassword);
 			{
 				HttpResponse<JsonNode> response = apiClient.get("/user");
@@ -502,7 +499,7 @@ public class RestAuthenticationTest {
 					Response.Status.OK.getStatusCode(), response.statusCode(),
 					"Not getting 200 response");
 				{
-					UiUser user = new Transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
+					UiUser user = TestWiring.get().transactions().read(dsl -> new UserRepository().findByUsername(dsl, testUsername));
 					Assertions.assertDoesNotThrow(() -> user.checkPassword(newPassword, null),
 						"Password should have changed");
 				}
@@ -521,6 +518,8 @@ public class RestAuthenticationTest {
 		private final String clientSecret = "iR56DPj4ZX0TrB1NSCHsPNk6LAbrN3HE";
 		private FakeOidcIdpServer idpServer;
 
+		private OidcDiscovery oidcDiscovery;
+
 		@BeforeAll
 		void prepareOidc() throws IOException, InterruptedException, GeneralSecurityException {
 			this.idpServer = new FakeOidcIdpServer();
@@ -531,20 +530,22 @@ public class RestAuthenticationTest {
 			config.setProperty("netshot.aaa.oidc.clientid", clientId);
 			config.setProperty("netshot.aaa.oidc.clientsecret", clientSecret);
 			TestConfig.init(config);
-			Oidc.loadConfig();
+			this.oidcDiscovery = new OidcDiscovery(TestWiring.get().oidc(), Netshot.config());
+			this.oidcDiscovery.start();
 			// Wait for the discovery daemon to fetch the IdP metadata, instead of a fixed
 			// sleep: the daemon retries only every 30s (netshot.aaa.oidc.idp.retryinterval)
 			// after a failed attempt, so a short fixed sleep is flaky on loaded CI runners.
 			final Duration idpDiscoveryTimeout = Duration.ofSeconds(35);
 			final Instant deadline = Instant.now().plus(idpDiscoveryTimeout);
-			while (!Oidc.isAvailable() && Instant.now().isBefore(deadline)) {
+			while (!TestWiring.get().oidc().isAvailable() && Instant.now().isBefore(deadline)) {
 				Thread.sleep(200);
 			}
-			Assertions.assertTrue(Oidc.isAvailable(), "OIDC IdP metadata was not discovered in time");
+			Assertions.assertTrue(TestWiring.get().oidc().isAvailable(), "OIDC IdP metadata was not discovered in time");
 		}
 
 		@AfterAll
-		void stopOidc() {
+		void stopOidc() throws InterruptedException {
+			this.oidcDiscovery.stop();
 			this.idpServer.shutdown();
 		}
 

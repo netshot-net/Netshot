@@ -18,21 +18,22 @@
  */
 package net.netshot.netshot.driver;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
-import net.netshot.netshot.inventory.device.Device;
-import net.netshot.netshot.inventory.device.Device.MissingDeviceDriverException;
-import net.netshot.netshot.inventory.device.DeviceDraft;
+import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
  * The registry of the loaded device drivers: lookups by name or description, and the global hash of
  * the drivers. The drivers are read by a {@link DriverLoader} on {@link #refresh()}.
  */
-public class DriverRegistry {
+public class DriverRegistry implements Service {
 
 	private final DriverLoader loader;
 
@@ -41,6 +42,15 @@ public class DriverRegistry {
 
 	/** Hash for all drivers. */
 	private volatile String allDriverHash = "";
+
+	/** The number of (successful) loads of the drivers. */
+	private final AtomicLong loads = new AtomicLong();
+
+	/** The number of failed loads of the drivers. */
+	private final AtomicLong failedLoads = new AtomicLong();
+
+	/** When the drivers were last loaded. */
+	private volatile Instant lastLoad;
 
 	/**
 	 * Creates a registry.
@@ -83,19 +93,8 @@ public class DriverRegistry {
 	 * @return the driver of the device
 	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
 	 */
-	public DeviceDriver forDevice(Device device) throws MissingDeviceDriverException {
-		return this.forDevice(device.id(), device.driver());
-	}
-
-	/**
-	 * Gets the driver of a device being worked on.
-	 *
-	 * @param device the device
-	 * @return the driver of the device
-	 * @throws MissingDeviceDriverException if the device has no driver, or if its driver isn't loaded
-	 */
-	public DeviceDriver forDevice(DeviceDraft device) throws MissingDeviceDriverException {
-		return this.forDevice(device.getId(), device.getDriver());
+	public DeviceDriver forDevice(DrivenDevice device) throws MissingDeviceDriverException {
+		return this.forDevice(device.deviceId(), device.driverName());
 	}
 
 	/**
@@ -162,8 +161,48 @@ public class DriverRegistry {
 	 *                       something bad
 	 */
 	public void refresh() throws Exception {
-		DriverLoader.LoadedDrivers loaded = this.loader.load();
+		DriverLoader.LoadedDrivers loaded;
+		try {
+			loaded = this.loader.load();
+		}
+		catch (Exception e) {
+			this.failedLoads.incrementAndGet();
+			throw e;
+		}
 		this.allDriverHash = loaded.hash();
 		this.drivers = loaded.drivers();
+		this.loads.incrementAndGet();
+		this.lastLoad = Instant.now();
+	}
+
+	@Override
+	public String name() {
+		return "device drivers";
+	}
+
+	/**
+	 * Loads the drivers (the service has nothing else to start).
+	 *
+	 * @throws Exception if the drivers can't be loaded
+	 */
+	@Override
+	public void start() throws Exception {
+		this.refresh();
+	}
+
+	@Override
+	public void stop() {
+		// Nothing to release
+	}
+
+	@Override
+	public Map<String, Object> stats() {
+		Map<String, Object> stats = new LinkedHashMap<>();
+		stats.put("drivers", this.drivers.size());
+		stats.put("loads", this.loads.get());
+		stats.put("failedLoads", this.failedLoads.get());
+		Instant last = this.lastLoad;
+		stats.put("lastLoad", last == null ? null : last.toString());
+		return stats;
 	}
 }

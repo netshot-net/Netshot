@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
@@ -43,6 +44,19 @@ public class NetshotExceptionMapper implements ExceptionMapper<Throwable> {
 	@Context
 	private SecurityContext securityContext;
 
+	/** The OIDC authentication (for the headers telling the client where to authenticate). */
+	private final Oidc oidc;
+
+	/**
+	 * Creates the mapper.
+	 *
+	 * @param oidc the OIDC authentication
+	 */
+	@Inject
+	public NetshotExceptionMapper(Oidc oidc) {
+		this.oidc = oidc;
+	}
+
 	public Response toResponse(Throwable t) {
 		if (t instanceof JacksonException je && isUnreadableBody(je)) {
 			// The request body (JSON, XML or YAML) is malformed or doesn't match the expected type
@@ -60,9 +74,9 @@ public class NetshotExceptionMapper implements ExceptionMapper<Throwable> {
 				// with OIDC info header if applicable
 				Response.ResponseBuilder builder = Response.fromResponse(fe.getResponse());
 				builder.status(Response.Status.UNAUTHORIZED);
-				if (Oidc.isAvailable()) {
-					builder.header("X-OIDC-AuthorizationEndpoint", Oidc.getAuthorizationEndpointURI().toString());
-					builder.header("X-OIDC-ClientID", Oidc.getClientId());
+				if (this.oidc.isAvailable()) {
+					builder.header("X-OIDC-AuthorizationEndpoint", this.oidc.getAuthorizationEndpointURI().toString());
+					builder.header("X-OIDC-ClientID", this.oidc.getClientId());
 				}
 				return builder.build();
 			}

@@ -32,21 +32,21 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 
-import net.netshot.netshot.testing.TestDevices;
-import net.netshot.netshot.diagnostic.DiagnosticResult;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
 import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.diagnostic.DiagnosticResult;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.task.Task;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.RunDiagnosticsTask;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
+import net.netshot.netshot.testing.TestDevices;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Characterization of {@link RunDiagnosticsHandler}, run through the task engine against a Cisco IOS
@@ -86,7 +86,7 @@ class RunDiagnosticsHandlerTest {
 		TestDevices.addMembers(group, device);
 		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, name, enabled, group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(?s).*, Version ([^,]+), RELEASE.*", "$1");
-		new Transactions().run(dsl -> new DiagnosticRepository().add(dsl, diagnostic));
+		TestWiring.get().transactions().run(dsl -> new DiagnosticRepository().add(dsl, diagnostic));
 		return device;
 	}
 

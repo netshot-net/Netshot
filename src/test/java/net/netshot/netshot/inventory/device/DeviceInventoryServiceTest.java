@@ -30,9 +30,10 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DeviceDriverService;
-import net.netshot.netshot.inventory.domain.Domain;
+import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.inventory.search.SearchRepository;
 import net.netshot.netshot.inventory.search.SearchResult;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -40,10 +41,12 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
-import net.netshot.netshot.task.TaskSubmitter;
+import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
+import net.netshot.netshot.testing.TestWiring;
 
 /**
  * Tests of the device sub-resources (interfaces, modules), the device search, the reference
@@ -62,12 +65,11 @@ class DeviceInventoryServiceTest {
 
 	@BeforeAll
 	void initDb() throws Exception {
-		this.transactions = new Transactions();
+		this.transactions = TestWiring.get().transactions();
 		DeviceRepository repository = new DeviceRepository();
-		TaskSubmitter noTask = task -> task;
-		this.deviceService = new DeviceService(this.transactions, repository, noTask, TestDrivers.registry());
+		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
-		this.searchService = new SearchService(this.transactions, new SearchRepository());
+		this.searchService = new SearchService(this.transactions, new SearchRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
 		Set<Network6Address> ip6 = new LinkedHashSet<>();
@@ -204,7 +206,7 @@ class DeviceInventoryServiceTest {
 	@Test
 	@DisplayName("The device types are the loaded drivers")
 	void deviceTypes() {
-		DeviceDriverService service = new DeviceDriverService(TestDrivers.registry());
+		DeviceDriverService service = new DeviceDriverService(TestDrivers.registry(), () -> { });
 		List<DeviceDriver> drivers = service.list(false);
 		Assertions.assertEquals(TestDrivers.registry().getAllDrivers().size(), drivers.size());
 		Assertions.assertTrue(drivers.stream().anyMatch(d -> "CiscoIOS12".equals(d.getName())));
