@@ -22,9 +22,11 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Properties;
 import java.util.Random;
@@ -84,9 +86,14 @@ public final class TaskManager {
 		CLUSTER_MEMBER,
 	}
 
-	/** Store the available runners with weighted-random selector. */
+	/**
+	 * Store the available runners, with a weighted selector: weighted-random
+	 * for tasks without hash, stable (weighted rendezvous hashing) for tasks with a hash,
+	 * so that the tasks of a given device keep running on the same runner.
+	 */
 	public static final class RunnerSet {
 		private final NavigableMap<Double, String> map = new TreeMap<Double, String>();
+		private final Map<String, Double> weights = new HashMap<>();
 		private final Random random;
 		private double total = 0;
 
@@ -98,12 +105,50 @@ public final class TaskManager {
 			if (weight > 0) {
 				this.total += weight;
 				this.map.put(this.total, runnerId);
+				this.weights.put(runnerId, weight);
 			}
 		}
 
-		public String getNextRunnerId() {
-			double value = this.random.nextDouble() * this.total;
-			return this.map.higherEntry(value).getValue();
+		/**
+		 * Selects a runner for a task.
+		 *
+		 * @param hash the task hash ({@link Task#getRunnerHash()}), 0 for no runner affinity
+		 * @return the selected runner ID
+		 */
+		public String getRunnerId(long hash) {
+			if (hash == 0) {
+				double value = this.random.nextDouble() * this.total;
+				return this.map.higherEntry(value).getValue();
+			}
+			// Weighted rendezvous hashing: the selection only depends on the hash and on
+			// the runner set (not on the master instance or on the runner order), and only the
+			// tasks of an added/removed runner move when the set changes
+			String bestRunnerId = null;
+			double bestScore = Double.NEGATIVE_INFINITY;
+			for (Map.Entry<String, Double> runner : this.weights.entrySet()) {
+				long mixed = mix64(hash ^ mix64(runner.getKey().hashCode()));
+				// Uniform in ]0, 1[
+				double uniform = ((mixed >>> 11) + 0.5) / (double) (1L << 53);
+				double score = -runner.getValue() / Math.log(uniform);
+				if (score > bestScore || (score == bestScore && runner.getKey().compareTo(bestRunnerId) < 0)) {
+					bestScore = score;
+					bestRunnerId = runner.getKey();
+				}
+			}
+			return bestRunnerId;
+		}
+
+		/**
+		 * SplitMix64 finalizer.
+		 *
+		 * @param value the value to mix
+		 * @return the mixed value
+		 */
+		private static long mix64(long value) {
+			long z = value + 0x9E3779B97F4A7C15L;
+			z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+			z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+			return z ^ (z >>> 31);
 		}
 	}
 
@@ -232,7 +277,7 @@ public final class TaskManager {
 	 */
 	public static void assignTaskRunner(Task task) {
 		long hash = task.getRunnerHash();
-		String runnerId = TaskManager.runnerSet.getNextRunnerId();
+		String runnerId = TaskManager.runnerSet.getRunnerId(hash);
 		log.info("Task {} (hash {}) is being assigned to runner {}.", task.getId(), hash, runnerId);
 		task.setRunnerId(runnerId);
 		task.setWaiting();

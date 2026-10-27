@@ -19,7 +19,7 @@ The master instance is chosen at startup among the available members, based on t
 
 #### Runner
 
-The master distributes jobs only to the (available) instances configured with the highest _runner priority_ (100 by default). If multiple instances have the same high runner priority, jobs are load balanced based on the relative weights of these instances.
+The master distributes jobs only to the (available) instances configured with the highest _runner priority_ (100 by default). If multiple instances have the same high runner priority, jobs are load balanced based on the relative weights of these instances. The tasks working on a given device (snapshot, diagnostics, compliance check) are always assigned to the same runner, as long as the set of available runners doesn't change; other tasks (e.g. group tasks) are spread randomly according to the weights.
 
 For instance, if the cluster has the following members:
 
