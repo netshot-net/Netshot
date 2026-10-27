@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot;
 
+import java.net.InetAddress;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +94,7 @@ public class ConfigReloadTest {
 		Assertions.assertEquals(List.of("aes256-ctr", "aes128-ctr"), Ssh.settings().ciphers());
 		Assertions.assertEquals(4321, Telnet.settings().receiveTimeout());
 		Assertions.assertEquals(NetworkAddress.getNetworkAddress("192.168.0.1"),
-			Collector.settings().clusterIpOverrides().get(NetworkAddress.getNetworkAddress("10.0.0.1")));
+			Collector.settings().clusterIpOverrides().get(InetAddress.getByName("10.0.0.1")));
 		Assertions.assertEquals(2222, new VaultManager(Netshot.config(), (Transactions) null).settings().httpReadTimeoutMs());
 		Assertions.assertEquals(this.tempDir.normalize(), ConfigBinaryFileAttribute.settings().storageFolderPath());
 		Assertions.assertEquals(this.tempDir.toFile().getAbsolutePath(), PythonFileSystem.settings().venvFolder());

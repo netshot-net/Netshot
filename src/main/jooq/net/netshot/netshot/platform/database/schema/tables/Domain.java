@@ -86,26 +86,6 @@ public class Domain extends TableImpl<DomainRecord> {
     public final TableField<DomainRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
 
     /**
-     * The column <code>domain.ipv4_usage</code>.
-     */
-    public final TableField<DomainRecord, String> IPV4_USAGE = createField(DSL.name("ipv4_usage"), SQLDataType.VARCHAR(32), this, "");
-
-    /**
-     * The column <code>domain.ipv4_pfxlen</code>.
-     */
-    public final TableField<DomainRecord, Integer> IPV4_PFXLEN = createField(DSL.name("ipv4_pfxlen"), SQLDataType.INTEGER, this, "");
-
-    /**
-     * The column <code>domain.ipv6_usage</code>.
-     */
-    public final TableField<DomainRecord, String> IPV6_USAGE = createField(DSL.name("ipv6_usage"), SQLDataType.VARCHAR(32), this, "");
-
-    /**
-     * The column <code>domain.ipv6_pfxlen</code>.
-     */
-    public final TableField<DomainRecord, Integer> IPV6_PFXLEN = createField(DSL.name("ipv6_pfxlen"), SQLDataType.INTEGER, this, "");
-
-    /**
      * The column <code>domain.version</code>.
      */
     public final TableField<DomainRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false), this, "");

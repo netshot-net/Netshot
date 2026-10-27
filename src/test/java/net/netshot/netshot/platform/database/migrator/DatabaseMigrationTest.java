@@ -134,13 +134,30 @@ public class DatabaseMigrationTest {
 					"No such changeset '%s' by '%s' in the changelog".formatted(changeSetId, changeSetAuthor));
 			}
 
-			new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
-				.addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
-				.addArgumentValue(UpdateCountCommandStep.CHANGELOG_FILE_ARG, "migration/netshot0.xml")
-				.addArgumentValue(UpdateCountCommandStep.COUNT_ARG, count)
-				.addArgumentValue(ShowSummaryArgument.SHOW_SUMMARY_OUTPUT, UpdateSummaryOutputEnum.LOG)
-				.execute();
+			updateCount(database, count);
 		}
+	}
+
+	/**
+	 * Applies the given number of changesets among those not applied yet (for a test which stops
+	 * the migration at an intermediate changeset again after {@link #updateToChangeSet}).
+	 *
+	 * @param count the number of changesets to apply
+	 * @throws Exception
+	 */
+	private static void updateNext(int count) throws Exception {
+		try (Connection connection = Database.openUnpooledConnection()) {
+			updateCount(DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection)), count);
+		}
+	}
+
+	private static void updateCount(liquibase.database.Database database, int count) throws Exception {
+		new CommandScope(UpdateCountCommandStep.COMMAND_NAME)
+			.addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, database)
+			.addArgumentValue(UpdateCountCommandStep.CHANGELOG_FILE_ARG, "migration/netshot0.xml")
+			.addArgumentValue(UpdateCountCommandStep.COUNT_ARG, count)
+			.addArgumentValue(ShowSummaryArgument.SHOW_SUMMARY_OUTPUT, UpdateSummaryOutputEnum.LOG)
+			.execute();
 	}
 
 	@Nested
@@ -771,7 +788,8 @@ public class DatabaseMigrationTest {
 				statement.execute("insert into scan_subnets_task_subnets (scan_subnets_task, ipv4usage) values (951, 5)");
 			}
 
-			Database.update();
+			// 0.26.0_7 only: 0.26.0_10 drops the address usages of the domains
+			updateNext(1);
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -826,6 +844,36 @@ public class DatabaseMigrationTest {
 					Statement statement = connection.createStatement()) {
 				Assertions.assertEquals(List.of(List.of("1001"), List.of("1002"), List.of("1003")),
 					rows(statement, "select id from long_text_configuration order by id", 1));
+			}
+		}
+	}
+
+	@Nested
+	@DisplayName("0.26.0_10 - prefix length and usage of the domain server addresses dropped")
+	class DomainAddressColumnsMigrationTest {
+
+		@Test
+		@DisplayName("The columns are dropped and the addresses kept")
+		void dropsColumns() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("domainaddresscolumnsmigrationtest"));
+			updateToChangeSet("0.26.0_9", "netshot");
+
+			try (Connection connection = Database.openUnpooledConnection();
+					Statement statement = connection.createStatement()) {
+				// As a domain created before 0.24 was stored (prefix length 0)
+				statement.execute("insert into domain (id, version, name, ipv4_address, ipv4_pfxlen, ipv4_usage, ipv6_address, ipv6_pfxlen, ipv6_usage) "
+					+ "values (1101, 0, 'd', '10.0.0.1', 0, 'PRIMARY', '2001:db8::1', 0, 'PRIMARY')");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.openUnpooledConnection();
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(List.of(List.of("10.0.0.1", "2001:db8::1")),
+					rows(statement, "select host(ipv4_address), host(ipv6_address) from domain", 2));
+				Assertions.assertEquals(List.of(List.of("0")),
+					rows(statement, "select count(*) from information_schema.columns where table_schema = current_schema() and table_name = 'domain' "
+						+ "and column_name in ('ipv4_pfxlen', 'ipv4_usage', 'ipv6_pfxlen', 'ipv6_usage')", 1));
 			}
 		}
 	}

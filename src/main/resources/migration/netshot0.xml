@@ -2369,4 +2369,14 @@
 			AND NOT EXISTS (SELECT 1 FROM device_attribute a WHERE a.long_text = l.id)
 			AND NOT EXISTS (SELECT 1 FROM diagnostic_result r WHERE r.long_text = l.id)</sql>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_10">
+		<!-- A domain server address is a host address: its prefix length and usage meant nothing, and the
+			prefix length of the domains created before 0.24 (0 instead of 32) defeated netshot.cluster.domainipoverride. -->
+		<dropColumn tableName="domain">
+			<column name="ipv4_pfxlen"/>
+			<column name="ipv4_usage"/>
+			<column name="ipv6_pfxlen"/>
+			<column name="ipv6_usage"/>
+		</dropColumn>
+	</changeSet>
 </databaseChangeLog>
