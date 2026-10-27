@@ -24,7 +24,7 @@ const Info = {
 	name: "FortinetFortiManager", /* Unique identifier of the driver within Netshot. */
 	description: "Fortinet FortiManager and FortiAnalyzer", /* Description to be used in the UI. */
 	author: "Najihel",
-	version: "3.2" /* Version will appear in the Admin tab. */
+	version: "3.3" /* Version will appear in the Admin tab. */
 };
 
 /**
@@ -269,11 +269,14 @@ function snapshot(cli, device, config) {
 			const encryptPass = "netshot";
 			cli.command(`execute backup all-settings sftp ${ticket.host}:${ticket.port} ${backupName} ${ticket.username} ${ticket.password} ${encryptPass}`);
 			let md5 = null;
+			// The backup output is checked every 5 seconds, for 30 minutes at most
+			const checkInterval = 5000;
+			const maxAttempts = 360;
 			let attempt = 0;
 			while (true) {
 				const backupOutput = cli.command("", {
 					mode: { prompt: null },
-					discoverWaitTime: 5000,
+					discoverWaitTime: checkInterval,
 				});
 				const md5Match = backupOutput.match(/MD5: ([0-9a-f]+)/);
 				if (md5Match) {
@@ -290,8 +293,8 @@ function snapshot(cli, device, config) {
 					break;
 				}
 				attempt += 1;
-				if (attempt > 360) {
-					throw `Could not get full backup (execute backup all-settings) result after 15 minutes`;
+				if (attempt > maxAttempts) {
+					throw `Could not get full backup (execute backup all-settings) result after ${maxAttempts * checkInterval / 60000} minutes`;
 				}
 			}
 			const uploadResult = config.awaitUpload(ticket.id);
