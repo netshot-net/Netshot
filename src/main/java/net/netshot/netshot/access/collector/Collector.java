@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.access.collector;
 
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
@@ -44,9 +45,10 @@ public final class Collector {
 	/**
 	 * The settings of the collectors.
 	 *
-	 * @param clusterIpOverrides the local collector address to use instead of the global address of a domain
+	 * @param clusterIpOverrides the local collector address to use instead of the global address of a domain,
+	 *     by global IP address
 	 */
-	public record Settings(Map<NetworkAddress, NetworkAddress> clusterIpOverrides) {
+	public record Settings(Map<InetAddress, NetworkAddress> clusterIpOverrides) {
 
 		/** The overrides of the domain server addresses, as {@code global|local} pairs separated by spaces. */
 		static final Setting<List<String>> DOMAIN_IP_OVERRIDE = Setting.list("netshot.cluster.domainipoverride", " +")
@@ -58,7 +60,7 @@ public final class Collector {
 		 * @return the settings
 		 */
 		static Settings from(Config config) {
-			Map<NetworkAddress, NetworkAddress> ipOverrides = new HashMap<>();
+			Map<InetAddress, NetworkAddress> ipOverrides = new HashMap<>();
 			for (String override : config.get(DOMAIN_IP_OVERRIDE)) {
 				String[] parts = override.split("\\|");
 				if (parts.length != 2) {
@@ -68,7 +70,7 @@ public final class Collector {
 				try {
 					NetworkAddress global = NetworkAddress.getNetworkAddress(parts[0]);
 					NetworkAddress local = NetworkAddress.getNetworkAddress(parts[1]);
-					ipOverrides.put(global, local);
+					ipOverrides.put(global.getInetAddress(), local);
 				}
 				catch (UnknownHostException e) {
 					log.warn("Unable to parse IP address from netshot.cluster.domainipoverride", e);
@@ -103,8 +105,8 @@ public final class Collector {
 		if (ip == null) {
 			throw new IllegalArgumentException("Domain %s (%d) has no server address".formatted(domain.name(), domain.id()));
 		}
-		ip = Collector.settings().clusterIpOverrides().getOrDefault(ip, ip);
-		return ip;
+		// By IP only: the prefix length of the domain address doesn't matter
+		return Collector.settings().clusterIpOverrides().getOrDefault(ip.getInetAddress(), ip);
 	}
 
 }

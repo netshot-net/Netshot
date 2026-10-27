@@ -50,8 +50,8 @@ public class DomainRepository {
 			return null;
 		}
 		return new Domain(id, r.get(d.VERSION), r.get(d.CHANGE_DATE), r.get(d.NAME), r.get(d.DESCRIPTION),
-			Network4Address.fromColumns(r.get(d.IPV4_ADDRESS), r.get(d.IPV4_PFXLEN), r.get(d.IPV4_USAGE)),
-			Network6Address.fromColumns(r.get(d.IPV6_ADDRESS), r.get(d.IPV6_PFXLEN), r.get(d.IPV6_USAGE)));
+			Network4Address.fromColumns(r.get(d.IPV4_ADDRESS), null, null),
+			Network6Address.fromColumns(r.get(d.IPV6_ADDRESS), null, null));
 	}
 
 	private static Domain toDomain(Record r) {
@@ -105,11 +105,7 @@ public class DomainRepository {
 			.set(DOMAIN.NAME, domain.name())
 			.set(DOMAIN.DESCRIPTION, domain.description())
 			.set(DOMAIN.IPV4_ADDRESS, v4 == null ? null : v4.getAddress())
-			.set(DOMAIN.IPV4_PFXLEN, v4 == null ? null : v4.getPrefixLength())
-			.set(DOMAIN.IPV4_USAGE, v4 == null || v4.getAddressUsage() == null ? null : v4.getAddressUsage().name())
 			.set(DOMAIN.IPV6_ADDRESS, v6 == null ? null : v6.getAddress())
-			.set(DOMAIN.IPV6_PFXLEN, v6 == null ? null : v6.getPrefixLength())
-			.set(DOMAIN.IPV6_USAGE, v6 == null || v6.getAddressUsage() == null ? null : v6.getAddressUsage().name())
 			.returning(DOMAIN.ID)
 			.fetchOne(DOMAIN.ID);
 		return this.find(dsl, id);
@@ -131,8 +127,6 @@ public class DomainRepository {
 			.set(DOMAIN.NAME, domain.name())
 			.set(DOMAIN.DESCRIPTION, domain.description())
 			.set(DOMAIN.IPV4_ADDRESS, v4 == null ? null : v4.getAddress())
-			.set(DOMAIN.IPV4_PFXLEN, v4 == null ? null : v4.getPrefixLength())
-			.set(DOMAIN.IPV4_USAGE, v4 == null || v4.getAddressUsage() == null ? null : v4.getAddressUsage().name())
 			.where(DOMAIN.ID.eq(domain.id()))
 			.execute();
 		return updated == 0 ? null : this.find(dsl, domain.id());
