@@ -158,9 +158,6 @@ public final class TaskManager {
 	/** Minimum number of DB pool connections to keep available beyond the task threads. */
 	private static final int MIN_SPARE_DB_CONNECTIONS = 10;
 
-	/** Serializes the loading of the local tasks into the runner scheduler. */
-	private static final Object LOCAL_TASKS_LOCK = new Object();
-
 	/** The master scheduler (used in master mode to dispatch jobs). */
 	private static Scheduler masterScheduler;
 
@@ -569,43 +566,28 @@ public final class TaskManager {
 	 * Retrieve the tasks assigned to the local instance and add them to the runner scheduler.
 	 */
 	public static void scheduleLocalTasks() {
-		TaskManager.scheduleRunnerTasks(ClusterManager.getLocalInstanceId());
-	}
-
-	/**
-	 * Retrieve the waiting tasks assigned to the given runner and add them to the runner scheduler.
-	 * The calls are serialized: the master calls this from every task assignment thread, and
-	 * concurrent calls would both pass the existence check of the same task.
-	 *
-	 * @param runnerId the runner (cluster member) ID
-	 */
-	static void scheduleRunnerTasks(String runnerId) {
-		synchronized (LOCAL_TASKS_LOCK) {
-			log.debug("Will retrieve the waiting tasks assigned to the local cluster member.");
-			Session session = Database.getSystemSession();
-			try {
-				List<Task> tasks = session.createQuery(
-					"select t from Task t where t.status = :waiting and t.runnerId = :myId", Task.class)
-					.setParameter("waiting", Task.Status.WAITING)
-					.setParameter("myId", runnerId)
-					.list();
-				for (Task task : tasks) {
-					log.trace("Found task {}, assigned to local cluster member {}", task.getId(),
-						task.getRunnerId());
-					try {
-						addTaskToScheduler(task, true, true, true);
-					}
-					catch (SchedulerException e) {
-						log.error("Unable to schedule the task {}.", task.getId(), e);
-					}
-				}
+		log.debug("Will retrieve the waiting tasks assigned to the local cluster member.");
+		Session session = Database.getSystemSession();
+		try {
+			List<Task> tasks = session.createQuery(
+				"select t from Task t where t.status = :waiting and t.runnerId = :myId", Task.class)
+				.setParameter("waiting", Task.Status.WAITING)
+				.setParameter("myId", ClusterManager.getLocalInstanceId())
+				.list();
+			for (Task task : tasks) {
+				log.trace("Found task {}, assigned to local cluster member {}", task.getId(),
+					task.getRunnerId());
+				addTaskToScheduler(task, true, true, true);
 			}
-			catch (HibernateException e) {
-				log.error("Unable to retrieve the waiting tasks from the database", e);
-			}
-			finally {
-				session.close();
-			}
+		}
+		catch (HibernateException e) {
+			log.error("Unable to retrieve the waiting tasks from the database", e);
+		}
+		catch (SchedulerException e) {
+			log.error("Unable to schedule the task", e);
+		}
+		finally {
+			session.close();
 		}
 	}
 
