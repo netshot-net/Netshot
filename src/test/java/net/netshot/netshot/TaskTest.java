@@ -31,10 +31,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
 
 import org.hibernate.Session;
+import org.quartz.Scheduler;
 import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
+import org.quartz.impl.SchedulerRepository;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import net.netshot.netshot.database.Database;
 import net.netshot.netshot.device.Config;
@@ -1109,6 +1118,111 @@ public class TaskTest extends WithDatabaseTest {
 			Assertions.assertEquals(1, this.countSnapshotTasks(), "A user-cancelled task must not be repeated");
 			Assertions.assertFalse(lockManager.isHeld(TaskLockManager.NS_SNAPSHOT, device.getId()),
 				"The type lock must be released");
+		}
+	}
+
+	@Nested
+	@DisplayName("Loading of the local tasks into the runner scheduler (TaskManager, DB-backed)")
+	@TestInstance(Lifecycle.PER_CLASS)
+	class LocalTaskSchedulingTest {
+
+		private static final String RUNNER_ID = "testrunner0000000001";
+
+		Domain domain;
+		Device device;
+		Scheduler runnerScheduler;
+		ListAppender<ILoggingEvent> appender;
+
+		@BeforeAll
+		void initDb() throws Exception {
+			Properties config = getDatabaseConfig("tasktest_localload");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "WARN");
+			Netshot.initConfig(config);
+			Database.update();
+			Database.init();
+			TaskManager.init();
+			runnerScheduler = SchedulerRepository.getInstance().lookup("NetshotRunnerScheduler");
+		}
+
+		@BeforeEach
+		void createData() throws Exception {
+			// The jobs must stay in the scheduler to be checked
+			runnerScheduler.standby();
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				domain = new Domain("Test domain", "Fake domain for tests", null, null);
+				session.persist(domain);
+				device = FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1);
+				device.setStatus(Device.Status.DISABLED);
+				session.persist(device);
+				session.getTransaction().commit();
+			}
+			appender = new ListAppender<>();
+			appender.start();
+			((Logger) LoggerFactory.getLogger(TaskManager.class)).addAppender(appender);
+		}
+
+		@AfterEach
+		void cleanUpData() throws Exception {
+			((Logger) LoggerFactory.getLogger(TaskManager.class)).detachAppender(appender);
+			runnerScheduler.clear();
+			runnerScheduler.start();
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.createMutationQuery("delete from Task").executeUpdate();
+				session.createMutationQuery("delete from Device").executeUpdate();
+				session.createMutationQuery("delete from Domain").executeUpdate();
+				session.getTransaction().commit();
+			}
+		}
+
+		@Test
+		@DisplayName("Concurrent loads (one per task assignment on the master) schedule each task once, without error")
+		@ResourceLock("DB")
+		void concurrentLoads() throws Exception {
+			List<Task> tasks = new ArrayList<>();
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				for (int i = 0; i < 30; i++) {
+					TakeSnapshotTask task = new TakeSnapshotTask(device, "test", "tester", false, true, true);
+					task.setStatus(Status.WAITING);
+					task.setRunnerId(RUNNER_ID);
+					session.persist(task);
+					tasks.add(task);
+				}
+				session.getTransaction().commit();
+			}
+
+			int threadCount = 16;
+			CyclicBarrier barrier = new CyclicBarrier(threadCount);
+			List<Thread> threads = new ArrayList<>();
+			for (int i = 0; i < threadCount; i++) {
+				Thread thread = new Thread(() -> {
+					try {
+						barrier.await();
+					}
+					catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+					TaskManager.scheduleRunnerTasks(RUNNER_ID);
+				});
+				thread.start();
+				threads.add(thread);
+			}
+			for (Thread thread : threads) {
+				thread.join(30000);
+			}
+
+			List<String> errors = appender.list.stream()
+				.filter(e -> e.getLevel().isGreaterOrEqual(Level.ERROR))
+				.map(ILoggingEvent::getFormattedMessage)
+				.toList();
+			Assertions.assertEquals(List.of(), errors, "No error should be logged");
+			for (Task task : tasks) {
+				Assertions.assertTrue(runnerScheduler.checkExists(task.getIdentity()),
+					"Task " + task.getId() + " should be in the runner scheduler");
+			}
 		}
 	}
 
