@@ -182,6 +182,9 @@ public final class TaskManager implements Service, TaskEngine {
 	/** Lock of the update of the runners. */
 	private final Object runnersLock = new Object();
 
+	/** Serializes the loading of the local tasks into the runner scheduler. */
+	private final Object localTasksLock = new Object();
+
 	/** TaskManager mode (set by the cluster thread, read from any thread). */
 	private volatile Mode mode = Mode.SINGLE;
 
@@ -739,21 +742,27 @@ public final class TaskManager implements Service, TaskEngine {
 
 	/**
 	 * Retrieve the tasks assigned to the local instance and add them to the runner scheduler.
+	 * The calls are serialized: the master calls this from every task assignment thread, and
+	 * concurrent calls would both pass the existence check of the same task.
 	 */
 	public void scheduleLocalTasks() {
-		try {
-			List<Task> tasks = this.transactions.read(dsl -> REPOSITORY.findWhere(dsl,
-				TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(this.cluster.localInstanceId()))));
-			for (Task task : tasks) {
-				log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
-				addTaskToScheduler(task, true, true, true);
+		synchronized (this.localTasksLock) {
+			try {
+				List<Task> tasks = this.transactions.read(dsl -> REPOSITORY.findWhere(dsl,
+					TaskRepository.statusIn(Status.WAITING).and(TASK.RUNNER_ID.eq(this.cluster.localInstanceId()))));
+				for (Task task : tasks) {
+					log.debug("Scheduling task {} for local runner {}.", task.id(), task.runnerId());
+					try {
+						addTaskToScheduler(task, true, true, true);
+					}
+					catch (SchedulerException e) {
+						log.error("Unable to schedule the task {}.", task.id(), e);
+					}
+				}
 			}
-		}
-		catch (DataAccessException e) {
-			log.error("Unable to retrieve the waiting tasks from the database", e);
-		}
-		catch (SchedulerException e) {
-			log.error("Unable to schedule the task", e);
+			catch (DataAccessException e) {
+				log.error("Unable to retrieve the waiting tasks from the database", e);
+			}
 		}
 	}
 
