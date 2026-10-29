@@ -2133,4 +2133,14 @@
 	<changeSet author="netshot" id="0.25.1_2">
 		<customChange class="net.netshot.netshot.database.migrator.CachedIpAddressMigrator"/>
 	</changeSet>
+	<!-- 0.25.0_13 dropped the task subclass tables, and their indexes on device, without indexing the columns
+	     merged into task: listing the tasks of a device, and deleting a device, scanned the whole table. -->
+	<changeSet author="netshot" id="0.25.1_3">
+		<createIndex indexName="ix_task_device" tableName="task">
+			<column name="device"/>
+		</createIndex>
+		<createIndex indexName="ix_task_discover_result_device" tableName="task">
+			<column name="discover_result_device"/>
+		</createIndex>
+	</changeSet>
 </databaseChangeLog>

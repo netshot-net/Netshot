@@ -51,6 +51,8 @@
 
 **Search by IP**: since the upgrade to 0.25.0, the devices created with an earlier version were missing their resolved management IP address until their next successful snapshot. Until then, a search by IP (such as typing an address in the device search box) couldn't find them by their management address, and an SNMP trap or a syslog message from that address didn't trigger an automatic snapshot. A device that is never successfully snapshotted, such as a `[NONAME]` device, stayed in that state. The upgrade sets the missing address of all the devices whose management address is an IP address.
 
+**Tasks**: the upgrade indexes the device columns of the task table, which lost their indexes in 0.25.0: listing the tasks of a device (device page) and deleting a device scanned the whole table, which got slower as the task history grew. Building the indexes may take a little while on a large task table.
+
 **REST API**: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty. Updating a hook with `"triggers": null` (`PUT /hooks/{id}`) now removes all its triggers, as on creation, instead of failing with a 500 error.
 
 ### Any version to 0.20+

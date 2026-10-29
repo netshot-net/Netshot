@@ -23,6 +23,8 @@ import java.net.InetAddress;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.Assertions;
@@ -545,6 +547,34 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 				assertInetColumn(statement,
 					"select cached_ip_address from device where id = 605", "10.9.9.9");
 			}
+		}
+	}
+
+	@Nested
+	@DisplayName("0.25.1_3 - Indexes of the device columns of the task table")
+	class Changeset_0_25_1_3_TaskDeviceIndexTest {
+
+		@Test
+		@DisplayName("The device and discovered device columns of the task table are indexed")
+		void indexesTaskDeviceColumns() throws Exception {
+			Properties config = getFreshDatabaseConfig("taskdeviceindextest");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "INFO");
+			Netshot.initConfig(config);
+			Database.update();
+
+			Map<String, String> indexes = new HashMap<>();
+			try (Connection connection = Database.getConnection(false);
+					Statement statement = connection.createStatement();
+					var rows = statement.executeQuery("select indexname, indexdef from pg_indexes where tablename = 'task'")) {
+				while (rows.next()) {
+					indexes.put(rows.getString(1), rows.getString(2));
+				}
+			}
+			Assertions.assertTrue(indexes.getOrDefault("ix_task_device", "").endsWith("(device)"),
+				"Missing index on task.device: %s".formatted(indexes));
+			Assertions.assertTrue(indexes.getOrDefault("ix_task_discover_result_device", "").endsWith("(discover_result_device)"),
+				"Missing index on task.discover_result_device: %s".formatted(indexes));
 		}
 	}
 }
