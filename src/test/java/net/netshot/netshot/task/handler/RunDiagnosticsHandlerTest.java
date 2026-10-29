@@ -81,7 +81,19 @@ class RunDiagnosticsHandlerTest {
 	 * @return the saved device
 	 */
 	private Device routerWithDiagnostic(String name, boolean enabled) {
-		Device device = SimulatedRouter.persist(CONTAINER);
+		return this.routerWithDiagnostic(name, enabled, CONTAINER.getMappedPort(22));
+	}
+
+	/**
+	 * Saves the simulated router, reached on the given SSH port, in a group, with a diagnostic on that group.
+	 *
+	 * @param name the name of the diagnostic
+	 * @param enabled whether the diagnostic is enabled
+	 * @param port the SSH port to use (the mapped port of the container, or another one to fail)
+	 * @return the saved device
+	 */
+	private Device routerWithDiagnostic(String name, boolean enabled, int port) {
+		Device device = SimulatedRouter.persist(CONTAINER, port);
 		StaticDeviceGroup group = TestDevices.addStaticGroup("Routers");
 		TestDevices.addMembers(group, device);
 		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, name, enabled, group.id(), AttributeType.TEXT, "CiscoIOS12",
@@ -138,6 +150,20 @@ class RunDiagnosticsHandlerTest {
 		Assertions.assertTrue(task.log().contains("No diagnostic was found that apply to this device."), task.log());
 		Assertions.assertEquals(Map.of(), results(device));
 		Assertions.assertEquals(1, this.runner.submitted().size());
+	}
+
+	@Test
+	@DisplayName("Fails when the device can't be reached, without follow-up task")
+	void failsWhenUnreachable() throws Exception {
+		Device device = this.routerWithDiagnostic("Version", true, 1);
+
+		long id = this.runner.run(RunDiagnosticsTask.of(device, "Test", "tester", false));
+
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("Error while executing the diagnostics"), task.log());
+		Assertions.assertEquals(Map.of(), results(device));
+		Assertions.assertEquals(List.of(), this.runner.submitted());
 	}
 
 	@Test
