@@ -83,6 +83,7 @@ import net.netshot.netshot.device.access.Http;
 import net.netshot.netshot.device.access.Http.AuthScheme;
 import net.netshot.netshot.device.access.Ssh;
 import net.netshot.netshot.device.access.Telnet;
+import net.netshot.netshot.device.attribute.AttributeDefinition.AttributeType;
 import net.netshot.netshot.device.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.device.attribute.ConfigTextAttribute;
@@ -94,7 +95,10 @@ import net.netshot.netshot.device.script.helper.JsDeviceHelper;
 import net.netshot.netshot.device.credentials.DeviceHttpAccount;
 import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
+import net.netshot.netshot.device.script.RunDiagnosticDeviceScript;
 import net.netshot.netshot.device.script.SnapshotDeviceScript;
+import net.netshot.netshot.diagnostic.DiagnosticResult;
+import net.netshot.netshot.diagnostic.SimpleDiagnostic;
 import net.netshot.netshot.work.TaskContext;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -294,6 +298,53 @@ public class DeviceDriverTest {
 			finally {
 				accessManager.disconnectAll();
 			}
+		}
+
+		/**
+		 * Runs a "show version" diagnostic on the simulated device over SSH (admin/admin).
+		 * @param port the SSH port to use (the mapped port of the container, or another one to fail)
+		 * @return the device, with the diagnostic results
+		 */
+		private Device runDiagnostic(int port) throws NoSuchMethodException, SecurityException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+			DeviceSshAccount credentials = new DeviceSshAccount("admin", "admin", "admin", "admin/admin");
+			Session nullSession = null;
+			Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
+			Device device = new Device("CiscoIOS12", null, domain, "test");
+			DeviceAccess sshAccess = new DeviceAccess(device, "ssh");
+			sshAccess.setAddress(container.getHost());
+			sshAccess.setPort(port);
+			device.getAccesses().add(sshAccess);
+			SimpleDiagnostic diagnostic = new SimpleDiagnostic("Version", true, null, AttributeType.TEXT, "CiscoIOS12",
+				"enable", "show version", "(?s).*, Version ([^,]+), RELEASE.*", "$1");
+			RunDiagnosticDeviceScript script = new RunDiagnosticDeviceScript(List.of(diagnostic), this.taskContext);
+			AccessManager accessManager = new AccessManager(nullSession, device, null, this.taskContext, Set.of(credentials));
+			Method runMethod = RunDiagnosticDeviceScript.class.getDeclaredMethod("run", Session.class,
+				Device.class, AccessManager.class);
+			runMethod.setAccessible(true);
+			try {
+				runMethod.invoke(script, nullSession, device, accessManager);
+			}
+			finally {
+				accessManager.disconnectAll();
+			}
+			return device;
+		}
+
+		@Test
+		@DisplayName("CiscoIOS12 Diagnostics")
+		void diagnostics() throws Exception {
+			Device device = this.runDiagnostic(container.getMappedPort(22));
+			Assertions.assertEquals(1, device.getDiagnosticResults().size(), "There should be one diagnostic result");
+			DiagnosticResult result = device.getDiagnosticResults().iterator().next();
+			Assertions.assertEquals("15.5(3)S7b", result.getAsText(), "The diagnostic result is incorrect");
+		}
+
+		@Test
+		@DisplayName("CiscoIOS12 Diagnostics fail when the device can't be reached")
+		void diagnosticsFailWhenUnreachable() {
+			InvocationTargetException e = Assertions.assertThrows(InvocationTargetException.class, () -> this.runDiagnostic(1));
+			Assertions.assertTrue(e.getCause().getMessage().contains("Unable to connect"), e.getCause().getMessage());
 		}
 	}
 

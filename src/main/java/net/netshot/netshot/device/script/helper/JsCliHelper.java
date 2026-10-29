@@ -31,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.device.DeviceDriver;
 import net.netshot.netshot.device.DeviceDriver.AccessDefinition;
 import net.netshot.netshot.device.DeviceDriver.DriverProtocol;
+import net.netshot.netshot.device.access.AccessAuthenticationException;
 import net.netshot.netshot.device.access.AccessManager;
 import net.netshot.netshot.device.access.AccessManager.Resolution;
 import net.netshot.netshot.device.access.Cli;
@@ -74,6 +75,8 @@ public class JsCliHelper {
 	private DeviceCliAccount account;
 	/** An error was raised. */
 	private boolean errored;
+	/** No connection could be established, none of the accesses and credential sets is left to try. */
+	private boolean connectionFailed;
 	/** The last output from a send command. */
 	private Cli.CommandOutput lastOutput;
 
@@ -169,7 +172,18 @@ public class JsCliHelper {
 		if (this.cli != null) {
 			return;
 		}
-		Client client = this.resolution.ensureResolved(this.autoTryCredentials);
+		Client client;
+		try {
+			client = this.resolution.ensureResolved(this.autoTryCredentials);
+		}
+		catch (AccessAuthenticationException e) {
+			// Only the current credential set failed, the driver may try the next one
+			throw e;
+		}
+		catch (IOException e) {
+			this.connectionFailed = true;
+			throw e;
+		}
 		this.cli = (Cli) client;
 		this.account = (DeviceCliAccount) this.resolution.getCurrentCredentialSet();
 	}
@@ -255,6 +269,7 @@ public class JsCliHelper {
 		else {
 			this.cli = null;
 			this.account = null;
+			this.connectionFailed = true;
 		}
 		return success;
 	}
@@ -510,6 +525,17 @@ public class JsCliHelper {
 	@Export
 	public boolean isErrored() {
 		return errored;
+	}
+
+	/**
+	 * Check whether the connection to the device failed for good (unreachable
+	 * device, or no working credentials left), as opposed to an error in a
+	 * command or in the script itself.
+	 * @return true if no connection could be established
+	 */
+	@Export
+	public boolean isConnectionFailed() {
+		return this.connectionFailed;
 	}
 
 	/**
