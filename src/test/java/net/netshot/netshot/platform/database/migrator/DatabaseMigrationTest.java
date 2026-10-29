@@ -608,6 +608,28 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
+	@DisplayName("0.25.1_3 - indexes of the device columns of the task table")
+	class TaskDeviceIndexMigrationTest {
+
+		@Test
+		@DisplayName("The device and discovered device columns of the task table are indexed")
+		void indexesTaskDeviceColumns() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("taskdeviceindexmigrationtest"));
+			Database.update();
+
+			try (Connection connection = Database.openUnpooledConnection();
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(List.of(List.of("device"), List.of("discover_result_device")),
+					rows(statement, "select a.attname from pg_index i "
+						+ "join pg_class ic on ic.oid = i.indexrelid join pg_class t on t.oid = i.indrelid "
+						+ "join pg_attribute a on a.attrelid = t.oid and a.attnum = i.indkey[0] "
+						+ "where t.relname = 'task' and t.relnamespace = current_schema()::regnamespace "
+						+ "and ic.relname in ('ix_task_device', 'ix_task_discover_result_device') order by ic.relname collate \"C\"", 1));
+			}
+		}
+	}
+
+	@Nested
 	@DisplayName("0.26.0_3 - hooks in one table, with their enumerations stored by name")
 	class HookSingleTableMigrationTest {
 
