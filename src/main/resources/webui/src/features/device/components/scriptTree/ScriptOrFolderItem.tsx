@@ -7,17 +7,16 @@ import ScriptItem from "./ScriptItem"
 
 export type ScriptOrFolderItemProps = {
   item: Script | ScriptFolder
-  path?: string[]
 } & BoxProps
 
 export default function ScriptOrFolderItem(
   props: PropsWithChildren<ScriptOrFolderItemProps>
 ) {
-  const { item, path = [], ...other } = props
+  const { item, ...other } = props
 
   if (isScript(item)) {
     return <ScriptItem script={item} {...other} />
   }
 
-  return <ScriptFolderItem folder={item} path={path} {...other} />
+  return <ScriptFolderItem folder={item} {...other} />
 }

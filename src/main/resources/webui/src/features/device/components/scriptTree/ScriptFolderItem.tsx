@@ -9,21 +9,19 @@ import { useTreeScript } from "./TreeScriptProvider"
 
 export type ScriptFolderItemProps = {
   folder: ScriptFolder
-  path?: string[]
 } & BoxProps
 
 export default function ScriptFolderItem(props: ScriptFolderItemProps) {
-  const { folder, path = [], ...other } = props
+  const { folder, ...other } = props
 
   const ctx = useTreeScript()
   const controls = useAnimationControls()
-  const isOpen = ctx.isFolderOpen(folder.name)
-  const fullPath = [...path, folder.name].join("/")
+  const isOpen = ctx.isFolderOpen(folder.path)
 
   function toggleCollapse(evt?: MouseEvent) {
     evt?.stopPropagation()
-    ctx.toggleFolderOpen(folder.name)
-    ctx.onFolderSelect?.(fullPath)
+    ctx.toggleFolderOpen(folder.path)
+    ctx.onFolderSelect?.(folder.path)
   }
 
   const runAnimation = useCallback(async () => {
@@ -77,7 +75,6 @@ export default function ScriptFolderItem(props: ScriptFolderItemProps) {
               <ScriptOrFolderItem
                 pl="4"
                 item={child}
-                path={[...path, folder.name]}
                 key={isScript(child) ? child?.id : child?.name}
               />
             ))}

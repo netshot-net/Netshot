@@ -3,6 +3,8 @@ import { splitFolderPath } from "./createFoldersFromGroups"
 
 export type ScriptFolder = {
   name: string
+  // Full path from the root (e.g. "a/b"), unique in the tree unlike the name
+  path: string
   children: Array<ScriptFolder | Script>
 }
 
@@ -47,18 +49,20 @@ export function compareScriptFolderOrItem(
 export function addScriptFolder(
   paths: string[],
   script: Script,
-  children: ScriptFolder["children"]
+  children: ScriptFolder["children"],
+  parentPath = ""
 ) {
   const name = paths.shift()
+  const path = parentPath ? `${parentPath}/${name}` : name
   let folder = children.find((f): f is ScriptFolder => isScriptFolder(f) && f.name === name)
 
   if (!folder) {
-    folder = { name, children: [] } as ScriptFolder
+    folder = { name, path, children: [] } as ScriptFolder
     children.push(folder)
   }
 
   if (paths.length) {
-    addScriptFolder(paths, script, folder.children || (folder.children = []))
+    addScriptFolder(paths, script, folder.children, path)
   } else {
     folder.children.push(script)
   }

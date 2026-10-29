@@ -16,11 +16,11 @@ export default function FolderItem(props: FolderItemProps) {
 
   const ctx = useTreeGroup()
   const controls = useAnimationControls()
-  const isOpen = ctx.isFolderOpen(folder.name)
+  const isOpen = ctx.isFolderOpen(folder.path)
 
   function toggleCollapse(evt?: MouseEvent) {
     evt?.stopPropagation()
-    ctx.toggleFolderOpen(folder.name)
+    ctx.toggleFolderOpen(folder.path)
   }
 
   const runAnimation = useCallback(async () => {

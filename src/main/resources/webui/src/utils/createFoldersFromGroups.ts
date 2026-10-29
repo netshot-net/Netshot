@@ -2,6 +2,8 @@ import { Group } from "@/types"
 
 export type Folder = {
   name: string
+  // Full path from the root (e.g. "a/b"), unique in the tree unlike the name
+  path: string
   children: Array<Folder | Group>
 }
 
@@ -54,18 +56,20 @@ export function splitFolderPath(folder?: string | null): string[] {
 export function addFolder(
   paths: string[],
   group: Group,
-  children: Folder["children"]
+  children: Folder["children"],
+  parentPath = ""
 ) {
   const name = paths.shift()
+  const path = parentPath ? `${parentPath}/${name}` : name
   let folder = children.find((f): f is Folder => isFolder(f) && f.name === name)
 
   if (!folder) {
-    folder = { name, children: [] } as Folder
+    folder = { name, path, children: [] } as Folder
     children.push(folder)
   }
 
   if (paths.length) {
-    addFolder(paths, group, folder.children || (folder.children = []))
+    addFolder(paths, group, folder.children, path)
   } else {
     folder.children.push(group)
   }

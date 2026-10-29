@@ -46,5 +46,5 @@ export function TreeScript({
 
 export function getExpandedKeys(items: ScriptFolderOrItem[], scriptId: number) {
   const result = findScriptNodeWithPath(items, scriptId)
-  return result ? result.path.map((p) => p.name) : []
+  return result ? result.path.map((p) => p.path) : []
 }

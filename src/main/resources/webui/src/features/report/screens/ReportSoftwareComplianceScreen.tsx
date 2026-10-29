@@ -74,8 +74,8 @@ function flattenTree(
     if (isGroup(item)) {
       rows.push({ kind: "group", key: `group-${item.id}`, depth, group: item })
     } else {
-      rows.push({ kind: "folder", key: `folder-${item.name}`, depth, folder: item })
-      if (isFolderOpen(item.name)) {
+      rows.push({ kind: "folder", key: `folder-${item.path}`, depth, folder: item })
+      if (isFolderOpen(item.path)) {
         rows.push(...flattenTree(item.children, depth + 1, isFolderOpen))
       }
     }
@@ -137,7 +137,7 @@ function FolderGridRow(props: FolderGridRowProps) {
       cursor="pointer"
       transition="background .2s ease"
       _hover={{ bg: "grey.50" }}
-      onClick={() => onToggle(row.folder.name)}
+      onClick={() => onToggle(row.folder.path)}
     >
       <Icon color="green.600" size="md">
         {isOpen ? <LuFolderOpen /> : <LuFolder />}
@@ -397,7 +397,7 @@ export default function ReportSoftwareComplianceScreen() {
           <Grid templateColumns="minmax(200px, 1fr) repeat(4, max-content)" columnGap="0" rowGap="0">
             {rows.map((row) => {
               if (row.kind === "folder") {
-                return <FolderGridRow key={row.key} row={row} isOpen={isOpen(row.folder.name)} onToggle={toggle} />
+                return <FolderGridRow key={row.key} row={row} isOpen={isOpen(row.folder.path)} onToggle={toggle} />
               }
 
               const item = stats?.find((stat) => stat.groupId === row.group.id) ?? {

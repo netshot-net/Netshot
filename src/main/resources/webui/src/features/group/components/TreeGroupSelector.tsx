@@ -178,7 +178,7 @@ export default function TreeGroupSelector<
       const result = findNodeWithPath(items, id)
       if (result) {
         result.path.forEach((f) => {
-          if (!expandedKeys.includes(f.name)) expandedKeys.push(f.name)
+          if (!expandedKeys.includes(f.path)) expandedKeys.push(f.path)
         })
       }
     }

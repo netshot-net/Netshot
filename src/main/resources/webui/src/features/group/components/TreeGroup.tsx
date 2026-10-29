@@ -1,13 +1,8 @@
 import { Group } from "@/types"
-import { findNodeWithPath, isGroup } from "@/utils"
+import { findNodeWithPath, Folder, isGroup } from "@/utils"
 import { JSX } from "react"
 import GroupOrFolderItem from "./GroupOrFolderItem"
 import { TreeGroupProvider } from "./TreeGroupProvider"
-
-export type Folder = {
-  name: string
-  children: Array<Folder | Group>
-}
 
 type FolderOrGroup = Folder | Group
 
@@ -48,7 +43,7 @@ export function TreeGroup({
 
 export function getExpandedKeys(items: FolderOrGroup[], groupId: number) {
   const result = findNodeWithPath(items, groupId)
-  return result ? result.path.map((p) => p.name) : []
+  return result ? result.path.map((p) => p.path) : []
 }
 
 /**
@@ -64,7 +59,7 @@ export function getVisibleGroups(
   for (const item of items ?? []) {
     if (isGroup(item)) {
       result.push(item)
-    } else if (isFolderOpen(item.name)) {
+    } else if (isFolderOpen(item.path)) {
       result.push(...getVisibleGroups(item.children, isFolderOpen))
     }
   }
