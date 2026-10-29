@@ -1,5 +1,6 @@
 import { Option } from "@/types"
 import { Button, Field, IconButton, Menu, Portal } from "@chakra-ui/react"
+import { useRef } from "react"
 import { Control, FieldPath, FieldValues, useWatch, UseFormSetValue } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { LuKeyRound, LuVault } from "react-icons/lu"
@@ -48,15 +49,26 @@ export default function VaultableInput<TFieldValues extends FieldValues>(
   const vaultInstanceIdField = `${name}VaultInstanceId` as FieldPath<TFieldValues>
   const vaultPathField = `${name}VaultPath` as FieldPath<TFieldValues>
 
+  const localValue = useWatch({ control, name })
   const vaultInstanceId = useWatch({ control, name: vaultInstanceIdField })
   const isVaultBacked = vaultInstanceId !== null && vaultInstanceId !== undefined
   const hasVaultInstances = vaultInstances.length > 0
   const currentVaultInstance = vaultInstances.find((instance) => instance.value === vaultInstanceId)
+  // Local value set aside while the field is switched to Vault, restored if switched back
+  const savedLocalValueRef = useRef<{ value: unknown } | null>(null)
 
   function selectVaultInstance(value: number | null) {
     if (value === null) {
+      if (isVaultBacked) {
+        // A field already Vault-backed when loaded has no local value to keep: it needs a new one
+        setValue(name, (savedLocalValueRef.current ? savedLocalValueRef.current.value : "") as never)
+        savedLocalValueRef.current = null
+      }
       setValue(vaultPathField, "" as never)
     } else {
+      if (!isVaultBacked) {
+        savedLocalValueRef.current = { value: localValue }
+      }
       setValue(name, null as never)
     }
     setValue(vaultInstanceIdField, value as never)

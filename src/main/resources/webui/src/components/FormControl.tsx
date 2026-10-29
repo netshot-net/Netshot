@@ -99,7 +99,6 @@ function FormControl<T extends FieldValues>(props: FormControlProps<T>) {
   const { t, i18n } = useTranslation()
   const { datePlaceholder, numberToCalendarDate, calendarDateToTimestamp } = useLocalization()
   const [showPassword, setShowPassword] = useState(false)
-  const [isUnchanged, setIsUnchanged] = useState(allowUnchanged)
   const passwordInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
   const allSuggestionsRef = useRef<string[]>([])
   const { collection: suggestionCollection, set: setSuggestionItems } = useListCollection({
@@ -128,6 +127,9 @@ function FormControl<T extends FieldValues>(props: FormControlProps<T>) {
     defaultValue,
   })
 
+  // Locked as unchanged only if there is no value yet (it can mount with one, e.g. a
+  // Vault-backed field switched back to local)
+  const [isUnchanged, setIsUnchanged] = useState(allowUnchanged && field.value == PASSWORD_UNCHANGED)
   const [prevFieldValue, setPrevFieldValue] = useState(field.value)
 
   // Re-derive `isUnchanged` from `field.value` whenever it changes (e.g. form
@@ -280,7 +282,7 @@ function FormControl<T extends FieldValues>(props: FormControlProps<T>) {
           >
             <Input
               type={type}
-              value={String(field.value as string)}
+              value={field.value == null ? "" : String(field.value as string)}
               autoComplete={autoComplete}
               disabled={disabled}
               {...inputProps}
@@ -419,7 +421,7 @@ function FormControl<T extends FieldValues>(props: FormControlProps<T>) {
         >
           <Input
             type={showPassword ? "text" : "password"}
-            value={isUnchanged ? "••••••••" : String(field.value as string)}
+            value={isUnchanged ? "••••••••" : field.value == null ? "" : String(field.value as string)}
             disabled={disabled || isUnchanged}
             autoComplete={autoComplete}
             {...inputProps}
