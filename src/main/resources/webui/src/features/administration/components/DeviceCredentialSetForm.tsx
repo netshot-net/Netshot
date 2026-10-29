@@ -118,7 +118,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
               label={t("network.authKeySecret")}
               placeholder={t("common.eG", { example: t("credential.secretKey") })}
               fieldType={FormControlType.Password}
-              required={!freezePasswords}
+              required
               allowUnchanged={freezePasswords}
               control={form.control}
               setValue={form.setValue}
@@ -145,7 +145,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
               label={t("network.privKeySecret")}
               placeholder={t("common.eG", { example: t("credential.secretKey") })}
               fieldType={FormControlType.Password}
-              required={!freezePasswords}
+              required
               allowUnchanged={freezePasswords}
               control={form.control}
               setValue={form.setValue}
@@ -167,7 +167,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             vaultInstances={vaultInstances}
           />
           <VaultableInput
-            required={!freezePasswords}
+            required
             allowUnchanged={freezePasswords}
             fieldType={FormControlType.Password}
             label={t("auth.password")}
@@ -178,7 +178,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             vaultInstances={vaultInstances}
           />
           <VaultableInput
-            required={!freezePasswords}
+            required
             allowUnchanged={freezePasswords}
             fieldType={FormControlType.Password}
             label={t("network.superPassword")}
@@ -202,7 +202,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             vaultInstances={vaultInstances}
           />
           <VaultableInput
-            required={!freezePasswords}
+            required
             allowUnchanged={freezePasswords}
             autosize
             mono
@@ -226,7 +226,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             vaultInstances={vaultInstances}
           />
           <VaultableInput
-            required={!freezePasswords}
+            required
             allowUnchanged={freezePasswords}
             fieldType={FormControlType.Password}
             label={t("network.superPassword")}
@@ -245,7 +245,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
           label={t("common.community")}
           placeholder={t("common.eG", { example: "public" })}
           fieldType={FormControlType.Password}
-          required={!freezePasswords}
+          required
           allowUnchanged={freezePasswords}
           control={form.control}
           setValue={form.setValue}
@@ -265,7 +265,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             helperText={t("credential.httpUsernameHelperText")}
           />
           <VaultableInput
-            required={!freezePasswords}
+            required
             allowUnchanged={freezePasswords}
             fieldType={FormControlType.Password}
             label={t("auth.password")}

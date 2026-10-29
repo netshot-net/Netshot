@@ -1,6 +1,6 @@
 import { Option } from "@/types"
 import { Button, Field, IconButton, Menu, Portal } from "@chakra-ui/react"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Control, FieldPath, FieldValues, useWatch, UseFormSetValue } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { LuKeyRound, LuVault } from "react-icons/lu"
@@ -15,6 +15,7 @@ export type VaultableInputProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues>
   setValue: UseFormSetValue<TFieldValues>
   fieldType?: FormControlType.Password | FormControlType.Text | FormControlType.LongText
+  /** A value is needed, unless left unchanged (see `allowUnchanged`). */
   required?: boolean
   allowUnchanged?: boolean
   placeholder?: string
@@ -56,13 +57,23 @@ export default function VaultableInput<TFieldValues extends FieldValues>(
   const currentVaultInstance = vaultInstances.find((instance) => instance.value === vaultInstanceId)
   // Local value set aside while the field is switched to Vault, restored if switched back
   const savedLocalValueRef = useRef<{ value: unknown } | null>(null)
+  // Set once a field which was Vault-backed when loaded is switched to local: there is
+  // no stored local value, so it can't be left unchanged
+  const [hasNoStoredLocalValue, setHasNoStoredLocalValue] = useState(false)
+  const canStayUnchanged = allowUnchanged && !hasNoStoredLocalValue
+  const isRequired = required && !canStayUnchanged
 
   function selectVaultInstance(value: number | null) {
     if (value === null) {
       if (isVaultBacked) {
-        // A field already Vault-backed when loaded has no local value to keep: it needs a new one
-        setValue(name, (savedLocalValueRef.current ? savedLocalValueRef.current.value : "") as never)
-        savedLocalValueRef.current = null
+        if (savedLocalValueRef.current) {
+          setValue(name, savedLocalValueRef.current.value as never)
+          savedLocalValueRef.current = null
+        } else {
+          // Already Vault-backed when loaded, no local value to keep: it needs a new one
+          setValue(name, "" as never)
+          setHasNoStoredLocalValue(true)
+        }
       }
       setValue(vaultPathField, "" as never)
     } else {
@@ -112,13 +123,14 @@ export default function VaultableInput<TFieldValues extends FieldValues>(
   ) : undefined
 
   return (
-    <Field.Root required={required}>
+    <Field.Root required={isRequired}>
       <Field.Label>
         {label}
-        {required && <Field.RequiredIndicator />}
+        {isRequired && <Field.RequiredIndicator />}
       </Field.Label>
       {isVaultBacked ? (
         <FormControl
+          key="vault"
           type={FormControlType.Text}
           placeholder={t("vault.pathPlaceholder")}
           required
@@ -128,10 +140,11 @@ export default function VaultableInput<TFieldValues extends FieldValues>(
         />
       ) : (
         <FormControl
+          key="local"
           type={fieldType}
           placeholder={placeholder}
-          required={required}
-          allowUnchanged={allowUnchanged}
+          required={isRequired}
+          allowUnchanged={canStayUnchanged}
           control={control}
           name={name}
           rows={rows}

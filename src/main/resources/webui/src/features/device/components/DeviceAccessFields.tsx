@@ -158,7 +158,7 @@ export function SpecificCredentialFields({
           vaultInstances={vaultInstances}
         />
         <VaultableInput
-          required={!allowUnchanged}
+          required
           allowUnchanged={allowUnchanged}
           fieldType={FormControlType.Password}
           label={t("auth.password")}
@@ -194,7 +194,7 @@ export function SpecificCredentialFields({
           vaultInstances={vaultInstances}
         />
         <VaultableInput
-          required={!allowUnchanged}
+          required
           allowUnchanged={allowUnchanged}
           autosize
           mono
@@ -242,7 +242,7 @@ export function SpecificCredentialFields({
           vaultInstances={vaultInstances}
         />
         <VaultableInput
-          required={!allowUnchanged}
+          required
           allowUnchanged={allowUnchanged}
           fieldType={FormControlType.Password}
           label={t("auth.password")}
@@ -258,7 +258,7 @@ export function SpecificCredentialFields({
   if (type === CredentialSetType.SNMP_V1 || type === CredentialSetType.SNMP_V2C) {
     return (
       <VaultableInput
-        required={!allowUnchanged}
+        required
         allowUnchanged={allowUnchanged}
         fieldType={FormControlType.Password}
         label={t("common.community")}
@@ -299,7 +299,7 @@ export function SpecificCredentialFields({
         />
         {hasAuth && (
           <VaultableInput
-            required={!allowUnchanged}
+            required
             allowUnchanged={allowUnchanged}
             fieldType={FormControlType.Password}
             label={t("network.authKeySecret")}
@@ -326,7 +326,7 @@ export function SpecificCredentialFields({
         />
         {hasPriv && (
           <VaultableInput
-            required={!allowUnchanged}
+            required
             allowUnchanged={allowUnchanged}
             fieldType={FormControlType.Password}
             label={t("network.privKeySecret")}
