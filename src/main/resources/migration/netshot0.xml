@@ -2157,6 +2157,16 @@
 		<validCheckSum>9:36a251399f92c7def86fb996b68fa834</validCheckSum>
 		<customChange class="net.netshot.netshot.platform.database.migrator.CachedIpAddressMigrator"/>
 	</changeSet>
+	<!-- 0.25.0_13 dropped the task subclass tables, and their indexes on device, without indexing the columns
+	     merged into task: listing the tasks of a device, and deleting a device, scanned the whole table. -->
+	<changeSet author="netshot" id="0.25.1_3">
+		<createIndex indexName="ix_task_device" tableName="task">
+			<column name="device"/>
+		</createIndex>
+		<createIndex indexName="ix_task_discover_result_device" tableName="task">
+			<column name="discover_result_device"/>
+		</createIndex>
+	</changeSet>
 	<changeSet author="netshot" id="0.26.0_1">
 		<!-- Name the foreign keys, the unique constraints and the indexes of the foreign keys after their table and
 			columns (fk_/uk_/ix_<table>_<columns>) instead of the random names Hibernate generated (FK_gpsllhlyii8d5...):
