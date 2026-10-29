@@ -1,4 +1,5 @@
 import { Script } from "@/types"
+import { splitFolderPath } from "./createFoldersFromGroups"
 
 export type ScriptFolder = {
   name: string
@@ -49,7 +50,7 @@ export function addScriptFolder(
   children: ScriptFolder["children"]
 ) {
   const name = paths.shift()
-  let folder = children.find((f) => f.name === name) as ScriptFolder
+  let folder = children.find((f): f is ScriptFolder => isScriptFolder(f) && f.name === name)
 
   if (!folder) {
     folder = { name, children: [] } as ScriptFolder
@@ -72,10 +73,11 @@ export function createFoldersFromScripts(scripts: Script[] = []) {
   return scripts
     .reduce(
       (arr, script) => {
-        if (!script.folder) {
+        const paths = splitFolderPath(script.folder)
+        if (paths.length === 0) {
           arr.push(script)
         } else {
-          addScriptFolder(script.folder.split("/"), script, arr)
+          addScriptFolder(paths, script, arr)
         }
 
         return arr

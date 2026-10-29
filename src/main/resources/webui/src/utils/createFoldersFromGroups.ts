@@ -40,13 +40,24 @@ export function compareFolderOrGroup(a: Folder | Group, b: Folder | Group) {
   return group1.name.localeCompare(group2.name) || group1.id - group2.id
 }
 
+/**
+ * Split a folder path into its folder names, ignoring the empty ones
+ * (leading, trailing or repeated "/", blank names), so "/a//b/" is ["a", "b"].
+ */
+export function splitFolderPath(folder?: string | null): string[] {
+  return (folder ?? "")
+    .split("/")
+    .map((name) => name.trim())
+    .filter((name) => name !== "")
+}
+
 export function addFolder(
   paths: string[],
   group: Group,
   children: Folder["children"]
 ) {
   const name = paths.shift()
-  let folder = children.find((f) => f.name === name) as Folder
+  let folder = children.find((f): f is Folder => isFolder(f) && f.name === name)
 
   if (!folder) {
     folder = { name, children: [] } as Folder
@@ -69,10 +80,11 @@ export function createFoldersFromGroups(deviceGroups: Group[] = []) {
   return deviceGroups
     .reduce(
       (arr, group) => {
-        if (group.folder === "") {
+        const paths = splitFolderPath(group.folder)
+        if (paths.length === 0) {
           arr.push(group)
         } else {
-          addFolder(group.folder.split("/"), group, arr)
+          addFolder(paths, group, arr)
         }
 
         return arr
