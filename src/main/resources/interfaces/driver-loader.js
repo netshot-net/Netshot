@@ -1369,11 +1369,6 @@ const _connect = (_function, _options) => {
 				}
 			}
 			catch (diagError) {
-				if (_options.getCliHelper().isConnectionFailed()) {
-					// The device can't be reached: the other diagnostics can't run either,
-					// and the task must fail
-					throw diagError;
-				}
 				_taskContext.warn(`Error while running diagnostic '${name}'`);
 				_taskContext.warn(String(diagError));
 			}
