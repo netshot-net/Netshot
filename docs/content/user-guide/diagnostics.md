@@ -4,6 +4,8 @@ Thanks to the _Diagnostics_ section, you can collect custom data from your equip
 
 Once the diagnostics are defined within Netshot, the commands are effectively executed, and the output is collected by running a _Run diagnostics_ task. This can be done manually by scheduling this type of task, and it is, by default, automatic after a snapshot task.
 
+An error in one diagnostic (a failing command, an exception in a JavaScript or Python diagnostic...) is logged as a warning in the task log, and the other diagnostics still run. If Netshot can't connect to the device at all (unreachable device, no working credentials), the task fails, and no compliance check follows.
+
 After the data is saved in the database, it is possible to build search and dynamic group queries based on it. You may also create compliance rules to check the diagnostic result.
 
 Creating, deleting or modifying diagnostics requires _read-write & device commands_ permissions.
