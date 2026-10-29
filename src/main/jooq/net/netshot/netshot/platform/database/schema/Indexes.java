@@ -79,6 +79,8 @@ public class Indexes {
     public static final Index IX_SCAN_SUBNETS_TASK_SUBNETS_SCAN_SUBNETS_TASK = Internal.createIndex(DSL.name("ix_scan_subnets_task_subnets_scan_subnets_task"), ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS, new OrderField[] { ScanSubnetsTaskSubnets.SCAN_SUBNETS_TASK_SUBNETS.SCAN_SUBNETS_TASK }, false);
     public static final Index IX_SOFTWARE_RULE_TARGET_GROUP = Internal.createIndex(DSL.name("ix_software_rule_target_group"), SoftwareRule.SOFTWARE_RULE, new OrderField[] { SoftwareRule.SOFTWARE_RULE.TARGET_GROUP }, false);
     public static final Index IX_TASK_DEBUG_LOG = Internal.createIndex(DSL.name("ix_task_debug_log"), Task.TASK, new OrderField[] { Task.TASK.DEBUG_LOG }, false);
+    public static final Index IX_TASK_DEVICE = Internal.createIndex(DSL.name("ix_task_device"), Task.TASK, new OrderField[] { Task.TASK.DEVICE }, false);
+    public static final Index IX_TASK_DISCOVER_RESULT_DEVICE = Internal.createIndex(DSL.name("ix_task_discover_result_device"), Task.TASK, new OrderField[] { Task.TASK.DISCOVER_RESULT_DEVICE }, false);
     public static final Index IX_TASK_RUNNER_ID = Internal.createIndex(DSL.name("ix_task_runner_id"), Task.TASK, new OrderField[] { Task.TASK.RUNNER_ID }, false);
     public static final Index PARENTTASKINDEX = Internal.createIndex(DSL.name("parentTaskIndex"), Task.TASK, new OrderField[] { Task.TASK.PARENT_TASK_ID }, false);
     public static final Index STATUSINDEX = Internal.createIndex(DSL.name("statusIndex"), Task.TASK, new OrderField[] { Task.TASK.STATUS }, false);
