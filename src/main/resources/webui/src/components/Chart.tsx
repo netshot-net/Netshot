@@ -45,7 +45,6 @@ export default function Chart<T extends keyof ChartTypeRegistry = "line">(props:
             ticks: {
               padding: 12,
               color: greyColor,
-              align: "inner",
               font: {
                 family: bodyFont,
                 weight: 500,

@@ -10,7 +10,7 @@ import { bucketConfigChangesByDay } from "../utils"
 
 export default function ConfigurationChart() {
   const { t } = useTranslation()
-  const { formatDayMonth, timezone } = useLocalization()
+  const { formatDate, timezone } = useLocalization()
   const [green500, green100] = useToken("colors", ["green.500", "green.100"])
 
   const { data: changes, isPending } = useConfigChanges()
@@ -25,7 +25,7 @@ export default function ConfigurationChart() {
   )
 
   const config = useMemo<ChartConfiguration>(() => {
-    const labels = bins.map((bin) => formatDayMonth(bin.from))
+    const labels = bins.map((bin) => formatDate(bin.from))
     const data = bins.map((bin) => bin.count)
     const backgroundColor = bins.map((bin) => (day == null || bin.from === day ? green500 : green100))
 
@@ -74,7 +74,7 @@ export default function ConfigurationChart() {
         },
       },
     } as ChartConfiguration
-  }, [bins, formatDayMonth, day, green500, green100, setDay])
+  }, [bins, formatDate, day, green500, green100, setDay])
 
   return (
     <Stack gap="5">

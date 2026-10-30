@@ -72,7 +72,7 @@ export function useLocalization() {
 
   const monthYearFormatter = useMemo(() => {
     return new DateFormatter(i18n.language, {
-      month: "short",
+      month: "2-digit",
       year: "numeric",
       timeZone: timezone,
     })
@@ -93,20 +93,6 @@ export function useLocalization() {
   const formatHourMinute = useCallback((date: number | Date) => {
     return hourMinuteFormatter.format(date instanceof Date ? date : new Date(date))
   }, [hourMinuteFormatter])
-
-  const dayMonthHourMinuteFormatter = useMemo(() => {
-    return new DateFormatter(i18n.language, {
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: timezone,
-    })
-  }, [i18n.language, timezone])
-
-  const formatDayMonthHourMinute = useCallback((date: number | Date) => {
-    return dayMonthHourMinuteFormatter.format(date instanceof Date ? date : new Date(date))
-  }, [dayMonthHourMinuteFormatter])
 
   const dateTimeFormatter = useMemo(() => {
     return new DateFormatter(i18n.language, {
@@ -234,7 +220,6 @@ export function useLocalization() {
     formatShortDateTime,
     formatRelativeTime,
     formatHourMinute,
-    formatDayMonthHourMinute,
     datePlaceholder,
     dateTimePlaceholder,
     startOfDay,
