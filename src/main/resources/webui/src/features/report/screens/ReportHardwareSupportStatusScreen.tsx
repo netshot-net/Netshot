@@ -21,7 +21,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { CellContext, createColumnHelper } from "@tanstack/react-table"
 import { ChartConfiguration } from "chart.js/auto"
-import { endOfMonth, getLocalTimeZone, today, toZoned } from "@internationalized/date"
+import { endOfMonth, today, toZoned } from "@internationalized/date"
 import { useCallback, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -44,7 +44,7 @@ const DEFAULT_FILTER: FilterForm = {
 
 export default function ReportHardwareSupportStatusScreen() {
   const { t } = useTranslation()
-  const { formatDate, formatMonthYear } = useLocalization()
+  const { formatDate, formatMonthYear, timezone } = useLocalization()
   const [green500] = useToken("colors", "green.500")
   const [bronze500] = useToken("colors", "bronze.500")
   const [grey500] = useToken("colors", "grey.500")
@@ -135,7 +135,7 @@ export default function ReportHardwareSupportStatusScreen() {
       eol: 0,
       eox: 0,
     }
-    const tz = getLocalTimeZone()
+    const tz = timezone
     const baseMonth = today(tz).set({ day: 1 })
 
     for (const stat of stats) {
@@ -225,7 +225,7 @@ export default function ReportHardwareSupportStatusScreen() {
         },
       },
     } as ChartConfiguration
-  }, [stats, t, green500, bronze500, grey500, formatMonthYear])
+  }, [stats, t, green500, bronze500, grey500, formatMonthYear, timezone])
 
   const getFormattedCount = useCallback(
     (info: CellContext<GroupedHardwareSupportStat, number>) => {
