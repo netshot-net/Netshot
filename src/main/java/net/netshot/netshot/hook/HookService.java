@@ -31,6 +31,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The use cases of the hooks: list, add, edit and delete.
@@ -72,6 +75,55 @@ public class HookService {
 			log.error("Unable to fetch the hooks.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hooks");
 		}
+	}
+
+	/**
+	 * Gets what the hook lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return HookRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the hooks matching a query, with their triggers.
+	 *
+	 * @param query the query
+	 * @return the hooks of the window, with the total number of matching hooks if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the hooks can't be read
+	 */
+	public ListResult<Hook> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the hooks.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the hooks");
+		}
+	}
+
+	/**
+	 * Gets a hook, with its triggers.
+	 *
+	 * @param id the ID of the hook
+	 * @return the hook
+	 * @throws NetshotException if there is no such hook, or it can't be read
+	 */
+	public Hook get(long id) {
+		Hook hook;
+		try {
+			hook = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the hook {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hook");
+		}
+		if (hook == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_HOOK_NOT_FOUND, "The hook doesn't exist.");
+		}
+		return hook;
 	}
 
 	/**

@@ -88,6 +88,7 @@ import net.netshot.netshot.platform.lifecycle.Service;
 import net.netshot.netshot.report.ReportRepository;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.system.ServiceHealthService;
 import net.netshot.netshot.task.AutoSnapshotQueue;
 import net.netshot.netshot.task.AutoSnapshotScheduler;
 import net.netshot.netshot.task.DeviceCreationService;
@@ -179,6 +180,7 @@ public final class Wiring {
 	private final LoginService loginService;
 	private final ClusterService clusterService;
 	private final ServerInfoService serverInfoService;
+	private final ServiceHealthService serviceHealthService;
 	// Diagnostics
 	private final DiagnosticService diagnosticService;
 	private final DiagnosticAdapters diagnosticAdapters;
@@ -274,6 +276,7 @@ public final class Wiring {
 		this.loginService = new LoginService(this.transactions, userRepository, new ConfiguredRemoteAuthenticator(this.oidc, new Radius(config), this.tacacs));
 		this.clusterService = new ClusterService(this.clusterManager == null ? List::of : this.clusterManager::getClusterMembers);
 		this.serverInfoService = new ServerInfoService();
+		this.serviceHealthService = new ServiceHealthService();
 		// Diagnostics
 		this.diagnosticService = new DiagnosticService(this.transactions, new DiagnosticRepository());
 		this.diagnosticAdapters = DiagnosticAdapters.standard();
@@ -686,6 +689,16 @@ public final class Wiring {
 	 */
 	public ServerInfoService serverInfoService() {
 		return this.serverInfoService;
+	}
+
+	/**
+	 * Gets the use cases reporting the state of the services of the server. The startup code attaches the
+	 * {@link net.netshot.netshot.platform.lifecycle.ServiceManager} to it.
+	 *
+	 * @return the service health service
+	 */
+	public ServiceHealthService serviceHealthService() {
+		return this.serviceHealthService;
 	}
 
 	/**
