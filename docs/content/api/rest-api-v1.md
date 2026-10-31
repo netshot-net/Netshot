@@ -3,7 +3,7 @@
 The v1 REST API is served under `/api/v1`, beside the [legacy API](rest-api.md) (`/api`), which is unchanged. It shares the authentication of the legacy API (API tokens, `Authorization: Bearer` with an API token or a [JWT access token](rest-api.md#jwt-access-tokens-oidc), session cookie) and its permission levels.
 
 !!! note "Work in progress"
-    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`), the scripts (`/api/v1/scripts`), the credential sets (`/api/v1/credential-sets`), the Vault instances (`/api/v1/vault-instances`) and the compliance resources (`/api/v1/compliance/...`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
+    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`), the scripts (`/api/v1/scripts`), the credential sets (`/api/v1/credential-sets`), the Vault instances (`/api/v1/vault-instances`), the compliance resources (`/api/v1/compliance/...`) and the reports (`/api/v1/reports/...`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
 
 ## Formats
 
@@ -134,6 +134,8 @@ Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDa
 
 - `POST /api/v1/tasks/{id}/cancel` (read-write level) cancels a scheduled task, or requests the cancellation of a running group task, or of a device task still waiting for its device (`cancelRequested`); a task in another status can't be cancelled (409).
 - `GET /api/v1/tasks/{id}/debug-log` (read-write level, `text/plain`) gives the debug log of a task run with debug enabled.
+- `GET /api/v1/tasks/stats?after=&before=&buckets=`: the finished tasks (`SUCCESS`, `FAILURE`, `CANCELLED`) over a range (ISO-8601 dates; by default from the epoch to now), split into `buckets` (1 to 366, 48 by default): `{"after", "before", "bins": [{"from", "to", "countByStatus"}], "statusCounts", "typeCounts"}`.
+- `GET /api/v1/tasks/status-counts?parentTask=`: `{"countByStatus" (every status), "threadCount"}`; with `parentTask`, only the children of that task.
 
 Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments.
 
@@ -197,3 +199,21 @@ The compliance resources have no version: there is no `ETag`, and `If-Match` doe
 **Hardware rules** (`/api/v1/compliance/hardware-rules`): list, get, create, replace, update, delete. Properties: `partNumber`, `partNumberRegExp`, `endOfSale`, `endOfLife`, `group`, `driver`, `family`, `familyRegExp`; filters on all of them. An unknown group or driver is a 400.
 
 **Compliance results of a device**: `GET /api/v1/devices/{id}/compliance-results` lists the rules of the policies applying to the device (through its groups): `rule` and `policy` references, `result` (null if never checked), `comment`, `checkDate`, `exemptionExpirationDate`. Filters: `rule`, `ruleName`, `policy`, `policyName`, `result`, `checkDate`, `exemptionExpirationDate`; `q` searches the rule and policy names. An unknown device is a 404.
+
+### Reports
+
+`/api/v1/reports/...` (read-only level). The filters are query parameters: `domain`, `group` and `policy` take IDs, repeated or comma-separated (none means any). An unknown parameter or an invalid value is a 400; an unknown required group is a 404. The device of a row is a reference (brief unless `expand=device`). The statistics are written in the list envelope but never paginated (`limit` and `offset` are refused); the lists of devices are paginated.
+
+| Report | Parameters | Rows |
+|---|---|---|
+| `group-config-compliance-stats` | `domain`, `group`, `policy` | `group`, `folder`, `compliantDeviceCount`, `deviceCount` |
+| `group-software-compliance-stats` | `domain` | `group`, `goldDeviceCount`, `silverDeviceCount`, `bronzeDeviceCount`, `deviceCount` |
+| `hardware-support-stats` | `domain`, `group` | `type` (`EOS`, `EOL`), `date` (null: no date), `deviceCount` |
+| `changes-by-day` | `days` (1 to 366, 7 by default), `timeZone` (IANA name) | `date` (start of the day), `changeCount`, the oldest first |
+| `access-failure-devices` | `days` (3 by default), `domain` | `device`, `lastSuccess`, `lastFailure`: the devices without a successful snapshot for that many days |
+| `config-compliance-device-statuses` | `domain`, `group`, `policy`, `result` | `device`, `policy`, `rule`, `checkDate`, `result` |
+| `group-config-non-compliant-devices` | `group` (required), `domain`, `policy` | the non-conforming results of the devices of a group (same rows) |
+| `group-devices-by-software-level` | `group` and `level` (`GOLD`, `SILVER`, `BRONZE`, `UNKNOWN`) required, `domain` | `device`, `softwareVersion` |
+| `hardware-support-devices` | `type` (`EOS` or `EOL`, required), `date` (as given by the statistics; absent: the devices without date), `domain`, `group` | devices |
+
+`GET /api/v1/reports/export?domain=&group=&include=&format=xlsx` exports the devices as an Excel workbook (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, as an attachment); `include` lists the optional sections: `interfaces`, `inventory`, `inventoryHistory` (implies `inventory`), `locations`, `compliance`, `groups`, `driverAttributes`.
