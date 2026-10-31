@@ -23,16 +23,111 @@ import static net.netshot.netshot.platform.database.schema.Tables.SOFTWARE_RULE;
 import java.util.List;
 
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the software compliance rules. The {@link DSLContext} is always the first
  * parameter: the caller (the service) owns the transaction.
  */
 public class SoftwareRuleRepository {
+
+	/** The same table, to rank the rules. */
+	private static final net.netshot.netshot.platform.database.schema.tables.SoftwareRule OTHER = SOFTWARE_RULE.as("other");
+
+	/** The position of a rule: 1 plus the number of rules checked before it (lowest priority, then lowest ID). */
+	private static final Field<Integer> RANK = DSL.field(DSL.select(DSL.count().plus(1)).from(OTHER)
+		.where(OTHER.PRIORITY.lt(SOFTWARE_RULE.PRIORITY)
+			.or(OTHER.PRIORITY.eq(SOFTWARE_RULE.PRIORITY).and(OTHER.ID.lt(SOFTWARE_RULE.ID)))));
+
+	/** The alias of the rank in the queries. */
+	private static final Field<Integer> RANK_COLUMN = RANK.as("rank");
+
+	/** The fields the software rule lists can be filtered and sorted on ({@code priority} is the rank). */
+	static final QueryMapping LIST = QueryMapping.builder(SOFTWARE_RULE.ID)
+		.integer("priority", RANK, Option.SORTABLE)
+		.integer("group", SOFTWARE_RULE.TARGET_GROUP)
+		.string("driver", SOFTWARE_RULE.DRIVER, Option.SORTABLE)
+		.string("family", SOFTWARE_RULE.FAMILY, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("familyRegExp", SOFTWARE_RULE.FAMILY_REG_EXP)
+		.string("version", SOFTWARE_RULE.VERSION, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("versionRegExp", SOFTWARE_RULE.VERSION_REG_EXP)
+		.string("partNumber", SOFTWARE_RULE.PART_NUMBER, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("partNumberRegExp", SOFTWARE_RULE.PART_NUMBER_REG_EXP)
+		.enumeration("level", SOFTWARE_RULE.LEVEL, ConformanceLevel.class, Option.SORTABLE)
+		.defaultSort(SortOrder.asc("priority"))
+		.build();
+
+	private static RankedSoftwareRule toRanked(Record r) {
+		return new RankedSoftwareRule(toRule(r), r.get(RANK_COLUMN));
+	}
+
+	/**
+	 * Lists the rules matching a query, with their position.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the rules of the window of the query
+	 */
+	public List<RankedSoftwareRule> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(SOFTWARE_RULE.fields()).select(RANK_COLUMN).from(SOFTWARE_RULE)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(SoftwareRuleRepository::toRanked);
+	}
+
+	/**
+	 * Counts the rules matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of rules
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(SOFTWARE_RULE, LIST.condition(query));
+	}
+
+	/**
+	 * Gets a rule with its position.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the rule, or null if there is no such rule
+	 */
+	public RankedSoftwareRule findRanked(DSLContext dsl, long id) {
+		return dsl.select(SOFTWARE_RULE.fields()).select(RANK_COLUMN).from(SOFTWARE_RULE).where(SOFTWARE_RULE.ID.eq(id))
+			.fetchOne(SoftwareRuleRepository::toRanked);
+	}
+
+	/**
+	 * Lists all the rules in the order they are checked in (by priority, then ID).
+	 *
+	 * @param dsl the jOOQ context
+	 * @return the rules
+	 */
+	public List<SoftwareRule> findAllOrdered(DSLContext dsl) {
+		return dsl.select(SOFTWARE_RULE.fields()).from(SOFTWARE_RULE).orderBy(SOFTWARE_RULE.PRIORITY.asc(), SOFTWARE_RULE.ID.asc())
+			.fetch(SoftwareRuleRepository::toRule);
+	}
+
+	/**
+	 * Sets the priority of a rule.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @param priority the priority
+	 */
+	public void setPriority(DSLContext dsl, long id, double priority) {
+		dsl.update(SOFTWARE_RULE).set(SOFTWARE_RULE.PRIORITY, priority).where(SOFTWARE_RULE.ID.eq(id)).execute();
+	}
 
 	private static SoftwareRule toRule(Record r) {
 		return new SoftwareRule(r.get(SOFTWARE_RULE.ID), r.get(SOFTWARE_RULE.PRIORITY), r.get(SOFTWARE_RULE.TARGET_GROUP),

@@ -24,6 +24,7 @@ import static net.netshot.netshot.platform.database.schema.Tables.POLICY;
 import static net.netshot.netshot.platform.database.schema.Tables.POLICY_TARGET_GROUPS;
 import static net.netshot.netshot.platform.database.schema.Tables.RULE;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,12 @@ import org.jooq.Record;
 import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the compliance policies. The {@link DSLContext} is always the first parameter:
@@ -47,6 +54,16 @@ public class PolicyRepository {
 			DSL.select(POLICY_TARGET_GROUPS.TARGET_GROUPS).from(POLICY_TARGET_GROUPS).where(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID)))
 		.convertFrom(r -> (Set<Long>) new HashSet<>(r.map(t -> t.value1())))
 		.as("target_groups");
+
+	/** The fields the policy lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(POLICY.ID)
+		.string("name", POLICY.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.custom("targetGroup", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
+			DSL.exists(DSL.selectOne().from(POLICY_TARGET_GROUPS)
+				.where(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID))
+				.and(POLICY_TARGET_GROUPS.TARGET_GROUPS.in(values.stream().map(Long.class::cast).toList()))))
+		.defaultSort(SortOrder.asc("name"))
+		.build();
 
 	private static Policy toPolicy(Record r) {
 		return new Policy(r.get(POLICY.ID), r.get(POLICY.NAME), r.get(TARGET_GROUPS));
@@ -66,6 +83,31 @@ public class PolicyRepository {
 	 */
 	public List<Policy> findAll(DSLContext dsl, Page page) {
 		return query(dsl, DSL.noCondition(), page);
+	}
+
+	/**
+	 * Lists the policies matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the policies of the window of the query
+	 */
+	public List<Policy> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(POLICY.ID, POLICY.NAME, TARGET_GROUPS).from(POLICY)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(PolicyRepository::toPolicy);
+	}
+
+	/**
+	 * Counts the policies matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of policies
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(POLICY, LIST.condition(query));
 	}
 
 	/**

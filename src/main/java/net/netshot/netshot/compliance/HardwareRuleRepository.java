@@ -25,11 +25,54 @@ import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
+
 /**
  * The queries on the hardware compliance rules. The {@link DSLContext} is always the first
  * parameter: the caller (the service) owns the transaction.
  */
 public class HardwareRuleRepository {
+
+	/** The fields the hardware rule lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(HARDWARE_RULE.ID)
+		.integer("group", HARDWARE_RULE.TARGET_GROUP)
+		.string("driver", HARDWARE_RULE.DRIVER, Option.SORTABLE)
+		.string("family", HARDWARE_RULE.FAMILY, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("familyRegExp", HARDWARE_RULE.FAMILY_REG_EXP)
+		.string("partNumber", HARDWARE_RULE.PART_NUMBER, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("partNumberRegExp", HARDWARE_RULE.PART_NUMBER_REG_EXP)
+		.date("endOfSale", HARDWARE_RULE.END_OF_SALE, Option.SORTABLE)
+		.date("endOfLife", HARDWARE_RULE.END_OF_LIFE, Option.SORTABLE)
+		.defaultSort(SortOrder.asc("id"))
+		.build();
+
+	/**
+	 * Lists the rules matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the rules of the window of the query
+	 */
+	public List<HardwareRule> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(HARDWARE_RULE.fields()).from(HARDWARE_RULE)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(HardwareRuleRepository::toRule);
+	}
+
+	/**
+	 * Counts the rules matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of rules
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(HARDWARE_RULE, LIST.condition(query));
+	}
 
 	private static HardwareRule toRule(Record r) {
 		return new HardwareRule(r.get(HARDWARE_RULE.ID), r.get(HARDWARE_RULE.DRIVER), r.get(HARDWARE_RULE.TARGET_GROUP),
