@@ -42,6 +42,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.V1Client;
+import net.netshot.netshot.testing.api.V1Endpoints;
 import net.netshot.netshot.testing.api.V1Client.Answer;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
@@ -49,6 +50,11 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  * The devices of the v1 API, over HTTP: the filters, the search query, the views and the references.
  */
 @ApiTest
+@V1Endpoints({
+	"GET /devices",
+	"GET /devices/{id}",
+	"DELETE /devices/{id}"
+})
 @DisplayName("v1 devices")
 @ResourceLock("DB")
 public class V1DeviceResourceTest {

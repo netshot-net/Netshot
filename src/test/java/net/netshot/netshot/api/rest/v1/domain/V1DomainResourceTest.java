@@ -37,6 +37,7 @@ import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.V1Client;
+import net.netshot.netshot.testing.api.V1Endpoints;
 import net.netshot.netshot.testing.api.V1Client.Answer;
 
 /**
@@ -44,6 +45,16 @@ import net.netshot.netshot.testing.api.V1Client.Answer;
  * selection, problem details, ETags, PUT/PATCH, formats).
  */
 @ApiTest
+@V1Endpoints({
+	"GET /domains",
+	"GET /domains/{id}",
+	"POST /domains",
+	"PUT /domains/{id}",
+	"PATCH /domains/{id}",
+	"DELETE /domains/{id}",
+	"GET /openapi.json",
+	"GET /openapi.yaml"
+})
 @DisplayName("v1 domains")
 @ResourceLock("DB")
 public class V1DomainResourceTest {
@@ -369,6 +380,9 @@ public class V1DomainResourceTest {
 		Assertions.assertTrue(openApi.get("components").get("schemas").has("Domain"), doc.body());
 		Assertions.assertFalse(openApi.get("paths").has("/serverinfo"), "v0 resources in the v1 document");
 		Assertions.assertTrue(openApi.get("paths").has("/devices"), doc.body());
+		Answer yaml = new V1Client(this.server, null).get("/openapi.yaml", "Accept", "application/yaml");
+		Assertions.assertEquals(200, yaml.status(), yaml.toString());
+		Assertions.assertTrue(yaml.body().contains("/domains/{id}:"), yaml.body());
 
 		this.create("Paris", null, "10.0.1.1");
 		java.net.http.HttpResponse<String> v0 = java.net.http.HttpClient.newHttpClient().send(
