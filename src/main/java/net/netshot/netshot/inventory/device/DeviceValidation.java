@@ -30,6 +30,7 @@ import org.apache.sshd.common.config.keys.PublicKeyEntry;
 import org.jooq.DSLContext;
 
 import net.netshot.netshot.credentials.CredentialSetRepository;
+import net.netshot.netshot.credentials.CredentialSets;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.OptionDefinition;
@@ -215,6 +216,63 @@ public final class DeviceValidation {
 			validated.add(access);
 		}
 		return validated;
+	}
+
+	/**
+	 * Stores the specific credential sets of accesses given as definitions: each one is created, or merged into the
+	 * current specific credential set of the access of the same name when they are of the same type (the secrets the
+	 * definition leaves out are kept). To call once the accesses are validated.
+	 *
+	 * @param credentialSetRepository the credential set repository
+	 * @param dsl the jOOQ context
+	 * @param driver the device's driver
+	 * @param current the current accesses of the device (none for a new device)
+	 * @param accesses the validated accesses of the device after the change (may be null)
+	 * @param definitions the definitions of the specific credential sets (may be null)
+	 * @return the accesses, with their stored specific credential sets
+	 * @throws NetshotException if a definition is invalid, doesn't match an access, or doesn't fit its access
+	 */
+	public static List<DeviceAccess> applySpecificCredentials(CredentialSetRepository credentialSetRepository, DSLContext dsl,
+			DeviceDriver driver, List<DeviceAccess> current, List<DeviceAccess> accesses, List<AccessSpecificCredential> definitions) {
+		if (definitions == null || definitions.isEmpty()) {
+			return accesses;
+		}
+		List<DeviceAccess> result = accesses == null ? new ArrayList<>() : new ArrayList<>(accesses);
+		for (AccessSpecificCredential specific : definitions) {
+			int index = -1;
+			for (int i = 0; i < result.size(); i++) {
+				if (specific.accessName().equals(result.get(i).accessName())) {
+					index = i;
+				}
+			}
+			if (index < 0) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+					"Unknown access '" + specific.accessName() + "' for the specific credential set.");
+			}
+			DeviceAccess access = result.get(index);
+			if (access.globalCredentialSet() != null) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
+					"Cannot set both a global and a specific credential set for access '" + access.accessName() + "'.");
+			}
+			if (driver == null) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
+					"Cannot pin credentials for access '" + access.accessName() + "' without a known device type.");
+			}
+			DeviceDriver.AccessDefinition accessDef = driver.getAccessDefinition(access.accessName());
+			if (accessDef == null) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+					"Unknown access '" + access.accessName() + "' for this device type.");
+			}
+			DeviceCredentialSet existing = current.stream()
+				.filter(a -> a.accessName().equals(access.accessName()))
+				.reduce((_, second) -> second)
+				.map(DeviceAccess::specificCredentialSet)
+				.orElse(null);
+			DeviceCredentialSet stored = CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, existing,
+				specific.definition(), accessDef.getCredentialClass());
+			result.set(index, access.toBuilder().specificCredentialSet(stored).build());
+		}
+		return result;
 	}
 
 	/**
