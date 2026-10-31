@@ -205,7 +205,12 @@ public class DeviceCreationService {
 				Map<String, Object> options = DeviceValidation.validateOptions(driver, creation.options());
 				Device.DeviceBuilder newDevice = Device.create(driver.getName(), creation.ipAddress(), domain, creation.author()).toBuilder();
 				if (accesses != null) {
-					newDevice.accesses(Device.mergeAccesses(List.of(), this.repository.saveSpecificCredentialSets(dsl, List.of(), accesses)));
+					accesses = this.repository.saveSpecificCredentialSets(dsl, List.of(), accesses);
+				}
+				accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, List.of(), accesses,
+					creation.specificCredentials());
+				if (accesses != null) {
+					newDevice.accesses(Device.mergeAccesses(List.of(), accesses));
 				}
 				if (options != null) {
 					newDevice.options(options);
