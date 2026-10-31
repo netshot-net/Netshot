@@ -2,8 +2,8 @@
 
 The v1 REST API is served under `/api/v1`, beside the [legacy API](rest-api.md) (`/api`), which is unchanged. It shares the authentication of the legacy API (API tokens, `Authorization: Bearer` with an API token or a [JWT access token](rest-api.md#jwt-access-tokens-oidc), session cookie) and its permission levels.
 
-!!! note "Work in progress"
-    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`), the scripts (`/api/v1/scripts`), the credential sets (`/api/v1/credential-sets`), the Vault instances (`/api/v1/vault-instances`), the compliance resources (`/api/v1/compliance/...`) and the reports (`/api/v1/reports/...`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
+!!! note "Preview"
+    The v1 API covers the features of the legacy API (the resource list below); the Web UI still uses the legacy API. The OpenAPI document describes every endpoint: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
 
 ## Formats
 
@@ -111,7 +111,7 @@ Errors are [problem details (RFC 9457)](https://www.rfc-editor.org/rfc/rfc9457),
 
 ### Devices
 
-`/api/v1/devices`: list and get (read-only level), delete (read-write level). The interfaces, modules, configurations, tasks and results of a device will be sub-resources (`/api/v1/devices/{id}/...`); the device creation and edition are coming.
+`/api/v1/devices`: list and get (read-only level); add, replace (`PUT`), update (`PATCH`) and delete (read-write level), with `If-Match`.
 
 Filters: `id`, `name`, `mgmtAddress`, `status`, `mgmtDomain` (domain ID), `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `serialNumber`, `location`, `contact`, `comments`, `creator`, `cachedIpAddress`, `createdDate`, `changeDate`, `eolDate`, `eosDate`, `group` (member of the group of this ID), `tag` (has this tag; `tag__empty=true` for the devices without tag), `compliant` (`true`: no non-conforming compliance result). `q` searches the name, management address, family, software version, serial number, location, contact and comments. `query` takes a device search query in the [Netshot query language](../user-guide/devices.md#searching-for-devices), combined with the other filters:
 
@@ -119,6 +119,49 @@ Filters: `id`, `name`, `mgmtAddress`, `status`, `mgmtDomain` (domain ID), `famil
 curl -H "X-Netshot-API-Token: <token>" \
   'https://<server:port>/api/v1/devices?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22&location__isw=paris&fields=name,mgmtAddress'
 ```
+
+**Adding a device** is asynchronous: `POST /api/v1/devices` answers `202 Accepted` with the task and its `Location: /api/v1/tasks/{id}`. Without `driver`, a discovery task finds the type of the device (an SNMP community must exist for the domain), and the device is only created if the discovery succeeds (`accesses` and `options` are then refused). With `driver`, the device is created at once, with a snapshot task. Properties: `mgmtAddress` and `mgmtDomain` (required), `driver`, `comments`, `tags`, `options`, `accesses`. A device with the same address in the domain is a 409.
+
+**Replacing a device** (`PUT`) takes its editable properties: `mgmtAddress`, `mgmtDomain`, `status`, `comments`, `tags`, `options`, `accesses`. The rest (family, serial number, software...) is read-only and ignored when sent back, so a device read can be modified and sent back. As any `PUT`, it is a full replacement: absent `accesses`, `tags` or `options` are emptied. `PATCH` changes the given properties only (`accesses` is replaced as a whole). The version of a device only changes when its own properties change, not its accesses alone.
+
+**Accesses**: each access has `accessName` (as declared by the driver: `ssh`, `telnet`, `snmp`...), `address`, `port`, `sshHostKeyVerification`, `sshTrustedHostKeys`, `httpsCaTrustMode`, `httpsCustomCaCertificate`, and at most one of `globalCredentialSet` (a reference to a global credential set) and `specificCredentialSet` (credentials of this device only: a `type` and the properties of a credential set, without name nor domain; secrets write-only, as for the credential sets). An access which isn't listed anymore is removed, with its specific credentials.
+
+**Actions** create a task and answer `202` with it (and its `Location`):
+
+| Action | Level | Body |
+|---|---|---|
+| `POST /api/v1/devices/{id}/snapshot` | operator | `dontRunDiagnostics`, `dontCheckCompliance` |
+| `POST /api/v1/devices/{id}/compliance-check` | operator | |
+| `POST /api/v1/devices/{id}/diagnostics-run` | operator | `dontCheckCompliance` |
+| `POST /api/v1/devices/{id}/script-runs` | execute-read-write | `savedScript` (a reference) or `script` and `deviceDriver`; `userInputValues`, `runSnapshot`, `runDiagnostics`, `checkCompliance` |
+
+The body is optional (except for the scripts), and takes the scheduling properties of the tasks too: `comments`, `scheduleType` (`ASAP` by default, `AT`, `HOURLY`, `DAILY`, `WEEKLY`, `MONTHLY`), `scheduleReference`, `scheduleFactor`, `priority` (1 to 9, 5 by default), `debugEnabled`.
+
+**Sub-resources** (read-only level; 404 for an unknown device):
+
+- `GET /api/v1/devices/{id}/interfaces`: the network interfaces (`name`, `description`, `enabled`, `macAddress`, `ipAddresses`, `vrf`, `virtualDevice`, `level3`...). Filters: `name`, `description`, `vrf`, `virtualDevice`, `enabled`, `level3`, `macAddress`, `ipAddress` (`ipAddress__net=10.0.0.0/24`); `q` searches the name and description.
+- `GET /api/v1/devices/{id}/modules`: the modules (`slot`, `partNumber`, `serialNumber`, `firstSeenDate`, `lastSeenDate`, `removed`), the removed ones included: `removed=false` for the current ones.
+- `GET /api/v1/devices/{id}/tasks`, `/configs`, `/diagnostic-results`, `/compliance-results`: the tasks, configurations and results of the device (see these resources).
+
+The interfaces and modules have an `id` and a `display`, but no `url` (they aren't addressable on their own).
+
+### Configurations
+
+`GET /api/v1/configs` (read-only level) lists the configurations of all the devices, the latest first, in their brief view by default (`device` reference, `changeDate`, `author`). Filters: `id`, `device`, `changeDate`, `author`, `domain`, `group`; `q` searches the author. `GET /api/v1/devices/{id}/configs` is the same list for a device.
+
+- `GET /api/v1/configs/{id}` gives a configuration with its `attributes` (`name`, `type` and the short values; for the long texts and files, the `url` to download them: they are never inlined).
+- `GET /api/v1/configs/{id}/items/{item}` downloads a long text (`text/plain`) or a file (`application/octet-stream`) item, as an attachment.
+- `GET /api/v1/configs/{id}/diff?with={otherId}` compares the configuration (the revised one) with `with` (the original one; by default, the previous configuration of the device): `original` and `revised` references, `deltas` by compared item.
+
+### Catalogs
+
+Read-only lists of the values found in the inventory (read-only level), with filters on every property, sort and `q`; these aggregates have no `id` nor `url`:
+
+- `GET /api/v1/device-families`: `driver`, `family`, `deviceCount`.
+- `GET /api/v1/device-tags`: `name`, `deviceCount`.
+- `GET /api/v1/part-numbers`: `partNumber`, `moduleCount`.
+- `GET /api/v1/software-versions`: `version`, `deviceCount`.
+- `GET /api/v1/device-types`: the loaded drivers (`name`, `description`, `version`, `author`, `priority`, `protocols`, `cliMainModes`, `attributes`, `options`, `accesses`...).
 
 ### Groups
 
@@ -133,6 +176,7 @@ Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDa
 `/api/v1/tasks`: list and get (read-only level), the latest first. A task has a `type` (`TakeSnapshotTask`, `RunDeviceScriptTask`...), a `status`, its target `device` or `group` and its `parentTask` (for the per-device tasks of a group task) as references, its schedule, its `log` and the `parameters` of its type (the options of a snapshot, the script of a script task...).
 
 - `POST /api/v1/tasks/{id}/cancel` (read-write level) cancels a scheduled task, or requests the cancellation of a running group task, or of a device task still waiting for its device (`cancelRequested`); a task in another status can't be cancelled (409).
+- `POST /api/v1/tasks` (operator level) creates a task (`202` with the task): `type` (as the `type` of the tasks; the discovery tasks can't be created), the target `device`, `group` or `deviceList` (references) depending on the type, its `parameters` (the keys the `parameters` of a task show), and the scheduling properties of the device actions, `scheduleMode` and `stopOnFailure`. Running scripts needs the execute-read-write level, scanning subnets the read-write level, purging the database the admin level.
 - `GET /api/v1/tasks/{id}/debug-log` (read-write level, `text/plain`) gives the debug log of a task run with debug enabled.
 - `GET /api/v1/tasks/stats?after=&before=&buckets=`: the finished tasks (`SUCCESS`, `FAILURE`, `CANCELLED`) over a range (ISO-8601 dates; by default from the epoch to now), split into `buckets` (1 to 366, 48 by default): `{"after", "before", "bins": [{"from", "to", "countByStatus"}], "statusCounts", "typeCounts"}`.
 - `GET /api/v1/tasks/status-counts?parentTask=`: `{"countByStatus" (every status), "threadCount"}`; with `parentTask`, only the children of that task.
@@ -217,3 +261,31 @@ The compliance resources have no version: there is no `ETag`, and `If-Match` doe
 | `hardware-support-devices` | `type` (`EOS` or `EOL`, required), `date` (as given by the statistics; absent: the devices without date), `domain`, `group` | devices |
 
 `GET /api/v1/reports/export?domain=&group=&include=&format=xlsx` exports the devices as an Excel workbook (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, as an attachment); `include` lists the optional sections: `interfaces`, `inventory`, `inventoryHistory` (implies `inventory`), `locations`, `compliance`, `groups`, `driverAttributes`.
+
+### Authentication
+
+`POST /api/v1/auth/session` logs in and creates a session (the `NetshotSessionID` cookie, HttpOnly): `{"username": "...", "password": "..."}`, or `{"authorizationCode": "...", "redirectUri": "..."}` for OIDC (one form only); `newPassword` changes the password while logging in (required when it has expired). Answer: `201` with `Location: /api/v1/auth/session` and the session (`url`, `creationDate`, `maxIdleTime` in seconds, `user`); the session ID is only in the cookie. Logging in always drops the session the client sent, if any, and creates a new one on success. Errors: 401 wrong credentials (the same answer for an unknown user), 403 expired password (`NETSHOT_EXPIRED_PASSWORD`), 400 invalid body or new password refused by the password policy. The answer is not cacheable (`Cache-Control: no-store`).
+
+`GET /api/v1/auth/session` describes the current session (401 without authentication, 404 for a request authenticated otherwise, by an API token for instance). `DELETE /api/v1/auth/session` logs out: always `204`, even without a session; for a user who isn't local, when OIDC is available, the `X-OIDC-EndSessionEndpoint` header gives the endpoint of the identity provider to end the session there too.
+
+`GET /api/v1/auth/me` (read-only level) describes who the request is authenticated as, whatever the method: `kind` (`USER` or `API_TOKEN`), `authMethod` (`SESSION`, `JWT` or `API_TOKEN`), `username` and `local` (null for an API token), `level` and `role`. `PATCH /api/v1/auth/me` with `{"currentPassword": "...", "newPassword": "..."}` changes the password of the current user, who must be a local one (400 otherwise, for a wrong current password, or for a password refused by the policy).
+
+### Users
+
+`/api/v1/users`: list, get, create, replace, update and delete (admin level). A user is local (`local: true`, authenticated by its password) or remote (RADIUS, TACACS+ or OIDC: Netshot only gives it its `level`). `username`, `local` and `level` are required; `password` is write-only (required to create a local user, absent to keep the current one, ignored for a remote user), `hasPassword` tells whether there is one. Users have no version (no `ETag`). A user can't edit nor delete itself (403). Filters: `id`, `username`, `local`, `level`; `q` searches the username.
+
+### API tokens
+
+`/api/v1/api-tokens`: list, get, create and delete (admin level). `POST` takes `{"description": "...", "level": 100}`, and optionally the `token` value to register (32 alphanumeric characters; a random one is generated otherwise). The `201` answer holds the value in `token`: it is the only time it is given (Netshot only keeps a hash of it), and the answer is not cacheable. Filters: `id`, `description`, `level`.
+
+### Hooks
+
+`/api/v1/hooks`: list, get, create, replace, update and delete (admin level). A hook has a `type` (`WEB`: posts the event to a URL), a `name`, `enabled` (true if absent), its `triggers` (`[{"type": "POST_TASK", "item": "TakeSnapshotTask"}]`, replaced as a whole) and, for a `WEB` hook, `action` (`POST_JSON`, `POST_XML` or `POST_YAML`), `targetUrl`, `httpsCaTrustMode` and `httpsCustomCaCertificate`. The `targetUrl` is returned: it shouldn't carry credentials. The type of a hook can't change. No `ETag`. Filters: `id`, `name`, `type`, `enabled`, `url`.
+
+### System
+
+- `GET /api/v1/system/info` (read-only level): `version`, `serverTime`, `sessionMaxIdleTime`.
+- `GET /api/v1/system/cluster/members` (admin level): the members of the cluster (empty without clustering).
+- `GET /api/v1/system/cluster/master` (no authentication): `clusterEnabled`, `master`, `currentMasterId`; `200` on the master (or without clustering), `503` on another member, so a load balancer can use it to reach the master only.
+- `GET /api/v1/system/services` (admin level): the services of the server (task manager, Syslog server, web server...) with their `state`, `healthy` and `stats`.
+- `GET /api/v1/health` (no authentication): `{"status": "UP"}` (`200`) when all the services run and are healthy, `{"status": "DOWN"}` (`503`) otherwise, including while the server starts or stops. It tells nothing else. For a Kubernetes probe: `httpGet: {path: /api/v1/health, port: 8443, scheme: HTTPS}`.
