@@ -36,6 +36,10 @@ import org.jooq.SelectLimitStep;
 import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -67,6 +71,40 @@ public class HookRepository {
 				r.get(HOOK.HTTPS_CUSTOM_CA_CERTIFICATE));
 		}
 		throw new IllegalStateException("Unknown type of hook '%s'".formatted(type));
+	}
+
+	/** The fields the hook lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(HOOK.ID)
+		.string("name", HOOK.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("type", HOOK.TYPE, Option.SORTABLE)
+		.bool("enabled", HOOK.ENABLED, Option.SORTABLE)
+		.string("url", HOOK.URL, Option.SEARCHABLE)
+		.defaultSort(SortOrder.asc("name"))
+		.build();
+
+	/**
+	 * Lists the hooks matching a query, with their triggers.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the hooks of the window of the query
+	 */
+	public List<Hook> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(HOOK.fields()).select(TRIGGERS).from(HOOK)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(HookRepository::toHook);
+	}
+
+	/**
+	 * Counts the hooks matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of hooks
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(HOOK, LIST.condition(query));
 	}
 
 	/**
