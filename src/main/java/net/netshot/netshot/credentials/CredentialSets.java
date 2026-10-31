@@ -218,6 +218,39 @@ public final class CredentialSets {
 	}
 
 	/**
+	 * Creates or updates the credential set specific to a device access from a definition: the secrets the definition
+	 * leaves out are kept from the current credential set when it is of the same type, otherwise a new specific
+	 * credential set is stored (a replaced one is not removed: the caller removes it once the access doesn't reference
+	 * it anymore).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param repository the credential set repository
+	 * @param existing the current specific credential set of the access, or null if there is none
+	 * @param definition the definition (its name and domain are not used)
+	 * @param expectedClass the class of credential set the access takes, or null for any
+	 * @return the stored credential set
+	 * @throws NetshotException if the definition is invalid or incomplete, a referenced Vault instance doesn't
+	 *         exist, or the credential set is not of the class the access takes
+	 */
+	public static DeviceCredentialSet applySpecificDefinition(DSLContext dsl, CredentialSetRepository repository,
+			DeviceCredentialSet existing, CredentialSetDefinition definition, Class<? extends DeviceCredentialSet> expectedClass) {
+		DeviceCredentialSet base = existing != null && CredentialSetDefinition.Kind.of(existing) == definition.kind() ? existing : null;
+		String name = base != null ? base.name() : DeviceCredentialSet.generateSpecificName();
+		CredentialSetDefinition named = new CredentialSetDefinition(definition.kind(), name, null, definition.username(),
+			definition.password(), definition.superPassword(), definition.privateKey(), definition.community(), definition.authType(),
+			definition.authKey(), definition.privType(), definition.privKey());
+		DeviceCredentialSet assembled = CredentialSetAssembler.assemble(dsl, base, named, null);
+		if (expectedClass != null && !expectedClass.isInstance(assembled)) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
+				"The specific credential set is not compatible with its access.");
+		}
+		if (base == null) {
+			return repository.add(dsl, assembled.withIdentity(0, name, true));
+		}
+		return repository.save(dsl, assembled);
+	}
+
+	/**
 	 * Creates or updates the credential set specific to a device access: if {@code existing}
 	 * is null or of another type than {@code incoming}, {@code incoming} is stored as a new
 	 * specific credential set (with a generated name); otherwise its values are copied onto
