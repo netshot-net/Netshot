@@ -966,6 +966,18 @@ public class DeviceRepository {
 	 * @return true if the device was found and removed
 	 */
 	public boolean remove(DSLContext dsl, long id) {
+		return this.remove(dsl, id, null);
+	}
+
+	/**
+	 * Removes a device if it is at a given version, with everything attached to it (see {@link #remove(DSLContext, long)}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the device ID
+	 * @param expectedVersion the version the device must be at, or null for any
+	 * @return true if the device was found (at that version) and removed
+	 */
+	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
 		List<Long> specificIds = dsl.select(DEVICE_ACCESS.SPECIFIC_CREDENTIAL_SET).from(DEVICE_ACCESS)
 			.where(DEVICE_ACCESS.DEVICE.eq(id), DEVICE_ACCESS.SPECIFIC_CREDENTIAL_SET.isNotNull())
 			.fetch(DEVICE_ACCESS.SPECIFIC_CREDENTIAL_SET);
@@ -978,7 +990,8 @@ public class DeviceRepository {
 			.where(CONFIG.DEVICE.eq(id), CONFIG_ATTRIBUTE.LONG_TEXT.isNotNull()).fetch(CONFIG_ATTRIBUTE.LONG_TEXT));
 		longTextIds.addAll(dsl.select(DIAGNOSTIC_RESULT.LONG_TEXT).from(DIAGNOSTIC_RESULT)
 			.where(DIAGNOSTIC_RESULT.DEVICE.eq(id), DIAGNOSTIC_RESULT.LONG_TEXT.isNotNull()).fetch(DIAGNOSTIC_RESULT.LONG_TEXT));
-		if (dsl.deleteFrom(DEVICE).where(DEVICE.ID.eq(id)).execute() == 0) {
+		if (dsl.deleteFrom(DEVICE).where(DEVICE.ID.eq(id))
+			.and(expectedVersion == null ? DSL.trueCondition() : DEVICE.VERSION.cast(Long.class).eq(expectedVersion)).execute() == 0) {
 			return false;
 		}
 		deleteLongTexts(dsl, longTextIds);

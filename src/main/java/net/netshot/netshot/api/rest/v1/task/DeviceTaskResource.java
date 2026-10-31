@@ -54,9 +54,7 @@ public class DeviceTaskResource {
 
 	private final DeviceCatalogService deviceCatalogService;
 	private final TaskService taskService;
-	private final SearchService searchService;
-	private final GroupService groupService;
-	private final DriverRegistry driverRegistry;
+	private final TaskResponses responses;
 
 	@Context
 	private HttpServletRequest request;
@@ -78,9 +76,7 @@ public class DeviceTaskResource {
 		GroupService groupService, DriverRegistry driverRegistry) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.taskService = taskService;
-		this.searchService = searchService;
-		this.groupService = groupService;
-		this.driverRegistry = driverRegistry;
+		this.responses = new TaskResponses(taskService, searchService, groupService, driverRegistry);
 	}
 
 	/**
@@ -96,7 +92,7 @@ public class DeviceTaskResource {
 		+ "as the task list filtered on the device (same parameters).")
 	public ListResponse<TaskDto> listDeviceTasks(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
-		return TaskResource.list(this.taskService, this.searchService, this.groupService, this.driverRegistry, this.request,
-			this.uriInfo, new Criterion("device", Lookup.EXACT, List.of(id)));
+		return TaskResource.list(this.taskService, this.responses, this.request, this.uriInfo,
+			new Criterion("device", Lookup.EXACT, List.of(id)));
 	}
 }
