@@ -21,9 +21,11 @@ package net.netshot.netshot.inventory.device;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
+import org.jooq.exception.DataChangedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,6 +217,88 @@ public class DeviceService {
 		return this.get(id);
 	}
 
+	/**
+	 * Replaces the editable properties of a device, if it is at a given version.
+	 *
+	 * @param id the device ID
+	 * @param change the new properties
+	 * @param expectedVersion the version the device must be at, or null for any
+	 * @return the device as it is once edited, as {@link #get(long)} returns it
+	 * @throws NetshotException if the device doesn't exist or isn't at the expected version, a property is invalid,
+	 *         the management address is already used by an active device, or the device can't be stored
+	 */
+	public Device update(long id, DeviceChange change, Long expectedVersion) {
+		Device device;
+		try {
+			device = this.transactions.write(dsl -> {
+				Device existing = this.repository.find(dsl, id);
+				if (existing == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
+				}
+				if (expectedVersion != null && existing.version() != expectedVersion) {
+					throw NetshotException.versionMismatch("device", expectedVersion);
+				}
+				Device edited = this.applyChange(dsl, existing, change);
+				if (!Device.Status.DISABLED.equals(edited.status())) {
+					DeviceSummary duplicate = this.repository.findActiveByMgmtAddress(dsl, edited.mgmtAddress(), edited.id());
+					if (duplicate != null) {
+						throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, String.format(
+							"The device '%s' (%d) already exists with this IP address.",
+							duplicate.name(), duplicate.id()));
+					}
+				}
+				this.repository.save(dsl, existing, edited);
+				return edited;
+			});
+			AAA_LOG.info("{} has been edited.", device);
+		}
+		catch (DataChangedException e) {
+			throw NetshotException.versionMismatch("device", expectedVersion == null ? 0 : expectedVersion);
+		}
+		catch (DataAccessException e) {
+			log.error("Cannot edit the device.", e);
+			if (DatabaseErrors.isUniqueViolation(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_DEVICE, "A device with this IP address already exists.");
+			}
+			if (DatabaseErrors.isForeignKeyViolation(e) && e.getMessage() != null && e.getMessage().contains("domain")) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Unable to find the domain");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the device.");
+		}
+		this.dynamicGroups.refreshAllGroupsOfOneDevice(device.id());
+		return this.get(id);
+	}
+
+	private Device applyChange(DSLContext dsl, Device device, DeviceChange change) {
+		if (!change.mgmtAddress().equals(device.mgmtAddress())) {
+			DeviceValidation.validateMgmtAddress(change.mgmtAddress(), false);
+		}
+		DeviceValidation.validateTags(change.tags() == null ? null : List.copyOf(change.tags()));
+		Domain domain = this.domainRepository.find(dsl, change.mgmtDomainId());
+		if (domain == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
+		}
+		DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
+		List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver,
+			change.accesses() == null ? List.of() : change.accesses());
+		accesses = this.repository.saveSpecificCredentialSets(dsl, device.accesses(), accesses);
+		accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, device.accesses(), accesses,
+			change.specificCredentials());
+		Map<String, Object> options = DeviceValidation.validateOptions(driver, change.options());
+		Device.DeviceBuilder edited = device.toBuilder()
+			.status(change.status() == null ? Status.INPRODUCTION : change.status())
+			.comments(change.comments() == null ? "" : change.comments())
+			.mgmtAddress(change.mgmtAddress())
+			.mgmtDomain(domain)
+			.accesses(Device.mergeAccesses(device.accesses(), accesses))
+			.options(options == null ? Map.of() : options)
+			.tags(Device.normalizeTags(change.tags()));
+		if (!change.mgmtAddress().equals(device.mgmtAddress())) {
+			edited.cachedIpAddress(Device.resolveIpAddress(change.mgmtAddress()));
+		}
+		return edited.build();
+	}
+
 	private Device applyUpdate(DSLContext dsl, Device device, DeviceUpdate update) {
 		Device.DeviceBuilder edited = device.toBuilder();
 		if (update.enabled() != null) {
@@ -259,11 +343,26 @@ public class DeviceService {
 	 * @throws NetshotException if other objects use the device, or it can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a device if it is at a given version, with everything attached to it.
+	 *
+	 * @param id the device ID
+	 * @param expectedVersion the version the device must be at, or null for any
+	 * @return true if the device has been deleted, false if there is no such device
+	 * @throws NetshotException if the device isn't at the expected version, other objects use it, or it can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		List<Path> filesToDelete;
 		try {
 			filesToDelete = this.transactions.write(dsl -> {
 				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
-				if (!this.repository.remove(dsl, id)) {
+				if (!this.repository.remove(dsl, id, expectedVersion)) {
+					if (expectedVersion != null && this.repository.find(dsl, id) != null) {
+						throw NetshotException.versionMismatch("device", expectedVersion);
+					}
 					log.info("No such device of ID {}", id);
 					return null;
 				}
