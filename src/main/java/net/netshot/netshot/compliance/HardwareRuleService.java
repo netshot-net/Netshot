@@ -32,9 +32,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The hardware compliance rule use cases: list, add, edit and delete the hardware rules, which give
@@ -85,6 +89,116 @@ public class HardwareRuleService {
 			log.error("Unable to fetch the hardware rules.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hardware rules.");
 		}
+	}
+
+	/**
+	 * Gets what the hardware rule lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return HardwareRuleRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the hardware rules matching a query.
+	 *
+	 * @param query the query
+	 * @return the rules of the window, with the total number of matching rules if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the rules can't be read
+	 */
+	public ListResult<HardwareRule> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the hardware rules.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the hardware rules");
+		}
+	}
+
+	/**
+	 * Gets a hardware rule.
+	 *
+	 * @param id the rule ID
+	 * @return the rule
+	 * @throws NetshotException if the rule doesn't exist, or can't be read
+	 */
+	public HardwareRule get(long id) {
+		try {
+			return this.transactions.read(dsl -> this.require(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the hardware rule.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the hardware rule.");
+		}
+	}
+
+	private HardwareRule require(DSLContext dsl, long id) {
+		HardwareRule rule = this.repository.find(dsl, id);
+		if (rule == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the hardware rule");
+		}
+		return rule;
+	}
+
+	private void check(DSLContext dsl, HardwareRule rule) {
+		if (rule.targetGroupId() != null && new GroupRepository().find(dsl, rule.targetGroupId()) == null) {
+			throw NetshotException.invalidParameter("group", "The group doesn't exist.");
+		}
+		if (rule.driver() != null && this.driverRegistry.getDriverByName(rule.driver()) == null) {
+			throw NetshotException.invalidParameter("driver", "Unknown device driver.");
+		}
+	}
+
+	/**
+	 * Adds a hardware rule.
+	 *
+	 * @param newRule the rule (its ID is ignored)
+	 * @return the new rule
+	 * @throws NetshotException if the group or the driver doesn't exist, or the rule can't be stored
+	 */
+	public HardwareRule add(HardwareRule newRule) {
+		HardwareRule rule;
+		try {
+			rule = this.transactions.write(dsl -> {
+				this.check(dsl, newRule);
+				return this.require(dsl, this.repository.add(dsl, newRule));
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Error while saving the new hardware rule.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
+		}
+		AAA_LOG.info("{} has been created", rule);
+		return rule;
+	}
+
+	/**
+	 * Replaces a hardware rule.
+	 *
+	 * @param id the rule ID
+	 * @param newRule the new definition of the rule (its ID is ignored)
+	 * @return the rule
+	 * @throws NetshotException if the rule, the group or the driver doesn't exist, or the rule can't be stored
+	 */
+	public HardwareRule replace(long id, HardwareRule newRule) {
+		HardwareRule rule;
+		try {
+			rule = this.transactions.write(dsl -> {
+				this.require(dsl, id);
+				this.check(dsl, newRule);
+				this.repository.save(dsl, newRule.withId(id));
+				return this.require(dsl, id);
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Error while saving the hardware rule.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
+		}
+		AAA_LOG.info("{} has been edited", rule);
+		return rule;
 	}
 
 	private static Instant toInstant(Date date) {
