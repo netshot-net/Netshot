@@ -37,6 +37,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The diagnostic use cases.
@@ -81,6 +84,61 @@ public class DiagnosticService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the diagnostics.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the diagnostics");
+		}
+	}
+
+	/**
+	 * Gets what the diagnostic lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return DiagnosticRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the diagnostics matching a query.
+	 *
+	 * @param query the query
+	 * @return the diagnostics of the window, with the total number of matching diagnostics if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the diagnostics can't be read
+	 */
+	public ListResult<Diagnostic> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the diagnostics.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the diagnostics");
+		}
+	}
+
+	/**
+	 * Gets what the lists of diagnostic results can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listResultSchema() {
+		return DiagnosticResultRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the diagnostic results matching a query (the device is a filter of the query, not checked to exist).
+	 *
+	 * @param query the query
+	 * @return the results of the window, with the total number of matching results if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the results can't be read
+	 */
+	public ListResult<DiagnosticResult> listResults(ListQuery query) {
+		try {
+			DiagnosticResultRepository results = new DiagnosticResultRepository();
+			return this.transactions.read(dsl -> new ListResult<>(results.findAll(dsl, query),
+				query.count() ? results.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the diagnostic results.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the diagnostic results");
 		}
 	}
 
