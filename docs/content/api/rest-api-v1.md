@@ -3,7 +3,7 @@
 The v1 REST API is served under `/api/v1`, beside the [legacy API](rest-api.md) (`/api`), which is unchanged. It shares the authentication of the legacy API (API tokens, `Authorization: Bearer` with an API token or a [JWT access token](rest-api.md#jwt-access-tokens-oidc), session cookie) and its permission levels.
 
 !!! note "Work in progress"
-    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`) and the tasks (read and cancel, `/api/v1/tasks`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
+    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`) and the scripts (`/api/v1/scripts`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
 
 ## Formats
 
@@ -134,3 +134,23 @@ Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDa
 - `GET /api/v1/tasks/{id}/debug-log` (read-write level, `text/plain`) gives the debug log of a task run with debug enabled.
 
 Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments.
+
+### Diagnostics
+
+`/api/v1/diagnostics`: list and get (read-only level); create, replace (`PUT`), update (`PATCH`) and delete (execute-read-write level). A diagnostic collects a piece of data from the devices of a group, and has a `type`: `SIMPLE` (a CLI command, with `deviceDriver`, `cliMode`, `command` and an optional `modifierPattern`/`modifierReplacement` applied to the output), `JAVASCRIPT` or `PYTHON` (a `script`). The properties of the other types are null. `resultType` is `TEXT`, `LONGTEXT`, `NUMERIC` or `BINARY`. The target group is the `targetGroup` reference; in requests it is given by its ID (`"targetGroup": 3`, or an object with an `id`, such as the one read), and cleared with `null`. The type of a diagnostic can't change. Changing the target group deletes the results of the diagnostic; deleting a diagnostic deletes its results. Diagnostics have no version: there is no `ETag`, and `If-Match` isn't supported.
+
+Filters: `id`, `name`, `type`, `resultType`, `enabled`, `targetGroup`, `deviceDriver`; `q` searches the name. Sort: `name`, `type`, `resultType`, `enabled`, `deviceDriver` (default `name`).
+
+### Diagnostic results of a device
+
+`GET /api/v1/devices/{id}/diagnostic-results` (read-only level): the last result of each diagnostic run on the device (404 for an unknown device), in their full view by default. A result has the `diagnostic` (reference, `expand=diagnostic` for the full diagnostic), its `type` (`TEXT`, `LONGTEXT`, `NUMERIC` or `BINARY`), its typed `value` (a string, a number or a boolean), and the `creationDate` (when the diagnostic first gave this value) and `lastCheckDate`.
+
+Filters: `diagnostic`, `diagnosticName`, `type`, `creationDate`, `lastCheckDate`; `q` searches the diagnostic name. Sort: `diagnosticName` (default), `type`, `creationDate`, `lastCheckDate`.
+
+### Scripts
+
+`/api/v1/scripts`: list, get, create, delete and validation (execute-read-write level). A script is a JavaScript command script written for a device driver (`deviceDriver`), kept in a `folder`; its `author` is the user who created it. Scripts can't be edited (as in v0): create a new one. The list is in its brief view by default (`name`, `folder`, `deviceDriver`, without the code). `userInputDefinitions` (the user inputs the script asks for, extracted by evaluating it) are written when a script is read, created or validated, and in a list only when asked for.
+
+`POST /api/v1/scripts/validation` checks a script definition (driver, name, code) without saving it: 200 with the script as it would be created (`id` 0, no `url`) and its user inputs, or 400 with the problem.
+
+Filters: `id`, `name`, `folder`, `deviceDriver`, `author`; `q` searches the name, folder and author. Sort: `name` (default), `folder`, `deviceDriver`, `author`.
