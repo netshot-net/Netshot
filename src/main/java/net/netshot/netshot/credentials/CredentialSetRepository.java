@@ -34,11 +34,16 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.SelectFieldOrAsterisk;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 
 /**
@@ -205,6 +210,58 @@ public class CredentialSetRepository {
 			.fetch(CredentialSetRepository::toCredentialSet);
 	}
 
+	/** The fields the credential set lists can be filtered and sorted on (the v1 name of the type is exposed). */
+	static final QueryMapping LIST = QueryMapping.builder(CS.ID)
+		.string("name", CS.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", DSL.case_(CS.DTYPE)
+			.when("DeviceSshAccount", "SSH").when("DeviceSshKeyAccount", "SSH_KEY").when("DeviceTelnetAccount", "TELNET")
+			.when("DeviceHttpAccount", "HTTP").when("DeviceSnmpv1Community", "SNMP_V1").when("DeviceSnmpv2cCommunity", "SNMP_V2C")
+			.when("DeviceSnmpv3Community", "SNMP_V3").else_(CS.DTYPE),
+			List.of("SSH", "SSH_KEY", "TELNET", "HTTP", "SNMP_V1", "SNMP_V2C", "SNMP_V3"), Option.SORTABLE)
+		.integer("mgmtDomain", CS.MGMT_DOMAIN)
+		.bool("deviceSpecific", CS.DEVICE_SPECIFIC)
+		.string("username", CS.USERNAME, Option.SORTABLE, Option.SEARCHABLE)
+		.date("changeDate", CS.CHANGE_DATE, Option.SORTABLE)
+		.defaultSort(SortOrder.asc("name"))
+		.build();
+
+	/**
+	 * Builds the condition of a list query: its filters and search, on the global credential sets unless the
+	 * query filters on {@code deviceSpecific}.
+	 *
+	 * @param query the query
+	 * @return the condition
+	 */
+	private static Condition listCondition(ListQuery query) {
+		boolean scoped = query.criteria().stream().anyMatch(c -> "deviceSpecific".equals(c.field()));
+		return LIST.condition(query).and(scoped ? DSL.trueCondition() : CS.DEVICE_SPECIFIC.isFalse());
+	}
+
+	/**
+	 * Lists the credential sets matching a query (the global ones, unless the query filters on
+	 * {@code deviceSpecific}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the credential sets of the window of the query
+	 */
+	public List<DeviceCredentialSet> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(fields(CS, DOMAIN)).from(CS).leftJoin(DOMAIN).on(DOMAIN.ID.eq(CS.MGMT_DOMAIN))
+				.where(listCondition(query)).orderBy(LIST.orderBy(query)))
+			.fetch(CredentialSetRepository::toCredentialSet);
+	}
+
+	/**
+	 * Counts the credential sets matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of credential sets
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(CS, listCondition(query));
+	}
+
 	/**
 	 * Lists the global credential sets (not the ones specific to a device access), by ID.
 	 *
@@ -306,11 +363,25 @@ public class CredentialSetRepository {
 	 * @return the saved credential set, or null if there is no credential set of this ID and type
 	 */
 	public DeviceCredentialSet save(DSLContext dsl, DeviceCredentialSet credentialSet) {
+		return this.save(dsl, credentialSet, null);
+	}
+
+	/**
+	 * Saves an existing credential set if it is still at a given version (its version is incremented, its
+	 * change date set).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param credentialSet the credential set
+	 * @param expectedVersion the version the credential set must be at, or null for any
+	 * @return the saved credential set, or null if there is no credential set of this ID and type (at that version)
+	 */
+	public DeviceCredentialSet save(DSLContext dsl, DeviceCredentialSet credentialSet, Long expectedVersion) {
 		int updated = dsl.update(CS)
 			.set(values(credentialSet))
 			.set(CS.VERSION, CS.VERSION.plus(1))
 			.set(CS.CHANGE_DATE, now())
 			.where(CS.ID.eq(credentialSet.id()), CS.DTYPE.eq(credentialSet.typeName()))
+			.and(expectedVersion == null ? DSL.trueCondition() : CS.VERSION.cast(Long.class).eq(expectedVersion))
 			.execute();
 		return updated == 0 ? null : this.find(dsl, credentialSet.id());
 	}
@@ -324,6 +395,20 @@ public class CredentialSetRepository {
 	 */
 	public boolean remove(DSLContext dsl, long id) {
 		return dsl.deleteFrom(CS).where(CS.ID.eq(id)).execute() > 0;
+	}
+
+	/**
+	 * Removes a credential set if it is at a given version.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the credential set ID
+	 * @param expectedVersion the version the credential set must be at, or null for any
+	 * @return true if the credential set was found (at that version) and removed
+	 */
+	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
+		return dsl.deleteFrom(CS).where(CS.ID.eq(id))
+			.and(expectedVersion == null ? DSL.trueCondition() : CS.VERSION.cast(Long.class).eq(expectedVersion))
+			.execute() > 0;
 	}
 
 	/**
