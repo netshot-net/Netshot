@@ -21,8 +21,8 @@ package net.netshot.netshot.api.rest.v1.diagnostic;
 import java.util.Set;
 import java.util.function.LongFunction;
 
+import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.V1Links;
-import net.netshot.netshot.api.rest.v1.diagnostic.DiagnosticRequest.GroupReference;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.diagnostic.Diagnostic;
@@ -102,7 +102,7 @@ public final class DiagnosticMapper {
 	 * @return the request
 	 */
 	public static DiagnosticRequest toRequest(Diagnostic diagnostic) {
-		GroupReference group = diagnostic.targetGroupId() == null ? null : new GroupReference(diagnostic.targetGroupId());
+		RefId group = diagnostic.targetGroupId() == null ? null : new RefId(diagnostic.targetGroupId());
 		String resultType = diagnostic.resultType() == null ? null : diagnostic.resultType().name();
 		return switch (diagnostic) {
 			case SimpleDiagnostic d -> new DiagnosticRequest(d.name(), "SIMPLE", resultType, d.enabled(), group, null,

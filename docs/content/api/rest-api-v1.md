@@ -3,7 +3,7 @@
 The v1 REST API is served under `/api/v1`, beside the [legacy API](rest-api.md) (`/api`), which is unchanged. It shares the authentication of the legacy API (API tokens, `Authorization: Bearer` with an API token or a [JWT access token](rest-api.md#jwt-access-tokens-oidc), session cookie) and its permission levels.
 
 !!! note "Work in progress"
-    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`) and the scripts (`/api/v1/scripts`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
+    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`), the scripts (`/api/v1/scripts`), the credential sets (`/api/v1/credential-sets`) and the Vault instances (`/api/v1/vault-instances`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
 
 ## Formats
 
@@ -17,7 +17,9 @@ Requests and responses are JSON (default), XML or YAML, chosen with the `Content
 
 Every object has an `id`, a `url` (the path of the object, e.g. `/api/v1/domains/3`) and a `display` name. The versioned objects have a `version`, which is also their `ETag`.
 
-A reference to another object (the domain of a device, its groups...) is always an object, never a bare ID: by default its brief view (`id`, `url`, `display` and a few identifying properties), its full view with `expand`. In requests, a reference is given by its ID.
+A reference to another object (the domain of a device, its groups...) is always an object, never a bare ID: by default its brief view (`id`, `url`, `display` and a few identifying properties), its full view with `expand`. In requests, a reference is given by its ID (`"mgmtDomain": 3`) or by an object with its ID (`"mgmtDomain": {"id": 3}`, so the object read can be sent back).
+
+Secrets (passwords, keys, communities...) are write-only: they are never returned, not even masked; `hasPassword`-like properties tell whether they are set. In a `PUT` or a `PATCH`, an absent secret is unchanged and a `null` one is cleared (where it is optional).
 
 ## Methods and statuses
 
@@ -154,3 +156,26 @@ Filters: `diagnostic`, `diagnosticName`, `type`, `creationDate`, `lastCheckDate`
 `POST /api/v1/scripts/validation` checks a script definition (driver, name, code) without saving it: 200 with the script as it would be created (`id` 0, no `url`) and its user inputs, or 400 with the problem.
 
 Filters: `id`, `name`, `folder`, `deviceDriver`, `author`; `q` searches the name, folder and author. Sort: `name` (default), `folder`, `deviceDriver`, `author`.
+
+### Credential sets
+
+`/api/v1/credential-sets`: list and get (read-only level); create, replace (`PUT`), update (`PATCH`) and delete (admin level), with `If-Match`. The global credential sets are the accounts and SNMP communities Netshot tries on the devices.
+
+- `type`: `SSH`, `SSH_KEY`, `TELNET`, `HTTP`, `SNMP_V1`, `SNMP_V2C` or `SNMP_V3`; it is chosen at creation and can't change. A property which doesn't apply to the type is refused (400).
+- The secrets (`password`, `superPassword`, `privateKey`, `community`, `authKey`, `privKey`) are write-only; the representation has `hasPassword`, `hasSuperPassword`, `hasPrivateKey`, `hasCommunity`, `hasAuthKey`, `hasPrivKey` (`null` where they don't apply). A required secret can't be cleared.
+- Required at creation: `username` and `password` for `SSH`, `TELNET` and `HTTP`; `username` and `privateKey` for `SSH_KEY` (`password` is then the optional key passphrase); `community` for `SNMP_V1` and `SNMP_V2C`; `username` for `SNMP_V3`, with `authKey` and `privKey` unless `authType` / `privType` is `NONE` (the default).
+- `mgmtDomain` is a reference (none for all domains).
+- A field can be read from a Vault instance instead of being given by value: `usernameVault`, `passwordVault`, `superPasswordVault`, `privateKeyVault`, `communityVault`, `authKeyVault`, `privKeyVault`, each `{"vaultInstance": <reference>, "path": "app/creds/key"}`. Give the value or the location, not both. A location isn't a secret: it is returned.
+- The device-specific credential sets (owned by the access of a device) aren't listed by default: `deviceSpecific=true` lists them. They can be read, not changed or deleted here (409).
+
+Filters: `id`, `name`, `type`, `mgmtDomain` (`mgmtDomain__empty=true` for none), `deviceSpecific`, `username`, `changeDate`; `q` searches the name and username.
+
+### Vault instances
+
+`/api/v1/vault-instances`: list and get (read-only level); create, replace, update and delete (admin level), with `If-Match`. A Vault instance is an external secret store (HashiCorp Vault KV v2, `type` `HASHICORP_KV2`) the credential fields can be read from; it can't be deleted while a credential field refers to it (409).
+
+- `authMethod` `APPROLE` needs `appRoleId` and `appRoleSecretId`; `JWT` needs `jwtIdpTokenEndpoint`, `jwtClientId`, `jwtVaultRole` and `jwtClientSecret`. The secrets `appRoleSecretId` and `jwtClientSecret` are write-only (`hasAppRoleSecretId`, `hasJwtClientSecret`).
+- Defaults: `httpsCaTrustMode` `SYSTEM_TRUSTSTORE` (`CUSTOM_CA` needs a certificate), `kvMountPath` `secret`, `appRoleMountPath` `approle`, `jwtMountPath` `jwt`.
+- `POST /api/v1/vault-instances/{id}/test` tests a saved instance, `POST /api/v1/vault-instances/test` a complete definition (secrets included) which isn't saved. Both answer 200 with `{"success": true|false, "message": ...}`: a failed connection isn't an error status.
+
+Filters: `id`, `name`, `type`, `baseUrl`, `namespace`, `authMethod`, `changeDate`; `q` searches the name and base URL.
