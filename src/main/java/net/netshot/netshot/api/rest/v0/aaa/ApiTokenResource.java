@@ -42,8 +42,8 @@ import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.PaginationParams;
-import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.PaginationParams;
+import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 
 /**
  * The REST resource of the API tokens (administrators only): list, add and delete.

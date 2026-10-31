@@ -69,7 +69,7 @@ class DeviceInventoryServiceTest {
 		DeviceRepository repository = new DeviceRepository();
 		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
-		this.searchService = new SearchService(this.transactions, new SearchRepository(), TestDrivers.registry());
+		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
 		Set<Network6Address> ip6 = new LinkedHashSet<>();

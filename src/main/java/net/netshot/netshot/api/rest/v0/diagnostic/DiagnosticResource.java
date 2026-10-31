@@ -42,8 +42,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.PaginationParams;
-import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.PaginationParams;
+import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.driver.DriverRegistry;
 

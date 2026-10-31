@@ -70,28 +70,31 @@ public class ApiTokenService {
 	}
 
 	/**
-	 * Authenticates a request: looks for the API token matching a token value.
+	 * Authenticates the bearer of an API token: looks for the API token matching a token value.
 	 *
 	 * @param token the clear token value, as received
-	 * @return the API token, or null if the value is unknown or the database is not reachable
+	 * @param remoteAddress the address of the client (for the audit log)
+	 * @return the API token, or null if the value is unknown
+	 * @throws NetshotException if the database can't be accessed
 	 */
-	public ApiToken authenticate(String token) {
+	public ApiToken authenticate(String token, String remoteAddress) {
 		String hash = ApiToken.hashToken(token.trim());
+		ApiToken apiToken;
 		try {
 			// Read-write pool, as before: a token just created must work even with a lagging read database
-			ApiToken apiToken = this.transactions.write(dsl -> this.repository.findByHash(dsl, hash));
-			if (apiToken == null) {
-				AAA_LOG.warn("Invalid API token received.");
-			}
-			else {
-				AAA_LOG.info("Successful API token usage {}.", apiToken);
-			}
-			return apiToken;
+			apiToken = this.transactions.write(dsl -> this.repository.findByHash(dsl, hash));
 		}
 		catch (DataAccessException e) {
 			log.error("Database error while looking for API token", e);
-			return null;
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to check the API token.");
 		}
+		if (apiToken == null) {
+			AAA_LOG.warn("API token authentication failure from {}.", remoteAddress);
+		}
+		else {
+			AAA_LOG.info("Successful API token usage {} from {}.", apiToken, remoteAddress);
+		}
+		return apiToken;
 	}
 
 	/**

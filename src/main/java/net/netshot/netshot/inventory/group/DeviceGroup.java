@@ -26,6 +26,28 @@ import java.time.Instant;
 public sealed interface DeviceGroup permits StaticDeviceGroup, DynamicDeviceGroup {
 
 	/**
+	 * The kind of group (as stored).
+	 */
+	enum Type {
+		/** A group of chosen devices. */
+		STATIC,
+		/** A group of the devices matching a search query. */
+		DYNAMIC,
+	}
+
+	/**
+	 * Gets the kind of the group.
+	 *
+	 * @return the type
+	 */
+	default Type type() {
+		return switch (this) {
+			case StaticDeviceGroup _ -> Type.STATIC;
+			case DynamicDeviceGroup _ -> Type.DYNAMIC;
+		};
+	}
+
+	/**
 	 * Gets the ID.
 	 *
 	 * @return the ID (0 for a group which isn't stored yet)

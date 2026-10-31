@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -81,6 +82,8 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp4addressesRecord;
@@ -88,6 +91,10 @@ import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterf
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.PhysicalAddress;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -472,6 +479,98 @@ public class DeviceRepository {
 				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))
 				.orderBy(DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION.asc(), DEVICE.NAME.asc()))
 			.fetch(DeviceSummary::fromRecord);
+	}
+
+	/** The fields the device lists can be filtered and sorted on. */
+	public static final QueryMapping LIST = QueryMapping.builder(DEVICE.ID)
+		.string("name", DEVICE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("mgmtAddress", DEVICE.MGMT_ADDRESS, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("status", DEVICE.STATUS, Device.Status.class, Option.SORTABLE)
+		.integer("mgmtDomain", DEVICE.MGMT_DOMAIN)
+		.string("family", DEVICE.FAMILY, Option.SORTABLE, Option.SEARCHABLE)
+		.string("driver", DEVICE.DRIVER, Option.SORTABLE)
+		.enumeration("networkClass", DEVICE.NETWORK_CLASS, Device.NetworkClass.class, Option.SORTABLE)
+		.string("softwareVersion", DEVICE.SOFTWARE_VERSION, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("softwareLevel", DEVICE.SOFTWARE_LEVEL, ConformanceLevel.class, Option.SORTABLE)
+		.string("serialNumber", DEVICE.SERIAL_NUMBER, Option.SORTABLE, Option.SEARCHABLE)
+		.string("location", DEVICE.LOCATION, Option.SORTABLE, Option.SEARCHABLE)
+		.string("contact", DEVICE.CONTACT, Option.SORTABLE, Option.SEARCHABLE)
+		.string("comments", DEVICE.COMMENTS, Option.SEARCHABLE)
+		.string("creator", DEVICE.CREATOR, Option.SORTABLE)
+		.inet("cachedIpAddress", DEVICE.CACHED_IP_ADDRESS)
+		.date("createdDate", DEVICE.CREATED_DATE, Option.SORTABLE)
+		.date("changeDate", DEVICE.CHANGE_DATE, Option.SORTABLE)
+		.date("eolDate", DEVICE.EOL_DATE, Option.SORTABLE)
+		.date("eosDate", DEVICE.EOS_DATE, Option.SORTABLE)
+		.custom("group", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
+			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID))
+				.and(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(values.stream().map(Long.class::cast).toList()))))
+		.custom("tag", FieldType.STRING, EnumSet.of(Lookup.EXACT, Lookup.N, Lookup.IE, Lookup.NIE, Lookup.IC, Lookup.NIC,
+			Lookup.ISW, Lookup.NISW, Lookup.EMPTY), (lookup, values) -> {
+				if (lookup == Lookup.EMPTY) {
+					return DSL.notExists(DSL.selectOne().from(DEVICE_TAGS).where(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)));
+				}
+				List<Condition> any = values.stream().map(String.class::cast).map(v -> switch (lookup) {
+					case IE -> DEVICE_TAGS.TAG.equalIgnoreCase(v);
+					case IC -> DEVICE_TAGS.TAG.containsIgnoreCase(v);
+					case ISW -> DEVICE_TAGS.TAG.startsWithIgnoreCase(v);
+					default -> DEVICE_TAGS.TAG.eq(v);
+				}).toList();
+				return DSL.exists(DSL.selectOne().from(DEVICE_TAGS).where(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)).and(DSL.or(any)));
+			})
+		.custom("compliant", FieldType.BOOLEAN, EnumSet.of(Lookup.EXACT), (_, values) -> {
+				Condition compliant = DSL.notExists(DSL.selectOne().from(CHECK_RESULT)
+					.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name())));
+				return DSL.or(values.stream().map(v -> Boolean.TRUE.equals(v) ? compliant : DSL.not(compliant)).toList());
+			})
+		.defaultSort(SortOrder.asc("name"))
+		.build();
+
+	/**
+	 * Lists the summaries of the devices matching a query and a condition.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the list query
+	 * @param condition another condition (such as the one of a device search query)
+	 * @return the summaries of the window of the query
+	 */
+	public List<DeviceSummary> findSummaries(DSLContext dsl, ListQuery query, Condition condition) {
+		return query.page().apply(dsl.select(DeviceSummary.FIELDS).from(DEVICE)
+				.where(LIST.condition(query)).and(condition)
+				.orderBy(LIST.orderBy(query)))
+			.fetch(DeviceSummary::fromRecord);
+	}
+
+	/**
+	 * Lists the devices (with all their details) matching a query and a condition.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the list query
+	 * @param condition another condition (such as the one of a device search query)
+	 * @return the devices of the window of the query
+	 */
+	public List<Device> findAll(DSLContext dsl, ListQuery query, Condition condition) {
+		return query.page().apply(dsl.select(FIELDS)
+				.from(DEVICE)
+				.leftJoin(DOMAIN).on(DOMAIN.ID.eq(DEVICE.MGMT_DOMAIN))
+				.leftJoin(EOL).on(EOL.ID.eq(DEVICE.EOL_MODULE))
+				.leftJoin(EOS).on(EOS.ID.eq(DEVICE.EOS_MODULE))
+				.where(LIST.condition(query)).and(condition)
+				.orderBy(LIST.orderBy(query)))
+			.fetch(DeviceRepository::toDevice);
+	}
+
+	/**
+	 * Counts the devices matching a query and a condition.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the list query (its window is ignored)
+	 * @param condition another condition
+	 * @return the number of devices
+	 */
+	public long count(DSLContext dsl, ListQuery query, Condition condition) {
+		return dsl.fetchCount(DEVICE, LIST.condition(query).and(condition));
 	}
 
 	/**

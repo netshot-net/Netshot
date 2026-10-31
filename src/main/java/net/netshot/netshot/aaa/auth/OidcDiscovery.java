@@ -38,8 +38,10 @@ import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
  * Service fetching the metadata of the OIDC identity provider (IdP), then refreshing it periodically, which
- * enables the OIDC authentication ({@link Oidc}). Applies the configuration changes: a changed IdP or client
- * is fetched again immediately, and the OIDC authentication is disabled when it's not configured any more.
+ * enables the OIDC authentication ({@link Oidc}): the OIDC login (web UI SSO) when a client (ID and secret)
+ * is configured, the JWT access tokens on the API when they are enabled; the IdP can be used for the JWT
+ * access tokens only, without client. Applies the configuration changes: a changed IdP or client is fetched
+ * again immediately, and the OIDC authentication is disabled when it's not configured any more.
  */
 @Slf4j
 public final class OidcDiscovery implements Service {
@@ -48,8 +50,8 @@ public final class OidcDiscovery implements Service {
 	 * What is fetched, from the settings.
 	 *
 	 * @param endpoint the URL of the IdP
-	 * @param clientId the client ID
-	 * @param clientSecret the client secret
+	 * @param clientId the client ID (null without OIDC login)
+	 * @param clientSecret the client secret (null without OIDC login)
 	 * @param retryInterval the interval (ms) before retrying after a failure
 	 * @param refreshInterval the interval (ms) between two fetches
 	 */
@@ -116,14 +118,15 @@ public final class OidcDiscovery implements Service {
 
 	@Override
 	public synchronized boolean isHealthy() {
-		return this.target == null || this.oidc.isAvailable();
+		return this.target == null || this.oidc.hasIdpMetadata();
 	}
 
 	@Override
 	public synchronized Map<String, Object> stats() {
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("configured", this.target != null);
-		stats.put("available", this.oidc.isAvailable());
+		stats.put("available", this.oidc.hasIdpMetadata());
+		stats.put("login", this.oidc.isAvailable());
 		stats.put("fetches", this.fetches.get());
 		stats.put("failures", this.failures.get());
 		return stats;
@@ -133,15 +136,16 @@ public final class OidcDiscovery implements Service {
 		if (settings.endpoint() == null) {
 			return null;
 		}
-		if (settings.clientId() == null) {
-			log.warn("OIDC client id configuration is missing, OIDC won't be enabled");
+		boolean login = settings.clientId() != null && settings.clientSecret() != null;
+		if (!login && !settings.jwtEnabled()) {
+			log.warn("OIDC client {} configuration is missing, OIDC won't be enabled",
+				settings.clientId() == null ? "id" : "secret");
 			return null;
 		}
-		if (settings.clientSecret() == null) {
-			log.warn("OIDC client secret configuration is missing, OIDC won't be enabled");
-			return null;
+		if (!login && settings.jwtAudience() == null) {
+			log.warn("Without OIDC client, the JWT access tokens require netshot.aaa.oidc.jwt.audience, they will be refused");
 		}
-		return new Target(settings.endpoint(), settings.clientId(), settings.clientSecret(),
+		return new Target(settings.endpoint(), login ? settings.clientId() : null, login ? settings.clientSecret() : null,
 			settings.retryInterval(), settings.refreshInterval());
 	}
 

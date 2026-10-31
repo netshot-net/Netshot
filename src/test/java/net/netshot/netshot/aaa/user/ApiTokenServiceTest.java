@@ -80,11 +80,11 @@ class ApiTokenServiceTest {
 	void authenticate() {
 		String authToken = "Q1w2E3r4T5y6U7i8O9p0AaSsDdFfGgHh";
 		ApiToken created = this.service.create("Auth", authToken, 10);
-		ApiToken found = this.service.authenticate("  " + authToken + " ");
+		ApiToken found = this.service.authenticate("  " + authToken + " ", "127.0.0.1");
 		Assertions.assertNotNull(found);
 		Assertions.assertEquals(created.id(), found.id());
 		Assertions.assertEquals(10, found.level());
-		Assertions.assertNull(this.service.authenticate("00000000000000000000000000000000"));
+		Assertions.assertNull(this.service.authenticate("00000000000000000000000000000000", "127.0.0.1"));
 	}
 
 	@Test
@@ -125,7 +125,7 @@ class ApiTokenServiceTest {
 		int before = this.service.list(Page.ALL).size();
 		assertError(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, () -> this.service.create("two", token, 1000));
 		Assertions.assertEquals(before, this.service.list(Page.ALL).size());
-		Assertions.assertEquals(first.id(), this.service.authenticate(token).id());
+		Assertions.assertEquals(first.id(), this.service.authenticate(token, "127.0.0.1").id());
 	}
 
 	@Test

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot.api.rest.v0;
 
 
 import io.swagger.v3.oas.annotations.Parameter;

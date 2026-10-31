@@ -33,6 +33,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The device group use cases: list, read, add, edit and delete the groups.
@@ -81,6 +84,33 @@ public class GroupService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the groups.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the groups");
+		}
+	}
+
+	/**
+	 * Gets what the group lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return GroupRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the groups matching a query.
+	 *
+	 * @param query the query
+	 * @return the groups of the window, with the total number of matching groups if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the groups can't be read
+	 */
+	public ListResult<DeviceGroup> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the groups.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the groups");
 		}
 	}
 
@@ -174,6 +204,31 @@ public class GroupService {
 	 *         or the group can't be stored
 	 */
 	public DeviceGroup update(long id, GroupDefinition definition) {
+		GroupDefinition replacing = definition.staticDevices() == null
+			? new GroupDefinition(definition.type(), definition.name(), List.of(), definition.query(), definition.folder(),
+				definition.hiddenFromReports())
+			: definition;
+		return this.update(id, replacing, null, false);
+	}
+
+	/**
+	 * Replaces the definition of a group, if it is at a given version. The type of a group can't change: the
+	 * definition gives the new devices of a static group (null to keep them), or the new query of a dynamic group
+	 * (which members are then refreshed; the default query if null).
+	 *
+	 * @param id the group ID
+	 * @param definition the new definition of the group (its type, if given, must be the one of the group)
+	 * @param expectedVersion the version the group must be at, or null for any
+	 * @return the edited group
+	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, is of another type, a
+	 *         device of a static group doesn't exist, the query of a dynamic group is invalid, the name is invalid
+	 *         or already used, or the group can't be stored
+	 */
+	public DeviceGroup update(long id, GroupDefinition definition, Long expectedVersion) {
+		return this.update(id, definition, expectedVersion, true);
+	}
+
+	private DeviceGroup update(long id, GroupDefinition definition, Long expectedVersion, boolean checkType) {
 		DeviceGroup group;
 		try {
 			group = this.transactions.write(dsl -> {
@@ -182,13 +237,19 @@ public class GroupService {
 					log.error("Unable to find the group {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_GROUP_NOT_FOUND, "Unable to find this group.");
 				}
+				if (expectedVersion != null && existing.version() != expectedVersion) {
+					throw NetshotException.versionMismatch("group", expectedVersion);
+				}
+				if (checkType && definition.type() != null && !definition.type().equals(typeName(existing))) {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "The type of a group can't change.");
+				}
 				List<Long> deviceIds = null;
 				String query = null;
-				if (existing instanceof StaticDeviceGroup) {
+				if (existing instanceof StaticDeviceGroup && definition.staticDevices() != null) {
 					deviceIds = this.checkDevices(dsl, definition.staticDevices());
 				}
 				else if (existing instanceof DynamicDeviceGroup) {
-					query = formatQuery(definition.query());
+					query = formatQuery(definition.query() == null && checkType ? DynamicDeviceGroup.DEFAULT_QUERY : definition.query());
 				}
 				String name = definition.name() == null ? "" : definition.name().trim();
 				if (name.isEmpty()) {
@@ -208,11 +269,15 @@ public class GroupService {
 						.query(query)
 						.build();
 				};
-				DeviceGroup saved = this.repository.save(dsl, edited);
+				DeviceGroup saved = this.repository.save(dsl, edited, expectedVersion);
+				if (saved == null) {
+					// Changed between the read and the update
+					throw NetshotException.versionMismatch("group", expectedVersion);
+				}
 				if (saved instanceof DynamicDeviceGroup dynamicGroup) {
 					refreshMembers(dsl, dynamicGroup);
 				}
-				else {
+				else if (deviceIds != null) {
 					this.repository.setMembers(dsl, id, deviceIds);
 				}
 				return saved;
@@ -229,6 +294,11 @@ public class GroupService {
 		return group;
 	}
 
+	// The name of the type of a group, as in a definition
+	private static String typeName(DeviceGroup group) {
+		return group instanceof DynamicDeviceGroup ? "DynamicDeviceGroup" : "StaticDeviceGroup";
+	}
+
 	/**
 	 * Deletes a group. This doesn't delete the devices of the group.
 	 *
@@ -237,9 +307,24 @@ public class GroupService {
 	 * @throws NetshotException if the group can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a group if it is at a given version. This doesn't delete the devices of the group.
+	 *
+	 * @param id the group ID
+	 * @param expectedVersion the version the group must be at, or null for any
+	 * @return true if the group has been deleted, false if there is no such group
+	 * @throws NetshotException if the group isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				if (!this.repository.remove(dsl, id, expectedVersion)) {
+					if (expectedVersion != null && this.repository.find(dsl, id) != null) {
+						throw NetshotException.versionMismatch("group", expectedVersion);
+					}
 					log.info("No such device group of ID {}", id);
 					return false;
 				}

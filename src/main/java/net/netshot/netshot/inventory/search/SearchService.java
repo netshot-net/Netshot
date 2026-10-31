@@ -18,14 +18,23 @@
  */
 package net.netshot.netshot.inventory.search;
 
+import org.jooq.Condition;
 import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.inventory.device.Device;
+import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.inventory.search.Finder.FinderParseException;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 import net.netshot.netshot.driver.DriverRegistry;
 
 /**
@@ -36,6 +45,7 @@ public class SearchService {
 
 	private final Transactions transactions;
 	private final SearchRepository repository;
+	private final DeviceRepository deviceRepository;
 
 	/** The loaded device drivers, to parse the queries against. */
 	private final DriverRegistry driverRegistry;
@@ -45,12 +55,84 @@ public class SearchService {
 	 *
 	 * @param transactions the transaction support
 	 * @param repository the search repository
+	 * @param deviceRepository the device repository
 	 * @param driverRegistry the loaded device drivers, to parse the queries against
 	 */
-	public SearchService(Transactions transactions, SearchRepository repository, DriverRegistry driverRegistry) {
+	public SearchService(Transactions transactions, SearchRepository repository, DeviceRepository deviceRepository,
+		DriverRegistry driverRegistry) {
 		this.driverRegistry = driverRegistry;
 		this.transactions = transactions;
 		this.repository = repository;
+		this.deviceRepository = deviceRepository;
+	}
+
+	/**
+	 * Gets what the device lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema deviceListSchema() {
+		return DeviceRepository.LIST.schema();
+	}
+
+	/**
+	 * Parses a device search query.
+	 *
+	 * @param query the string-based query, or null
+	 * @return the condition (true if there is no query)
+	 * @throws NetshotException if the query is invalid
+	 */
+	private Condition searchCondition(String query) {
+		if (query == null || query.isBlank()) {
+			return DSL.trueCondition();
+		}
+		try {
+			return new Finder(query, this.driverRegistry, this.transactions).getCondition();
+		}
+		catch (FinderParseException e) {
+			log.warn("User's query is invalid.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_SEARCH_STRING, "Invalid search string. " + e.getMessage(), "query");
+		}
+	}
+
+	/**
+	 * Lists the summaries of the devices matching a list query and a search query.
+	 *
+	 * @param listQuery the list query (filters, order, window)
+	 * @param searchQuery the string-based search query (see {@link Finder}), or null
+	 * @return the device summaries of the window, with the total number if the list query asks for it
+	 * @throws NetshotException if a filter or the search query is invalid, or the devices can't be read
+	 */
+	public ListResult<DeviceSummary> listDeviceSummaries(ListQuery listQuery, String searchQuery) {
+		Condition condition = this.searchCondition(searchQuery);
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.deviceRepository.findSummaries(dsl, listQuery, condition),
+				listQuery.count() ? this.deviceRepository.count(dsl, listQuery, condition) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the devices.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the devices");
+		}
+	}
+
+	/**
+	 * Lists the devices (with all their details) matching a list query and a search query.
+	 *
+	 * @param listQuery the list query (filters, order, window)
+	 * @param searchQuery the string-based search query (see {@link Finder}), or null
+	 * @return the devices of the window, with the total number if the list query asks for it
+	 * @throws NetshotException if a filter or the search query is invalid, or the devices can't be read
+	 */
+	public ListResult<Device> listDevices(ListQuery listQuery, String searchQuery) {
+		Condition condition = this.searchCondition(searchQuery);
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.deviceRepository.findAll(dsl, listQuery, condition),
+				listQuery.count() ? this.deviceRepository.count(dsl, listQuery, condition) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the devices.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the devices");
+		}
 	}
 
 	/**

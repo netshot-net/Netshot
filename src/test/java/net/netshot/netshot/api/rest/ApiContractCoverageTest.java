@@ -56,8 +56,8 @@ import net.netshot.netshot.testing.contract.ApiContractSeed;
  * or listed, with a reason, in {@link #EXCLUSIONS}.
  *
  * <p>The resource methods are discovered by scanning the classes of the
- * application ({@code net.netshot.netshot} package and sub-packages) for the
- * {@code @Path} annotation, so resources moved to other packages or classes
+ * application ({@code net.netshot.netshot} package and sub-packages, except the
+ * v1 API) for the {@code @Path} annotation, so resources moved to other packages or classes
  * are still found. Cases are matched on the HTTP method and the full path
  * template (path parameter names do not matter).</p>
  *
@@ -74,11 +74,12 @@ public class ApiContractCoverageTest {
 	private static final Map<String, String> EXCLUSIONS = Map.of();
 
 	/** Cases which are not about a resource method of the application (third party resources). */
-	private static final Set<String> EXTERNAL_CASES = Set.of(
-		"GET /openapi.{}" // Swagger's OpenApiResource, not in the application packages
-	);
+	private static final Set<String> EXTERNAL_CASES = Set.of();
 
 	private static final String ROOT_PACKAGE = "net.netshot.netshot";
+
+	/** The package of the v1 API, whose resources are not part of the legacy contract. */
+	private static final String V1_PACKAGE = ROOT_PACKAGE + ".api.rest.v1.";
 
 	/**
 	 * Finds the "METHOD /path" keys of all the resource methods of the application.
@@ -87,6 +88,10 @@ public class ApiContractCoverageTest {
 	static Set<String> findResourceMethods() throws IOException, URISyntaxException, ClassNotFoundException {
 		Set<String> keys = new TreeSet<>();
 		for (String className : findClassNames()) {
+			if (className.startsWith(V1_PACKAGE)) {
+				// The v1 API has its own contract tests
+				continue;
+			}
 			Class<?> clazz = Class.forName(className, false, ApiContractCoverageTest.class.getClassLoader());
 			jakarta.ws.rs.Path classPath = clazz.getAnnotation(jakarta.ws.rs.Path.class);
 			if (classPath == null) {

@@ -50,8 +50,8 @@ import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
 import net.netshot.netshot.api.rest.LoggerFilter;
-import net.netshot.netshot.api.rest.NetshotAuthenticationRequiredException;
-import net.netshot.netshot.api.rest.SecurityFilter;
+import net.netshot.netshot.api.rest.SessionAuthenticator;
+import net.netshot.netshot.api.rest.v0.NetshotAuthenticationRequiredException;
 
 /**
  * The REST resource of the current user: log in, log out, read the current user and change its
@@ -190,7 +190,7 @@ public class LoginResource {
 			HttpSession httpSession = this.request.getSession(true);
 			// The current max idle time (the default timeout of the sessions is set when the server starts)
 			httpSession.setMaxInactiveInterval(UiUser.settings().maxIdleTime());
-			httpSession.setAttribute(SecurityFilter.USER_ATTRIBUTE, user);
+			httpSession.setAttribute(SessionAuthenticator.USER_ATTRIBUTE, user);
 			return UserMapper.toDto(user);
 		}
 		throw new NetshotAuthenticationRequiredException();

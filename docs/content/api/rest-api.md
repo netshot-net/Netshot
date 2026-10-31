@@ -2,6 +2,9 @@
 
 Netshot exposes most of its functionality through a REST API. The Web UI itself is built entirely on top of it — any feature available in the Web UI has a corresponding API endpoint. The API supports both JSON and XML encoding.
 
+!!! tip "REST API v1"
+    A new version of the API, with paginated lists, NetBox-style filters, field selection and standard HTTP semantics, is being built under `/api/v1`: see [REST API v1](rest-api-v1.md). This page describes the legacy API, served on `/api`. The legacy API can be disabled with `netshot.http.api.v0.enabled` (the Web UI still needs it for now).
+
 ## Exploring the API
 
 The OpenAPI definition is available on any Netshot deployment at:
@@ -9,6 +12,8 @@ The OpenAPI definition is available on any Netshot deployment at:
 ```
 https://<server:port>/api/openapi.json
 ```
+
+(or `openapi.yaml`, or `openapi` in the format of the `Accept` header).
 
 An interactive API browser is built into the Web UI — open it from the **Help** menu — for exploring and testing endpoints without leaving the application.
 
@@ -18,11 +23,27 @@ An interactive API browser is built into the Web UI — open it from the **Help*
 
 Generate a token from the Admin page's [API Tokens](../user-guide/administration.md#api-tokens) section. Copy it immediately; it can't be retrieved again once created.
 
-Pass it as the `X-Netshot-API-Token` header on every request — this is the recommended method for scripts and integrations, and doesn't require session/cookie handling.
+Pass it as the `X-Netshot-API-Token` header on every request — this is the recommended method for scripts and integrations, and doesn't require session/cookie handling. The standard `Authorization: Bearer <token>` header is accepted too.
+
+### JWT access tokens (OIDC)
+
+When `netshot.aaa.oidc.idp.url` and `netshot.aaa.oidc.jwt.enabled` are set (see the [configuration reference](../configuration-reference.md#user-authentication)), the API also accepts the JWT access tokens issued by the Identity Provider, for instance obtained by a script or a CI job with the client credentials grant:
+
+```bash
+curl -H "Authorization: Bearer <JWT>" -H "Accept: application/json" https://<server:port>/api/v1/domains
+```
+
+The token signature is checked against the keys published by the IdP, as well as its issuer, its audience (`netshot.aaa.oidc.jwt.audience`, the OIDC client ID by default) and its expiration. The user name and the permission level come from the same claims as for an OIDC login of the Web UI (the user name falls back to the `sub` claim, a token without known role gets `netshot.aaa.oidc.role.defaultlevel`). As for an OIDC login, a token can't authenticate a user defined as local in Netshot, and the level of a remote user defined in Netshot is the one defined there. Each request is authenticated on its own: no session is created.
+
+The JWT access tokens don't need the OIDC login of the Web UI: without `netshot.aaa.oidc.clientid` and `netshot.aaa.oidc.clientsecret`, the IdP is only used to validate the tokens (`netshot.aaa.oidc.jwt.audience` is then required), and the Web UI keeps its other login methods.
 
 ### Cookie-based (legacy)
 
 `POST /api/user` with a username and password to obtain a `NetshotSessionID` session cookie, which can then be passed on subsequent calls. `DELETE /api/user` logs out.
+
+### Precedence
+
+A request is authenticated by the first kind of credentials it carries, in this order: API token (`X-Netshot-API-Token`, or a non-JWT `Authorization: Bearer`), JWT access token (`Authorization: Bearer` with a JWT), session cookie. Invalid credentials make the request anonymous (401 on a protected endpoint) even if a valid session cookie is also present: there is no fallback to another method. Every authentication by an API token or a JWT is recorded in the AAA log with the client address.
 
 ```bash
 curl -v -X POST -H "Content-Type: application/json" -H "Accept: application/json" \

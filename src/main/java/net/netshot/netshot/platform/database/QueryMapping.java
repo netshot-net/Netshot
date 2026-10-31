@@ -1,0 +1,427 @@
+/**
+ * Copyright 2013-2025 Netshot
+ * 
+ * This file is part of Netshot project.
+ * 
+ * Netshot is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Netshot is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package net.netshot.netshot.platform.database;
+
+import java.net.InetAddress;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.jooq.Condition;
+import org.jooq.Field;
+import org.jooq.SortField;
+import org.jooq.impl.DSL;
+import org.jooq.impl.SQLDataType;
+
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.FieldSpec;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.query.SortOrder;
+
+/**
+ * The translation of the list queries ({@link ListQuery}) of one kind of object into jOOQ conditions and
+ * orders. A repository declares it once (a static field), with the columns (or custom conditions) behind
+ * the field names of the API representation; the service publishes its {@link #schema()}.
+ *
+ * <pre>{@code
+ * static final QueryMapping LIST = QueryMapping.builder(DOMAIN.ID)
+ *     .string("name", DOMAIN.NAME, Option.SORTABLE, Option.SEARCHABLE)
+ *     .inet("ipAddress", DOMAIN.IPV4_ADDRESS)
+ *     .defaultSort(SortOrder.asc("name"))
+ *     .build();
+ * }</pre>
+ *
+ * <p>The ID is always a field ({@code id}, filterable and sortable), and always ends the order, so that the
+ * pages are defined.</p>
+ */
+public final class QueryMapping {
+
+	/** Options of a field. */
+	public enum Option {
+		/** The result can be sorted by the field. */
+		SORTABLE,
+		/** The free text search looks into the field (text fields only). */
+		SEARCHABLE,
+	}
+
+	/**
+	 * Builds the condition of a custom filter (one which isn't a simple comparison of a column).
+	 */
+	@FunctionalInterface
+	public interface CustomFilter {
+		/**
+		 * Builds the condition matching any of the values (the negated lookups are applied by the caller).
+		 *
+		 * @param lookup the (positive) lookup
+		 * @param values the values, as read by the type of the field
+		 * @return the condition
+		 */
+		Condition matchAny(Lookup lookup, List<Object> values);
+	}
+
+	/**
+	 * A mapped field.
+	 *
+	 * @param spec the neutral description of the field
+	 * @param column the column (null for a custom filter)
+	 * @param custom the custom filter (null for a column)
+	 */
+	private record Mapped(FieldSpec spec, Field<?> column, CustomFilter custom) {
+	}
+
+	/** The ID column. */
+	private final Field<Long> idColumn;
+
+	/** The fields, by name. */
+	private final Map<String, Mapped> fields;
+
+	/** The neutral schema. */
+	private final QuerySchema schema;
+
+	private QueryMapping(Field<Long> idColumn, Map<String, Mapped> fields, List<SortOrder> defaultSort) {
+		this.idColumn = idColumn;
+		this.fields = Map.copyOf(fields);
+		Map<String, FieldSpec> specs = new LinkedHashMap<>();
+		fields.forEach((name, mapped) -> specs.put(name, mapped.spec()));
+		this.schema = new QuerySchema(specs, defaultSort);
+	}
+
+	/**
+	 * Starts a mapping.
+	 *
+	 * @param idColumn the ID column (field {@code id})
+	 * @return the builder
+	 */
+	public static Builder builder(Field<Long> idColumn) {
+		return new Builder(idColumn);
+	}
+
+	/**
+	 * Gets the neutral description of the fields.
+	 *
+	 * @return the schema
+	 */
+	public QuerySchema schema() {
+		return this.schema;
+	}
+
+	/**
+	 * Builds the condition of the filters and of the free text search of a query.
+	 *
+	 * @param query the query
+	 * @return the condition (true if there is no filter)
+	 */
+	public Condition condition(ListQuery query) {
+		List<Condition> conditions = new ArrayList<>();
+		for (Criterion criterion : query.criteria()) {
+			conditions.add(this.condition(criterion));
+		}
+		if (query.search() != null) {
+			List<Condition> any = new ArrayList<>();
+			for (Mapped mapped : this.fields.values()) {
+				if (mapped.spec().searchable() && mapped.column() != null) {
+					any.add(text(mapped.column()).containsIgnoreCase(query.search()));
+				}
+			}
+			conditions.add(any.isEmpty() ? DSL.falseCondition() : DSL.or(any));
+		}
+		return DSL.and(conditions);
+	}
+
+	/**
+	 * Builds the order of a query: the order of the query (or the default one), ended by the ID.
+	 *
+	 * @param query the query
+	 * @return the sort fields
+	 */
+	public List<SortField<?>> orderBy(ListQuery query) {
+		List<SortOrder> orders = query.sort().isEmpty() ? this.schema.defaultSort() : query.sort();
+		List<SortField<?>> sortFields = new ArrayList<>();
+		boolean hasId = false;
+		for (SortOrder order : orders) {
+			Mapped mapped = this.fields.get(order.field());
+			if (mapped == null || mapped.column() == null || !mapped.spec().sortable()) {
+				throw new IllegalArgumentException("Can't sort by " + order.field());
+			}
+			sortFields.add(order.descending() ? mapped.column().desc() : mapped.column().asc());
+			hasId |= mapped.column().equals(this.idColumn);
+		}
+		if (!hasId) {
+			sortFields.add(this.idColumn.asc());
+		}
+		return sortFields;
+	}
+
+	/**
+	 * Builds the condition of a filter.
+	 *
+	 * @param criterion the filter
+	 * @return the condition
+	 */
+	private Condition condition(Criterion criterion) {
+		Mapped mapped = this.fields.get(criterion.field());
+		if (mapped == null || !mapped.spec().lookups().contains(criterion.lookup())) {
+			throw new IllegalArgumentException("Can't filter on " + criterion.field() + " with " + criterion.lookup());
+		}
+		Lookup lookup = criterion.lookup();
+		if (lookup == Lookup.EMPTY) {
+			Condition empty = mapped.custom() != null ? mapped.custom().matchAny(lookup, List.of(true)) : isEmpty(mapped);
+			// "true" and "false" given together match everything
+			boolean wantEmpty = criterion.values().contains(Boolean.TRUE);
+			boolean wantNotEmpty = criterion.values().contains(Boolean.FALSE);
+			if (wantEmpty && wantNotEmpty) {
+				return DSL.trueCondition();
+			}
+			return wantEmpty ? empty : DSL.not(empty);
+		}
+		Lookup positive = lookup.positive();
+		Condition any = mapped.custom() != null
+			? mapped.custom().matchAny(positive, criterion.values())
+			: matchAny(mapped.column(), mapped.spec().type(), positive, criterion.values());
+		if (!lookup.isNegated()) {
+			return any;
+		}
+		if (mapped.column() != null) {
+			return mapped.column().isNull().or(DSL.not(any));
+		}
+		return DSL.not(any);
+	}
+
+	private static Condition isEmpty(Mapped mapped) {
+		Field<?> column = mapped.column();
+		if (mapped.spec().type() == FieldType.STRING) {
+			return column.isNull().or(text(column).eq(""));
+		}
+		return column.isNull();
+	}
+
+	/**
+	 * Gets a column as text.
+	 *
+	 * @param column the column
+	 * @return the column itself if it holds text, otherwise its cast to text
+	 */
+	@SuppressWarnings("unchecked")
+	private static Field<String> text(Field<?> column) {
+		return column.getType() == String.class ? (Field<String>) column : column.cast(SQLDataType.VARCHAR);
+	}
+
+	/**
+	 * Builds the condition matching a column against any of the values with a positive lookup.
+	 *
+	 * @param column the column
+	 * @param type the type of the field
+	 * @param lookup the lookup (positive)
+	 * @param values the values
+	 * @return the condition
+	 */
+	@SuppressWarnings("unchecked")
+	private static Condition matchAny(Field<?> column, FieldType type, Lookup lookup, List<Object> values) {
+		Field<Object> field = (Field<Object>) column;
+		if (lookup == Lookup.EXACT) {
+			List<Field<Object>> bound = values.stream().<Field<Object>>map(v -> DSL.val(v, field)).toList();
+			return bound.size() == 1 ? field.eq(bound.get(0)) : field.in(bound);
+		}
+		List<Condition> any = new ArrayList<>();
+		for (Object value : values) {
+			any.add(switch (lookup) {
+				case IE -> text(field).equalIgnoreCase((String) value);
+				case IC -> text(field).containsIgnoreCase((String) value);
+				case ISW -> text(field).startsWithIgnoreCase((String) value);
+				case IEW -> text(field).endsWithIgnoreCase((String) value);
+				case REGEX -> DSL.condition("{0} ~ {1}", field, DSL.val((String) value));
+				case IREGEX -> DSL.condition("{0} ~* {1}", field, DSL.val((String) value));
+				case LT -> field.lt(DSL.val(value, field));
+				case LTE -> field.le(DSL.val(value, field));
+				case GT -> field.gt(DSL.val(value, field));
+				case GTE -> field.ge(DSL.val(value, field));
+				case NET -> DSL.condition("{0} <<= cast({1} as inet)", field, DSL.val((String) value));
+				default -> throw new IllegalArgumentException("Unexpected lookup " + lookup + " for a " + type + " field");
+			});
+		}
+		return DSL.or(any);
+	}
+
+	/**
+	 * Builder of a mapping.
+	 */
+	public static final class Builder {
+
+		private final Field<Long> idColumn;
+		private final Map<String, Mapped> fields = new LinkedHashMap<>();
+		private List<SortOrder> defaultSort = List.of();
+
+		private Builder(Field<Long> idColumn) {
+			this.idColumn = idColumn;
+			this.column("id", FieldType.INTEGER, idColumn, List.of(), Option.SORTABLE);
+		}
+
+		private Builder column(String name, FieldType type, Field<?> column, List<String> enumValues, Option... options) {
+			Set<Option> opts = options.length == 0 ? EnumSet.noneOf(Option.class) : EnumSet.copyOf(Arrays.asList(options));
+			if (opts.contains(Option.SEARCHABLE) && type != FieldType.STRING) {
+				throw new IllegalArgumentException("Only a text field can be searchable: " + name);
+			}
+			FieldSpec spec = new FieldSpec(name, type, type.lookups(), enumValues,
+				opts.contains(Option.SORTABLE), opts.contains(Option.SEARCHABLE));
+			if (this.fields.put(name, new Mapped(spec, column, null)) != null) {
+				throw new IllegalArgumentException("Duplicate field " + name);
+			}
+			return this;
+		}
+
+		/**
+		 * Adds a text field.
+		 *
+		 * @param name the name of the field
+		 * @param column the column
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder string(String name, Field<String> column, Option... options) {
+			return this.column(name, FieldType.STRING, column, List.of(), options);
+		}
+
+		/**
+		 * Adds an integer field (number, or reference to another object by ID).
+		 *
+		 * @param name the name of the field
+		 * @param column the column
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder integer(String name, Field<? extends Number> column, Option... options) {
+			return this.column(name, FieldType.INTEGER, column, List.of(), options);
+		}
+
+		/**
+		 * Adds a boolean field.
+		 *
+		 * @param name the name of the field
+		 * @param column the column
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder bool(String name, Field<Boolean> column, Option... options) {
+			return this.column(name, FieldType.BOOLEAN, column, List.of(), options);
+		}
+
+		/**
+		 * Adds a date field.
+		 *
+		 * @param name the name of the field
+		 * @param column the column
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder date(String name, Field<Instant> column, Option... options) {
+			return this.column(name, FieldType.DATE, column, List.of(), options);
+		}
+
+		/**
+		 * Adds an IP address field.
+		 *
+		 * @param name the name of the field
+		 * @param column the column ({@code inet})
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder inet(String name, Field<InetAddress> column, Option... options) {
+			return this.column(name, FieldType.INET, column, List.of(), options);
+		}
+
+		/**
+		 * Adds an enumeration field (stored by name).
+		 *
+		 * @param name the name of the field
+		 * @param column the column (holding the names of the constants)
+		 * @param enumClass the enumeration
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder enumeration(String name, Field<String> column, Class<? extends Enum<?>> enumClass, Option... options) {
+			List<String> names = Arrays.stream(enumClass.getEnumConstants()).map(Enum::name).toList();
+			return this.column(name, FieldType.ENUM, column, names, options);
+		}
+
+		/**
+		 * Adds an enumeration field, of given values.
+		 *
+		 * @param name the name of the field
+		 * @param column the column (holding one of the values)
+		 * @param values the possible values
+		 * @param options the options
+		 * @return this builder
+		 */
+		public Builder enumeration(String name, Field<String> column, Collection<String> values, Option... options) {
+			return this.column(name, FieldType.ENUM, column, values.stream().sorted().toList(), options);
+		}
+
+		/**
+		 * Adds a custom filter, which can't be sorted on.
+		 *
+		 * @param name the name of the field
+		 * @param type the type of the values
+		 * @param lookups the lookups the filter supports (the negated ones are built from the positive ones)
+		 * @param filter the condition builder
+		 * @return this builder
+		 */
+		public Builder custom(String name, FieldType type, Set<Lookup> lookups, CustomFilter filter) {
+			FieldSpec spec = new FieldSpec(name, type, lookups, List.of(), false, false);
+			if (this.fields.put(name, new Mapped(spec, null, filter)) != null) {
+				throw new IllegalArgumentException("Duplicate field " + name);
+			}
+			return this;
+		}
+
+		/**
+		 * Sets the default order.
+		 *
+		 * @param orders the sort keys
+		 * @return this builder
+		 */
+		public Builder defaultSort(SortOrder... orders) {
+			this.defaultSort = List.of(orders);
+			return this;
+		}
+
+		/**
+		 * Builds the mapping.
+		 *
+		 * @return the mapping
+		 */
+		public QueryMapping build() {
+			for (SortOrder order : this.defaultSort) {
+				Mapped mapped = this.fields.get(order.field());
+				if (mapped == null || !mapped.spec().sortable()) {
+					throw new IllegalArgumentException("The default sort field isn't sortable: " + order.field());
+				}
+			}
+			return new QueryMapping(this.idColumn, this.fields, this.defaultSort);
+		}
+	}
+}
