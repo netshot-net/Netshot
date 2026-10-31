@@ -276,6 +276,7 @@ public class Netshot {
 
 			Wiring wiring = Wiring.create(CONFIG);
 			ServiceManager services = new ServiceManager(wiring.services());
+			wiring.serviceHealthService().attach(services);
 			// Stops the services (in the reverse order) on SIGTERM/SIGINT, or if the startup fails
 			Runtime.getRuntime().addShutdownHook(services.shutdownHook());
 			services.start();
