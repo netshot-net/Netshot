@@ -18,13 +18,11 @@
  */
 package net.netshot.netshot.api.rest.v1.diagnostic;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import net.netshot.netshot.api.rest.v1.ReadOnlyFrom;
-import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.api.rest.v1.RefId;
 
 /**
  * The definition of a diagnostic, to create one ({@code POST}) or replace one ({@code PUT}, and the result of a
@@ -49,38 +47,11 @@ public record DiagnosticRequest(
 	@JsonProperty(required = true) @Schema(allowableValues = {"SIMPLE", "JAVASCRIPT", "PYTHON"}) String type,
 	@JsonProperty(required = true) @Schema(allowableValues = {"TEXT", "LONGTEXT", "NUMERIC", "BINARY"}) String resultType,
 	boolean enabled,
-	@Schema(description = "ID of the target group (or an object with this id, such as the one read)", type = "integer") GroupReference targetGroup,
+	@Schema(description = "The target group: its ID, or an object with its ID (such as the one read)") RefId targetGroup,
 	String script,
 	String deviceDriver,
 	String cliMode,
 	String command,
 	String modifierPattern,
 	String modifierReplacement) {
-
-	/**
-	 * A reference to a group in a request: its ID, given as a number or as an object having an {@code id} (the
-	 * representation read can be sent back).
-	 *
-	 * @param id the group ID
-	 */
-	public record GroupReference(long id) {
-
-		/**
-		 * Reads a reference.
-		 *
-		 * @param node a number, or an object with a numeric {@code id}
-		 * @return the reference
-		 * @throws NetshotException if the node isn't a reference
-		 */
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public static GroupReference of(JsonNode node) {
-			if (node.isIntegralNumber()) {
-				return new GroupReference(node.asLong());
-			}
-			if (node.isObject() && node.path("id").isIntegralNumber()) {
-				return new GroupReference(node.path("id").asLong());
-			}
-			throw NetshotException.invalidParameter("targetGroup", "A group is referenced by its ID");
-		}
-	}
 }
