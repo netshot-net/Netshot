@@ -27,6 +27,10 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the users. The {@link DSLContext} is always the first parameter: the caller
@@ -39,6 +43,39 @@ public class UserRepository {
 		return new UiUser(r.get(USER.ID), r.get(USER.USERNAME), r.get(USER.LOCAL), r.get(USER.LEVEL),
 			r.get(USER.HASHED_PASSWORD), oldHashes == null ? List.of() : Arrays.asList(oldHashes),
 			r.get(USER.LAST_PASSWORD_CHANGE_DATE));
+	}
+
+	/** The fields the user lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(USER.ID)
+		.string("username", USER.USERNAME, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("local", USER.LOCAL, Option.SORTABLE)
+		.integer("level", USER.LEVEL, Option.SORTABLE)
+		.defaultSort(SortOrder.asc("username"))
+		.build();
+
+	/**
+	 * Lists the users matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the users of the window of the query
+	 */
+	public List<UiUser> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(USER.fields()).from(USER)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(UserRepository::toUser);
+	}
+
+	/**
+	 * Counts the users matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of users
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(USER, LIST.condition(query));
 	}
 
 	/**
