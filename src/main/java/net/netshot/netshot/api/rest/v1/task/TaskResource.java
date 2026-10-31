@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.task;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import java.util.function.LongFunction;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -54,9 +56,11 @@ import net.netshot.netshot.api.rest.v1.device.DeviceDto;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
+import net.netshot.netshot.api.rest.v1.report.ReportParams;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.task.Task;
@@ -246,5 +250,57 @@ public class TaskResource {
 			T found = loaded.get(id);
 			return found != null ? found : byId.apply(id);
 		};
+	}
+
+	/**
+	 * Gets time-based statistics about the completed tasks.
+	 *
+	 * @return the statistics
+	 */
+	@GET
+	@Path("/stats")
+	@RolesAllowed(User.ROLE_READONLY)
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Operation(summary = "Get time-based statistics about completed tasks",
+		description = "Returns, for the date range, the number of completed tasks (success, failure, cancelled) bucketed over time, "
+			+ "plus the totals by status and by task type over the whole range.",
+		parameters = {
+			@Parameter(name = "after", in = ParameterIn.QUERY, description = "Start of the range, ISO-8601 (default: 1970-01-01T00:00:00Z)"),
+			@Parameter(name = "before", in = ParameterIn.QUERY, description = "End of the range, ISO-8601 (default: now)"),
+			@Parameter(name = "buckets", in = ParameterIn.QUERY, description = "Number of time buckets the range is split into, from 1 to 366 (default: 48)")
+		})
+	public TaskStatsDto getTaskStats() {
+		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
+		ReportParams.only(params, "after", "before", "buckets");
+		Instant from = ReportParams.instant(params, "after");
+		Instant to = ReportParams.instant(params, "before");
+		Integer binCount = ReportParams.integer(params, "buckets", 1, 366);
+		Instant start = from == null ? Instant.EPOCH : from;
+		Instant end = to == null ? Instant.now() : to;
+		if (!start.isBefore(end)) {
+			throw NetshotException.invalidParameter("before", "The end of the range must be after its start");
+		}
+		return TaskStatsDto.of(this.taskService.getStats(start.toEpochMilli(), end.toEpochMilli(), binCount), start, end);
+	}
+
+	/**
+	 * Gets the number of tasks by status.
+	 *
+	 * @return the counts
+	 */
+	@GET
+	@Path("/status-counts")
+	@RolesAllowed(User.ROLE_READONLY)
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Operation(summary = "Get the number of tasks by status",
+		description = "Returns the number of tasks in each status (0 included), and the number of task threads.",
+		parameters = {
+			@Parameter(name = "parentTask", in = ParameterIn.QUERY, description = "Only count the child tasks of this parent task ID")
+		})
+	public TaskStatusCountsDto getTaskStatusCounts() {
+		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
+		ReportParams.only(params, "parentTask");
+		String parent = ReportParams.single(params, "parentTask");
+		return TaskStatusCountsDto.of(this.taskService.getOverview(parent == null ? null : ReportParams.id("parentTask", parent)));
 	}
 }
