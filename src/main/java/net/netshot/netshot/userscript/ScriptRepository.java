@@ -26,6 +26,10 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the device scripts. The {@link DSLContext} is always the first parameter: the
@@ -36,6 +40,40 @@ public class ScriptRepository {
 	private static DeviceJsScript toScript(Record r) {
 		return new DeviceJsScript(r.get(DEVICE_JS_SCRIPT.ID), r.get(DEVICE_JS_SCRIPT.NAME), r.get(DEVICE_JS_SCRIPT.FOLDER),
 			r.get(DEVICE_JS_SCRIPT.SCRIPT), r.get(DEVICE_JS_SCRIPT.DEVICE_DRIVER), r.get(DEVICE_JS_SCRIPT.AUTHOR), null);
+	}
+
+	/** The fields the script lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DEVICE_JS_SCRIPT.ID)
+		.string("name", DEVICE_JS_SCRIPT.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("folder", DEVICE_JS_SCRIPT.FOLDER, Option.SORTABLE, Option.SEARCHABLE)
+		.string("deviceDriver", DEVICE_JS_SCRIPT.DEVICE_DRIVER, Option.SORTABLE)
+		.string("author", DEVICE_JS_SCRIPT.AUTHOR, Option.SORTABLE, Option.SEARCHABLE)
+		.defaultSort(SortOrder.asc("name"))
+		.build();
+
+	/**
+	 * Lists the scripts matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the scripts of the window of the query
+	 */
+	public List<DeviceJsScript> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DEVICE_JS_SCRIPT.fields()).from(DEVICE_JS_SCRIPT)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(ScriptRepository::toScript);
+	}
+
+	/**
+	 * Counts the scripts matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of scripts
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DEVICE_JS_SCRIPT, LIST.condition(query));
 	}
 
 	/**
