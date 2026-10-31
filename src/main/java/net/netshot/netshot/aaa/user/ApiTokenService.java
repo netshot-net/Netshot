@@ -25,10 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The use cases on the API tokens: list, create and delete them. Only the hash of a token is
@@ -67,6 +71,55 @@ public class ApiTokenService {
 			log.error("Unable to retrieve the API tokens.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the API tokens.");
 		}
+	}
+
+	/**
+	 * Gets what the API token lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return ApiTokenRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the API tokens matching a query.
+	 *
+	 * @param query the query
+	 * @return the API tokens of the window, with the total number of matching tokens if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the API tokens can't be read
+	 */
+	public ListResult<ApiToken> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the API tokens.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to retrieve the API tokens.");
+		}
+	}
+
+	/**
+	 * Gets an API token.
+	 *
+	 * @param id the API token ID
+	 * @return the API token
+	 * @throws NetshotException if there is no such API token, or it can't be read
+	 */
+	public ApiToken get(long id) {
+		ApiToken apiToken;
+		try {
+			apiToken = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the API token {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the API token.");
+		}
+		if (apiToken == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, "The API token doesn't exist.");
+		}
+		return apiToken;
 	}
 
 	/**

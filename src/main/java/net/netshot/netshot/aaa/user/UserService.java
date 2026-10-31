@@ -32,6 +32,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The use cases on the users: list, create, edit and delete them (administrators), and
@@ -73,6 +76,55 @@ public class UserService {
 			log.error("Unable to retrieve the users.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the users.");
 		}
+	}
+
+	/**
+	 * Gets what the user lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return UserRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the users matching a query.
+	 *
+	 * @param query the query
+	 * @return the users of the window, with the total number of matching users if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the users can't be read
+	 */
+	public ListResult<UiUser> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the users.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to retrieve the users.");
+		}
+	}
+
+	/**
+	 * Gets a user.
+	 *
+	 * @param id the user ID
+	 * @return the user
+	 * @throws NetshotException if there is no such user, or it can't be read
+	 */
+	public UiUser get(long id) {
+		UiUser user;
+		try {
+			user = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the user {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the user.");
+		}
+		if (user == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
+		}
+		return user;
 	}
 
 	/**
