@@ -34,6 +34,10 @@ import org.jooq.impl.DSL;
 
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the diagnostics. The {@link DSLContext} is always the first parameter: the
@@ -66,6 +70,42 @@ public class DiagnosticRepository {
 	private static List<Diagnostic> query(DSLContext dsl, Condition condition, Page page) {
 		return page.apply(dsl.select(DIAGNOSTIC.fields()).from(DIAGNOSTIC).where(condition).orderBy(DIAGNOSTIC.ID))
 			.fetch(DiagnosticRepository::toDiagnostic);
+	}
+
+	/** The fields the diagnostic lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DIAGNOSTIC.ID)
+		.string("name", DIAGNOSTIC.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", DIAGNOSTIC.TYPE, List.of(SIMPLE, JAVASCRIPT, PYTHON), Option.SORTABLE)
+		.enumeration("resultType", DIAGNOSTIC.RESULT_TYPE, List.of("TEXT", "LONGTEXT", "NUMERIC", "BINARY"), Option.SORTABLE)
+		.bool("enabled", DIAGNOSTIC.ENABLED, Option.SORTABLE)
+		.integer("targetGroup", DIAGNOSTIC.TARGET_GROUP)
+		.string("deviceDriver", DIAGNOSTIC.DEVICE_DRIVER, Option.SORTABLE)
+		.defaultSort(SortOrder.asc("name"))
+		.build();
+
+	/**
+	 * Lists the diagnostics matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the diagnostics of the window of the query
+	 */
+	public List<Diagnostic> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DIAGNOSTIC.fields()).from(DIAGNOSTIC)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(DiagnosticRepository::toDiagnostic);
+	}
+
+	/**
+	 * Counts the diagnostics matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of diagnostics
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DIAGNOSTIC, LIST.condition(query));
 	}
 
 	/**
