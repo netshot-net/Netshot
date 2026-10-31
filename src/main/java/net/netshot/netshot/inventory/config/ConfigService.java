@@ -46,10 +46,14 @@ import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.DeviceSummary;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The configuration use cases: list the configurations, download an item of one, and compare two.
@@ -94,6 +98,55 @@ public class ConfigService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the configs");
+		}
+	}
+
+	/**
+	 * Tells what the list of the configurations can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return ConfigRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the configurations matching a query.
+	 *
+	 * @param query the query
+	 * @param withAttributes whether to load the attributes (without their long texts); the configurations have none otherwise
+	 * @return the configurations of the window, with the total number of matching configurations if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the configurations can't be read
+	 */
+	public ListResult<Config> list(ListQuery query, boolean withAttributes) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query, withAttributes),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the configs.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the configs");
+		}
+	}
+
+	/**
+	 * Gets a configuration, with its attributes (but not their long texts).
+	 *
+	 * @param id the configuration ID
+	 * @return the configuration
+	 * @throws NetshotException if the configuration doesn't exist or can't be read
+	 */
+	public Config get(long id) {
+		try {
+			Config config = this.transactions.read(dsl -> this.repository.find(dsl, id, false));
+			if (config == null) {
+				throw new NetshotException(ErrorCode.NETSHOT_CONFIG_NOT_FOUND, "The configuration doesn't exist.");
+			}
+			return config;
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the config.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the config");
 		}
 	}
 

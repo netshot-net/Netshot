@@ -61,6 +61,7 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.task.Task;
@@ -116,21 +117,41 @@ public class TaskResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the tasks", description = "Lists the tasks, in their brief view by default, the latest first.")
 	public ListResponse<TaskDto> listTasks() {
-		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, this.taskService.listSchema());
+		return list(this.taskService, this.searchService, this.groupService, this.driverRegistry, this.request, this.uriInfo, null);
+	}
+
+	/**
+	 * Answers a page of tasks (of the task list, or of a list of tasks of another object).
+	 *
+	 * @param taskService the task use cases
+	 * @param searchService the device search use cases
+	 * @param groupService the group use cases
+	 * @param driverRegistry the loaded device drivers
+	 * @param request the current request
+	 * @param uriInfo the URI of the request (its query parameters are the list parameters)
+	 * @param scope a criterion the tasks must also match (the tasks of a device...), or null
+	 * @return the page of tasks
+	 */
+	public static ListResponse<TaskDto> list(TaskService taskService, SearchService searchService, GroupService groupService,
+		DriverRegistry driverRegistry, HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
+		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
+		ListQuery listQuery = ListParams.parse(params, taskService.listSchema());
 		Selection selection = Selection.of(params, TaskDto.class, Selection.View.BRIEF);
-		V1Response.select(this.request, selection, TaskDto.class);
+		V1Response.select(request, selection, TaskDto.class);
+		ListQuery query = scope == null ? listQuery : listQuery.and(scope);
 		if (selection.onlyIncludes(TaskDto.SUMMARY_PROPERTIES)) {
-			ListResult<TaskSummary> summaries = this.taskService.listSummaries(query);
-			TaskMapper.Refs refs = this.refs(selection, summaries.items().stream().map(TaskSummary::deviceId).toList(),
+			ListResult<TaskSummary> summaries = taskService.listSummaries(query);
+			TaskMapper.Refs refs = refs(taskService, searchService, groupService, driverRegistry, selection,
+				summaries.items().stream().map(TaskSummary::deviceId).toList(),
 				summaries.items().stream().map(TaskSummary::deviceGroupId).toList(),
 				summaries.items().stream().map(TaskSummary::parentTaskId).toList());
-			return ListResponse.of(this.uriInfo, query, summaries, s -> TaskMapper.toDto(s, refs));
+			return ListResponse.of(uriInfo, listQuery, summaries, s -> TaskMapper.toDto(s, refs));
 		}
-		ListResult<Task> tasks = this.taskService.list(query);
-		TaskMapper.Refs refs = this.refs(selection, tasks.items().stream().map(TaskResource::deviceId).toList(),
+		ListResult<Task> tasks = taskService.list(query);
+		TaskMapper.Refs refs = refs(taskService, searchService, groupService, driverRegistry, selection,
+			tasks.items().stream().map(TaskResource::deviceId).toList(),
 			tasks.items().stream().map(TaskResource::groupId).toList(), tasks.items().stream().map(Task::parentTaskId).toList());
-		return ListResponse.of(this.uriInfo, query, tasks, t -> TaskMapper.toDto(t, refs));
+		return ListResponse.of(uriInfo, listQuery, tasks, t -> TaskMapper.toDto(t, refs));
 	}
 
 	/**
@@ -187,7 +208,8 @@ public class TaskResource {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), TaskDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, TaskDto.class);
 		V1Response.etag(this.request, task.version());
-		return TaskMapper.toDto(task, this.refs(selection, Collections.singletonList(deviceId(task)),
+		return TaskMapper.toDto(task, refs(this.taskService, this.searchService, this.groupService, this.driverRegistry, selection,
+			Collections.singletonList(deviceId(task)),
 			Collections.singletonList(groupId(task)), Collections.singletonList(task.parentTaskId())));
 	}
 
@@ -203,35 +225,40 @@ public class TaskResource {
 	 * Loads the objects the tasks refer to, one query per kind of reference (only for the references written, in
 	 * their full representation only when expanded).
 	 *
+	 * @param taskService the task use cases
+	 * @param searchService the device search use cases
+	 * @param groupService the group use cases
+	 * @param driverRegistry the loaded device drivers
 	 * @param selection the selection of the response
 	 * @param deviceIds the IDs of the target devices (null elements ignored)
 	 * @param groupIds the IDs of the target groups
 	 * @param parentIds the IDs of the parent tasks
 	 * @return the references
 	 */
-	private TaskMapper.Refs refs(Selection selection, Collection<Long> deviceIds, Collection<Long> groupIds, Collection<Long> parentIds) {
+	private static TaskMapper.Refs refs(TaskService taskService, SearchService searchService, GroupService groupService,
+		DriverRegistry driverRegistry, Selection selection, Collection<Long> deviceIds, Collection<Long> groupIds, Collection<Long> parentIds) {
 		Map<Long, DeviceDto> devices = new HashMap<>();
 		Set<Long> ids = nonNull(deviceIds);
 		if (!ids.isEmpty() && selection.includes("device")) {
 			ListQuery query = ListQuery.byIds(ids);
 			if (selection.expands("device")) {
-				this.searchService.listDevices(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(this.driverRegistry, d)));
+				searchService.listDevices(query, null).items()
+					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(driverRegistry, d)));
 			}
 			else {
-				this.searchService.listDeviceSummaries(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(this.driverRegistry, d)));
+				searchService.listDeviceSummaries(query, null).items()
+					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(driverRegistry, d)));
 			}
 		}
 		Map<Long, GroupDto> groups = new HashMap<>();
 		ids = nonNull(groupIds);
 		if (!ids.isEmpty() && selection.includes("group")) {
-			this.groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), GroupMapper.toDto(g)));
+			groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), GroupMapper.toDto(g)));
 		}
 		Map<Long, TaskDto> parents = new HashMap<>();
 		ids = nonNull(parentIds);
 		if (!ids.isEmpty() && selection.includes("parentTask")) {
-			this.taskService.listSummaries(ListQuery.byIds(ids)).items()
+			taskService.listSummaries(ListQuery.byIds(ids)).items()
 				.forEach(t -> parents.put(t.id(), TaskMapper.toDto(t, TaskMapper.Refs.IDS_ONLY)));
 		}
 		return new TaskMapper.Refs(orIds(devices, TaskMapper.Refs.IDS_ONLY.devices()::apply),
