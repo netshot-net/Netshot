@@ -32,6 +32,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The use cases of the command scripts (scripts to be later run over devices).
@@ -75,6 +78,33 @@ public class ScriptService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the scripts.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the scripts");
+		}
+	}
+
+	/**
+	 * Gets what the script lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return ScriptRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the scripts matching a query.
+	 *
+	 * @param query the query
+	 * @return the scripts of the window (with their content), with the total number of matching scripts if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the scripts can't be read
+	 */
+	public ListResult<DeviceJsScript> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the scripts.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the scripts");
 		}
 	}
 
