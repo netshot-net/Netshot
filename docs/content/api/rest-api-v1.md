@@ -3,7 +3,7 @@
 The v1 REST API is served under `/api/v1`, beside the [legacy API](rest-api.md) (`/api`), which is unchanged. It shares the authentication of the legacy API (API tokens, `Authorization: Bearer` with an API token or a [JWT access token](rest-api.md#jwt-access-tokens-oidc), session cookie) and its permission levels.
 
 !!! note "Work in progress"
-    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`), the scripts (`/api/v1/scripts`), the credential sets (`/api/v1/credential-sets`) and the Vault instances (`/api/v1/vault-instances`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
+    The v1 API is being built: the domains (`/api/v1/domains`), the devices (read and delete, `/api/v1/devices`), the groups (`/api/v1/groups`), the tasks (read and cancel, `/api/v1/tasks`), the diagnostics (`/api/v1/diagnostics`), the scripts (`/api/v1/scripts`), the credential sets (`/api/v1/credential-sets`), the Vault instances (`/api/v1/vault-instances`) and the compliance resources (`/api/v1/compliance/...`) are available so far. The OpenAPI document lists what is available: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
 
 ## Formats
 
@@ -179,3 +179,21 @@ Filters: `id`, `name`, `type`, `mgmtDomain` (`mgmtDomain__empty=true` for none),
 - `POST /api/v1/vault-instances/{id}/test` tests a saved instance, `POST /api/v1/vault-instances/test` a complete definition (secrets included) which isn't saved. Both answer 200 with `{"success": true|false, "message": ...}`: a failed connection isn't an error status.
 
 Filters: `id`, `name`, `type`, `baseUrl`, `namespace`, `authMethod`, `changeDate`; `q` searches the name and base URL.
+
+### Compliance
+
+The compliance resources have no version: there is no `ETag`, and `If-Match` doesn't apply. They are read with the read-only level, changed with the read-write level.
+
+**Policies** (`/api/v1/compliance/policies`): list, get, create, replace, update, delete. A policy has a `name` and `targetGroups` (references to groups). Removing a group from a policy deletes the compliance results of the devices of that group. `GET /api/v1/compliance/policies/{id}/rules` lists the rules of the policy, with the parameters of the rule list. Filters: `id`, `name`, `targetGroup`; `q` searches the name.
+
+**Rules** (`/api/v1/compliance/rules`): list, get, create, replace, update, delete. A rule has a `type`: `TEXT` (`field`, `context`, `text`, `regExp`, `invert`, `anyBlock`, `matchAll`, `normalize`, `deviceDriver`), `JAVASCRIPT` or `PYTHON` (`script`, the template script if absent), and in every case a `name`, `enabled` (false if absent) and its `policy` (required at creation). The type and the policy of a rule can't change. Filters: `id`, `name`, `type`, `enabled`, `policy`, `field`, `deviceDriver`, `text`; `q` searches the name and text.
+
+- `GET /api/v1/compliance/rules/{id}/exemptions`: the devices exempted from the rule (`device` reference, `expirationDate`); filters `device`, `expirationDate`.
+- `PUT /api/v1/compliance/rules/{id}/exemptions` with `{"exemptions": [{"device": 12, "expirationDate": "2030-01-01T00:00:00.000Z"}]}` replaces the whole set (an empty list removes it) and answers the new list.
+- `POST /api/v1/compliance/rules/test` with `{"rule": {<rule definition>}, "device": 12}` checks a rule definition (not stored) against a device, and answers `{"result": ..., "log": ..., "comment": ...}` (`CONFORMING`, `NONCONFORMING`, `NOTAPPLICABLE`, `INVALIDRULE`...). A device without configuration gives `NOTAPPLICABLE`; an unknown device is a 404.
+
+**Software rules** (`/api/v1/compliance/software-rules`): list, get, create, replace, update, delete. Properties: `priority`, `level` (`GOLD`, `SILVER`, `BRONZE`), `group`, `driver`, `family`, `familyRegExp`, `version`, `versionRegExp`, `partNumber`, `partNumberRegExp`. The rules are checked in order and the first match wins: `priority` is the position of the rule, from 1. A new rule is the last one unless `priority` is given; writing `priority` moves the rule to that position and shifts the others; without it, a rule keeps its position. Filters on all the properties; default order: the priority.
+
+**Hardware rules** (`/api/v1/compliance/hardware-rules`): list, get, create, replace, update, delete. Properties: `partNumber`, `partNumberRegExp`, `endOfSale`, `endOfLife`, `group`, `driver`, `family`, `familyRegExp`; filters on all of them. An unknown group or driver is a 400.
+
+**Compliance results of a device**: `GET /api/v1/devices/{id}/compliance-results` lists the rules of the policies applying to the device (through its groups): `rule` and `policy` references, `result` (null if never checked), `comment`, `checkDate`, `exemptionExpirationDate`. Filters: `rule`, `ruleName`, `policy`, `policyName`, `result`, `checkDate`, `exemptionExpirationDate`; `q` searches the rule and policy names. An unknown device is a 404.
