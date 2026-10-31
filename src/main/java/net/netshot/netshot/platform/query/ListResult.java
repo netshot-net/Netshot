@@ -16,22 +16,35 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot.platform.query;
 
-import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.core.Response;
+import java.util.List;
+import java.util.function.Function;
 
 /**
- * The NetshotAuthenticationRequiredException class, which indicates that user authentication is required (401 error).
+ * The result of a list query.
+ *
+ * @param <T> the type of the items
+ * @param items the items of the requested window
+ * @param count the total number of matching items, or null if it wasn't asked for
  */
-public class NetshotAuthenticationRequiredException extends ForbiddenException {
-	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = -2463854660543944995L;
+public record ListResult<T>(List<T> items, Long count) {
 
 	/**
-	 * Default constructor.
+	 * Copies the items.
 	 */
-	public NetshotAuthenticationRequiredException() {
-		super(Response.status(Response.Status.FORBIDDEN).build());
+	public ListResult {
+		items = List.copyOf(items);
+	}
+
+	/**
+	 * Maps the items.
+	 *
+	 * @param <U> the type of the mapped items
+	 * @param mapper the item mapper
+	 * @return the mapped result
+	 */
+	public <U> ListResult<U> map(Function<? super T, ? extends U> mapper) {
+		return new ListResult<>(this.items.stream().<U>map(mapper).toList(), this.count);
 	}
 }

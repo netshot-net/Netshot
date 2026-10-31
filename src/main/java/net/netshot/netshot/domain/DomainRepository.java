@@ -26,10 +26,15 @@ import java.util.List;
 
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on domains. The {@link DSLContext} is always the first parameter: the caller
@@ -65,6 +70,40 @@ public class DomainRepository {
 	 */
 	private static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+
+	/** The fields the domain lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DOMAIN.ID)
+		.string("name", DOMAIN.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("description", DOMAIN.DESCRIPTION, Option.SEARCHABLE)
+		.inet("server4Address", DOMAIN.IPV4_ADDRESS)
+		.date("changeDate", DOMAIN.CHANGE_DATE, Option.SORTABLE)
+		.defaultSort(SortOrder.asc("name"))
+		.build();
+
+	/**
+	 * Lists the domains matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the domains of the window of the query
+	 */
+	public List<Domain> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DOMAIN.fields()).from(DOMAIN)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(DomainRepository::toDomain);
+	}
+
+	/**
+	 * Counts the domains matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of domains
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DOMAIN, LIST.condition(query));
 	}
 
 	/**
@@ -120,6 +159,19 @@ public class DomainRepository {
 	 * @return the saved domain, or null if there is no such domain
 	 */
 	public Domain save(DSLContext dsl, Domain domain) {
+		return this.save(dsl, domain, null);
+	}
+
+	/**
+	 * Saves the name, description and IPv4 server address of a domain if it is still at a given version (its
+	 * version is incremented, its change date set).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param domain the domain
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @return the saved domain, or null if there is no such domain (at that version)
+	 */
+	public Domain save(DSLContext dsl, Domain domain, Long expectedVersion) {
 		Network4Address v4 = domain.server4Address();
 		int updated = dsl.update(DOMAIN)
 			.set(DOMAIN.VERSION, DOMAIN.VERSION.plus(1))
@@ -128,6 +180,7 @@ public class DomainRepository {
 			.set(DOMAIN.DESCRIPTION, domain.description())
 			.set(DOMAIN.IPV4_ADDRESS, v4 == null ? null : v4.getAddress())
 			.where(DOMAIN.ID.eq(domain.id()))
+			.and(expectedVersion == null ? DSL.trueCondition() : DOMAIN.VERSION.cast(Long.class).eq(expectedVersion))
 			.execute();
 		return updated == 0 ? null : this.find(dsl, domain.id());
 	}
@@ -140,6 +193,20 @@ public class DomainRepository {
 	 * @return true if the domain was found and removed
 	 */
 	public boolean remove(DSLContext dsl, long id) {
-		return dsl.deleteFrom(DOMAIN).where(DOMAIN.ID.eq(id)).execute() > 0;
+		return this.remove(dsl, id, null);
+	}
+
+	/**
+	 * Removes a domain if it is at a given version.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the domain ID
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @return true if the domain was found (at that version) and removed
+	 */
+	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
+		return dsl.deleteFrom(DOMAIN).where(DOMAIN.ID.eq(id))
+			.and(expectedVersion == null ? DSL.trueCondition() : DOMAIN.VERSION.cast(Long.class).eq(expectedVersion))
+			.execute() > 0;
 	}
 }

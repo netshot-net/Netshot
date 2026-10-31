@@ -21,6 +21,8 @@ package net.netshot.netshot.api.rest;
 import java.io.IOException;
 import java.net.HttpCookie;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
@@ -83,9 +85,13 @@ public class RestAuthenticationTest {
 	/** The database of the class, whose configuration some tests change. */
 	private static TestDatabase database;
 
+	/** The test server. */
+	private static TestServer server;
+
 	@BeforeAll
-	static void keepDatabase(TestDatabase testDatabase) {
+	static void keepDatabase(TestDatabase testDatabase, TestServer testServer) {
 		database = testDatabase;
+		server = testServer;
 	}
 
 	/**
@@ -227,6 +233,35 @@ public class RestAuthenticationTest {
 			Assertions.assertEquals(
 				Response.Status.UNAUTHORIZED.getStatusCode(), response2.statusCode(),
 				"Not getting 401 response for post-logout request");
+		}
+
+		@Test
+		@DisplayName("Invalid credentials in a request don't fall back to the session")
+		@ResourceLock("DB")
+		void invalidCredentialsWithSession() throws IOException, InterruptedException {
+			this.createTestUser();
+			apiClient.setLogin(testUsername, testPassword);
+			Assertions.assertEquals(Response.Status.OK.getStatusCode(), apiClient.get("/domains").statusCode());
+			HttpCookie sessionCookie = apiClient.getSessionCookie();
+			String cookie = sessionCookie.getName() + "=" + sessionCookie.getValue();
+			for (String version : List.of("", "/v1")) {
+				Assertions.assertEquals(200, this.getWithCookie(version + "/domains", cookie), version);
+				Assertions.assertEquals(401, this.getWithCookie(version + "/domains", cookie,
+					"X-Netshot-API-Token", "00000000000000000000000000000000"), version + " with an invalid API token");
+				Assertions.assertEquals(401, this.getWithCookie(version + "/domains", cookie,
+					"Authorization", "Bearer 00000000000000000000000000000000"), version + " with an invalid bearer API token");
+				Assertions.assertEquals(401, this.getWithCookie(version + "/domains", cookie,
+					"Authorization", "Bearer aaa.bbb.ccc"), version + " with an invalid JWT");
+			}
+		}
+
+		private int getWithCookie(String path, String cookie, String... headers) throws IOException, InterruptedException {
+			HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(server.apiUrl() + path))
+				.header("Cookie", cookie).header("Accept", "application/json");
+			for (int i = 0; i + 1 < headers.length; i += 2) {
+				builder.header(headers[i], headers[i + 1]);
+			}
+			return HttpClient.newHttpClient().send(builder.build(), HttpResponse.BodyHandlers.ofString()).statusCode();
 		}
 
 		@Test
@@ -596,6 +631,77 @@ public class RestAuthenticationTest {
 			Assertions.assertEquals(
 				Response.Status.UNAUTHORIZED.getStatusCode(), response3.statusCode(),
 				"Not getting 401 response for post-logout request");
+		}
+
+		/**
+		 * Sends a GET with an Authorization header.
+		 *
+		 * @param path the path under the API path
+		 * @param authorization the Authorization header
+		 * @return the status of the answer
+		 */
+		private int getWithAuthorization(String path, String authorization) throws IOException, InterruptedException {
+			return HttpClient.newHttpClient().send(
+				HttpRequest.newBuilder(URI.create(server.apiUrl() + path))
+					.header("Authorization", authorization).header("Accept", "application/json").build(),
+				HttpResponse.BodyHandlers.ofString()).statusCode();
+		}
+
+		private void setJwt(boolean enabled, String audience) {
+			Properties config = getNetshotConfig();
+			config.setProperty("netshot.aaa.oidc.idp.url", this.idpServer.getBaseUri().toString());
+			config.setProperty("netshot.aaa.oidc.clientid", clientId);
+			config.setProperty("netshot.aaa.oidc.clientsecret", clientSecret);
+			config.setProperty("netshot.aaa.oidc.jwt.enabled", Boolean.toString(enabled));
+			if (audience != null) {
+				config.setProperty("netshot.aaa.oidc.jwt.audience", audience);
+			}
+			TestConfig.init(config);
+		}
+
+		@Test
+		@DisplayName("JWT bearer tokens issued by the IdP")
+		void jwtBearer() throws Exception {
+			String admin = this.idpServer.issueAccessToken("jwtadmin", UiUser.Role.ADMIN.getName(), clientId, null, Duration.ofHours(1));
+			String readOnly = this.idpServer.issueAccessToken("jwtreader", UiUser.Role.READONLY.getName(), clientId, null, Duration.ofHours(1));
+			try {
+				// Disabled by default
+				this.setJwt(false, null);
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer " + admin));
+
+				this.setJwt(true, null);
+				Assertions.assertEquals(200, this.getWithAuthorization("/v1/domains", "Bearer " + admin));
+				Assertions.assertEquals(200, this.getWithAuthorization("/domains", "bearer " + admin));
+				Assertions.assertEquals(200, this.getWithAuthorization("/apitokens", "Bearer " + admin));
+				Assertions.assertEquals(200, this.getWithAuthorization("/v1/domains", "Bearer " + readOnly));
+				Assertions.assertEquals(403, this.getWithAuthorization("/apitokens", "Bearer " + readOnly));
+
+				// Tampered, expired, wrong audience, wrong issuer, no role (default level 0)
+				String tampered = admin.substring(0, admin.lastIndexOf('.') + 1) + "AAAA" + admin.substring(admin.lastIndexOf('.') + 5);
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer " + tampered));
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer "
+					+ this.idpServer.issueAccessToken("jwtadmin", "admin", clientId, null, Duration.ofHours(-1))));
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer "
+					+ this.idpServer.issueAccessToken("jwtadmin", "admin", "other-client", null, Duration.ofHours(1))));
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer "
+					+ this.idpServer.issueAccessToken("jwtadmin", "admin", clientId, "https://evil.example.com/", Duration.ofHours(1))));
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer "
+					+ this.idpServer.issueAccessToken("jwtnobody", null, clientId, null, Duration.ofHours(1))));
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer not.a.jwt"));
+
+				// Configured audience
+				this.setJwt(true, "netshot-api");
+				Assertions.assertEquals(401, this.getWithAuthorization("/v1/domains", "Bearer " + admin));
+				Assertions.assertEquals(200, this.getWithAuthorization("/v1/domains", "Bearer "
+					+ this.idpServer.issueAccessToken("jwtadmin", "admin", "netshot-api", null, Duration.ofHours(1))));
+
+				// An API token can be given as a bearer token too
+				Assertions.assertEquals(200, this.getWithAuthorization("/v1/domains",
+					"Bearer " + TestServer.API_TOKENS.get(UiUser.LEVEL_READONLY)));
+			}
+			finally {
+				this.setJwt(false, null);
+			}
 		}
 
 		@Test

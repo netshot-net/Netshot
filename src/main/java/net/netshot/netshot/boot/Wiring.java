@@ -263,7 +263,7 @@ public final class Wiring {
 		});
 		this.domainService = new DomainService(this.transactions, new DomainRepository());
 		this.groupService = new GroupService(this.transactions, new GroupRepository(), this.dynamicGroups);
-		this.searchService = new SearchService(this.transactions, new SearchRepository(), this.driverRegistry);
+		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), this.driverRegistry);
 		this.configService = new ConfigService(this.transactions, new ConfigRepository(), this.driverRegistry);
 		// AAA and system
 		this.oidc = new Oidc(config);

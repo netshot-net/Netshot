@@ -31,6 +31,31 @@ public final class TaskSpecs {
 	}
 
 	/**
+	 * Gets the description of a type of task from its name, without a specification (the same as
+	 * {@link TaskSpec#description()}).
+	 *
+	 * @param typeName the name of the type of task (e.g. TakeSnapshotTask)
+	 * @return the description, or the name for an unknown type
+	 */
+	public static String description(String typeName) {
+		return switch (typeName == null ? "" : typeName) {
+			case "TakeSnapshotTask" -> "Device snapshot";
+			case "RunDiagnosticsTask" -> "Device diagnostics";
+			case "CheckComplianceTask" -> "Device compliance check";
+			case "RunDeviceScriptTask" -> "Device script execution";
+			case "DiscoverDeviceTypeTask" -> "Device autodiscovery";
+			case "ScanSubnetsTask" -> "Subnet scan";
+			case "PurgeDatabaseTask" -> "Database purge";
+			case "TakeGroupSnapshotTask" -> "Group snapshot";
+			case "CheckGroupComplianceTask" -> "Group compliance check";
+			case "CheckGroupSoftwareTask" -> "Group software compliance and hardware support check";
+			case "RunGroupDiagnosticsTask" -> "Group diagnostics";
+			case "RunDeviceGroupScriptTask" -> "Group script execution";
+			default -> typeName;
+		};
+	}
+
+	/**
 	 * Gets the ID of the target device.
 	 *
 	 * @param spec the specification

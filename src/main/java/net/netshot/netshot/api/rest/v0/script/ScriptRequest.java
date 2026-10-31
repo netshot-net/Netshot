@@ -21,7 +21,7 @@ package net.netshot.netshot.api.rest.v0.script;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import net.netshot.netshot.api.rest.EmptyWhenAbsentDeserializer;
+import net.netshot.netshot.api.rest.v0.EmptyWhenAbsentDeserializer;
 
 /**
  * The request to add (or only validate) a command script. It used to be the script entity itself,

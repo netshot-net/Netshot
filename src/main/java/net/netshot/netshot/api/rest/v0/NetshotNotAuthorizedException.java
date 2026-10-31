@@ -16,36 +16,22 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
+package net.netshot.netshot.api.rest.v0;
 
-
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
-import jakarta.xml.bind.annotation.XmlElement;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.core.Response;
 
 /**
- * An error bean to be sent to the REST client.
+ * Exception to be thrown when the user is authenticated but not
+ * not allowed to perform an action.
  */
-@XmlRootElement(name = "error")
-@XmlAccessorType(XmlAccessType.NONE)
-@AllArgsConstructor
-public class RsErrorBean {
+public class NetshotNotAuthorizedException extends ForbiddenException {
 
-	/** The error message. */
-	@Getter(onMethod = @__({
-		@XmlElement
-	}))
-	@Setter
-	private String errorMsg;
+	/** The Constant serialVersionUID. */
+	private static final long serialVersionUID = -453816975689585686L;
 
-	/** The error code. */
-	@Getter(onMethod = @__({
-		@XmlElement
-	}))
-	@Setter
-	private int errorCode;
+	public NetshotNotAuthorizedException(String message, int errorCode) {
+		super(Response.status(Response.Status.FORBIDDEN)
+			.entity(new RsErrorBean(message, errorCode)).build());
+	}
 }
