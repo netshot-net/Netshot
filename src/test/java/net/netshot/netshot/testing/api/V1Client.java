@@ -23,7 +23,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,6 +39,9 @@ import net.netshot.netshot.testing.TestServer;
 public final class V1Client {
 
 	private static final ObjectMapper JSON = new ObjectMapper();
+
+	/** The requests sent by all the clients ("METHOD /path", without the query), checked by {@link V1EndpointsExtension}. */
+	private static final List<String> REQUESTS = new ArrayList<>();
 
 	private final HttpClient client = HttpClient.newHttpClient();
 	private final String baseUrl;
@@ -121,6 +126,9 @@ public final class V1Client {
 				builder.header(name, value);
 			}
 		});
+		synchronized (REQUESTS) {
+			REQUESTS.add(method + " " + URI.create(this.baseUrl + path).getRawPath().substring(URI.create(this.baseUrl).getRawPath().length()));
+		}
 		HttpResponse<String> response = this.client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
 		return new Answer(response.statusCode(), response.headers(), response.body());
 	}
@@ -195,5 +203,16 @@ public final class V1Client {
 	 */
 	public Answer delete(String path, String... headers) throws IOException, InterruptedException {
 		return this.send("DELETE", path, null, headers);
+	}
+
+	/**
+	 * Gets the requests sent so far by all the clients.
+	 *
+	 * @return a copy of the requests ("METHOD /path" under {@code /api/v1}, without the query), in order
+	 */
+	static List<String> requests() {
+		synchronized (REQUESTS) {
+			return List.copyOf(REQUESTS);
+		}
 	}
 }

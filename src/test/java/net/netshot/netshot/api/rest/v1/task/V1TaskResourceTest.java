@@ -46,6 +46,7 @@ import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestTasks;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.api.V1Client;
+import net.netshot.netshot.testing.api.V1Endpoints;
 import net.netshot.netshot.testing.api.V1Client.Answer;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
@@ -53,6 +54,12 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  * The tasks of the v1 API, over HTTP.
  */
 @ApiTest
+@V1Endpoints({
+	"GET /tasks",
+	"GET /tasks/{id}",
+	"POST /tasks/{id}/cancel",
+	"GET /tasks/{id}/debug-log"
+})
 @DisplayName("v1 tasks")
 @ResourceLock("DB")
 public class V1TaskResourceTest {
