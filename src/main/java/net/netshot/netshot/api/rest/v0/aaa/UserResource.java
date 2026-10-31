@@ -44,8 +44,8 @@ import jakarta.ws.rs.core.SecurityContext;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
-import net.netshot.netshot.api.rest.PaginationParams;
-import net.netshot.netshot.api.rest.ResponseCodeFilter;
+import net.netshot.netshot.api.rest.v0.PaginationParams;
+import net.netshot.netshot.api.rest.v0.ResponseCodeFilter;
 
 /**
  * The REST resource of the users (administrators only): list, add, edit and delete.

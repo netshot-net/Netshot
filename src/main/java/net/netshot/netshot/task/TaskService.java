@@ -46,11 +46,15 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 import net.netshot.netshot.task.Task.ScheduleType;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
@@ -130,6 +134,66 @@ public class TaskService {
 			log.error("Unable to fetch the tasks.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the tasks");
 		}
+	}
+
+	/**
+	 * Gets what the task lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return TaskRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the summaries of the tasks matching a query.
+	 *
+	 * @param query the query
+	 * @return the summaries of the window, with the total number of matching tasks if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the tasks can't be read
+	 */
+	public ListResult<TaskSummary> listSummaries(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findSummaries(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the tasks.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the tasks");
+		}
+	}
+
+	/**
+	 * Lists the tasks matching a query (see {@link TaskRepository#find} for what is loaded).
+	 *
+	 * @param query the query
+	 * @return the tasks of the window, with the total number of matching tasks if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the tasks can't be read
+	 */
+	public ListResult<Task> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the tasks.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the tasks");
+		}
+	}
+
+	/**
+	 * Gets a task (see {@link TaskRepository#find} for what is loaded).
+	 *
+	 * @param id the task ID
+	 * @return the task
+	 * @throws NetshotException if the task doesn't exist or can't be read
+	 */
+	public Task get(long id) {
+		Task task = this.find(id);
+		if (task == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_TASK_NOT_FOUND, "Task not found");
+		}
+		return task;
 	}
 
 	/**

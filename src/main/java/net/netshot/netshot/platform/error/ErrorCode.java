@@ -29,6 +29,8 @@ import lombok.Getter;
 public enum ErrorCode {
 
 	NETSHOT_INVALID_REQUEST_PARAMETER(10, 400),
+	/** The object was changed since the version the client gave (If-Match). */
+	NETSHOT_VERSION_MISMATCH(11, 412),
 	NETSHOT_DATABASE_ACCESS_ERROR(20, 500),
 	NETSHOT_INVALID_IP_ADDRESS(100, 400),
 	NETSHOT_MALFORMED_IP_ADDRESS(101, 400),

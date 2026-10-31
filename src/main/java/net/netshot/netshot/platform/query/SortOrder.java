@@ -16,22 +16,38 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest;
-
-import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.core.Response;
+package net.netshot.netshot.platform.query;
 
 /**
- * Exception to be thrown when the user is authenticated but not
- * not allowed to perform an action.
+ * A sort key of a list query.
+ *
+ * @param field the name of the field
+ * @param descending whether the order is descending
  */
-public class NetshotNotAuthorizedException extends ForbiddenException {
+public record SortOrder(String field, boolean descending) {
 
-	/** The Constant serialVersionUID. */
-	private static final long serialVersionUID = -453816975689585686L;
+	/**
+	 * Builds an ascending sort key.
+	 *
+	 * @param field the name of the field
+	 * @return the sort key
+	 */
+	public static SortOrder asc(String field) {
+		return new SortOrder(field, false);
+	}
 
-	public NetshotNotAuthorizedException(String message, int errorCode) {
-		super(Response.status(Response.Status.FORBIDDEN)
-			.entity(new RsErrorBean(message, errorCode)).build());
+	/**
+	 * Builds a descending sort key.
+	 *
+	 * @param field the name of the field
+	 * @return the sort key
+	 */
+	public static SortOrder desc(String field) {
+		return new SortOrder(field, true);
+	}
+
+	@Override
+	public String toString() {
+		return (this.descending ? "-" : "") + this.field;
 	}
 }

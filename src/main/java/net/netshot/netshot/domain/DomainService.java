@@ -33,6 +33,9 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The domain use cases: list, add, edit and delete the device domains.
@@ -74,6 +77,55 @@ public class DomainService {
 			log.error("Unable to fetch the domains.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the domains");
 		}
+	}
+
+	/**
+	 * Gets what the domain lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return DomainRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the domains matching a query.
+	 *
+	 * @param query the query
+	 * @return the domains of the window, with the total number of matching domains if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the domains can't be read
+	 */
+	public ListResult<Domain> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the domains.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the domains");
+		}
+	}
+
+	/**
+	 * Gets a domain.
+	 *
+	 * @param id the domain ID
+	 * @return the domain
+	 * @throws NetshotException if there is no such domain, or it can't be read
+	 */
+	public Domain get(long id) {
+		Domain domain;
+		try {
+			domain = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the domain {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the domain");
+		}
+		if (domain == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
+		}
+		return domain;
 	}
 
 	/**
@@ -126,6 +178,20 @@ public class DomainService {
 	 *         the name is already used, or the domain can't be stored
 	 */
 	public Domain update(long id, DomainDefinition definition) {
+		return this.update(id, definition, null);
+	}
+
+	/**
+	 * Edits a domain, if it is still at a given version.
+	 *
+	 * @param id the domain ID
+	 * @param definition the new definition of the domain
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @return the edited domain
+	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist, isn't at the
+	 *         expected version, the name is already used, or the domain can't be stored
+	 */
+	public Domain update(long id, DomainDefinition definition, Long expectedVersion) {
 		String name = definition.name() == null ? "" : definition.name().trim();
 		if (name.isEmpty()) {
 			log.warn("User posted an invalid domain name.");
@@ -148,11 +214,17 @@ public class DomainService {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
-				return this.repository.save(dsl, existing.toBuilder()
+				checkVersion(existing, expectedVersion);
+				Domain saved = this.repository.save(dsl, existing.toBuilder()
 					.name(name)
 					.description(description)
 					.server4Address(v4Address)
-					.build());
+					.build(), expectedVersion);
+				if (saved == null) {
+					// Changed between the read and the update
+					throw versionMismatch(expectedVersion);
+				}
+				return saved;
 			});
 		}
 		catch (NetshotException e) {
@@ -178,9 +250,25 @@ public class DomainService {
 	 *         or can't be deleted
 	 */
 	public void delete(long id) {
+		this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a domain, if it is at a given version.
+	 *
+	 * @param id the domain ID
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @throws NetshotException if the domain doesn't exist, isn't at the expected version, is used by devices or
+	 *         credential sets, or can't be deleted
+	 */
+	public void delete(long id, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				if (!this.repository.remove(dsl, id, expectedVersion)) {
+					Domain existing = expectedVersion == null ? null : this.repository.find(dsl, id);
+					if (existing != null) {
+						throw versionMismatch(expectedVersion);
+					}
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
@@ -195,6 +283,16 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the domain");
 		}
 		AAA_LOG.info("Domain of ID {} has been deleted.", id);
+	}
+
+	private static void checkVersion(Domain domain, Long expectedVersion) {
+		if (expectedVersion != null && domain.version() != expectedVersion) {
+			throw versionMismatch(expectedVersion);
+		}
+	}
+
+	private static NetshotException versionMismatch(Long expectedVersion) {
+		return NetshotException.versionMismatch("domain", expectedVersion);
 	}
 
 	/**

@@ -20,6 +20,9 @@ package net.netshot.netshot.platform.database;
 
 import org.jooq.exception.DataAccessException;
 
+import net.netshot.netshot.platform.error.ErrorCode;
+import net.netshot.netshot.platform.error.NetshotException;
+
 /**
  * Helpers to tell what a failed database operation was about.
  */
@@ -50,5 +53,32 @@ public final class DatabaseErrors {
 	 */
 	public static boolean isForeignKeyViolation(DataAccessException e) {
 		return "23503".equals(e.sqlState());
+	}
+
+	/**
+	 * Tells whether a statement failed because of an invalid regular expression given to a {@code ~} operator
+	 * (a regex filter of a list query), from the SQL state of the failure ({@code 2201B}).
+	 *
+	 * @param e the exception thrown by jOOQ
+	 * @return true if a regular expression was invalid
+	 */
+	public static boolean isInvalidRegularExpression(DataAccessException e) {
+		return "2201B".equals(e.sqlState());
+	}
+
+	/**
+	 * Translates the failure of a list query: an invalid regular expression of a filter is the client's error,
+	 * anything else a database access error.
+	 *
+	 * @param e the exception thrown by jOOQ
+	 * @param message the message of a database access error
+	 * @return the exception to throw
+	 */
+	public static NetshotException listFailure(DataAccessException e, String message) {
+		if (isInvalidRegularExpression(e)) {
+			return new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+				"Invalid regular expression: " + e.getCause().getMessage());
+		}
+		return new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, message, e);
 	}
 }

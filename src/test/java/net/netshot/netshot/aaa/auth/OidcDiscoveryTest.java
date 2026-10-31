@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.testing.TestNetwork;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.fake.FakeOidcIdpServer;
@@ -114,5 +115,46 @@ public class OidcDiscoveryTest {
 		await(this.oidc::isAvailable, "OIDC wasn't enabled with the reachable IdP");
 		this.discovery.stop();
 		Assertions.assertFalse(this.oidc.isAvailable(), "OIDC still enabled after the stop of the service");
+	}
+
+	@Test
+	@DisplayName("Without client, the IdP is used for the JWT access tokens only (no OIDC login)")
+	void jwtWithoutClient() throws Exception {
+		Properties config = new Properties();
+		config.setProperty("netshot.aaa.oidc.idp.url", this.idpServer.getBaseUri().toString());
+		TestConfig.init(config);
+		this.discovery.start();
+		Assertions.assertEquals(false, this.discovery.stats().get("configured"), "Fetched without client nor JWT");
+
+		config.setProperty("netshot.aaa.oidc.jwt.enabled", "true");
+		config.setProperty("netshot.aaa.oidc.jwt.audience", "netshot-api");
+		TestConfig.init(config);
+		await(this.oidc::hasIdpMetadata, "The IdP metadata wasn't fetched for the JWT access tokens");
+		Assertions.assertFalse(this.oidc.isAvailable(), "The OIDC login is enabled without client");
+		Assertions.assertNull(this.oidc.getClientId());
+		Assertions.assertEquals(false, this.discovery.stats().get("login"));
+		Assertions.assertTrue(this.discovery.isHealthy());
+		UiUser user = this.oidc.authenticateWithBearerToken(
+			this.idpServer.issueAccessToken("jwtreader", UiUser.Role.READONLY.getName(), "netshot-api", null, Duration.ofHours(1)));
+		Assertions.assertNotNull(user, "Valid JWT refused");
+		Assertions.assertEquals("jwtreader", user.username());
+		Assertions.assertEquals(UiUser.LEVEL_READONLY, user.level());
+		Assertions.assertNull(this.oidc.authenticateWithBearerToken(
+			this.idpServer.issueAccessToken("jwtreader", "read-only", "netshot", null, Duration.ofHours(1))), "Wrong audience accepted");
+
+		// Without audience (nor client ID to default to), the tokens are refused
+		config.remove("netshot.aaa.oidc.jwt.audience");
+		TestConfig.init(config);
+		await(this.oidc::hasIdpMetadata, "The IdP metadata wasn't fetched again");
+		Assertions.assertNull(this.oidc.authenticateWithBearerToken(
+			this.idpServer.issueAccessToken("jwtreader", "read-only", "netshot-api", null, Duration.ofHours(1))));
+
+		// With the client, the OIDC login is enabled too
+		Properties full = this.oidcConfig();
+		full.setProperty("netshot.aaa.oidc.jwt.enabled", "true");
+		TestConfig.init(full);
+		await(this.oidc::isAvailable, "The OIDC login wasn't enabled with the client");
+		Assertions.assertNotNull(this.oidc.authenticateWithBearerToken(
+			this.idpServer.issueAccessToken("jwtreader", "read-only", "netshot", null, Duration.ofHours(1))));
 	}
 }

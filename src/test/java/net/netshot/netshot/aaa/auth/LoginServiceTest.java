@@ -68,9 +68,11 @@ class LoginServiceTest {
 		private UiUser codeUser;
 		private UiUser radiusUser;
 		private UiUser tacacsUser;
+		private UiUser bearerUser;
 
 		void reset() {
 			this.calls.clear();
+			this.bearerUser = null;
 			this.codeUser = null;
 			this.radiusUser = null;
 			this.tacacsUser = null;
@@ -80,6 +82,12 @@ class LoginServiceTest {
 		public UiUser authenticateWithCode(String authorizationCode, URL redirectUrl) {
 			this.calls.add("oidc:" + authorizationCode + ":" + redirectUrl);
 			return this.codeUser;
+		}
+
+		@Override
+		public UiUser authenticateWithBearerToken(String token) {
+			this.calls.add("bearer:" + token);
+			return this.bearerUser;
 		}
 
 		@Override
@@ -139,6 +147,37 @@ class LoginServiceTest {
 	private void expire(String name) {
 		this.transactions.run(dsl -> this.repository.save(dsl,
 			this.repository.findByUsername(dsl, name).withLastPasswordChangeDate(Instant.now().minus(60, ChronoUnit.DAYS))));
+	}
+
+	// ------------------------------------------------------------------
+	// JWT bearer tokens
+	// ------------------------------------------------------------------
+
+	@Test
+	@DisplayName("Bearer token: the remote user of a valid token, nobody for an invalid one")
+	void bearerToken() {
+		Assertions.assertNull(this.service.authenticateBearer("invalid", ADDRESS));
+		Assertions.assertEquals(List.of("bearer:invalid"), this.remote.calls);
+		this.remote.bearerUser = UiUser.remote(this.nextName(), User.LEVEL_OPERATOR);
+		UiUser result = this.service.authenticateBearer("valid", ADDRESS);
+		Assertions.assertNotNull(result);
+		Assertions.assertEquals(this.remote.bearerUser.username(), result.username());
+		Assertions.assertEquals(User.LEVEL_OPERATOR, result.level());
+	}
+
+	@Test
+	@DisplayName("Bearer token: refused for a local user, level overridden for a configured remote user, refused without level")
+	void bearerTokenUsers() {
+		UiUser local = this.createLocal(User.LEVEL_ADMIN);
+		this.remote.bearerUser = UiUser.remote(local.username(), User.LEVEL_ADMIN);
+		Assertions.assertNull(this.service.authenticateBearer("token", ADDRESS));
+
+		UiUser configured = this.users.create(new UserCreation(this.nextName(), false, null, User.LEVEL_READONLY));
+		this.remote.bearerUser = UiUser.remote(configured.username(), User.LEVEL_ADMIN);
+		Assertions.assertEquals(User.LEVEL_READONLY, this.service.authenticateBearer("token", ADDRESS).level());
+
+		this.remote.bearerUser = UiUser.remote(this.nextName(), 0);
+		Assertions.assertNull(this.service.authenticateBearer("token", ADDRESS));
 	}
 
 	// ------------------------------------------------------------------
