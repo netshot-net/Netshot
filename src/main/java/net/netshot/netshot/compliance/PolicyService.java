@@ -34,6 +34,9 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The compliance policy use cases: list, add, edit and delete policies.
@@ -82,6 +85,82 @@ public class PolicyService {
 			log.error("Unable to fetch the policies.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the policies");
 		}
+	}
+
+	/**
+	 * Gets what the policy lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema listSchema() {
+		return PolicyRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the policies matching a query.
+	 *
+	 * @param query the query
+	 * @return the policies of the window, with the total number of matching policies if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the policies can't be read
+	 */
+	public ListResult<Policy> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the policies.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the policies");
+		}
+	}
+
+	/**
+	 * Gets a policy.
+	 *
+	 * @param id the policy ID
+	 * @return the policy
+	 * @throws NetshotException if the policy doesn't exist, or can't be read
+	 */
+	public Policy get(long id) {
+		try {
+			return this.transactions.read(dsl -> {
+				Policy policy = this.repository.find(dsl, id);
+				if (policy == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unable to find the policy");
+				}
+				return policy;
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the policy.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the policy");
+		}
+	}
+
+	/**
+	 * Adds a policy.
+	 *
+	 * @param definition the policy
+	 * @return the new policy
+	 * @throws NetshotException if the name is blank or already used, a group doesn't exist, or if the policy can't be stored
+	 */
+	public Policy add(PolicyDefinition definition) {
+		return this.create(definition).policy();
+	}
+
+	/**
+	 * Replaces a policy: its name and the full set of its target groups (the compliance results of the devices of a
+	 * group removed from the policy are deleted).
+	 *
+	 * @param id the policy ID
+	 * @param definition the new properties
+	 * @return the policy
+	 * @throws NetshotException if the policy or a group doesn't exist, the name is blank or already used,
+	 *         or if the policy can't be stored
+	 */
+	public Policy replace(long id, PolicyDefinition definition) {
+		this.get(id);
+		return this.update(id, definition).policy();
 	}
 
 	/**
