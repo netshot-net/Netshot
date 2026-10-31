@@ -41,6 +41,7 @@ import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.api.V1Client;
+import net.netshot.netshot.testing.api.V1Endpoints;
 import net.netshot.netshot.testing.api.V1Client.Answer;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
@@ -48,6 +49,15 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
  * The device groups of the v1 API, over HTTP.
  */
 @ApiTest
+@V1Endpoints({
+	"GET /groups",
+	"GET /groups/{id}",
+	"GET /groups/{id}/devices",
+	"POST /groups",
+	"PUT /groups/{id}",
+	"PATCH /groups/{id}",
+	"DELETE /groups/{id}"
+})
 @DisplayName("v1 groups")
 @ResourceLock("DB")
 public class V1GroupResourceTest {
