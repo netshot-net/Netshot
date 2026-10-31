@@ -46,6 +46,7 @@ public class V1Response implements ContainerResponseFilter {
 	private static final String STATUS = V1Response.class.getName() + ".status";
 	private static final String LOCATION = V1Response.class.getName() + ".location";
 	private static final String ETAG = V1Response.class.getName() + ".etag";
+	private static final String NO_STORE = V1Response.class.getName() + ".noStore";
 
 	@Context
 	private HttpServletRequest httpRequest;
@@ -90,6 +91,16 @@ public class V1Response implements ContainerResponseFilter {
 	 */
 	public static void etag(HttpServletRequest request, long version) {
 		request.setAttribute(ETAG, Long.toString(version));
+	}
+
+	/**
+	 * Forbids any cache to store the response ({@code Cache-Control: no-store}), for the answers holding a secret
+	 * (the value of a new API token) or opening a session.
+	 *
+	 * @param request the current request
+	 */
+	public static void noStore(HttpServletRequest request) {
+		request.setAttribute(NO_STORE, Boolean.TRUE);
 	}
 
 	/**
@@ -155,6 +166,9 @@ public class V1Response implements ContainerResponseFilter {
 
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
+		if (Boolean.TRUE.equals(this.httpRequest.getAttribute(NO_STORE))) {
+			responseContext.getHeaders().putSingle(HttpHeaders.CACHE_CONTROL, "no-store");
+		}
 		if (responseContext.getStatus() >= 300) {
 			return;
 		}

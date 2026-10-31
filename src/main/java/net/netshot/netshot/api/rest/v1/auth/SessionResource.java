@@ -111,16 +111,17 @@ public class SessionResource {
 	public SessionDto login(SessionRequest credentials) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
 		LoginAttempt attempt = toAttempt(credentials, LoggerFilter.getClientAddress(this.request));
-		// Any exception thrown by the service leaves the existing session untouched
+		V1Response.noStore(this.request);
+		// Any exception thrown by the service (expired password...) leaves the existing session untouched
 		UiUser user = this.loginService.authenticate(attempt);
-		if (user == null) {
-			throw new NetshotException(ErrorCode.NETSHOT_AUTHENTICATION_FAILED, "Authentication failed.");
-		}
-		// Always drop the existing session (if any): a new session (with new ID) is created on successful
-		// authentication, to prevent session fixation
+		// Then always drop the existing session (if any), as v0 does: a failed attempt ends it, and a new session
+		// (with a new ID) is created on successful authentication, to prevent session fixation
 		HttpSession previousSession = this.request.getSession(false);
 		if (previousSession != null) {
 			previousSession.invalidate();
+		}
+		if (user == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_AUTHENTICATION_FAILED, "Authentication failed.");
 		}
 		HttpSession httpSession = this.request.getSession(true);
 		// The current max idle time (the default timeout of the sessions is set when the server starts)
