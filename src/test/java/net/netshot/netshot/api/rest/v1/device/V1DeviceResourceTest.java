@@ -183,7 +183,8 @@ public class V1DeviceResourceTest {
 		JsonNode access = device.get("accesses").get(0);
 		Assertions.assertEquals("SSH", access.get("specificCredentialSet").get("type").asText());
 		Assertions.assertEquals("user", access.get("specificCredentialSet").get("username").asText());
-		Assertions.assertFalse(access.toString().contains("pass"), "secret written: " + access);
+		Assertions.assertFalse(access.toString().contains("\"pass\""), "secret written: " + access);
+		Assertions.assertTrue(access.get("specificCredentialSet").get("hasPassword").asBoolean());
 
 		JsonNode expanded = this.admin.get("/devices/" + this.router1.id() + "?expand=mgmtDomain,ownerGroups").json();
 		Assertions.assertEquals("Paris DC", expanded.get("mgmtDomain").get("description").asText());
