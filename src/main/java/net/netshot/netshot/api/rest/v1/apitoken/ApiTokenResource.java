@@ -130,6 +130,7 @@ public class ApiTokenResource {
 		}
 		ApiToken token = this.apiTokenService.create(tokenRequest.description(), value, tokenRequest.level());
 		V1Response.created(this.request, V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()));
+		V1Response.noStore(this.request);
 		return ApiTokenMapper.toCreatedDto(token, value);
 	}
 

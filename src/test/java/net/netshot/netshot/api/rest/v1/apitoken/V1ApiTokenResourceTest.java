@@ -77,6 +77,7 @@ public class V1ApiTokenResourceTest {
 	@DisplayName("Create: 201, Location, and the token value in the answer only")
 	void create() throws Exception {
 		Answer answer = this.admin.post("/api-tokens", "{\"description\": \"CI robot\", \"level\": 100}");
+		Assertions.assertEquals("no-store", answer.header("Cache-Control"), "The token value must not be cached");
 		Assertions.assertEquals(201, answer.status(), answer.toString());
 		JsonNode created = answer.json();
 		long id = created.get("id").asLong();

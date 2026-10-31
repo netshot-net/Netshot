@@ -168,16 +168,22 @@ public class V1AuthResourceTest {
 	}
 
 	@Test
-	@DisplayName("Wrong credentials: 401, the existing session is left untouched")
+	@DisplayName("Wrong credentials: 401, and the existing session is dropped (as in v0)")
 	void wrongCredentials() throws Exception {
 		String cookie = sessionCookie(this.doLogin());
 
 		Answer wrong = this.anonymous.post("/auth/session", credentials(USERNAME, "wrongpassword"), "Cookie", cookie);
 		Assertions.assertEquals(401, wrong.status(), wrong.toString());
 		Assertions.assertEquals("NETSHOT_AUTHENTICATION_FAILED", wrong.json().get("code").asText());
-		Assertions.assertNull(sessionCookie(wrong), "No session is created by a failed login");
-		Assertions.assertEquals(200, this.anonymous.get("/auth/session", "Cookie", cookie).status(),
-			"A failed login must not drop the existing session");
+		// The dropped session may be expired by a Set-Cookie: no cookie of the answer gives a session
+		String after = sessionCookie(wrong);
+		if (after != null) {
+			Assertions.assertEquals(401, this.anonymous.get("/auth/session", "Cookie", after).status(),
+				"No session is created by a failed login");
+		}
+		Assertions.assertEquals(401, this.anonymous.get("/auth/session", "Cookie", cookie).status(),
+			"A failed login drops the existing session");
+		Assertions.assertEquals("no-store", wrong.header("Cache-Control"));
 
 		Answer unknown = this.anonymous.post("/auth/session", credentials("nobody", "wrongpassword"));
 		Assertions.assertEquals(401, unknown.status(), unknown.toString());
