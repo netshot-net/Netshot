@@ -206,6 +206,32 @@ public final class V1Client {
 	}
 
 	/**
+	 * Sends a GET and keeps the body as bytes (for the binary answers).
+	 *
+	 * @param path the path and query
+	 * @param headers the headers
+	 * @return the response
+	 * @throws IOException on transport error
+	 * @throws InterruptedException if interrupted
+	 */
+	public HttpResponse<byte[]> download(String path, String... headers) throws IOException, InterruptedException {
+		Map<String, String> all = new LinkedHashMap<>(this.defaultHeaders);
+		for (int i = 0; i + 1 < headers.length; i += 2) {
+			all.put(headers[i], headers[i + 1]);
+		}
+		HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(this.baseUrl + path)).GET();
+		all.forEach((name, value) -> {
+			if (value != null) {
+				builder.header(name, value);
+			}
+		});
+		synchronized (REQUESTS) {
+			REQUESTS.add("GET " + URI.create(this.baseUrl + path).getRawPath().substring(URI.create(this.baseUrl).getRawPath().length()));
+		}
+		return this.client.send(builder.build(), HttpResponse.BodyHandlers.ofByteArray());
+	}
+
+	/**
 	 * Gets the requests sent so far by all the clients.
 	 *
 	 * @return a copy of the requests ("METHOD /path" under {@code /api/v1}, without the query), in order
