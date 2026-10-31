@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.aaa.user;
 
+import java.security.SecureRandom;
 import java.util.regex.Pattern;
 
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
@@ -41,6 +42,24 @@ public record ApiToken(long id, String description, String hashedToken, int leve
 	}
 
 	protected static final Pattern TOKEN_PATTERN = Pattern.compile("^[A-Za-z0-9]{32}$");
+
+	/** The characters of a generated token. */
+	private static final String TOKEN_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+	private static final SecureRandom RANDOM = new SecureRandom();
+
+	/**
+	 * Generates a random token value (32 alphanumeric characters, from a cryptographically strong generator).
+	 *
+	 * @return the clear token value
+	 */
+	public static String generateToken() {
+		StringBuilder token = new StringBuilder(32);
+		for (int i = 0; i < 32; i++) {
+			token.append(TOKEN_CHARACTERS.charAt(RANDOM.nextInt(TOKEN_CHARACTERS.length())));
+		}
+		return token.toString();
+	}
 
 	/**
 	 * Checks whether the given text is a valid token.
