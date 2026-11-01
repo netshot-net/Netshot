@@ -21,6 +21,17 @@ const ast = await openapiTS(source, {
   },
 })
 
+// The brief view of each representation (the default view of the lists): only these properties are present
+const document = JSON.parse(fs.readFileSync(source, "utf8"))
+const briefs = Object.entries(document.components?.schemas ?? {})
+  .filter(([, schema]) => Array.isArray(schema["x-netshot-brief"]) && schema["x-netshot-brief"].length > 0)
+  .map(([name, schema]) => {
+    const keys = schema["x-netshot-brief"].map((key) => JSON.stringify(key)).join(" | ")
+    return `    ${name}: Pick<components["schemas"]["${name}"], ${keys}>;`
+  })
+const briefInterface = "\n/** The brief view of each representation (the default view of the lists). */\n" +
+  "export interface briefs {\n" + briefs.join("\n") + "\n}\n"
+
 const header = "// Generated from openapi.json by `npm run api:types`: do not edit.\n\n"
-fs.writeFileSync(target, header + astToString(ast))
+fs.writeFileSync(target, header + astToString(ast) + briefInterface)
 console.log(`Generated ${target.pathname}`)
