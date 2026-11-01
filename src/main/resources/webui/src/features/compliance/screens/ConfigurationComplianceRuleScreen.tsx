@@ -1,10 +1,10 @@
 import api from "@/api"
-import { isNetshotError, NetshotErrorCode } from "@/api/httpClient"
+import { HttpStatus, isNetshotError, NetshotErrorCode } from "@/api/httpClient"
 import { EmptyResult, MonacoEditor, Protected } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useLocalization } from "@/i18n"
 import { LuAsterisk, LuMessageSquareDot, LuZap, LuZapOff, LuPencil, LuTrash, LuChevronDown } from "react-icons/lu"
-import { Level, RuleType } from "@/types"
+import { DeviceNetworkClass, Level, RuleType } from "@/types"
 import {
   Badge,
   Box,
@@ -43,7 +43,7 @@ export default function ConfigurationComplianceRuleScreen() {
 
   const { data: rule, isPending, isError, error } = useQuery({
     queryKey: [QUERIES.RULE_DETAIL, +(policyId ?? 0), +(ruleId ?? 0)],
-    queryFn: async () => api.rule.getById(+(policyId ?? 0), +(ruleId ?? 0)),
+    queryFn: async () => api.rule.getById(+(ruleId ?? 0)),
   })
 
   const { data: exemptedDevices } = useQuery({
@@ -52,7 +52,7 @@ export default function ConfigurationComplianceRuleScreen() {
     enabled: !!rule,
   })
 
-  const [now] = useState(() => Date.now())
+  const [now] = useState(() => new Date())
 
   const contextLabel = rule?.anyBlock
     ? t("policy.rule.atLeastOneSuchBlock")
@@ -88,7 +88,9 @@ export default function ConfigurationComplianceRuleScreen() {
   const isRuleNotFound =
     isError &&
     isNetshotError(error) &&
-    (error.code === NetshotErrorCode.RuleNotFound || error.code === NetshotErrorCode.PolicyNotFound)
+    (error.response?.status === HttpStatus.NotFound ||
+      error.code === NetshotErrorCode.RuleNotFound ||
+      error.code === NetshotErrorCode.PolicyNotFound)
 
   if (isRuleNotFound) {
     return (
@@ -102,12 +104,13 @@ export default function ConfigurationComplianceRuleScreen() {
         <Text color="grey.400">{t("policy.rule.exemptedDevices")}</Text>
       </Box>
       <Stack direction="row" gap="2" flexWrap="wrap">
-        {exemptedDevices.map((device) => {
-          const expired = device.expirationDate < now
+        {exemptedDevices.map((exemption) => {
+          const device = exemption.device
+          const expired = !!exemption.expirationDate && exemption.expirationDate < now
           return (
-            <Tooltip key={device.id} content={t("time.expiresOn", { date: formatDate(device.expirationDate) })}>
-              <DeviceBadge networkClass={device.networkClass} colorPalette={expired ? "red" : undefined}>
-                <Link to={`/app/devices/${device.id}/general`}>{device.name}</Link>
+            <Tooltip key={device?.id} content={t("time.expiresOn", { date: formatDate(exemption.expirationDate!) })}>
+              <DeviceBadge networkClass={device?.networkClass as DeviceNetworkClass | undefined} colorPalette={expired ? "red" : undefined}>
+                <Link to={`/app/devices/${device?.id}/general`}>{device?.name ?? device?.display}</Link>
               </DeviceBadge>
             </Tooltip>
           )
@@ -200,8 +203,8 @@ export default function ConfigurationComplianceRuleScreen() {
                 <Text color="grey.400">{t("device.type")}</Text>
               </Box>
               <Skeleton loading={isPending}>
-                {rule?.deviceDriverDescription
-                  ? <Text>{rule.deviceDriverDescription}</Text>
+                {rule?.deviceDriver
+                  ? <Text>{getOptionByDriver(rule.deviceDriver)?.value.description ?? rule.deviceDriver}</Text>
                   : <Badge size="lg" variant="outline" marginTop="-3px" marginBottom="-3px"><LuAsterisk />{t("common.any")}</Badge>
                 }
               </Skeleton>
