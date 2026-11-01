@@ -84,6 +84,29 @@ An unknown parameter, an unknown property, a lookup which doesn't apply to the p
 
 Omitting the heavy properties also makes the request lighter on the server (for instance, a device list which only needs summary properties doesn't load the attributes and accesses of the devices).
 
+## Statistics
+
+The lists which can be counted have a `stats` sub-resource (`/api/v1/devices/stats`, `/api/v1/configs/stats`, `/api/v1/tasks/stats`), which counts the objects matching the filters of the list (with `q`, and `query` for the devices):
+
+- `groupBy=status,mgmtDomain`: counts by the values of up to two fields (the fields which can be grouped by are given by each resource). A reference field gives a reference (`{"id", "url", "display"}`); an object can be counted once per value of a multivalued field (the groups or the tags of a device), with `null` for none.
+- `interval=hour|day|week|month`: counts by time bucket, on a date field (`on`, default given by each resource), over a range: `from` (included) and `to` (excluded), ISO-8601 dates or days (the start of the day in the time zone); by default, the last day (by hour), 7 days, 12 weeks or 12 months up to now. The buckets are aligned in `timeZone` (an IANA name, `UTC` by default: days at midnight, weeks on Monday, months on the first day), and every bucket of the range is given, with a count of 0 if empty. A request with more than 1000 buckets is refused.
+
+```json
+GET /api/v1/devices/stats?groupBy=softwareLevel&group=12
+{
+  "count": 42,
+  "groupBy": ["softwareLevel"],
+  "interval": null, "on": null, "from": null, "to": null, "timeZone": null,
+  "results": [
+    {"softwareLevel": "GOLD", "count": 30},
+    {"softwareLevel": "SILVER", "count": 10},
+    {"softwareLevel": "UNKNOWN", "count": 2}
+  ]
+}
+```
+
+`count` is the number of matching objects. With `interval`, a row has a `start`, and the rows are by grouped value, then by time; without, by decreasing count. The paging, sort and selection parameters don't apply (400).
+
 ## Errors
 
 Errors are [problem details (RFC 9457)](https://www.rfc-editor.org/rfc/rfc9457), as `application/problem+json` (or `application/problem+xml`, or YAML, after the `Accept` header):
@@ -120,6 +143,8 @@ curl -H "X-Netshot-API-Token: <token>" \
   'https://<server:port>/api/v1/devices?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22&location__isw=paris&fields=name,mgmtAddress'
 ```
 
+`GET /api/v1/devices/stats` counts the devices (see [Statistics](#statistics)): `groupBy` `status`, `mgmtDomain`, `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `location`, `eolDate`, `eosDate`, `group`, `tag`, `compliant`; time buckets on `createdDate` (default), `changeDate`, `eolDate` or `eosDate`. For instance the compliance of the devices of each group: `/api/v1/devices/stats?groupBy=group,compliant`.
+
 **Adding a device** is asynchronous: `POST /api/v1/devices` answers `202 Accepted` with the task and its `Location: /api/v1/tasks/{id}`. Without `driver`, a discovery task finds the type of the device (an SNMP community must exist for the domain), and the device is only created if the discovery succeeds (`accesses` and `options` are then refused). With `driver`, the device is created at once, with a snapshot task. Properties: `mgmtAddress` and `mgmtDomain` (required), `driver`, `comments`, `tags`, `options`, `accesses`. A device with the same address in the domain is a 409.
 
 **Replacing a device** (`PUT`) takes its editable properties: `mgmtAddress`, `mgmtDomain`, `status`, `comments`, `tags`, `options`, `accesses`. The rest (family, serial number, software...) is read-only and ignored when sent back, so a device read can be modified and sent back. As any `PUT`, it is a full replacement: absent `accesses`, `tags` or `options` are emptied. `PATCH` changes the given properties only (`accesses` is replaced as a whole). The version of a device only changes when its own properties change, not its accesses alone.
@@ -149,6 +174,7 @@ The interfaces and modules have an `id` and a `display`, but no `url` (they aren
 
 `GET /api/v1/configs` (read-only level) lists the configurations of all the devices, the latest first, in their brief view by default (`device` reference, `changeDate`, `author`). Filters: `id`, `device`, `changeDate`, `author`, `domain`, `group`; `q` searches the author. `GET /api/v1/devices/{id}/configs` is the same list for a device.
 
+- `GET /api/v1/configs/stats` counts the configurations (the configuration changes, see [Statistics](#statistics)): `groupBy` `device` or `author`; time buckets on `changeDate`. For instance the changes of the last 7 days, by day: `/api/v1/configs/stats?interval=day`.
 - `GET /api/v1/configs/{id}` gives a configuration with its `attributes` (`name`, `type` and the short values; for the long texts and files, the `url` to download them: they are never inlined).
 - `GET /api/v1/configs/{id}/items/{item}` downloads a long text (`text/plain`) or a file (`application/octet-stream`) item, as an attachment.
 - `GET /api/v1/configs/{id}/diff?with={otherId}` compares the configuration (the revised one) with `with` (the original one; by default, the previous configuration of the device): `original` and `revised` references, `deltas` by compared item.
@@ -178,7 +204,7 @@ Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDa
 - `POST /api/v1/tasks/{id}/cancel` (read-write level) cancels a scheduled task, or requests the cancellation of a running group task, or of a device task still waiting for its device (`cancelRequested`); a task in another status can't be cancelled (409).
 - `POST /api/v1/tasks` (operator level) creates a task (`202` with the task): `type` (as the `type` of the tasks; the discovery tasks can't be created), the target `device`, `group` or `deviceList` (references) depending on the type, its `parameters` (the keys the `parameters` of a task show), and the scheduling properties of the device actions, `scheduleMode` and `stopOnFailure`. Running scripts needs the execute-read-write level, scanning subnets the read-write level, purging the database the admin level.
 - `GET /api/v1/tasks/{id}/debug-log` (read-write level, `text/plain`) gives the debug log of a task run with debug enabled.
-- `GET /api/v1/tasks/stats?after=&before=&buckets=`: the finished tasks (`SUCCESS`, `FAILURE`, `CANCELLED`) over a range (ISO-8601 dates; by default from the epoch to now), split into `buckets` (1 to 366, 48 by default): `{"after", "before", "bins": [{"from", "to", "countByStatus"}], "statusCounts", "typeCounts"}`.
+- `GET /api/v1/tasks/stats` counts the tasks (see [Statistics](#statistics)): `groupBy` `type`, `status`, `author`, `scheduleType`, `device`, `group`, `runnerId`; time buckets on `executionDate` (default; the tasks which haven't run aren't counted), `creationDate`, `changeDate` or `scheduleReference`. For instance the finished tasks of the last day, by hour and status: `/api/v1/tasks/stats?interval=hour&groupBy=status&status=SUCCESS&status=FAILURE&status=CANCELLED`.
 - `GET /api/v1/tasks/status-counts?parentTask=`: `{"countByStatus" (every status), "threadCount"}`; with `parentTask`, only the children of that task.
 
 Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `scheduleType`, `scheduleReference`, `creationDate`, `changeDate`, `executionDate`, `device`, `group`, `parentTask`, `childOrder`, `runnerId`, `debugEnabled`; `q` searches the author, target and comments.

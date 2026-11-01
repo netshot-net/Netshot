@@ -60,6 +60,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 @ApiTest
 @V1Endpoints({
 	"GET /configs",
+	"GET /configs/stats",
 	"GET /configs/{id}",
 	"GET /configs/{id}/items/{item}",
 	"GET /configs/{id}/diff",
@@ -306,6 +307,23 @@ public class V1ConfigResourceTest {
 		Assertions.assertFalse(page.get("next").isNull());
 		Assertions.assertEquals(404, this.reader.get("/devices/%d/configs".formatted(TestServer.UNKNOWN_ID)).status());
 		Assertions.assertEquals(400, this.reader.get("/devices/%d/configs?bogus=1".formatted(this.router1.id())).status());
+	}
+
+	@Test
+	@DisplayName("Stats: configuration changes by month, by device and author")
+	void stats() throws Exception {
+		JsonNode months = this.reader.get("/configs/stats?interval=month&from=2026-01-01&to=2026-04-01").json();
+		Assertions.assertEquals("changeDate", months.get("on").asText());
+		List<Long> counts = new ArrayList<>();
+		months.get("results").forEach(r -> counts.add(r.get("count").asLong()));
+		Assertions.assertEquals(List.of(1L, 1L, 1L), counts);
+		JsonNode byDevice = this.reader.get("/configs/stats?groupBy=device").json();
+		Assertions.assertEquals(3, byDevice.get("count").asLong());
+		Assertions.assertEquals("router00001", byDevice.get("results").get(0).get("device").get("display").asText());
+		Assertions.assertEquals(2, byDevice.get("results").get(0).get("count").asLong());
+		JsonNode byAuthor = this.reader.get("/configs/stats?groupBy=author&device=" + this.router1.id()).json();
+		Assertions.assertEquals(2, byAuthor.get("results").size());
+		Assertions.assertEquals(400, this.reader.get("/configs/stats?groupBy=customHash").status());
 	}
 
 	@Test

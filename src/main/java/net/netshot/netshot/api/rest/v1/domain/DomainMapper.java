@@ -18,6 +18,12 @@
  */
 package net.netshot.netshot.api.rest.v1.domain;
 
+import java.util.stream.Collectors;
+
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.domain.DomainService;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
+import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.domain.DomainDefinition;
@@ -68,5 +74,16 @@ public final class DomainMapper {
 	 */
 	public static DomainDefinition toDefinition(DomainRequest request) {
 		return new DomainDefinition(request.name(), request.description(), request.server4Address());
+	}
+
+	/**
+	 * Builds the resolver of domain IDs into references (statistics grouped by domain).
+	 *
+	 * @param domainService the domain use cases
+	 * @return the resolver
+	 */
+	public static StatsResponse.Resolver resolver(DomainService domainService) {
+		return ids -> domainService.list(ListQuery.byIds(ids)).items().stream()
+			.collect(Collectors.toMap(Domain::id, d -> new RefDto(d.id(), V1Links.of(PATH, d.id()), d.name())));
 	}
 }

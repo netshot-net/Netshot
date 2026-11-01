@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.task;
 
-import java.time.Instant;
+import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +40,11 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
+import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
+import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
@@ -48,7 +53,6 @@ import net.netshot.netshot.api.rest.v1.report.ReportParams;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
-import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
@@ -64,6 +68,8 @@ import net.netshot.netshot.task.TaskSummary;
 public class TaskResource {
 
 	private final TaskService taskService;
+	private final SearchService searchService;
+	private final GroupService groupService;
 	private final TaskResponses responses;
 
 	@Context
@@ -86,6 +92,8 @@ public class TaskResource {
 	@Inject
 	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, DriverRegistry driverRegistry) {
 		this.taskService = taskService;
+		this.searchService = searchService;
+		this.groupService = groupService;
 		this.responses = new TaskResponses(taskService, searchService, groupService, driverRegistry);
 	}
 
@@ -202,34 +210,24 @@ public class TaskResource {
 	}
 
 	/**
-	 * Gets time-based statistics about the completed tasks.
+	 * Counts the tasks.
 	 *
-	 * @return the statistics
+	 * @return the counts
 	 */
 	@GET
 	@Path("/stats")
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
-	@Operation(summary = "Get time-based statistics about completed tasks",
-		description = "Returns, for the date range, the number of completed tasks (success, failure, cancelled) bucketed over time, "
-			+ "plus the totals by status and by task type over the whole range.",
-		parameters = {
-			@Parameter(name = "after", in = ParameterIn.QUERY, description = "Start of the range, ISO-8601 (default: 1970-01-01T00:00:00Z)"),
-			@Parameter(name = "before", in = ParameterIn.QUERY, description = "End of the range, ISO-8601 (default: now)"),
-			@Parameter(name = "buckets", in = ParameterIn.QUERY, description = "Number of time buckets the range is split into, from 1 to 366 (default: 48)")
-		})
-	public TaskStatsDto getTaskStats() {
-		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ReportParams.only(params, "after", "before", "buckets");
-		Instant from = ReportParams.instant(params, "after");
-		Instant to = ReportParams.instant(params, "before");
-		Integer binCount = ReportParams.integer(params, "buckets", 1, 366);
-		Instant start = from == null ? Instant.EPOCH : from;
-		Instant end = to == null ? Instant.now() : to;
-		if (!start.isBefore(end)) {
-			throw NetshotException.invalidParameter("before", "The end of the range must be after its start");
-		}
-		return TaskStatsDto.of(this.taskService.getStats(start.toEpochMilli(), end.toEpochMilli(), binCount), start, end);
+	@Operation(summary = "Count the tasks", description = "Counts the tasks matching the filters of the task list, by the values "
+		+ "of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket "
+		+ "(interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, "
+		+ "from/to, timeZone). Without execution date, a task isn't counted by executionDate.")
+	public StatsResponse getTaskStats() {
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.taskService.listSchema(), "executionDate");
+		ListResult<StatsRow> rows = this.taskService.stats(parsed.query(), parsed.stats());
+		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
+			"device", DeviceMapper.resolver(this.searchService),
+			"group", GroupMapper.resolver(this.groupService)));
 	}
 
 	/**

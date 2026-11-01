@@ -54,6 +54,8 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 
 /**
  * The configuration use cases: list the configurations, download an item of one, and compare two.
@@ -126,6 +128,25 @@ public class ConfigService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the configs.", e);
 			throw DatabaseErrors.listFailure(e, "Unable to fetch the configs");
+		}
+	}
+
+	/**
+	 * Counts the configurations matching a query, by field values and/or time buckets.
+	 *
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows, with the number of matching configurations
+	 * @throws NetshotException if a filter is invalid, or the configurations can't be read
+	 */
+	public ListResult<StatsRow> stats(ListQuery query, StatsQuery stats) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.stats(dsl, query, stats),
+				this.repository.count(dsl, query)));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to count the configurations.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to count the configurations");
 		}
 	}
 
