@@ -1,4 +1,4 @@
-import { Brief, client, list, ListParams, replace, Schemas } from "./client"
+import { Brief, client, list, listAll, ListParams, replace, Schemas } from "./client"
 
 export type ApiToken = Schemas["ApiToken"]
 export type ApiTokenCreated = Schemas["ApiTokenCreated"]
@@ -41,18 +41,6 @@ export function etagOf(object: { version?: number } | null | undefined) {
 
 function ifMatch(version?: number | null) {
   return version === undefined || version === null ? undefined : { "If-Match": `"${version}"` }
-}
-
-/** Gets all the items of a list, page after page (for the small lists used as choices). */
-async function listAll<T>(path: string, params: ListParams = {}) {
-  const items: T[] = []
-  for (;;) {
-    const page = await list<T>(path, { ...params, offset: items.length, limit: 500 })
-    items.push(...page.results)
-    if (!page.next || page.results.length === 0) {
-      return items
-    }
-  }
 }
 
 async function getAllApiTokens(params: ListParams = {}) {

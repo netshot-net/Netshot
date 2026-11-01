@@ -1,5 +1,5 @@
 import { Domain } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
@@ -20,7 +20,7 @@ export default function AdministrationDomainScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending, onBottomReached } = useList<Domain>(
+  const { rows: data, isPending } = useListAll<Domain>(
     [QUERIES.ADMIN_DEVICE_DOMAINS],
     "/domains",
     { q: pagination.query, sort: "name", view: "full" }
@@ -120,7 +120,7 @@ export default function AdministrationDomainScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

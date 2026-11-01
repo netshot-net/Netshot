@@ -1,5 +1,5 @@
 import { Schemas } from "@/api/client"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { EmptyResult, VirtualizedDataTable } from "@/components"
 import { useDialogConfig } from "@/dialog"
 import { DeviceBadge } from "@/components/entity"
@@ -29,7 +29,7 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
   const formattedDate = isNever ? t("common.never") : formatDate(date)
 
   const dateField = `${type}Date`
-  const { rows: data, isPending, onBottomReached } = useList<Schemas["Device"]>(
+  const { rows: data, isPending } = useListAll<Schemas["Device"]>(
     [QUERIES.DEVICE_HARDWARE_STATUS, type, date, domain, group],
     "/devices",
     {
@@ -39,8 +39,7 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
       group,
       fields: "name,networkClass,family",
       sort: "name",
-    },
-    { limit: 100 }
+    }
   )
 
   const columns = [
@@ -123,7 +122,6 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
                       data={data}
                       columns={columns}
                       primaryKey="id"
-                      onBottomReached={onBottomReached}
                       flex="1"
                       minH="0"
                     />

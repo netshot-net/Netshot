@@ -5,7 +5,7 @@ import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import { listAll } from "@/api/device"
+import { listAll } from "@/api/client"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"
 import { usePagination } from "@/hooks"

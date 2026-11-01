@@ -1,6 +1,5 @@
-import { client, EXPORT_TYPES, ListParams, Schemas } from "./client"
+import { client, EXPORT_TYPES, listAll, ListParams, Schemas } from "./client"
 import { HttpMethod } from "./httpClient"
-import { listAll } from "./rule"
 import { getStats, StatsRef } from "./stats"
 
 /*

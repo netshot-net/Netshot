@@ -3,7 +3,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
 import type { HardwareRule } from "@/api/hardwareRule"
 import { usePagination } from "@/hooks"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { Level } from "@/types"
 import { useLocalization } from "@/i18n/useLocalization"
@@ -30,8 +30,7 @@ export default function HardwareComplianceScreen() {
   const {
     rows: rules,
     isPending,
-    onBottomReached,
-  } = useList<HardwareRule>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
+  } = useListAll<HardwareRule>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
     family__ic: pagination.query?.trim(),
     sort: "id",
     view: "full",
@@ -204,7 +203,7 @@ export default function HardwareComplianceScreen() {
       ) : (
         <>
           {rules.length > 0 ? (
-            <DataTable columns={columns} data={rules} loading={isPending} onBottomReached={onBottomReached} />
+            <DataTable columns={columns} data={rules} loading={isPending} />
           ) : isSearching ? (
             <Text>{t("common.noResults")}</Text>
           ) : (

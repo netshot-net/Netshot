@@ -1,4 +1,4 @@
-import { Brief, client, list, ListParams, ListResponse, patch, replace, Schemas } from "./client"
+import { Brief, client, listAll, ListResponse, patch, replace, Schemas } from "./client"
 
 /**
  * A compliance rule: every property of the rule types in one type, only those of its type are set (text rule: field,
@@ -18,19 +18,6 @@ export type RuleRequest = Omit<Schemas["TextRuleRequest"], "type"> & Pick<Schema
 }
 
 export type Exemption = Schemas["Exemption"]
-
-/** Reads every page of a list. */
-export async function listAll<T>(path: string, params: ListParams = {}): Promise<T[]> {
-  const results: T[] = []
-  let page: ListResponse<T>
-  let offset = 0
-  do {
-    page = await list<T>(path, { ...params, offset, count: false })
-    results.push(...page.results)
-    offset = page.offset + page.limit
-  } while (page.next)
-  return results
-}
 
 async function getById(id: number) {
   return (await client.get<Rule>(`/compliance/rules/${id}`)) as Rule

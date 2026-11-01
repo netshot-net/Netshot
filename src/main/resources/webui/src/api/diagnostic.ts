@@ -1,5 +1,4 @@
-import { client, ListParams, patch, replace, Schemas } from "./client"
-import { listAll } from "./rule"
+import { client, listAll, ListParams, patch, replace, Schemas } from "./client"
 
 /** A diagnostic: every property of the diagnostic types in one type, only those of its type are set. */
 export type Diagnostic = Schemas["Diagnostic"] & {
