@@ -1,4 +1,5 @@
-import api, { CreateOrUpdateSoftwareRule } from "@/api"
+import api from "@/api"
+import type { SoftwareRuleRequest } from "@/api/softwareRule"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
@@ -38,7 +39,7 @@ export default function AddSoftwareRuleTrigger({ children, ...rest }: AddSoftwar
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.SOFTWARE_RULE_CREATE,
-    mutationFn: async (payload: CreateOrUpdateSoftwareRule) => api.softwareRule.create(payload),
+    mutationFn: async (payload: SoftwareRuleRequest) => api.softwareRule.create(payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -52,11 +53,11 @@ export default function AddSoftwareRuleTrigger({ children, ...rest }: AddSoftwar
       size: "lg",
       async onSubmit(values: SoftwareRuleFormValues) {
         await mutation.mutateAsync({
-          driver: values.driver!,
+          driver: values.driver ?? undefined,
           family: values.family,
           familyRegExp: values.familyRegExp,
-          group: values.group!,
-          level: values.level,
+          group: values.group ?? undefined,
+          level: values.level as SoftwareRuleRequest["level"],
           partNumber: values.partNumber,
           partNumberRegExp: values.partNumberRegExp,
           version: values.version,

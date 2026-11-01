@@ -1,12 +1,15 @@
 import { addMonths } from "date-fns"
-import api, { RuleStateChangePayload } from "@/api"
+import api from "@/api"
+import { list } from "@/api/client"
+import type { Schemas } from "@/api/client"
+import type { Exemption, Rule } from "@/api/rule"
 import { NetshotError } from "@/api/httpClient"
 import { useDebounce, useToast } from "@/hooks"
 import { LuArrowLeft, LuArrowRight, LuCalendar, LuSearch } from "react-icons/lu"
 import { useDialogConfig } from "@/dialog"
-import { ExemptedDevice, Rule, LightDevice } from "@/types"
+import { DeviceNetworkClass } from "@/types"
 import { useLocalization } from "@/i18n"
-import { DeviceListItem, DeviceNetworkClassIcon } from "@/components/entity"
+import { DeviceNetworkClassIcon } from "@/components/entity"
 import {
   Box,
   Button,
@@ -68,6 +71,25 @@ function ListboxRender<T extends CollectionItem>(props: ListboxRenderProps<T>) {
   )
 }
 
+type SearchedDevice = Schemas["Device"]
+
+function DeviceItem({ device }: { device: SearchedDevice }) {
+  return (
+    <Stack direction="row" gap="2" alignItems="center" opacity={device.status === "DISABLED" ? 0.5 : 1}>
+      <DeviceNetworkClassIcon
+        networkClass={(device.networkClass ?? "UNKNOWN") as DeviceNetworkClass}
+        size="md"
+        color="fg.muted"
+        flexShrink={0}
+      />
+      <Stack gap="0">
+        <Text fontWeight="medium" textStyle="sm">{device.name}</Text>
+        <Text textStyle="xs" color="grey.400">{device.family}</Text>
+      </Stack>
+    </Stack>
+  )
+}
+
 export type EditRuleExemptedDeviceDialogProps = {
   policyId: number
   rule: Rule
@@ -77,7 +99,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   const { policyId, rule } = props
   const { t, i18n } = useTranslation()
   const { formatDate, numberToCalendarDate, calendarDateToTimestamp, datePlaceholder } = useLocalization()
-  const [now] = useState(() => Date.now())
+  const [now] = useState(() => new Date())
   const toast = useToast()
   const dialogConfig = useDialogConfig()
   const queryClient = useQueryClient()
@@ -90,16 +112,16 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   const [newExpirationDate, setNewExpirationDate] = useState<number>(() => addMonths(new Date(), 3).getTime())
   const initializedRef = useRef(false)
 
-  const leftCollection = useListCollection<LightDevice>({
+  const leftCollection = useListCollection<SearchedDevice>({
     initialItems: [],
-    itemToValue: (d) => d.id.toString(),
-    itemToString: (d) => d.name,
+    itemToValue: (d) => String(d.id),
+    itemToString: (d) => d.name ?? d.display ?? "",
   })
 
-  const rightCollection = useListCollection<ExemptedDevice>({
+  const rightCollection = useListCollection<Exemption>({
     initialItems: [],
-    itemToValue: (d) => d.id.toString(),
-    itemToString: (d) => d.name,
+    itemToValue: (d) => String(d.device?.id),
+    itemToString: (d) => d.device?.name ?? d.device?.display ?? "",
   })
 
   const { data: exemptedDevices } = useQuery({
@@ -110,9 +132,12 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   const { data: searchResult } = useQuery({
     queryKey: ["exemption:device:search", debouncedQuery],
     queryFn: () =>
-      api.device.search({
-        query: `[Name] containsnocase "${debouncedQuery}"`,
+      list<SearchedDevice>("/devices", {
+        name__ic: debouncedQuery,
+        fields: "name,family,status,networkClass",
+        sort: "name",
         limit: 20,
+        count: false,
       }),
   })
 
@@ -120,7 +145,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
     if (!initializedRef.current && exemptedDevices != null) {
       initializedRef.current = true
       rightCollection.set(exemptedDevices)
-      setExemptedIds(new Set(exemptedDevices.map((d) => d.id)))
+      setExemptedIds(new Set(exemptedDevices.map((d) => d.device!.id!)))
     }
     // rightCollection is a fresh object every render (useListCollection isn't
     // memoized); adding it here would re-fire this effect on every render its
@@ -129,7 +154,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   }, [exemptedDevices])
 
   useEffect(() => {
-    const filtered = (searchResult?.devices ?? []).filter((d) => !exemptedIds.has(d.id))
+    const filtered = (searchResult?.results ?? []).filter((d) => !exemptedIds.has(d.id!))
     leftCollection.set(filtered)
     // leftCollection is a fresh object every render (useListCollection isn't
     // memoized); adding it here would re-fire this effect on every render its
@@ -138,8 +163,8 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   }, [searchResult, exemptedIds])
 
   const updateMutation = useMutation({
-    mutationFn: async (payload: RuleStateChangePayload) =>
-      api.rule.updateExemptedDevice(rule.id, payload),
+    mutationFn: async (payload: Schemas["ExemptionRequest"][]) =>
+      api.rule.updateExemptedDevices(rule.id!, payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -149,10 +174,12 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
     const selected = leftCollection.collection.items.filter((item) =>
       leftValues.includes(leftCollection.collection.getItemValue(item) ?? "")
     )
-    rightCollection.append(...selected.map((device) => ({ ...device, expirationDate: newExpirationDate } as unknown as ExemptedDevice)))
+    rightCollection.append(
+      ...selected.map((device): Exemption => ({ device, expirationDate: new Date(newExpirationDate) }))
+    )
     setExemptedIds((prev) => {
       const next = new Set(prev)
-      selected.forEach((d) => next.add(d.id))
+      selected.forEach((d) => next.add(d.id!))
       return next
     })
     setLeftValues([])
@@ -161,7 +188,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   function transferToLeft() {
     const removedIds = rightCollection.collection.items
       .filter((item) => rightValues.includes(rightCollection.collection.getItemValue(item) ?? ""))
-      .map((d) => d.id)
+      .map((d) => d.device!.id!)
     rightCollection.remove(...rightValues)
     setExemptedIds((prev) => {
       const next = new Set(prev)
@@ -172,19 +199,12 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   }
 
   async function applyChanges() {
-    const exemptions = rightCollection.collection.items.reduce(
-      (acc, device) => {
-        acc[device.id] = device.expirationDate
-        return acc
-      },
-      {} as Record<number, number>
-    )
+    const exemptions = rightCollection.collection.items.map((exemption) => ({
+      device: exemption.device!.id!,
+      expirationDate: exemption.expirationDate!,
+    }))
 
-    await updateMutation.mutateAsync({
-      enabled: rule.enabled,
-      exemptions,
-      name: rule.name,
-    })
+    await updateMutation.mutateAsync(exemptions)
 
     toast.success({
       title: t("common.success"),
@@ -245,7 +265,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
                       emptyMessage={deviceQuery ? t("device.noDeviceFound") : t("device.startTypingToFind")}
                       renderItem={(device) => (
                         <Listbox.ItemText>
-                          <DeviceListItem device={device} />
+                          <DeviceItem device={device} />
                         </Listbox.ItemText>
                       )}
                     />
@@ -331,11 +351,16 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
                       renderItem={(device, _, itemLabel) => (
                         <Listbox.ItemText>
                           <Stack direction="row" gap="2" alignItems="center">
-                            <DeviceNetworkClassIcon networkClass={device.networkClass} size="md" color="fg.muted" flexShrink={0} />
+                            <DeviceNetworkClassIcon
+                              networkClass={(device.device?.networkClass ?? "UNKNOWN") as DeviceNetworkClass}
+                              size="md"
+                              color="fg.muted"
+                              flexShrink={0}
+                            />
                             <Stack gap="0">
                               <Text fontWeight="medium" textStyle="sm">{itemLabel}</Text>
-                              <Text textStyle="xs" color={device.expirationDate < now ? "fg.error" : "fg.muted"}>
-                                {t("time.expiresOn", { date: formatDate(device.expirationDate) })}
+                              <Text textStyle="xs" color={device.expirationDate && device.expirationDate < now ? "fg.error" : "fg.muted"}>
+                                {t("time.expiresOn", { date: device.expirationDate ? formatDate(device.expirationDate) : "" })}
                               </Text>
                             </Stack>
                           </Stack>

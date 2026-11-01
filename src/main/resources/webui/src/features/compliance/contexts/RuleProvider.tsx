@@ -1,4 +1,4 @@
-import { Rule } from "@/types";
+import type { Rule } from "@/api/rule";
 import { PropsWithChildren, createContext, use } from "react";
 
 export type RuleContextType = {
