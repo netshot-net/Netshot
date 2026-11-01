@@ -1,5 +1,5 @@
 import { VaultInstance } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
@@ -40,7 +40,7 @@ export default function AdministrationVaultInstanceScreen() {
   const pagination = usePagination()
   const vaultAuthMethodOptions = useVaultAuthMethodOptions()
 
-  const { rows: data, isPending, onBottomReached } = useList<VaultInstance>(
+  const { rows: data, isPending } = useListAll<VaultInstance>(
     [QUERIES.ADMIN_VAULT_INSTANCES],
     "/vault-instances",
     { q: pagination.query, sort: "name", view: "full" }
@@ -160,7 +160,7 @@ export default function AdministrationVaultInstanceScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

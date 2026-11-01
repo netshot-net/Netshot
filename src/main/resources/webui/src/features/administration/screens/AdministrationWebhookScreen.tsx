@@ -1,5 +1,5 @@
 import { Hook } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
@@ -39,7 +39,7 @@ export default function AdministrationApiTokenScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending, onBottomReached } = useList<Hook>(
+  const { rows: data, isPending } = useListAll<Hook>(
     [QUERIES.ADMIN_WEBHOOKS],
     "/hooks",
     { q: pagination.query, sort: "name", view: "full" }
@@ -160,7 +160,7 @@ export default function AdministrationApiTokenScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

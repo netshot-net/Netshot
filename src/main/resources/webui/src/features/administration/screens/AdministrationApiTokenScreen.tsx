@@ -1,5 +1,5 @@
 import { ApiToken } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { Level } from "@/types"
@@ -21,7 +21,7 @@ export default function AdministrationApiTokenScreen() {
   const pagination = usePagination()
   const userLevelOptions = useUserLevelOptions()
 
-  const { rows: data, isPending, onBottomReached } = useList<ApiToken>(
+  const { rows: data, isPending } = useListAll<ApiToken>(
     [QUERIES.ADMIN_API_TOKENS],
     "/api-tokens",
     { q: pagination.query, sort: "description" }
@@ -108,7 +108,7 @@ export default function AdministrationApiTokenScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

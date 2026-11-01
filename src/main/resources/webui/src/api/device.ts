@@ -4,7 +4,7 @@ import type {
   DeviceType,
 } from "@/types"
 import { TaskType } from "@/types"
-import { Brief, client, list, ListParams, patch, Schemas } from "./client"
+import { Brief, client, list, listAll, ListParams, patch, Schemas } from "./client"
 
 type Task = Schemas["Task"]
 
@@ -18,27 +18,9 @@ export type ScheduleOptions = {
   stopOnFailure?: boolean
 }
 
-const PAGE_SIZE = 500
-
 /** The ETag (If-Match value) of an object at a version. */
 export function etagOf(version: number | null | undefined) {
   return version === null || version === undefined ? undefined : `"${version}"`
-}
-
-/**
- * Gets every item of a list, page after page.
- */
-export async function listAll<T>(path: string, params: ListParams = {}) {
-  const items: T[] = []
-  let offset = 0
-  for (;;) {
-    const page = await list<T>(path, { ...params, offset, limit: PAGE_SIZE, count: false })
-    items.push(...page.results)
-    if (!page.next || page.results.length === 0) {
-      return items
-    }
-    offset += page.results.length
-  }
 }
 
 /** The body of a scheduled action. */
@@ -66,11 +48,6 @@ async function search(payload: { query: string; offset?: number; limit?: number 
 
 async function getAll(params: ListParams = {}) {
   return list<Device>("/devices", params)
-}
-
-/** Every device matching the filters (all the pages). */
-async function getAllRows(params: ListParams = {}) {
-  return listAll<Device>("/devices", params)
 }
 
 async function getById(id: number) {
@@ -205,7 +182,6 @@ async function getAllTypes() {
 export default {
   search,
   getAll,
-  getAllRows,
   getById,
   create,
   update,

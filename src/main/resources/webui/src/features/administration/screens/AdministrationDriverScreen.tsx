@@ -1,5 +1,5 @@
 import { DeviceType } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { DeviceTypeProtocol } from "@/types"
 import { usePagination } from "@/hooks"
@@ -17,7 +17,7 @@ export default function AdministrationDriverScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending, onBottomReached } = useList<DeviceType>(
+  const { rows: data, isPending } = useListAll<DeviceType>(
     [QUERIES.ADMIN_DRIVERS],
     "/device-types",
     { q: pagination.query, fields: "name,description,protocols,version,sourceHash,author" }
@@ -155,7 +155,7 @@ export default function AdministrationDriverScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (
