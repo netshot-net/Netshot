@@ -25,6 +25,10 @@ import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 
 import net.netshot.netshot.api.rest.AuthenticationFilter;
 import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.v1.export.CsvListWriter;
+import net.netshot.netshot.api.rest.v1.export.ExportFilter;
+import net.netshot.netshot.api.rest.v1.export.ExportNegotiation;
+import net.netshot.netshot.api.rest.v1.export.XlsxListWriter;
 
 /**
  * The Jersey application of the v1 REST API, served on {@code <api path>/v1} beside the legacy (v0) one. It
@@ -48,6 +52,10 @@ public class V1Application extends ResourceConfig {
 		register(LoggerFilter.class);
 		register(V1Response.class);
 		register(V1EntityProvider.class);
+		register(ExportNegotiation.class);
+		register(ExportFilter.class);
+		register(CsvListWriter.class);
+		register(XlsxListWriter.class);
 		property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, "true");
 		property(ServerProperties.APPLICATION_NAME, "Netshot API v1");
 		property(ServerProperties.WADL_FEATURE_DISABLE, true);
