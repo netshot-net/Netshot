@@ -5,13 +5,13 @@ import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import api from "@/api"
+import { listAll } from "@/api/device"
+import { search } from "@/utils"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"
 import { usePagination } from "@/hooks"
 import { DeviceModule } from "@/types"
 import { useLocalization } from "@/i18n"
-import { search } from "@/utils"
 
 import { QUERIES } from "../constants"
 
@@ -31,20 +31,16 @@ export default function DeviceModuleScreen() {
     queryKey: [
       QUERIES.DEVICE_MODULES,
       params.id,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
       history,
     ],
+    // The current modules, or all of them (removed ones included) for the history
     queryFn: async () =>
-      api.device.getAllModulesById(+(params.id ?? 0), {
-        ...pagination,
-        history,
+      listAll<DeviceModule>(`/devices/${params.id}/modules`, {
+        removed: history || undefined,
+        view: "full",
       }),
     select: useCallback(
-      (res: DeviceModule[]): DeviceModule[] => {
-        return search(res, "serialNumber", "partNumber", "slot").with(pagination.query)
-      },
+      (res: DeviceModule[]): DeviceModule[] => search(res, "serialNumber", "partNumber", "slot").with(pagination.query),
       [pagination.query]
     ),
   })
@@ -74,13 +70,13 @@ export default function DeviceModuleScreen() {
       columns.push(
         {
           accessorKey: "firstSeenDate",
-          cell: (info) => <Text>{info.getValue<number>() ? formatDateTime(info.getValue<number>()) : t("common.nA")}</Text>,
+          cell: (info) => <Text>{info.getValue<Date>() ? formatDateTime(info.getValue<Date>()) : t("common.nA")}</Text>,
           header: t("device.firstSeen"),
           enableSorting: true,
         },
         {
           accessorKey: "lastSeenDate",
-          cell: (info) => <Text>{info.getValue<number>() ? formatDateTime(info.getValue<number>()) : t("common.nA")}</Text>,
+          cell: (info) => <Text>{info.getValue<Date>() ? formatDateTime(info.getValue<Date>()) : t("common.nA")}</Text>,
           header: t("device.lastSeen"),
           enableSorting: true,
         }

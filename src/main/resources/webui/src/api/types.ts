@@ -1,8 +1,6 @@
 import {
-  DeviceAccess,
   DeviceComplianceResultType,
   GroupType,
-  LightDevice,
   TaskScheduleMode,
   TaskScheduleType,
   TaskStatus,
@@ -28,55 +26,6 @@ export type SigninResponse = {
 export type ServerInfoResponse = {
   serverVersion: string
   maxIdleTimeout: number
-}
-
-export type ConfigQueryParams = {
-  after?: number
-  before?: number
-  domain?: number[]
-  group?: number[]
-} & PaginationQueryParams
-
-export type DeviceSearchPayload = {
-  query: string
-} & PaginationQueryParams
-
-export type DeviceQueryParams = {
-  group?: number
-  details?: boolean
-} & PaginationQueryParams
-
-export type DeviceModuleQueryParams = {
-  history?: boolean
-} & PaginationQueryParams
-
-export type CreateDevicePayload = {
-  autoDiscover: boolean
-  autoDiscoveryTask: number
-  ipAddress: string
-  domainId: number
-  name: string
-  deviceType: string
-  accesses?: DeviceAccess[]
-  options?: Record<string, string | boolean>
-  comments?: string
-  tags?: string[]
-}
-
-export type UpdateDevicePayload = {
-  id: number
-  enabled: boolean
-  comments: string
-  tags: string[]
-  ipAddress: string
-  mgmtDomain: number
-  accesses: DeviceAccess[]
-  options: Record<string, string | boolean>
-}
-
-export type DeviceSearchResult = {
-  query: string
-  devices: LightDevice[]
 }
 
 export type DiagnosticResult = {

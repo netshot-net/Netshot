@@ -1,7 +1,7 @@
 import api from "@/api"
 import { ConfigCompareView } from "@/components"
 import { useDevice, useDeviceTypes } from "@/features/device/api"
-import { LightConfig } from "@/types"
+import { Config, LightConfig } from "@/types"
 import { getConfigDeviceAttributeDefinitions } from "@/utils"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -27,7 +27,7 @@ export default function ConfigurationChangeCompareView(
     isError: isDiffError,
   } = useQuery({
     queryKey: [QUERIES.DEVICE_CONFIG_DIFF, config.id],
-    queryFn: () => api.config.getDiff(0, config.id, { fullconfigs: true }),
+    queryFn: () => api.config.getDiff(config.id),
   })
 
   const isLoading = isDiffLoading || isDeviceTypeLoading || isDeviceLoading
@@ -48,7 +48,7 @@ export default function ConfigurationChangeCompareView(
     )
   }
 
-  if (isDiffError || !diff?.originalConfig || !diff?.revisedConfig) {
+  if (isDiffError || !diff?.original || !diff?.revised) {
     return (
       <Center flex="1">
         <Text color="grey.400">{t("device.config.unableToLoad")}</Text>
@@ -58,8 +58,8 @@ export default function ConfigurationChangeCompareView(
 
   return (
     <ConfigCompareView
-      current={diff.originalConfig}
-      compare={diff.revisedConfig}
+      current={diff.original as Config}
+      compare={diff.revised as Config}
       attributeDefinitions={attributeDefinitions}
     />
   )

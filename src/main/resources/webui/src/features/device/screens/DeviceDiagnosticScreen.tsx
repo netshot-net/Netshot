@@ -1,9 +1,10 @@
-import api from "@/api"
+import { Schemas } from "@/api/client"
+import { listAll } from "@/api/device"
 import { DataTable, EmptyResult, EntityLink, ExpandableTextCell, Protected } from "@/components"
 import { LuActivity } from "react-icons/lu"
 import Search from "@/components/Search"
 import { usePagination } from "@/hooks"
-import { DeviceAttributeType, DeviceDiagnosticResult, Level } from "@/types"
+import { DeviceAttributeType, Level } from "@/types"
 import { useLocalization } from "@/i18n"
 import { search } from "@/utils"
 import { Button, Spacer, Stack, Switch, Text } from "@chakra-ui/react"
@@ -16,16 +17,28 @@ import DeviceDiagnosticTrigger from "../components/DeviceDiagnosticTrigger"
 import { QUERIES } from "../constants"
 import { useDevice } from "../contexts/device"
 
-const columnHelper = createColumnHelper<DeviceDiagnosticResult>()
+/** A diagnostic result of the device, flattened for the table. */
+type DiagnosticRow = {
+  diagnosticId: number
+  diagnosticName: string
+  type: string
+  value: string
+  creationDate?: Date | null
+  lastCheckDate?: Date | null
+}
 
-function getDiagnosticResultValue(result: DeviceDiagnosticResult, t: (key: string) => string): string {
+const columnHelper = createColumnHelper<DiagnosticRow>()
+
+function getDiagnosticResultValue(result: Schemas["DiagnosticResult"], t: (key: string) => string): string {
+  const value = result.value as unknown
   switch (result.type) {
     case DeviceAttributeType.Numeric:
-      return result.number !== undefined && result.number !== null ? String(result.number) : ""
+      return value !== undefined && value !== null ? String(value) : ""
     case DeviceAttributeType.Text:
-      return result.text ?? ""
+    case DeviceAttributeType.LongText:
+      return typeof value === "string" ? value : ""
     case DeviceAttributeType.Binary:
-      return result.assumption ? t("common.trueLabel") : t("common.falseLabel")
+      return value ? t("common.trueLabel") : t("common.falseLabel")
     default:
       return ""
   }
@@ -47,13 +60,19 @@ export default function DeviceDiagnosticScreen() {
     queryKey: [
       QUERIES.DEVICE_DIAGNOSTIC,
       params.id,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
+      t,
     ],
-    queryFn: async () => api.device.getDiagnosticResultById(+(params.id ?? 0), pagination),
+    queryFn: async (): Promise<DiagnosticRow[]> =>
+      (await listAll<Schemas["DiagnosticResult"]>(`/devices/${params.id}/diagnostic-results`)).map((result) => ({
+        diagnosticId: result.diagnostic?.id ?? 0,
+        diagnosticName: result.diagnostic?.display ?? "",
+        type: result.type ?? "",
+        value: getDiagnosticResultValue(result, t),
+        creationDate: result.creationDate,
+        lastCheckDate: result.lastCheckDate,
+      })),
     select: useCallback(
-      (res: DeviceDiagnosticResult[]) => search(res, "diagnosticName", "type").with(pagination.query),
+      (res: DiagnosticRow[]) => search(res, "diagnosticName", "type").with(pagination.query),
       [pagination.query]
     ),
   })
@@ -87,7 +106,7 @@ export default function DeviceDiagnosticScreen() {
         id: "value",
         cell: (info) => (
           <ExpandableTextCell
-            value={getDiagnosticResultValue(info.row.original, t)}
+            value={info.row.original.value}
             title={t("common.value")}
           />
         ),
@@ -100,14 +119,14 @@ export default function DeviceDiagnosticScreen() {
       columns.push(
         {
           accessorKey: "creationDate",
-          cell: (info) => <Text>{info.getValue<number>() ? formatDateTime(info.getValue<number>()) : t("common.nA")}</Text>,
+          cell: (info) => <Text>{info.getValue<Date>() ? formatDateTime(info.getValue<Date>()) : t("common.nA")}</Text>,
           header: t("time.creationDate"),
           enableSorting: true,
           size: 10000,
         },
         {
           accessorKey: "lastCheckDate",
-          cell: (info) => <Text>{info.getValue<number>() ? formatDateTime(info.getValue<number>()) : t("common.nA")}</Text>,
+          cell: (info) => <Text>{info.getValue<Date>() ? formatDateTime(info.getValue<Date>()) : t("common.nA")}</Text>,
           header: t("compliance.lastCheck"),
           enableSorting: true,
           size: 10000,

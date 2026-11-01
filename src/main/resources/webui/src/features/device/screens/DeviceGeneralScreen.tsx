@@ -39,8 +39,8 @@ export default function DeviceGeneralScreen() {
                 {device && (
                   <DeviceAccessLinks
                     mgmtAddress={device.mgmtAddress}
-                    accesses={device.accesses}
-                    accessDefinitions={type?.accessDefinitions}
+                    accesses={device.accesses ?? []}
+                    accessDefinitions={type?.accesses}
                   />
                 )}
               </Flex>
@@ -96,7 +96,7 @@ export default function DeviceGeneralScreen() {
               <Text color="grey.400">{t("device.type")}</Text>
             </Box>
             <Skeleton loading={!!isLoading}>
-              <Text>{device?.realDeviceType ?? t("common.nA")}</Text>
+              <Text>{device?.driverDescription ?? t("common.nA")}</Text>
             </Skeleton>
           </Flex>
           <Flex alignItems="center">
@@ -141,11 +141,11 @@ export default function DeviceGeneralScreen() {
           </Flex>
           <Flex alignItems="center">
             <Box flex="0 0 auto" w="200px">
-              <Text color="grey.400">{t("device.lastConnectionDate")}</Text>
+              <Text color="grey.400">{t("device.lastSnapshotSuccess")}</Text>
             </Box>
             <Skeleton loading={!!isLoading}>
               <Text>
-                {device?.lastConnectionDate ? formatDateTime(device?.lastConnectionDate) : t("common.never")}
+                {device?.lastSnapshotSuccessDate ? formatDateTime(device?.lastSnapshotSuccessDate) : t("common.never")}
               </Text>
             </Skeleton>
           </Flex>
@@ -184,7 +184,7 @@ export default function DeviceGeneralScreen() {
                 {[...(device?.ownerGroups ?? [])]
                   .sort((a, b) => (a?.name ?? "").localeCompare(b?.name ?? ""))
                   .map((group) => (
-                    <DeviceGroupBadge key={group?.id} id={group?.id} name={group?.name} />
+                    <DeviceGroupBadge key={group?.id} id={group.id ?? 0} name={group.name ?? ""} />
                   ))}
               </Stack>
             </Skeleton>

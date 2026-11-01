@@ -71,7 +71,7 @@ export default function ScriptItem(props: ScriptItemProps) {
           <Text>{script?.name}</Text>
           <Stack direction="row" gap="2">
             <Tag.Root size="sm" colorPalette="grey">
-              {script?.realDeviceType}
+              {script?.deviceDriverDescription}
             </Tag.Root>
             <Tag.Root size="sm" colorPalette="green">
               {script?.author}
