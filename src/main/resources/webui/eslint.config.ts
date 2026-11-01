@@ -72,7 +72,7 @@ export default defineConfig([
   // those providers injected before it can obey the boundary.
   {
     files: ["src/components/**/*.{ts,tsx}"],
-    ignores: ["src/components/queryBuilder/**"],
+    ignores: ["src/components/queryBuilder/**", "src/api/schema.d.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
