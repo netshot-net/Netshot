@@ -91,7 +91,10 @@ final class V1OpenApiEnhancer {
 				if (operation == null) {
 					continue;
 				}
-				if (method.getReturnType() == ListResponse.class) {
+				if (method.getReturnType() == ListResponse.class && method.isAnnotationPresent(Unpaged.class)) {
+					addSelectionParameters(operation);
+				}
+				else if (method.getReturnType() == ListResponse.class) {
 					addListParameters(operation);
 				}
 				else if (method.getReturnType() == StatsResponse.class) {
@@ -440,7 +443,7 @@ final class V1OpenApiEnhancer {
 
 	private static void addListParameters(Operation operation) {
 		add(operation, ListParams.OFFSET, new IntegerSchema(), "Number of items to skip (paging)");
-		add(operation, ListParams.LIMIT, new IntegerSchema(), "Number of items of the page");
+		add(operation, ListParams.LIMIT, new IntegerSchema(), "Number of items of the page (0: all the items, unless a maximum page size is set)");
 		add(operation, ListParams.SORT, new StringSchema(), "Sort fields, comma-separated, - for a descending order (name,-changeDate)");
 		add(operation, ListParams.SEARCH, new StringSchema(), "Free text search");
 		add(operation, ListParams.COUNT, new BooleanSchema(), "false to skip the count of the matching items");

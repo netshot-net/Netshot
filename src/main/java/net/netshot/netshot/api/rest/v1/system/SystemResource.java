@@ -38,6 +38,7 @@ import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.Selection;
+import net.netshot.netshot.api.rest.v1.Unpaged;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.cluster.ClusterService;
@@ -106,6 +107,7 @@ public class SystemResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the cluster members", description = "Lists the members of the high availability cluster "
 		+ "(none if clustering is not enabled), in a single page.")
+	@Unpaged
 	public ListResponse<ClusterMemberDto> listClusterMembers() {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters(), ListParams.EXPORT);
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ClusterMemberDto.class, Selection.View.FULL),
@@ -148,6 +150,7 @@ public class SystemResource {
 	@Operation(summary = "List the services of the server", description = "Lists the services of the server (task manager, "
 		+ "Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, "
 		+ "in a single page.")
+	@Unpaged
 	public ListResponse<ServiceDto> listServices() {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters(), ListParams.EXPORT);
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ServiceDto.class, Selection.View.FULL),

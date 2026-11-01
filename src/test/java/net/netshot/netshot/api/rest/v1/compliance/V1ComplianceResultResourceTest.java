@@ -215,7 +215,7 @@ public class V1ComplianceResultResourceTest {
 		this.assertBadRequest("/compliance-results?unknown=1");
 		this.assertBadRequest("/compliance-results?sort=comment");
 		this.assertBadRequest("/compliance-results?group=abc");
-		this.assertBadRequest("/compliance-results?limit=0");
+		this.assertBadRequest("/compliance-results?limit=-1");
 	}
 
 	@Test
