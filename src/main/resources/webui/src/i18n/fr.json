@@ -244,6 +244,7 @@
       "createWithJavascript": "Créer un diagnostic en JavaScript",
       "createWithPython": "Créer un diagnostic en Python",
       "createWithStringAndRegex": "Créer un diagnostic avec chaîne et RegEx",
+      "longText": "Texte long",
       "label": "Diagnostic",
       "successfullyCreated": "Le diagnostic {{diagnosticName}} a été créé avec succès",
       "successfullyDisabled": "Le diagnostic {{diagnosticName}} a été désactivé avec succès",

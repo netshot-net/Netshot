@@ -1,7 +1,6 @@
 import api from "@/api"
 import { useArrowKeyNavigation } from "@/hooks"
-import { Diagnostic } from "@/types"
-import { search, sortAlphabetical } from "@/utils"
+import type { Diagnostic } from "@/api/diagnostic"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback, useEffect } from "react"
@@ -19,15 +18,7 @@ export default function DiagnosticSidebarSearchList() {
 
   const { data, isPending, isSuccess } = useQuery({
     queryKey: [QUERIES.DIAGNOSTIC_SEARCH_LIST, ctx.query],
-    queryFn: async () => {
-      return api.diagnostic.getAll()
-    },
-    select: useCallback(
-      (res: Diagnostic[]): Diagnostic[] => {
-        return sortAlphabetical(search(res, "name").with(ctx.query), "name")
-      },
-      [ctx.query]
-    ),
+    queryFn: () => api.diagnostic.getAll({ q: ctx.query }),
   })
 
   useEffect(() => {
