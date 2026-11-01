@@ -3,10 +3,12 @@ import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { DeviceTypeProtocol } from "@/types"
 import { usePagination } from "@/hooks"
-import { Checkbox, Heading, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
+import { Button, Checkbox, Heading, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
+import { LuRefreshCcw } from "react-icons/lu"
 import { CellContext, createColumnHelper } from "@tanstack/react-table"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import ReloadDeviceDriversTrigger from "../components/ReloadDeviceDriversTrigger"
 import { QUERIES } from "../constants"
 
 const columnHelper = createColumnHelper<DeviceType>()
@@ -136,6 +138,12 @@ export default function AdministrationDriverScreen() {
             w="30%"
           />
           <Spacer />
+          <ReloadDeviceDriversTrigger>
+            <Button>
+              <LuRefreshCcw />
+              {t("admin.driver.reload")}
+            </Button>
+          </ReloadDeviceDriversTrigger>
         </Stack>
         {isPending ? (
           <Stack gap="3">

@@ -145,6 +145,13 @@ async function getAllDrivers(params: ListParams = {}) {
   return list<DeviceType>("/device-types", params)
 }
 
+/**
+ * Reloads the device drivers from their sources (on every cluster member).
+ */
+async function reloadDrivers() {
+  await client.post<null, null>("/device-types/reload", null)
+}
+
 async function getAllVaultInstances(params: ListParams = {}) {
   return list<VaultInstance>("/vault-instances", params)
 }
@@ -203,6 +210,7 @@ export default {
   updateUser,
   removeUser,
   getAllDrivers,
+  reloadDrivers,
   getAllVaultInstances,
   fetchAllVaultInstances,
   createVaultInstance,

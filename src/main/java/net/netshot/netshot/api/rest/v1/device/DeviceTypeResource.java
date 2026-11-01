@@ -24,11 +24,13 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
@@ -81,5 +83,19 @@ public class DeviceTypeResource {
 		Selection selection = Selection.of(params, DeviceTypeDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTypeDto.class);
 		return ListResponse.of(this.uriInfo, query, this.driverService.list(query), DeviceInventoryMapper::toDto);
+	}
+
+	/**
+	 * Reloads the device drivers.
+	 */
+	@POST
+	@Path("/reload")
+	@RolesAllowed(User.ROLE_ADMIN)
+	@Operation(summary = "Reload the device drivers", description = "Reloads the device drivers from their sources (the driver "
+		+ "files), on this server and the other members of the cluster. A driver which can't be loaded is left out (see the logs).")
+	public void reloadDeviceTypes() {
+		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
+		this.driverService.reload();
+		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 }

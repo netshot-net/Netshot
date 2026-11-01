@@ -52,6 +52,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 	"GET /device-families",
 	"GET /device-tags",
 	"GET /device-types",
+	"POST /device-types/reload",
 	"GET /part-numbers",
 	"GET /software-versions"
 })
@@ -60,6 +61,7 @@ import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 public class V1DeviceCatalogResourceTest {
 
 	private V1Client reader;
+	private V1Client admin;
 
 	@BeforeAll
 	static void loadDrivers() throws Exception {
@@ -69,6 +71,7 @@ public class V1DeviceCatalogResourceTest {
 	@BeforeEach
 	void setUp(TestServer server) throws Exception {
 		this.reader = new V1Client(server, UiUser.LEVEL_READONLY);
+		this.admin = new V1Client(server, UiUser.LEVEL_ADMIN);
 		TestDevices.deleteAll();
 		Domain domain = TestDevices.addDomain("Paris-" + System.nanoTime(), "Paris DC");
 		TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(domain, null, 1).toBuilder()
@@ -180,5 +183,16 @@ public class V1DeviceCatalogResourceTest {
 		Assertions.assertTrue(this.list("/device-types?sort=-name", "name", null).get(0).compareTo("CiscoIOS12") >= 0);
 		Assertions.assertEquals(400, this.reader.get("/device-types?bogus=1").status());
 		Assertions.assertEquals(400, this.reader.get("/device-types?name__regex=a").status());
+	}
+
+	@Test
+	@DisplayName("Reload of the device drivers (admin)")
+	void reloadDrivers() throws Exception {
+		int before = this.reader.get("/device-types?limit=1").json().get("count").asInt();
+		Answer reload = this.admin.post("/device-types/reload", null);
+		Assertions.assertEquals(204, reload.status(), reload.toString());
+		Assertions.assertEquals(before, this.reader.get("/device-types?limit=1").json().get("count").asInt(),
+			"The same drivers are loaded again");
+		Assertions.assertEquals(403, this.reader.post("/device-types/reload", null).status());
 	}
 }

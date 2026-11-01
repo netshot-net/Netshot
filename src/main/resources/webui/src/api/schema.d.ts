@@ -860,6 +860,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/device-types/reload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reload the device drivers
+         * @description Reloads the device drivers from their sources (the driver files), on this server and the other members of the cluster. A driver which can't be loaded is left out (see the logs).
+         */
+        post: operations["reloadDeviceTypes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/part-numbers": {
         parameters: {
             query?: never;
@@ -5768,6 +5788,26 @@ export interface operations {
                     "application/json": components["schemas"]["ListResponseDeviceType"];
                     "application/xml": components["schemas"]["ListResponseDeviceType"];
                     "application/yaml": components["schemas"]["ListResponseDeviceType"];
+                };
+            };
+        };
+    };
+    reloadDeviceTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
                 };
             };
         };

@@ -205,7 +205,7 @@ Read-only lists of the values found in the inventory (read-only level), with fil
 - `GET /api/v1/device-tags`: `name`, `deviceCount`.
 - `GET /api/v1/part-numbers`: `partNumber`, `moduleCount`.
 - `GET /api/v1/software-versions`: `version`, `deviceCount`.
-- `GET /api/v1/device-types`: the loaded drivers (`name`, `description`, `version`, `author`, `priority`, `protocols`, `cliMainModes`, `attributes`, `options`, `accesses`...).
+- `GET /api/v1/device-types`: the loaded drivers (`name`, `description`, `version`, `author`, `priority`, `protocols`, `cliMainModes`, `attributes`, `options`, `accesses`...). `POST /api/v1/device-types/reload` (admin level) reloads the drivers from their files, on every member of the cluster (204).
 
 ### Groups
 
