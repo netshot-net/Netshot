@@ -4,10 +4,18 @@ import { client, list, ListParams, ListResponse, patch, replace, Schemas } from 
  * A compliance rule: every property of the rule types in one type, only those of its type are set (text rule: field,
  * context, text...; script rules: script).
  */
-export type Rule = Schemas["TextRule"] & Schemas["JavaScriptRule"] & { id: number; name: string; enabled: boolean }
+export type RuleTypeValue = Schemas["TextRule"]["type"] | Schemas["JavaScriptRule"]["type"] | Schemas["PythonRule"]["type"]
+export type Rule = Omit<Schemas["TextRule"], "type"> & Pick<Schemas["JavaScriptRule"], "script"> & {
+  type: RuleTypeValue
+  id: number
+  name: string
+  enabled: boolean
+}
 
 /** The definition of a rule, to create or replace one (the type and the policy can't change afterwards). */
-export type RuleRequest = Schemas["TextRuleRequest"] & Schemas["JavaScriptRuleRequest"]
+export type RuleRequest = Omit<Schemas["TextRuleRequest"], "type"> & Pick<Schemas["JavaScriptRuleRequest"], "script"> & {
+  type: RuleTypeValue
+}
 
 export type Exemption = Schemas["Exemption"]
 

@@ -1,5 +1,5 @@
 import { createHttpClient, HttpMethod } from "@/api/httpClient"
-import type { components } from "./schema"
+import type { briefs, components } from "./schema"
 
 /**
  * The client of the REST API: problem details errors (with the field errors), and the dates of the responses as
@@ -12,6 +12,12 @@ export const client = createHttpClient({
 
 /** The representations of the API, generated from its OpenAPI document (npm run api:types). */
 export type Schemas = components["schemas"]
+
+/**
+ * The brief view of the representations: what the items of a list read in its default view (or a reference read
+ * without expand) have. Ask for view=full (or fields) to get more, and type the items with Schemas then.
+ */
+export type Brief = briefs
 
 /** A page of a list. */
 export type ListResponse<T> = {

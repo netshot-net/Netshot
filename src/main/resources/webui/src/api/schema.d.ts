@@ -1893,28 +1893,20 @@ export interface components {
             query: string | null;
         };
         /** @description Compliance rule checked by a JavaScript script */
-        JavaScriptRule: Omit<components["schemas"]["Rule"], "type"> & {
+        JavaScriptRule: {
             /** Format: int64 */
             id: number;
             url: string | null;
             display: string | null;
-            type: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "JAVASCRIPT";
             name: string | null;
             enabled: boolean;
             policy: components["schemas"]["Policy"] | null;
             script: string | null;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "JAVASCRIPT";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "JAVASCRIPT";
         };
         ListResponseDeviceComplianceResult: {
             /**
@@ -1962,40 +1954,36 @@ export interface components {
             targetGroups: components["schemas"]["Group"][] | null;
         };
         /** @description Compliance rule checked by a Python script */
-        PythonRule: Omit<components["schemas"]["Rule"], "type"> & {
+        PythonRule: {
             /** Format: int64 */
             id: number;
             url: string | null;
             display: string | null;
-            type: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PYTHON";
             name: string | null;
             enabled: boolean;
             policy: components["schemas"]["Policy"] | null;
             script: string | null;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "PYTHON";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "PYTHON";
         };
         /** @description Compliance rule */
         Rule: {
             type: string;
         } & (components["schemas"]["TextRule"] | components["schemas"]["JavaScriptRule"] | components["schemas"]["PythonRule"]);
         /** @description Compliance rule matching a text */
-        TextRule: Omit<components["schemas"]["Rule"], "type"> & {
+        TextRule: {
             /** Format: int64 */
             id: number;
             url: string | null;
             display: string | null;
-            type: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "TEXT";
             name: string | null;
             enabled: boolean;
             policy: components["schemas"]["Policy"] | null;
@@ -2008,18 +1996,6 @@ export interface components {
             matchAll: boolean;
             normalize: boolean;
             deviceDriver: string | null;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "TEXT";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "TEXT";
         };
         /** @description Vault instance, an external secret store (secrets are never returned) */
         VaultInstance: {
@@ -2164,40 +2140,43 @@ export interface components {
             results: components["schemas"]["Rule"][] | null;
         };
         /** @description Definition of a JavaScript compliance rule */
-        JavaScriptRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
-            name: string | null;
-            enabled?: boolean | null;
-            /** Format: int64 */
-            policy?: number | null;
-            script?: string | null;
-        } & {
+        JavaScriptRuleRequest: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "JavaScriptRuleRequest";
+            type: "JAVASCRIPT";
+            name?: string | null;
+            enabled?: boolean | null;
+            /** Format: int64 */
+            policy?: number | null;
+            script?: string | null;
         };
         /** @description Definition of a Python compliance rule */
-        PythonRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
-            name: string | null;
-            enabled?: boolean | null;
-            /** Format: int64 */
-            policy?: number | null;
-            script?: string | null;
-        } & {
+        PythonRuleRequest: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "PythonRuleRequest";
+            type: "PYTHON";
+            name?: string | null;
+            enabled?: boolean | null;
+            /** Format: int64 */
+            policy?: number | null;
+            script?: string | null;
         };
         /** @description Definition of a compliance rule */
         RuleRequest: {
             type: string;
         } & (components["schemas"]["TextRuleRequest"] | components["schemas"]["JavaScriptRuleRequest"] | components["schemas"]["PythonRuleRequest"]);
         /** @description Definition of a text compliance rule */
-        TextRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
-            name: string | null;
+        TextRuleRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "TEXT";
+            name?: string | null;
             enabled?: boolean | null;
             /** Format: int64 */
             policy?: number | null;
@@ -2210,12 +2189,6 @@ export interface components {
             matchAll?: boolean | null;
             normalize?: boolean | null;
             deviceDriver?: string | null;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "TextRuleRequest";
         };
         /** @description Exemption of a device from a compliance rule */
         Exemption: {
@@ -2328,29 +2301,27 @@ export interface components {
             /** @description The items of the page */
             results: components["schemas"]["SoftwareRule"][] | null;
         };
-        Binary: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name: string | null;
-            assumption: boolean | null;
-        } & {
+        Binary: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "BINARY";
+            name: string | null;
+            assumption: boolean | null;
         };
-        BinaryFile: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+        BinaryFile: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "BINARYFILE";
             name: string | null;
             originalName: string | null;
             /** Format: int64 */
             fileSize: number;
             checksum: string | null;
             url: string | null;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "BINARYFILE";
         };
         /** @description Device configuration */
         Config: {
@@ -2370,37 +2341,34 @@ export interface components {
         /** @description Attribute of a configuration */
         ConfigAttribute: {
             type: string;
-        };
-        LongText: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name: string | null;
-            url: string | null;
-        } & {
+        } & (components["schemas"]["Numeric"] | components["schemas"]["Text"] | components["schemas"]["LongText"] | components["schemas"]["Binary"] | components["schemas"]["BinaryFile"]);
+        LongText: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "LONGTEXT";
-        };
-        Numeric: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
             name: string | null;
-            /** Format: double */
-            number: number | null;
-        } & {
+            url: string | null;
+        };
+        Numeric: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "NUMERIC";
-        };
-        Text: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
             name: string | null;
-            text: string | null;
-        } & {
+            /** Format: double */
+            number: number | null;
+        };
+        Text: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
             type: "TEXT";
+            name: string | null;
+            text: string | null;
         };
         /** @description Differences between two configurations */
         ConfigDiff: {
@@ -3206,12 +3174,16 @@ export interface components {
             item: string | null;
         };
         /** @description Hook calling a URL */
-        WebHook: Omit<components["schemas"]["Hook"], "type"> & {
+        WebHook: {
             /** Format: int64 */
             readonly id: number;
             readonly url: string | null;
             readonly display: string | null;
-            type: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "WEB";
             name: string | null;
             enabled: boolean;
             triggers: components["schemas"]["HookTrigger"][] | null;
@@ -3221,40 +3193,27 @@ export interface components {
             /** @enum {string|null} */
             httpsCaTrustMode: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
             httpsCustomCaCertificate: string | null;
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "WEB";
-        } & {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            type: "WEB";
         };
         /** @description Definition of a hook */
         HookRequest: {
             type: string;
         } & components["schemas"]["WebHookRequest"];
         /** @description Definition of a hook calling a URL */
-        WebHookRequest: Omit<components["schemas"]["HookRequest"], "type"> & {
-            name: string | null;
-            enabled?: boolean | null;
-            triggers?: components["schemas"]["HookTrigger"][] | null;
-            /** @enum {string|null} */
-            action: "POST_XML" | "POST_JSON" | "POST_YAML" | null;
-            targetUrl: string | null;
-            /** @enum {string|null} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
-            httpsCustomCaCertificate?: string | null;
-        } & {
+        WebHookRequest: {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "WebHookRequest";
+            type: "WEB";
+            name?: string | null;
+            enabled?: boolean | null;
+            triggers?: components["schemas"]["HookTrigger"][] | null;
+            /** @enum {string|null} */
+            action?: "POST_XML" | "POST_JSON" | "POST_YAML" | null;
+            targetUrl?: string | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate?: string | null;
         };
         ListResponseHook: {
             /**
@@ -7662,4 +7621,44 @@ export interface operations {
             };
         };
     };
+}
+
+/** The brief view of each representation (the default view of the lists). */
+export interface briefs {
+    ApiTokenCreated: Pick<components["schemas"]["ApiTokenCreated"], "id" | "url" | "display">;
+    ApiToken: Pick<components["schemas"]["ApiToken"], "id" | "url" | "display" | "description" | "level">;
+    CurrentUser: Pick<components["schemas"]["CurrentUser"], "id" | "url" | "display">;
+    Session: Pick<components["schemas"]["Session"], "url">;
+    CredentialSet: Pick<components["schemas"]["CredentialSet"], "id" | "url" | "display" | "name" | "type">;
+    Device: Pick<components["schemas"]["Device"], "id" | "url" | "display" | "name" | "mgmtAddress" | "status">;
+    DeviceComplianceResult: Pick<components["schemas"]["DeviceComplianceResult"], "device" | "rule" | "policy" | "result" | "checkDate">;
+    Domain: Pick<components["schemas"]["Domain"], "id" | "url" | "display" | "name">;
+    Group: Pick<components["schemas"]["Group"], "id" | "url" | "display" | "name" | "folder" | "type">;
+    JavaScriptRule: Pick<components["schemas"]["JavaScriptRule"], "id" | "url" | "display" | "type" | "name" | "enabled" | "policy">;
+    Module: Pick<components["schemas"]["Module"], "id">;
+    Policy: Pick<components["schemas"]["Policy"], "id" | "url" | "display" | "name">;
+    PythonRule: Pick<components["schemas"]["PythonRule"], "id" | "url" | "display" | "type" | "name" | "enabled" | "policy">;
+    TextRule: Pick<components["schemas"]["TextRule"], "id" | "url" | "display" | "type" | "name" | "enabled" | "policy">;
+    VaultInstance: Pick<components["schemas"]["VaultInstance"], "id" | "url" | "display" | "name" | "type" | "baseUrl">;
+    HardwareRule: Pick<components["schemas"]["HardwareRule"], "id" | "url" | "display" | "partNumber" | "endOfSale" | "endOfLife">;
+    Exemption: Pick<components["schemas"]["Exemption"], "device" | "expirationDate">;
+    SoftwareRule: Pick<components["schemas"]["SoftwareRule"], "id" | "url" | "display" | "priority" | "level" | "group">;
+    BinaryFile: Pick<components["schemas"]["BinaryFile"], "url">;
+    Config: Pick<components["schemas"]["Config"], "id" | "url" | "display" | "device" | "changeDate" | "author">;
+    LongText: Pick<components["schemas"]["LongText"], "url">;
+    DeviceFamily: Pick<components["schemas"]["DeviceFamily"], "driver" | "family" | "deviceCount">;
+    DeviceInterface: Pick<components["schemas"]["DeviceInterface"], "id" | "display" | "name" | "description" | "enabled">;
+    DeviceModule: Pick<components["schemas"]["DeviceModule"], "id" | "display" | "slot" | "partNumber" | "serialNumber">;
+    Task: Pick<components["schemas"]["Task"], "id" | "url" | "display" | "type" | "status">;
+    DeviceTag: Pick<components["schemas"]["DeviceTag"], "name" | "deviceCount">;
+    DeviceType: Pick<components["schemas"]["DeviceType"], "name" | "description" | "version">;
+    PartNumber: Pick<components["schemas"]["PartNumber"], "partNumber" | "moduleCount">;
+    SoftwareVersion: Pick<components["schemas"]["SoftwareVersion"], "version" | "deviceCount">;
+    Diagnostic: Pick<components["schemas"]["Diagnostic"], "id" | "url" | "display" | "name" | "type" | "resultType">;
+    DiagnosticResult: Pick<components["schemas"]["DiagnosticResult"], "display" | "diagnostic" | "type" | "value">;
+    WebHook: Pick<components["schemas"]["WebHook"], "id" | "url" | "display" | "type" | "name" | "enabled">;
+    Script: Pick<components["schemas"]["Script"], "id" | "url" | "display" | "name" | "folder" | "deviceDriver">;
+    ClusterMember: Pick<components["schemas"]["ClusterMember"], "display">;
+    Service: Pick<components["schemas"]["Service"], "display">;
+    User: Pick<components["schemas"]["User"], "id" | "url" | "display" | "username" | "local" | "level">;
 }

@@ -242,14 +242,14 @@ export default function ConfigurationComplianceRuleScreen() {
         {rule?.type === RuleType.Javascript && (
           <>
             {exemptionsRow && <Stack gap="3">{exemptionsRow}</Stack>}
-            <MonacoEditor key={rule?.script} value={rule?.script} language="javascript" scriptKind="compliance" readOnly />
+            <MonacoEditor key={rule?.script ?? undefined} value={rule?.script ?? undefined} language="javascript" scriptKind="compliance" readOnly />
           </>
         )}
 
         {rule?.type === RuleType.Python && (
           <>
             {exemptionsRow && <Stack gap="3">{exemptionsRow}</Stack>}
-            <MonacoEditor key={rule?.script} value={rule?.script} language="python" scriptKind="compliance" readOnly />
+            <MonacoEditor key={rule?.script ?? undefined} value={rule?.script ?? undefined} language="python" scriptKind="compliance" readOnly />
           </>
         )}
       </Stack>

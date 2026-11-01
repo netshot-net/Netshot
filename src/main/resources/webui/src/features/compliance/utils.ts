@@ -1,4 +1,4 @@
-import type { RuleRequest } from "@/api/rule"
+import type { RuleRequest, RuleTypeValue } from "@/api/rule"
 import { RuleType } from "@/types"
 import { stringToBoolean } from "@/utils"
 import type { RuleForm } from "./types"
@@ -16,7 +16,7 @@ export function isScriptRuleType(type?: string) {
  */
 export function toRuleRequest(type: RuleType | string, values: RuleForm, policy?: number): RuleRequest {
   const common = {
-    type,
+    type: type as RuleTypeValue,
     name: values.name,
     enabled: values.enabled ?? true,
     policy,

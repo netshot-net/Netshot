@@ -54,10 +54,15 @@ import jakarta.ws.rs.Path;
  * <li>the common parameters of the lists (paging, sort, search, selection) and of the statistics;</li>
  * <li>the optional properties of the requests can be null (null clears them);</li>
  * <li>a Java {@code Object} (any JSON value, as the values of the driver options) is any value, not an empty object;</li>
- * <li>the type value of each subtype of a polymorphic representation.</li>
+ * <li>the type value of each subtype of a polymorphic representation;</li>
+ * <li>the properties of the brief view of each representation ({@value #BRIEF_EXTENSION}), so that the clients can type
+ * the items of a list read in its default view.</li>
  * </ul>
  */
 final class V1OpenApiEnhancer {
+
+	/** The extension listing the properties of the brief view of a representation. */
+	static final String BRIEF_EXTENSION = "x-netshot-brief";
 
 	private V1OpenApiEnhancer() {
 	}
@@ -78,6 +83,9 @@ final class V1OpenApiEnhancer {
 					continue;
 				}
 				collect(method.getGenericReturnType(), answers, polymorphic, new HashSet<>());
+				for (Type parameter : method.getGenericParameterTypes()) {
+					collectRequest(parameter, polymorphic, new HashSet<>());
+				}
 				Operation operation = operation(openApi, resource, method, httpMethod);
 				if (operation == null) {
 					continue;
@@ -98,6 +106,9 @@ final class V1OpenApiEnhancer {
 			Schema<?> schema = schemas.get(answer.getKey());
 			if (schema != null) {
 				complete(schema, answer.getValue());
+				if (answer.getValue() != ListResponse.class && DtoModel.isModel(answer.getValue())) {
+					schema.addExtension(BRIEF_EXTENSION, List.copyOf(DtoModel.of(answer.getValue()).briefNames()));
+				}
 			}
 		}
 		for (Map.Entry<String, Schema> entry : schemas.entrySet()) {
@@ -106,13 +117,10 @@ final class V1OpenApiEnhancer {
 			}
 			anyValues(entry.getValue(), new HashSet<>());
 		}
-		for (Map.Entry<String, Class<?>> base : polymorphic.entrySet()) {
-			Schema<?> schema = schemas.get(base.getKey());
-			if (schema != null && schema.getDiscriminator() != null) {
-				// The value of the type property of each subtype (the generated client types depend on it)
-				for (JsonSubTypes.Type subType : base.getValue().getAnnotation(JsonSubTypes.class).value()) {
-					schema.getDiscriminator().mapping(subType.name(), "#/components/schemas/" + schemaName(subType.value()));
-				}
+		for (Map.Entry<String, Schema> entry : schemas.entrySet()) {
+			Class<?> base = polymorphic.get(entry.getKey());
+			if (base != null && entry.getValue().getDiscriminator() != null) {
+				flattenSubtypes(schemas, entry.getValue(), base);
 			}
 		}
 	}
@@ -213,6 +221,98 @@ final class V1OpenApiEnhancer {
 			}
 		}
 		schema.setRequired(required);
+	}
+
+	/**
+	 * Collects the polymorphic types (sealed interfaces with subtypes) of a request body, through the components of
+	 * its records.
+	 *
+	 * @param type the type of the body
+	 * @param polymorphic the polymorphic types found, by schema name
+	 * @param seen the types already walked
+	 */
+	private static void collectRequest(Type type, Map<String, Class<?>> polymorphic, Set<Type> seen) {
+		if (!seen.add(type)) {
+			return;
+		}
+		if (type instanceof ParameterizedType parameterized) {
+			for (Type argument : parameterized.getActualTypeArguments()) {
+				collectRequest(argument, polymorphic, seen);
+			}
+			return;
+		}
+		if (!(type instanceof Class<?> clazz) || !clazz.getPackageName().startsWith(V1Application.class.getPackageName())) {
+			return;
+		}
+		JsonSubTypes subTypes = clazz.getAnnotation(JsonSubTypes.class);
+		if (subTypes != null) {
+			polymorphic.put(schemaName(clazz), clazz);
+			for (JsonSubTypes.Type subType : subTypes.value()) {
+				collectRequest(subType.value(), polymorphic, seen);
+			}
+		}
+		if (clazz.isRecord()) {
+			for (RecordComponent component : clazz.getRecordComponents()) {
+				collectRequest(component.getGenericType(), polymorphic, seen);
+			}
+		}
+	}
+
+	/**
+	 * Makes the subtypes of a polymorphic schema self-contained: the reference to the base (an allOf part) is removed
+	 * (the base is the union of the subtypes: the reference made the types circular), and the type property of each
+	 * subtype is its value only. The discriminator maps the values to the subtypes.
+	 *
+	 * @param schemas the schemas of the document
+	 * @param base the base schema
+	 * @param type the sealed interface
+	 */
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	private static void flattenSubtypes(Map<String, Schema> schemas, Schema base, Class<?> type) {
+		String property = base.getDiscriminator().getPropertyName();
+		List<Schema> oneOf = new ArrayList<>();
+		for (JsonSubTypes.Type subType : type.getAnnotation(JsonSubTypes.class).value()) {
+			String name = schemaName(subType.value());
+			base.getDiscriminator().mapping(subType.name(), "#/components/schemas/" + name);
+			oneOf.add(new Schema<>().$ref("#/components/schemas/" + name));
+			Schema schema = schemas.get(name);
+			if (schema == null) {
+				continue;
+			}
+			if (schema.getAllOf() != null) {
+				for (Object part : schema.getAllOf()) {
+					Schema partSchema = (Schema) part;
+					if (partSchema.get$ref() == null) {
+						schema.setProperties(partSchema.getProperties());
+						schema.setRequired(partSchema.getRequired());
+					}
+				}
+				schema.setAllOf(null);
+				schema.setType("object");
+			}
+			if (schema.getProperties() == null) {
+				schema.setProperties(new LinkedHashMap<>());
+			}
+			if (!(schema.getProperties().get(property) instanceof Schema)) {
+				// The type property written by Jackson, not declared by the record
+				Map<String, Schema> properties = new LinkedHashMap<>();
+				properties.put(property, new StringSchema());
+				properties.putAll(schema.getProperties());
+				schema.setProperties(properties);
+			}
+			Schema typeSchema = (Schema) schema.getProperties().get(property);
+			typeSchema.setNullable(null);
+			typeSchema.setEnum(List.of(subType.name()));
+			List<String> required = schema.getRequired() == null ? new ArrayList<>() : new ArrayList<>(schema.getRequired());
+			// Always written in an answer, always needed in a request
+			if (!required.contains(property)) {
+				required.add(0, property);
+			}
+			schema.setRequired(required);
+		}
+		if (base.getOneOf() == null || base.getOneOf().isEmpty()) {
+			base.setOneOf(oneOf);
+		}
 	}
 
 	/**
