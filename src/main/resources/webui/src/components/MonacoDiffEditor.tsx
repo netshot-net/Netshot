@@ -26,7 +26,7 @@ export type MonacoDiffEditorProps = {
 }
 
 export default function MonacoDiffEditor(props: MonacoDiffEditorProps) {
-  const { original, modified, readOnly = false, language = "typescript" } = props
+  const { original, modified, readOnly = false, language = "plaintext" } = props
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<editor.IStandaloneDiffEditor | undefined>(undefined)
   const modelsRef = useRef<{ original: editor.ITextModel; modified: editor.ITextModel } | undefined>(undefined)

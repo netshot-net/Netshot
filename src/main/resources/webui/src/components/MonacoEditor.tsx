@@ -54,7 +54,7 @@ function MonacoEditor(props: MonacoEditorProps) {
     ref,
     value,
     readOnly = false,
-    language = "typescript",
+    language = "javascript",
     scriptKind,
     onModelChange,
     onFocus,

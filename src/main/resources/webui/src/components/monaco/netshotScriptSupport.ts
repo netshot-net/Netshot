@@ -577,8 +577,11 @@ const SCRIPT_GLOBALS_LIB_PATH = "ts:netshot-script-globals.d.ts"
  * each with its own extra-libs list, compiler options and worker; an editor
  * using language "javascript" (diagnostics, compliance rules) is wired to
  * \`javascriptDefaults\` and never sees anything added only to
- * \`typescriptDefaults\`. Both need the lib registered for JSDoc-typed
- * params to resolve regardless of which of the two languages an editor uses.
+ * \`typescriptDefaults\`. Both get the lib, but only a "javascript" editor
+ * resolves the JSDoc-typed params: TypeScript ignores JSDoc types in a TS
+ * file (the params stay implicit \`any\`, and its quick fix inserts TS type
+ * annotations, which the GraalJS runtime can't run). Script editors must
+ * therefore use the "javascript" language.
  *
  * A stable filePath is required in both calls: without one, Monaco mints a
  * fresh random key every call and never dedupes, so re-evaluating this

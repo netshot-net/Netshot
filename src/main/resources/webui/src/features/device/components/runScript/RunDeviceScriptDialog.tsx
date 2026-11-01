@@ -174,7 +174,7 @@ function ConfigureStep(props: ConfigureStepProps) {
     <Stack direction="row" gap="7" overflow="auto" flex="1">
       {leftColumn}
       <Stack flex="1" overflow="auto">
-        <MonacoEditorControl required control={form.control} name="script" language="typescript" scriptKind="runScript" />
+        <MonacoEditorControl required control={form.control} name="script" language="javascript" scriptKind="runScript" />
       </Stack>
     </Stack>
   )
