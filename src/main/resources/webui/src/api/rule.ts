@@ -1,88 +1,86 @@
-import { ExemptedDevice, Rule, LightRule, TestRuleResult } from "@/types";
-import httpClient from "./httpClient";
-import {
-  CreateOrUpdateRule,
-  PaginationQueryParams,
-  RuleStateChangePayload,
-  TestRuleScriptOnDevicePayload,
-  TestRuleTextOnDevicePayload,
-} from "./types";
+import { client, list, ListParams, ListResponse, patch, replace, Schemas } from "./client"
 
-async function getById(policyId: number, id: number) {
-  return httpClient.get<Rule>(`/policies/${policyId}/rules/${id}`);
+/**
+ * A compliance rule: every property of the rule types in one type, only those of its type are set (text rule: field,
+ * context, text...; script rules: script).
+ */
+export type Rule = Schemas["TextRule"] & Schemas["JavaScriptRule"] & { id: number; name: string; enabled: boolean }
+
+/** The definition of a rule, to create or replace one (the type and the policy can't change afterwards). */
+export type RuleRequest = Schemas["TextRuleRequest"] & Schemas["JavaScriptRuleRequest"]
+
+export type Exemption = Schemas["Exemption"]
+
+/** Reads every page of a list. */
+export async function listAll<T>(path: string, params: ListParams = {}): Promise<T[]> {
+  const results: T[] = []
+  let page: ListResponse<T>
+  let offset = 0
+  do {
+    page = await list<T>(path, { ...params, offset, count: false })
+    results.push(...page.results)
+    offset = page.offset + page.limit
+  } while (page.next)
+  return results
 }
 
+async function getById(id: number) {
+  return (await client.get<Rule>(`/compliance/rules/${id}`)) as Rule
+}
+
+/** The rules of a policy, with their brief properties. */
 async function getAll(policyId: number) {
-  return (await httpClient.get<Rule[]>(`/policies/${policyId}/rules`)) ?? [];
+  return listAll<Rule>(`/compliance/policies/${policyId}/rules`, { fields: "name,type,enabled", sort: "name" })
 }
 
+/** All the rules, with their brief properties (name, type, enabled and policy). */
 async function getAllLight() {
-  return (await httpClient.get<LightRule[]>("/rules")) ?? [];
+  return listAll<Rule>("/compliance/rules", { fields: "name,type,enabled,policy", sort: "name" })
 }
 
-async function create(payload: CreateOrUpdateRule) {
-  return httpClient.post<Rule, CreateOrUpdateRule>("/rules", payload);
+async function create(payload: RuleRequest) {
+  return (await client.post<Rule, RuleRequest>("/compliance/rules", payload)) as Rule
 }
 
-async function update(id: number, payload: Partial<CreateOrUpdateRule>) {
-  return httpClient.put<Rule, Partial<CreateOrUpdateRule>>(
-    `/rules/${id}`,
-    payload
-  );
+/** Replaces a rule: the payload is the whole definition of the rule (with its type). */
+async function update(id: number, payload: RuleRequest) {
+  return replace<Rule, RuleRequest>(`/compliance/rules/${id}`, payload)
 }
 
 async function remove(id: number) {
-  return httpClient.delete(`/rules/${id}`);
+  return client.delete(`/compliance/rules/${id}`)
 }
 
-async function testScript(payload: TestRuleScriptOnDevicePayload) {
-  return httpClient.post<TestRuleResult, TestRuleScriptOnDevicePayload>(
-    "/rules/test",
-    payload
-  );
+/** Checks a rule definition (not stored) against a device. */
+async function test(rule: RuleRequest, device: number) {
+  return (await client.post<Schemas["RuleTestResult"], Schemas["RuleTestRequest"]>("/compliance/rules/test", {
+    rule,
+    device,
+  })) as Schemas["RuleTestResult"]
 }
 
-async function testText(payload: TestRuleTextOnDevicePayload) {
-  return httpClient.post<TestRuleResult, TestRuleTextOnDevicePayload>(
-    "/rules/test",
-    payload
-  );
+async function setEnabled(id: number, enabled: boolean) {
+  return patch<Rule, { enabled: boolean }>(`/compliance/rules/${id}`, { enabled })
 }
 
-async function disable(id: number, payload: Rule) {
-  return httpClient.put<Rule, RuleStateChangePayload>(`/rules/${id}`, {
-    enabled: false,
-    exemptions: {},
-    name: payload.name,
-  });
+async function disable(id: number) {
+  return setEnabled(id, false)
 }
 
-async function enable(id: number, payload: Rule) {
-  return httpClient.put<Rule, RuleStateChangePayload>(`/rules/${id}`, {
-    enabled: true,
-    exemptions: {},
-    name: payload.name,
-  });
+async function enable(id: number) {
+  return setEnabled(id, true)
 }
 
-async function updateExemptedDevice(
-  id: number,
-  payload: RuleStateChangePayload
-) {
-  return httpClient.put<Rule, RuleStateChangePayload>(`/rules/${id}`, {
-    enabled: payload.enabled,
-    exemptions: payload.exemptions,
-    name: payload.name,
-  });
+/** The devices exempted from a rule. */
+async function getAllExemptedDevices(id: number) {
+  return listAll<Exemption>(`/compliance/rules/${id}/exemptions`, { sort: "expirationDate" })
 }
 
-async function getAllExemptedDevices(
-  id: number,
-  queryParams: PaginationQueryParams = {}
-) {
-  return httpClient.get<ExemptedDevice[]>(`/rule/${id}/exempteddevices`, {
-    queryParams,
-  });
+/** Replaces the whole set of the exemptions of a rule. */
+async function updateExemptedDevices(id: number, exemptions: Schemas["ExemptionRequest"][]) {
+  return replace<ListResponse<Exemption>, Schemas["ExemptionsRequest"]>(`/compliance/rules/${id}/exemptions`, {
+    exemptions,
+  })
 }
 
 export default {
@@ -92,10 +90,9 @@ export default {
   create,
   update,
   remove,
-  testScript,
-  testText,
+  test,
   enable,
   disable,
-  updateExemptedDevice,
   getAllExemptedDevices,
-};
+  updateExemptedDevices,
+}

@@ -1,10 +1,10 @@
-import api, { CreateOrUpdateRule } from "@/api"
+import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
 import { QUERIES as GLOBAL_QUERIES } from "@/constants"
 import { useDialogConfig } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Policy, RuleType } from "@/types"
-import { stringToBoolean } from "@/utils"
+import type { Policy } from "@/api/policy"
+import { RuleType } from "@/types"
 import { Button, CloseButton, Dialog, Heading, Icon, Portal, RadioCard, Stack, Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { QUERIES, RULE_SCRIPT_TEMPLATE } from "../constants"
 import { RuleForm } from "../types"
+import { toRuleRequest } from "../utils"
 import { EditTextRuleForm } from "./EditTextRuleForm"
 import EditScriptRuleForm from "./EditScriptRuleForm"
 import { SiJavascript, SiPython } from "react-icons/si"
@@ -36,6 +37,7 @@ export default function AddRuleDialog({ policy }: { policy: Policy }) {
     mode: "onChange",
     defaultValues: {
       name: "",
+      enabled: true,
       script: "",
       text: "",
       regExp: false,
@@ -80,25 +82,7 @@ export default function AddRuleDialog({ policy }: { policy: Policy }) {
   const hasScript = type === RuleType.Javascript || type === RuleType.Python
 
   function submit(values: RuleForm) {
-    const payload: CreateOrUpdateRule = {
-      id: null!,
-      name: values.name,
-      type: type!,
-      script: values.script,
-      policy: policy.id,
-      enabled: true,
-      text: values.text,
-      regExp: values.regExp,
-      context: values.context,
-      driver: values.driver!,
-      field: values.field!,
-      anyBlock: stringToBoolean(values.anyBlock),
-      matchAll: values.matchAll,
-      invert: stringToBoolean(values.invert),
-      normalize: values.normalize,
-    }
-
-    createMutation.mutate(payload)
+    createMutation.mutate(toRuleRequest(type!, { ...values, enabled: true }, policy.id))
   }
 
   function next() {

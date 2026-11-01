@@ -1,4 +1,5 @@
-import api, { CreateOrUpdatePolicy } from "@/api"
+import api from "@/api"
+import type { Schemas } from "@/api/client"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
@@ -30,7 +31,7 @@ export default function AddPolicyTrigger({ children, ...rest }: AddPolicyTrigger
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.POLICY_CREATE,
-    mutationFn: async (payload: CreateOrUpdatePolicy) => api.policy.create(payload),
+    mutationFn: async (payload: Schemas["PolicyRequest"]) => api.policy.create(payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
