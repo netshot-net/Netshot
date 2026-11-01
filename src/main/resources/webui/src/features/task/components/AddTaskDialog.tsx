@@ -1,4 +1,6 @@
-import api, { CreateOrUpdateTaskPayload } from "@/api"
+import api from "@/api"
+import { TaskRequest } from "@/api/task"
+import { NetshotError } from "@/api/httpClient"
 import { Checkbox, FormControl, Switch } from "@/components"
 import { DomainSelect } from "@/features/administration/components"
 import { TreeGroupSelector } from "@/features/group"
@@ -7,7 +9,7 @@ import ScheduleForm, { ScheduleFormType } from "@/components/ScheduleForm"
 import TaskDialog from "./TaskDialog"
 import { useCustomDialog, useDialogConfig } from "@/dialog"
 import { useToast } from "@/hooks"
-import { TaskType } from "@/types"
+import { TaskScheduleType, TaskType } from "@/types"
 import {
   Alert,
   Button,
@@ -115,7 +117,7 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
   })
 
   const createMutation = useMutation({
-    mutationFn: api.task.create,
+    mutationFn: api.task.createTask,
     async onSuccess(newTask) {
       await dialogConfig.close()
 
@@ -128,11 +130,8 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
           typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("task:"),
       })
     },
-    onError() {
-      toast.error({
-        title: t("common.error"),
-        description: t("common.anErrorOccurredDuringTheTaskCreation"),
-      })
+    onError(err: NetshotError) {
+      toast.error(err)
     },
   })
 
@@ -147,52 +146,60 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
 
   const submit = (values: FormData) => {
     const { schedule } = values
+    const parameters: Record<string, unknown> = {}
 
-    const payload: CreateOrUpdateTaskPayload = {
-      type: taskType ?? undefined,
-      ...schedule,
+    const request: TaskRequest = {
+      type: taskType ?? "",
+      scheduleType: schedule.scheduleType,
+      scheduleReference:
+        schedule.scheduleType === TaskScheduleType.Asap ? undefined : new Date(schedule.scheduleReference),
+      scheduleFactor: schedule.scheduleFactor,
+      priority: schedule.schedulePriority,
+      scheduleMode: schedule.scheduleMode,
+      stopOnFailure: schedule.stopOnFailure,
     }
 
     if (taskType === TaskType.TakeGroupSnapshot) {
-      payload.dontRunDiagnostics = !values.runDiagnostic
+      parameters.dontRunDiagnostics = !values.runDiagnostic
 
       if (values.limitToOutofdateDevice) {
-        payload.limitToOutofdateDeviceHours = values.limitToOutofdateDeviceHours
+        parameters.limitToOutofdateDeviceHours = Number(values.limitToOutofdateDeviceHours)
       }
     }
 
     if (taskType === TaskType.TakeGroupSnapshot || taskType === TaskType.RunGroupDiagnostic) {
-      payload.dontCheckCompliance = !values.checkCompliance
+      parameters.dontCheckCompliance = !values.checkCompliance
     }
 
     if (hasGroup) {
-      payload.group = values.group ?? undefined
+      request.group = values.group ?? undefined
     }
 
     if (taskType === TaskType.ScanSubnets) {
-      payload.domain = +values.domain!
-      payload.subnets = values.subnets.join("\n")
+      parameters.domainId = +values.domain!
+      parameters.subnets = values.subnets.map((subnet) => subnet.trim()).filter(Boolean)
     }
 
     if (taskType === TaskType.PurgeDatabase) {
-      payload.daysToPurge = values.daysToPurge
+      parameters.days = Number(values.daysToPurge)
 
       if (hasConfigDaysToPurge) {
-        payload.configDaysToPurge = values.configDaysToPurge
+        parameters.configDays = Number(values.configDaysToPurge)
       }
 
-      payload.configSizeToPurge = hasConfigSizeToPurge ? values.configSizeToPurge : 0
-      payload.configKeepDays = hasConfigKeepDays ? values.configKeepDays : 0
-      payload.group = values.group ?? undefined
+      parameters.configSize = hasConfigSizeToPurge ? Number(values.configSizeToPurge) : 0
+      parameters.configKeepDays = hasConfigKeepDays ? Number(values.configKeepDays) : 0
+      request.group = values.group ?? undefined
 
       if (values.hasModuleDaysToPurge) {
-        payload.moduleDaysToPurge = values.moduleDaysToPurge
+        parameters.moduleDays = Number(values.moduleDaysToPurge)
       }
 
-      payload.removeOrphanFiles = values.removeOrphanFiles
+      parameters.removeOrphanFiles = Boolean(values.removeOrphanFiles)
     }
 
-    createMutation.mutate(payload)
+    request.parameters = parameters as TaskRequest["parameters"]
+    createMutation.mutate(request)
   }
 
   const next = () => {

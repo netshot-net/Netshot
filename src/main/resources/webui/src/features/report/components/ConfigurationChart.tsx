@@ -4,25 +4,17 @@ import { Heading, Skeleton, Stack, useToken } from "@chakra-ui/react"
 import { ChartConfiguration } from "chart.js/auto"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { useConfigChanges } from "../hooks"
+import { useConfigChangeBins } from "../hooks"
 import { useConfigChangeFilterStore } from "../stores/useConfigChangeFilterStore"
-import { bucketConfigChangesByDay } from "../utils"
 
 export default function ConfigurationChart() {
   const { t } = useTranslation()
-  const { formatDate, timezone } = useLocalization()
+  const { formatDate } = useLocalization()
   const [green500, green100] = useToken("colors", ["green.500", "green.100"])
 
-  const { data: changes, isPending } = useConfigChanges()
-  const from = useConfigChangeFilterStore((s) => s.from)
-  const to = useConfigChangeFilterStore((s) => s.to)
+  const { bins, isPending } = useConfigChangeBins()
   const day = useConfigChangeFilterStore((s) => s.day)
   const setDay = useConfigChangeFilterStore((s) => s.setDay)
-
-  const bins = useMemo(
-    () => bucketConfigChangesByDay(changes, from, to, timezone),
-    [changes, from, to, timezone]
-  )
 
   const config = useMemo<ChartConfiguration>(() => {
     const labels = bins.map((bin) => formatDate(bin.from))
