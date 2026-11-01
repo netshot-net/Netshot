@@ -375,6 +375,8 @@ public class DeviceRepository {
 			r.get(DEVICE.EOS_DATE),
 			toModule(r, EOS),
 			r.get(DEVICE.LAST_CONFIG),
+			r.get(DEVICE.LAST_SNAPSHOT_SUCCESS_DATE),
+			r.get(DEVICE.LAST_SNAPSHOT_FAILURE_DATE),
 			Boolean.TRUE.equals(r.get(COMPLIANT)),
 			readOptions(r.get(DEVICE.OPTIONS)),
 			r.get(TAGS),
@@ -504,6 +506,8 @@ public class DeviceRepository {
 		.date("changeDate", DEVICE.CHANGE_DATE, Option.SORTABLE)
 		.date("eolDate", DEVICE.EOL_DATE, Option.SORTABLE, Option.GROUPABLE)
 		.date("eosDate", DEVICE.EOS_DATE, Option.SORTABLE, Option.GROUPABLE)
+		.date("lastSnapshotSuccessDate", DEVICE.LAST_SNAPSHOT_SUCCESS_DATE, Option.SORTABLE)
+		.date("lastSnapshotFailureDate", DEVICE.LAST_SNAPSHOT_FAILURE_DATE, Option.SORTABLE)
 		.custom("group", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
 			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
 				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID))
@@ -845,6 +849,22 @@ public class DeviceRepository {
 		}
 		this.saveModules(dsl, id, original.modules(), edited.modules());
 		this.saveAccesses(dsl, id, original.accesses(), edited.accesses());
+	}
+
+	/**
+	 * Records the outcome of a snapshot: sets the date of the last successful (or failed) snapshot. Unlike
+	 * {@link #save}, only this column is written (by ID, without touching the version or the change date), so it
+	 * can't conflict with a concurrent edit of the device nor with another runner.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the device ID
+	 * @param success true to set the date of the last successful snapshot, false for the failed one
+	 * @param date the date of the snapshot
+	 * @return true if the device exists
+	 */
+	public boolean saveSnapshotDate(DSLContext dsl, long id, boolean success, Instant date) {
+		Field<Instant> column = success ? DEVICE.LAST_SNAPSHOT_SUCCESS_DATE : DEVICE.LAST_SNAPSHOT_FAILURE_DATE;
+		return dsl.update(DEVICE).set(column, date).where(DEVICE.ID.eq(id)).execute() > 0;
 	}
 
 	/**

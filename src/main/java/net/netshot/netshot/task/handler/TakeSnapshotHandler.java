@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.time.Instant;
+
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.access.Connectors;
 import net.netshot.netshot.access.collector.SshServer;
@@ -92,6 +94,23 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 		return TakeSnapshotTask.class;
 	}
 
+	/**
+	 * Stores the date of the last successful or failed snapshot on the device (a failure to do so is only logged).
+	 *
+	 * @param task the task
+	 * @param deviceId the device ID
+	 * @param success true for a successful snapshot, false for a failed one
+	 */
+	private void recordOutcome(Task task, long deviceId, boolean success) {
+		try {
+			Instant now = Instant.now();
+			this.transactions.write(dsl -> this.deviceRepository.saveSnapshotDate(dsl, deviceId, success, now));
+		}
+		catch (Exception e) {
+			log.error("Task {}. Error while recording the snapshot date on the device.", task.id(), e);
+		}
+	}
+
 	@Override
 	public void run(Task task, TakeSnapshotTask spec, TaskRun run) {
 		Long deviceId = spec.deviceId();
@@ -129,11 +148,13 @@ public class TakeSnapshotHandler implements TaskHandler<TakeSnapshotTask> {
 					}
 				}
 			}
+			this.recordOutcome(task, deviceId, true);
 			run.setStatus(Status.SUCCESS);
 		}
 		catch (Exception e) {
 			log.error("Task {}. Error while taking the snapshot.", task.id(), e);
 			run.logger.error("Error while taking the snapshot: {}", e.getMessage());
+			this.recordOutcome(task, deviceId, false);
 			run.setStatus(Status.FAILURE);
 			return;
 		}
