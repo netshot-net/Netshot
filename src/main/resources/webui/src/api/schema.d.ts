@@ -1637,7 +1637,7 @@ export interface components {
         };
         /** @description Definition of an API token */
         ApiTokenRequest: {
-            description?: string;
+            description?: string | null;
             /** Format: int32 */
             level: number;
             /**
@@ -1712,14 +1712,14 @@ export interface components {
         };
         /** @description Credentials to log in: username and password, or OIDC authorization code */
         SessionRequest: {
-            username?: string;
+            username?: string | null;
             /** Format: password */
-            password?: string;
+            password?: string | null;
             /** Format: password */
-            newPassword?: string;
+            newPassword?: string | null;
             /** Format: password */
-            authorizationCode?: string;
-            redirectUri?: string;
+            authorizationCode?: string | null;
+            redirectUri?: string | null;
         };
         /** @description Counts of objects, by field values and/or by time bucket */
         Stats: {
@@ -1734,7 +1734,7 @@ export interface components {
             to: Date | null;
             timeZone: string | null;
             results: {
-                [key: string]: Record<string, never>;
+                [key: string]: unknown;
             }[] | null;
         };
         /** @description Device credential set (secrets are never returned) */
@@ -1819,7 +1819,7 @@ export interface components {
             virtualDevices: string[] | null;
             vrfInstances: string[] | null;
             options: {
-                [key: string]: Record<string, never>;
+                [key: string]: unknown;
             } | null;
             attributes: components["schemas"]["DeviceAttribute"][] | null;
             accesses: components["schemas"]["DeviceAccess"][] | null;
@@ -1846,7 +1846,7 @@ export interface components {
         DeviceAttribute: {
             name: string | null;
             type: string | null;
-            value: Record<string, never> | null;
+            value: unknown;
         };
         /** @description Compliance state of a device for a rule */
         DeviceComplianceResult: {
@@ -2076,17 +2076,17 @@ export interface components {
         };
         /** @description Definition of a hardware compliance rule */
         HardwareRuleRequest: {
-            partNumber?: string;
+            partNumber?: string | null;
             /** Format: date-time */
-            endOfSale?: Date;
+            endOfSale?: Date | null;
             /** Format: date-time */
-            endOfLife?: Date;
+            endOfLife?: Date | null;
             /** Format: int64 */
-            group?: number;
-            driver?: string;
-            family?: string;
-            familyRegExp?: boolean;
-            partNumberRegExp?: boolean;
+            group?: number | null;
+            driver?: string | null;
+            family?: string | null;
+            familyRegExp?: boolean | null;
+            partNumberRegExp?: boolean | null;
         };
         ListResponseHardwareRule: {
             /**
@@ -2115,7 +2115,7 @@ export interface components {
         /** @description Definition of a compliance policy */
         PolicyRequest: {
             name: string;
-            targetGroups?: number[];
+            targetGroups?: number[] | null;
         };
         ListResponsePolicy: {
             /**
@@ -2165,11 +2165,11 @@ export interface components {
         };
         /** @description Definition of a JavaScript compliance rule */
         JavaScriptRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
-            name: string;
-            enabled?: boolean;
+            name: string | null;
+            enabled?: boolean | null;
             /** Format: int64 */
-            policy?: number;
-            script?: string;
+            policy?: number | null;
+            script?: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2179,11 +2179,11 @@ export interface components {
         };
         /** @description Definition of a Python compliance rule */
         PythonRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
-            name: string;
-            enabled?: boolean;
+            name: string | null;
+            enabled?: boolean | null;
             /** Format: int64 */
-            policy?: number;
-            script?: string;
+            policy?: number | null;
+            script?: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2197,19 +2197,19 @@ export interface components {
         } & (components["schemas"]["TextRuleRequest"] | components["schemas"]["JavaScriptRuleRequest"] | components["schemas"]["PythonRuleRequest"]);
         /** @description Definition of a text compliance rule */
         TextRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
-            name: string;
-            enabled?: boolean;
+            name: string | null;
+            enabled?: boolean | null;
             /** Format: int64 */
-            policy?: number;
-            field?: string;
-            context?: string;
-            text?: string;
-            regExp?: boolean;
-            invert?: boolean;
-            anyBlock?: boolean;
-            matchAll?: boolean;
-            normalize?: boolean;
-            deviceDriver?: string;
+            policy?: number | null;
+            field?: string | null;
+            context?: string | null;
+            text?: string | null;
+            regExp?: boolean | null;
+            invert?: boolean | null;
+            anyBlock?: boolean | null;
+            matchAll?: boolean | null;
+            normalize?: boolean | null;
+            deviceDriver?: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2292,18 +2292,18 @@ export interface components {
         /** @description Definition of a software compliance rule */
         SoftwareRuleRequest: {
             /** Format: int32 */
-            priority?: number;
+            priority?: number | null;
             /** @enum {string} */
             level: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN";
             /** Format: int64 */
-            group?: number;
-            driver?: string;
-            family?: string;
-            familyRegExp?: boolean;
-            version?: string;
-            versionRegExp?: boolean;
-            partNumber?: string;
-            partNumberRegExp?: boolean;
+            group?: number | null;
+            driver?: string | null;
+            family?: string | null;
+            familyRegExp?: boolean | null;
+            version?: string | null;
+            versionRegExp?: boolean | null;
+            partNumber?: string | null;
+            partNumberRegExp?: boolean | null;
         };
         ListResponseSoftwareRule: {
             /**
@@ -2461,49 +2461,49 @@ export interface components {
             /** @enum {string} */
             type: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3";
             /** Format: int64 */
-            mgmtDomain?: number;
-            username?: string;
-            usernameVault?: components["schemas"]["VaultSecretRequest"];
+            mgmtDomain?: number | null;
+            username?: string | null;
+            usernameVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             password?: string | null;
-            passwordVault?: components["schemas"]["VaultSecretRequest"];
+            passwordVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             superPassword?: string | null;
-            superPasswordVault?: components["schemas"]["VaultSecretRequest"];
+            superPasswordVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             privateKey?: string | null;
-            privateKeyVault?: components["schemas"]["VaultSecretRequest"];
+            privateKeyVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             community?: string | null;
-            communityVault?: components["schemas"]["VaultSecretRequest"];
-            /** @enum {string} */
-            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512";
+            communityVault?: components["schemas"]["VaultSecretRequest"] | null;
+            /** @enum {string|null} */
+            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512" | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             authKey?: string | null;
-            authKeyVault?: components["schemas"]["VaultSecretRequest"];
-            /** @enum {string} */
-            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256";
+            authKeyVault?: components["schemas"]["VaultSecretRequest"] | null;
+            /** @enum {string|null} */
+            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256" | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             privKey?: string | null;
-            privKeyVault?: components["schemas"]["VaultSecretRequest"];
+            privKeyVault?: components["schemas"]["VaultSecretRequest"] | null;
         };
         /** @description Location of a secret in a Vault instance */
         VaultSecretRequest: {
@@ -2693,24 +2693,24 @@ export interface components {
             log: string | null;
             /** @description Parameters of the type of task */
             parameters: {
-                [key: string]: Record<string, never>;
+                [key: string]: unknown;
             } | null;
         };
         /** @description Settings of one access of a device */
         DeviceAccessRequest: {
             accessName: string;
-            address?: string;
+            address?: string | null;
             /** Format: int32 */
-            port?: number;
+            port?: number | null;
             /** Format: int64 */
-            globalCredentialSet?: number;
-            specificCredentialSet?: components["schemas"]["DeviceCredentialSetRequest"];
-            /** @enum {string} */
-            sshHostKeyVerification?: "TRUST_ANY" | "TRUST_KNOWN";
-            sshTrustedHostKeys?: string;
-            /** @enum {string} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
-            httpsCustomCaCertificate?: string;
+            globalCredentialSet?: number | null;
+            specificCredentialSet?: components["schemas"]["DeviceCredentialSetRequest"] | null;
+            /** @enum {string|null} */
+            sshHostKeyVerification?: "TRUST_ANY" | "TRUST_KNOWN" | null;
+            sshTrustedHostKeys?: string | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate?: string | null;
         };
         /** @description Device to add */
         DeviceCreationRequest: {
@@ -2718,73 +2718,73 @@ export interface components {
             /** Format: int64 */
             mgmtDomain: number;
             /** @description Name of the device driver; if absent, the device type is auto discovered */
-            driver?: string;
-            comments?: string;
-            tags?: string[];
+            driver?: string | null;
+            comments?: string | null;
+            tags?: string[] | null;
             options?: {
-                [key: string]: Record<string, never>;
-            };
-            accesses?: components["schemas"]["DeviceAccessRequest"][];
+                [key: string]: unknown;
+            } | null;
+            accesses?: components["schemas"]["DeviceAccessRequest"][] | null;
         };
         /** @description Credential set specific to one access of a device */
         DeviceCredentialSetRequest: {
             /** @enum {string} */
             type: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3";
-            username?: string;
-            usernameVault?: components["schemas"]["VaultSecretRequest"];
+            username?: string | null;
+            usernameVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             password?: string | null;
-            passwordVault?: components["schemas"]["VaultSecretRequest"];
+            passwordVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             superPassword?: string | null;
-            superPasswordVault?: components["schemas"]["VaultSecretRequest"];
+            superPasswordVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             privateKey?: string | null;
-            privateKeyVault?: components["schemas"]["VaultSecretRequest"];
+            privateKeyVault?: components["schemas"]["VaultSecretRequest"] | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             community?: string | null;
-            communityVault?: components["schemas"]["VaultSecretRequest"];
-            /** @enum {string} */
-            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512";
+            communityVault?: components["schemas"]["VaultSecretRequest"] | null;
+            /** @enum {string|null} */
+            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512" | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             authKey?: string | null;
-            authKeyVault?: components["schemas"]["VaultSecretRequest"];
-            /** @enum {string} */
-            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256";
+            authKeyVault?: components["schemas"]["VaultSecretRequest"] | null;
+            /** @enum {string|null} */
+            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256" | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             privKey?: string | null;
-            privKeyVault?: components["schemas"]["VaultSecretRequest"];
+            privKeyVault?: components["schemas"]["VaultSecretRequest"] | null;
         };
         /** @description Options of a compliance check of a device */
         ComplianceCheckRequest: {
-            comments?: string;
-            /** @enum {string} */
-            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            comments?: string | null;
+            /** @enum {string|null} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY" | null;
             /** Format: date-time */
-            scheduleReference?: Date;
+            scheduleReference?: Date | null;
             /** Format: int32 */
-            scheduleFactor?: number;
+            scheduleFactor?: number | null;
             /** Format: int32 */
-            priority?: number;
-            debugEnabled?: boolean;
+            priority?: number | null;
+            debugEnabled?: boolean | null;
         };
         ListResponseDevice: {
             /**
@@ -2814,66 +2814,66 @@ export interface components {
             mgmtAddress: string;
             /** Format: int64 */
             mgmtDomain: number;
-            /** @enum {string} */
-            status?: "DISABLED" | "INPRODUCTION" | "PREPRODUCTION";
-            comments?: string;
-            tags?: string[];
+            /** @enum {string|null} */
+            status?: "DISABLED" | "INPRODUCTION" | "PREPRODUCTION" | null;
+            comments?: string | null;
+            tags?: string[] | null;
             options?: {
-                [key: string]: Record<string, never>;
-            };
-            accesses?: components["schemas"]["DeviceAccessRequest"][];
+                [key: string]: unknown;
+            } | null;
+            accesses?: components["schemas"]["DeviceAccessRequest"][] | null;
         };
         /** @description Options of a run of the diagnostics of a device */
         DiagnosticsRunRequest: {
-            dontCheckCompliance?: boolean;
-            comments?: string;
-            /** @enum {string} */
-            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            dontCheckCompliance?: boolean | null;
+            comments?: string | null;
+            /** @enum {string|null} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY" | null;
             /** Format: date-time */
-            scheduleReference?: Date;
+            scheduleReference?: Date | null;
             /** Format: int32 */
-            scheduleFactor?: number;
+            scheduleFactor?: number | null;
             /** Format: int32 */
-            priority?: number;
-            debugEnabled?: boolean;
+            priority?: number | null;
+            debugEnabled?: boolean | null;
         };
         /** @description Script to run on a device */
         ScriptRunRequest: {
             /** Format: int64 */
-            savedScript?: number;
-            script?: string;
-            deviceDriver?: string;
+            savedScript?: number | null;
+            script?: string | null;
+            deviceDriver?: string | null;
             userInputValues?: {
                 [key: string]: string;
-            };
-            runSnapshot?: boolean;
-            runDiagnostics?: boolean;
-            checkCompliance?: boolean;
-            comments?: string;
-            /** @enum {string} */
-            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            } | null;
+            runSnapshot?: boolean | null;
+            runDiagnostics?: boolean | null;
+            checkCompliance?: boolean | null;
+            comments?: string | null;
+            /** @enum {string|null} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY" | null;
             /** Format: date-time */
-            scheduleReference?: Date;
+            scheduleReference?: Date | null;
             /** Format: int32 */
-            scheduleFactor?: number;
+            scheduleFactor?: number | null;
             /** Format: int32 */
-            priority?: number;
-            debugEnabled?: boolean;
+            priority?: number | null;
+            debugEnabled?: boolean | null;
         };
         /** @description Options of a snapshot of a device */
         SnapshotRequest: {
-            dontRunDiagnostics?: boolean;
-            dontCheckCompliance?: boolean;
-            comments?: string;
-            /** @enum {string} */
-            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            dontRunDiagnostics?: boolean | null;
+            dontCheckCompliance?: boolean | null;
+            comments?: string | null;
+            /** @enum {string|null} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY" | null;
             /** Format: date-time */
-            scheduleReference?: Date;
+            scheduleReference?: Date | null;
             /** Format: int32 */
-            scheduleFactor?: number;
+            scheduleFactor?: number | null;
             /** Format: int32 */
-            priority?: number;
-            debugEnabled?: boolean;
+            priority?: number | null;
+            debugEnabled?: boolean | null;
         };
         /** @description Device tag with its number of devices */
         DeviceTag: {
@@ -2976,7 +2976,7 @@ export interface components {
             /** @enum {string|null} */
             type: "TEXT" | "BOOLEAN" | null;
             choices: string[] | null;
-            defaultValue: Record<string, never> | null;
+            defaultValue: unknown;
         };
         ListResponsePartNumber: {
             /**
@@ -3062,18 +3062,18 @@ export interface components {
             type: "SIMPLE" | "JAVASCRIPT" | "PYTHON";
             /** @enum {string} */
             resultType: "TEXT" | "LONGTEXT" | "NUMERIC" | "BINARY";
-            enabled?: boolean;
+            enabled?: boolean | null;
             /**
              * Format: int64
              * @description The target group: its ID, or an object with its ID (such as the one read)
              */
-            targetGroup?: number;
-            script?: string;
-            deviceDriver?: string;
-            cliMode?: string;
-            command?: string;
-            modifierPattern?: string;
-            modifierReplacement?: string;
+            targetGroup?: number | null;
+            script?: string | null;
+            deviceDriver?: string | null;
+            cliMode?: string | null;
+            command?: string | null;
+            modifierPattern?: string | null;
+            modifierReplacement?: string | null;
         };
         ListResponseDiagnostic: {
             /**
@@ -3103,7 +3103,7 @@ export interface components {
             display: string | null;
             diagnostic: components["schemas"]["Diagnostic"] | null;
             type: string | null;
-            value: Record<string, never> | null;
+            value: unknown;
             /** Format: date-time */
             creationDate: Date | null;
             /** Format: date-time */
@@ -3135,7 +3135,7 @@ export interface components {
         /** @description Definition of a device domain */
         DomainRequest: {
             name: string;
-            description?: string;
+            description?: string | null;
             server4Address: string;
         };
         ListResponseDomain: {
@@ -3164,13 +3164,13 @@ export interface components {
         /** @description Definition of a device group */
         GroupRequest: {
             name: string;
-            folder?: string;
+            folder?: string | null;
             /** @enum {string} */
             type: "STATIC" | "DYNAMIC";
-            hiddenFromReports?: boolean;
-            query?: string;
+            hiddenFromReports?: boolean | null;
+            query?: string | null;
             /** @description IDs of the devices of a static group (write-only: absent means unchanged) */
-            devices?: number[];
+            devices?: number[] | null;
         };
         ListResponseGroup: {
             /**
@@ -3240,15 +3240,15 @@ export interface components {
         } & components["schemas"]["WebHookRequest"];
         /** @description Definition of a hook calling a URL */
         WebHookRequest: Omit<components["schemas"]["HookRequest"], "type"> & {
-            name: string;
-            enabled?: boolean;
-            triggers?: components["schemas"]["HookTrigger"][];
-            /** @enum {string} */
-            action: "POST_XML" | "POST_JSON" | "POST_YAML";
-            targetUrl: string;
-            /** @enum {string} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
-            httpsCustomCaCertificate?: string;
+            name: string | null;
+            enabled?: boolean | null;
+            triggers?: components["schemas"]["HookTrigger"][] | null;
+            /** @enum {string|null} */
+            action: "POST_XML" | "POST_JSON" | "POST_YAML" | null;
+            targetUrl: string | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate?: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -3308,7 +3308,7 @@ export interface components {
         /** @description Definition of a command script */
         ScriptRequest: {
             name: string;
-            folder?: string;
+            folder?: string | null;
             deviceDriver: string;
             script: string;
         };
@@ -3430,7 +3430,7 @@ export interface components {
             healthy: boolean;
             error: string | null;
             stats: {
-                [key: string]: Record<string, never>;
+                [key: string]: unknown;
             } | null;
         };
         ListResponseTask: {
@@ -3460,27 +3460,27 @@ export interface components {
         TaskRequest: {
             type: string;
             /** Format: int64 */
-            device?: number;
+            device?: number | null;
             /** Format: int64 */
-            group?: number;
-            deviceList?: number[];
+            group?: number | null;
+            deviceList?: number[] | null;
             /** @description Parameters of the type of task */
             parameters?: {
-                [key: string]: Record<string, never>;
-            };
-            comments?: string;
-            /** @enum {string} */
-            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+                [key: string]: unknown;
+            } | null;
+            comments?: string | null;
+            /** @enum {string|null} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY" | null;
             /** Format: date-time */
-            scheduleReference?: Date;
+            scheduleReference?: Date | null;
             /** Format: int32 */
-            scheduleFactor?: number;
+            scheduleFactor?: number | null;
             /** Format: int32 */
-            priority?: number;
-            debugEnabled?: boolean;
-            /** @enum {string} */
-            scheduleMode?: "PARALLEL" | "SEQUENTIAL";
-            stopOnFailure?: boolean;
+            priority?: number | null;
+            debugEnabled?: boolean | null;
+            /** @enum {string|null} */
+            scheduleMode?: "PARALLEL" | "SEQUENTIAL" | null;
+            stopOnFailure?: boolean | null;
         };
         /** @description Number of tasks by status */
         TaskStatusCounts: {
@@ -3546,30 +3546,30 @@ export interface components {
             /** @enum {string} */
             type: "HASHICORP_KV2";
             baseUrl: string;
-            namespace?: string;
-            /** @enum {string} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
-            httpsCustomCaCertificate?: string;
-            kvMountPath?: string;
+            namespace?: string | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate?: string | null;
+            kvMountPath?: string | null;
             /** @enum {string} */
             authMethod: "APPROLE" | "JWT";
-            appRoleMountPath?: string;
-            appRoleId?: string;
+            appRoleMountPath?: string | null;
+            appRoleId?: string | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             appRoleSecretId?: string | null;
-            jwtMountPath?: string;
-            jwtIdpTokenEndpoint?: string;
-            jwtClientId?: string;
+            jwtMountPath?: string | null;
+            jwtIdpTokenEndpoint?: string | null;
+            jwtClientId?: string | null;
             /**
              * Format: password
              * @description Write-only secret: absent leaves the stored value unchanged, null clears it
              */
             jwtClientSecret?: string | null;
-            jwtVaultRole?: string;
-            jwtScope?: string;
+            jwtVaultRole?: string | null;
+            jwtScope?: string | null;
         };
         ListResponseVaultInstance: {
             /**

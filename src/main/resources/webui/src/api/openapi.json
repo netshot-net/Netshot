@@ -8191,7 +8191,8 @@
         "type" : "object",
         "properties" : {
           "description" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "level" : {
             "type" : "integer",
@@ -8382,22 +8383,27 @@
         "type" : "object",
         "properties" : {
           "username" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "password" : {
             "type" : "string",
-            "format" : "password"
+            "format" : "password",
+            "nullable" : true
           },
           "newPassword" : {
             "type" : "string",
-            "format" : "password"
+            "format" : "password",
+            "nullable" : true
           },
           "authorizationCode" : {
             "type" : "string",
-            "format" : "password"
+            "format" : "password",
+            "nullable" : true
           },
           "redirectUri" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         },
         "description" : "Credentials to log in: username and password, or OIDC authorization code"
@@ -8445,9 +8451,7 @@
             "nullable" : true,
             "items" : {
               "type" : "object",
-              "additionalProperties" : {
-                "type" : "object"
-              }
+              "additionalProperties" : true
             }
           }
         },
@@ -8761,9 +8765,7 @@
           },
           "options" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
+            "additionalProperties" : true,
             "nullable" : true
           },
           "attributes" : {
@@ -8858,7 +8860,6 @@
             "nullable" : true
           },
           "value" : {
-            "type" : "object",
             "nullable" : true
           }
         },
@@ -9476,31 +9477,39 @@
         "type" : "object",
         "properties" : {
           "partNumber" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "endOfSale" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "endOfLife" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "group" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "driver" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "family" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "familyRegExp" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "partNumberRegExp" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Definition of a hardware compliance rule"
@@ -9557,6 +9566,7 @@
           },
           "targetGroups" : {
             "type" : "array",
+            "nullable" : true,
             "items" : {
               "type" : "integer",
               "format" : "int64"
@@ -9655,17 +9665,21 @@
           "type" : "object",
           "properties" : {
             "name" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "enabled" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "policy" : {
               "type" : "integer",
-              "format" : "int64"
+              "format" : "int64",
+              "nullable" : true
             },
             "script" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             }
           }
         } ]
@@ -9680,17 +9694,21 @@
           "type" : "object",
           "properties" : {
             "name" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "enabled" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "policy" : {
               "type" : "integer",
-              "format" : "int64"
+              "format" : "int64",
+              "nullable" : true
             },
             "script" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             }
           }
         } ]
@@ -9725,41 +9743,53 @@
           "type" : "object",
           "properties" : {
             "name" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "enabled" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "policy" : {
               "type" : "integer",
-              "format" : "int64"
+              "format" : "int64",
+              "nullable" : true
             },
             "field" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "context" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "text" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "regExp" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "invert" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "anyBlock" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "matchAll" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "normalize" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "deviceDriver" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             }
           }
         } ]
@@ -9950,7 +9980,8 @@
           "priority" : {
             "minimum" : 1,
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "level" : {
             "type" : "string",
@@ -9958,28 +9989,36 @@
           },
           "group" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "driver" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "family" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "familyRegExp" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "version" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "versionRegExp" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "partNumber" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "partNumberRegExp" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Definition of a software compliance rule"
@@ -10362,13 +10401,18 @@
           },
           "mgmtDomain" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "username" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "usernameVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "password" : {
             "type" : "string",
@@ -10377,7 +10421,10 @@
             "nullable" : true
           },
           "passwordVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "superPassword" : {
             "type" : "string",
@@ -10386,7 +10433,10 @@
             "nullable" : true
           },
           "superPasswordVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "privateKey" : {
             "type" : "string",
@@ -10395,7 +10445,10 @@
             "nullable" : true
           },
           "privateKeyVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "community" : {
             "type" : "string",
@@ -10404,10 +10457,14 @@
             "nullable" : true
           },
           "communityVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "authType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "NONE", "MD5", "SHA", "HMAC128SHA224", "HMAC192SHA256", "HMAC256SHA384", "HMAC384SHA512" ]
           },
           "authKey" : {
@@ -10417,10 +10474,14 @@
             "nullable" : true
           },
           "authKeyVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "privType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "NONE", "DES", "DES3", "AES128", "AES192", "AES256" ]
           },
           "privKey" : {
@@ -10430,7 +10491,10 @@
             "nullable" : true
           },
           "privKeyVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           }
         },
         "description" : "Definition of a global credential set"
@@ -10879,10 +10943,7 @@
           },
           "parameters" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object",
-              "description" : "Parameters of the type of task"
-            },
+            "additionalProperties" : true,
             "description" : "Parameters of the type of task",
             "nullable" : true
           }
@@ -10897,32 +10958,42 @@
             "type" : "string"
           },
           "address" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "port" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "globalCredentialSet" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "specificCredentialSet" : {
-            "$ref" : "#/components/schemas/DeviceCredentialSetRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/DeviceCredentialSetRequest"
+            } ]
           },
           "sshHostKeyVerification" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "TRUST_ANY", "TRUST_KNOWN" ]
           },
           "sshTrustedHostKeys" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "httpsCaTrustMode" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
           },
           "httpsCustomCaCertificate" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         },
         "description" : "Settings of one access of a device"
@@ -10940,26 +11011,29 @@
           },
           "driver" : {
             "type" : "string",
-            "description" : "Name of the device driver; if absent, the device type is auto discovered"
+            "description" : "Name of the device driver; if absent, the device type is auto discovered",
+            "nullable" : true
           },
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "tags" : {
             "uniqueItems" : true,
             "type" : "array",
+            "nullable" : true,
             "items" : {
               "type" : "string"
             }
           },
           "options" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
+            "additionalProperties" : true,
+            "nullable" : true
           },
           "accesses" : {
             "type" : "array",
+            "nullable" : true,
             "items" : {
               "$ref" : "#/components/schemas/DeviceAccessRequest"
             }
@@ -10976,10 +11050,14 @@
             "enum" : [ "SSH", "SSH_KEY", "TELNET", "HTTP", "SNMP_V1", "SNMP_V2C", "SNMP_V3" ]
           },
           "username" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "usernameVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "password" : {
             "type" : "string",
@@ -10988,7 +11066,10 @@
             "nullable" : true
           },
           "passwordVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "superPassword" : {
             "type" : "string",
@@ -10997,7 +11078,10 @@
             "nullable" : true
           },
           "superPasswordVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "privateKey" : {
             "type" : "string",
@@ -11006,7 +11090,10 @@
             "nullable" : true
           },
           "privateKeyVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "community" : {
             "type" : "string",
@@ -11015,10 +11102,14 @@
             "nullable" : true
           },
           "communityVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "authType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "NONE", "MD5", "SHA", "HMAC128SHA224", "HMAC192SHA256", "HMAC256SHA384", "HMAC384SHA512" ]
           },
           "authKey" : {
@@ -11028,10 +11119,14 @@
             "nullable" : true
           },
           "authKeyVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           },
           "privType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "NONE", "DES", "DES3", "AES128", "AES192", "AES256" ]
           },
           "privKey" : {
@@ -11041,7 +11136,10 @@
             "nullable" : true
           },
           "privKeyVault" : {
-            "$ref" : "#/components/schemas/VaultSecretRequest"
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/VaultSecretRequest"
+            } ]
           }
         },
         "description" : "Credential set specific to one access of a device"
@@ -11050,26 +11148,32 @@
         "type" : "object",
         "properties" : {
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "scheduleType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "ASAP", "AT", "DAILY", "MONTHLY", "WEEKLY", "HOURLY" ]
           },
           "scheduleReference" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "scheduleFactor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "priority" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "debugEnabled" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Options of a compliance check of a device"
@@ -11127,26 +11231,29 @@
           },
           "status" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "DISABLED", "INPRODUCTION", "PREPRODUCTION" ]
           },
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "tags" : {
             "uniqueItems" : true,
             "type" : "array",
+            "nullable" : true,
             "items" : {
               "type" : "string"
             }
           },
           "options" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            }
+            "additionalProperties" : true,
+            "nullable" : true
           },
           "accesses" : {
             "type" : "array",
+            "nullable" : true,
             "items" : {
               "$ref" : "#/components/schemas/DeviceAccessRequest"
             }
@@ -11158,29 +11265,36 @@
         "type" : "object",
         "properties" : {
           "dontCheckCompliance" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "scheduleType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "ASAP", "AT", "DAILY", "MONTHLY", "WEEKLY", "HOURLY" ]
           },
           "scheduleReference" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "scheduleFactor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "priority" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "debugEnabled" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Options of a run of the diagnostics of a device"
@@ -11190,50 +11304,63 @@
         "properties" : {
           "savedScript" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "script" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "deviceDriver" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "userInputValues" : {
             "type" : "object",
             "additionalProperties" : {
               "type" : "string"
-            }
+            },
+            "nullable" : true
           },
           "runSnapshot" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "runDiagnostics" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "checkCompliance" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "scheduleType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "ASAP", "AT", "DAILY", "MONTHLY", "WEEKLY", "HOURLY" ]
           },
           "scheduleReference" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "scheduleFactor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "priority" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "debugEnabled" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Script to run on a device"
@@ -11242,32 +11369,40 @@
         "type" : "object",
         "properties" : {
           "dontRunDiagnostics" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "dontCheckCompliance" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "scheduleType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "ASAP", "AT", "DAILY", "MONTHLY", "WEEKLY", "HOURLY" ]
           },
           "scheduleReference" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "scheduleFactor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "priority" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "debugEnabled" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Options of a snapshot of a device"
@@ -11544,7 +11679,6 @@
             }
           },
           "defaultValue" : {
-            "type" : "object",
             "nullable" : true
           }
         }
@@ -11743,30 +11877,38 @@
             "enum" : [ "TEXT", "LONGTEXT", "NUMERIC", "BINARY" ]
           },
           "enabled" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "targetGroup" : {
             "type" : "integer",
             "description" : "The target group: its ID, or an object with its ID (such as the one read)",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "script" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "deviceDriver" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "cliMode" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "command" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "modifierPattern" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "modifierReplacement" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         },
         "description" : "Definition of a diagnostic"
@@ -11830,7 +11972,6 @@
             "nullable" : true
           },
           "value" : {
-            "type" : "object",
             "nullable" : true
           },
           "creationDate" : {
@@ -11894,7 +12035,8 @@
             "type" : "string"
           },
           "description" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "server4Address" : {
             "type" : "string"
@@ -11950,21 +12092,25 @@
             "type" : "string"
           },
           "folder" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "type" : {
             "type" : "string",
             "enum" : [ "STATIC", "DYNAMIC" ]
           },
           "hiddenFromReports" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "query" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "devices" : {
             "type" : "array",
             "description" : "IDs of the devices of a static group (write-only: absent means unchanged)",
+            "nullable" : true,
             "items" : {
               "type" : "integer",
               "description" : "IDs of the devices of a static group (write-only: absent means unchanged)",
@@ -12138,30 +12284,37 @@
           "type" : "object",
           "properties" : {
             "name" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "enabled" : {
-              "type" : "boolean"
+              "type" : "boolean",
+              "nullable" : true
             },
             "triggers" : {
               "type" : "array",
+              "nullable" : true,
               "items" : {
                 "$ref" : "#/components/schemas/HookTrigger"
               }
             },
             "action" : {
               "type" : "string",
+              "nullable" : true,
               "enum" : [ "POST_XML", "POST_JSON", "POST_YAML" ]
             },
             "targetUrl" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             },
             "httpsCaTrustMode" : {
               "type" : "string",
+              "nullable" : true,
               "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
             },
             "httpsCustomCaCertificate" : {
-              "type" : "string"
+              "type" : "string",
+              "nullable" : true
             }
           }
         } ]
@@ -12299,7 +12452,8 @@
             "type" : "string"
           },
           "folder" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "deviceDriver" : {
             "type" : "string"
@@ -12573,9 +12727,7 @@
           },
           "stats" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object"
-            },
+            "additionalProperties" : true,
             "nullable" : true
           }
         },
@@ -12630,14 +12782,17 @@
           },
           "device" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "group" : {
             "type" : "integer",
-            "format" : "int64"
+            "format" : "int64",
+            "nullable" : true
           },
           "deviceList" : {
             "type" : "array",
+            "nullable" : true,
             "items" : {
               "type" : "integer",
               "format" : "int64"
@@ -12645,40 +12800,46 @@
           },
           "parameters" : {
             "type" : "object",
-            "additionalProperties" : {
-              "type" : "object",
-              "description" : "Parameters of the type of task"
-            },
-            "description" : "Parameters of the type of task"
+            "additionalProperties" : true,
+            "description" : "Parameters of the type of task",
+            "nullable" : true
           },
           "comments" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "scheduleType" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "ASAP", "AT", "DAILY", "MONTHLY", "WEEKLY", "HOURLY" ]
           },
           "scheduleReference" : {
             "type" : "string",
-            "format" : "date-time"
+            "format" : "date-time",
+            "nullable" : true
           },
           "scheduleFactor" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "priority" : {
             "type" : "integer",
-            "format" : "int32"
+            "format" : "int32",
+            "nullable" : true
           },
           "debugEnabled" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           },
           "scheduleMode" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "PARALLEL", "SEQUENTIAL" ]
           },
           "stopOnFailure" : {
-            "type" : "boolean"
+            "type" : "boolean",
+            "nullable" : true
           }
         },
         "description" : "Task to create"
@@ -12828,27 +12989,33 @@
             "type" : "string"
           },
           "namespace" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "httpsCaTrustMode" : {
             "type" : "string",
+            "nullable" : true,
             "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
           },
           "httpsCustomCaCertificate" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "kvMountPath" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "authMethod" : {
             "type" : "string",
             "enum" : [ "APPROLE", "JWT" ]
           },
           "appRoleMountPath" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "appRoleId" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "appRoleSecretId" : {
             "type" : "string",
@@ -12857,13 +13024,16 @@
             "nullable" : true
           },
           "jwtMountPath" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "jwtIdpTokenEndpoint" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "jwtClientId" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "jwtClientSecret" : {
             "type" : "string",
@@ -12872,10 +13042,12 @@
             "nullable" : true
           },
           "jwtVaultRole" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           },
           "jwtScope" : {
-            "type" : "string"
+            "type" : "string",
+            "nullable" : true
           }
         },
         "description" : "Definition of a Vault instance"
