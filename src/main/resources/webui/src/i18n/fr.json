@@ -873,6 +873,7 @@
     },
     "admin": {
       "title": "Administration",
+      "changedMeanwhile": "L'objet a été modifié entre-temps : la liste a été actualisée, veuillez réessayer",
       "clustering": {
         "label": "Multi-nœuds",
         "manage": "Gérer le fonctionnement multi-nœuds",

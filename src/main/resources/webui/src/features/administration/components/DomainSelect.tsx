@@ -21,7 +21,7 @@ export default function DomainSelect<T extends FieldValues>(props: DomainSelectP
   const { isPending, data } = useDomains()
 
   const domainOptions = (data ?? []).map((domain) => ({
-    label: domain?.name,
+    label: domain?.name ?? "",
     value: domain?.id as string | number | null,
   }))
 

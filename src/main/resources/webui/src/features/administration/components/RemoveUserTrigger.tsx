@@ -3,7 +3,7 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { User } from "@/types"
+import { User } from "@/api/admin"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent } from "react"
@@ -22,7 +22,7 @@ export default function RemoveUserTrigger({ user, children, ...rest }: RemoveUse
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_USER_REMOVE,
-    mutationFn: async () => api.admin.removeUser(user?.id),
+    mutationFn: async () => api.admin.removeUser(user.id!),
     onError(err: NetshotError) {
       toast.error(err)
     },

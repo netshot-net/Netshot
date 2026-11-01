@@ -1,11 +1,12 @@
 import api from "@/api"
-import { VaultInstancePayload } from "@/api/types"
+import { VaultInstance, VaultInstanceRequest } from "@/api/admin"
 import { PASSWORD_UNCHANGED } from "@/components/FormControl"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
+import { HttpsCaTrustMode, VaultAuthMethod, VaultInstanceType } from "@/types"
 import { useToast } from "@/hooks"
-import { VaultInstance } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -26,17 +27,18 @@ export default function EditVaultInstanceTrigger({ vaultInstance, children, ...r
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_VAULT_INSTANCES)
 
   const defaultValues = useMemo<Partial<VaultInstanceForm>>(
     () => ({
-      name: vaultInstance.name,
-      type: vaultInstance.type,
-      baseUrl: vaultInstance.baseUrl,
+      name: vaultInstance.name ?? "",
+      type: vaultInstance.type as VaultInstanceType,
+      baseUrl: vaultInstance.baseUrl ?? "",
       namespace: vaultInstance.namespace ?? "",
-      httpsCaTrustMode: vaultInstance.httpsCaTrustMode,
+      httpsCaTrustMode: vaultInstance.httpsCaTrustMode as HttpsCaTrustMode,
       httpsCustomCaCertificate: vaultInstance.httpsCustomCaCertificate ?? "",
-      kvMountPath: vaultInstance.kvMountPath,
-      authMethod: vaultInstance.authMethod,
+      kvMountPath: vaultInstance.kvMountPath ?? "secret",
+      authMethod: vaultInstance.authMethod as VaultAuthMethod,
       appRoleMountPath: vaultInstance.appRoleMountPath ?? "approle",
       appRoleId: vaultInstance.appRoleId ?? "",
       appRoleSecretId: PASSWORD_UNCHANGED,
@@ -61,10 +63,10 @@ export default function EditVaultInstanceTrigger({ vaultInstance, children, ...r
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_VAULT_INSTANCE_UPDATE,
-    mutationFn: async (payload: Partial<VaultInstancePayload>) =>
-      api.admin.updateVaultInstance(vaultInstance.id, payload),
+    mutationFn: async (payload: VaultInstanceRequest) =>
+      api.admin.updateVaultInstance(vaultInstance.id!, payload, vaultInstance.version),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 

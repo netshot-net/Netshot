@@ -1,13 +1,11 @@
-import api from "@/api"
+import { CredentialSet } from "@/api/admin"
+import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
-import { CredentialSet } from "@/types"
-import { search } from "@/utils"
 import { Badge, Button, Heading, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuSquarePen, LuPlus, LuTrash, LuAsterisk } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddDeviceCredentialSetTrigger from "../components/AddDeviceCredentialSetTrigger"
@@ -22,21 +20,11 @@ export default function AdministrationDeviceCredentialSetScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [
-      QUERIES.ADMIN_DEVICE_CREDENTIALS,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
-    ],
-    queryFn: async () => api.admin.getAllCredentialSets(pagination),
-    select: useCallback(
-      (res: CredentialSet[]): CredentialSet[] => {
-        return search(res, "name").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending, onBottomReached } = useList<CredentialSet>(
+    [QUERIES.ADMIN_DEVICE_CREDENTIALS],
+    "/credential-sets",
+    { q: pagination.query, sort: "name", view: "full" }
+  )
 
   const isSearching = Boolean(pagination.query?.trim())
 
@@ -143,7 +131,7 @@ export default function AdministrationDeviceCredentialSetScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} />
+              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

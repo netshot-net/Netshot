@@ -44,7 +44,7 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
   const { data: vaultInstanceList } = useVaultInstances()
 
   const vaultInstances = useMemo(
-    () => (vaultInstanceList ?? []).map((instance) => ({ label: instance.name, value: instance.id })),
+    () => (vaultInstanceList ?? []).map((instance) => ({ label: instance.name ?? "", value: instance.id as number })),
     [vaultInstanceList]
   )
 
@@ -178,7 +178,6 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             vaultInstances={vaultInstances}
           />
           <VaultableInput
-            required
             allowUnchanged={freezePasswords}
             fieldType={FormControlType.Password}
             label={t("network.superPassword")}
@@ -226,7 +225,6 @@ export default function DeviceCredentialSetForm(props: DeviceCredentialSetFormPr
             vaultInstances={vaultInstances}
           />
           <VaultableInput
-            required
             allowUnchanged={freezePasswords}
             fieldType={FormControlType.Password}
             label={t("network.superPassword")}

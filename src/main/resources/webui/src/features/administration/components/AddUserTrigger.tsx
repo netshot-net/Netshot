@@ -3,7 +3,9 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Level, User } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { UserRequest } from "@/api/admin"
+import { Level } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -19,6 +21,7 @@ export default function AddUserTrigger({ children, ...rest }: AddUserTriggerProp
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_USERS)
 
   const form = useForm<UserForm>({
     mode: "onChange",
@@ -33,9 +36,9 @@ export default function AddUserTrigger({ children, ...rest }: AddUserTriggerProp
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_USER_CREATE,
-    mutationFn: async (payload: Partial<User>) => api.admin.createUser(payload),
+    mutationFn: async (payload: UserRequest) => api.admin.createUser(payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -50,7 +53,7 @@ export default function AddUserTrigger({ children, ...rest }: AddUserTriggerProp
           username: values.username,
           level: +values.level,
           local: !values.isRemote,
-          password: values.password ?? undefined,
+          password: values.isRemote ? undefined : (values.password ?? undefined),
         })
 
         dialogRef.close()

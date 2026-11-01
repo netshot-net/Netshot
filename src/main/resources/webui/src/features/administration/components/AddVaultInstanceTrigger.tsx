@@ -1,9 +1,10 @@
 import api from "@/api"
-import { VaultInstancePayload } from "@/api/types"
+import { VaultInstanceRequest } from "@/api/admin"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
+import { useAdminErrorHandler } from "../hooks"
 import { HttpsCaTrustMode, VaultAuthMethod, VaultInstanceType } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
@@ -24,6 +25,7 @@ export default function AddVaultInstanceTrigger({ children, ...rest }: AddVaultI
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_VAULT_INSTANCES)
 
   const form = useForm<VaultInstanceForm>({
     mode: "onChange",
@@ -50,10 +52,10 @@ export default function AddVaultInstanceTrigger({ children, ...rest }: AddVaultI
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_VAULT_INSTANCE_CREATE,
-    mutationFn: async (payload: Partial<VaultInstancePayload>) =>
+    mutationFn: async (payload: VaultInstanceRequest) =>
       api.admin.createVaultInstance(payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 

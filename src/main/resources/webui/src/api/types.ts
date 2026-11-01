@@ -1,17 +1,11 @@
 import {
-  CredentialSetType,
   DeviceAccess,
   DeviceComplianceResultType,
   GroupType,
-  HashingAlgorithm,
-  HttpsCaTrustMode,
   LightDevice,
   TaskScheduleMode,
   TaskScheduleType,
   TaskStatus,
-  VaultAuthMethod,
-  VaultInstanceType,
-  VaultableFieldRefs,
 } from "@/types"
 
 export type PaginationQueryParams = {
@@ -34,43 +28,6 @@ export type SigninResponse = {
 export type ServerInfoResponse = {
   serverVersion: string
   maxIdleTimeout: number
-}
-
-export type DeviceCredentialPayload = {
-  name: string
-  mgmtDomain: {
-    id: number
-  }
-  community?: string
-  type: CredentialSetType
-  authKey?: string
-  authType?: HashingAlgorithm
-  privKey?: string
-  privType?: HashingAlgorithm
-  username?: string
-  password?: string
-  superPassword?: string
-  privateKey?: string
-} & VaultableFieldRefs
-
-export type VaultInstancePayload = {
-  name: string
-  type: VaultInstanceType
-  baseUrl: string
-  namespace?: string
-  httpsCaTrustMode: HttpsCaTrustMode
-  httpsCustomCaCertificate?: string
-  kvMountPath: string
-  authMethod: VaultAuthMethod
-  appRoleMountPath?: string
-  appRoleId?: string
-  appRoleSecretId?: string
-  jwtMountPath?: string
-  jwtIdpTokenEndpoint?: string
-  jwtClientId?: string
-  jwtClientSecret?: string
-  jwtVaultRole?: string
-  jwtScope?: string
 }
 
 export type ConfigQueryParams = {
