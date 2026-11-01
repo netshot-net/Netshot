@@ -1,5 +1,5 @@
 import api from "@/api"
-import { isNetshotError, NetshotErrorCode } from "@/api/httpClient"
+import { HttpStatus, isNetshotError } from "@/api/httpClient"
 import { EmptyResult, Protected } from "@/components"
 import { LuChevronDown, LuZap, LuZapOff, LuPencil, LuTrash } from "react-icons/lu"
 import { DeviceGroupBadge } from "@/components/entity"
@@ -42,7 +42,7 @@ export default function DeviceDetailScreen() {
   })
 
   const isDiagnosticNotFound =
-    isError && isNetshotError(error) && error.code === NetshotErrorCode.DiagnosticNotFound
+    isError && isNetshotError(error) && error.response?.status === HttpStatus.NotFound
 
   if (isDiagnosticNotFound) {
     return (
@@ -128,7 +128,7 @@ export default function DeviceDetailScreen() {
             </Box>
             <Skeleton loading={isPending}>
               {diagnostic?.targetGroup ? (
-                <DeviceGroupBadge id={diagnostic.targetGroup.id} name={diagnostic.targetGroup.name} />
+                <DeviceGroupBadge id={diagnostic.targetGroup.id} name={diagnostic.targetGroup.name ?? ""} />
               ) : (
                 <Text color="grey.400">—</Text>
               )}
