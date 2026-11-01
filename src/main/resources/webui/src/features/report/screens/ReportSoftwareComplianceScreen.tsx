@@ -7,7 +7,8 @@ import { QUERIES as GLOBAL_QUERIES } from "@/constants"
 import { useCustomDialog } from "@/dialog"
 import { DeviceSoftwareLevelBadge } from "@/components/entity"
 import { usePagination } from "@/hooks"
-import { DeviceSoftwareLevel, Group, GroupSoftwareComplianceStat } from "@/types"
+import { GroupSoftwareComplianceStat } from "@/api/report"
+import { DeviceSoftwareLevel, Group } from "@/types"
 import { createFoldersFromGroups, Folder, isGroup, search } from "@/utils"
 import {
   Box,
@@ -166,10 +167,10 @@ function GroupGridRow(props: GroupGridRowProps) {
     (level: DeviceSoftwareLevel) => (evt: MouseEvent) => {
       evt.stopPropagation()
       dialog.open(
-        <SoftwareComplianceDialog groupId={item.groupId} groupName={item.groupName} level={level} />
+        <SoftwareComplianceDialog groupId={row.group.id} groupName={row.group.name} level={level} />
       )
     },
-    [dialog, item]
+    [dialog, row.group]
   )
 
   return (
@@ -233,7 +234,7 @@ function GroupGridRow(props: GroupGridRowProps) {
   )
 }
 
-const EMPTY_STAT: Omit<GroupSoftwareComplianceStat, "groupId" | "groupName"> = {
+const EMPTY_STAT: Omit<GroupSoftwareComplianceStat, "groupId"> = {
   deviceCount: 0,
   goldDeviceCount: 0,
   silverDeviceCount: 0,
@@ -258,10 +259,9 @@ export default function ReportSoftwareComplianceScreen() {
   const { data: stats, isPending, isFetching, refetch } = useQuery({
     queryKey: [QUERIES.SOFTWARE_COMPLIANCE, filter.domain],
     queryFn: async () =>
-      api.report.getAllGroupSoftwareComplianceStats(filter.domain ? { domain: filter.domain } : {}),
+      api.report.getGroupSoftwareComplianceStats({ domain: filter.domain ? [filter.domain] : undefined }),
     select(res) {
-      // Groups with no device, or flagged as hidden from reports (already excluded server-side),
-      // must not appear in the tree.
+      // Groups with no device must not appear in the tree.
       return (res ?? []).filter((item) => item.deviceCount > 0)
     },
   })
@@ -275,7 +275,10 @@ export default function ReportSoftwareComplianceScreen() {
 
   const treeItems = useMemo(() => {
     const nonEmptyGroupIds = new Set((stats ?? []).map((stat) => stat.groupId))
-    const visibleGroups = (groups ?? []).filter((group) => nonEmptyGroupIds.has(group.id))
+    // Groups flagged as hidden from the reports must not appear in the tree either
+    const visibleGroups = (groups ?? []).filter(
+      (group) => nonEmptyGroupIds.has(group.id) && !group.hiddenFromReports
+    )
     return createFoldersFromGroups(search(visibleGroups, "name").with(pagination.query))
   }, [groups, stats, pagination.query])
 
@@ -402,7 +405,6 @@ export default function ReportSoftwareComplianceScreen() {
 
               const item = stats?.find((stat) => stat.groupId === row.group.id) ?? {
                 groupId: row.group.id,
-                groupName: row.group.name,
                 ...EMPTY_STAT,
               }
 
