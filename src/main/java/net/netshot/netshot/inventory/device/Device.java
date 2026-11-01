@@ -72,6 +72,10 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
  * @param eosDate the end of sale date
  * @param eosModule the module giving the end of sale date, if any
  * @param lastConfigId the ID of the last configuration, or null if there is none
+ * @param lastSnapshotSuccessDate when the last snapshot succeeded (null if never; set by the snapshots only, not by
+ *        the device edits)
+ * @param lastSnapshotFailureDate when the last snapshot failed (null if never; set by the snapshots only, not by
+ *        the device edits)
  * @param compliant whether the device has no non conforming compliance check result (computed)
  * @param options the user-configured, per-device values for the options declared by the
  *        device's driver (e.g. "force full backup"). Unlike the attributes, which the driver
@@ -114,6 +118,8 @@ public record Device(
 	Instant eosDate,
 	Module eosModule,
 	Long lastConfigId,
+	Instant lastSnapshotSuccessDate,
+	Instant lastSnapshotFailureDate,
 	boolean compliant,
 	Map<String, Object> options,
 	Set<String> tags,
