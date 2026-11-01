@@ -1,7 +1,6 @@
 import api from "@/api"
 import { useArrowKeyNavigation } from "@/hooks"
-import { Diagnostic } from "@/types"
-import { sortAlphabetical } from "@/utils"
+import type { Diagnostic } from "@/api/diagnostic"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
@@ -18,7 +17,6 @@ export default function DiagnosticSidebarList() {
   const { data, isPending } = useQuery({
     queryKey: [QUERIES.DIAGNOSTIC_INFINITE_LIST],
     queryFn: () => api.diagnostic.getAll(),
-    select: useCallback((res: Diagnostic[]) => sortAlphabetical(res, "name"), []),
   })
 
   const activeIndex = data?.findIndex((diagnostic) => diagnostic.id === +(params?.id ?? "0")) ?? -1
