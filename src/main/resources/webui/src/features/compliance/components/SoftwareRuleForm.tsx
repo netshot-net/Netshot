@@ -5,7 +5,8 @@ import { LuCircleArrowDown, LuRegex, LuTrophy, LuType } from "react-icons/lu"
 import { useSoftwareLevels } from "@/hooks"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { useDeviceFamilies, useDevicePartNumbers, useDeviceSoftwareVersions } from "@/features/device/api"
-import { DeviceSoftwareLevel, SoftwareRule } from "@/types"
+import type { SoftwareRule } from "@/api/softwareRule"
+import { DeviceSoftwareLevel } from "@/types"
 import { Field, HStack, Icon, IconButton, RadioCard, Stack, Text } from "@chakra-ui/react"
 import { useCallback, useEffect } from "react"
 import { Controller, useFormContext, useWatch } from "react-hook-form"
@@ -37,7 +38,7 @@ export default function SoftwareRuleForm(props: SoftwareRuleFormProps) {
       return
     }
 
-    if (rule?.driver === null) {
+    if (rule?.driver == null) {
       return
     }
 

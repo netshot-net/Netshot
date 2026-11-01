@@ -3,7 +3,7 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES as GLOBAL_QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Rule } from "@/types"
+import type { Rule } from "@/api/rule"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -21,7 +21,7 @@ export default function EnableRuleTrigger({ policyId, rule, children, ...rest }:
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.RULE_ENABLE,
-    mutationFn: async () => api.rule.enable(rule.id, rule),
+    mutationFn: async () => api.rule.enable(rule.id),
     onError(err: NetshotError) {
       toast.error(err)
     },

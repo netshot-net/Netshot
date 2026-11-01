@@ -1,4 +1,4 @@
-import { Policy } from "@/types"
+import type { PolicyWithRules } from "@/api/policy"
 import { Icon, Stack, Text } from "@chakra-ui/react"
 import { Tooltip } from "@/components/ui/tooltip"
 import { LuCircleX, LuFolder, LuFolderOpen } from "react-icons/lu"
@@ -9,7 +9,7 @@ import { useComplianceSidebar } from "../../contexts/ComplianceSidebarProvider"
 import RuleItem from "./RuleItem"
 
 export type PolicyItemProps = {
-  policy: Policy
+  policy: PolicyWithRules
   forceExpand?: boolean
 }
 
