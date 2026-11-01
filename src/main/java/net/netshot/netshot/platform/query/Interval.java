@@ -77,6 +77,21 @@ public enum Interval {
 	}
 
 	/**
+	 * Gets the start of the previous bucket.
+	 *
+	 * @param start the start of a bucket
+	 * @return the start of the previous one
+	 */
+	public ZonedDateTime previous(ZonedDateTime start) {
+		return switch (this) {
+			case HOUR -> start.minusHours(1);
+			case DAY -> start.minusDays(1);
+			case WEEK -> start.minusWeeks(1);
+			case MONTH -> start.minusMonths(1);
+		};
+	}
+
+	/**
 	 * Lists the starts of the buckets of a range.
 	 *
 	 * @param from the start of the range (included)

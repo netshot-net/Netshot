@@ -19,12 +19,11 @@
 package net.netshot.netshot.api.rest.v1;
 
 import java.time.DateTimeException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.Period;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -171,12 +170,17 @@ public final class StatsParams {
 		}
 		Instant from = date(params, FROM, zone);
 		if (from == null) {
-			from = switch (interval) {
-				case HOUR -> to.minus(Duration.ofDays(1));
-				case DAY -> to.atZone(zone).minus(Period.ofDays(7)).toInstant();
-				case WEEK -> to.atZone(zone).minus(Period.ofWeeks(12)).toInstant();
-				case MONTH -> to.atZone(zone).minus(Period.ofMonths(12)).toInstant();
+			// The current bucket and the previous ones: 24 hours, 7 days, 12 weeks or 12 months
+			int count = switch (interval) {
+				case HOUR -> 24;
+				case DAY -> 7;
+				case WEEK, MONTH -> 12;
 			};
+			ZonedDateTime start = interval.truncate(to.minusNanos(1), zone);
+			for (int i = 1; i < count; i++) {
+				start = interval.previous(start);
+			}
+			from = start.toInstant();
 		}
 		if (!from.isBefore(to)) {
 			throw NetshotException.invalidParameter(FROM, "The start of the range must be before its end");
