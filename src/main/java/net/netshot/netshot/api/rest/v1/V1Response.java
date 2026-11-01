@@ -130,7 +130,7 @@ public class V1Response implements ContainerResponseFilter {
 	 * @param entity the response entity
 	 * @return the selection, or null if none applies to this entity (another type, an error...)
 	 */
-	static Selection selectionOf(HttpServletRequest request, Object entity) {
+	public static Selection selectionOf(HttpServletRequest request, Object entity) {
 		if (request == null || !(request.getAttribute(Selection.ATTRIBUTE) instanceof Attached attached)) {
 			return null;
 		}

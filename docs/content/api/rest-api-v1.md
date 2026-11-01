@@ -84,6 +84,20 @@ An unknown parameter, an unknown property, a lookup which doesn't apply to the p
 
 Omitting the heavy properties also makes the request lighter on the server (for instance, a device list which only needs summary properties doesn't load the attributes and accesses of the devices).
 
+### Export (CSV and Excel)
+
+Any list can be exported as a file instead of JSON, XML or YAML, with the `Accept` header of the list request: `text/csv` (RFC 4180, UTF-8 without BOM, header row) or `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (an Excel workbook with one sheet).
+
+```bash
+curl -H "X-Netshot-API-Token: <token>" -H "Accept: text/csv" -o devices.csv \
+  'https://<server:port>/api/v1/devices?status=INPRODUCTION&fields=name,mgmtAddress,mgmtDomain'
+```
+
+The export is the same list as in JSON: same filters, `q`, `sort` and selection (`view`, `fields`, `omit`). The answer is an attachment (`Content-Disposition: attachment; filename="devices-20261101-120000.csv"`), without the list envelope; the number of matching items is in the `X-Total-Count` header (unless `count=false`). A client which prefers JSON, or accepts `*/*`, gets JSON; only the lists can be exported (406 otherwise).
+
+- Columns: the properties of the items (the brief view by default: `view=full` or `fields` for more). A nested object gives dotted columns (`mgmtDomain.description`, selected with `fields`), a reference gives its `display`, a list gives one cell (`;`-separated), an empty value an empty cell. Dates are ISO-8601 (UTC); in Excel, numbers, booleans and dates (UTC) are typed cells. In CSV, a text starting with `=`, `+`, `-` or `@` gets a leading `'`, so spreadsheet applications don't run it as a formula.
+- An export isn't paginated: it has all the matching items, unless `limit` (and `offset`) is given. It can't have more than `netshot.http.api.export.maxrows` rows (100000 by default, see the [configuration reference](../configuration-reference.md#embedded-http-server)): beyond, the request is refused (400), asking for filters or `limit`/`offset`.
+
 ## Statistics
 
 The lists which can be counted have a `stats` sub-resource (`/api/v1/devices/stats`, `/api/v1/configs/stats`, `/api/v1/tasks/stats`), which counts the objects matching the filters of the list (with `q`, and `query` for the devices):
@@ -146,6 +160,8 @@ curl -H "X-Netshot-API-Token: <token>" \
 `GET /api/v1/devices/stats` counts the devices (see [Statistics](#statistics)): `groupBy` `status`, `mgmtDomain`, `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `location`, `eolDate`, `eosDate`, `group`, `tag`, `compliant`; time buckets on `createdDate` (default), `changeDate`, `eolDate`, `eosDate`, `lastSnapshotSuccessDate` or `lastSnapshotFailureDate`. For instance the compliance of the devices of each group: `/api/v1/devices/stats?groupBy=group,compliant`.
 
 `lastSnapshotSuccessDate` and `lastSnapshotFailureDate` (full view; null if never) tell when the last snapshot of the device succeeded and failed. They are maintained by the snapshot tasks (a cancelled snapshot changes neither) and read-only; at upgrade, they are initialized from the task history. They can be filtered and sorted on, for instance the devices in production without successful snapshot for a week: `/api/v1/devices?status=INPRODUCTION&lastSnapshotSuccessDate__lt=2026-10-25T00:00:00Z&sort=lastSnapshotSuccessDate`.
+
+**Excel workbook of the devices**: with the Excel format, `include` gives the multi-sheet workbook of the legacy data export instead of the list sheet, for the devices matching the filters, `q` and `query` of the request: `GET /api/v1/devices?include=interfaces,inventory,compliance` with `Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`. It has a `Summary` and a `Devices` sheet, and one per `include` item: `interfaces`, `inventory` (the current modules), `inventoryHistory` (the removed modules too), `locations` (location and contact columns), `compliance` (configuration compliance), `groups` (groups and memberships), `driverAttributes`. `view`, `fields` and `omit` don't apply; `include` with another format is refused (400).
 
 **Adding a device** is asynchronous: `POST /api/v1/devices` answers `202 Accepted` with the task and its `Location: /api/v1/tasks/{id}`. Without `driver`, a discovery task finds the type of the device (an SNMP community must exist for the domain), and the device is only created if the discovery succeeds (`accesses` and `options` are then refused). With `driver`, the device is created at once, with a snapshot task. Properties: `mgmtAddress` and `mgmtDomain` (required), `driver`, `comments`, `tags`, `options`, `accesses`. A device with the same address in the domain is a 409.
 
