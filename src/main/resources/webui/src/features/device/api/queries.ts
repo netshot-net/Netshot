@@ -1,5 +1,5 @@
 import api from "@/api"
-import { DEVICE_SUMMARY_FIELDS, listAll } from "@/api/device"
+import { listAll } from "@/api/device"
 import { ListParams, Schemas } from "@/api/client"
 import { QUERIES } from "@/constants"
 import { useList } from "@/hooks/useList"
@@ -68,7 +68,6 @@ export function useDeviceConfigs(deviceId: number | undefined) {
 /** The parameters of the list of devices of the sidebar. */
 export function deviceListParams(groupId: number, query = ""): ListParams {
   return {
-    fields: DEVICE_SUMMARY_FIELDS,
     sort: "name",
     group: groupId || undefined,
     query: query || undefined,

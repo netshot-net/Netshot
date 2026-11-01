@@ -1,7 +1,6 @@
 import api from "@/api"
 import { ListResponse } from "@/api/client"
 import { Device } from "@/types"
-import { DEVICE_SUMMARY_FIELDS } from "@/api/device"
 import { NetshotError } from "@/api/httpClient"
 import { DeviceListItem } from "@/components/entity"
 import { Button, Popover, Separator, Stack, Stat, Text } from "@chakra-ui/react"
@@ -43,7 +42,7 @@ export default function PreviewDynamicGroupButton(props: PreviewDynamicGroupButt
   const { t } = useTranslation()
 
   const mutation = useMutation<ListResponse<Device>, NetshotError>({
-    mutationFn: async () => api.device.search({ query, fields: DEVICE_SUMMARY_FIELDS, limit: PREVIEW_LIMIT }),
+    mutationFn: async () => api.device.search({ query, limit: PREVIEW_LIMIT }),
   })
 
   // Query changed since the last preview: drop the stale result rather than show it as current.

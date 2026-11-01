@@ -1,9 +1,8 @@
 import { exportList } from "@/api/client"
-import { DEVICE_SUMMARY_FIELDS } from "@/api/device"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks"
 import { download } from "@/utils"
-import { IconButton, Menu, Portal, Spacer, Stack, Text } from "@chakra-ui/react"
+import { Group, IconButton, Menu, Portal, Spacer, Stack, Text } from "@chakra-ui/react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { LuDownload, LuFileSpreadsheet, LuFileText, LuListChecks, LuRefreshCcw } from "react-icons/lu"
@@ -33,7 +32,8 @@ export default function DeviceSidebarListToolbar() {
     try {
       const { blob, fileName } = await exportList("/devices", format, {
         ...listParams,
-        fields: `${DEVICE_SUMMARY_FIELDS},mgmtDomain,serialNumber,softwareVersion,location,contact,tags,comments`,
+        fields: "name,mgmtAddress,status,family,driverDescription,networkClass,softwareLevel,compliant,endOfLife,endOfSale," +
+          "mgmtDomain,serialNumber,softwareVersion,location,contact,tags,comments",
       })
       await download(blob, fileName)
     } catch (err) {
@@ -45,27 +45,23 @@ export default function DeviceSidebarListToolbar() {
 
   return (
     <Stack direction="row" alignItems="center" px="6" py="3">
-      <Stack direction="row" alignItems="center" gap="1">
-        <Text>{t("device.device", { count: total })}</Text>
-        <Tooltip content={t("device.refreshList")}>
-          <IconButton
-            aria-label={t("device.refreshList")}
-            variant="ghost"
-            size="xs"
-            color="fg.muted"
-            onClick={refresh}
-          >
-            <LuRefreshCcw />
-          </IconButton>
-        </Tooltip>
-        <Menu.Root positioning={{ placement: "bottom-start" }}>
+      <Text>{t("device.device", { count: total })}</Text>
+      <Spacer />
+      <Group>
+        {total > 0 && !isSelectedAll() && (
+          <Tooltip content={t("common.selectAll")}>
+            <IconButton aria-label={t("common.selectAll")} variant="ghost" size="sm" onClick={() => selectAll()}>
+              <LuListChecks />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Menu.Root positioning={{ placement: "bottom-end" }}>
           <Tooltip content={t("device.exportList")}>
             <Menu.Trigger asChild>
               <IconButton
                 aria-label={t("device.exportList")}
                 variant="ghost"
-                size="xs"
-                color="fg.muted"
+                size="sm"
                 loading={isExporting}
                 disabled={total === 0}
               >
@@ -88,17 +84,12 @@ export default function DeviceSidebarListToolbar() {
             </Menu.Positioner>
           </Portal>
         </Menu.Root>
-      </Stack>
-      <Spacer />
-      <Stack direction="row" gap="2">
-        {!isSelectedAll() && total > 0 && (
-          <Tooltip content={t("common.selectAll")}>
-            <IconButton aria-label={t("common.selectAll")} size="sm" onClick={() => selectAll()}>
-              <LuListChecks />
-            </IconButton>
-          </Tooltip>
-        )}
-      </Stack>
+        <Tooltip content={t("device.refreshList")}>
+          <IconButton aria-label={t("device.refreshList")} variant="ghost" size="sm" onClick={refresh}>
+            <LuRefreshCcw />
+          </IconButton>
+        </Tooltip>
+      </Group>
     </Stack>
   )
 }

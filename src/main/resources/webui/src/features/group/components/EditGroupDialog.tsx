@@ -1,6 +1,5 @@
 import api from "@/api"
 import type { UpdateGroupPayload } from "@/api/group"
-import { DEVICE_SUMMARY_FIELDS } from "@/api/device"
 import { HttpStatus, NetshotError } from "@/api/httpClient"
 import { QUERIES } from "@/constants"
 import { useDialogConfig } from "@/dialog"
@@ -79,7 +78,7 @@ export default function EditGroupDialog(props: EditGroupDialogProps) {
 
   const { data: staticDevices } = useQuery({
     queryKey: [QUERIES.DEVICE_LIST, group.id, group.folder, group.name],
-    queryFn: async () => api.group.getAllDevices(group.id, { fields: DEVICE_SUMMARY_FIELDS }),
+    queryFn: async () => api.group.getAllDevices(group.id),
     enabled: isStatic,
     gcTime: 0,
   })

@@ -8797,7 +8797,7 @@
           }
         },
         "description" : "Device (network or security equipment)",
-        "x-netshot-brief" : [ "id", "url", "display", "name", "mgmtAddress", "status" ]
+        "x-netshot-brief" : [ "id", "url", "display", "name", "mgmtAddress", "status", "family", "driver", "driverDescription", "networkClass", "softwareLevel", "compliant", "endOfLife", "endOfSale" ]
       },
       "DeviceAccess" : {
         "required" : [ "accessName", "address", "globalCredentialSet", "httpsCaTrustMode", "httpsCustomCaCertificate", "port", "specificCredentialSet", "sshHostKeyVerification", "sshTrustedHostKeys", "sshTrustedHostKeysSince" ],

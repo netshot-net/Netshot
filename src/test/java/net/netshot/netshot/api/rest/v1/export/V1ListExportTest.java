@@ -148,7 +148,8 @@ public class V1ListExportTest {
 	@DisplayName("CSV: the default brief view, references by their display, full view")
 	void csvViews() throws Exception {
 		List<String> brief = lines(this.export("/devices?name=router00001", CSV));
-		Assertions.assertEquals("id,url,display,name,mgmtAddress,status", brief.get(0));
+		Assertions.assertEquals("id,url,display,name,mgmtAddress,status,family,driver,driverDescription,networkClass,softwareLevel,compliant,"
+			+ "endOfLife,endOfSale", brief.get(0));
 		List<String> full = lines(this.export("/devices?name=router00001&view=full&omit=attributes,accesses,ownerGroups,options", CSV));
 		Assertions.assertTrue(List.of(full.get(0).split(",")).contains("mgmtDomain"), full.get(0));
 		Assertions.assertFalse(full.get(1).contains("{"), full.get(1));

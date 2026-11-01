@@ -18,10 +18,6 @@ export type ScheduleOptions = {
   stopOnFailure?: boolean
 }
 
-/** The summary properties of a device: enough for a list, and light for the server. */
-export const DEVICE_SUMMARY_FIELDS =
-  "name,mgmtAddress,status,family,driver,driverDescription,networkClass,softwareLevel,compliant,endOfLife,endOfSale"
-
 const PAGE_SIZE = 500
 
 /** The ETag (If-Match value) of an object at a version. */
