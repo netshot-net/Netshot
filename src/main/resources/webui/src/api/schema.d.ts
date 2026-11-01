@@ -7630,7 +7630,7 @@ export interface briefs {
     CurrentUser: Pick<components["schemas"]["CurrentUser"], "id" | "url" | "display">;
     Session: Pick<components["schemas"]["Session"], "url">;
     CredentialSet: Pick<components["schemas"]["CredentialSet"], "id" | "url" | "display" | "name" | "type">;
-    Device: Pick<components["schemas"]["Device"], "id" | "url" | "display" | "name" | "mgmtAddress" | "status">;
+    Device: Pick<components["schemas"]["Device"], "id" | "url" | "display" | "name" | "mgmtAddress" | "status" | "family" | "driver" | "driverDescription" | "networkClass" | "softwareLevel" | "compliant" | "endOfLife" | "endOfSale">;
     DeviceComplianceResult: Pick<components["schemas"]["DeviceComplianceResult"], "device" | "rule" | "policy" | "result" | "checkDate">;
     Domain: Pick<components["schemas"]["Domain"], "id" | "url" | "display" | "name">;
     Group: Pick<components["schemas"]["Group"], "id" | "url" | "display" | "name" | "folder" | "type">;

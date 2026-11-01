@@ -140,7 +140,8 @@ public class V1TaskResourceTest {
 	void references() throws Exception {
 		JsonNode child = this.reader.get("/tasks?parentTask=%d&fields=device,group,parentTask".formatted(this.groupTask.id()))
 			.json().get("results").get(0);
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status"), keys(child.get("device")));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status", "family", "driver", "driverDescription",
+			"networkClass", "softwareLevel", "compliant", "endOfLife", "endOfSale"), keys(child.get("device")));
 		Assertions.assertEquals("router00001", child.get("device").get("name").asText());
 		Assertions.assertTrue(child.get("group").isNull());
 		Assertions.assertEquals(Set.of("id", "url", "display", "type", "status"), keys(child.get("parentTask")));

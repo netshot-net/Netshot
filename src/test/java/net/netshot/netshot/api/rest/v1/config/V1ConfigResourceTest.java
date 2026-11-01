@@ -151,7 +151,8 @@ public class V1ConfigResourceTest {
 		Assertions.assertTrue(item.get("url").asText().endsWith("/api/v1/configs/" + this.second), item.toString());
 		Assertions.assertEquals(FEBRUARY, Instant.parse(item.get("changeDate").asText()));
 		Assertions.assertEquals("bob", item.get("author").asText());
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status"), keys(item.get("device")));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status", "family", "driver", "driverDescription",
+			"networkClass", "softwareLevel", "compliant", "endOfLife", "endOfSale"), keys(item.get("device")));
 		Assertions.assertEquals(this.router1.id(), item.get("device").get("id").asLong());
 		Assertions.assertEquals(this.router1.name(), item.get("device").get("name").asText());
 
