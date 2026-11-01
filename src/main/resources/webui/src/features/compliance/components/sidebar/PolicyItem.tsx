@@ -20,7 +20,7 @@ export default function PolicyItem(props: PolicyItemProps) {
   const ctx = useComplianceSidebar()
   const controls = useAnimationControls()
   const hasRules = useMemo(() => (policy.rules?.length ?? 0) > 0, [policy])
-  const isAssigned = useMemo(() => policy.targetGroups?.length > 0, [policy])
+  const isAssigned = useMemo(() => (policy.targetGroups?.length ?? 0) > 0, [policy])
   const isActive = useMemo(() => !!policyId && +policyId === policy.id, [policyId, policy])
   const isPolicySelected = useMemo(() => isActive && !ruleId, [isActive, ruleId])
   const isCollapsed = forceExpand ? false : !ctx.isPolicyExpanded(policy.id)
@@ -73,7 +73,7 @@ export default function PolicyItem(props: PolicyItemProps) {
         cursor="pointer"
         px="3"
       >
-        <Stack direction="row" gap="3" alignItems="center" title={policy?.name} overflow="hidden">
+        <Stack direction="row" gap="3" alignItems="center" title={policy?.name ?? undefined} overflow="hidden">
           <Icon color="green.600" size="md" flexShrink="0">
             {isCollapsed ? <LuFolder /> : <LuFolderOpen />}
           </Icon>

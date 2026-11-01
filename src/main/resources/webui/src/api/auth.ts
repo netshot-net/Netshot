@@ -5,7 +5,7 @@ import { ServerInfoResponse, SigninPayload } from "./types"
 /**
  * Maps the current user of the API to the user of the web UI.
  */
-export function toUser(user?: Schemas["CurrentUser"]): User {
+export function toUser(user?: Schemas["CurrentUser"] | null): User {
   return {
     id: user?.id ?? 0,
     level: user?.level ?? 0,

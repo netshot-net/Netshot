@@ -10,7 +10,7 @@ export interface paths {
         };
         /**
          * List the API tokens
-         * @description Lists the API tokens (never their values), in their brief view by default.
+         * @description Lists the API tokens (never their values), in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listApiTokens"];
         put?: never;
@@ -110,7 +110,7 @@ export interface paths {
         };
         /**
          * Count the compliance results
-         * @description Counts the compliance results matching the filters of the list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket (interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device.
+         * @description Counts the compliance results matching the filters of the list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket (interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device. Any other parameter is a filter of the list.
          */
         get: operations["getResultStats"];
         put?: never;
@@ -130,7 +130,7 @@ export interface paths {
         };
         /**
          * List the compliance results
-         * @description Lists the results of the last compliance checks, one per device and rule (a rule never checked on a device has no result here), with the exemption of the device from the rule. Filters: device, deviceName, domain and group (of the device), rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate; q searches the device, rule and policy names.
+         * @description Lists the results of the last compliance checks, one per device and rule (a rule never checked on a device has no result here), with the exemption of the device from the rule. Filters: device, deviceName, domain and group (of the device), rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate; q searches the device, rule and policy names. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listResults"];
         put?: never;
@@ -150,7 +150,7 @@ export interface paths {
         };
         /**
          * List the compliance results of a device
-         * @description Lists the rules of the policies applying to a device (through its groups) with the result of their last check (none if never checked) and the exemption of the device. (unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.
+         * @description Lists the rules of the policies applying to a device (through its groups) with the result of their last check (none if never checked) and the exemption of the device. (unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listResults_1"];
         put?: never;
@@ -170,7 +170,7 @@ export interface paths {
         };
         /**
          * List the hardware rules
-         * @description Lists the hardware compliance rules, in their brief view by default.
+         * @description Lists the hardware compliance rules, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listHardwareRules"];
         put?: never;
@@ -217,7 +217,7 @@ export interface paths {
         };
         /**
          * List the compliance policies
-         * @description Lists the compliance policies, in their brief view by default. The targetGroup filter gives the policies applying to a group.
+         * @description Lists the compliance policies, in their brief view by default. The targetGroup filter gives the policies applying to a group. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listPolicies"];
         put?: never;
@@ -270,7 +270,7 @@ export interface paths {
         };
         /**
          * List the rules of a policy
-         * @description Lists the rules of a policy, as the rule list filtered on the policy (same parameters).
+         * @description Lists the rules of a policy, as the rule list filtered on the policy (same parameters). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listPolicyRules"];
         put?: never;
@@ -290,7 +290,7 @@ export interface paths {
         };
         /**
          * List the compliance rules
-         * @description Lists the compliance rules of all the policies, in their brief view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has).
+         * @description Lists the compliance rules of all the policies, in their brief view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listRules"];
         put?: never;
@@ -343,12 +343,12 @@ export interface paths {
         };
         /**
          * List the exemptions of a rule
-         * @description Lists the devices exempted from a rule, with the date their exemption ends. Filters: device, expirationDate.
+         * @description Lists the devices exempted from a rule, with the date their exemption ends. Filters: device, expirationDate. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listExemptions"];
         /**
          * Replace the exemptions of a rule
-         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set.
+         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         put: operations["replaceExemptions"];
         post?: never;
@@ -387,7 +387,7 @@ export interface paths {
         };
         /**
          * List the software rules
-         * @description Lists the software compliance rules, in the order they are checked in by default (priority is the position of the rule, from 1).
+         * @description Lists the software compliance rules, in the order they are checked in by default (priority is the position of the rule, from 1). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listSoftwareRules"];
         put?: never;
@@ -500,7 +500,7 @@ export interface paths {
         };
         /**
          * Count the configurations
-         * @description Counts the configurations (the configuration changes) matching the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, day, week or month, on changeDate, from/to, timeZone).
+         * @description Counts the configurations (the configuration changes) matching the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, day, week or month, on changeDate, from/to, timeZone). Any other parameter is a filter of the list.
          */
         get: operations["getConfigStats"];
         put?: never;
@@ -520,7 +520,7 @@ export interface paths {
         };
         /**
          * List the configurations
-         * @description Lists the configurations of all the devices, in their brief view by default (device, date, author), the latest first. The attributes are only there in the full view (or with fields=attributes), and never hold the long texts and files: download them from their url. The filters on domain and group apply to the device of the configuration.
+         * @description Lists the configurations of all the devices, in their brief view by default (device, date, author), the latest first. The attributes are only there in the full view (or with fields=attributes), and never hold the long texts and files: download them from their url. The filters on domain and group apply to the device of the configuration. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listConfigs"];
         put?: never;
@@ -540,7 +540,7 @@ export interface paths {
         };
         /**
          * List the configurations of a device
-         * @description Lists the configurations of a device, as the configuration list filtered on the device (same parameters), the latest first.
+         * @description Lists the configurations of a device, as the configuration list filtered on the device (same parameters), the latest first. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceConfigs"];
         put?: never;
@@ -560,7 +560,7 @@ export interface paths {
         };
         /**
          * List the credential sets
-         * @description Lists the global credential sets, in their brief view by default. The credential sets specific to a device access are left out, unless the deviceSpecific filter is given (deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned.
+         * @description Lists the global credential sets, in their brief view by default. The credential sets specific to a device access are left out, unless the deviceSpecific filter is given (deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listCredentialSets"];
         put?: never;
@@ -616,7 +616,7 @@ export interface paths {
         };
         /**
          * List the device families
-         * @description Lists the distinct device families (driver and family) of the devices, with their number of devices. An aggregate: items have no id nor url.
+         * @description Lists the distinct device families (driver and family) of the devices, with their number of devices. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceFamilies"];
         put?: never;
@@ -636,7 +636,7 @@ export interface paths {
         };
         /**
          * List the interfaces of a device
-         * @description Lists the network interfaces of a device, in their brief view by default (name, description, enabled; view=full adds the addresses). Besides the filters on the fields, ipAddress (exact or net lookup) and macAddress filter on the addresses.
+         * @description Lists the network interfaces of a device, in their brief view by default (name, description, enabled; view=full adds the addresses). Besides the filters on the fields, ipAddress (exact or net lookup) and macAddress filter on the addresses. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceInterfaces"];
         put?: never;
@@ -656,7 +656,7 @@ export interface paths {
         };
         /**
          * List the modules of a device
-         * @description Lists the hardware modules of a device, in their brief view by default (slot, part number, serial number): the current ones only, unless removed=true, which lists the modules removed from the device (kept for the history) too, flagged removed.
+         * @description Lists the hardware modules of a device, in their brief view by default (slot, part number, serial number): the current ones only, unless removed=true, which lists the modules removed from the device (kept for the history) too, flagged removed. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceModules"];
         put?: never;
@@ -676,7 +676,7 @@ export interface paths {
         };
         /**
          * List the devices
-         * @description Lists the devices, in their brief view by default. Besides the filters on the fields, the query parameter takes a device search query (such as [Family] is "Cisco IOS" and [Location] contains "Paris"), and group, tag and compliant filter on the group membership, the tags and the configuration compliance. Like any list, it can be exported as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). With the Excel format, the include parameter writes a workbook with more sheets for the matching devices.
+         * @description Lists the devices, in their brief view by default. Besides the filters on the fields, the query parameter takes a device search query (such as [Family] is "Cisco IOS" and [Location] contains "Paris"), and group, tag and compliant filter on the group membership, the tags and the configuration compliance. Like any list, it can be exported as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). With the Excel format, the include parameter writes a workbook with more sheets for the matching devices. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDevices"];
         put?: never;
@@ -749,7 +749,7 @@ export interface paths {
         };
         /**
          * Count the devices
-         * @description Counts the devices matching the filters of the device list (and the query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone).
+         * @description Counts the devices matching the filters of the device list (and the query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone). Any other parameter is a filter of the list.
          */
         get: operations["getDeviceStats"];
         put?: never;
@@ -829,7 +829,7 @@ export interface paths {
         };
         /**
          * List the device tags
-         * @description Lists the distinct tags attached to at least one device, with their number of devices. An aggregate: items have no id nor url.
+         * @description Lists the distinct tags attached to at least one device, with their number of devices. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceTags"];
         put?: never;
@@ -849,7 +849,7 @@ export interface paths {
         };
         /**
          * List the device types
-         * @description Lists the device types: the device drivers loaded by the server, in their brief view by default (name, description, version). View full adds the attributes, options, accesses... Items have no id nor url: the name is what the devices refer to.
+         * @description Lists the device types: the device drivers loaded by the server, in their brief view by default (name, description, version). View full adds the attributes, options, accesses... Items have no id nor url: the name is what the devices refer to. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceTypes"];
         put?: never;
@@ -869,7 +869,7 @@ export interface paths {
         };
         /**
          * List the part numbers
-         * @description Lists the distinct part numbers of the modules, with their number of modules. An aggregate: items have no id nor url.
+         * @description Lists the distinct part numbers of the modules, with their number of modules. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listPartNumbers"];
         put?: never;
@@ -889,7 +889,7 @@ export interface paths {
         };
         /**
          * List the software versions
-         * @description Lists the distinct (non empty) software versions of the devices, with their number of devices. An aggregate: items have no id nor url.
+         * @description Lists the distinct (non empty) software versions of the devices, with their number of devices. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listSoftwareVersions"];
         put?: never;
@@ -909,7 +909,7 @@ export interface paths {
         };
         /**
          * List the diagnostics
-         * @description Lists the diagnostics, in their brief view by default.
+         * @description Lists the diagnostics, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDiagnostics"];
         put?: never;
@@ -962,7 +962,7 @@ export interface paths {
         };
         /**
          * List the diagnostic results of a device
-         * @description Lists the last result of each diagnostic run on a device, with the diagnostic as a reference.
+         * @description Lists the last result of each diagnostic run on a device, with the diagnostic as a reference. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDiagnosticResults"];
         put?: never;
@@ -982,7 +982,7 @@ export interface paths {
         };
         /**
          * List the domains
-         * @description Lists the device domains, in their brief view by default.
+         * @description Lists the device domains, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDomains"];
         put?: never;
@@ -1032,7 +1032,7 @@ export interface paths {
         };
         /**
          * List the groups
-         * @description Lists the device groups, in their brief view by default. The device filter gives the groups a device is a member of.
+         * @description Lists the device groups, in their brief view by default. The device filter gives the groups a device is a member of. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listGroups"];
         put?: never;
@@ -1085,7 +1085,7 @@ export interface paths {
         };
         /**
          * List the devices of a group
-         * @description Lists the devices of a group, as the device list filtered on the group (same parameters).
+         * @description Lists the devices of a group, as the device list filtered on the group (same parameters). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listGroupDevices"];
         put?: never;
@@ -1105,7 +1105,7 @@ export interface paths {
         };
         /**
          * List the hooks
-         * @description Lists the hooks, in their brief view by default.
+         * @description Lists the hooks, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listHooks"];
         put?: never;
@@ -1155,7 +1155,7 @@ export interface paths {
         };
         /**
          * List the scripts
-         * @description Lists the command scripts, in their brief view by default (without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for.
+         * @description Lists the command scripts, in their brief view by default (without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listScripts"];
         put?: never;
@@ -1277,7 +1277,7 @@ export interface paths {
         };
         /**
          * List the cluster members
-         * @description Lists the members of the high availability cluster (none if clustering is not enabled), in a single page.
+         * @description Lists the members of the high availability cluster (none if clustering is not enabled), in a single page. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listClusterMembers"];
         put?: never;
@@ -1297,7 +1297,7 @@ export interface paths {
         };
         /**
          * List the services of the server
-         * @description Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page.
+         * @description Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listServices"];
         put?: never;
@@ -1317,7 +1317,7 @@ export interface paths {
         };
         /**
          * List the tasks of a device
-         * @description Lists the tasks targeting a device, as the task list filtered on the device (same parameters).
+         * @description Lists the tasks targeting a device, as the task list filtered on the device (same parameters). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listDeviceTasks"];
         put?: never;
@@ -1357,7 +1357,7 @@ export interface paths {
         };
         /**
          * List the tasks
-         * @description Lists the tasks, in their brief view by default, the latest first.
+         * @description Lists the tasks, in their brief view by default, the latest first. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listTasks"];
         put?: never;
@@ -1418,7 +1418,7 @@ export interface paths {
         };
         /**
          * Count the tasks
-         * @description Counts the tasks matching the filters of the task list, by the values of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket (interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, from/to, timeZone). Without execution date, a task isn't counted by executionDate.
+         * @description Counts the tasks matching the filters of the task list, by the values of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket (interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, from/to, timeZone). Without execution date, a task isn't counted by executionDate. Any other parameter is a filter of the list.
          */
         get: operations["getTaskStats"];
         put?: never;
@@ -1458,7 +1458,7 @@ export interface paths {
         };
         /**
          * List the users
-         * @description Lists the Netshot users, in their brief view by default.
+         * @description Lists the Netshot users, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listUsers"];
         put?: never;
@@ -1511,7 +1511,7 @@ export interface paths {
         };
         /**
          * List the Vault instances
-         * @description Lists the Vault instances, in their brief view by default. The secrets are never returned.
+         * @description Lists the Vault instances, in their brief view by default. The secrets are never returned. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
          */
         get: operations["listVaultInstances"];
         put?: never;
@@ -1605,15 +1605,15 @@ export interface components {
         /** @description A newly created API token, with its value (only given once) */
         ApiTokenCreated: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
-            description?: string;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
+            description: string | null;
             /** Format: int32 */
-            level?: number;
-            readonly role?: string | null;
+            level: number;
+            readonly role: string | null;
             /** Format: password */
-            readonly token?: string;
+            readonly token: string | null;
         };
         /** @description Definition of an API token */
         ApiTokenRequest: {
@@ -1629,50 +1629,50 @@ export interface components {
         /** @description API token (the value of the token is not part of it) */
         ApiToken: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
-            description?: string;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
+            description: string | null;
             /** Format: int32 */
-            level?: number;
-            readonly role?: string | null;
+            level: number;
+            readonly role: string | null;
         };
         ListResponseApiToken: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["ApiToken"][];
+            results: components["schemas"]["ApiToken"][] | null;
         };
         /** @description The principal (user or API token) a request is authenticated as */
         CurrentUser: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string | null;
-            readonly display?: string;
-            readonly kind?: string;
-            readonly authMethod?: string;
-            readonly username?: string | null;
-            readonly local?: boolean | null;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
+            readonly kind: string | null;
+            readonly authMethod: string | null;
+            readonly username: string | null;
+            readonly local: boolean | null;
             /** Format: int32 */
-            readonly level?: number;
-            readonly role?: string | null;
+            readonly level: number;
+            readonly role: string | null;
         };
         /** @description Change of the password of the current user */
         PasswordChangeRequest: {
@@ -1683,12 +1683,12 @@ export interface components {
         };
         /** @description A user session (cookie-authenticated) */
         Session: {
-            readonly url?: string;
+            readonly url: string | null;
             /** Format: date-time */
-            readonly creationDate?: Date;
+            readonly creationDate: Date | null;
             /** Format: int32 */
-            readonly maxIdleTime?: number;
-            user?: components["schemas"]["CurrentUser"];
+            readonly maxIdleTime: number;
+            user: components["schemas"]["CurrentUser"] | null;
         };
         /** @description Credentials to log in: username and password, or OIDC authorization code */
         SessionRequest: {
@@ -1704,254 +1704,266 @@ export interface components {
         /** @description Counts of objects, by field values and/or by time bucket */
         Stats: {
             /** Format: int64 */
-            count?: number;
-            groupBy?: string[];
-            interval?: string;
-            on?: string;
+            count: number | null;
+            groupBy: string[] | null;
+            interval: string | null;
+            on: string | null;
             /** Format: date-time */
-            from?: Date;
+            from: Date | null;
             /** Format: date-time */
-            to?: Date;
-            timeZone?: string;
-            results?: {
+            to: Date | null;
+            timeZone: string | null;
+            results: {
                 [key: string]: Record<string, never>;
-            }[];
+            }[] | null;
         };
         /** @description Device credential set (secrets are never returned) */
         CredentialSet: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
             /** Format: int64 */
-            readonly version?: number;
+            readonly version: number;
             /** Format: date-time */
-            readonly changeDate?: Date;
-            name?: string;
-            /** @enum {string} */
-            type?: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3";
-            mgmtDomain?: components["schemas"]["Domain"];
-            readonly deviceSpecific?: boolean;
-            username?: string;
-            usernameVault?: components["schemas"]["VaultSecret"];
-            readonly hasPassword?: boolean;
-            passwordVault?: components["schemas"]["VaultSecret"];
-            readonly hasSuperPassword?: boolean;
-            superPasswordVault?: components["schemas"]["VaultSecret"];
-            readonly hasPrivateKey?: boolean;
-            privateKeyVault?: components["schemas"]["VaultSecret"];
-            readonly hasCommunity?: boolean;
-            communityVault?: components["schemas"]["VaultSecret"];
-            /** @enum {string} */
-            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512";
-            readonly hasAuthKey?: boolean;
-            authKeyVault?: components["schemas"]["VaultSecret"];
-            /** @enum {string} */
-            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256";
-            readonly hasPrivKey?: boolean;
-            privKeyVault?: components["schemas"]["VaultSecret"];
+            readonly changeDate: Date | null;
+            name: string | null;
+            /** @enum {string|null} */
+            type: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3" | null;
+            mgmtDomain: components["schemas"]["Domain"] | null;
+            readonly deviceSpecific: boolean;
+            username: string | null;
+            usernameVault: components["schemas"]["VaultSecret"] | null;
+            readonly hasPassword: boolean | null;
+            passwordVault: components["schemas"]["VaultSecret"] | null;
+            readonly hasSuperPassword: boolean | null;
+            superPasswordVault: components["schemas"]["VaultSecret"] | null;
+            readonly hasPrivateKey: boolean | null;
+            privateKeyVault: components["schemas"]["VaultSecret"] | null;
+            readonly hasCommunity: boolean | null;
+            communityVault: components["schemas"]["VaultSecret"] | null;
+            /** @enum {string|null} */
+            authType: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512" | null;
+            readonly hasAuthKey: boolean | null;
+            authKeyVault: components["schemas"]["VaultSecret"] | null;
+            /** @enum {string|null} */
+            privType: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256" | null;
+            readonly hasPrivKey: boolean | null;
+            privKeyVault: components["schemas"]["VaultSecret"] | null;
         };
         /** @description Device (network or security equipment) */
         Device: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
             /** Format: int64 */
-            version?: number;
+            version: number | null;
             /** Format: date-time */
-            changeDate?: Date;
+            changeDate: Date | null;
             /** Format: date-time */
-            createdDate?: Date;
-            creator?: string;
-            name?: string;
-            mgmtAddress?: string;
-            /** @enum {string} */
-            status?: "DISABLED" | "INPRODUCTION" | "PREPRODUCTION";
-            mgmtDomain?: components["schemas"]["Domain"];
-            family?: string;
-            driver?: string;
-            driverDescription?: string;
-            /** @enum {string} */
-            networkClass?: "FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY";
-            softwareVersion?: string;
-            /** @enum {string} */
-            softwareLevel?: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN";
-            serialNumber?: string;
-            location?: string;
-            contact?: string;
-            comments?: string;
-            cachedIpAddress?: string;
-            compliant?: boolean;
-            endOfLife?: boolean;
-            endOfSale?: boolean;
+            createdDate: Date | null;
+            creator: string | null;
+            name: string | null;
+            mgmtAddress: string | null;
+            /** @enum {string|null} */
+            status: "DISABLED" | "INPRODUCTION" | "PREPRODUCTION" | null;
+            mgmtDomain: components["schemas"]["Domain"] | null;
+            family: string | null;
+            driver: string | null;
+            driverDescription: string | null;
+            /** @enum {string|null} */
+            networkClass: "FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY" | null;
+            softwareVersion: string | null;
+            /** @enum {string|null} */
+            softwareLevel: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN" | null;
+            serialNumber: string | null;
+            location: string | null;
+            contact: string | null;
+            comments: string | null;
+            cachedIpAddress: string | null;
+            compliant: boolean | null;
+            endOfLife: boolean | null;
+            endOfSale: boolean | null;
             /** Format: date-time */
-            eolDate?: Date;
-            eolModule?: components["schemas"]["Module"];
+            eolDate: Date | null;
+            eolModule: components["schemas"]["Module"] | null;
             /** Format: date-time */
-            eosDate?: Date;
-            eosModule?: components["schemas"]["Module"];
+            eosDate: Date | null;
+            eosModule: components["schemas"]["Module"] | null;
             /** Format: date-time */
-            lastSnapshotSuccessDate?: Date;
+            lastSnapshotSuccessDate: Date | null;
             /** Format: date-time */
-            lastSnapshotFailureDate?: Date;
-            tags?: string[];
-            virtualDevices?: string[];
-            vrfInstances?: string[];
-            options?: {
+            lastSnapshotFailureDate: Date | null;
+            tags: string[] | null;
+            virtualDevices: string[] | null;
+            vrfInstances: string[] | null;
+            options: {
                 [key: string]: Record<string, never>;
-            };
-            attributes?: components["schemas"]["DeviceAttribute"][];
-            accesses?: components["schemas"]["DeviceAccess"][];
-            ownerGroups?: components["schemas"]["Group"][];
+            } | null;
+            attributes: components["schemas"]["DeviceAttribute"][] | null;
+            accesses: components["schemas"]["DeviceAccess"][] | null;
+            ownerGroups: components["schemas"]["Group"][] | null;
         };
         /** @description Per-access settings of a device */
         DeviceAccess: {
-            accessName?: string;
-            address?: string;
+            accessName: string | null;
+            address: string | null;
             /** Format: int32 */
-            port?: number;
-            globalCredentialSet?: components["schemas"]["CredentialSet"];
-            specificCredentialSet?: components["schemas"]["CredentialSet"];
-            /** @enum {string} */
-            sshHostKeyVerification?: "TRUST_ANY" | "TRUST_KNOWN";
-            sshTrustedHostKeys?: string;
+            port: number | null;
+            globalCredentialSet: components["schemas"]["CredentialSet"] | null;
+            specificCredentialSet: components["schemas"]["CredentialSet"] | null;
+            /** @enum {string|null} */
+            sshHostKeyVerification: "TRUST_ANY" | "TRUST_KNOWN" | null;
+            sshTrustedHostKeys: string | null;
             /** Format: date-time */
-            sshTrustedHostKeysSince?: Date;
-            /** @enum {string} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
-            httpsCustomCaCertificate?: string;
+            sshTrustedHostKeysSince: Date | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate: string | null;
         };
         /** @description Device attribute collected by the driver */
         DeviceAttribute: {
-            name?: string;
-            type?: string;
-            value?: Record<string, never>;
+            name: string | null;
+            type: string | null;
+            value: Record<string, never> | null;
         };
         /** @description Compliance state of a device for a rule */
         DeviceComplianceResult: {
-            device?: components["schemas"]["Device"];
-            rule?: components["schemas"]["Rule"];
-            policy?: components["schemas"]["Policy"];
-            /** @enum {string} */
-            result?: "CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE";
-            comment?: string;
+            device: components["schemas"]["Device"] | null;
+            rule: Omit<components["schemas"]["Rule"], "type"> | null;
+            policy: components["schemas"]["Policy"] | null;
+            /** @enum {string|null} */
+            result: "CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE" | null;
+            comment: string | null;
             /** Format: date-time */
-            checkDate?: Date;
+            checkDate: Date | null;
             /** Format: date-time */
-            exemptionExpirationDate?: Date;
+            exemptionExpirationDate: Date | null;
         };
         /** @description Device domain */
         Domain: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
             /** Format: int64 */
-            readonly version?: number;
+            readonly version: number;
             /** Format: date-time */
-            readonly changeDate?: Date;
-            name?: string;
-            description?: string;
-            server4Address?: string;
-            readonly server6Address?: string;
+            readonly changeDate: Date | null;
+            name: string | null;
+            description: string | null;
+            server4Address: string | null;
+            readonly server6Address: string | null;
         };
         /** @description Device group */
         Group: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
             /** Format: int64 */
-            version?: number;
+            version: number;
             /** Format: date-time */
-            changeDate?: Date;
-            name?: string;
-            folder?: string;
-            type?: string;
-            hiddenFromReports?: boolean;
-            query?: string;
+            changeDate: Date | null;
+            name: string | null;
+            folder: string | null;
+            type: string | null;
+            hiddenFromReports: boolean;
+            query: string | null;
         };
         /** @description Compliance rule checked by a JavaScript script */
         JavaScriptRule: Omit<components["schemas"]["Rule"], "type"> & {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            type?: string;
-            name?: string;
-            enabled?: boolean;
-            policy?: components["schemas"]["Policy"];
-            script?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
+            type: string | null;
+            name: string | null;
+            enabled: boolean;
+            policy: components["schemas"]["Policy"] | null;
+            script: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "JavaScriptRule";
+            type: "JAVASCRIPT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "JAVASCRIPT";
         };
         ListResponseDeviceComplianceResult: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DeviceComplianceResult"][];
+            results: components["schemas"]["DeviceComplianceResult"][] | null;
         };
         /** @description Device module */
         Module: {
             /** Format: int64 */
-            id?: number;
-            slot?: string;
-            partNumber?: string;
-            serialNumber?: string;
+            id: number;
+            slot: string | null;
+            partNumber: string | null;
+            serialNumber: string | null;
             /** Format: date-time */
-            firstSeenDate?: Date;
+            firstSeenDate: Date | null;
             /** Format: date-time */
-            lastSeenDate?: Date;
-            removed?: boolean;
+            lastSeenDate: Date | null;
+            removed: boolean;
         };
         /** @description Compliance policy */
         Policy: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            name?: string;
-            targetGroups?: components["schemas"]["Group"][];
+            id: number;
+            url: string | null;
+            display: string | null;
+            name: string | null;
+            targetGroups: components["schemas"]["Group"][] | null;
         };
         /** @description Compliance rule checked by a Python script */
         PythonRule: Omit<components["schemas"]["Rule"], "type"> & {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            type?: string;
-            name?: string;
-            enabled?: boolean;
-            policy?: components["schemas"]["Policy"];
-            script?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
+            type: string | null;
+            name: string | null;
+            enabled: boolean;
+            policy: components["schemas"]["Policy"] | null;
+            script: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "PythonRule";
+            type: "PYTHON";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PYTHON";
         };
         /** @description Compliance rule */
         Rule: {
@@ -1960,81 +1972,87 @@ export interface components {
         /** @description Compliance rule matching a text */
         TextRule: Omit<components["schemas"]["Rule"], "type"> & {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            type?: string;
-            name?: string;
-            enabled?: boolean;
-            policy?: components["schemas"]["Policy"];
-            field?: string;
-            context?: string;
-            text?: string;
-            regExp?: boolean;
-            invert?: boolean;
-            anyBlock?: boolean;
-            matchAll?: boolean;
-            normalize?: boolean;
-            deviceDriver?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
+            type: string | null;
+            name: string | null;
+            enabled: boolean;
+            policy: components["schemas"]["Policy"] | null;
+            field: string | null;
+            context: string | null;
+            text: string | null;
+            regExp: boolean;
+            invert: boolean;
+            anyBlock: boolean;
+            matchAll: boolean;
+            normalize: boolean;
+            deviceDriver: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "TextRule";
+            type: "TEXT";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "TEXT";
         };
         /** @description Vault instance, an external secret store (secrets are never returned) */
         VaultInstance: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
             /** Format: int64 */
-            readonly version?: number;
+            readonly version: number;
             /** Format: date-time */
-            readonly changeDate?: Date;
-            name?: string;
-            /** @enum {string} */
-            type?: "HASHICORP_KV2";
-            baseUrl?: string;
-            namespace?: string;
-            /** @enum {string} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
-            httpsCustomCaCertificate?: string;
-            kvMountPath?: string;
-            /** @enum {string} */
-            authMethod?: "APPROLE" | "JWT";
-            appRoleMountPath?: string;
-            appRoleId?: string;
-            readonly hasAppRoleSecretId?: boolean;
-            jwtMountPath?: string;
-            jwtIdpTokenEndpoint?: string;
-            jwtClientId?: string;
-            readonly hasJwtClientSecret?: boolean;
-            jwtVaultRole?: string;
-            jwtScope?: string;
+            readonly changeDate: Date | null;
+            name: string | null;
+            /** @enum {string|null} */
+            type: "HASHICORP_KV2" | null;
+            baseUrl: string | null;
+            namespace: string | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate: string | null;
+            kvMountPath: string | null;
+            /** @enum {string|null} */
+            authMethod: "APPROLE" | "JWT" | null;
+            appRoleMountPath: string | null;
+            appRoleId: string | null;
+            readonly hasAppRoleSecretId: boolean;
+            jwtMountPath: string | null;
+            jwtIdpTokenEndpoint: string | null;
+            jwtClientId: string | null;
+            readonly hasJwtClientSecret: boolean;
+            jwtVaultRole: string | null;
+            jwtScope: string | null;
         };
         /** @description Location of a secret in a Vault instance */
         VaultSecret: {
-            vaultInstance?: components["schemas"]["VaultInstance"];
-            path?: string;
+            vaultInstance: components["schemas"]["VaultInstance"] | null;
+            path: string | null;
         };
         /** @description Hardware compliance rule */
         HardwareRule: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            partNumber?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
+            partNumber: string | null;
             /** Format: date-time */
-            endOfSale?: Date;
+            endOfSale: Date | null;
             /** Format: date-time */
-            endOfLife?: Date;
-            group?: components["schemas"]["Group"];
-            driver?: string;
-            family?: string;
-            familyRegExp?: boolean;
-            partNumberRegExp?: boolean;
+            endOfLife: Date | null;
+            group: components["schemas"]["Group"] | null;
+            driver: string | null;
+            family: string | null;
+            familyRegExp: boolean;
+            partNumberRegExp: boolean;
         };
         /** @description Definition of a hardware compliance rule */
         HardwareRuleRequest: {
@@ -2055,23 +2073,23 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["HardwareRule"][];
+            results: components["schemas"]["HardwareRule"][] | null;
         };
         JsonNode: Record<string, never>;
         /** @description Definition of a compliance policy */
@@ -2084,46 +2102,46 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Policy"][];
+            results: components["schemas"]["Policy"][] | null;
         };
         ListResponseRule: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Rule"][];
+            results: components["schemas"]["Rule"][] | null;
         };
         /** @description Definition of a JavaScript compliance rule */
         JavaScriptRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
@@ -2181,32 +2199,32 @@ export interface components {
         };
         /** @description Exemption of a device from a compliance rule */
         Exemption: {
-            device?: components["schemas"]["Device"];
+            device: components["schemas"]["Device"] | null;
             /** Format: date-time */
-            expirationDate?: Date;
+            expirationDate: Date | null;
         };
         ListResponseExemption: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Exemption"][];
+            results: components["schemas"]["Exemption"][] | null;
         };
         /** @description Exemption of a device from a compliance rule */
         ExemptionRequest: {
@@ -2221,10 +2239,10 @@ export interface components {
         };
         /** @description Result of the test of a compliance rule */
         RuleTestResult: {
-            /** @enum {string} */
-            result?: "CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE";
-            log?: string;
-            comment?: string;
+            /** @enum {string|null} */
+            result: "CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE" | null;
+            log: string | null;
+            comment: string | null;
         };
         /** @description Test of a compliance rule definition against a device */
         RuleTestRequest: {
@@ -2235,21 +2253,21 @@ export interface components {
         /** @description Software compliance rule */
         SoftwareRule: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
             /** Format: int32 */
-            priority?: number;
-            /** @enum {string} */
-            level?: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN";
-            group?: components["schemas"]["Group"];
-            driver?: string;
-            family?: string;
-            familyRegExp?: boolean;
-            version?: string;
-            versionRegExp?: boolean;
-            partNumber?: string;
-            partNumberRegExp?: boolean;
+            priority: number;
+            /** @enum {string|null} */
+            level: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN" | null;
+            group: components["schemas"]["Group"] | null;
+            driver: string | null;
+            family: string | null;
+            familyRegExp: boolean;
+            version: string | null;
+            versionRegExp: boolean;
+            partNumber: string | null;
+            partNumberRegExp: boolean;
         };
         /** @description Definition of a software compliance rule */
         SoftwareRuleRequest: {
@@ -2272,130 +2290,150 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["SoftwareRule"][];
+            results: components["schemas"]["SoftwareRule"][] | null;
         };
-        Binary: {
-            type: "Binary";
-        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name?: string;
-            assumption?: boolean;
-        });
-        BinaryFile: {
-            type: "BinaryFile";
-        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name?: string;
-            originalName?: string;
+        Binary: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name: string | null;
+            assumption: boolean | null;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "BINARY";
+        };
+        BinaryFile: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name: string | null;
+            originalName: string | null;
             /** Format: int64 */
-            fileSize?: number;
-            checksum?: string;
-            url?: string;
-        });
+            fileSize: number;
+            checksum: string | null;
+            url: string | null;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "BINARYFILE";
+        };
         /** @description Device configuration */
         Config: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
             /** Format: int64 */
-            version?: number;
-            device?: components["schemas"]["Device"];
+            version: number | null;
+            device: components["schemas"]["Device"] | null;
             /** Format: date-time */
-            changeDate?: Date;
-            author?: string;
-            customHash?: string;
-            attributes?: components["schemas"]["ConfigAttribute"][];
+            changeDate: Date | null;
+            author: string | null;
+            customHash: string | null;
+            attributes: components["schemas"]["ConfigAttribute"][] | null;
         };
         /** @description Attribute of a configuration */
         ConfigAttribute: {
             type: string;
         };
-        LongText: {
-            type: "LongText";
-        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name?: string;
-            url?: string;
-        });
-        Numeric: {
-            type: "Numeric";
-        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name?: string;
+        LongText: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name: string | null;
+            url: string | null;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "LONGTEXT";
+        };
+        Numeric: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name: string | null;
             /** Format: double */
-            number?: number;
-        });
-        Text: {
-            type: "Text";
-        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
-            name?: string;
-            text?: string;
-        });
+            number: number | null;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "NUMERIC";
+        };
+        Text: Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name: string | null;
+            text: string | null;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "TEXT";
+        };
         /** @description Differences between two configurations */
         ConfigDiff: {
-            original?: components["schemas"]["Config"];
-            revised?: components["schemas"]["Config"];
+            original: components["schemas"]["Config"] | null;
+            revised: components["schemas"]["Config"] | null;
             /** Format: date-time */
-            originalDate?: Date;
+            originalDate: Date | null;
             /** Format: date-time */
-            revisedDate?: Date;
-            deltas?: {
+            revisedDate: Date | null;
+            deltas: {
                 [key: string]: components["schemas"]["Delta"][];
-            };
+            } | null;
         };
         Delta: {
-            /** @enum {string} */
-            type?: "CHANGE" | "DELETE" | "INSERT";
+            /** @enum {string|null} */
+            type: "CHANGE" | "DELETE" | "INSERT" | null;
             /** Format: int32 */
-            originalPosition?: number;
+            originalPosition: number;
             /** Format: int32 */
-            revisedPosition?: number;
-            originalLines?: string[];
-            revisedLines?: string[];
-            preContext?: string[];
-            postContext?: string[];
-            hierarchy?: components["schemas"]["LineWithPosition"][];
+            revisedPosition: number;
+            originalLines: string[] | null;
+            revisedLines: string[] | null;
+            preContext: string[] | null;
+            postContext: string[] | null;
+            hierarchy: components["schemas"]["LineWithPosition"][] | null;
         };
         LineWithPosition: {
-            line?: string;
+            line: string | null;
             /** Format: int32 */
-            position?: number;
+            position: number;
         };
         ListResponseConfig: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Config"][];
+            results: components["schemas"]["Config"][] | null;
         };
         /** @description Definition of a global credential set */
         CredentialSetRequest: {
@@ -2458,185 +2496,185 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["CredentialSet"][];
+            results: components["schemas"]["CredentialSet"][] | null;
         };
         /** @description Device family (driver and family) with its number of devices */
         DeviceFamily: {
-            driver?: string;
-            family?: string;
+            driver: string | null;
+            family: string | null;
             /** Format: int64 */
-            deviceCount?: number;
+            deviceCount: number;
         };
         ListResponseDeviceFamily: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DeviceFamily"][];
+            results: components["schemas"]["DeviceFamily"][] | null;
         };
         /** @description Network interface of a device */
         DeviceInterface: {
             /** Format: int64 */
-            id?: number;
-            display?: string;
-            name?: string;
-            description?: string;
-            enabled?: boolean;
-            level3?: boolean;
-            vrf?: string;
-            virtualDevice?: string;
-            macAddress?: string;
-            ipAddresses?: components["schemas"]["IpAddress"][];
+            id: number;
+            display: string | null;
+            name: string | null;
+            description: string | null;
+            enabled: boolean;
+            level3: boolean;
+            vrf: string | null;
+            virtualDevice: string | null;
+            macAddress: string | null;
+            ipAddresses: components["schemas"]["IpAddress"][] | null;
         };
         IpAddress: {
-            ip?: string;
+            ip: string | null;
             /** Format: int32 */
-            prefixLength?: number;
+            prefixLength: number;
             /** Format: int32 */
-            version?: number;
-            /** @enum {string} */
-            usage?: "PRIMARY" | "SECONDARY" | "VRRP" | "HSRP" | "SECONDARYVRRP" | "SECONDARYHSRP";
+            version: number;
+            /** @enum {string|null} */
+            usage: "PRIMARY" | "SECONDARY" | "VRRP" | "HSRP" | "SECONDARYVRRP" | "SECONDARYHSRP" | null;
         };
         ListResponseDeviceInterface: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DeviceInterface"][];
+            results: components["schemas"]["DeviceInterface"][] | null;
         };
         /** @description Hardware module of a device */
         DeviceModule: {
             /** Format: int64 */
-            id?: number;
-            display?: string;
-            slot?: string;
-            partNumber?: string;
-            serialNumber?: string;
+            id: number;
+            display: string | null;
+            slot: string | null;
+            partNumber: string | null;
+            serialNumber: string | null;
             /** Format: date-time */
-            firstSeenDate?: Date;
+            firstSeenDate: Date | null;
             /** Format: date-time */
-            lastSeenDate?: Date;
-            removed?: boolean;
+            lastSeenDate: Date | null;
+            removed: boolean;
         };
         ListResponseDeviceModule: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DeviceModule"][];
+            results: components["schemas"]["DeviceModule"][] | null;
         };
         /** @description Task */
         Task: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
             /** Format: int64 */
-            version?: number;
-            type?: string;
-            /** @enum {string} */
-            status?: "CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED";
-            description?: string;
-            target?: string;
-            author?: string;
-            comments?: string;
-            device?: components["schemas"]["Device"];
-            group?: components["schemas"]["Group"];
-            parentTask?: components["schemas"]["Task"];
+            version: number | null;
+            type: string | null;
+            /** @enum {string|null} */
+            status: "CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED" | null;
+            description: string | null;
+            target: string | null;
+            author: string | null;
+            comments: string | null;
+            device: components["schemas"]["Device"] | null;
+            group: components["schemas"]["Group"] | null;
+            parentTask: components["schemas"]["Task"] | null;
             /** Format: int32 */
-            childOrder?: number;
+            childOrder: number | null;
             /** Format: int32 */
-            priority?: number;
-            /** @enum {string} */
-            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            priority: number | null;
+            /** @enum {string|null} */
+            scheduleType: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY" | null;
             /** Format: int32 */
-            scheduleFactor?: number;
+            scheduleFactor: number | null;
             /** Format: date-time */
-            scheduleReference?: Date;
+            scheduleReference: Date | null;
             /** Format: date-time */
-            nextExecutionDate?: Date;
-            repeating?: boolean;
-            /** @enum {string} */
-            scheduleMode?: "PARALLEL" | "SEQUENTIAL";
-            stopOnFailure?: boolean;
+            nextExecutionDate: Date | null;
+            repeating: boolean | null;
+            /** @enum {string|null} */
+            scheduleMode: "PARALLEL" | "SEQUENTIAL" | null;
+            stopOnFailure: boolean | null;
             /** Format: date-time */
-            creationDate?: Date;
+            creationDate: Date | null;
             /** Format: date-time */
-            changeDate?: Date;
+            changeDate: Date | null;
             /** Format: date-time */
-            executionDate?: Date;
-            runnerId?: string;
-            debugEnabled?: boolean;
-            cancelRequested?: boolean;
-            log?: string;
+            executionDate: Date | null;
+            runnerId: string | null;
+            debugEnabled: boolean | null;
+            cancelRequested: boolean | null;
+            log: string | null;
             /** @description Parameters of the type of task */
-            parameters?: {
+            parameters: {
                 [key: string]: Record<string, never>;
-            };
+            } | null;
         };
         /** @description Settings of one access of a device */
         DeviceAccessRequest: {
@@ -2733,23 +2771,23 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Device"][];
+            results: components["schemas"]["Device"][] | null;
         };
         /** @description Editable properties of a device */
         DeviceRequest: {
@@ -2819,183 +2857,183 @@ export interface components {
         };
         /** @description Device tag with its number of devices */
         DeviceTag: {
-            name?: string;
+            name: string | null;
             /** Format: int64 */
-            deviceCount?: number;
+            deviceCount: number;
         };
         ListResponseDeviceTag: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DeviceTag"][];
+            results: components["schemas"]["DeviceTag"][] | null;
         };
         Access: {
-            name?: string;
-            /** @enum {string} */
-            protocol?: "TELNET" | "SSH" | "SNMPV1" | "SNMPV2C" | "SNMPV3" | "HTTP" | "HTTPS";
-            description?: string;
+            name: string | null;
+            /** @enum {string|null} */
+            protocol: "TELNET" | "SSH" | "SNMPV1" | "SNMPV2C" | "SNMPV3" | "HTTP" | "HTTPS" | null;
+            description: string | null;
             /** Format: int32 */
-            defaultPort?: number;
-            group?: string;
+            defaultPort: number;
+            group: string | null;
             /** Format: int32 */
-            priority?: number;
+            priority: number;
         };
         Attribute: {
-            name?: string;
-            title?: string;
-            /** @enum {string} */
-            type?: "NUMERIC" | "TEXT" | "LONGTEXT" | "DATE" | "BINARY" | "BINARYFILE" | "ENUM";
-            /** @enum {string} */
-            level?: "DEVICE" | "CONFIG";
-            comparable?: boolean;
-            searchable?: boolean;
-            checkable?: boolean;
+            name: string | null;
+            title: string | null;
+            /** @enum {string|null} */
+            type: "NUMERIC" | "TEXT" | "LONGTEXT" | "DATE" | "BINARY" | "BINARYFILE" | "ENUM" | null;
+            /** @enum {string|null} */
+            level: "DEVICE" | "CONFIG" | null;
+            comparable: boolean;
+            searchable: boolean;
+            checkable: boolean;
         };
         /** @description Device type (device driver loaded by the server) */
         DeviceType: {
-            name?: string;
-            description?: string;
-            version?: string;
-            author?: string;
+            name: string | null;
+            description: string | null;
+            version: string | null;
+            author: string | null;
             /** Format: int32 */
-            priority?: number;
-            protocols?: ("TELNET" | "SSH" | "SNMPV1" | "SNMPV2C" | "SNMPV3" | "HTTP" | "HTTPS")[];
-            cliMainModes?: string[];
-            sourceHash?: string;
-            location?: components["schemas"]["Location"];
-            attributes?: components["schemas"]["Attribute"][];
-            options?: components["schemas"]["Option"][];
-            accesses?: components["schemas"]["Access"][];
+            priority: number;
+            protocols: ("TELNET" | "SSH" | "SNMPV1" | "SNMPV2C" | "SNMPV3" | "HTTP" | "HTTPS")[] | null;
+            cliMainModes: string[] | null;
+            sourceHash: string | null;
+            location: components["schemas"]["Location"] | null;
+            attributes: components["schemas"]["Attribute"][] | null;
+            options: components["schemas"]["Option"][] | null;
+            accesses: components["schemas"]["Access"][] | null;
         };
         ListResponseDeviceType: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DeviceType"][];
+            results: components["schemas"]["DeviceType"][] | null;
         };
         Location: {
-            /** @enum {string} */
-            type?: "EMBEDDED" | "FILE";
-            fileName?: string;
+            /** @enum {string|null} */
+            type: "EMBEDDED" | "FILE" | null;
+            fileName: string | null;
         };
         Option: {
-            name?: string;
-            title?: string;
-            /** @enum {string} */
-            type?: "TEXT" | "BOOLEAN";
-            choices?: string[];
-            defaultValue?: Record<string, never>;
+            name: string | null;
+            title: string | null;
+            /** @enum {string|null} */
+            type: "TEXT" | "BOOLEAN" | null;
+            choices: string[] | null;
+            defaultValue: Record<string, never> | null;
         };
         ListResponsePartNumber: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["PartNumber"][];
+            results: components["schemas"]["PartNumber"][] | null;
         };
         /** @description Part number of modules with its number of modules */
         PartNumber: {
-            partNumber?: string;
+            partNumber: string | null;
             /** Format: int64 */
-            moduleCount?: number;
+            moduleCount: number;
         };
         ListResponseSoftwareVersion: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["SoftwareVersion"][];
+            results: components["schemas"]["SoftwareVersion"][] | null;
         };
         /** @description Software version with its number of devices */
         SoftwareVersion: {
-            version?: string;
+            version: string | null;
             /** Format: int64 */
-            deviceCount?: number;
+            deviceCount: number;
         };
         /** @description Diagnostic (data collected from devices) */
         Diagnostic: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            name?: string;
-            type?: string;
-            resultType?: string;
-            enabled?: boolean;
-            targetGroup?: components["schemas"]["Group"];
-            script?: string;
-            deviceDriver?: string;
-            deviceDriverDescription?: string;
-            cliMode?: string;
-            command?: string;
-            modifierPattern?: string;
-            modifierReplacement?: string;
+            id: number;
+            url: string | null;
+            display: string | null;
+            name: string | null;
+            type: string | null;
+            resultType: string | null;
+            enabled: boolean;
+            targetGroup: components["schemas"]["Group"] | null;
+            script: string | null;
+            deviceDriver: string | null;
+            deviceDriverDescription: string | null;
+            cliMode: string | null;
+            command: string | null;
+            modifierPattern: string | null;
+            modifierReplacement: string | null;
         };
         /** @description Definition of a diagnostic */
         DiagnosticRequest: {
@@ -3022,57 +3060,57 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Diagnostic"][];
+            results: components["schemas"]["Diagnostic"][] | null;
         };
         /** @description Result of a diagnostic on a device */
         DiagnosticResult: {
-            display?: string;
-            diagnostic?: components["schemas"]["Diagnostic"];
-            type?: string;
-            value?: Record<string, never>;
+            display: string | null;
+            diagnostic: components["schemas"]["Diagnostic"] | null;
+            type: string | null;
+            value: Record<string, never> | null;
             /** Format: date-time */
-            creationDate?: Date;
+            creationDate: Date | null;
             /** Format: date-time */
-            lastCheckDate?: Date;
+            lastCheckDate: Date | null;
         };
         ListResponseDiagnosticResult: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["DiagnosticResult"][];
+            results: components["schemas"]["DiagnosticResult"][] | null;
         };
         /** @description Definition of a device domain */
         DomainRequest: {
@@ -3085,23 +3123,23 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Domain"][];
+            results: components["schemas"]["Domain"][] | null;
         };
         /** @description Definition of a device group */
         GroupRequest: {
@@ -3119,23 +3157,23 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Group"][];
+            results: components["schemas"]["Group"][] | null;
         };
         /** @description Hook (action run when an event occurs) */
         Hook: {
@@ -3143,32 +3181,38 @@ export interface components {
         } & components["schemas"]["WebHook"];
         /** @description Event which triggers a hook */
         HookTrigger: {
-            /** @enum {string} */
-            type: "POST_TASK";
-            item?: string;
+            /** @enum {string|null} */
+            type: "POST_TASK" | null;
+            item: string | null;
         };
         /** @description Hook calling a URL */
         WebHook: Omit<components["schemas"]["Hook"], "type"> & {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
-            type?: string;
-            name?: string;
-            enabled?: boolean;
-            triggers?: components["schemas"]["HookTrigger"][];
-            /** @enum {string} */
-            action?: "POST_XML" | "POST_JSON" | "POST_YAML";
-            targetUrl?: string;
-            /** @enum {string} */
-            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
-            httpsCustomCaCertificate?: string;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
+            type: string | null;
+            name: string | null;
+            enabled: boolean;
+            triggers: components["schemas"]["HookTrigger"][] | null;
+            /** @enum {string|null} */
+            action: "POST_XML" | "POST_JSON" | "POST_YAML" | null;
+            targetUrl: string | null;
+            /** @enum {string|null} */
+            httpsCaTrustMode: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA" | null;
+            httpsCustomCaCertificate: string | null;
         } & {
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            type: "WebHook";
+            type: "WEB";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "WEB";
         };
         /** @description Definition of a hook */
         HookRequest: {
@@ -3197,49 +3241,49 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Hook"][];
+            results: components["schemas"]["Hook"][] | null;
         };
         /** @description Command script */
         Script: {
             /** Format: int64 */
-            id?: number;
-            url?: string;
-            display?: string;
-            name?: string;
-            folder?: string;
-            deviceDriver?: string;
-            deviceDriverDescription?: string;
-            author?: string;
-            script?: string;
-            userInputDefinitions?: {
+            id: number;
+            url: string | null;
+            display: string | null;
+            name: string | null;
+            folder: string | null;
+            deviceDriver: string | null;
+            deviceDriverDescription: string | null;
+            author: string | null;
+            script: string | null;
+            userInputDefinitions: {
                 [key: string]: components["schemas"]["UserInputDefinition"];
-            };
+            } | null;
         };
         /** @description User input of a command script */
         UserInputDefinition: {
-            name?: string;
-            /** @enum {string} */
-            type?: "TEXT" | "BOOLEAN";
-            label?: string;
-            description?: string;
-            choices?: string[];
-            defaultValue?: string;
+            name: string | null;
+            /** @enum {string|null} */
+            type: "TEXT" | "BOOLEAN" | null;
+            label: string | null;
+            description: string | null;
+            choices: string[] | null;
+            defaultValue: string | null;
         };
         /** @description Definition of a command script */
         ScriptRequest: {
@@ -3253,144 +3297,144 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Script"][];
+            results: components["schemas"]["Script"][] | null;
         };
         /** @description Liveness and readiness of the server */
         Health: {
-            status?: string;
+            status: string | null;
         };
         /** @description Mastership status of the server in the high availability cluster */
         ClusterMaster: {
-            clusterEnabled?: boolean;
-            master?: boolean;
-            currentMasterId?: string | null;
+            clusterEnabled: boolean;
+            master: boolean;
+            currentMasterId: string | null;
         };
         /** @description General information about the Netshot server */
         SystemInfo: {
-            readonly version?: string;
+            readonly version: string | null;
             /** Format: date-time */
-            readonly serverTime?: Date;
+            readonly serverTime: Date | null;
             /** Format: int32 */
-            readonly sessionMaxIdleTime?: number;
+            readonly sessionMaxIdleTime: number;
         };
         /** @description Member of the high availability cluster */
         ClusterMember: {
-            readonly instanceId?: string;
-            readonly display?: string;
-            local?: boolean;
-            hostname?: string;
+            readonly instanceId: string | null;
+            readonly display: string | null;
+            local: boolean;
+            hostname: string | null;
             /** Format: int32 */
-            clusteringVersion?: number;
+            clusteringVersion: number;
             /** Format: int32 */
-            masterPriority?: number;
+            masterPriority: number;
             /** Format: int32 */
-            runnerPriority?: number;
+            runnerPriority: number;
             /** Format: int32 */
-            runnerWeight?: number;
-            appVersion?: string;
-            jvmVersion?: string;
-            driverHash?: string;
-            status?: string;
+            runnerWeight: number;
+            appVersion: string | null;
+            jvmVersion: string | null;
+            driverHash: string | null;
+            status: string | null;
             /** Format: date-time */
-            lastStatusChangeDate?: Date;
+            lastStatusChangeDate: Date | null;
             /** Format: date-time */
-            lastSeenDate?: Date;
+            lastSeenDate: Date | null;
         };
         ListResponseClusterMember: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["ClusterMember"][];
+            results: components["schemas"]["ClusterMember"][] | null;
         };
         ListResponseService: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Service"][];
+            results: components["schemas"]["Service"][] | null;
         };
         /** @description Service of the Netshot server */
         Service: {
-            readonly display?: string;
-            name?: string;
-            state?: string;
-            healthy?: boolean;
-            error?: string | null;
-            stats?: {
+            readonly display: string | null;
+            name: string | null;
+            state: string | null;
+            healthy: boolean;
+            error: string | null;
+            stats: {
                 [key: string]: Record<string, never>;
-            };
+            } | null;
         };
         ListResponseTask: {
             /**
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["Task"][];
+            results: components["schemas"]["Task"][] | null;
         };
         /** @description Task to create */
         TaskRequest: {
@@ -3420,26 +3464,26 @@ export interface components {
         };
         /** @description Number of tasks by status */
         TaskStatusCounts: {
-            countByStatus?: {
+            countByStatus: {
                 [key: string]: number;
-            };
+            } | null;
             /** Format: int32 */
-            threadCount?: number;
+            threadCount: number;
         };
         /** @description Netshot user */
         User: {
             /** Format: int64 */
-            readonly id?: number;
-            readonly url?: string;
-            readonly display?: string;
-            username?: string;
-            local?: boolean;
+            readonly id: number;
+            readonly url: string | null;
+            readonly display: string | null;
+            username: string | null;
+            local: boolean;
             /** Format: int32 */
-            level?: number;
-            readonly role?: string | null;
-            readonly hasPassword?: boolean;
+            level: number;
+            readonly role: string | null;
+            readonly hasPassword: boolean;
             /** Format: date-time */
-            readonly lastPasswordChangeDate?: Date | null;
+            readonly lastPasswordChangeDate: Date | null;
         };
         /** @description Definition of a Netshot user */
         UserRequest: {
@@ -3458,23 +3502,23 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["User"][];
+            results: components["schemas"]["User"][] | null;
         };
         /** @description Definition of a Vault instance */
         VaultInstanceRequest: {
@@ -3512,28 +3556,28 @@ export interface components {
              * Format: int64
              * @description Total number of matching items (null if count=false)
              */
-            count?: number | null;
+            count: number | null;
             /**
              * Format: int32
              * @description Offset of the first item of the page
              */
-            offset?: number;
+            offset: number;
             /**
              * Format: int32
              * @description Maximum number of items of the page
              */
-            limit?: number;
+            limit: number;
             /** @description Path of the next page */
-            next?: string | null;
+            next: string | null;
             /** @description Path of the previous page */
-            previous?: string | null;
+            previous: string | null;
             /** @description The items of the page */
-            results?: components["schemas"]["VaultInstance"][];
+            results: components["schemas"]["VaultInstance"][] | null;
         };
         /** @description Outcome of a test of the connection to a Vault server */
         VaultConnectionTest: {
-            success?: boolean;
-            message?: string;
+            success: boolean;
+            message: string | null;
         };
     };
     responses: never;
@@ -3546,7 +3590,26 @@ export type $defs = Record<string, never>;
 export interface operations {
     listApiTokens: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3764,7 +3827,20 @@ export interface operations {
     };
     getResultStats: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Fields to count by (up to two), comma-separated */
+                groupBy?: string;
+                /** @description Size of the time buckets */
+                interval?: "hour" | "day" | "week" | "month";
+                /** @description Date field of the time buckets */
+                on?: string;
+                /** @description Start of the range (included) */
+                from?: Date;
+                /** @description End of the range (excluded) */
+                to?: Date;
+                /** @description Time zone of the buckets (IANA name, UTC by default) */
+                timeZone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3786,7 +3862,26 @@ export interface operations {
     };
     listResults: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3808,7 +3903,26 @@ export interface operations {
     };
     listResults_1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -3833,7 +3947,26 @@ export interface operations {
     };
     listHardwareRules: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3995,7 +4128,26 @@ export interface operations {
     };
     listPolicies: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4157,7 +4309,26 @@ export interface operations {
     };
     listPolicyRules: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Policy ID */
@@ -4182,7 +4353,26 @@ export interface operations {
     };
     listRules: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4344,7 +4534,26 @@ export interface operations {
     };
     listExemptions: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Rule ID */
@@ -4369,7 +4578,26 @@ export interface operations {
     };
     replaceExemptions: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Rule ID */
@@ -4428,7 +4656,26 @@ export interface operations {
     };
     listSoftwareRules: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4669,7 +4916,20 @@ export interface operations {
     };
     getConfigStats: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Fields to count by (up to two), comma-separated */
+                groupBy?: string;
+                /** @description Size of the time buckets */
+                interval?: "hour" | "day" | "week" | "month";
+                /** @description Date field of the time buckets */
+                on?: string;
+                /** @description Start of the range (included) */
+                from?: Date;
+                /** @description End of the range (excluded) */
+                to?: Date;
+                /** @description Time zone of the buckets (IANA name, UTC by default) */
+                timeZone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4691,7 +4951,26 @@ export interface operations {
     };
     listConfigs: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4713,7 +4992,26 @@ export interface operations {
     };
     listDeviceConfigs: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -4738,7 +5036,26 @@ export interface operations {
     };
     listCredentialSets: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4900,7 +5217,26 @@ export interface operations {
     };
     listDeviceFamilies: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4922,7 +5258,26 @@ export interface operations {
     };
     listDeviceInterfaces: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -4947,7 +5302,26 @@ export interface operations {
     };
     listDeviceModules: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -4977,6 +5351,24 @@ export interface operations {
                 query?: string;
                 /** @description Excel export only: the extra sheets of the workbook, among interfaces, inventory, inventoryHistory (with the removed modules), locations, compliance, groups and driverAttributes */
                 include?: string;
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
             };
             header?: never;
             path?: never;
@@ -5173,6 +5565,18 @@ export interface operations {
             query?: {
                 /** @description Device search query, in the Netshot query language */
                 query?: string;
+                /** @description Fields to count by (up to two), comma-separated */
+                groupBy?: string;
+                /** @description Size of the time buckets */
+                interval?: "hour" | "day" | "week" | "month";
+                /** @description Date field of the time buckets */
+                on?: string;
+                /** @description Start of the range (included) */
+                from?: Date;
+                /** @description End of the range (excluded) */
+                to?: Date;
+                /** @description Time zone of the buckets (IANA name, UTC by default) */
+                timeZone?: string;
             };
             header?: never;
             path?: never;
@@ -5288,7 +5692,26 @@ export interface operations {
     };
     listDeviceTags: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5310,7 +5733,26 @@ export interface operations {
     };
     listDeviceTypes: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5332,7 +5774,26 @@ export interface operations {
     };
     listPartNumbers: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5354,7 +5815,26 @@ export interface operations {
     };
     listSoftwareVersions: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5376,7 +5856,26 @@ export interface operations {
     };
     listDiagnostics: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5538,7 +6037,26 @@ export interface operations {
     };
     listDiagnosticResults: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5563,7 +6081,26 @@ export interface operations {
     };
     listDomains: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5725,7 +6262,26 @@ export interface operations {
     };
     listGroups: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5890,6 +6446,24 @@ export interface operations {
             query?: {
                 /** @description Device search query, in the Netshot query language */
                 query?: string;
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
             };
             header?: never;
             path: {
@@ -5915,7 +6489,26 @@ export interface operations {
     };
     listHooks: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6077,7 +6670,26 @@ export interface operations {
     };
     listScripts: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6269,7 +6881,26 @@ export interface operations {
     };
     listClusterMembers: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6291,7 +6922,26 @@ export interface operations {
     };
     listServices: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6313,7 +6963,26 @@ export interface operations {
     };
     listDeviceTasks: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -6363,7 +7032,26 @@ export interface operations {
     };
     listTasks: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6461,7 +7149,20 @@ export interface operations {
     };
     getTaskStats: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Fields to count by (up to two), comma-separated */
+                groupBy?: string;
+                /** @description Size of the time buckets */
+                interval?: "hour" | "day" | "week" | "month";
+                /** @description Date field of the time buckets */
+                on?: string;
+                /** @description Start of the range (included) */
+                from?: Date;
+                /** @description End of the range (excluded) */
+                to?: Date;
+                /** @description Time zone of the buckets (IANA name, UTC by default) */
+                timeZone?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6508,7 +7209,26 @@ export interface operations {
     };
     listUsers: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6670,7 +7390,26 @@ export interface operations {
     };
     listVaultInstances: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Number of items to skip (paging) */
+                offset?: number;
+                /** @description Number of items of the page */
+                limit?: number;
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                sort?: string;
+                /** @description Free text search */
+                q?: string;
+                /** @description false to skip the count of the matching items */
+                count?: boolean;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view, comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
