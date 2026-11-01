@@ -71,13 +71,7 @@ public class DeviceDriverService {
 	 */
 	public List<DeviceDriver> list(boolean refresh) {
 		if (refresh) {
-			this.clusterReload.run();
-			try {
-				this.driverRegistry.refresh();
-			}
-			catch (Exception e) {
-				log.error("Error while refreshing the device types.", e);
-			}
+			this.reload();
 		}
 		return new ArrayList<>(this.driverRegistry.getAllDrivers());
 	}
@@ -89,6 +83,20 @@ public class DeviceDriverService {
 	 */
 	public QuerySchema listSchema() {
 		return LIST.schema();
+	}
+
+	/**
+	 * Reloads the device drivers from their sources, on this server and the other members of the cluster. A driver
+	 * which can't be loaded is logged and left out.
+	 */
+	public void reload() {
+		this.clusterReload.run();
+		try {
+			this.driverRegistry.refresh();
+		}
+		catch (Exception e) {
+			log.error("Error while refreshing the device types.", e);
+		}
 	}
 
 	/**

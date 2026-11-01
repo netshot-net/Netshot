@@ -4510,6 +4510,22 @@
         }
       }
     },
+    "/device-types/reload" : {
+      "post" : {
+        "tags" : [ "Device drivers" ],
+        "summary" : "Reload the device drivers",
+        "description" : "Reloads the device drivers from their sources (the driver files), on this server and the other members of the cluster. A driver which can't be loaded is left out (see the logs).",
+        "operationId" : "reloadDeviceTypes",
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "*/*" : { }
+            }
+          }
+        }
+      }
+    },
     "/part-numbers" : {
       "get" : {
         "tags" : [ "Devices" ],

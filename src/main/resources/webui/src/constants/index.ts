@@ -39,6 +39,7 @@ export const MUTATIONS = {
   ADMIN_CREDENTIAL_SET_UPDATE: ["mutation:admin:credentialset:update"],
   ADMIN_DOMAIN_CREATE: ["mutation:admin:domain:create"],
   ADMIN_DOMAIN_REMOVE: ["mutation:admin:domain:remove"],
+  ADMIN_DRIVER_RELOAD: ["mutation:admin:driver:reload"],
   ADMIN_DOMAIN_UPDATE: ["mutation:admin:domain:update"],
   ADMIN_USER_CREATE: ["mutation:admin:user:create"],
   ADMIN_USER_REMOVE: ["mutation:admin:user:remove"],
