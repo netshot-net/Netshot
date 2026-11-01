@@ -167,9 +167,10 @@ public class V1DeviceInventoryResourceTest {
 	}
 
 	@Test
-	@DisplayName("Modules: removed modules are listed and flagged, views and filters")
+	@DisplayName("Modules: current ones by default, removed ones with removed=true, views and filters")
 	void modules() throws Exception {
-		JsonNode page = this.reader.get("/devices/%d/modules".formatted(this.router1.id())).json();
+		Assertions.assertEquals(List.of("chassis"), this.modules(this.router1, "", "slot"));
+		JsonNode page = this.reader.get("/devices/%d/modules?removed=true".formatted(this.router1.id())).json();
 		Assertions.assertEquals(2, page.get("count").asInt());
 		Assertions.assertEquals(List.of("chassis", "slot"), values(page, "slot"));
 		JsonNode first = page.get("results").get(0);
@@ -177,17 +178,17 @@ public class V1DeviceInventoryResourceTest {
 		Assertions.assertEquals("chassis (TESTCHASSIS)", first.get("display").asText());
 		Assertions.assertEquals("16161616TEST16", first.get("serialNumber").asText());
 
-		JsonNode full = this.reader.get("/devices/%d/modules?view=full&slot=slot".formatted(this.router1.id())).json().get("results").get(0);
+		JsonNode full = this.reader.get("/devices/%d/modules?view=full&slot=slot&removed=true".formatted(this.router1.id())).json().get("results").get(0);
 		Assertions.assertEquals(Set.of("id", "display", "slot", "partNumber", "serialNumber", "firstSeenDate", "lastSeenDate", "removed"),
 			keys(full));
 		Assertions.assertTrue(full.get("removed").asBoolean());
 		Assertions.assertTrue(full.get("firstSeenDate").asText().endsWith("Z"), full.toString());
 
 		Assertions.assertEquals(List.of("chassis"), this.modules(this.router1, "?removed=false", "slot"));
-		Assertions.assertEquals(List.of("slot"), this.modules(this.router1, "?removed=true", "slot"));
+		Assertions.assertEquals(List.of("chassis", "slot"), this.modules(this.router1, "?removed=true", "slot"));
 		Assertions.assertEquals(List.of("chassis"), this.modules(this.router1, "?q=TESTCHASSIS", "slot"));
-		Assertions.assertEquals(List.of("slot"), this.modules(this.router1, "?partNumber__isw=testsl", "slot"));
-		Assertions.assertEquals(List.of("slot", "chassis"), this.modules(this.router1, "?sort=-slot", "slot"));
+		Assertions.assertEquals(List.of("slot"), this.modules(this.router1, "?partNumber__isw=testsl&removed=true", "slot"));
+		Assertions.assertEquals(List.of("slot", "chassis"), this.modules(this.router1, "?sort=-slot&removed=true", "slot"));
 		Assertions.assertEquals(List.of("chassis", "slot"), this.modules(this.router2, "?removed=false", "slot"));
 		Assertions.assertEquals(List.of("chassis", "slot"), this.modules(this.router2, "?lastSeenDate__gte=2000-01-01", "slot"));
 		Assertions.assertEquals(400, this.reader.get("/devices/%d/modules?removed=maybe".formatted(this.router1.id())).status());
