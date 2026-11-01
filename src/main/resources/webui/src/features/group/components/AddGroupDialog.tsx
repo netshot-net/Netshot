@@ -1,4 +1,5 @@
-import api, { CreateGroupPayload } from "@/api"
+import api from "@/api"
+import type { CreateGroupPayload } from "@/api/group"
 import { NetshotError } from "@/api/httpClient"
 import { LuCode, LuServer } from "react-icons/lu"
 import { QUERIES } from "@/constants"
@@ -49,20 +50,17 @@ export default function AddGroupDialog() {
 
   const createMutation = useMutation({
     mutationFn: async (values: GroupForm) => {
-      let payload: CreateGroupPayload = {
+      const payload: CreateGroupPayload = {
         folder: values.folder,
         name: values.name,
-        type: groupType!,
+        type: groupType === GroupType.Static ? "STATIC" : "DYNAMIC",
         hiddenFromReports: !values.visibleInReports,
       }
 
       if (groupType === GroupType.Static) {
-        payload.staticDevices = values.staticDevices.map((d) => d.id)
-      } else if (groupType === GroupType.Dynamic) {
-        payload = {
-          ...payload,
-          query: values.query,
-        }
+        payload.devices = values.staticDevices.map((d) => d.id)
+      } else {
+        payload.query = values.query
       }
 
       return api.group.create(payload)

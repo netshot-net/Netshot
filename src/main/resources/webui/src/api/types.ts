@@ -1,6 +1,5 @@
 import {
   DeviceComplianceResultType,
-  GroupType,
   TaskScheduleMode,
   TaskScheduleType,
   TaskStatus,
@@ -26,23 +25,6 @@ export type SigninResponse = {
 export type ServerInfoResponse = {
   serverVersion: string
   maxIdleTimeout: number
-}
-
-export type CreateGroupPayload = {
-  name: string
-  folder: string
-  type: GroupType
-  hiddenFromReports: boolean
-  staticDevices?: number[]
-  query?: string
-}
-
-export type UpdateGroupPayload = {
-  name: string
-  folder: string
-  hiddenFromReports: boolean
-  staticDevices?: number[]
-  query?: string
 }
 
 export type ReportQueryParams = Partial<{
