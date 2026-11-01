@@ -88,8 +88,9 @@ function App() {
                   <ToastProvider />
                   <Routes>
                     <Route path="signin" element={<SigninScreen />} />
+                    <Route path="app/api-browser" element={<Navigate to="/app/api-browser/v1" replace />} />
                     <Route
-                      path="app/api-browser"
+                      path="app/api-browser/v1"
                       element={
                         <Suspense
                           fallback={
