@@ -37,6 +37,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.Produces;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.Unpaged;
 
 /**
  * The endpoints of the v1 API, found by scanning its resource classes (the resource methods of
@@ -122,6 +123,15 @@ public final class V1Resources {
 		 */
 		public boolean isList() {
 			return "GET".equals(this.httpMethod) && this.method.getReturnType().getSimpleName().equals("ListResponse");
+		}
+
+		/**
+		 * Tells whether the endpoint is a list given whole in a single page ({@link Unpaged}).
+		 *
+		 * @return true for an unpaged list
+		 */
+		public boolean isUnpaged() {
+			return this.method.isAnnotationPresent(Unpaged.class);
 		}
 
 		/**
