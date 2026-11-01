@@ -19,13 +19,18 @@
 package net.netshot.netshot.api.rest.v1.compliance;
 
 import java.util.function.LongFunction;
+import java.util.stream.Collectors;
 
+import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.RefId;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.PythonRule;
 import net.netshot.netshot.compliance.Rule;
+import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.TextRule;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Maps the compliance rules to their v1 representation, and the requests to the rules the service takes.
@@ -111,5 +116,16 @@ public final class RuleMapper {
 			case PythonRuleRequest r -> new PythonRule(0, name, enabled, policyId,
 				r.script() == null ? PythonRule.TEMPLATE : r.script().trim());
 		};
+	}
+
+	/**
+	 * Builds the resolver of rule IDs into references (statistics grouped by rule).
+	 *
+	 * @param service the rule use cases
+	 * @return the resolver
+	 */
+	public static StatsResponse.Resolver resolver(RuleService service) {
+		return ids -> service.list(ListQuery.byIds(ids)).items().stream()
+			.collect(Collectors.toMap(Rule::id, o -> new RefDto(o.id(), V1Links.of(PATH, o.id()), o.name())));
 	}
 }

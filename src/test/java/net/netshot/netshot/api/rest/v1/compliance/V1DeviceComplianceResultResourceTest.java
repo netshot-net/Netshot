@@ -118,7 +118,8 @@ public class V1DeviceComplianceResultResourceTest {
 
 		JsonNode telnetResult = page.get("results").get(0).get("rule").get("name").asText().equals("No telnet")
 			? page.get("results").get(0) : page.get("results").get(1);
-		Assertions.assertEquals(Set.of("rule", "policy", "result", "checkDate"), keys(telnetResult));
+		Assertions.assertEquals(Set.of("device", "rule", "policy", "result", "checkDate"), keys(telnetResult));
+		Assertions.assertEquals(this.router1.id(), telnetResult.get("device").get("id").asLong());
 		Assertions.assertEquals("NONCONFORMING", telnetResult.get("result").asText());
 		Assertions.assertEquals(this.telnet.id(), telnetResult.get("rule").get("id").asLong());
 		Assertions.assertEquals("TEXT", telnetResult.get("rule").get("type").asText());

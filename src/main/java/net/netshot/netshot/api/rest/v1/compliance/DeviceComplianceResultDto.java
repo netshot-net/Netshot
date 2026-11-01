@@ -23,12 +23,14 @@ import java.time.Instant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import net.netshot.netshot.api.rest.v1.Brief;
 import net.netshot.netshot.api.rest.v1.Ref;
+import net.netshot.netshot.api.rest.v1.device.DeviceDto;
 import net.netshot.netshot.inventory.compliance.CheckResult;
 
 /**
  * The compliance state of a device for one rule (a link between the two, not an object of its own: it has no ID of
- * its own).
+ * its own, but identified by the pair of the device and of the rule).
  *
+ * @param device the device
  * @param rule the rule
  * @param policy the policy of the rule
  * @param result the result of the last check, or null if the device has not been checked
@@ -38,6 +40,7 @@ import net.netshot.netshot.inventory.compliance.CheckResult;
  */
 @Schema(name = "DeviceComplianceResult", description = "Compliance state of a device for a rule")
 public record DeviceComplianceResultDto(
+	@Brief @Ref DeviceDto device,
 	@Brief @Ref RuleDto rule,
 	@Brief @Ref PolicyDto policy,
 	@Brief CheckResult.ResultOption result,
