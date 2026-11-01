@@ -33,32 +33,16 @@ import java.util.List;
  */
 public enum Interval {
 	/** One hour. */
-	HOUR("hour"),
+	HOUR,
 	/** One day. */
-	DAY("day"),
+	DAY,
 	/** One week, from Monday. */
-	WEEK("week"),
+	WEEK,
 	/** One month. */
-	MONTH("month");
+	MONTH;
 
 	/** The maximum number of time buckets of a statistics query. */
 	public static final int MAX_BUCKETS = 1000;
-
-	/** The unit of the {@code date_trunc} SQL function. */
-	private final String sqlUnit;
-
-	Interval(String sqlUnit) {
-		this.sqlUnit = sqlUnit;
-	}
-
-	/**
-	 * Gets the unit of the {@code date_trunc} SQL function.
-	 *
-	 * @return the unit
-	 */
-	public String sqlUnit() {
-		return this.sqlUnit;
-	}
 
 	/**
 	 * Gets the start of the bucket a time is in.

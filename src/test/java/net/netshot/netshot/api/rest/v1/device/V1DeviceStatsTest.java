@@ -155,6 +155,24 @@ public class V1DeviceStatsTest {
 	}
 
 	@Test
+	@DisplayName("Hour buckets across the end of the daylight saving time: the repeated local hour is two buckets")
+	void daylightSavingEnd() throws Exception {
+		// 2026-10-25 in Paris: 03:00 CEST becomes 02:00 CET at 01:00 UTC, so 02:30 local time happens twice
+		List<Long> ids = new ArrayList<>();
+		this.reader.get("/devices?fields=id").json().get("results").forEach(d -> ids.add(d.get("id").asLong()));
+		TestDevices.setChangeDate(ids.get(0), Instant.parse("2026-10-25T00:30:00Z"));
+		TestDevices.setChangeDate(ids.get(1), Instant.parse("2026-10-25T01:30:00Z"));
+		TestDevices.setChangeDate(ids.get(2), Instant.parse("2026-10-25T02:10:00Z"));
+		JsonNode hours = this.stats("?interval=hour&on=changeDate&from=2026-10-25T00:00:00Z&to=2026-10-25T03:00:00Z"
+			+ "&timeZone=Europe/Paris");
+		Assertions.assertEquals(List.of("2026-10-25T00:00:00.000Z:1", "2026-10-25T01:00:00.000Z:1", "2026-10-25T02:00:00.000Z:1"),
+			rows(hours, "start"));
+		// The days of the change are 25 hours long
+		JsonNode days = this.stats("?interval=day&on=changeDate&from=2026-10-25&to=2026-10-26&timeZone=Europe/Paris");
+		Assertions.assertEquals(List.of("2026-10-24T22:00:00.000Z:3"), rows(days, "start"));
+	}
+
+	@Test
 	@DisplayName("Invalid statistics parameters are refused")
 	void invalid() throws Exception {
 		for (String query : List.of("groupBy=name", "groupBy=color", "groupBy=status,family,driver", "groupBy=status,status",
