@@ -34,17 +34,13 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
-import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
-import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.compliance.DeviceCheckResult;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.ListResult;
 
 /**
  * The compliance results of a device (v1).
@@ -89,15 +85,9 @@ public class DeviceComplianceResultResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the compliance results of a device", description = "Lists the rules of the policies applying to a device "
 		+ "(through its groups) with the result of their last check (none if never checked) and the exemption of the device. "
-		+ "Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.")
+		+ "(unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.")
 	public ListResponse<DeviceComplianceResultDto> listResults(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.ruleService.resultSchema());
-		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DeviceComplianceResultDto.class, Selection.View.BRIEF);
-		V1Response.select(this.request, selection, DeviceComplianceResultDto.class);
-		ListResult<DeviceCheckResult> results = this.ruleService.listDeviceResults(id, query);
-		var rules = this.refs.rules(selection, "rule", results.items().stream().map(DeviceCheckResult::ruleId).toList());
-		var policies = this.refs.policies(selection, "policy", results.items().stream().map(DeviceCheckResult::policyId).toList());
-		return ListResponse.of(this.uriInfo, query, results, r -> new DeviceComplianceResultDto(rules.apply(r.ruleId()),
-			policies.apply(r.policyId()), r.result(), r.comment(), r.checkDate(), r.exemptionExpirationDate()));
+		return ComplianceResultResource.respond(this.refs, this.request, this.uriInfo, query, this.ruleService.listDeviceResults(id, query));
 	}
 }
