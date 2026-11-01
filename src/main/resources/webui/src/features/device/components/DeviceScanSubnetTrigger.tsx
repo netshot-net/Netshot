@@ -1,4 +1,6 @@
-import api, { CreateOrUpdateTaskPayload } from "@/api"
+import api from "@/api"
+import { scheduleBody } from "@/api/device"
+import type { TaskRequest } from "@/api/task"
 import { NetshotError } from "@/api/httpClient"
 import { DomainSelect } from "@/features/administration/components"
 import FormControl from "@/components/FormControl"
@@ -81,7 +83,7 @@ export default function DeviceScanSubnetTrigger({ children, ...rest }: DeviceSca
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.TASK_CREATE,
-    mutationFn: async (payload: CreateOrUpdateTaskPayload) => api.task.create(payload),
+    mutationFn: async (request: TaskRequest) => api.task.createTask(request),
     onError(err: NetshotError) { toast.error(err) },
   })
 
@@ -94,10 +96,9 @@ export default function DeviceScanSubnetTrigger({ children, ...rest }: DeviceSca
         const { schedule } = values
         const task = await mutation.mutateAsync({
           type: TaskType.ScanSubnets,
-          subnets: values.subnets.join("\n"),
-          domain: +(values.domainId ?? 0),
-          ...schedule,
-        })
+          parameters: { domainId: +(values.domainId ?? 0), subnets: values.subnets },
+          ...scheduleBody(schedule),
+        } as TaskRequest)
         await dialogRef.close()
         taskDialog.open(<TaskDialog id={task!.id} />)
       },
