@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { QUERIES, SCRIPT_TEMPLATES } from "../constants"
 import { Form } from "../types"
+import { toDiagnosticRequest } from "../utils"
 import EditDiagnosticScript from "./EditDiagnosticScript"
 import EditDiagnosticText from "./EditDiagnosticText"
 
@@ -92,19 +93,7 @@ export default function AddDiagnosticDialog() {
   })
 
   function submit(values: Form) {
-    return createMutation.mutate({
-      enabled: values.enabled,
-      script: values.script,
-      type,
-      name: values.name,
-      resultType: values.resultType!,
-      targetGroup: values.targetGroup ? values.targetGroup?.toString() : "-1",
-      deviceDriver: values.deviceDriver!,
-      cliMode: values.cliMode!,
-      command: values.command,
-      modifierPattern: values.modifierPattern,
-      modifierReplacement: values.modifierReplacement,
-    })
+    return createMutation.mutate(toDiagnosticRequest(type, values))
   }
 
   function next() {

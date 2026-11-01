@@ -1,4 +1,4 @@
-import { Diagnostic } from "@/types";
+import type { Diagnostic } from "@/api/diagnostic"
 import { PropsWithChildren, createContext, use } from "react";
 
 export type DiagnosticContextType = {

@@ -79,37 +79,6 @@ export type DeviceSearchResult = {
   devices: LightDevice[]
 }
 
-export type DiagnosticResult = {
-  creationDate: number
-  lastCheckDate: number
-  diagnosticName: string
-  type: string
-}
-
-export type CreateOrUpdateDiagnosticPayload = {
-  id?: number
-  name: string
-  targetGroup: string
-  enabled: boolean
-  resultType: string
-  type: string
-  deviceDriver: string
-  cliMode: string
-  command: string
-  modifierPattern: string
-  modifierReplacement: string
-}
-
-export type CreateOrUpdateDiagnosticScriptPayload = {
-  id?: number
-  name: string
-  targetGroup: string
-  enabled: boolean
-  resultType: string
-  type: string
-  script: string
-}
-
 export type CreateGroupPayload = {
   name: string
   folder: string
