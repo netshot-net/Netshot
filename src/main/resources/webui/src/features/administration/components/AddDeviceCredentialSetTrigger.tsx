@@ -1,16 +1,17 @@
-import api, { DeviceCredentialPayload } from "@/api"
+import api from "@/api"
+import { CredentialSetRequest } from "@/api/admin"
 import { NetshotError } from "@/api/httpClient"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { CredentialSetType } from "@/types"
-import { getAnyOption } from "@/utils"
+import { useAdminErrorHandler } from "../hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
+import { buildCredentialSetPayload } from "./credentialSetPayload"
 import { useDeviceCredentialSetTypeOptions } from "../hooks"
 import DeviceCredentialSetFormComponent, {
   DeviceCredentialSetForm,
@@ -22,9 +23,9 @@ export default function AddDeviceCredentialSetTrigger({ children, ...rest }: Add
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const anyOption = getAnyOption(t)
   const deviceCredentialSetTypeOptions = useDeviceCredentialSetTypeOptions()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_DEVICE_CREDENTIALS)
 
   const form = useForm<DeviceCredentialSetForm>({
     mode: "onChange",
@@ -58,10 +59,10 @@ export default function AddDeviceCredentialSetTrigger({ children, ...rest }: Add
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_CREDENTIAL_SET_CREATE,
-    mutationFn: async (payload: Partial<DeviceCredentialPayload>) =>
+    mutationFn: async (payload: CredentialSetRequest) =>
       api.admin.createCredentialSet(payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -72,86 +73,7 @@ export default function AddDeviceCredentialSetTrigger({ children, ...rest }: Add
       form,
       size: "lg",
       async onSubmit(values) {
-        const type = values.type
-
-        let payload: Partial<DeviceCredentialPayload> = {
-          name: values.name,
-          type,
-        }
-
-        if (
-          type === CredentialSetType.SNMP_V1 ||
-          type === CredentialSetType.SNMP_V2C
-        ) {
-          payload = {
-            ...payload,
-            community: values.community ?? undefined,
-            communityVaultInstanceId: values.communityVaultInstanceId,
-            communityVaultPath: values.communityVaultPath,
-          }
-        }
-
-        if (values.mgmtDomain !== anyOption.value) {
-          payload.mgmtDomain = {
-            id: values.mgmtDomain,
-          }
-        }
-
-        if (type === CredentialSetType.SNMP_V3) {
-          payload = {
-            ...payload,
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            authType: values.authType,
-            authKey: values.authKey ?? undefined,
-            authKeyVaultInstanceId: values.authKeyVaultInstanceId,
-            authKeyVaultPath: values.authKeyVaultPath,
-            privType: values.privType,
-            privKey: values.privKey ?? undefined,
-            privKeyVaultInstanceId: values.privKeyVaultInstanceId,
-            privKeyVaultPath: values.privKeyVaultPath,
-          }
-        } else if (type === CredentialSetType.SSH || type === CredentialSetType.Telnet) {
-          payload = {
-            ...payload,
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            password: values.password ?? undefined,
-            passwordVaultInstanceId: values.passwordVaultInstanceId,
-            passwordVaultPath: values.passwordVaultPath,
-            superPassword: values.superPassword ?? undefined,
-            superPasswordVaultInstanceId: values.superPasswordVaultInstanceId,
-            superPasswordVaultPath: values.superPasswordVaultPath,
-          }
-        } else if (type === CredentialSetType.SSHKey) {
-          payload = {
-            ...payload,
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            privateKey: values.privateKey ?? undefined,
-            privateKeyVaultInstanceId: values.privateKeyVaultInstanceId,
-            privateKeyVaultPath: values.privateKeyVaultPath,
-            password: values.password ?? undefined,
-            passwordVaultInstanceId: values.passwordVaultInstanceId,
-            passwordVaultPath: values.passwordVaultPath,
-            superPassword: values.superPassword ?? undefined,
-            superPasswordVaultInstanceId: values.superPasswordVaultInstanceId,
-            superPasswordVaultPath: values.superPasswordVaultPath,
-          }
-        } else if (type === CredentialSetType.HTTP) {
-          payload = {
-            ...payload,
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            password: values.password ?? undefined,
-            passwordVaultInstanceId: values.passwordVaultInstanceId,
-            passwordVaultPath: values.passwordVaultPath,
-          }
-        }
+        const payload = buildCredentialSetPayload(values, "create")
 
         await mutation.mutateAsync(payload)
 
@@ -169,6 +91,7 @@ export default function AddDeviceCredentialSetTrigger({ children, ...rest }: Add
         queryClient.invalidateQueries({
           queryKey: [QUERIES.ADMIN_DEVICE_CREDENTIALS],
         })
+        queryClient.invalidateQueries({ queryKey: [APP_QUERIES.CREDENTIAL_SET_LIST] })
       },
       onCancel() {
         form.reset()

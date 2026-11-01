@@ -1,13 +1,11 @@
-import api from "@/api"
+import { Domain } from "@/api/admin"
+import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
-import { Domain } from "@/types"
-import { search } from "@/utils"
 import { Button, Heading, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuSquarePen, LuPlus, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddDomainTrigger from "../components/AddDomainTrigger"
@@ -22,16 +20,11 @@ export default function AdministrationDomainScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [QUERIES.ADMIN_DEVICE_DOMAINS, pagination.query, pagination.offset, pagination.limit],
-    queryFn: async () => api.admin.getAllDomains(pagination),
-    select: useCallback(
-      (res: Domain[]): Domain[] => {
-        return search(res, "name", "description", "ipAddress").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending, onBottomReached } = useList<Domain>(
+    [QUERIES.ADMIN_DEVICE_DOMAINS],
+    "/domains",
+    { q: pagination.query, sort: "name", view: "full" }
+  )
 
   const isSearching = Boolean(pagination.query?.trim())
 
@@ -49,7 +42,7 @@ export default function AdministrationDomainScreen() {
         enableSorting: true,
         size: 20000,
       }),
-      columnHelper.accessor("ipAddress", {
+      columnHelper.accessor("server4Address", {
         cell: (info) => <Text>{info.getValue()}</Text>,
         header: t("network.serverAddress"),
         enableSorting: true,
@@ -127,7 +120,7 @@ export default function AdministrationDomainScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} />
+              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

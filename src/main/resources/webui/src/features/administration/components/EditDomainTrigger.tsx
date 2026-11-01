@@ -1,9 +1,10 @@
 import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Domain } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { Domain } from "@/api/admin"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -20,12 +21,13 @@ export default function EditDomainTrigger({ domain, children, ...rest }: EditDom
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_DEVICE_DOMAINS)
 
   const defaultValues = useMemo(
     () => ({
       name: domain?.name,
       description: domain?.description,
-      ipAddress: domain?.ipAddress,
+      server4Address: domain?.server4Address,
     }),
     [domain]
   )
@@ -41,9 +43,10 @@ export default function EditDomainTrigger({ domain, children, ...rest }: EditDom
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_DOMAIN_UPDATE,
-    mutationFn: async (payload: Partial<Domain>) => api.admin.updateDomain(domain?.id, payload),
+    mutationFn: async (payload: { name: string; description: string; server4Address: string }) =>
+      api.admin.updateDomain(domain.id!, payload, domain.version),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -57,7 +60,7 @@ export default function EditDomainTrigger({ domain, children, ...rest }: EditDom
         await mutation.mutateAsync({
           name: values.name,
           description: values.description,
-          ipAddress: values.ipAddress,
+          server4Address: values.server4Address,
         })
 
         dialogRef.close()
@@ -71,6 +74,7 @@ export default function EditDomainTrigger({ domain, children, ...rest }: EditDom
         })
 
         queryClient.invalidateQueries({ queryKey: [QUERIES.ADMIN_DEVICE_DOMAINS] })
+        queryClient.invalidateQueries({ queryKey: [APP_QUERIES.DOMAIN_LIST] })
       },
       onCancel() {
         form.reset()

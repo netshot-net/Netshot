@@ -3,7 +3,7 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { ApiToken } from "@/types"
+import { ApiToken } from "@/api/admin"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent } from "react"
@@ -22,7 +22,7 @@ export default function RemoveApiTokenTrigger({ apiToken, children, ...rest }: R
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_API_TOKEN_REMOVE,
-    mutationFn: async () => api.admin.removeApiToken(apiToken.id),
+    mutationFn: async () => api.admin.removeApiToken(apiToken.id!),
     onError(err: NetshotError) {
       toast.error(err)
     },
