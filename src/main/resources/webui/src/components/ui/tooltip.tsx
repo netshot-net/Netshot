@@ -26,9 +26,23 @@ export function Tooltip(props: TooltipProps) {
 
   if (disabled) return children
 
+  // Props a parent injects into its child, such as Group's data-first/data-last/style that square
+  // the corners of attached buttons, belong to the trigger element, not to the DOM-less Root.
+  const rootProps: Record<string, unknown> = {}
+  const triggerProps: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(rest)) {
+    if (key.startsWith("data-") || key === "style") {
+      triggerProps[key] = value
+    } else {
+      rootProps[key] = value
+    }
+  }
+
   return (
-    <ChakraTooltip.Root {...rest}>
-      <ChakraTooltip.Trigger asChild>{children}</ChakraTooltip.Trigger>
+    <ChakraTooltip.Root {...rootProps}>
+      <ChakraTooltip.Trigger asChild {...triggerProps}>
+        {children}
+      </ChakraTooltip.Trigger>
       <Portal disabled={!portalled} container={portalRef}>
         <ChakraTooltip.Positioner>
           <ChakraTooltip.Content ref={ref} {...contentProps}>
