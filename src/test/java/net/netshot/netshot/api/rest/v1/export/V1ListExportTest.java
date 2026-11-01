@@ -167,7 +167,8 @@ public class V1ListExportTest {
 		Assertions.assertEquals(3, lines(limited).size());
 		Assertions.assertTrue(lines(limited).get(1).endsWith("router00002"), text(limited));
 		Assertions.assertEquals("3", limited.headers().firstValue("X-Total-Count").orElse(null));
-		Assertions.assertEquals(400, this.export("/devices?limit=0", CSV).statusCode());
+		// limit=0: all the rows, as without a limit
+		Assertions.assertEquals(4, lines(this.export("/devices?limit=0", CSV)).size());
 		// The JSON list is paged as usual
 		Assertions.assertEquals(100, this.admin.get("/devices").json().get("limit").asInt());
 	}

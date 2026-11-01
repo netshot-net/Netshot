@@ -50,7 +50,7 @@ A list answers one page, in an envelope:
 }
 ```
 
-- `offset` and `limit` select the page. Without `limit`, a page holds `netshot.http.api.pagesize.default` items (100); there is no maximum unless `netshot.http.api.pagesize.max` is set, a `limit` above it is then refused (see the [configuration reference](../configuration-reference.md#embedded-http-server)).
+- `offset` and `limit` select the page. Without `limit`, a page holds `netshot.http.api.pagesize.default` items (100); there is no maximum unless `netshot.http.api.pagesize.max` is set, a `limit` above it is then refused (see the [configuration reference](../configuration-reference.md#embedded-http-server)). `limit=0` gives all the matching items in one answer (`limit` is then `0` in the answer, and `next` is `null`), unless a maximum is set (400).
 - `count` is the total number of matching items; `count=false` skips counting it (faster on large lists, `next` is then given as long as a page is full).
 - `sort=name,-changeDate` sorts the list (`-` for a descending order); the ID always ends the order, so that the pages are stable.
 - `q=<text>` searches the text in the main text properties (case-insensitive).
@@ -334,7 +334,7 @@ The v1 API has no report endpoints: the reports of the legacy API are queries on
 ### System
 
 - `GET /api/v1/system/info` (read-only level): `version`, `serverTime`, `sessionMaxIdleTime`.
-- `GET /api/v1/system/cluster/members` (admin level): the members of the cluster (empty without clustering).
+- `GET /api/v1/system/cluster/members` (admin level): the members of the cluster (empty without clustering), in a single page (selection parameters only: no paging, sort, search or filter).
 - `GET /api/v1/system/cluster/master` (no authentication): `clusterEnabled`, `master`, `currentMasterId`; `200` on the master (or without clustering), `503` on another member, so a load balancer can use it to reach the master only.
-- `GET /api/v1/system/services` (admin level): the services of the server (task manager, Syslog server, web server...) with their `state`, `healthy` and `stats`.
+- `GET /api/v1/system/services` (admin level): the services of the server (task manager, Syslog server, web server...) with their `state`, `healthy` and `stats`, in a single page (selection parameters only).
 - `GET /api/v1/health` (no authentication): `{"status": "UP"}` (`200`) when all the services run and are healthy, `{"status": "DOWN"}` (`503`) otherwise, including while the server starts or stops. It tells nothing else. For a Kubernetes probe: `httpGet: {path: /api/v1/health, port: 8443, scheme: HTTPS}`.

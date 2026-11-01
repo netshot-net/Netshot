@@ -146,6 +146,7 @@ public final class ListParams {
 	 * Reads the list query of a request. An export ({@link #EXPORT}) has no page by default: it asks for one row
 	 * more than {@link #exportMaxRows()} (so that a bigger export is detected and refused), unless the request
 	 * has a {@code limit}, which can then be up to {@link #exportMaxRows()} instead of the maximum page size.
+	 * {@code limit=0} asks for all the items (no page), unless a maximum page size is set.
 	 *
 	 * @param params the query parameters
 	 * @param schema what the list can be filtered and sorted on
@@ -159,9 +160,9 @@ public final class ListParams {
 		if (offset == null) {
 			offset = 0;
 		}
-		Integer limit = integer(params, LIMIT, 1);
+		Integer limit = integer(params, LIMIT, 0);
 		if (params.containsKey(EXPORT)) {
-			if (limit == null) {
+			if (limit == null || limit == 0) {
 				limit = exportMaxRows() + 1;
 			}
 			else if (limit > exportMaxRows()) {
@@ -170,6 +171,13 @@ public final class ListParams {
 		}
 		else if (limit == null) {
 			limit = settings.defaultPageSize();
+		}
+		else if (limit == 0) {
+			if (settings.maxPageSize() != null) {
+				throw NetshotException.invalidParameter(LIMIT,
+					"All the items (limit=0) can't be asked for, the limit can't be more than %d".formatted(settings.maxPageSize()));
+			}
+			limit = null;
 		}
 		else if (settings.maxPageSize() != null && limit > settings.maxPageSize()) {
 			throw NetshotException.invalidParameter(LIMIT,

@@ -100,7 +100,7 @@ A running device task (snapshot, diagnostics, script) holds a connection of the 
 | `netshot.http.apipath` | URL path under which the REST API is served (the v1 API is served under `<apipath>/v1`). Default: `/api`. | Restart |
 | `netshot.http.api.v0.enabled` | Serves the [legacy REST API](api/rest-api.md) (v0, under `netshot.http.apipath`), for the existing integrations; the Web UI uses the [v1 API](api/rest-api-v1.md). Default: `false`. | Restart |
 | `netshot.http.api.pagesize.default` | Number of items of a page of a v1 API list when the request gives no `limit`. Default: `100` (capped to `netshot.http.api.pagesize.max` when set). | Yes |
-| `netshot.http.api.pagesize.max` | Maximum `limit` of a v1 API list request (a higher one is refused with a 400 error). Default: none (no maximum). | Yes |
+| `netshot.http.api.pagesize.max` | Maximum `limit` of a v1 API list request (a higher one, or `limit=0` which asks for all the items, is refused with a 400 error). Default: none (no maximum). | Yes |
 | `netshot.http.api.export.maxrows` | Maximum number of rows of a list exported as CSV or Excel by the v1 API (an export isn't paginated; a larger one is refused with a 400 error). Default: `100000` (1 to 5000000). | Yes |
 | `netshot.http.trustxforwardedfor` | Trust the `X-Forwarded-For` header to log the real client IP (used in AAA audit) when behind a proxy. Default: `false`. | Yes |
 | `netshot.http.sessioncookiename` | Name of the session cookie. | Restart |

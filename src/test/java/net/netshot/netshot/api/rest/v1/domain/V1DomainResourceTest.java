@@ -182,7 +182,14 @@ public class V1DomainResourceTest {
 
 		// No maximum by default (netshot.http.api.pagesize.max)
 		Assertions.assertEquals(200, this.admin.get("/domains?limit=100000").status());
-		Assertions.assertEquals(400, this.admin.get("/domains?limit=0").status());
+		Assertions.assertEquals(400, this.admin.get("/domains?limit=-1").status());
+
+		// limit=0: all the items, no next page (even uncounted)
+		JsonNode all = this.admin.get("/domains?limit=0&count=false&offset=1").json();
+		Assertions.assertEquals(0, all.get("limit").asInt());
+		Assertions.assertEquals(4, all.get("results").size());
+		Assertions.assertTrue(all.get("next").isNull());
+		Assertions.assertEquals("/api/v1/domains?offset=0&count=false&limit=0", all.get("previous").asText());
 		Assertions.assertEquals(400, this.admin.get("/domains?offset=-1").status());
 		Assertions.assertEquals(400, this.admin.get("/domains?limit=abc").status());
 	}

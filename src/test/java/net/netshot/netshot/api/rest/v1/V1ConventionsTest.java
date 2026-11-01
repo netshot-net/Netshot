@@ -93,7 +93,7 @@ public class V1ConventionsTest {
 	}
 
 	@Test
-	@DisplayName("The page size has no maximum by default, a configured maximum is enforced")
+	@DisplayName("The page size has no maximum by default (limit=0: no page), a configured maximum is enforced")
 	void pageSizeMaximum() {
 		QuerySchema schema = new QuerySchema(java.util.Map.of(), java.util.List.of());
 		MultivaluedHashMap<String, String> params = new MultivaluedHashMap<>();
@@ -102,6 +102,8 @@ public class V1ConventionsTest {
 			TestConfig.init(new Properties());
 			Assertions.assertNull(ListParams.settings().maxPageSize());
 			Assertions.assertEquals(100000, ListParams.parse(params, schema).page().limit());
+			params.putSingle(ListParams.LIMIT, "0");
+			Assertions.assertNull(ListParams.parse(params, schema).page().limit(), "limit=0: all the items");
 			params.remove(ListParams.LIMIT);
 			Assertions.assertEquals(100, ListParams.parse(params, schema).page().limit());
 
@@ -112,6 +114,9 @@ public class V1ConventionsTest {
 			params.putSingle(ListParams.LIMIT, "51");
 			NetshotException tooBig = Assertions.assertThrows(NetshotException.class, () -> ListParams.parse(params, schema));
 			Assertions.assertEquals(ListParams.LIMIT, tooBig.getTarget());
+			params.putSingle(ListParams.LIMIT, "0");
+			NetshotException all = Assertions.assertThrows(NetshotException.class, () -> ListParams.parse(params, schema), "No limit=0 with a maximum");
+			Assertions.assertEquals(ListParams.LIMIT, all.getTarget());
 		}
 		finally {
 			TestConfig.init(new Properties());

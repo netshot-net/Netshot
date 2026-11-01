@@ -1297,7 +1297,7 @@ export interface paths {
         };
         /**
          * List the cluster members
-         * @description Lists the members of the high availability cluster (none if clustering is not enabled), in a single page. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the members of the high availability cluster (none if clustering is not enabled), in a single page.
          */
         get: operations["listClusterMembers"];
         put?: never;
@@ -1317,7 +1317,7 @@ export interface paths {
         };
         /**
          * List the services of the server
-         * @description Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page.
          */
         get: operations["listServices"];
         put?: never;
@@ -1670,7 +1670,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -1921,7 +1921,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2077,7 +2077,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2106,7 +2106,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2129,7 +2129,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2209,7 +2209,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2291,7 +2291,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2413,7 +2413,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2492,7 +2492,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2522,7 +2522,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2568,7 +2568,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2605,7 +2605,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2767,7 +2767,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2862,7 +2862,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2923,7 +2923,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2959,7 +2959,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -2988,7 +2988,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3056,7 +3056,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3090,7 +3090,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3119,7 +3119,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3153,7 +3153,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3228,7 +3228,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3284,7 +3284,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3348,7 +3348,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3371,7 +3371,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3405,7 +3405,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3489,7 +3489,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3543,7 +3543,7 @@ export interface components {
             offset: number;
             /**
              * Format: int32
-             * @description Maximum number of items of the page
+             * @description Maximum number of items of the page (0: all the items)
              */
             limit: number;
             /** @description Path of the next page */
@@ -3572,7 +3572,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -3844,7 +3844,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -3885,7 +3885,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -3929,7 +3929,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4110,7 +4110,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4291,7 +4291,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4335,7 +4335,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4516,7 +4516,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4560,7 +4560,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4638,7 +4638,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4933,7 +4933,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -4974,7 +4974,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5018,7 +5018,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5199,7 +5199,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5240,7 +5240,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5284,7 +5284,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5332,7 +5332,7 @@ export interface operations {
                 include?: string;
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5674,7 +5674,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5715,7 +5715,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5776,7 +5776,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5817,7 +5817,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -5858,7 +5858,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6039,7 +6039,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6083,7 +6083,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6264,7 +6264,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6447,7 +6447,7 @@ export interface operations {
                 query?: string;
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6491,7 +6491,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6672,7 +6672,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -6881,16 +6881,6 @@ export interface operations {
     listClusterMembers: {
         parameters: {
             query?: {
-                /** @description Number of items to skip (paging) */
-                offset?: number;
-                /** @description Number of items of the page */
-                limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
-                sort?: string;
-                /** @description Free text search */
-                q?: string;
-                /** @description false to skip the count of the matching items */
-                count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
                 /** @description Properties to write, comma-separated (dotted paths for nested ones) */
@@ -6922,16 +6912,6 @@ export interface operations {
     listServices: {
         parameters: {
             query?: {
-                /** @description Number of items to skip (paging) */
-                offset?: number;
-                /** @description Number of items of the page */
-                limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
-                sort?: string;
-                /** @description Free text search */
-                q?: string;
-                /** @description false to skip the count of the matching items */
-                count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
                 /** @description Properties to write, comma-separated (dotted paths for nested ones) */
@@ -6965,7 +6945,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -7034,7 +7014,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -7211,7 +7191,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;
@@ -7392,7 +7372,7 @@ export interface operations {
             query?: {
                 /** @description Number of items to skip (paging) */
                 offset?: number;
-                /** @description Number of items of the page */
+                /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
                 /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
                 sort?: string;

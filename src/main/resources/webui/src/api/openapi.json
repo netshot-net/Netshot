@@ -102,7 +102,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -569,7 +569,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -684,7 +684,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -790,7 +790,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -1124,7 +1124,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -1469,7 +1469,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -1575,7 +1575,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -1920,7 +1920,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -2033,7 +2033,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -2207,7 +2207,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -2747,7 +2747,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -2862,7 +2862,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -2968,7 +2968,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -3305,7 +3305,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -3420,7 +3420,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -3535,7 +3535,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -3655,7 +3655,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -4316,7 +4316,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -4422,7 +4422,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -4544,7 +4544,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -4650,7 +4650,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -4756,7 +4756,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -5101,7 +5101,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -5207,7 +5207,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -5542,7 +5542,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -5894,7 +5894,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6000,7 +6000,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6335,7 +6335,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6675,51 +6675,9 @@
       "get" : {
         "tags" : [ "System" ],
         "summary" : "List the cluster members",
-        "description" : "Lists the members of the high availability cluster (none if clustering is not enabled), in a single page. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).",
+        "description" : "Lists the members of the high availability cluster (none if clustering is not enabled), in a single page.",
         "operationId" : "listClusterMembers",
         "parameters" : [ {
-          "name" : "offset",
-          "in" : "query",
-          "description" : "Number of items to skip (paging)",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "name" : "limit",
-          "in" : "query",
-          "description" : "Number of items of the page",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "name" : "sort",
-          "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate)",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "q",
-          "in" : "query",
-          "description" : "Free text search",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "count",
-          "in" : "query",
-          "description" : "false to skip the count of the matching items",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
-          }
-        }, {
           "name" : "view",
           "in" : "query",
           "description" : "View of the items: brief or full",
@@ -6781,51 +6739,9 @@
       "get" : {
         "tags" : [ "System" ],
         "summary" : "List the services of the server",
-        "description" : "Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).",
+        "description" : "Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page.",
         "operationId" : "listServices",
         "parameters" : [ {
-          "name" : "offset",
-          "in" : "query",
-          "description" : "Number of items to skip (paging)",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "name" : "limit",
-          "in" : "query",
-          "description" : "Number of items of the page",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "name" : "sort",
-          "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate)",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "q",
-          "in" : "query",
-          "description" : "Free text search",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "count",
-          "in" : "query",
-          "description" : "false to skip the count of the matching items",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
-          }
-        }, {
           "name" : "view",
           "in" : "query",
           "description" : "View of the items: brief or full",
@@ -6910,7 +6826,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -7056,7 +6972,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -7398,7 +7314,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -7734,7 +7650,7 @@
         }, {
           "name" : "limit",
           "in" : "query",
-          "description" : "Number of items of the page",
+          "description" : "Number of items of the page (0: all the items, unless a maximum page size is set)",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -8261,7 +8177,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -9076,7 +8992,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -9536,7 +9452,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -9597,7 +9513,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -9637,7 +9553,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -9837,7 +9753,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -10050,7 +9966,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -10390,7 +10306,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -10555,7 +10471,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -10615,7 +10531,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -10728,7 +10644,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -10809,7 +10725,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -11225,7 +11141,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -11470,7 +11386,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -11650,7 +11566,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -11736,7 +11652,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -11792,7 +11708,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -11969,7 +11885,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12044,7 +11960,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12101,7 +12017,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12177,7 +12093,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12375,7 +12291,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12522,7 +12438,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12683,7 +12599,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12723,7 +12639,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12796,7 +12712,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -12999,7 +12915,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {
@@ -13117,7 +13033,7 @@
           },
           "limit" : {
             "type" : "integer",
-            "description" : "Maximum number of items of the page",
+            "description" : "Maximum number of items of the page (0: all the items)",
             "format" : "int32"
           },
           "next" : {

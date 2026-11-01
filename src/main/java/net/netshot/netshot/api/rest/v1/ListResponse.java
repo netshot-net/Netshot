@@ -42,7 +42,7 @@ import net.netshot.netshot.platform.query.ListResult;
 public record ListResponse<T>(
 	@Schema(description = "Total number of matching items (null if count=false)", nullable = true) Long count,
 	@Schema(description = "Offset of the first item of the page") int offset,
-	@Schema(description = "Maximum number of items of the page") int limit,
+	@Schema(description = "Maximum number of items of the page (0: all the items)") int limit,
 	@Schema(description = "Path of the next page", nullable = true) String next,
 	@Schema(description = "Path of the previous page", nullable = true) String previous,
 	@Schema(description = "The items of the page") List<T> results) {
@@ -61,7 +61,12 @@ public record ListResponse<T>(
 	public static <S, T> ListResponse<T> of(UriInfo uriInfo, ListQuery query, ListResult<S> result, Function<? super S, ? extends T> mapper) {
 		Page page = query.page();
 		int offset = page.offset() == null ? 0 : page.offset();
-		int limit = page.limit() == null ? result.items().size() : page.limit();
+		if (page.limit() == null) {
+			// limit=0: all the items (from the offset), no next page
+			return new ListResponse<>(result.count(), offset, 0, null, offset > 0 ? link(uriInfo, 0, 0) : null,
+				result.items().stream().<T>map(mapper).toList());
+		}
+		int limit = page.limit();
 		int size = result.items().size();
 		boolean hasNext = result.count() != null ? offset + size < result.count() : size >= limit && size > 0;
 		String next = hasNext ? link(uriInfo, offset + limit, limit) : null;
