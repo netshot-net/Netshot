@@ -26,7 +26,7 @@ import { usePolicy } from "../api"
 import { EmptyResult, Protected } from "@/components"
 import { DeviceGroupBadge } from "@/components/entity"
 
-function getRuleIcon(type: RuleType) {
+function getRuleIcon(type?: string) {
   if (type === RuleType.Javascript) return <SiJavascript />
   if (type === RuleType.Python) return <SiPython />
   return <LuAlignLeft />
@@ -116,7 +116,7 @@ export default function ConfigurationCompliancePolicyScreen() {
             <Stack direction="row" gap="2" flexWrap="wrap">
               {policy?.targetGroups?.length ? (
                 policy.targetGroups.map((group) => (
-                  <DeviceGroupBadge key={group.id} id={group.id} name={group.name} />
+                  <DeviceGroupBadge key={group.id} id={group.id!} name={group.name ?? group.display ?? ""} />
                 ))
               ) : (
                 <Text color="grey.400">—</Text>

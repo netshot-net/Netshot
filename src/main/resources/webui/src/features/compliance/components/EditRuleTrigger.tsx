@@ -1,8 +1,8 @@
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Rule, RuleType } from "@/types"
-import { booleanToString, stringToBoolean } from "@/utils"
+import type { Rule } from "@/api/rule"
+import { booleanToString } from "@/utils"
 import { MouseEvent, useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -10,6 +10,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { useUpdateRule } from "../api"
 import { RuleForm } from "../types"
+import { isScriptRuleType, toRuleRequest } from "../utils"
 import { EditTextRuleForm } from "./EditTextRuleForm"
 import EditScriptRuleForm from "./EditScriptRuleForm"
 
@@ -24,16 +25,16 @@ export default function EditRuleTrigger({ policyId, rule, children, ...rest }: E
     return {
       name: rule?.name,
       enabled: rule?.enabled ?? true,
-      script: rule?.script,
+      script: rule?.script ?? "",
       text: rule?.text ?? "",
-      regExp: rule?.regExp,
+      regExp: rule?.regExp ?? false,
       context: rule?.context ?? "",
       driver: rule?.deviceDriver,
       field: rule?.field,
-      matchAll: rule?.matchAll,
+      matchAll: rule?.matchAll ?? false,
       anyBlock: booleanToString(rule?.anyBlock),
       invert: booleanToString(rule?.invert),
-      normalize: rule?.normalize,
+      normalize: rule?.normalize ?? false,
     } as RuleForm
   }, [rule])
 
@@ -44,42 +45,23 @@ export default function EditRuleTrigger({ policyId, rule, children, ...rest }: E
 
   const mutation = useUpdateRule(rule, policyId)
 
-  const hasScript = useMemo(
-    () => rule?.type === RuleType.Javascript || rule?.type === RuleType.Python,
-    [rule]
-  )
+  const hasScript = isScriptRuleType(rule?.type)
 
   const open = (evt: MouseEvent) => {
     evt?.stopPropagation()
     const dialogRef = dialog.open(MUTATIONS.RULE_UPDATE, {
       title: t("policy.rule.edit"),
       description: hasScript ? (
-        <EditScriptRuleForm type={rule?.type} />
+        <EditScriptRuleForm type={rule.type} />
       ) : (
-        <EditTextRuleForm type={rule?.type} />
+        <EditTextRuleForm type={rule.type} />
       ),
       bodyProps: !hasScript ? { overflow: "hidden", display: "flex" } : undefined,
       form,
       size: "xl",
       variant: hasScript ? "full-floating" : undefined,
       async onSubmit(values: RuleForm) {
-        await mutation.mutateAsync({
-          id: rule.id,
-          name: values.name,
-          driver: values.driver!,
-          field: values.field!,
-          context: values.context,
-          script: values.script,
-          text: values.text,
-          anyBlock: stringToBoolean(values.anyBlock),
-          matchAll: values.matchAll,
-          invert: stringToBoolean(values.invert),
-          normalize: values.normalize,
-          enabled: values.enabled,
-          policy: policyId,
-          regExp: values.regExp,
-          type: rule.type,
-        })
+        await mutation.mutateAsync(toRuleRequest(rule.type, values, rule.policy?.id ?? policyId))
 
         dialogRef.close()
         form.reset(values)

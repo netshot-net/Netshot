@@ -2,18 +2,18 @@ import { LogPanel } from "@/components"
 import { DeviceAutocomplete } from "@/features/device/components"
 import { DeviceComplianceTag } from "@/components/entity"
 import { useLocalization } from "@/i18n"
-import { Rule, RuleType, LightDevice } from "@/types"
-import { stringToBoolean } from "@/utils"
+import { DeviceComplianceResultType } from "@/types"
 import { Box, Button, IconButton, Stack, Text } from "@chakra-ui/react"
 import { useFormContext } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { LuBugPlay, LuScrollText } from "react-icons/lu"
-import { useTestRuleScript, useTestRuleText } from "../api"
+import { useTestRule } from "../api"
 import { RuleForm } from "../types"
+import { toRuleRequest } from "../utils"
 import { useState } from "react"
 
 export type TestRuleOnDeviceButtonProps = {
-  type: Rule["type"]
+  type?: string
 }
 
 export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProps) {
@@ -21,13 +21,10 @@ export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProp
   const { t } = useTranslation()
   const { formatHourMinute } = useLocalization()
   const form = useFormContext<RuleForm>()
-  const [device, setDevice] = useState<LightDevice | null>(null)
+  const [device, setDevice] = useState<{ id: number } | null>(null)
   const [testedAt, setTestedAt] = useState<Date | null>(null)
 
-  const isScript = type === RuleType.Javascript || type === RuleType.Python
-  const textMutation = useTestRuleText()
-  const scriptMutation = useTestRuleScript()
-  const mutation = isScript ? scriptMutation : textMutation
+  const mutation = useTestRule()
 
   function runTest() {
     if (!device) return
@@ -35,27 +32,11 @@ export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProp
     const values = form.getValues()
     setTestedAt(new Date())
 
-    if (isScript) {
-      scriptMutation.mutate({ device: device.id, script: values.script, type })
-    } else {
-      textMutation.mutate({
-        device: device.id,
-        anyBlock: stringToBoolean(values.anyBlock),
-        context: values.context,
-        driver: values.driver!,
-        field: values.field!,
-        invert: stringToBoolean(values.invert),
-        matchAll: values.matchAll,
-        normalize: values.normalize,
-        regExp: values.regExp,
-        text: values.text,
-        type,
-      })
-    }
+    mutation.mutate({ device: device.id, rule: toRuleRequest(type ?? "", { ...values, name: values.name || "test" }) })
   }
 
   const result = mutation.data
-  const logText = [result?.comment, result?.scriptError].filter(Boolean).join("\n\n")
+  const logText = [result?.comment, result?.log].filter(Boolean).join("\n\n")
 
   return (
     <Stack gap="3">
@@ -64,7 +45,7 @@ export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProp
         value={device ? [device.id.toString()] : []}
         placeholder={t("policy.rule.testOnDevice")}
         onSelectItem={(d) => {
-          setDevice(d)
+          setDevice(d ? { id: d.id } : null)
           if (!d) {
             mutation.reset()
             setTestedAt(null)
@@ -86,7 +67,7 @@ export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProp
       <Box minH="8">
         {result && (
           <Stack direction="row" alignItems="center" gap="2">
-            <DeviceComplianceTag resultType={result.result} alignSelf="start" />
+            <DeviceComplianceTag resultType={result.result as DeviceComplianceResultType} alignSelf="start" />
             {testedAt && (
               <Text fontSize="xs" color="fg.muted">{formatHourMinute(testedAt)}</Text>
             )}
@@ -106,9 +87,9 @@ export default function TestRuleOnDeviceButton(props: TestRuleOnDeviceButtonProp
                     {result.comment}
                   </Text>
                 )}
-                {result.scriptError && (
+                {result.log && (
                   <Text fontSize="xs" whiteSpace="pre-wrap" fontFamily="mono" color="red.fg">
-                    {result.scriptError}
+                    {result.log}
                   </Text>
                 )}
               </Stack>
