@@ -13,7 +13,7 @@ export type Diagnostic = Schemas["Diagnostic"] & {
 export type DiagnosticRequest = Schemas["DiagnosticRequest"]
 
 async function getAll(params: ListParams = {}) {
-  return listAll<Diagnostic>("/diagnostics", { sort: "name", ...params })
+  return listAll<Diagnostic>("/diagnostics", { sort: "name", view: "full", ...params })
 }
 
 async function getById(id: number) {

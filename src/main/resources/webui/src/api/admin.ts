@@ -1,4 +1,4 @@
-import { client, list, ListParams, replace, Schemas } from "./client"
+import { Brief, client, list, ListParams, replace, Schemas } from "./client"
 
 export type ApiToken = Schemas["ApiToken"]
 export type ApiTokenCreated = Schemas["ApiTokenCreated"]
@@ -56,7 +56,7 @@ async function listAll<T>(path: string, params: ListParams = {}) {
 }
 
 async function getAllApiTokens(params: ListParams = {}) {
-  return list<ApiToken>("/api-tokens", params)
+  return list<Brief["ApiToken"]>("/api-tokens", params)
 }
 
 async function createApiToken(payload: ApiTokenRequest) {
@@ -68,7 +68,7 @@ async function removeApiToken(id: number) {
 }
 
 async function getAllCredentialSets(params: ListParams = {}) {
-  return list<CredentialSet>("/credential-sets", params)
+  return list<Brief["CredentialSet"]>("/credential-sets", params)
 }
 
 /** All the global credential sets (the choices of the devices' accesses). */
@@ -89,12 +89,12 @@ async function removeCredentialSet(id: number, version?: number | null) {
 }
 
 async function getAllDomains(params: ListParams = {}) {
-  return list<Domain>("/domains", params)
+  return list<Brief["Domain"]>("/domains", params)
 }
 
 /** All the domains (the choices of the domain selectors). */
 async function fetchAllDomains() {
-  return listAll<Domain>("/domains", { sort: "name" })
+  return listAll<Brief["Domain"]>("/domains", { sort: "name" })
 }
 
 async function createDomain(payload: Partial<Domain>) {
@@ -110,7 +110,7 @@ async function removeDomain(id: number, version?: number | null) {
 }
 
 async function getAllHooks(params: ListParams = {}) {
-  return list<Hook>("/hooks", params)
+  return list<Brief["WebHook"]>("/hooks", params)
 }
 
 async function createHook(payload: HookRequest) {
@@ -126,7 +126,7 @@ async function removeHook(id: number) {
 }
 
 async function getAllUsers(params: ListParams = {}) {
-  return list<User>("/users", params)
+  return list<Brief["User"]>("/users", params)
 }
 
 async function createUser(payload: UserRequest) {
@@ -142,7 +142,7 @@ async function removeUser(id: number) {
 }
 
 async function getAllDrivers(params: ListParams = {}) {
-  return list<DeviceType>("/device-types", params)
+  return list<Brief["DeviceType"]>("/device-types", params)
 }
 
 /**
@@ -153,12 +153,12 @@ async function reloadDrivers() {
 }
 
 async function getAllVaultInstances(params: ListParams = {}) {
-  return list<VaultInstance>("/vault-instances", params)
+  return list<Brief["VaultInstance"]>("/vault-instances", params)
 }
 
 /** All the Vault instances (the choices of the Vault-backed fields). */
 async function fetchAllVaultInstances() {
-  return listAll<VaultInstance>("/vault-instances", { sort: "name" })
+  return listAll<Brief["VaultInstance"]>("/vault-instances", { sort: "name" })
 }
 
 async function createVaultInstance(payload: VaultInstanceRequest) {
@@ -184,7 +184,7 @@ async function testSavedVaultInstance(id: number) {
 }
 
 async function getAllClusterMembers() {
-  return list<ClusterMember>("/system/cluster/members")
+  return list<ClusterMember>("/system/cluster/members", { view: "full" })
 }
 
 export default {

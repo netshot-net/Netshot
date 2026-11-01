@@ -42,7 +42,7 @@ export default function AdministrationApiTokenScreen() {
   const { rows: data, isPending, onBottomReached } = useList<Hook>(
     [QUERIES.ADMIN_WEBHOOKS],
     "/hooks",
-    { q: pagination.query, sort: "name" }
+    { q: pagination.query, sort: "name", view: "full" }
   )
 
   const isSearching = Boolean(pagination.query?.trim())

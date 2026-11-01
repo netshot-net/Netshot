@@ -45,6 +45,7 @@ export default function SoftwareComplianceScreen() {
   } = useList<SoftwareRule>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
     family__ic: pagination.query?.trim(),
     sort: "priority",
+    view: "full",
   })
   const isSuccess = !isPending
 

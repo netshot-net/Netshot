@@ -32,7 +32,7 @@ export default function DeviceInterfaceScreen() {
     ],
     // The server searches the name and description
     queryFn: async () =>
-      listAll<DeviceInterface>(`/devices/${params.id}/interfaces`, { q: pagination.query?.trim() }),
+      listAll<DeviceInterface>(`/devices/${params.id}/interfaces`, { q: pagination.query?.trim(), view: "full" }),
   })
 
   const isSearching = Boolean(pagination.query?.trim())

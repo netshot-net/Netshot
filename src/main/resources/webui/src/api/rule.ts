@@ -1,4 +1,4 @@
-import { client, list, ListParams, ListResponse, patch, replace, Schemas } from "./client"
+import { Brief, client, list, ListParams, ListResponse, patch, replace, Schemas } from "./client"
 
 /**
  * A compliance rule: every property of the rule types in one type, only those of its type are set (text rule: field,
@@ -81,7 +81,7 @@ async function enable(id: number) {
 
 /** The devices exempted from a rule. */
 async function getAllExemptedDevices(id: number) {
-  return listAll<Exemption>(`/compliance/rules/${id}/exemptions`, { sort: "expirationDate" })
+  return listAll<Brief["Exemption"]>(`/compliance/rules/${id}/exemptions`, { sort: "expirationDate" })
 }
 
 /** Replaces the whole set of the exemptions of a rule. */

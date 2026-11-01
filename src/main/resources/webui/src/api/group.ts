@@ -21,10 +21,10 @@ export type GroupListParams = {
   offset?: number
 }
 
-/** The groups (all the pages), in their brief view (name, folder and type), by folder then name. */
+/** The groups (all the pages), in their full view (the reports skip the groups hidden from reports). */
 async function getAll(params: GroupListParams = {}) {
   const { folder, type, q, sort } = params
-  return listAll<Group>("/groups", { folder, type, q, sort })
+  return listAll<Group>("/groups", { folder, type, q, sort, view: "full" })
 }
 
 /** A group in its full view, with the ETag (If-Match value) of its version. */
