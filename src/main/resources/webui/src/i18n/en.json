@@ -977,7 +977,7 @@
       "privKeySecret": "Privacy key"
     },
     "api": {
-      "documentation": "API Documentation",
+      "documentation": "API Documentation (v1)",
       "successfullyCreated": "API token has been successfully created",
       "successfullyRemoved": "API token has been successfully removed",
       "tokens": "API tokens",

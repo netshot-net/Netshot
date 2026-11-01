@@ -134,7 +134,7 @@ export default function NavbarUser() {
               </a>
             </Menu.Item>
             <Menu.Item value="api-doc" asChild>
-              <Link to="/app/api-browser" target="_blank" rel="noreferrer">
+              <Link to="/app/api-browser/v1" target="_blank" rel="noreferrer">
                 <LuBookMarked />
                 {t("api.documentation")}
               </Link>
