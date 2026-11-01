@@ -1,17 +1,26 @@
 import { useDeviceCredentialSetAuthTypeOptions, useDeviceCredentialSetPrivateKeyTypeOptions } from "@/features/administration/hooks"
-import { useVaultInstances } from "@/features/administration/api"
 import FormControl, { FormControlType } from "@/components/FormControl"
 import { Select } from "@/components/Select"
 import Switch from "@/components/Switch"
 import VaultableInput from "@/components/VaultableInput"
 import BulkEditLockToggle from "./BulkEditLockToggle"
-import { CredentialSet, CredentialSetType, DeviceAccess, DeviceAccessDefinition, DeviceTypeProtocol, HashingAlgorithm, HttpsCaTrustMode, Option, SshHostKeyVerification, VaultableFieldRefs } from "@/types"
+import { Schemas } from "@/api/client"
+import { DeviceAccessDefinition, DeviceTypeProtocol, HashingAlgorithm, HttpsCaTrustMode, Option, SshHostKeyVerification, VaultableFieldRefs } from "@/types"
 import { Collapsible, Separator, Stack, Text } from "@chakra-ui/react"
 import { useEffect, useMemo, useState } from "react"
 import { Control, useController, useFieldArray, UseFormSetValue, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { LuChevronRight } from "react-icons/lu"
-import { useCredentialSets } from "../api"
+import { useCredentialSets, useVaultInstanceChoices } from "../api"
+
+/** The types of credential sets, as the API names them. */
+export type CredentialSetType = NonNullable<Schemas["DeviceCredentialSetRequest"]["type"]>
+type CredentialSet = Schemas["DeviceCredentialSetRequest"]
+
+/** The Vault location of a secret in a request, if the field is backed by Vault. */
+function vaultOf(instanceId: number | null | undefined, path: string | null | undefined) {
+  return instanceId !== null && instanceId !== undefined ? { vaultInstance: instanceId, path: path ?? "" } : undefined
+}
 
 export type DeviceAccessCredentialMode = "none" | "global" | "specific"
 export type SshAuthMethod = "password" | "key"
@@ -51,7 +60,7 @@ export type DeviceAccessFieldsProps = {
   control: Control<any>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setValue: UseFormSetValue<any>
-  accessDefinitions: Record<string, DeviceAccessDefinition> | undefined
+  accessDefinitions: DeviceAccessDefinition[] | undefined
   /** Bulk-edit mode: every row starts locked ("leave unchanged on all selected devices") and must be explicitly unlocked to be included in the payload. */
   bulk?: boolean
 }
@@ -81,18 +90,18 @@ function humanizeAccessName(name: string): string {
 export function getSpecificCredentialType(protocol: string): CredentialSetType | undefined {
   switch (protocol) {
     case DeviceTypeProtocol.Ssh:
-      return CredentialSetType.SSH
+      return "SSH"
     case DeviceTypeProtocol.Telnet:
-      return CredentialSetType.Telnet
+      return "TELNET"
     case DeviceTypeProtocol.Http:
     case DeviceTypeProtocol.Https:
-      return CredentialSetType.HTTP
+      return "HTTP"
     case DeviceTypeProtocol.SnmpV1:
-      return CredentialSetType.SNMP_V1
+      return "SNMP_V1"
     case DeviceTypeProtocol.SnmpV2c:
-      return CredentialSetType.SNMP_V2C
+      return "SNMP_V2C"
     case DeviceTypeProtocol.SnmpV3:
-      return CredentialSetType.SNMP_V3
+      return "SNMP_V3"
     default:
       return undefined
   }
@@ -101,7 +110,7 @@ export function getSpecificCredentialType(protocol: string): CredentialSetType |
 /** Same as {@link getSpecificCredentialType}, but for an SSH access, honors the row's password-vs-key choice. */
 function getEffectiveSpecificCredentialType(protocol: string, sshAuthMethod: SshAuthMethod): CredentialSetType | undefined {
   if (protocol === DeviceTypeProtocol.Ssh && sshAuthMethod === "key") {
-    return CredentialSetType.SSHKey
+    return "SSH_KEY"
   }
   return getSpecificCredentialType(protocol)
 }
@@ -109,7 +118,7 @@ function getEffectiveSpecificCredentialType(protocol: string, sshAuthMethod: Ssh
 /** Global credential sets compatible with an access's protocol (SSH accesses also accept SSH-key sets). */
 function getCompatibleCredentialTypes(protocol: string): CredentialSetType[] {
   if (protocol === DeviceTypeProtocol.Ssh) {
-    return [CredentialSetType.SSH, CredentialSetType.SSHKey]
+    return ["SSH", "SSH_KEY"]
   }
   const type = getSpecificCredentialType(protocol)
   return type ? [type] : []
@@ -145,7 +154,7 @@ export function SpecificCredentialFields({
   const { field: privTypeField } = useController({ control, name: `${namePrefix}.privType` })
   const { field: privKeyField } = useController({ control, name: `${namePrefix}.privKey` })
 
-  if (type === CredentialSetType.SSH || type === CredentialSetType.Telnet) {
+  if (type === "SSH" || type === "TELNET") {
     return (
       <>
         <VaultableInput
@@ -181,7 +190,7 @@ export function SpecificCredentialFields({
       </>
     )
   }
-  if (type === CredentialSetType.SSHKey) {
+  if (type === "SSH_KEY") {
     return (
       <>
         <VaultableInput
@@ -230,7 +239,7 @@ export function SpecificCredentialFields({
       </>
     )
   }
-  if (type === CredentialSetType.HTTP) {
+  if (type === "HTTP") {
     return (
       <>
         <VaultableInput
@@ -255,7 +264,7 @@ export function SpecificCredentialFields({
       </>
     )
   }
-  if (type === CredentialSetType.SNMP_V1 || type === CredentialSetType.SNMP_V2C) {
+  if (type === "SNMP_V1" || type === "SNMP_V2C") {
     return (
       <VaultableInput
         required
@@ -270,7 +279,7 @@ export function SpecificCredentialFields({
       />
     )
   }
-  if (type === CredentialSetType.SNMP_V3) {
+  if (type === "SNMP_V3") {
     return (
       <>
         <VaultableInput
@@ -486,8 +495,8 @@ function AccessRow({
         value: TRY_ALL_CREDENTIALS_VALUE,
       },
       ...(credentialSets ?? [])
-        .filter((cs) => compatibleTypes.includes(cs.type))
-        .map((cs) => ({ label: cs.name, value: String(cs.id) })),
+        .filter((cs) => cs.type && compatibleTypes.includes(cs.type))
+        .map((cs) => ({ label: cs.name ?? String(cs.id), value: String(cs.id) })),
     ],
     [credentialSets, compatibleTypes, t]
   )
@@ -723,17 +732,17 @@ function preserveSecret(value: string | null | undefined): string | null {
 export default function DeviceAccessFields({ control, setValue, accessDefinitions, bulk = false }: DeviceAccessFieldsProps) {
   const { t } = useTranslation()
   const { fields, replace } = useFieldArray({ control, name: "accesses" })
-  const { data: vaultInstanceList } = useVaultInstances()
+  const { data: vaultInstanceList } = useVaultInstanceChoices()
 
   const vaultInstances = useMemo(
-    () => (vaultInstanceList ?? []).map((instance) => ({ label: instance.name, value: instance.id })),
+    () => (vaultInstanceList ?? []).map((instance) => ({ label: instance.name ?? String(instance.id), value: instance.id as number })),
     [vaultInstanceList]
   )
 
-  const accessNamesKey = Object.keys(accessDefinitions ?? {}).sort().join(",")
+  const accessNamesKey = (accessDefinitions ?? []).map((def) => def.name).sort().join(",")
 
   useEffect(() => {
-    const defs = Object.values(accessDefinitions ?? {})
+    const defs = accessDefinitions ?? []
     replace(
       defs.map((def) => {
         const existing = (fields as unknown as DeviceAccessFormValue[]).find((f) => f.accessName === def.name)
@@ -788,7 +797,7 @@ export default function DeviceAccessFields({ control, setValue, accessDefinition
     // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [accessNamesKey])
 
-  if (!accessDefinitions || Object.keys(accessDefinitions).length === 0) {
+  if (!accessDefinitions || accessDefinitions.length === 0) {
     return null
   }
 
@@ -799,7 +808,7 @@ export default function DeviceAccessFields({ control, setValue, accessDefinition
   )
   const groupOrder: string[] = []
   const defsByGroup = new Map<string, DeviceAccessDefinition[]>()
-  Object.values(accessDefinitions).forEach((def) => {
+  accessDefinitions.forEach((def) => {
     if (!defsByGroup.has(def.group)) {
       defsByGroup.set(def.group, [])
       groupOrder.push(def.group)
@@ -852,74 +861,67 @@ function secret(value: string | null | undefined): string | undefined {
   return value || undefined
 }
 
+/**
+ * A secret of a request: its Vault location if Vault-backed, else its new value (the other one is set to null
+ * to switch between them) or nothing (unchanged).
+ */
+function secretFields<K extends string>(
+  name: K,
+  value: string | null | undefined,
+  instanceId: number | null | undefined,
+  path: string | null | undefined
+) {
+  const vault = vaultOf(instanceId, path)
+  const fields: Record<string, unknown> = {}
+  if (vault) {
+    fields[`${name}Vault`] = vault
+    fields[name] = null
+  } else {
+    fields[`${name}Vault`] = null
+    const newValue = secret(value)
+    if (newValue !== undefined) {
+      fields[name] = newValue
+    }
+  }
+  return fields
+}
+
 function buildSpecificCredentialPayload(access: DeviceAccessFormValue): CredentialSet | undefined {
   const type = getEffectiveSpecificCredentialType(access.protocol, access.sshAuthMethod)
   if (!type) {
     return undefined
   }
+  const username = secretFields("username", access.username, access.usernameVaultInstanceId, access.usernameVaultPath)
+  const password = secretFields("password", access.password, access.passwordVaultInstanceId, access.passwordVaultPath)
+  const superPassword = secretFields("superPassword", access.superPassword, access.superPasswordVaultInstanceId, access.superPasswordVaultPath)
   switch (type) {
-    case CredentialSetType.SSH:
-    case CredentialSetType.Telnet:
+    case "SSH":
+    case "TELNET":
+      return { type, ...username, ...password, ...superPassword } as CredentialSet
+    case "SSH_KEY":
       return {
         type,
-        username: access.username,
-        password: secret(access.password),
-        superPassword: secret(access.superPassword),
-        usernameVaultInstanceId: access.usernameVaultInstanceId,
-        usernameVaultPath: access.usernameVaultPath,
-        passwordVaultInstanceId: access.passwordVaultInstanceId,
-        passwordVaultPath: access.passwordVaultPath,
-        superPasswordVaultInstanceId: access.superPasswordVaultInstanceId,
-        superPasswordVaultPath: access.superPasswordVaultPath,
+        ...username,
+        ...secretFields("privateKey", access.privateKey, access.privateKeyVaultInstanceId, access.privateKeyVaultPath),
+        ...password,
+        ...superPassword,
       } as CredentialSet
-    case CredentialSetType.SSHKey:
+    case "HTTP":
+      return { type, ...username, ...password } as CredentialSet
+    case "SNMP_V1":
+    case "SNMP_V2C":
       return {
         type,
-        username: access.username,
-        privateKey: secret(access.privateKey),
-        password: secret(access.password),
-        superPassword: secret(access.superPassword),
-        usernameVaultInstanceId: access.usernameVaultInstanceId,
-        usernameVaultPath: access.usernameVaultPath,
-        privateKeyVaultInstanceId: access.privateKeyVaultInstanceId,
-        privateKeyVaultPath: access.privateKeyVaultPath,
-        passwordVaultInstanceId: access.passwordVaultInstanceId,
-        passwordVaultPath: access.passwordVaultPath,
-        superPasswordVaultInstanceId: access.superPasswordVaultInstanceId,
-        superPasswordVaultPath: access.superPasswordVaultPath,
+        ...secretFields("community", access.community, access.communityVaultInstanceId, access.communityVaultPath),
       } as CredentialSet
-    case CredentialSetType.HTTP:
+    case "SNMP_V3":
       return {
         type,
-        username: access.username || undefined,
-        password: secret(access.password),
-        usernameVaultInstanceId: access.usernameVaultInstanceId,
-        usernameVaultPath: access.usernameVaultPath,
-        passwordVaultInstanceId: access.passwordVaultInstanceId,
-        passwordVaultPath: access.passwordVaultPath,
-      } as CredentialSet
-    case CredentialSetType.SNMP_V1:
-    case CredentialSetType.SNMP_V2C:
-      return {
-        type,
-        community: secret(access.community),
-        communityVaultInstanceId: access.communityVaultInstanceId,
-        communityVaultPath: access.communityVaultPath,
-      } as CredentialSet
-    case CredentialSetType.SNMP_V3:
-      return {
-        type,
-        username: access.username,
+        ...username,
         authType: access.authType,
-        authKey: secret(access.authKey),
+        ...secretFields("authKey", access.authKey, access.authKeyVaultInstanceId, access.authKeyVaultPath),
         privType: access.privType,
-        privKey: secret(access.privKey),
-        usernameVaultInstanceId: access.usernameVaultInstanceId,
-        usernameVaultPath: access.usernameVaultPath,
-        authKeyVaultInstanceId: access.authKeyVaultInstanceId,
-        authKeyVaultPath: access.authKeyVaultPath,
-        privKeyVaultInstanceId: access.privKeyVaultInstanceId,
-        privKeyVaultPath: access.privKeyVaultPath,
+        ...secretFields("privKey", access.privKey, access.privKeyVaultInstanceId, access.privKeyVaultPath),
       } as CredentialSet
     default:
       return undefined
@@ -928,25 +930,24 @@ function buildSpecificCredentialPayload(access: DeviceAccessFormValue): Credenti
 
 /**
  * Shapes the `accesses` field array of a device create/edit form into the
- * REST payload. An access with no row at all is never used (see
+ * accesses of the request. An access with no row at all is never used (see
  * `AccessManager`), so a `none` row is simply omitted here entirely - the
- * backend removes any existing row for it (see `Device.replaceAccesses`). A
- * `global` mode with a specific pick resolves to `{id, type}` (looked up
- * from the fetched credential set list), a `global` mode left on "try all
+ * server removes any existing row for it. A `global` mode with a specific
+ * pick gives the ID of the credential set, a `global` mode left on "try all
  * known credentials" is sent as a bare `{accessName}` (falls through to the
  * domain's auto-try pool), and a `specific` pin builds the inline credential
  * object for that access's family (honoring the SSH password-vs-key choice).
  */
 export function buildAccessesPayload(
   accesses: DeviceAccessFormValue[] | undefined,
-  credentialSets: CredentialSet[] | null | undefined
-): DeviceAccess[] {
-  const result: DeviceAccess[] = []
+  credentialSets: Schemas["CredentialSet"][] | null | undefined
+): Schemas["DeviceAccessRequest"][] {
+  const result: Schemas["DeviceAccessRequest"][] = []
   for (const access of accesses ?? []) {
     if (access.mode === "none") {
       continue
     }
-    const entry: DeviceAccess = { accessName: access.accessName }
+    const entry: Schemas["DeviceAccessRequest"] = { accessName: access.accessName }
     if (access.overrideConnection && access.address) {
       entry.address = access.address
     }
@@ -964,8 +965,8 @@ export function buildAccessesPayload(
     if (access.mode === "global" && access.globalCredentialSetId
         && access.globalCredentialSetId !== TRY_ALL_CREDENTIALS_VALUE) {
       const credentialSet = (credentialSets ?? []).find((cs) => String(cs.id) === access.globalCredentialSetId)
-      if (credentialSet) {
-        entry.globalCredentialSet = { id: credentialSet.id, type: credentialSet.type } as CredentialSet
+      if (credentialSet?.id !== undefined) {
+        entry.globalCredentialSet = credentialSet.id
       }
     }
     else if (access.mode === "specific") {

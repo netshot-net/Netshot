@@ -4,7 +4,7 @@ import { NetshotError } from "@/api/httpClient"
 import { useDebounce, useToast } from "@/hooks"
 import { LuArrowLeft, LuArrowRight, LuCalendar, LuSearch } from "react-icons/lu"
 import { useDialogConfig } from "@/dialog"
-import { ExemptedDevice, Rule, LightDevice } from "@/types"
+import { ExemptedDevice, Rule, Device } from "@/types"
 import { useLocalization } from "@/i18n"
 import { DeviceListItem, DeviceNetworkClassIcon } from "@/components/entity"
 import {
@@ -90,7 +90,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   const [newExpirationDate, setNewExpirationDate] = useState<number>(() => addMonths(new Date(), 3).getTime())
   const initializedRef = useRef(false)
 
-  const leftCollection = useListCollection<LightDevice>({
+  const leftCollection = useListCollection<Device>({
     initialItems: [],
     itemToValue: (d) => d.id.toString(),
     itemToString: (d) => d.name,
@@ -129,7 +129,7 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
   }, [exemptedDevices])
 
   useEffect(() => {
-    const filtered = (searchResult?.devices ?? []).filter((d) => !exemptedIds.has(d.id))
+    const filtered = (searchResult?.results ?? []).filter((d) => !exemptedIds.has(d.id))
     leftCollection.set(filtered)
     // leftCollection is a fresh object every render (useListCollection isn't
     // memoized); adding it here would re-fire this effect on every render its

@@ -136,6 +136,7 @@
       "latestTasks": "Dernières tâches sur cet équipement",
       "lastChange": "Dernier changement",
       "lastChangeDate": "Date du dernier changement",
+      "lastSnapshotSuccess": "Dernier instantané réussi",
       "lastConnectionDate": "Date de dernière connexion",
       "lastFailedSnapshot": "Dernier snapshot échoué",
       "lastSeen": "Dernière détection",
@@ -193,6 +194,10 @@
         "preproduction": "Pré-production",
         "production": "Production"
       },
+      "exportList": "Exporter la liste des équipements",
+      "exportCsv": "Fichier CSV",
+      "exportExcel": "Fichier Excel",
+      "changedMeanwhile": "L'équipement a été modifié entre-temps : il a été rechargé, veuillez réessayer.",
       "refreshList": "Actualiser la liste des équipements",
       "remove": "Supprimer l'équipement",
       "removeSelected": "Supprimer les équipements sélectionnés",

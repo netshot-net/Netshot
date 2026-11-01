@@ -136,6 +136,7 @@
       "latestTasks": "Latest tasks on this device",
       "lastChange": "Last change",
       "lastChangeDate": "Last change date",
+      "lastSnapshotSuccess": "Last successful snapshot",
       "lastConnectionDate": "Last connection date",
       "lastFailedSnapshot": "Last failed snapshot",
       "lastSeen": "Last seen",
@@ -193,6 +194,10 @@
         "preproduction": "PreProduction",
         "production": "Production"
       },
+      "exportList": "Export the device list",
+      "exportCsv": "CSV file",
+      "exportExcel": "Excel file",
+      "changedMeanwhile": "The device was changed meanwhile: it has been reloaded, please retry.",
       "refreshList": "Refresh device list",
       "remove": "Remove device",
       "removeSelected": "Remove selected devices",
