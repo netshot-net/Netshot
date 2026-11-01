@@ -112,17 +112,6 @@ public class ReportService {
 		catch (Exception e) {
 			log.warn("Unable to parse timezone '{}'", jsTimeZone);
 		}
-		return this.getDailyChanges(7, timeZone);
-	}
-
-	/**
-	 * Counts the configuration changes of each of the last days, today included.
-	 *
-	 * @param days the number of days
-	 * @param timeZone the time zone to base the days on
-	 * @return the counts, oldest day first
-	 */
-	public List<DailyChangeCount> getDailyChanges(int days, TimeZone timeZone) {
 		Calendar today = Calendar.getInstance(timeZone);
 		today.set(Calendar.HOUR_OF_DAY, 0);
 		today.set(Calendar.MINUTE, 0);
@@ -130,7 +119,7 @@ public class ReportService {
 		today.set(Calendar.MILLISECOND, 0);
 		return this.read("Unable to get the stats.", dsl -> {
 			List<DailyChangeCount> stats = new ArrayList<>();
-			for (int d = days; d > 0; d--) {
+			for (int d = 7; d > 0; d--) {
 				Calendar dayStart = (Calendar) today.clone();
 				Calendar dayEnd = (Calendar) today.clone();
 				dayStart.add(Calendar.DATE, -d + 1);
