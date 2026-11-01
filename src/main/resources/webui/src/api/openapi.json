@@ -8184,7 +8184,8 @@
             "readOnly" : true
           }
         },
-        "description" : "A newly created API token, with its value (only given once)"
+        "description" : "A newly created API token, with its value (only given once)",
+        "x-netshot-brief" : [ "id", "url", "display" ]
       },
       "ApiTokenRequest" : {
         "required" : [ "level" ],
@@ -8240,7 +8241,8 @@
             "readOnly" : true
           }
         },
-        "description" : "API token (the value of the token is not part of it)"
+        "description" : "API token (the value of the token is not part of it)",
+        "x-netshot-brief" : [ "id", "url", "display", "description", "level" ]
       },
       "ListResponseApiToken" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -8333,7 +8335,8 @@
           }
         },
         "description" : "The principal (user or API token) a request is authenticated as",
-        "readOnly" : true
+        "readOnly" : true,
+        "x-netshot-brief" : [ "id", "url", "display" ]
       },
       "PasswordChangeRequest" : {
         "required" : [ "currentPassword", "newPassword" ],
@@ -8377,7 +8380,8 @@
             } ]
           }
         },
-        "description" : "A user session (cookie-authenticated)"
+        "description" : "A user session (cookie-authenticated)",
+        "x-netshot-brief" : [ "url" ]
       },
       "SessionRequest" : {
         "type" : "object",
@@ -8455,7 +8459,8 @@
             }
           }
         },
-        "description" : "Counts of objects, by field values and/or by time bucket"
+        "description" : "Counts of objects, by field values and/or by time bucket",
+        "x-netshot-brief" : [ ]
       },
       "CredentialSet" : {
         "required" : [ "authKeyVault", "authType", "changeDate", "communityVault", "deviceSpecific", "display", "hasAuthKey", "hasCommunity", "hasPassword", "hasPrivKey", "hasPrivateKey", "hasSuperPassword", "id", "mgmtDomain", "name", "passwordVault", "privKeyVault", "privType", "privateKeyVault", "superPasswordVault", "type", "url", "username", "usernameVault", "version" ],
@@ -8593,7 +8598,8 @@
             } ]
           }
         },
-        "description" : "Device credential set (secrets are never returned)"
+        "description" : "Device credential set (secrets are never returned)",
+        "x-netshot-brief" : [ "id", "url", "display", "name", "type" ]
       },
       "Device" : {
         "required" : [ "accesses", "attributes", "cachedIpAddress", "changeDate", "comments", "compliant", "contact", "createdDate", "creator", "display", "driver", "driverDescription", "endOfLife", "endOfSale", "eolDate", "eolModule", "eosDate", "eosModule", "family", "id", "lastSnapshotFailureDate", "lastSnapshotSuccessDate", "location", "mgmtAddress", "mgmtDomain", "name", "networkClass", "options", "ownerGroups", "serialNumber", "softwareLevel", "softwareVersion", "status", "tags", "url", "version", "virtualDevices", "vrfInstances" ],
@@ -8790,7 +8796,8 @@
             }
           }
         },
-        "description" : "Device (network or security equipment)"
+        "description" : "Device (network or security equipment)",
+        "x-netshot-brief" : [ "id", "url", "display", "name", "mgmtAddress", "status" ]
       },
       "DeviceAccess" : {
         "required" : [ "accessName", "address", "globalCredentialSet", "httpsCaTrustMode", "httpsCustomCaCertificate", "port", "specificCredentialSet", "sshHostKeyVerification", "sshTrustedHostKeys", "sshTrustedHostKeysSince" ],
@@ -8845,7 +8852,8 @@
             "nullable" : true
           }
         },
-        "description" : "Per-access settings of a device"
+        "description" : "Per-access settings of a device",
+        "x-netshot-brief" : [ ]
       },
       "DeviceAttribute" : {
         "required" : [ "name", "type", "value" ],
@@ -8863,7 +8871,8 @@
             "nullable" : true
           }
         },
-        "description" : "Device attribute collected by the driver"
+        "description" : "Device attribute collected by the driver",
+        "x-netshot-brief" : [ ]
       },
       "DeviceComplianceResult" : {
         "required" : [ "checkDate", "comment", "device", "exemptionExpirationDate", "policy", "result", "rule" ],
@@ -8907,7 +8916,8 @@
             "nullable" : true
           }
         },
-        "description" : "Compliance state of a device for a rule"
+        "description" : "Compliance state of a device for a rule",
+        "x-netshot-brief" : [ "device", "rule", "policy", "result", "checkDate" ]
       },
       "Domain" : {
         "required" : [ "changeDate", "description", "display", "id", "name", "server4Address", "server6Address", "url", "version" ],
@@ -8957,7 +8967,8 @@
             "readOnly" : true
           }
         },
-        "description" : "Device domain"
+        "description" : "Device domain",
+        "x-netshot-brief" : [ "id", "url", "display", "name" ]
       },
       "Group" : {
         "required" : [ "changeDate", "display", "folder", "hiddenFromReports", "id", "name", "query", "type", "url", "version" ],
@@ -9004,52 +9015,49 @@
             "nullable" : true
           }
         },
-        "description" : "Device group"
+        "description" : "Device group",
+        "x-netshot-brief" : [ "id", "url", "display", "name", "folder", "type" ]
       },
       "JavaScriptRule" : {
+        "required" : [ "display", "enabled", "id", "name", "policy", "script", "type", "url" ],
         "type" : "object",
-        "description" : "Compliance rule checked by a JavaScript script",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/Rule"
-        }, {
-          "required" : [ "display", "enabled", "id", "name", "policy", "script", "type", "url" ],
-          "type" : "object",
-          "properties" : {
-            "id" : {
-              "type" : "integer",
-              "format" : "int64"
-            },
-            "url" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "display" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "type" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean"
-            },
-            "policy" : {
-              "nullable" : true,
-              "allOf" : [ {
-                "$ref" : "#/components/schemas/Policy"
-              } ]
-            },
-            "script" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "url" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "display" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "JAVASCRIPT" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "policy" : {
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Policy"
+            } ]
+          },
+          "script" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Compliance rule checked by a JavaScript script",
+        "x-netshot-brief" : [ "id", "url", "display", "type", "name", "enabled", "policy" ]
       },
       "ListResponseDeviceComplianceResult" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -9125,7 +9133,8 @@
             "type" : "boolean"
           }
         },
-        "description" : "Device module"
+        "description" : "Device module",
+        "x-netshot-brief" : [ "id" ]
       },
       "Policy" : {
         "required" : [ "display", "id", "name", "targetGroups", "url" ],
@@ -9155,52 +9164,49 @@
             }
           }
         },
-        "description" : "Compliance policy"
+        "description" : "Compliance policy",
+        "x-netshot-brief" : [ "id", "url", "display", "name" ]
       },
       "PythonRule" : {
+        "required" : [ "display", "enabled", "id", "name", "policy", "script", "type", "url" ],
         "type" : "object",
-        "description" : "Compliance rule checked by a Python script",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/Rule"
-        }, {
-          "required" : [ "display", "enabled", "id", "name", "policy", "script", "type", "url" ],
-          "type" : "object",
-          "properties" : {
-            "id" : {
-              "type" : "integer",
-              "format" : "int64"
-            },
-            "url" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "display" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "type" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean"
-            },
-            "policy" : {
-              "nullable" : true,
-              "allOf" : [ {
-                "$ref" : "#/components/schemas/Policy"
-              } ]
-            },
-            "script" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "url" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "display" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "PYTHON" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "policy" : {
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Policy"
+            } ]
+          },
+          "script" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Compliance rule checked by a Python script",
+        "x-netshot-brief" : [ "id", "url", "display", "type", "name", "enabled", "policy" ]
       },
       "Rule" : {
         "required" : [ "type" ],
@@ -9228,76 +9234,72 @@
         } ]
       },
       "TextRule" : {
+        "required" : [ "anyBlock", "context", "deviceDriver", "display", "enabled", "field", "id", "invert", "matchAll", "name", "normalize", "policy", "regExp", "text", "type", "url" ],
         "type" : "object",
-        "description" : "Compliance rule matching a text",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/Rule"
-        }, {
-          "required" : [ "anyBlock", "context", "deviceDriver", "display", "enabled", "field", "id", "invert", "matchAll", "name", "normalize", "policy", "regExp", "text", "type", "url" ],
-          "type" : "object",
-          "properties" : {
-            "id" : {
-              "type" : "integer",
-              "format" : "int64"
-            },
-            "url" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "display" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "type" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean"
-            },
-            "policy" : {
-              "nullable" : true,
-              "allOf" : [ {
-                "$ref" : "#/components/schemas/Policy"
-              } ]
-            },
-            "field" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "context" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "text" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "regExp" : {
-              "type" : "boolean"
-            },
-            "invert" : {
-              "type" : "boolean"
-            },
-            "anyBlock" : {
-              "type" : "boolean"
-            },
-            "matchAll" : {
-              "type" : "boolean"
-            },
-            "normalize" : {
-              "type" : "boolean"
-            },
-            "deviceDriver" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "url" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "display" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "TEXT" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "policy" : {
+            "nullable" : true,
+            "allOf" : [ {
+              "$ref" : "#/components/schemas/Policy"
+            } ]
+          },
+          "field" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "context" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "text" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "regExp" : {
+            "type" : "boolean"
+          },
+          "invert" : {
+            "type" : "boolean"
+          },
+          "anyBlock" : {
+            "type" : "boolean"
+          },
+          "matchAll" : {
+            "type" : "boolean"
+          },
+          "normalize" : {
+            "type" : "boolean"
+          },
+          "deviceDriver" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Compliance rule matching a text",
+        "x-netshot-brief" : [ "id", "url", "display", "type", "name", "enabled", "policy" ]
       },
       "VaultInstance" : {
         "required" : [ "appRoleId", "appRoleMountPath", "authMethod", "baseUrl", "changeDate", "display", "hasAppRoleSecretId", "hasJwtClientSecret", "httpsCaTrustMode", "httpsCustomCaCertificate", "id", "jwtClientId", "jwtIdpTokenEndpoint", "jwtMountPath", "jwtScope", "jwtVaultRole", "kvMountPath", "name", "namespace", "type", "url", "version" ],
@@ -9401,7 +9403,8 @@
             "nullable" : true
           }
         },
-        "description" : "Vault instance, an external secret store (secrets are never returned)"
+        "description" : "Vault instance, an external secret store (secrets are never returned)",
+        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "baseUrl" ]
       },
       "VaultSecret" : {
         "required" : [ "path", "vaultInstance" ],
@@ -9418,7 +9421,8 @@
             "nullable" : true
           }
         },
-        "description" : "Location of a secret in a Vault instance"
+        "description" : "Location of a secret in a Vault instance",
+        "x-netshot-brief" : [ ]
       },
       "HardwareRule" : {
         "required" : [ "display", "driver", "endOfLife", "endOfSale", "family", "familyRegExp", "group", "id", "partNumber", "partNumberRegExp", "url" ],
@@ -9471,7 +9475,8 @@
             "type" : "boolean"
           }
         },
-        "description" : "Hardware compliance rule"
+        "description" : "Hardware compliance rule",
+        "x-netshot-brief" : [ "id", "url", "display", "partNumber", "endOfSale", "endOfLife" ]
       },
       "HardwareRuleRequest" : {
         "type" : "object",
@@ -9656,62 +9661,60 @@
         }
       },
       "JavaScriptRuleRequest" : {
-        "required" : [ "name" ],
+        "required" : [ "type" ],
         "type" : "object",
-        "description" : "Definition of a JavaScript compliance rule",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/RuleRequest"
-        }, {
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "policy" : {
-              "type" : "integer",
-              "format" : "int64",
-              "nullable" : true
-            },
-            "script" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "JAVASCRIPT" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "policy" : {
+            "type" : "integer",
+            "format" : "int64",
+            "nullable" : true
+          },
+          "script" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Definition of a JavaScript compliance rule"
       },
       "PythonRuleRequest" : {
-        "required" : [ "name" ],
+        "required" : [ "type" ],
         "type" : "object",
-        "description" : "Definition of a Python compliance rule",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/RuleRequest"
-        }, {
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "policy" : {
-              "type" : "integer",
-              "format" : "int64",
-              "nullable" : true
-            },
-            "script" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "PYTHON" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "policy" : {
+            "type" : "integer",
+            "format" : "int64",
+            "nullable" : true
+          },
+          "script" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Definition of a Python compliance rule"
       },
       "RuleRequest" : {
         "required" : [ "type" ],
@@ -9723,7 +9726,12 @@
         },
         "description" : "Definition of a compliance rule",
         "discriminator" : {
-          "propertyName" : "type"
+          "propertyName" : "type",
+          "mapping" : {
+            "TEXT" : "#/components/schemas/TextRuleRequest",
+            "JAVASCRIPT" : "#/components/schemas/JavaScriptRuleRequest",
+            "PYTHON" : "#/components/schemas/PythonRuleRequest"
+          }
         },
         "oneOf" : [ {
           "$ref" : "#/components/schemas/TextRuleRequest"
@@ -9734,65 +9742,64 @@
         } ]
       },
       "TextRuleRequest" : {
-        "required" : [ "name" ],
+        "required" : [ "type" ],
         "type" : "object",
-        "description" : "Definition of a text compliance rule",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/RuleRequest"
-        }, {
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "policy" : {
-              "type" : "integer",
-              "format" : "int64",
-              "nullable" : true
-            },
-            "field" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "context" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "text" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "regExp" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "invert" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "anyBlock" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "matchAll" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "normalize" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "deviceDriver" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "TEXT" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "policy" : {
+            "type" : "integer",
+            "format" : "int64",
+            "nullable" : true
+          },
+          "field" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "context" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "text" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "regExp" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "invert" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "anyBlock" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "matchAll" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "normalize" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "deviceDriver" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Definition of a text compliance rule"
       },
       "Exemption" : {
         "required" : [ "device", "expirationDate" ],
@@ -9810,7 +9817,8 @@
             "nullable" : true
           }
         },
-        "description" : "Exemption of a device from a compliance rule"
+        "description" : "Exemption of a device from a compliance rule",
+        "x-netshot-brief" : [ "device", "expirationDate" ]
       },
       "ListResponseExemption" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -9898,7 +9906,8 @@
             "nullable" : true
           }
         },
-        "description" : "Result of the test of a compliance rule"
+        "description" : "Result of the test of a compliance rule",
+        "x-netshot-brief" : [ ]
       },
       "RuleTestRequest" : {
         "required" : [ "device", "rule" ],
@@ -9971,7 +9980,8 @@
             "type" : "boolean"
           }
         },
-        "description" : "Software compliance rule"
+        "description" : "Software compliance rule",
+        "x-netshot-brief" : [ "id", "url", "display", "priority", "level", "group" ]
       },
       "SoftwareRuleRequest" : {
         "required" : [ "level" ],
@@ -10064,54 +10074,54 @@
         }
       },
       "Binary" : {
+        "required" : [ "assumption", "name", "type" ],
         "type" : "object",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/ConfigAttribute"
-        }, {
-          "required" : [ "assumption", "name" ],
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "assumption" : {
-              "type" : "boolean",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "BINARY" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "assumption" : {
+            "type" : "boolean",
+            "nullable" : true
           }
-        } ]
+        },
+        "x-netshot-brief" : [ ]
       },
       "BinaryFile" : {
+        "required" : [ "checksum", "fileSize", "name", "originalName", "type", "url" ],
         "type" : "object",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/ConfigAttribute"
-        }, {
-          "required" : [ "checksum", "fileSize", "name", "originalName", "url" ],
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "originalName" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "fileSize" : {
-              "type" : "integer",
-              "format" : "int64"
-            },
-            "checksum" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "url" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "BINARYFILE" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "originalName" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "checksum" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "url" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "x-netshot-brief" : [ "url" ]
       },
       "Config" : {
         "required" : [ "attributes", "author", "changeDate", "customHash", "device", "display", "id", "url", "version" ],
@@ -10161,7 +10171,8 @@
             }
           }
         },
-        "description" : "Device configuration"
+        "description" : "Device configuration",
+        "x-netshot-brief" : [ "id", "url", "display", "device", "changeDate", "author" ]
       },
       "ConfigAttribute" : {
         "required" : [ "type" ],
@@ -10181,65 +10192,76 @@
             "BINARY" : "#/components/schemas/Binary",
             "BINARYFILE" : "#/components/schemas/BinaryFile"
           }
-        }
+        },
+        "oneOf" : [ {
+          "$ref" : "#/components/schemas/Numeric"
+        }, {
+          "$ref" : "#/components/schemas/Text"
+        }, {
+          "$ref" : "#/components/schemas/LongText"
+        }, {
+          "$ref" : "#/components/schemas/Binary"
+        }, {
+          "$ref" : "#/components/schemas/BinaryFile"
+        } ]
       },
       "LongText" : {
+        "required" : [ "name", "type", "url" ],
         "type" : "object",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/ConfigAttribute"
-        }, {
-          "required" : [ "name", "url" ],
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "url" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "LONGTEXT" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "url" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "x-netshot-brief" : [ "url" ]
       },
       "Numeric" : {
+        "required" : [ "name", "number", "type" ],
         "type" : "object",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/ConfigAttribute"
-        }, {
-          "required" : [ "name", "number" ],
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "number" : {
-              "type" : "number",
-              "format" : "double",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "NUMERIC" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "number" : {
+            "type" : "number",
+            "format" : "double",
+            "nullable" : true
           }
-        } ]
+        },
+        "x-netshot-brief" : [ ]
       },
       "Text" : {
+        "required" : [ "name", "text", "type" ],
         "type" : "object",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/ConfigAttribute"
-        }, {
-          "required" : [ "name", "text" ],
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "text" : {
-              "type" : "string",
-              "nullable" : true
-            }
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "TEXT" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "text" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "x-netshot-brief" : [ ]
       },
       "ConfigDiff" : {
         "required" : [ "deltas", "original", "originalDate", "revised", "revisedDate" ],
@@ -10278,7 +10300,8 @@
             "nullable" : true
           }
         },
-        "description" : "Differences between two configurations"
+        "description" : "Differences between two configurations",
+        "x-netshot-brief" : [ ]
       },
       "Delta" : {
         "required" : [ "hierarchy", "originalLines", "originalPosition", "postContext", "preContext", "revisedLines", "revisedPosition", "type" ],
@@ -10332,7 +10355,8 @@
               "$ref" : "#/components/schemas/LineWithPosition"
             }
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "LineWithPosition" : {
         "required" : [ "line", "position" ],
@@ -10346,7 +10370,8 @@
             "type" : "integer",
             "format" : "int32"
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "ListResponseConfig" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -10570,7 +10595,8 @@
             "format" : "int64"
           }
         },
-        "description" : "Device family (driver and family) with its number of devices"
+        "description" : "Device family (driver and family) with its number of devices",
+        "x-netshot-brief" : [ "driver", "family", "deviceCount" ]
       },
       "ListResponseDeviceFamily" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -10658,7 +10684,8 @@
             }
           }
         },
-        "description" : "Network interface of a device"
+        "description" : "Network interface of a device",
+        "x-netshot-brief" : [ "id", "display", "name", "description", "enabled" ]
       },
       "IpAddress" : {
         "required" : [ "ip", "prefixLength", "usage", "version" ],
@@ -10681,7 +10708,8 @@
             "nullable" : true,
             "enum" : [ "PRIMARY", "SECONDARY", "VRRP", "HSRP", "SECONDARYVRRP", "SECONDARYHSRP" ]
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "ListResponseDeviceInterface" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -10761,7 +10789,8 @@
             "type" : "boolean"
           }
         },
-        "description" : "Hardware module of a device"
+        "description" : "Hardware module of a device",
+        "x-netshot-brief" : [ "id", "display", "slot", "partNumber", "serialNumber" ]
       },
       "ListResponseDeviceModule" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -10948,7 +10977,8 @@
             "nullable" : true
           }
         },
-        "description" : "Task"
+        "description" : "Task",
+        "x-netshot-brief" : [ "id", "url", "display", "type", "status" ]
       },
       "DeviceAccessRequest" : {
         "required" : [ "accessName" ],
@@ -11420,7 +11450,8 @@
             "format" : "int64"
           }
         },
-        "description" : "Device tag with its number of devices"
+        "description" : "Device tag with its number of devices",
+        "x-netshot-brief" : [ "name", "deviceCount" ]
       },
       "ListResponseDeviceTag" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -11491,7 +11522,8 @@
             "type" : "integer",
             "format" : "int32"
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "Attribute" : {
         "required" : [ "checkable", "comparable", "level", "name", "searchable", "title", "type" ],
@@ -11524,7 +11556,8 @@
           "checkable" : {
             "type" : "boolean"
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "DeviceType" : {
         "required" : [ "accesses", "attributes", "author", "cliMainModes", "description", "location", "name", "options", "priority", "protocols", "sourceHash", "version" ],
@@ -11597,7 +11630,8 @@
             }
           }
         },
-        "description" : "Device type (device driver loaded by the server)"
+        "description" : "Device type (device driver loaded by the server)",
+        "x-netshot-brief" : [ "name", "description", "version" ]
       },
       "ListResponseDeviceType" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -11652,7 +11686,8 @@
             "type" : "string",
             "nullable" : true
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "Option" : {
         "required" : [ "choices", "defaultValue", "name", "title", "type" ],
@@ -11681,7 +11716,8 @@
           "defaultValue" : {
             "nullable" : true
           }
-        }
+        },
+        "x-netshot-brief" : [ ]
       },
       "ListResponsePartNumber" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -11736,7 +11772,8 @@
             "format" : "int64"
           }
         },
-        "description" : "Part number of modules with its number of modules"
+        "description" : "Part number of modules with its number of modules",
+        "x-netshot-brief" : [ "partNumber", "moduleCount" ]
       },
       "ListResponseSoftwareVersion" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -11791,7 +11828,8 @@
             "format" : "int64"
           }
         },
-        "description" : "Software version with its number of devices"
+        "description" : "Software version with its number of devices",
+        "x-netshot-brief" : [ "version", "deviceCount" ]
       },
       "Diagnostic" : {
         "required" : [ "cliMode", "command", "deviceDriver", "deviceDriverDescription", "display", "enabled", "id", "modifierPattern", "modifierReplacement", "name", "resultType", "script", "targetGroup", "type", "url" ],
@@ -11859,7 +11897,8 @@
             "nullable" : true
           }
         },
-        "description" : "Diagnostic (data collected from devices)"
+        "description" : "Diagnostic (data collected from devices)",
+        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "resultType" ]
       },
       "DiagnosticRequest" : {
         "required" : [ "name", "resultType", "type" ],
@@ -11985,7 +12024,8 @@
             "nullable" : true
           }
         },
-        "description" : "Result of a diagnostic on a device"
+        "description" : "Result of a diagnostic on a device",
+        "x-netshot-brief" : [ "display", "diagnostic", "type", "value" ]
       },
       "ListResponseDiagnosticResult" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -12193,70 +12233,67 @@
             "nullable" : true
           }
         },
-        "description" : "Event which triggers a hook"
+        "description" : "Event which triggers a hook",
+        "x-netshot-brief" : [ ]
       },
       "WebHook" : {
+        "required" : [ "action", "display", "enabled", "httpsCaTrustMode", "httpsCustomCaCertificate", "id", "name", "targetUrl", "triggers", "type", "url" ],
         "type" : "object",
-        "description" : "Hook calling a URL",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/Hook"
-        }, {
-          "required" : [ "action", "display", "enabled", "httpsCaTrustMode", "httpsCustomCaCertificate", "id", "name", "targetUrl", "triggers", "type", "url" ],
-          "type" : "object",
-          "properties" : {
-            "id" : {
-              "type" : "integer",
-              "format" : "int64",
-              "readOnly" : true
-            },
-            "url" : {
-              "type" : "string",
-              "nullable" : true,
-              "readOnly" : true
-            },
-            "display" : {
-              "type" : "string",
-              "nullable" : true,
-              "readOnly" : true
-            },
-            "type" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean"
-            },
-            "triggers" : {
-              "type" : "array",
-              "nullable" : true,
-              "items" : {
-                "$ref" : "#/components/schemas/HookTrigger"
-              }
-            },
-            "action" : {
-              "type" : "string",
-              "nullable" : true,
-              "enum" : [ "POST_XML", "POST_JSON", "POST_YAML" ]
-            },
-            "targetUrl" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "httpsCaTrustMode" : {
-              "type" : "string",
-              "nullable" : true,
-              "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
-            },
-            "httpsCustomCaCertificate" : {
-              "type" : "string",
-              "nullable" : true
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64",
+            "readOnly" : true
+          },
+          "url" : {
+            "type" : "string",
+            "nullable" : true,
+            "readOnly" : true
+          },
+          "display" : {
+            "type" : "string",
+            "nullable" : true,
+            "readOnly" : true
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "WEB" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "triggers" : {
+            "type" : "array",
+            "nullable" : true,
+            "items" : {
+              "$ref" : "#/components/schemas/HookTrigger"
             }
+          },
+          "action" : {
+            "type" : "string",
+            "nullable" : true,
+            "enum" : [ "POST_XML", "POST_JSON", "POST_YAML" ]
+          },
+          "targetUrl" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "httpsCaTrustMode" : {
+            "type" : "string",
+            "nullable" : true,
+            "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
+          },
+          "httpsCustomCaCertificate" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Hook calling a URL",
+        "x-netshot-brief" : [ "id", "url", "display", "type", "name", "enabled" ]
       },
       "HookRequest" : {
         "required" : [ "type" ],
@@ -12268,56 +12305,58 @@
         },
         "description" : "Definition of a hook",
         "discriminator" : {
-          "propertyName" : "type"
+          "propertyName" : "type",
+          "mapping" : {
+            "WEB" : "#/components/schemas/WebHookRequest"
+          }
         },
         "oneOf" : [ {
           "$ref" : "#/components/schemas/WebHookRequest"
         } ]
       },
       "WebHookRequest" : {
-        "required" : [ "action", "name", "targetUrl" ],
+        "required" : [ "type" ],
         "type" : "object",
-        "description" : "Definition of a hook calling a URL",
-        "allOf" : [ {
-          "$ref" : "#/components/schemas/HookRequest"
-        }, {
-          "type" : "object",
-          "properties" : {
-            "name" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "enabled" : {
-              "type" : "boolean",
-              "nullable" : true
-            },
-            "triggers" : {
-              "type" : "array",
-              "nullable" : true,
-              "items" : {
-                "$ref" : "#/components/schemas/HookTrigger"
-              }
-            },
-            "action" : {
-              "type" : "string",
-              "nullable" : true,
-              "enum" : [ "POST_XML", "POST_JSON", "POST_YAML" ]
-            },
-            "targetUrl" : {
-              "type" : "string",
-              "nullable" : true
-            },
-            "httpsCaTrustMode" : {
-              "type" : "string",
-              "nullable" : true,
-              "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
-            },
-            "httpsCustomCaCertificate" : {
-              "type" : "string",
-              "nullable" : true
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "WEB" ]
+          },
+          "name" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "enabled" : {
+            "type" : "boolean",
+            "nullable" : true
+          },
+          "triggers" : {
+            "type" : "array",
+            "nullable" : true,
+            "items" : {
+              "$ref" : "#/components/schemas/HookTrigger"
             }
+          },
+          "action" : {
+            "type" : "string",
+            "nullable" : true,
+            "enum" : [ "POST_XML", "POST_JSON", "POST_YAML" ]
+          },
+          "targetUrl" : {
+            "type" : "string",
+            "nullable" : true
+          },
+          "httpsCaTrustMode" : {
+            "type" : "string",
+            "nullable" : true,
+            "enum" : [ "TRUST_ANY", "SYSTEM_TRUSTSTORE", "CUSTOM_CA" ]
+          },
+          "httpsCustomCaCertificate" : {
+            "type" : "string",
+            "nullable" : true
           }
-        } ]
+        },
+        "description" : "Definition of a hook calling a URL"
       },
       "ListResponseHook" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -12407,7 +12446,8 @@
             "nullable" : true
           }
         },
-        "description" : "Command script"
+        "description" : "Command script",
+        "x-netshot-brief" : [ "id", "url", "display", "name", "folder", "deviceDriver" ]
       },
       "UserInputDefinition" : {
         "required" : [ "choices", "defaultValue", "description", "label", "name", "type" ],
@@ -12442,7 +12482,8 @@
             "nullable" : true
           }
         },
-        "description" : "User input of a command script"
+        "description" : "User input of a command script",
+        "x-netshot-brief" : [ ]
       },
       "ScriptRequest" : {
         "required" : [ "deviceDriver", "name", "script" ],
@@ -12513,7 +12554,8 @@
             "nullable" : true
           }
         },
-        "description" : "Liveness and readiness of the server"
+        "description" : "Liveness and readiness of the server",
+        "x-netshot-brief" : [ ]
       },
       "ClusterMaster" : {
         "required" : [ "clusterEnabled", "currentMasterId", "master" ],
@@ -12530,7 +12572,8 @@
             "nullable" : true
           }
         },
-        "description" : "Mastership status of the server in the high availability cluster"
+        "description" : "Mastership status of the server in the high availability cluster",
+        "x-netshot-brief" : [ ]
       },
       "SystemInfo" : {
         "required" : [ "serverTime", "sessionMaxIdleTime", "version" ],
@@ -12553,7 +12596,8 @@
             "readOnly" : true
           }
         },
-        "description" : "General information about the Netshot server"
+        "description" : "General information about the Netshot server",
+        "x-netshot-brief" : [ ]
       },
       "ClusterMember" : {
         "required" : [ "appVersion", "clusteringVersion", "display", "driverHash", "hostname", "instanceId", "jvmVersion", "lastSeenDate", "lastStatusChangeDate", "local", "masterPriority", "runnerPriority", "runnerWeight", "status" ],
@@ -12619,7 +12663,8 @@
             "nullable" : true
           }
         },
-        "description" : "Member of the high availability cluster"
+        "description" : "Member of the high availability cluster",
+        "x-netshot-brief" : [ "display" ]
       },
       "ListResponseClusterMember" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -12731,7 +12776,8 @@
             "nullable" : true
           }
         },
-        "description" : "Service of the Netshot server"
+        "description" : "Service of the Netshot server",
+        "x-netshot-brief" : [ "display" ]
       },
       "ListResponseTask" : {
         "required" : [ "count", "limit", "next", "offset", "previous", "results" ],
@@ -12861,7 +12907,8 @@
             "format" : "int32"
           }
         },
-        "description" : "Number of tasks by status"
+        "description" : "Number of tasks by status",
+        "x-netshot-brief" : [ ]
       },
       "User" : {
         "required" : [ "display", "hasPassword", "id", "lastPasswordChangeDate", "level", "local", "role", "url", "username" ],
@@ -12909,7 +12956,8 @@
             "readOnly" : true
           }
         },
-        "description" : "Netshot user"
+        "description" : "Netshot user",
+        "x-netshot-brief" : [ "id", "url", "display", "username", "local", "level" ]
       },
       "UserRequest" : {
         "required" : [ "level", "local", "username" ],
@@ -13104,7 +13152,8 @@
             "nullable" : true
           }
         },
-        "description" : "Outcome of a test of the connection to a Vault server"
+        "description" : "Outcome of a test of the connection to a Vault server",
+        "x-netshot-brief" : [ ]
       }
     },
     "securitySchemes" : {
