@@ -1,9 +1,9 @@
-import api from "@/api"
+import { Hook } from "@/api/admin"
+import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
-import { Hook, HttpsCaTrustMode } from "@/types"
-import { search } from "@/utils"
+import { HttpsCaTrustMode } from "@/types"
 import {
   Button,
   Checkbox,
@@ -15,9 +15,8 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuSquarePen, LuPlus, LuShieldOff, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddWebhookTrigger from "../components/AddWebhookTrigger"
@@ -31,7 +30,7 @@ const columnHelper = createColumnHelper<Hook>()
 /** HTTPS with the certificate (and hostname) actually verified - anything else (plain HTTP, or TRUST_ANY) is "not secured". */
 function isConnectionSecured(webhook: Hook): boolean {
   return (
-    webhook.url?.toLowerCase().startsWith("https://") === true &&
+    webhook.targetUrl?.toLowerCase().startsWith("https://") === true &&
     webhook.httpsCaTrustMode !== HttpsCaTrustMode.TrustAny
   )
 }
@@ -40,16 +39,11 @@ export default function AdministrationApiTokenScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [QUERIES.ADMIN_WEBHOOKS, pagination.query, pagination.offset, pagination.limit],
-    queryFn: async () => api.admin.getAllHooks(pagination),
-    select: useCallback(
-      (res: Hook[]): Hook[] => {
-        return search(res, "name").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending, onBottomReached } = useList<Hook>(
+    [QUERIES.ADMIN_WEBHOOKS],
+    "/hooks",
+    { q: pagination.query, sort: "name" }
+  )
 
   const isSearching = Boolean(pagination.query?.trim())
 
@@ -78,7 +72,7 @@ export default function AdministrationApiTokenScreen() {
           align: "center",
         },
       }),
-      columnHelper.accessor("url", {
+      columnHelper.accessor("targetUrl", {
         cell: (info) => {
           const webhook = info.row.original
           return (
@@ -166,7 +160,7 @@ export default function AdministrationApiTokenScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} />
+              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

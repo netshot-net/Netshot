@@ -42,7 +42,7 @@ export function useCredentialSets() {
   return useQuery({
     queryKey: [QUERIES.CREDENTIAL_SET_LIST],
     queryFn: async () =>
-      api.admin.getAllCredentialSets({}),
+      api.admin.fetchAllCredentialSets(),
   })
 }
 

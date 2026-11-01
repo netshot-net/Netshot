@@ -1,9 +1,9 @@
-import api from "@/api"
+import { VaultInstance } from "@/api/admin"
+import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
-import { HttpsCaTrustMode, VaultInstance } from "@/types"
-import { search } from "@/utils"
+import { HttpsCaTrustMode, VaultAuthMethod } from "@/types"
 import {
   Button,
   Heading,
@@ -14,9 +14,8 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuSquarePen, LuPlus, LuShieldOff, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddVaultInstanceTrigger from "../components/AddVaultInstanceTrigger"
@@ -41,21 +40,11 @@ export default function AdministrationVaultInstanceScreen() {
   const pagination = usePagination()
   const vaultAuthMethodOptions = useVaultAuthMethodOptions()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [
-      QUERIES.ADMIN_VAULT_INSTANCES,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
-    ],
-    queryFn: async () => api.admin.getAllVaultInstances(pagination),
-    select: useCallback(
-      (res: VaultInstance[]): VaultInstance[] => {
-        return search(res, "name").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending, onBottomReached } = useList<VaultInstance>(
+    [QUERIES.ADMIN_VAULT_INSTANCES],
+    "/vault-instances",
+    { q: pagination.query, sort: "name", view: "full" }
+  )
 
   const isSearching = Boolean(pagination.query?.trim())
 
@@ -94,7 +83,7 @@ export default function AdministrationVaultInstanceScreen() {
         size: 20000,
       }),
       columnHelper.accessor("authMethod", {
-        cell: (info) => <Text>{vaultAuthMethodOptions.getLabelByValue(info.getValue())}</Text>,
+        cell: (info) => <Text>{vaultAuthMethodOptions.getLabelByValue(info.getValue() as VaultAuthMethod)}</Text>,
         header: t("vault.authMethod"),
         enableSorting: true,
         size: 10000,
@@ -171,7 +160,7 @@ export default function AdministrationVaultInstanceScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} />
+              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

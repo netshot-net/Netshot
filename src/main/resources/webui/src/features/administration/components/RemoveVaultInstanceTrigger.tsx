@@ -3,7 +3,8 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { VaultInstance } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { VaultInstance } from "@/api/admin"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent } from "react"
@@ -18,13 +19,14 @@ export default function RemoveVaultInstanceTrigger({ vaultInstance, children, ..
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_VAULT_INSTANCES)
   const dialog = useConfirmDialogWithMutation()
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_VAULT_INSTANCE_REMOVE,
-    mutationFn: async () => api.admin.removeVaultInstance(vaultInstance.id),
+    mutationFn: async () => api.admin.removeVaultInstance(vaultInstance.id!, vaultInstance.version),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err)
     },
   })
 

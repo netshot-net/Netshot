@@ -25,7 +25,7 @@ export function ApplicationProvider(props: PropsWithChildren) {
       {
         queryKey: [QUERIES.DOMAIN_LIST],
         queryFn: async () => {
-          return api.admin.getAllDomains({})
+          return api.admin.fetchAllDomains()
         },
         enabled: !!auth.user,
       },
@@ -43,7 +43,7 @@ export function ApplicationProvider(props: PropsWithChildren) {
       {
         queryKey: [QUERIES.CREDENTIAL_SET_LIST],
         queryFn: async () =>
-          api.admin.getAllCredentialSets({}),
+          api.admin.fetchAllCredentialSets(),
         enabled: !!auth.user,
       },
     ],

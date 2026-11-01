@@ -3,7 +3,8 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast, useUserLevelOptions } from "@/hooks"
-import { ApiToken } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { ApiTokenRequest } from "@/api/admin"
 import { generateToken } from "@/utils"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
@@ -22,6 +23,7 @@ export default function AddApiTokenTrigger({ children, ...rest }: AddApiTokenTri
   const queryClient = useQueryClient()
   const userLevelOptions = useUserLevelOptions()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_API_TOKENS)
 
   const form = useForm<ApiTokenForm>({
     mode: "onChange",
@@ -34,9 +36,9 @@ export default function AddApiTokenTrigger({ children, ...rest }: AddApiTokenTri
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_API_TOKEN_CREATE,
-    mutationFn: async (payload: Partial<ApiToken>) => api.admin.createApiToken(payload),
+    mutationFn: async (payload: ApiTokenRequest) => api.admin.createApiToken(payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 

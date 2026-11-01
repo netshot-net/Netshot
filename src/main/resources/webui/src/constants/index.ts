@@ -32,7 +32,6 @@ export const QUERIES = {
 export const MUTATIONS = {
   EXPORT_DATA: ["mutation:export:data"],
   GROUP_REMOVE: ["mutation:group:remove"],
-  ADMIN_DRIVER_RELOAD: ["mutation:admin:driver:reload"],
   ADMIN_API_TOKEN_CREATE: ["mutation:admin:apitoken:create"],
   ADMIN_API_TOKEN_REMOVE: ["mutation:admin:apitoken:remove"],
   ADMIN_CREDENTIAL_SET_CREATE: ["mutation:admin:credentialset:create"],

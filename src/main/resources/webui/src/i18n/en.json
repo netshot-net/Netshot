@@ -874,6 +874,7 @@
     },
     "admin": {
       "title": "Administration",
+      "changedMeanwhile": "The object was changed meanwhile: the list was refreshed, please try again",
       "clustering": {
         "label": "Clustering",
         "manage": "Manage server clustering",

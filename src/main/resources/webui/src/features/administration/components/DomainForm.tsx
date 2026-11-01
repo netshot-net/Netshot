@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next"
 export type DomainForm = {
   name: string
   description: string
-  ipAddress: string
+  server4Address: string
 }
 
 export default function DomainForm() {
@@ -35,7 +35,7 @@ export default function DomainForm() {
         placeholder={t("common.eG", { example: "10.4.3.8" })}
         required
         control={form.control}
-        name="ipAddress"
+        name="server4Address"
         rules={{
           ...validators.ip(),
         }}

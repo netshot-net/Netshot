@@ -1,10 +1,10 @@
-import api, { DeviceCredentialPayload } from "@/api"
-import { PASSWORD_UNCHANGED } from "@/components/FormControl"
+import api from "@/api"
+import { CredentialSet, CredentialSetRequest } from "@/api/admin"
 import { NetshotError } from "@/api/httpClient"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { CredentialSet, CredentialSetType } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next"
 import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
+import { buildCredentialSetPayload, credentialSetFormValues } from "./credentialSetPayload"
 import DeviceCredentialSetFormComponent, {
   DeviceCredentialSetForm,
 } from "./DeviceCredentialSetForm"
@@ -23,86 +24,9 @@ export default function EditDeviceCredentialSetTrigger({ credentialSet: credenti
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_DEVICE_CREDENTIALS)
 
-  const defaultValues = useMemo(() => {
-    const values: Partial<DeviceCredentialSetForm> = {
-      name: credential?.name,
-      mgmtDomain: null,
-      type: credential.type,
-    }
-
-    if (credential.mgmtDomain) {
-      Object.assign(values, {
-        mgmtDomain: credential.mgmtDomain.id,
-      })
-    }
-
-    if (
-      credential.type === CredentialSetType.SNMP_V1 ||
-      credential.type === CredentialSetType.SNMP_V2C
-    ) {
-      Object.assign(values, {
-        community: PASSWORD_UNCHANGED,
-        communityVaultInstanceId: credential.communityVaultInstanceId ?? null,
-        communityVaultPath: credential.communityVaultPath ?? "",
-      })
-    } else if (credential.type === CredentialSetType.SNMP_V3) {
-      Object.assign(values, {
-        username: credential.username,
-        usernameVaultInstanceId: credential.usernameVaultInstanceId ?? null,
-        usernameVaultPath: credential.usernameVaultPath ?? "",
-        authType: credential.authType,
-        authKey: PASSWORD_UNCHANGED,
-        authKeyVaultInstanceId: credential.authKeyVaultInstanceId ?? null,
-        authKeyVaultPath: credential.authKeyVaultPath ?? "",
-        privType: credential.privType,
-        privKey: PASSWORD_UNCHANGED,
-        privKeyVaultInstanceId: credential.privKeyVaultInstanceId ?? null,
-        privKeyVaultPath: credential.privKeyVaultPath ?? "",
-      })
-    } else if (
-      credential.type === CredentialSetType.SSH ||
-      credential.type === CredentialSetType.Telnet
-    ) {
-      Object.assign(values, {
-        username: credential.username,
-        usernameVaultInstanceId: credential.usernameVaultInstanceId ?? null,
-        usernameVaultPath: credential.usernameVaultPath ?? "",
-        password: PASSWORD_UNCHANGED,
-        passwordVaultInstanceId: credential.passwordVaultInstanceId ?? null,
-        passwordVaultPath: credential.passwordVaultPath ?? "",
-        superPassword: PASSWORD_UNCHANGED,
-        superPasswordVaultInstanceId: credential.superPasswordVaultInstanceId ?? null,
-        superPasswordVaultPath: credential.superPasswordVaultPath ?? "",
-      })
-    } else if (credential.type === CredentialSetType.SSHKey) {
-      Object.assign(values, {
-        username: credential.username,
-        usernameVaultInstanceId: credential.usernameVaultInstanceId ?? null,
-        usernameVaultPath: credential.usernameVaultPath ?? "",
-        privateKey: PASSWORD_UNCHANGED,
-        privateKeyVaultInstanceId: credential.privateKeyVaultInstanceId ?? null,
-        privateKeyVaultPath: credential.privateKeyVaultPath ?? "",
-        password: PASSWORD_UNCHANGED,
-        passwordVaultInstanceId: credential.passwordVaultInstanceId ?? null,
-        passwordVaultPath: credential.passwordVaultPath ?? "",
-        superPassword: PASSWORD_UNCHANGED,
-        superPasswordVaultInstanceId: credential.superPasswordVaultInstanceId ?? null,
-        superPasswordVaultPath: credential.superPasswordVaultPath ?? "",
-      })
-    } else if (credential.type === CredentialSetType.HTTP) {
-      Object.assign(values, {
-        username: credential.username,
-        usernameVaultInstanceId: credential.usernameVaultInstanceId ?? null,
-        usernameVaultPath: credential.usernameVaultPath ?? "",
-        password: PASSWORD_UNCHANGED,
-        passwordVaultInstanceId: credential.passwordVaultInstanceId ?? null,
-        passwordVaultPath: credential.passwordVaultPath ?? "",
-      })
-    }
-
-    return values
-  }, [credential])
+  const defaultValues = useMemo(() => credentialSetFormValues(credential), [credential])
 
   const form = useForm<DeviceCredentialSetForm>({
     mode: "onChange",
@@ -115,10 +39,10 @@ export default function EditDeviceCredentialSetTrigger({ credentialSet: credenti
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_CREDENTIAL_SET_UPDATE,
-    mutationFn: async (payload: Partial<DeviceCredentialPayload>) =>
-      api.admin.updateCredentialSet(credential?.id, payload),
+    mutationFn: async (payload: CredentialSetRequest) =>
+      api.admin.updateCredentialSet(credential.id!, payload, credential.version),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -129,94 +53,7 @@ export default function EditDeviceCredentialSetTrigger({ credentialSet: credenti
       form,
       size: "lg",
       async onSubmit(values: DeviceCredentialSetForm) {
-        const type = values.type
-
-        const payload: Partial<DeviceCredentialPayload> = {
-          name: values.name,
-          mgmtDomain: undefined,
-          type,
-        }
-
-        if (values.mgmtDomain) {
-          Object.assign(payload, {
-            mgmtDomain: {
-              id: values.mgmtDomain,
-            },
-          })
-        }
-
-        if (
-          type === CredentialSetType.SNMP_V1 ||
-          type === CredentialSetType.SNMP_V2C
-        ) {
-          const communityPayload: Partial<DeviceCredentialPayload> = {
-            communityVaultInstanceId: values.communityVaultInstanceId,
-            communityVaultPath: values.communityVaultPath,
-          }
-          if (values.community !== PASSWORD_UNCHANGED) {
-            communityPayload.community = values.community ?? undefined
-          }
-          Object.assign(payload, communityPayload)
-        }
-
-        if (type === CredentialSetType.SNMP_V3) {
-          const snmpPayload: Partial<DeviceCredentialPayload> = {
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            authType: values.authType,
-            authKeyVaultInstanceId: values.authKeyVaultInstanceId,
-            authKeyVaultPath: values.authKeyVaultPath,
-            privType: values.privType,
-            privKeyVaultInstanceId: values.privKeyVaultInstanceId,
-            privKeyVaultPath: values.privKeyVaultPath,
-          }
-          if (values.authKey !== PASSWORD_UNCHANGED) snmpPayload.authKey = values.authKey ?? undefined
-          if (values.privKey !== PASSWORD_UNCHANGED) snmpPayload.privKey = values.privKey ?? undefined
-          Object.assign(payload, snmpPayload)
-        } else if (
-          type === CredentialSetType.SSH ||
-          type === CredentialSetType.Telnet
-        ) {
-          const sshPayload: Partial<DeviceCredentialPayload> = {
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            passwordVaultInstanceId: values.passwordVaultInstanceId,
-            passwordVaultPath: values.passwordVaultPath,
-            superPasswordVaultInstanceId: values.superPasswordVaultInstanceId,
-            superPasswordVaultPath: values.superPasswordVaultPath,
-          }
-          if (values.password !== PASSWORD_UNCHANGED) sshPayload.password = values.password ?? undefined
-          if (values.superPassword !== PASSWORD_UNCHANGED) sshPayload.superPassword = values.superPassword ?? undefined
-          Object.assign(payload, sshPayload)
-        } else if (type === CredentialSetType.SSHKey) {
-          const sshKeyPayload: Partial<DeviceCredentialPayload> = {
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            privateKeyVaultInstanceId: values.privateKeyVaultInstanceId,
-            privateKeyVaultPath: values.privateKeyVaultPath,
-            passwordVaultInstanceId: values.passwordVaultInstanceId,
-            passwordVaultPath: values.passwordVaultPath,
-            superPasswordVaultInstanceId: values.superPasswordVaultInstanceId,
-            superPasswordVaultPath: values.superPasswordVaultPath,
-          }
-          if (values.privateKey !== PASSWORD_UNCHANGED && values.privateKey !== "") sshKeyPayload.privateKey = values.privateKey ?? undefined
-          if (values.password !== PASSWORD_UNCHANGED) sshKeyPayload.password = values.password ?? undefined
-          if (values.superPassword !== PASSWORD_UNCHANGED) sshKeyPayload.superPassword = values.superPassword ?? undefined
-          Object.assign(payload, sshKeyPayload)
-        } else if (type === CredentialSetType.HTTP) {
-          const httpPayload: Partial<DeviceCredentialPayload> = {
-            username: values.username,
-            usernameVaultInstanceId: values.usernameVaultInstanceId,
-            usernameVaultPath: values.usernameVaultPath,
-            passwordVaultInstanceId: values.passwordVaultInstanceId,
-            passwordVaultPath: values.passwordVaultPath,
-          }
-          if (values.password !== PASSWORD_UNCHANGED) httpPayload.password = values.password ?? undefined
-          Object.assign(payload, httpPayload)
-        }
+        const payload = buildCredentialSetPayload(values, "update")
 
         await mutation.mutateAsync(payload)
 
@@ -233,6 +70,7 @@ export default function EditDeviceCredentialSetTrigger({ credentialSet: credenti
         queryClient.invalidateQueries({
           queryKey: [QUERIES.ADMIN_DEVICE_CREDENTIALS],
         })
+        queryClient.invalidateQueries({ queryKey: [APP_QUERIES.CREDENTIAL_SET_LIST] })
       },
       onCancel() {
         form.reset()

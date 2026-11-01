@@ -1,10 +1,10 @@
-import api from "@/api"
+import { User } from "@/api/admin"
+import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts"
+import { Level } from "@/types"
 import { usePagination, useUserLevelOptions } from "@/hooks"
-import { User } from "@/types"
-import { search } from "@/utils"
 import {
   Badge,
     Button,
@@ -15,9 +15,8 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuCloud, LuDatabase, LuSquarePen, LuPlus, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddUserTrigger from "../components/AddUserTrigger"
@@ -34,16 +33,11 @@ export default function AdministrationUserScreen() {
   const { user: currentUser } = useAuth()
   const userLevelOptions = useUserLevelOptions()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [QUERIES.ADMIN_USERS, pagination.query, pagination.offset, pagination.limit],
-    queryFn: async () => api.admin.getAllUsers(pagination),
-    select: useCallback(
-      (res: User[]): User[] => {
-        return search(res, "username").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending, onBottomReached } = useList<User>(
+    [QUERIES.ADMIN_USERS],
+    "/users",
+    { q: pagination.query, sort: "username" }
+  )
 
   const isSearching = Boolean(pagination.query?.trim())
 
@@ -72,7 +66,7 @@ export default function AdministrationUserScreen() {
       columnHelper.accessor("level", {
         cell: (info) => {
           const value = info.getValue()
-          const label = userLevelOptions.getLabelByValue(value)
+          const label = userLevelOptions.getLabelByValue(value as Level)
 
           return <Text>{label ? label : t("common.unknownLabel")}</Text>
         },
@@ -154,7 +148,7 @@ export default function AdministrationUserScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} />
+              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (
