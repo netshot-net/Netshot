@@ -1,4 +1,5 @@
 import api, { UpdateGroupPayload } from "@/api"
+import { DEVICE_SUMMARY_FIELDS } from "@/api/device"
 import { NetshotError } from "@/api/httpClient"
 import { QUERIES } from "@/constants"
 import { useDialogConfig } from "@/dialog"
@@ -57,8 +58,9 @@ export default function EditGroupDialog(props: EditGroupDialogProps) {
   const { data: staticDevices } = useQuery({
     queryKey: [QUERIES.DEVICE_LIST, group.id, group.folder, group.name],
     queryFn: async () =>
-      api.device.getAll({
+      api.device.getAllRows({
         group: group.id,
+        fields: DEVICE_SUMMARY_FIELDS,
       }),
   })
 

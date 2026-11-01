@@ -11,12 +11,12 @@ import { TaskDialog } from "@/features/task/components"
 import { MUTATIONS } from "@/constants"
 import { useCustomDialog, useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, LightDevice, TaskType } from "@/types"
+import { Device } from "@/types"
 import React from "react"
 import Slot from "@/components/Slot"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type DeviceSnapshotTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type DeviceSnapshotTriggerProps = { devices: Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 type SnapshotForm = {
   runDiagnostic: boolean
@@ -41,11 +41,20 @@ export default function DeviceSnapshotTrigger({ devices, children, ...rest }: De
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.TASK_CREATE,
-    mutationFn: api.task.create,
+    mutationFn: async (values: { ids: number[] } & SnapshotForm) =>
+      api.device.takeSnapshot(
+        values.ids,
+        {
+          dontRunDiagnostics: !values.runDiagnostic,
+          dontCheckCompliance: !values.checkCompliance,
+          debugEnabled: values.debugEnabled,
+        },
+        values.schedule
+      ),
     onError(err: NetshotError) { toast.error(err) },
   })
 
-  const orderedDevicesRef = useRef<(LightDevice | Device)[]>(devices)
+  const orderedDevicesRef = useRef<Device[]>(devices)
 
   const open = () => {
     form.reset()
@@ -88,32 +97,13 @@ export default function DeviceSnapshotTrigger({ devices, children, ...rest }: De
       form,
       size: "lg",
       async onSubmit(values: SnapshotForm) {
-        const { schedule } = values
         const orderedDevices = orderedDevicesRef.current
 
-        const task = await mutation.mutateAsync(
-          devices.length > 1
-            ? {
-                type: TaskType.TakeGroupSnapshot,
-                deviceList: orderedDevices.map((device) => device.id),
-                debugEnabled: values.debugEnabled,
-                dontRunDiagnostics: !values.runDiagnostic,
-                dontCheckCompliance: !values.checkCompliance,
-                ...schedule,
-              }
-            : {
-                type: TaskType.TakeSnapshot,
-                device: devices?.[0]?.id,
-                debugEnabled: values.debugEnabled,
-                dontRunDiagnostics: !values.runDiagnostic,
-                dontCheckCompliance: !values.checkCompliance,
-                ...schedule,
-              }
-        )
+        const task = await mutation.mutateAsync({ ...values, ids: orderedDevices.map((device) => device.id) })
 
         await dialogRef.close()
 
-        if (task) {
+        if (task?.id) {
           taskDialog.open(<TaskDialog id={task.id} />)
         }
       },

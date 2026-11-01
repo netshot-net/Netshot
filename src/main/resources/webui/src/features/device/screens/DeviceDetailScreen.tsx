@@ -3,7 +3,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { LuCamera, LuSquarePen, LuChevronDown, LuRefreshCcw, LuTrash, LuZap, LuZapOff } from "react-icons/lu"
 import { RouterTab, RouterTabs } from "@/components/routerTab"
 import { useToast } from "@/hooks"
-import { isNetshotError, NetshotErrorCode } from "@/api/httpClient"
+import { HttpStatus, isNetshotError } from "@/api/httpClient"
 import { DeviceStatus, DeviceType, Level, TaskType } from "@/types"
 import { TASK_TYPE_ICONS } from "@/features/task/constants"
 import { Button, Flex, Group, Heading, IconButton, Menu, Portal, Skeleton, Spacer, Stack } from "@chakra-ui/react"
@@ -29,7 +29,7 @@ export default function DeviceDetailScreen() {
   const { data: deviceTypes, isPending: isDeviceTypePending } = useDeviceTypes()
   const queryClient = useQueryClient()
 
-  const isDeviceNotFound = isError && isNetshotError(error) && error.code === NetshotErrorCode.DeviceNotFound
+  const isDeviceNotFound = isError && isNetshotError(error) && error.response?.status === HttpStatus.NotFound
 
   const refresh = useCallback(async () => {
     const toastId = toast.loading({

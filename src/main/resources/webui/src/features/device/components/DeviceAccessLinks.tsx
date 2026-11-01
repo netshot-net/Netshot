@@ -20,7 +20,7 @@ const PROTOCOL_LINK: Partial<Record<DeviceTypeProtocol, { scheme: string; standa
 export type DeviceAccessLinksProps = {
   mgmtAddress: string
   accesses: DeviceAccess[]
-  accessDefinitions: Record<string, DeviceAccessDefinition> | undefined
+  accessDefinitions: DeviceAccessDefinition[] | undefined
 }
 
 type ResolvedAccessLink = {
@@ -40,7 +40,7 @@ function resolveAccessLink(access: DeviceAccess, mgmtAddress: string, definition
   const port = access.port ?? definition.defaultPort
   const portSuffix = port === link.standardPort ? "" : `:${port}`
   return {
-    accessName: access.accessName,
+    accessName: access.accessName ?? "",
     scheme: link.scheme,
     url: `${link.scheme}://${host}${portSuffix}`,
     priority: definition.priority,
@@ -58,7 +58,7 @@ export default function DeviceAccessLinks({ mgmtAddress, accesses, accessDefinit
   const { t } = useTranslation()
 
   const links = (accesses ?? [])
-    .map((access) => resolveAccessLink(access, mgmtAddress, accessDefinitions?.[access.accessName]))
+    .map((access) => resolveAccessLink(access, mgmtAddress, accessDefinitions?.find((definition) => definition.name === access.accessName)))
     .filter((link): link is ResolvedAccessLink => !!link)
     .sort((a, b) => b.priority - a.priority)
 

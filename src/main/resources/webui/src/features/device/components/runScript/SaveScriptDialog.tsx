@@ -1,4 +1,5 @@
 import api from "@/api"
+import { Schemas } from "@/api/client"
 import { NetshotError } from "@/api/httpClient"
 import { FormControl } from "@/components"
 import { useTreeOpenKeys } from "@/hooks"
@@ -75,7 +76,7 @@ export default function SaveScriptDialog(props: SaveScriptDialogProps) {
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.SCRIPT_UPDATE,
-    mutationFn: async (payload: { matchId?: number; script: Partial<Script> }) => {
+    mutationFn: async (payload: { matchId?: number; script: Schemas["ScriptRequest"] }) => {
       if (payload.matchId != null) {
         await api.script.remove(payload.matchId)
       }
