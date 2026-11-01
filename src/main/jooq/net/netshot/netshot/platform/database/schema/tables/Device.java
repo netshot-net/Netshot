@@ -207,6 +207,16 @@ public class Device extends TableImpl<DeviceRecord> {
      */
     public final TableField<DeviceRecord, JSONB> OPTIONS = createField(DSL.name("options"), SQLDataType.JSONB, this, "");
 
+    /**
+     * The column <code>device.last_snapshot_success_date</code>.
+     */
+    public final TableField<DeviceRecord, Instant> LAST_SNAPSHOT_SUCCESS_DATE = createField(DSL.name("last_snapshot_success_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+
+    /**
+     * The column <code>device.last_snapshot_failure_date</code>.
+     */
+    public final TableField<DeviceRecord, Instant> LAST_SNAPSHOT_FAILURE_DATE = createField(DSL.name("last_snapshot_failure_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+
     private Device(Name alias, Table<DeviceRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

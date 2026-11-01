@@ -64,7 +64,7 @@ public final class TaskMapper {
 		public static final Refs IDS_ONLY = new Refs(
 			id -> new DeviceDto(id, V1Links.of("devices", id), null, null, null, null, null, null, null, null, null, null, null,
 				null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-				null, null, null, null),
+				null, null, null, null, null, null),
 			id -> new GroupDto(id, V1Links.of("groups", id), null, 0, null, null, null, null, false, null),
 			id -> brief(id, null, null, null));
 	}

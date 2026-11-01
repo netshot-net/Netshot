@@ -222,6 +222,17 @@ public final class TestDevices {
 	}
 
 	/**
+	 * Sets the date of the last successful or failed snapshot of a device.
+	 *
+	 * @param deviceId the device ID
+	 * @param success true for the last successful snapshot, false for the last failed one
+	 * @param date the date
+	 */
+	public static void setSnapshotDate(long deviceId, boolean success, Instant date) {
+		transactions().run(dsl -> DEVICES.saveSnapshotDate(dsl, deviceId, success, date));
+	}
+
+	/**
 	 * Removes a device, with everything attached to it.
 	 *
 	 * @param id the device ID

@@ -64,6 +64,8 @@ import net.netshot.netshot.inventory.device.Device;
  * @param eolModule the module responsible for the end of life
  * @param eosDate the end of sale date
  * @param eosModule the module responsible for the end of sale
+ * @param lastSnapshotSuccessDate when the last snapshot succeeded (null if never)
+ * @param lastSnapshotFailureDate when the last snapshot failed (null if never)
  * @param tags the tags
  * @param virtualDevices the names of the virtual devices
  * @param vrfInstances the names of the VRF instances
@@ -103,6 +105,8 @@ public record DeviceDto(
 	ModuleDto eolModule,
 	Instant eosDate,
 	ModuleDto eosModule,
+	Instant lastSnapshotSuccessDate,
+	Instant lastSnapshotFailureDate,
 	Set<String> tags,
 	Set<String> virtualDevices,
 	Set<String> vrfInstances,

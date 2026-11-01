@@ -901,6 +901,47 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
+	@DisplayName("0.26.0_11 - last snapshot dates stored on the devices")
+	class SnapshotDatesMigrationTest {
+
+		@Test
+		@DisplayName("The dates are initialized from the latest successful and failed snapshot tasks of each device")
+		void backfillsSnapshotDates() throws Exception {
+			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("snapshotdatesmigrationtest"));
+			updateToChangeSet("0.26.0_10", "netshot");
+
+			try (Connection connection = Database.openUnpooledConnection();
+					Statement statement = connection.createStatement()) {
+				statement.execute("insert into device (id, version, name, status) values (1201, 0, 'both', 'INPRODUCTION'), "
+					+ "(1202, 0, 'never', 'INPRODUCTION'), (1203, 0, 'failedonly', 'INPRODUCTION')");
+				String columns = "insert into task (id, version, debug_enabled, priority, dtype, run_snapshot, run_diagnostics, check_compliance, "
+					+ "dont_run_diagnostics, dont_check_compliance, child_order, stop_on_failure, cancel_requested, schedule_type, schedule_mode, "
+					+ "device, status, execution_date) values ";
+				String common = "false, 5, 'TakeSnapshotTask', false, false, false, false, false, 0, false, false, 'ASAP', 'PARALLEL'";
+				statement.execute(columns
+					+ "(1301, 0, " + common + ", 1201, 'SUCCESS', '2026-01-01 10:00:00'), "
+					+ "(1302, 0, " + common + ", 1201, 'SUCCESS', '2026-03-01 10:00:00'), "
+					+ "(1303, 0, " + common + ", 1201, 'FAILURE', '2026-02-01 10:00:00'), "
+					+ "(1304, 0, " + common + ", 1201, 'CANCELLED', '2026-04-01 10:00:00'), "
+					+ "(1305, 0, " + common + ", 1203, 'FAILURE', '2026-05-01 10:00:00'), "
+					+ "(1306, 0, false, 5, 'CheckComplianceTask', false, false, false, false, false, 0, false, false, 'ASAP', 'PARALLEL', 1202, "
+					+ "'SUCCESS', '2026-06-01 10:00:00')");
+			}
+
+			Database.update();
+
+			try (Connection connection = Database.openUnpooledConnection();
+					Statement statement = connection.createStatement()) {
+				Assertions.assertEquals(
+					List.of(List.of("1201", "2026-03-01 10:00:00", "2026-02-01 10:00:00"), List.of("1202", "none", "none"),
+						List.of("1203", "none", "2026-05-01 10:00:00")),
+					rows(statement, "select id, coalesce(to_char(last_snapshot_success_date, 'YYYY-MM-DD HH24:MI:SS'), 'none'), "
+						+ "coalesce(to_char(last_snapshot_failure_date, 'YYYY-MM-DD HH24:MI:SS'), 'none') from device order by id", 3));
+			}
+		}
+	}
+
+	@Nested
 	@DisplayName("Custom changes moved to platform.database.migrator keep upgrades of existing databases valid")
 	class CustomChangeChecksumTest {
 
