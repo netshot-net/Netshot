@@ -30,9 +30,24 @@ import java.util.Set;
  * @param enumValues the possible values, for an {@link FieldType#ENUM} field (empty otherwise)
  * @param sortable whether the result can be sorted by the field
  * @param searchable whether the free text search looks into the field
+ * @param groupable whether the objects can be counted by the values of the field (statistics)
  */
 public record FieldSpec(String name, FieldType type, Set<Lookup> lookups, List<String> enumValues,
-	boolean sortable, boolean searchable) {
+	boolean sortable, boolean searchable, boolean groupable) {
+
+	/**
+	 * Describes a field which can't be grouped by.
+	 *
+	 * @param name the name of the field
+	 * @param type the type of the field
+	 * @param lookups the lookups which can be used to filter on the field
+	 * @param enumValues the possible values, for an {@link FieldType#ENUM} field
+	 * @param sortable whether the result can be sorted by the field
+	 * @param searchable whether the free text search looks into the field
+	 */
+	public FieldSpec(String name, FieldType type, Set<Lookup> lookups, List<String> enumValues, boolean sortable, boolean searchable) {
+		this(name, type, lookups, enumValues, sortable, searchable, false);
+	}
 
 	/**
 	 * Copies the collections.

@@ -54,6 +54,8 @@ import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 
 /**
  * The queries on configurations. The {@link DSLContext} is always the first parameter: the caller
@@ -121,9 +123,9 @@ public class ConfigRepository {
 
 	/** The filters, sort and search of the configuration list. */
 	public static final QueryMapping LIST = QueryMapping.builder(CONFIG.ID)
-		.integer("device", CONFIG.DEVICE)
+		.integer("device", CONFIG.DEVICE, Option.GROUPABLE)
 		.date("changeDate", CONFIG.CHANGE_DATE, Option.SORTABLE)
-		.string("author", CONFIG.AUTHOR, Option.SORTABLE, Option.SEARCHABLE)
+		.string("author", CONFIG.AUTHOR, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
 		.custom("domain", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
 			DSL.exists(DSL.selectOne().from(DEVICE).where(DEVICE.ID.eq(CONFIG.DEVICE))
 				.and(DEVICE.MGMT_DOMAIN.in(values.stream().map(Long.class::cast).toList()))))
@@ -163,6 +165,18 @@ public class ConfigRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(CONFIG, LIST.condition(query));
+	}
+
+	/**
+	 * Counts the configurations matching a query, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows
+	 */
+	public List<StatsRow> stats(DSLContext dsl, ListQuery query, StatsQuery stats) {
+		return LIST.stats(dsl, CONFIG, query, stats, null);
 	}
 
 	/**

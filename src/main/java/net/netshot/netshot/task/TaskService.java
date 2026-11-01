@@ -55,6 +55,8 @@ import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.task.Task.ScheduleType;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
@@ -178,6 +180,25 @@ public class TaskService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the tasks.", e);
 			throw DatabaseErrors.listFailure(e, "Unable to fetch the tasks");
+		}
+	}
+
+	/**
+	 * Counts the tasks matching a query, by field values and/or time buckets.
+	 *
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows, with the number of matching tasks
+	 * @throws NetshotException if a filter is invalid, or the tasks can't be read
+	 */
+	public ListResult<StatsRow> stats(ListQuery query, StatsQuery stats) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.stats(dsl, query, stats),
+				this.repository.count(dsl, query)));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to count the tasks.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to count the tasks");
 		}
 	}
 
