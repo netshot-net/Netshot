@@ -1,16 +1,12 @@
 import { Box, Separator, Skeleton, Spacer, Stack, Tag, Text, useToken } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { ChartConfiguration } from "chart.js"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import api from "@/api"
 import { Chart, Sidebar } from "@/components"
 
-import { useShallow } from "zustand/react/shallow"
-import { QUERIES } from "../constants"
-import { useConfigurationComplianceSidebarStore } from "../stores/useConfigurationComplianceSidebarStore"
+import { useGroupConfigComplianceStats } from "../hooks"
 import ConfigurationCompliantSidebarList from "./ConfigurationComplianceSidebarList"
 import ConfigurationComplianceSidebarSearch from "./ConfigurationComplianceSidebarSearch"
 
@@ -18,34 +14,11 @@ function ConfigurationComplianceGlobalChart() {
   const { t } = useTranslation()
   const [compliantColor] = useToken("colors", "green.500")
   const [nonCompliantColor] = useToken("colors", "red.500")
-  const { domains, policies } = useConfigurationComplianceSidebarStore(
-    useShallow((state) => ({
-      domains: state.domains,
-      policies: state.policies,
-    }))
-  )
   const params = useParams<{
     id: string
   }>()
 
-  const { data: stats, isPending } = useQuery({
-    queryKey: [
-      QUERIES.CONFIGURATION_COMPLIANCE_STAT,
-      domains.sort().join(","),
-      policies.sort().join(","),
-      params?.id,
-    ],
-    queryFn: async () => {
-      const filters = {
-        domain: domains,
-        policy: policies,
-        group: params.id ? [+params.id] : [],
-      }
-
-      return api.report.getAllGroupConfigComplianceStats(filters)
-    },
-    gcTime: 0,
-  })
+  const { stats, isPending } = useGroupConfigComplianceStats(params.id ? +params.id : undefined)
 
   const count = useMemo(() => {
     const output = {
@@ -54,7 +27,7 @@ function ConfigurationComplianceGlobalChart() {
       nonCompliant: 0,
     }
 
-    if (!stats?.length) {
+    if (!stats.length) {
       return output
     }
 

@@ -124,18 +124,6 @@ export type DeviceOptionDefinition = {
   defaultValue?: string | boolean
 }
 
-export type DeviceAccessFailure = {
-  driver: string
-  family: string
-  id: number
-  lastFailure: number
-  lastSuccess: number
-  mgmtAddress: string
-  name: string
-  networkClass: DeviceNetworkClass
-  status: DeviceStatus
-}
-
 /** A device as the API gives it (a list gives the summary properties only, unless more are asked for). */
 export type Device = Omit<Schemas["Device"], "status" | "networkClass" | "softwareLevel"> & {
   id: number

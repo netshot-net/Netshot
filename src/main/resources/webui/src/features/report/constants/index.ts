@@ -1,6 +1,7 @@
 export const QUERIES = {
   CONFIG_CHANGE: "config-change",
   REPORT_CONFIG_CHANGE_LIST: "report-config-change-list",
+  REPORT_CONFIG_CHANGE_BINS: "report-config-change-bins",
   SOFTWARE_COMPLIANCE: "software-compliance",
   SOFTWARE_COMPLIANCE_DEVICES: "software-compliance-devices",
   DEVICE_ACCESS_FAILURE: "device-access-failure",
