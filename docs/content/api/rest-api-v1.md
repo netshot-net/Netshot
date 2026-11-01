@@ -140,7 +140,7 @@ The body is optional (except for the scripts), and takes the scheduling properti
 **Sub-resources** (read-only level; 404 for an unknown device):
 
 - `GET /api/v1/devices/{id}/interfaces`: the network interfaces (`name`, `description`, `enabled`, `macAddress`, `ipAddresses`, `vrf`, `virtualDevice`, `level3`...). Filters: `name`, `description`, `vrf`, `virtualDevice`, `enabled`, `level3`, `macAddress`, `ipAddress` (`ipAddress__net=10.0.0.0/24`); `q` searches the name and description.
-- `GET /api/v1/devices/{id}/modules`: the modules (`slot`, `partNumber`, `serialNumber`, `firstSeenDate`, `lastSeenDate`, `removed`), the removed ones included: `removed=false` for the current ones.
+- `GET /api/v1/devices/{id}/modules`: the current modules (`slot`, `partNumber`, `serialNumber`, `firstSeenDate`, `lastSeenDate`, `removed`); with `removed=true`, the modules removed from the device (kept for the history) too.
 - `GET /api/v1/devices/{id}/tasks`, `/configs`, `/diagnostic-results`, `/compliance-results`: the tasks, configurations and results of the device (see these resources).
 
 The interfaces and modules have an `id` and a `display`, but no `url` (they aren't addressable on their own).
