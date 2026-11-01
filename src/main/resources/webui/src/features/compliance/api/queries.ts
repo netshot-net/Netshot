@@ -73,7 +73,7 @@ export function usePoliciesWithOptions() {
     ...POLICIES_QUERY,
     select(policies) {
       return sortAlphabetical(policies, "name").map((policy) => ({
-        label: policy?.name,
+        label: policy?.name ?? "",
         value: policy?.id,
       }))
     },

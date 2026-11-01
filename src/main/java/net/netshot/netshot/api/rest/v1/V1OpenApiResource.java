@@ -105,7 +105,9 @@ public class V1OpenApiResource {
 			.filter(c -> c.isAnnotationPresent(Path.class) && !c.isAnnotationPresent(Hidden.class))
 			.collect(Collectors.toSet());
 		Reader reader = new Reader(new SwaggerConfiguration().openAPI(base).prettyPrint(true));
-		return reader.read(resources);
+		OpenAPI document = reader.read(resources);
+		V1OpenApiEnhancer.enhance(document, resources);
+		return document;
 	}
 
 	/**

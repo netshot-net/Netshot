@@ -22,7 +22,7 @@ export default function EditPolicyTrigger({ policy, children, ...rest }: EditPol
   const dialog = useFormDialogWithMutation()
 
   const defaultValues = useMemo(() => ({
-    name: policy?.name,
+    name: policy?.name ?? "",
     targetGroups: policy?.targetGroups?.map((group) => group.id),
   }), [policy])
 
