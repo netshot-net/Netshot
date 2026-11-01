@@ -51,7 +51,10 @@ import jakarta.ws.rs.Path;
  * <li>the properties of the representations (answers) are all written, null included: they are marked required, and
  * nullable unless their type is primitive (the request types are left as they are: their absent properties have a
  * meaning);</li>
- * <li>the common parameters of the lists (paging, sort, search, selection) and of the statistics.</li>
+ * <li>the common parameters of the lists (paging, sort, search, selection) and of the statistics;</li>
+ * <li>the optional properties of the requests can be null (null clears them);</li>
+ * <li>a Java {@code Object} (any JSON value, as the values of the driver options) is any value, not an empty object;</li>
+ * <li>the type value of each subtype of a polymorphic representation.</li>
  * </ul>
  */
 final class V1OpenApiEnhancer {
@@ -96,6 +99,12 @@ final class V1OpenApiEnhancer {
 			if (schema != null) {
 				complete(schema, answer.getValue());
 			}
+		}
+		for (Map.Entry<String, Schema> entry : schemas.entrySet()) {
+			if (entry.getKey().endsWith("Request")) {
+				nullableOptionals(entry.getValue());
+			}
+			anyValues(entry.getValue(), new HashSet<>());
 		}
 		for (Map.Entry<String, Class<?>> base : polymorphic.entrySet()) {
 			Schema<?> schema = schemas.get(base.getKey());
@@ -204,6 +213,92 @@ final class V1OpenApiEnhancer {
 			}
 		}
 		schema.setRequired(required);
+	}
+
+	/**
+	 * Makes the optional properties of a request nullable (an explicit null clears the value).
+	 *
+	 * @param schema the schema of the request
+	 */
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	private static void nullableOptionals(Schema schema) {
+		if (schema.getAllOf() != null) {
+			for (Object part : schema.getAllOf()) {
+				if (part instanceof Schema partSchema) {
+					nullableOptionals(partSchema);
+				}
+			}
+		}
+		Map<String, Schema> properties = schema.getProperties();
+		if (properties == null) {
+			return;
+		}
+		List<String> required = schema.getRequired() == null ? List.of() : schema.getRequired();
+		for (Map.Entry<String, Schema> property : properties.entrySet()) {
+			if (required.contains(property.getKey()) || Boolean.TRUE.equals(property.getValue().getReadOnly())) {
+				continue;
+			}
+			Schema value = property.getValue();
+			if (value.get$ref() != null) {
+				Schema wrapper = new Schema<>().allOf(List.of(new Schema<>().$ref(value.get$ref())));
+				wrapper.setNullable(true);
+				wrapper.setDescription(value.getDescription());
+				property.setValue(wrapper);
+			}
+			else {
+				value.setNullable(true);
+			}
+		}
+	}
+
+	/**
+	 * Turns the schemas of a Java {@code Object} (an object type without any property) into "any value", in a schema and
+	 * the schemas it contains.
+	 *
+	 * @param schema the schema
+	 * @param seen the schemas already walked
+	 */
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	private static void anyValues(Schema schema, Set<Schema> seen) {
+		if (schema == null || !seen.add(schema)) {
+			return;
+		}
+		if (schema.getProperties() != null) {
+			for (Object property : schema.getProperties().values()) {
+				Schema propertySchema = (Schema) property;
+				if (isAnyObject(propertySchema)) {
+					propertySchema.setType(null);
+					propertySchema.setTypes(null);
+				}
+				anyValues(propertySchema, seen);
+			}
+		}
+		if (schema.getAdditionalProperties() instanceof Schema additional) {
+			if (isAnyObject(additional)) {
+				schema.setAdditionalProperties(Boolean.TRUE);
+			}
+			else {
+				anyValues(additional, seen);
+			}
+		}
+		if (schema.getItems() != null) {
+			if (isAnyObject(schema.getItems())) {
+				schema.getItems().setType(null);
+				schema.getItems().setTypes(null);
+			}
+			anyValues(schema.getItems(), seen);
+		}
+		if (schema.getAllOf() != null) {
+			for (Object part : schema.getAllOf()) {
+				anyValues((Schema) part, seen);
+			}
+		}
+	}
+
+	@SuppressWarnings("rawtypes")
+	private static boolean isAnyObject(Schema schema) {
+		return "object".equals(schema.getType()) && schema.getProperties() == null && schema.getAdditionalProperties() == null
+			&& schema.get$ref() == null && schema.getAllOf() == null && schema.getOneOf() == null && schema.getAnyOf() == null;
 	}
 
 	private static String httpMethodOf(Method method) {
