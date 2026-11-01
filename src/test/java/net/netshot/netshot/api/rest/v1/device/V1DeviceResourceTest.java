@@ -114,7 +114,8 @@ public class V1DeviceResourceTest {
 		JsonNode page = this.admin.get("/devices").json();
 		Assertions.assertEquals(3, page.get("count").asInt());
 		Assertions.assertEquals(List.of("router00001", "router00002", "router00003"), names(page));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status"), keys(page.get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status", "family", "driver", "driverDescription",
+			"networkClass", "softwareLevel", "compliant", "endOfLife", "endOfSale"), keys(page.get("results").get(0)));
 
 		Assertions.assertEquals(List.of("router00001", "router00002"), this.list("?status=INPRODUCTION"));
 		Assertions.assertEquals(List.of("router00003"), this.list("?status__n=INPRODUCTION"));

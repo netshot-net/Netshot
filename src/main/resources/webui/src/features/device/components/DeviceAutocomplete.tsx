@@ -1,6 +1,5 @@
 import api from "@/api"
 import { ListResponse } from "@/api/client"
-import { DEVICE_SUMMARY_FIELDS } from "@/api/device"
 import DeviceBadge from "@/components/entity/DeviceBadge"
 import DeviceListItem from "@/components/entity/DeviceListItem"
 import { Device } from "@/types"
@@ -85,7 +84,6 @@ export default function DeviceAutocomplete(props: DeviceAutocompleteProps) {
     async queryFn(query) {
       return api.device.search({
         query: `[Name] containsnocase "${query.replace(/"/g, '\\"')}"`,
-        fields: DEVICE_SUMMARY_FIELDS,
         limit: 20,
         count: false,
       })
