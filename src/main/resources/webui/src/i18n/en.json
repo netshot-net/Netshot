@@ -647,6 +647,7 @@
       "aboutToRemove": "You are about to remove the policy {{policyName}}"
     },
     "group": {
+      "changedMeanwhile": "The group was changed meanwhile: it has been reloaded, please retry.",
       "add": "Add group",
       "members": "Group members",
       "chooseType": "Choose group type",

@@ -646,6 +646,7 @@
       "aboutToRemove": "Vous êtes sur le point de supprimer la politique {{policyName}}"
     },
     "group": {
+      "changedMeanwhile": "Le groupe a été modifié entre-temps : il a été rechargé, veuillez réessayer.",
       "add": "Ajouter un groupe",
       "members": "Membres du groupe",
       "chooseType": "Choisir le type de groupe",
