@@ -4,7 +4,7 @@ import { listAll } from "./device"
 
 /** Every saved script (brief view: without the code). */
 async function getAll(params: ListParams = {}) {
-  return listAll<Script>("/scripts", params)
+  return listAll<Script>("/scripts", { view: "full", ...params })
 }
 
 async function getById(id: number) {

@@ -1,10 +1,9 @@
-import type { Config } from "@/types"
-import { client, list, ListParams, Schemas } from "./client"
+import { Brief, client, list, ListParams, Schemas } from "./client"
 import { HttpMethod } from "./httpClient"
 
 /** The configurations of all the devices, the latest first (brief view unless `view=full`). */
 async function getAll(params: ListParams = {}) {
-  return list<Config>("/configs", params)
+  return list<Brief["Config"]>("/configs", params)
 }
 
 /**

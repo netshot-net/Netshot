@@ -1,12 +1,10 @@
 import type {
   Config,
   Device,
-  DeviceInterface,
-  DeviceModule,
   DeviceType,
 } from "@/types"
 import { TaskType } from "@/types"
-import { client, list, ListParams, patch, Schemas } from "./client"
+import { Brief, client, list, ListParams, patch, Schemas } from "./client"
 
 type Task = Schemas["Task"]
 
@@ -162,11 +160,11 @@ async function createTask(
 }
 
 async function getComplianceResultById(id: number, params: ListParams = {}) {
-  return list<Schemas["DeviceComplianceResult"]>(`/devices/${id}/compliance-results`, params)
+  return list<Brief["DeviceComplianceResult"]>(`/devices/${id}/compliance-results`, params)
 }
 
 async function getDiagnosticResultById(id: number, params: ListParams = {}) {
-  return list<Schemas["DiagnosticResult"]>(`/devices/${id}/diagnostic-results`, params)
+  return list<Brief["DiagnosticResult"]>(`/devices/${id}/diagnostic-results`, params)
 }
 
 /** The configurations of a device, the latest first, with their attributes. */
@@ -175,36 +173,36 @@ async function getAllConfigsById(id: number, params: ListParams = {}) {
 }
 
 async function getAllInterfacesById(id: number, params: ListParams = {}) {
-  return list<DeviceInterface>(`/devices/${id}/interfaces`, params)
+  return list<Brief["DeviceInterface"]>(`/devices/${id}/interfaces`, params)
 }
 
 /** The current modules of a device (`removed`: the removed ones too, kept for the history). */
 async function getAllModulesById(id: number, params: ListParams = {}) {
-  return list<DeviceModule>(`/devices/${id}/modules`, params)
+  return list<Brief["DeviceModule"]>(`/devices/${id}/modules`, params)
 }
 
 async function getAllTasksById(id: number, params: ListParams = {}) {
-  return list<Task>(`/devices/${id}/tasks`, params)
+  return list<Brief["Task"]>(`/devices/${id}/tasks`, params)
 }
 
 async function getAllFamilies() {
-  return listAll<Schemas["DeviceFamily"]>("/device-families")
+  return listAll<Brief["DeviceFamily"]>("/device-families")
 }
 
 async function getAllPartNumbers() {
-  return listAll<Schemas["PartNumber"]>("/part-numbers")
+  return listAll<Brief["PartNumber"]>("/part-numbers")
 }
 
 async function getAllSoftwareVersions() {
-  return listAll<Schemas["SoftwareVersion"]>("/software-versions")
+  return listAll<Brief["SoftwareVersion"]>("/software-versions")
 }
 
 async function getAllTags() {
-  return listAll<Schemas["DeviceTag"]>("/device-tags")
+  return listAll<Brief["DeviceTag"]>("/device-tags")
 }
 
 async function getAllTypes() {
-  return listAll<DeviceType>("/device-types")
+  return listAll<DeviceType>("/device-types", { view: "full" })
 }
 
 
