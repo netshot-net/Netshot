@@ -1,32 +1,27 @@
-import {
-  GroupedHardwareSupportStat,
-  HardwareSupportStat,
-  HardwareSupportStatType,
-} from "@/types";
+import type { HardwareSupportStat } from "@/api/report"
+import type { GroupedHardwareSupportStat } from "@/types"
 
 export function groupStatByDate(stats: HardwareSupportStat[]) {
   if (!Array.isArray(stats)) {
-    return [];
+    return []
   }
 
-  const output: GroupedHardwareSupportStat[] = [];
+  const output: GroupedHardwareSupportStat[] = []
 
   for (const stat of stats) {
-    const item = output.find((item) => item.date === stat.eoxDate);
+    const item = output.find((item) => item.date === stat.date)
 
     if (item) {
-      item.eos +=
-        stat.type === HardwareSupportStatType.Eos ? stat.deviceCount : 0;
-      item.eol +=
-        stat.type === HardwareSupportStatType.Eol ? stat.deviceCount : 0;
+      item.eos += stat.type === "eos" ? stat.deviceCount : 0
+      item.eol += stat.type === "eol" ? stat.deviceCount : 0
     } else {
       output.push({
-        date: stat.eoxDate,
-        eos: stat.type === HardwareSupportStatType.Eos ? stat.deviceCount : 0,
-        eol: stat.type === HardwareSupportStatType.Eol ? stat.deviceCount : 0,
-      });
+        date: stat.date,
+        eos: stat.type === "eos" ? stat.deviceCount : 0,
+        eol: stat.type === "eol" ? stat.deviceCount : 0,
+      })
     }
   }
 
-  return output.sort((a, b) => a.date - b.date);
+  return output.sort((a, b) => a.date - b.date)
 }

@@ -1,11 +1,10 @@
 import { TASK_STATUS_CONFIG } from "./TaskStatusBadge"
 import { TaskStatus } from "@/types"
 import { Box, Icon, Progress, SimpleGrid, Stack, Text } from "@chakra-ui/react"
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { LuHistory } from "react-icons/lu"
 import { FINAL_STATUS_KEYS } from "../constants"
-import { useRecentCompletedTasks, useTaskSummary } from "../hooks"
+import { useRecentCompletedCounts, useTaskSummary } from "../hooks"
 import { useActiveTaskFilterStore } from "../stores/useActiveTaskFilterStore"
 
 function StatusIcon({ status }: { status: TaskStatus }) {
@@ -24,15 +23,7 @@ export default function TaskLiveStats() {
   const toggleStatuses = useActiveTaskFilterStore((s) => s.toggleStatuses)
 
   const { countByStatus, threadCount } = useTaskSummary()
-  const { data: recentTasks } = useRecentCompletedTasks()
-
-  const recentCounts = useMemo(() => {
-    const counts: Partial<Record<TaskStatus, number>> = {}
-    for (const task of recentTasks) {
-      counts[task.status] = (counts[task.status] ?? 0) + 1
-    }
-    return counts
-  }, [recentTasks])
+  const recentCounts = useRecentCompletedCounts()
 
   const runningCount = countByStatus[TaskStatus.Running] ?? 0
   const waitingCount = countByStatus[TaskStatus.Waiting] ?? 0
