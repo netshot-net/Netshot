@@ -12,7 +12,6 @@ import DeviceScanSubnetTrigger from "../DeviceScanSubnetTrigger"
 import DeviceSidebarList from "./DeviceSidebarList"
 import DeviceSidebarListToolbar from "./DeviceSidebarListToolbar"
 import DeviceSidebarSearch from "./DeviceSidebarSearch"
-import DeviceSidebarSearchList from "./DeviceSidebarSearchList"
 
 export default function DeviceSidebar() {
   const { t } = useTranslation()
@@ -30,7 +29,7 @@ export default function DeviceSidebar() {
       <Separator />
       <DeviceSidebarListToolbar />
       <Separator />
-      {query ? <DeviceSidebarSearchList /> : <DeviceSidebarList />}
+      <DeviceSidebarList query={query} />
 
       <Protected minLevel={Level.Operator}>
         <Separator />

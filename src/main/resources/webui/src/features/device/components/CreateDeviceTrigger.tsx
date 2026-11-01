@@ -1,4 +1,5 @@
-import api, { CreateDevicePayload } from "@/api"
+import api from "@/api"
+import { Schemas } from "@/api/client"
 import { NetshotError } from "@/api/httpClient"
 import { Switch } from "@/components"
 import { DomainSelect } from "@/features/administration/components"
@@ -48,8 +49,8 @@ function DeviceCreateForm() {
   const deviceType = useWatch({ control: form.control, name: "deviceType" })
 
   const selectedDeviceType = getOptionByDriver(deviceType)?.value
-  const hasAccesses = Boolean(selectedDeviceType && Object.keys(selectedDeviceType.accessDefinitions ?? {}).length > 0)
-  const hasOptions = Boolean(selectedDeviceType && Object.keys(selectedDeviceType.options ?? {}).length > 0)
+  const hasAccesses = Boolean(selectedDeviceType && (selectedDeviceType.accesses?.length ?? 0) > 0)
+  const hasOptions = Boolean(selectedDeviceType && (selectedDeviceType.options?.length ?? 0) > 0)
   const showRightColumn = !autoDiscover && (hasAccesses || hasOptions)
 
   const updateDialogConfig = dialogConfig.update
@@ -92,7 +93,7 @@ function DeviceCreateForm() {
           <Separator orientation="vertical" />
           <Stack flex="1" overflow="auto" gap="6" p="1">
             {hasAccesses && (
-              <DeviceAccessFields control={form.control} setValue={form.setValue} accessDefinitions={selectedDeviceType!.accessDefinitions} />
+              <DeviceAccessFields control={form.control} setValue={form.setValue} accessDefinitions={selectedDeviceType!.accesses} />
             )}
             {hasAccesses && hasOptions && <Separator />}
             {hasOptions && (
@@ -131,7 +132,7 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.DEVICE_CREATE,
-    mutationFn: async (payload: CreateDevicePayload) => api.device.create(payload),
+    mutationFn: async (payload: Schemas["DeviceCreationRequest"]) => api.device.create(payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -145,13 +146,14 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
       description: <DeviceCreateForm />,
       form,
       async onSubmit(values: Form) {
-        const newDevice = {
-          deviceType: values?.deviceType,
-          autoDiscoveryTask: -1,
-          autoDiscover: values.autoDiscover,
-          ipAddress: values?.ipAddress,
-          domainId: +(values?.domain ?? 0),
-        } as CreateDevicePayload
+        // Without a driver, a discovery task finds the type of the device (and no access nor option can be given)
+        const newDevice: Schemas["DeviceCreationRequest"] = {
+          mgmtAddress: values.ipAddress,
+          mgmtDomain: +(values.domain ?? 0),
+        }
+        if (!values.autoDiscover && values.deviceType) {
+          newDevice.driver = values.deviceType
+        }
 
         if (values.comments) {
           newDevice.comments = values.comments
@@ -160,15 +162,17 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
           newDevice.tags = values.tags
         }
 
-        const accesses = buildAccessesPayload(values.accesses, credentialSets)
-        if (accesses.length > 0) {
-          newDevice.accesses = accesses
-        }
+        if (!values.autoDiscover) {
+          const accesses = buildAccessesPayload(values.accesses, credentialSets)
+          if (accesses.length > 0) {
+            newDevice.accesses = accesses
+          }
 
-        const optionDefinitions = getOptionByDriver(values?.deviceType ?? null)?.value?.options
-        const options = buildOptionsPayload(values.options, optionDefinitions)
-        if (Object.keys(options).length > 0) {
-          newDevice.options = options
+          const optionDefinitions = getOptionByDriver(values?.deviceType ?? null)?.value?.options
+          const options = buildOptionsPayload(values.options, optionDefinitions)
+          if (Object.keys(options).length > 0) {
+            newDevice.options = options as unknown as Schemas["DeviceCreationRequest"]["options"]
+          }
         }
 
         const task = await mutation.mutateAsync(newDevice)
@@ -176,7 +180,7 @@ export default function CreateDeviceTrigger({ children, ...rest }: CreateDeviceT
 
         await dialogRef.close()
 
-        taskDialog.open(<TaskDialog id={task!.id} />)
+        taskDialog.open(<TaskDialog id={task.id!} />)
       },
       size: COLLAPSED_SIZE,
       submitButton: {

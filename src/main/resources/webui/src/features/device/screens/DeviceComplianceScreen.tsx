@@ -5,12 +5,13 @@ import { useMemo } from "react"
 import { Trans, useTranslation } from "react-i18next"
 import { useParams, useSearchParams } from "react-router"
 
-import api from "@/api"
+import { listAll } from "@/api/device"
+import { Schemas } from "@/api/client"
 import { AlertBox, DataTable, EntityLink, ExpandableTextCell, Protected } from "@/components"
 import Search from "@/components/Search"
 import { LuCircleCheck, LuTrophy } from "react-icons/lu"
 import {
-  DeviceComplianceResult,
+  DeviceComplianceResultType,
   DeviceSoftwareLevel,
   Level,
 } from "@/types"
@@ -26,7 +27,18 @@ import DeviceComplianceTrigger from "../components/DeviceComplianceTrigger"
 import { QUERIES } from "../constants"
 import { useDevice } from "../contexts/device"
 
-const columnHelper = createColumnHelper<DeviceComplianceResult>()
+/** A compliance result of the device, flattened for the table. */
+type ComplianceRow = {
+  policyId: number
+  policyName: string
+  ruleId: number
+  ruleName: string
+  result: DeviceComplianceResultType
+  comment: string
+  checkDate?: Date | null
+}
+
+const columnHelper = createColumnHelper<ComplianceRow>()
 
 function SoftwareLevelTag({ colorPalette, children }: { colorPalette?: string; children?: React.ReactNode }) {
   return (
@@ -48,7 +60,20 @@ export default function DeviceComplianceScreen() {
 
   const { data = [], isPending } = useQuery({
     queryKey: [QUERIES.DEVICE_COMPLIANCE, params?.id],
-    queryFn: async () => (await api.device.getComplianceResultById(+(params?.id ?? 0))) ?? [],
+    queryFn: async (): Promise<ComplianceRow[]> =>
+      (
+        await listAll<Schemas["DeviceComplianceResult"]>(`/devices/${params?.id}/compliance-results`, {
+          view: "full",
+        })
+      ).map((result) => ({
+        policyId: result.policy?.id ?? 0,
+        policyName: result.policy?.display ?? "",
+        ruleId: result.rule?.id ?? 0,
+        ruleName: result.rule?.display ?? "",
+        result: result.result as DeviceComplianceResultType,
+        comment: result.comment ?? "",
+        checkDate: result.checkDate,
+      })),
   })
 
   const isSearching = Boolean(pagination.query?.trim())
@@ -125,7 +150,7 @@ export default function DeviceComplianceScreen() {
         size: 20000,
       }),
       columnHelper.accessor("checkDate", {
-        cell: (info) => <Text>{info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")}</Text>,
+        cell: (info) => <Text>{info.getValue() ? formatDateTime(info.getValue()!) : t("common.nA")}</Text>,
         header: t("compliance.lastCheck"),
         enableSorting: true,
         size: 10000,
@@ -201,7 +226,7 @@ export default function DeviceComplianceScreen() {
             <Stack direction="row" alignItems="center" justifyContent="space-between" gap="12" flex="1">
               <Heading size="md">{t("common.hardware")}</Heading>
               {device && (
-                <DeviceHardwareComplianceBadge eol={device.endOfLife} eos={device.endOfSale} />
+                <DeviceHardwareComplianceBadge eol={!!device.endOfLife} eos={!!device.endOfSale} />
               )}
             </Stack>
           </Accordion.ItemTrigger>
@@ -211,7 +236,7 @@ export default function DeviceComplianceScreen() {
                 {device?.endOfSale ? (
                   <Text>
                     {t("compliance.hardware.endOfSaleSince", {
-                      date: formatDate(device?.eosDate),
+                      date: formatDate(device!.eosDate!),
                       module: device?.eosModule?.partNumber,
                     })}
                   </Text>
@@ -219,7 +244,7 @@ export default function DeviceComplianceScreen() {
                   <Text>
                     {device?.eosDate
                       ? t("compliance.hardware.notEndOfSaleYetPlanned", {
-                          date: formatDate(device?.eosDate),
+                          date: formatDate(device!.eosDate!),
                           module: device?.eosModule?.partNumber,
                         })
                       : t("compliance.hardware.notEndOfSaleYet")}
@@ -230,7 +255,7 @@ export default function DeviceComplianceScreen() {
                 {device?.endOfLife ? (
                   <Text>
                     {t("compliance.hardware.endOfLifeSince", {
-                      date: formatDate(device?.eolDate),
+                      date: formatDate(device!.eolDate!),
                       module: device?.eolModule?.partNumber,
                     })}
                   </Text>
@@ -238,7 +263,7 @@ export default function DeviceComplianceScreen() {
                   <Text>
                     {device?.eolDate
                       ? t("compliance.hardware.notEndOfLifeYetPlanned", {
-                          date: formatDate(device?.eolDate),
+                          date: formatDate(device!.eolDate!),
                           module: device?.eolModule?.partNumber,
                         })
                       : t("compliance.hardware.notEndOfLifeYet")}

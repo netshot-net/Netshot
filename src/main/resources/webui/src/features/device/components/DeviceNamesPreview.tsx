@@ -1,13 +1,13 @@
 import { useCustomDialog } from "@/dialog"
-import { Device, LightDevice } from "@/types"
+import { Device } from "@/types"
 import { Button, Stack, Text } from "@chakra-ui/react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import DeviceReorderDialog from "./DeviceReorderDialog"
 
 export type DeviceNamesPreviewProps = {
-  devices: (LightDevice | Device)[]
-  onReorder?(devices: (LightDevice | Device)[]): void
+  devices: Device[]
+  onReorder?(devices: Device[]): void
 }
 
 const PREVIEW_LIMIT = 5

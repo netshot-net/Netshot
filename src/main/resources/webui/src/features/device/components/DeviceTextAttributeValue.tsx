@@ -1,14 +1,14 @@
-import { DeviceTextAttribute } from "@/types"
+import { DeviceAttribute } from "@/types"
 import { Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next"
 
 type DeviceTextAttributeValueProps = {
-  attribute: DeviceTextAttribute
+  attribute: DeviceAttribute | undefined
 }
 
 export function DeviceTextAttributeValue(props: DeviceTextAttributeValueProps) {
   const { attribute } = props
   const { t } = useTranslation()
 
-  return <Text>{attribute?.text ?? t("common.nA")}</Text>
+  return <Text>{(attribute?.value as string | undefined) ?? t("common.nA")}</Text>
 }

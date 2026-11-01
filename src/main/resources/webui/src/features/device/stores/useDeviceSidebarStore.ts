@@ -1,25 +1,29 @@
 import { queryClient } from "@/App"
 import { QUERIES } from "@/constants"
-import { DeviceType, Group, LightDevice } from "@/types"
+import api from "@/api"
+import { ListParams } from "@/api/client"
+import { Device, DeviceType, Group } from "@/types"
 import { create } from "zustand"
-import { QUERIES as DEVICE_QUERIES } from "../constants"
 
 export type DeviceSidebarStoreState = {
   query: string
   driver: DeviceType["name"] | null
   total: number
-  selected: LightDevice[]
-  devices: LightDevice[]
+  selected: Device[]
+  devices: Device[]
   group: Group | null
 
-  select(devices: LightDevice[]): void
-  selectAll(): void
+  select(devices: Device[]): void
+  /** The parameters of the list shown (to select all the matching devices, not only the loaded ones). */
+  listParams: ListParams | null
+  setListParams(params: ListParams | null): void
+  selectAll(): Promise<void>
   deselectAll(): void
   isSelected(deviceId: number): boolean
   isSelectedAll(): boolean
   updateQueryAndDriver(query: string, driver: DeviceType["name"] | null): void
   setTotal(total: number): void
-  setDevices(devices: LightDevice[]): void
+  setDevices(devices: Device[]): void
   setGroup(group: Group | null): void
   setQuery(query: string): void
   refresh(): Promise<void>
@@ -32,13 +36,23 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
   selected: [],
   devices: [],
   group: null,
+  listParams: null,
 
-  select(devices: LightDevice[]) {
+  setListParams(listParams: ListParams | null) {
+    set({ listParams })
+  },
+
+  select(devices: Device[]) {
     set({ selected: devices })
   },
 
-  selectAll() {
-    set({ selected: get().devices })
+  async selectAll() {
+    const { listParams, devices } = get()
+    if (!listParams) {
+      set({ selected: devices })
+      return
+    }
+    set({ selected: await api.device.getAllRows(listParams) })
   },
 
   deselectAll() {
@@ -54,7 +68,7 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
   isSelectedAll() {
     const { devices, selected } = get()
 
-    return devices.length > 0 && devices.length === selected.length
+    return devices.length > 0 && get().total === selected.length
   },
 
   updateQueryAndDriver(query: string, driver: DeviceType["name"] | null) {
@@ -65,7 +79,7 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
     set({ total })
   },
 
-  setDevices(devices: LightDevice[]) {
+  setDevices(devices: Device[]) {
     set({ devices })
   },
 
@@ -79,8 +93,5 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
 
   async refresh() {
     await queryClient.invalidateQueries({ queryKey: [QUERIES.DEVICE_LIST] })
-    await queryClient.invalidateQueries({
-      queryKey: [DEVICE_QUERIES.DEVICE_SEARCH_LIST],
-    })
   },
 }))

@@ -22,7 +22,7 @@ import DeviceConfigurationViewTrigger from "./DeviceConfigurationViewTrigger"
 
 function buildConfigFilename(
   deviceName: string | undefined,
-  changeDate: number,
+  changeDate: Date,
   attributeName: string,
   extension = "cfg"
 ): string | undefined {
@@ -74,7 +74,7 @@ function ConfigTextAttributeValue(props: ConfigTextAttributeValueType) {
 
 type ConfigLongTextAttributeValueType = {
   configId: number
-  changeDate: number
+  changeDate: Date
   attribute: ConfigLongTextAttribute
   definition: DeviceAttributeDefinition
 }
@@ -84,7 +84,7 @@ function ConfigLongTextAttributeValue(props: ConfigLongTextAttributeValueType) {
   const { t } = useTranslation()
   const { device } = useDevice()
   const filename = useMemo(
-    () => buildConfigFilename(device?.name, changeDate, attribute?.name),
+    () => buildConfigFilename(device?.name, changeDate, attribute?.name ?? ""),
     [device?.name, changeDate, attribute?.name]
   )
 
@@ -97,7 +97,7 @@ function ConfigLongTextAttributeValue(props: ConfigLongTextAttributeValueType) {
         </Button>
       </DeviceConfigurationViewTrigger>
       <Button asChild>
-        <a href={`/api/configs/${configId}/${attribute?.name}`} download={filename} target="_blank" rel="noreferrer">
+        <a href={attribute?.url ?? undefined} download={filename} target="_blank" rel="noreferrer">
           <LuDownload />
           {t("common.download")}
         </a>
@@ -124,12 +124,12 @@ function ConfigBinaryAttributeValue(props: ConfigBinaryAttributeValueType) {
 
 type ConfigBinaryFileAttributeValueType = {
   configId: number
-  changeDate: number
+  changeDate: Date
   attribute: ConfigBinaryFileAttribute
 }
 
 function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueType) {
-  const { configId, changeDate, attribute } = props
+  const { changeDate, attribute } = props
   const { t } = useTranslation()
   const { device } = useDevice()
   const { formatFileSize } = useLocalization()
@@ -138,29 +138,29 @@ function ConfigBinaryFileAttributeValue(props: ConfigBinaryFileAttributeValueTyp
       buildConfigFilename(
         device?.name,
         changeDate,
-        attribute?.name,
-        getFileExtension(attribute?.originalName)
+        attribute?.name ?? "",
+        getFileExtension(attribute?.originalName ?? undefined)
       ),
     [device?.name, changeDate, attribute?.name, attribute?.originalName]
   )
 
-  const checksum = useMemo(() => parseChecksum(attribute?.checksum), [attribute?.checksum])
+  const checksum = useMemo(() => parseChecksum(attribute?.checksum ?? undefined), [attribute?.checksum])
 
   return (
     <Stack direction="row" gap="2" alignItems="center">
       <Button asChild variant="ghost" size="sm">
-        <a href={`/api/configs/${configId}/${attribute?.name}`} download={filename} target="_blank" rel="noreferrer">
+        <a href={attribute?.url ?? undefined} download={filename} target="_blank" rel="noreferrer">
           <LuDownload />
           {t("common.download")}
         </a>
       </Button>
       {Number.isFinite(attribute?.fileSize) && (
         <Text color="grey.400" fontSize="sm">
-          {formatFileSize(attribute.fileSize)}
+          {formatFileSize(attribute.fileSize ?? 0)}
         </Text>
       )}
       {checksum && (
-        <Clipboard.Root value={attribute.checksum}>
+        <Clipboard.Root value={attribute.checksum ?? undefined}>
           <Tooltip content={`${t("common.checksum")}: ${attribute.checksum} (${t("common.copy")})`}>
             <Clipboard.Trigger asChild>
               <Button variant="subtle" size="xs" fontFamily="mono" fontWeight="normal">

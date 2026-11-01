@@ -1,6 +1,6 @@
 import api from "@/api"
 import { useDebounce } from "@/hooks"
-import { LightDevice } from "@/types"
+import { Device } from "@/types"
 import { DeviceListItem } from "@/components/entity"
 import {
   Box,
@@ -74,13 +74,13 @@ export default function StaticGroupForm() {
 
   const formDevices = useWatch({ control: form.control, name: "staticDevices" })
 
-  const leftCollection = useListCollection<LightDevice>({
+  const leftCollection = useListCollection<Device>({
     initialItems: [],
     itemToValue: (d) => d.id.toString(),
     itemToString: (d) => d.name,
   })
 
-  const rightCollection = useListCollection<LightDevice>({
+  const rightCollection = useListCollection<Device>({
     initialItems: [],
     itemToValue: (d) => d.id.toString(),
     itemToString: (d) => d.name,
@@ -108,7 +108,7 @@ export default function StaticGroupForm() {
   }, [formDevices])
 
   useEffect(() => {
-    const filtered = (searchResult?.devices ?? []).filter((d) => !selectedIds.has(d.id))
+    const filtered = (searchResult?.results ?? []).filter((d) => !selectedIds.has(d.id))
     leftCollection.set(filtered)
     // leftCollection is a fresh object every render (useListCollection isn't
     // memoized); adding it here would re-fire this effect on every render its

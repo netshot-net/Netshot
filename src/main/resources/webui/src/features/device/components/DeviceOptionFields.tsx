@@ -11,7 +11,7 @@ export type DeviceOptionFieldsProps = {
   control: Control<any>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setValue: UseFormSetValue<any>
-  optionDefinitions: Record<string, DeviceOptionDefinition> | undefined
+  optionDefinitions: DeviceOptionDefinition[] | undefined
 }
 
 function defaultFormValue(definition: DeviceOptionDefinition): DeviceOptionFormValue {
@@ -28,11 +28,11 @@ function defaultFormValue(definition: DeviceOptionDefinition): DeviceOptionFormV
  * how `DeviceAccessFields` reacts to the driver's `accessDefinitions`.
  */
 export default function DeviceOptionFields({ control, setValue, optionDefinitions }: DeviceOptionFieldsProps) {
-  const optionNamesKey = Object.keys(optionDefinitions ?? {}).sort().join(",")
+  const optionNamesKey = (optionDefinitions ?? []).map((def) => def.name).sort().join(",")
   const currentOptions = useWatch({ control, name: "options" }) as Record<string, DeviceOptionFormValue> | undefined
 
   useEffect(() => {
-    const defs = Object.values(optionDefinitions ?? {})
+    const defs = optionDefinitions ?? []
     const next: Record<string, DeviceOptionFormValue> = {}
     defs.forEach((def) => {
       const existing = currentOptions?.[def.name]
@@ -44,13 +44,13 @@ export default function DeviceOptionFields({ control, setValue, optionDefinition
     // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [optionNamesKey])
 
-  if (!optionDefinitions || Object.keys(optionDefinitions).length === 0) {
+  if (!optionDefinitions || optionDefinitions.length === 0) {
     return null
   }
 
   return (
     <Stack gap="5">
-      {Object.values(optionDefinitions).map((def) => (
+      {optionDefinitions.map((def) => (
         <DriverValueField
           key={def.name}
           control={control}
@@ -69,10 +69,10 @@ export default function DeviceOptionFields({ control, setValue, optionDefinition
 /** Turns the form's `options` values into the typed map the REST API expects - real booleans stay booleans, not stringified. */
 export function buildOptionsPayload(
   options: Record<string, DeviceOptionFormValue> | undefined,
-  optionDefinitions: Record<string, DeviceOptionDefinition> | undefined
+  optionDefinitions: DeviceOptionDefinition[] | undefined
 ): Record<string, DeviceOptionFormValue> {
   const result: Record<string, DeviceOptionFormValue> = {}
-  Object.values(optionDefinitions ?? {}).forEach((def) => {
+  ;(optionDefinitions ?? []).forEach((def) => {
     const value = options?.[def.name]
     if (value === undefined) {
       return
