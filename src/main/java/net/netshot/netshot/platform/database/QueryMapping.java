@@ -23,25 +23,35 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.jooq.Condition;
+import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.SelectField;
+import org.jooq.SelectJoinStep;
 import org.jooq.SortField;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.FieldSpec;
 import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.Interval;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.query.QuerySchema;
 import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 
 /**
  * The translation of the list queries ({@link ListQuery}) of one kind of object into jOOQ conditions and
@@ -67,7 +77,24 @@ public final class QueryMapping {
 		SORTABLE,
 		/** The free text search looks into the field (text fields only). */
 		SEARCHABLE,
+		/** The objects can be counted by the values of the field (statistics). */
+		GROUPABLE,
 	}
+
+	/**
+	 * Joins the tables a grouping needs (the tags of a device...) to the query of the statistics.
+	 */
+	@FunctionalInterface
+	public interface Join {
+		/**
+		 * Adds the join.
+		 *
+		 * @param from the query, from the main table
+		 * @return the query with the join
+		 */
+		SelectJoinStep<Record> apply(SelectJoinStep<Record> from);
+	}
+
 
 	/**
 	 * Builds the condition of a custom filter (one which isn't a simple comparison of a column).
@@ -90,8 +117,10 @@ public final class QueryMapping {
 	 * @param spec the neutral description of the field
 	 * @param column the column (null for a custom filter)
 	 * @param custom the custom filter (null for a column)
+	 * @param groupExpression the expression the statistics count by (null if the field can't be grouped by)
+	 * @param join the join the grouping needs, or null
 	 */
-	private record Mapped(FieldSpec spec, Field<?> column, CustomFilter custom) {
+	private record Mapped(FieldSpec spec, Field<?> column, CustomFilter custom, Field<?> groupExpression, Join join) {
 	}
 
 	/** The ID column. */
@@ -175,6 +204,113 @@ public final class QueryMapping {
 			sortFields.add(this.idColumn.asc());
 		}
 		return sortFields;
+	}
+
+	/**
+	 * Counts the objects matching a list query, by the values of fields and/or by time buckets
+	 * ({@link StatsQuery}). With time buckets, every bucket of the range is in the result, with a count of 0 if no
+	 * object falls in it, for each combination of the grouped values found.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param table the main table
+	 * @param query the filters (its window and order are ignored)
+	 * @param stats what to count by
+	 * @param extra an additional condition (the device search query...), or null
+	 * @return the rows: by combination of values then by time with time buckets, by decreasing count otherwise
+	 * @throws IllegalArgumentException if a field can't be grouped by, or the field of the buckets isn't a date
+	 */
+	@SuppressWarnings("unchecked")
+	public List<StatsRow> stats(DSLContext dsl, Table<?> table, ListQuery query, StatsQuery stats, Condition extra) {
+		List<Field<?>> keys = new ArrayList<>();
+		List<Join> joins = new ArrayList<>();
+		for (String name : stats.groupBy()) {
+			Mapped mapped = this.fields.get(name);
+			if (mapped == null || mapped.groupExpression() == null) {
+				throw new IllegalArgumentException("Can't group by " + name);
+			}
+			keys.add(mapped.groupExpression().as("k" + keys.size()));
+			if (mapped.join() != null) {
+				joins.add(mapped.join());
+			}
+		}
+		Condition condition = this.condition(query).and(extra == null ? DSL.noCondition() : extra);
+		Field<Instant> bucket = null;
+		List<Instant> starts = null;
+		if (stats.interval() != null) {
+			Mapped on = this.fields.get(stats.on());
+			if (on == null || on.column() == null || on.spec().type() != FieldType.DATE) {
+				throw new IllegalArgumentException("Can't count by time on " + stats.on());
+			}
+			Field<Instant> column = (Field<Instant>) on.column();
+			// The start of the bucket, aligned in the time zone, back in UTC (as the dates are stored); inlined so
+			// that the expression of the select and the one of the group by are identical
+			bucket = DSL.field("(date_trunc({0}, ({1} at time zone 'UTC') at time zone {2}) at time zone {2}) at time zone 'UTC'",
+				column.getDataType(), DSL.inline(stats.interval().sqlUnit()), column, DSL.inline(stats.timeZone().getId()));
+			condition = condition.and(column.ge(stats.from())).and(column.lt(stats.to()));
+			starts = stats.interval().starts(stats.from(), stats.to(), stats.timeZone(), Interval.MAX_BUCKETS);
+			if (starts == null) {
+				throw new IllegalArgumentException("Too many time buckets");
+			}
+		}
+		List<SelectField<?>> select = new ArrayList<>(keys);
+		Field<Instant> bucketAlias = bucket == null ? null : bucket.as("bucket");
+		if (bucketAlias != null) {
+			select.add(bucketAlias);
+		}
+		Field<Integer> count = DSL.count().as("n");
+		select.add(count);
+		SelectJoinStep<Record> from = dsl.select(select).from(table);
+		for (Join join : joins) {
+			from = join.apply(from);
+		}
+		List<Field<?>> groupFields = new ArrayList<>();
+		for (int i = 0; i < keys.size(); i++) {
+			groupFields.add(DSL.field(DSL.name("k" + i)));
+		}
+		if (bucket != null) {
+			groupFields.add(DSL.field(DSL.name("bucket")));
+		}
+		List<StatsRow> rows = new ArrayList<>();
+		for (Record r : from.where(condition).groupBy(groupFields).fetch()) {
+			List<Object> values = new ArrayList<>();
+			for (Field<?> key : keys) {
+				values.add(r.get(key));
+			}
+			rows.add(new StatsRow(values, bucketAlias == null ? null : r.get(bucketAlias), r.get(count)));
+		}
+		if (starts == null) {
+			rows.sort(Comparator.comparingLong(StatsRow::count).reversed());
+			return rows;
+		}
+		return fillBuckets(rows, starts, stats.groupBy().isEmpty());
+	}
+
+	/**
+	 * Completes time bucket rows: every bucket for every combination of values.
+	 *
+	 * @param rows the counted rows
+	 * @param starts the starts of the buckets
+	 * @param single true without grouped values (one series, even if empty)
+	 * @return the complete rows, by combination of values then by time
+	 */
+	private static List<StatsRow> fillBuckets(List<StatsRow> rows, List<Instant> starts, boolean single) {
+		Map<List<Object>, Map<Instant, Long>> series = new LinkedHashMap<>();
+		if (single) {
+			series.put(List.of(), new HashMap<>());
+		}
+		for (StatsRow row : rows) {
+			series.computeIfAbsent(row.keys(), _ -> new HashMap<>()).merge(row.start(), row.count(), Long::sum);
+		}
+		List<List<Object>> keys = new ArrayList<>(series.keySet());
+		keys.sort(Comparator.comparing(Object::toString));
+		List<StatsRow> filled = new ArrayList<>();
+		for (List<Object> key : keys) {
+			Map<Instant, Long> counts = series.get(key);
+			for (Instant start : starts) {
+				filled.add(new StatsRow(key, start, counts.getOrDefault(start, 0L)));
+			}
+		}
+		return filled;
 	}
 
 	/**
@@ -286,9 +422,12 @@ public final class QueryMapping {
 			if (opts.contains(Option.SEARCHABLE) && type != FieldType.STRING) {
 				throw new IllegalArgumentException("Only a text field can be searchable: " + name);
 			}
+			if (opts.contains(Option.GROUPABLE) && type == FieldType.INET) {
+				throw new IllegalArgumentException("An IP address field can't be grouped by: " + name);
+			}
 			FieldSpec spec = new FieldSpec(name, type, type.lookups(), enumValues,
-				opts.contains(Option.SORTABLE), opts.contains(Option.SEARCHABLE));
-			if (this.fields.put(name, new Mapped(spec, column, null)) != null) {
+				opts.contains(Option.SORTABLE), opts.contains(Option.SEARCHABLE), opts.contains(Option.GROUPABLE));
+			if (this.fields.put(name, new Mapped(spec, column, null, opts.contains(Option.GROUPABLE) ? column : null, null)) != null) {
 				throw new IllegalArgumentException("Duplicate field " + name);
 			}
 			return this;
@@ -392,9 +531,29 @@ public final class QueryMapping {
 		 */
 		public Builder custom(String name, FieldType type, Set<Lookup> lookups, CustomFilter filter) {
 			FieldSpec spec = new FieldSpec(name, type, lookups, List.of(), false, false);
-			if (this.fields.put(name, new Mapped(spec, null, filter)) != null) {
+			if (this.fields.put(name, new Mapped(spec, null, filter, null, null)) != null) {
 				throw new IllegalArgumentException("Duplicate field " + name);
 			}
+			return this;
+		}
+
+		/**
+		 * Makes a custom filter a grouping too (the statistics count by it), with the expression giving its value, and
+		 * the join this expression needs (a device counted once per tag, per group...).
+		 *
+		 * @param name the name of the (custom) field
+		 * @param expression the expression of the value
+		 * @param join the join the expression needs, or null
+		 * @return this builder
+		 */
+		public Builder grouping(String name, Field<?> expression, Join join) {
+			Mapped mapped = this.fields.get(name);
+			if (mapped == null) {
+				throw new IllegalArgumentException("Unknown field " + name);
+			}
+			FieldSpec spec = mapped.spec();
+			this.fields.put(name, new Mapped(new FieldSpec(spec.name(), spec.type(), spec.lookups(), spec.enumValues(),
+				spec.sortable(), spec.searchable(), true), mapped.column(), mapped.custom(), expression, join));
 			return this;
 		}
 

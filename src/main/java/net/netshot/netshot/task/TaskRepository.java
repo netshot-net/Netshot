@@ -54,6 +54,8 @@ import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.database.schema.tables.records.TaskRecord;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
@@ -770,22 +772,22 @@ public class TaskRepository {
 
 	/** The fields the task lists can be filtered and sorted on. */
 	public static final QueryMapping LIST = QueryMapping.builder(TASK.ID)
-		.enumeration("type", TASK.DTYPE, TYPE_NAMES, Option.SORTABLE)
-		.enumeration("status", TASK.STATUS, Task.Status.class, Option.SORTABLE)
-		.string("author", TASK.AUTHOR, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", TASK.DTYPE, TYPE_NAMES, Option.SORTABLE, Option.GROUPABLE)
+		.enumeration("status", TASK.STATUS, Task.Status.class, Option.SORTABLE, Option.GROUPABLE)
+		.string("author", TASK.AUTHOR, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
 		.string("target", TASK.TARGET, Option.SORTABLE, Option.SEARCHABLE)
 		.string("comments", TASK.COMMENTS, Option.SEARCHABLE)
 		.integer("priority", TASK.PRIORITY, Option.SORTABLE)
-		.enumeration("scheduleType", TASK.SCHEDULE_TYPE, Task.ScheduleType.class, Option.SORTABLE)
+		.enumeration("scheduleType", TASK.SCHEDULE_TYPE, Task.ScheduleType.class, Option.SORTABLE, Option.GROUPABLE)
 		.date("scheduleReference", TASK.SCHEDULE_REFERENCE, Option.SORTABLE)
 		.date("creationDate", TASK.CREATION_DATE, Option.SORTABLE)
 		.date("changeDate", TASK.CHANGE_DATE, Option.SORTABLE)
 		.date("executionDate", TASK.EXECUTION_DATE, Option.SORTABLE)
-		.integer("device", TASK.DEVICE)
-		.integer("group", TASK.DEVICE_GROUP)
+		.integer("device", TASK.DEVICE, Option.GROUPABLE)
+		.integer("group", TASK.DEVICE_GROUP, Option.GROUPABLE)
 		.integer("parentTask", TASK.PARENT_TASK_ID)
 		.integer("childOrder", TASK.CHILD_ORDER, Option.SORTABLE)
-		.string("runnerId", TASK.RUNNER_ID)
+		.string("runnerId", TASK.RUNNER_ID, Option.GROUPABLE)
 		.bool("debugEnabled", TASK.DEBUG_ENABLED)
 		.defaultSort(SortOrder.desc("id"))
 		.build();
@@ -823,6 +825,18 @@ public class TaskRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query) {
 		return dsl.fetchCount(TASK, LIST.condition(query));
+	}
+
+	/**
+	 * Counts the tasks matching a query, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows
+	 */
+	public List<StatsRow> stats(DSLContext dsl, ListQuery query, StatsQuery stats) {
+		return LIST.stats(dsl, TASK, query, stats, null);
 	}
 
 	/**

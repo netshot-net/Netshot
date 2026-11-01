@@ -18,6 +18,12 @@
  */
 package net.netshot.netshot.api.rest.v1.group;
 
+import java.util.stream.Collectors;
+
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.inventory.group.GroupService;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
+import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupDefinition;
@@ -79,5 +85,16 @@ public final class GroupMapper {
 		};
 		return new GroupDefinition(type, request.name(), request.devices(), request.query(),
 			request.folder() == null ? "" : request.folder(), request.hiddenFromReports());
+	}
+
+	/**
+	 * Builds the resolver of group IDs into references (statistics grouped by group).
+	 *
+	 * @param groupService the group use cases
+	 * @return the resolver
+	 */
+	public static StatsResponse.Resolver resolver(GroupService groupService) {
+		return ids -> groupService.list(ListQuery.byIds(ids)).items().stream()
+			.collect(Collectors.toMap(DeviceGroup::id, g -> new RefDto(g.id(), V1Links.of(PATH, g.id()), g.name())));
 	}
 }

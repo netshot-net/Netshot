@@ -95,6 +95,8 @@ import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -485,23 +487,23 @@ public class DeviceRepository {
 	public static final QueryMapping LIST = QueryMapping.builder(DEVICE.ID)
 		.string("name", DEVICE.NAME, Option.SORTABLE, Option.SEARCHABLE)
 		.string("mgmtAddress", DEVICE.MGMT_ADDRESS, Option.SORTABLE, Option.SEARCHABLE)
-		.enumeration("status", DEVICE.STATUS, Device.Status.class, Option.SORTABLE)
-		.integer("mgmtDomain", DEVICE.MGMT_DOMAIN)
-		.string("family", DEVICE.FAMILY, Option.SORTABLE, Option.SEARCHABLE)
-		.string("driver", DEVICE.DRIVER, Option.SORTABLE)
-		.enumeration("networkClass", DEVICE.NETWORK_CLASS, Device.NetworkClass.class, Option.SORTABLE)
-		.string("softwareVersion", DEVICE.SOFTWARE_VERSION, Option.SORTABLE, Option.SEARCHABLE)
-		.enumeration("softwareLevel", DEVICE.SOFTWARE_LEVEL, ConformanceLevel.class, Option.SORTABLE)
+		.enumeration("status", DEVICE.STATUS, Device.Status.class, Option.SORTABLE, Option.GROUPABLE)
+		.integer("mgmtDomain", DEVICE.MGMT_DOMAIN, Option.GROUPABLE)
+		.string("family", DEVICE.FAMILY, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
+		.string("driver", DEVICE.DRIVER, Option.SORTABLE, Option.GROUPABLE)
+		.enumeration("networkClass", DEVICE.NETWORK_CLASS, Device.NetworkClass.class, Option.SORTABLE, Option.GROUPABLE)
+		.string("softwareVersion", DEVICE.SOFTWARE_VERSION, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
+		.enumeration("softwareLevel", DEVICE.SOFTWARE_LEVEL, ConformanceLevel.class, Option.SORTABLE, Option.GROUPABLE)
 		.string("serialNumber", DEVICE.SERIAL_NUMBER, Option.SORTABLE, Option.SEARCHABLE)
-		.string("location", DEVICE.LOCATION, Option.SORTABLE, Option.SEARCHABLE)
+		.string("location", DEVICE.LOCATION, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
 		.string("contact", DEVICE.CONTACT, Option.SORTABLE, Option.SEARCHABLE)
 		.string("comments", DEVICE.COMMENTS, Option.SEARCHABLE)
 		.string("creator", DEVICE.CREATOR, Option.SORTABLE)
 		.inet("cachedIpAddress", DEVICE.CACHED_IP_ADDRESS)
 		.date("createdDate", DEVICE.CREATED_DATE, Option.SORTABLE)
 		.date("changeDate", DEVICE.CHANGE_DATE, Option.SORTABLE)
-		.date("eolDate", DEVICE.EOL_DATE, Option.SORTABLE)
-		.date("eosDate", DEVICE.EOS_DATE, Option.SORTABLE)
+		.date("eolDate", DEVICE.EOL_DATE, Option.SORTABLE, Option.GROUPABLE)
+		.date("eosDate", DEVICE.EOS_DATE, Option.SORTABLE, Option.GROUPABLE)
 		.custom("group", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
 			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
 				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID))
@@ -524,6 +526,12 @@ public class DeviceRepository {
 					.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name())));
 				return DSL.or(values.stream().map(v -> Boolean.TRUE.equals(v) ? compliant : DSL.not(compliant)).toList());
 			})
+		// A device is counted once per group (no group: null), once per tag (no tag: null)
+		.grouping("group", DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, from -> from.leftJoin(DEVICE_GROUP_CACHED_DEVICES)
+			.on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID)))
+		.grouping("tag", DEVICE_TAGS.TAG, from -> from.leftJoin(DEVICE_TAGS).on(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)))
+		.grouping("compliant", DSL.field(DSL.notExists(DSL.selectOne().from(CHECK_RESULT)
+			.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name())))), null)
 		.defaultSort(SortOrder.asc("name"))
 		.build();
 
@@ -571,6 +579,19 @@ public class DeviceRepository {
 	 */
 	public long count(DSLContext dsl, ListQuery query, Condition condition) {
 		return dsl.fetchCount(DEVICE, LIST.condition(query).and(condition));
+	}
+
+	/**
+	 * Counts the devices matching a query and a condition, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @param condition the additional condition (search query), or null
+	 * @return the rows
+	 */
+	public List<StatsRow> stats(DSLContext dsl, ListQuery query, StatsQuery stats, Condition condition) {
+		return LIST.stats(dsl, DEVICE, query, stats, condition);
 	}
 
 	/**

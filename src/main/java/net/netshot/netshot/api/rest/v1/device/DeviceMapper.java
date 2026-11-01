@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.device;
 
+import java.util.stream.Collectors;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +26,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.inventory.search.SearchService;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
+import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.RefId;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.credentials.CredentialSetMapper;
@@ -247,5 +252,16 @@ public final class DeviceMapper {
 		return new DeviceAccessRequest(access.accessName(), access.address(), access.port(),
 			access.globalCredentialSet() == null ? null : new RefId(access.globalCredentialSet().id()), specific,
 			access.sshHostKeyVerification(), access.sshTrustedHostKeys(), access.httpsCaTrustMode(), access.httpsCustomCaCertificate());
+	}
+
+	/**
+	 * Builds the resolver of device IDs into references (statistics grouped by device).
+	 *
+	 * @param searchService the device search use cases
+	 * @return the resolver
+	 */
+	public static StatsResponse.Resolver resolver(SearchService searchService) {
+		return ids -> searchService.listDeviceSummaries(ListQuery.byIds(ids), null).items().stream()
+			.collect(Collectors.toMap(DeviceSummary::id, d -> new RefDto(d.id(), V1Links.of(PATH, d.id()), d.name())));
 	}
 }

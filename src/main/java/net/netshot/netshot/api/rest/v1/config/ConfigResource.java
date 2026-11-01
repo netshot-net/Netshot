@@ -43,6 +43,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
+import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
+import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
@@ -97,6 +100,24 @@ public class ConfigResource {
 		this.configService = configService;
 		this.searchService = searchService;
 		this.driverRegistry = driverRegistry;
+	}
+
+	/**
+	 * Counts the configurations.
+	 *
+	 * @return the counts
+	 */
+	@GET
+	@Path("/stats")
+	@RolesAllowed(User.ROLE_READONLY)
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Operation(summary = "Count the configurations", description = "Counts the configurations (the configuration changes) matching "
+		+ "the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, "
+		+ "day, week or month, on changeDate, from/to, timeZone).")
+	public StatsResponse getConfigStats() {
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.configService.listSchema(), "changeDate");
+		ListResult<StatsRow> rows = this.configService.stats(parsed.query(), parsed.stats());
+		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of("device", DeviceMapper.resolver(this.searchService)));
 	}
 
 	/**

@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v1.task;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -115,52 +116,53 @@ public class V1TaskStatsResourceTest {
 		return keys;
 	}
 
+	private static List<String> rows(JsonNode stats, String... properties) {
+		List<String> rows = new ArrayList<>();
+		for (JsonNode row : stats.get("results")) {
+			StringBuilder text = new StringBuilder();
+			for (String property : properties) {
+				text.append(row.get(property).asText()).append(':');
+			}
+			rows.add(text.append(row.get("count").asLong()).toString());
+		}
+		return rows;
+	}
+
 	@Test
-	@DisplayName("Stats: completed tasks by status in time buckets, totals by status and type")
+	@DisplayName("Stats: counts by status and type, by time bucket of execution, with the filters of the task list")
 	void stats() throws Exception {
-		JsonNode stats = this.get("/tasks/stats?after=" + DAY_START + "&before=" + DAY_END + "&buckets=2");
-		Assertions.assertEquals(Set.of("after", "before", "bins", "statusCounts", "typeCounts"), keys(stats));
-		Assertions.assertEquals(Instant.parse(DAY_START), Instant.parse(stats.get("after").asText()));
-		Assertions.assertEquals(Instant.parse(DAY_END), Instant.parse(stats.get("before").asText()));
-		JsonNode bins = stats.get("bins");
-		Assertions.assertEquals(2, bins.size());
-		Assertions.assertEquals(Set.of("countByStatus", "from", "to"), keys(bins.get(0)));
-		Assertions.assertEquals(Instant.parse("2030-01-01T12:00:00Z"), Instant.parse(bins.get(0).get("to").asText()));
-		Assertions.assertEquals(Instant.parse("2030-01-01T12:00:00Z"), Instant.parse(bins.get(1).get("from").asText()));
-		Assertions.assertEquals(2, bins.get(0).get("countByStatus").get("SUCCESS").asInt());
-		Assertions.assertEquals(0, bins.get(0).get("countByStatus").get("FAILURE").asInt());
-		Assertions.assertEquals(0, bins.get(1).get("countByStatus").get("SUCCESS").asInt());
-		Assertions.assertEquals(1, bins.get(1).get("countByStatus").get("FAILURE").asInt());
-		Assertions.assertEquals(Set.of("CANCELLED", "FAILURE", "SUCCESS"), keys(stats.get("statusCounts")));
-		Assertions.assertEquals(2, stats.get("statusCounts").get("SUCCESS").asInt());
-		Assertions.assertEquals(1, stats.get("statusCounts").get("FAILURE").asInt());
-		Assertions.assertEquals(0, stats.get("statusCounts").get("CANCELLED").asInt());
-		Assertions.assertEquals(3, stats.get("typeCounts").get("TakeSnapshotTask").asInt());
-		Assertions.assertEquals(0, stats.get("typeCounts").get("TakeGroupSnapshotTask").asInt());
-		// A narrower range, offsets and dates
-		stats = this.get("/tasks/stats?after=2030-01-01T10:00:00%2B02:00&before=2030-01-02&buckets=1");
-		Assertions.assertEquals(1, stats.get("bins").size());
-		Assertions.assertEquals(0, stats.get("statusCounts").get("SUCCESS").asInt(), "the successes are before 08:00Z");
-		Assertions.assertEquals(1, stats.get("statusCounts").get("FAILURE").asInt());
-		// Defaults: 48 buckets from the epoch to now
-		stats = this.get("/tasks/stats");
-		Assertions.assertEquals(48, stats.get("bins").size());
-		Assertions.assertEquals(0, stats.get("statusCounts").get("SUCCESS").asInt(), "the tasks of the fixtures are in the future");
-		Assertions.assertEquals(Instant.EPOCH, Instant.parse(stats.get("after").asText()));
-		Assertions.assertEquals(366, this.get("/tasks/stats?buckets=366").get("bins").size());
+		JsonNode byStatus = this.get("/tasks/stats?groupBy=status");
+		Assertions.assertEquals(5, byStatus.get("count").asLong());
+		Assertions.assertEquals(Set.of("SUCCESS:2", "FAILURE:1", "RUNNING:1", "SCHEDULED:1"), Set.copyOf(rows(byStatus, "status")));
+		Assertions.assertEquals(Set.of("TakeSnapshotTask:4", "TakeGroupSnapshotTask:1"),
+			Set.copyOf(rows(this.get("/tasks/stats?groupBy=type"), "type")));
+		JsonNode byGroup = this.get("/tasks/stats?groupBy=group&type=TakeGroupSnapshotTask");
+		Assertions.assertEquals(1, byGroup.get("results").size());
+		Assertions.assertEquals("Core", byGroup.get("results").get(0).get("group").get("display").asText());
+		Assertions.assertEquals(1, byGroup.get("results").get(0).get("count").asLong());
+
+		// The executed tasks by day and by hour, on the day of the fixtures
+		JsonNode byDay = this.get("/tasks/stats?interval=day&from=" + DAY_START + "&to=" + DAY_END + "&groupBy=status");
+		Assertions.assertEquals("executionDate", byDay.get("on").asText());
+		Assertions.assertEquals(Set.of(DAY_START.replace("Z", ".000Z") + ":SUCCESS:2", DAY_START.replace("Z", ".000Z") + ":FAILURE:1"),
+			Set.copyOf(rows(byDay, "start", "status")));
+		JsonNode byHour = this.get("/tasks/stats?interval=hour&from=" + DAY_START + "&to=" + DAY_END + "&status=FAILURE");
+		Assertions.assertEquals(24, byHour.get("results").size());
+		Assertions.assertEquals(1, byHour.get("results").get(18).get("count").asLong());
+		Assertions.assertEquals(0, byHour.get("results").get(6).get("count").asLong());
+		JsonNode children = this.get("/tasks/stats?parentTask=" + this.groupTask.id() + "&groupBy=status");
+		Assertions.assertEquals(List.of("FAILURE:1"), rows(children, "status"));
 	}
 
 	@Test
 	@DisplayName("Stats: invalid parameters are refused")
 	void statsErrors() throws Exception {
-		this.assertBadRequest("/tasks/stats?buckets=0");
-		this.assertBadRequest("/tasks/stats?buckets=367");
-		this.assertBadRequest("/tasks/stats?buckets=lots");
-		this.assertBadRequest("/tasks/stats?after=yesterday");
-		this.assertBadRequest("/tasks/stats?before=2030-13-45");
-		this.assertBadRequest("/tasks/stats?after=" + DAY_END + "&before=" + DAY_START);
-		this.assertBadRequest("/tasks/stats?after=" + DAY_START + "&after=" + DAY_END);
-		this.assertBadRequest("/tasks/stats?status=SUCCESS");
+		this.assertBadRequest("/tasks/stats?groupBy=comments");
+		this.assertBadRequest("/tasks/stats?interval=day&on=author");
+		this.assertBadRequest("/tasks/stats?interval=day&from=yesterday");
+		this.assertBadRequest("/tasks/stats?interval=day&from=" + DAY_END + "&to=" + DAY_START);
+		this.assertBadRequest("/tasks/stats?after=" + DAY_START);
+		this.assertBadRequest("/tasks/stats?status=DONE");
 	}
 
 	@Test

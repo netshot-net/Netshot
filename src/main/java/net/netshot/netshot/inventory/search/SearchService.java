@@ -34,6 +34,8 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.query.QuerySchema;
 import net.netshot.netshot.driver.DriverRegistry;
 
@@ -132,6 +134,27 @@ public class SearchService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the devices.", e);
 			throw DatabaseErrors.listFailure(e, "Unable to fetch the devices");
+		}
+	}
+
+	/**
+	 * Counts the devices matching a list query and a search query, by field values and/or time buckets.
+	 *
+	 * @param listQuery the filters
+	 * @param stats what to count by
+	 * @param searchQuery the search query (Netshot query language), or null
+	 * @return the rows, with the number of matching devices
+	 * @throws NetshotException if the search query or a filter is invalid, or the devices can't be read
+	 */
+	public ListResult<StatsRow> deviceStats(ListQuery listQuery, StatsQuery stats, String searchQuery) {
+		Condition condition = this.searchCondition(searchQuery);
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.deviceRepository.stats(dsl, listQuery, stats, condition),
+				this.deviceRepository.count(dsl, listQuery, condition)));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to count the devices.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to count the devices");
 		}
 	}
 

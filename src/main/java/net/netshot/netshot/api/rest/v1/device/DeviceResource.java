@@ -49,6 +49,13 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
+import net.netshot.netshot.platform.query.StatsRow;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.domain.DomainService;
+import net.netshot.netshot.api.rest.v1.group.GroupMapper;
+import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
+import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.RefId;
@@ -84,6 +91,8 @@ public class DeviceResource {
 	private final DeviceService deviceService;
 	private final DeviceCreationService deviceCreationService;
 	private final SearchService searchService;
+	private final GroupService groupService;
+	private final DomainService domainService;
 	private final DriverRegistry driverRegistry;
 	private final ScriptService scriptService;
 	private final TaskResponses taskResponses;
@@ -110,11 +119,15 @@ public class DeviceResource {
 	 * @param taskService the task use cases
 	 * @param groupService the group use cases
 	 * @param scriptService the saved script use cases
+	 * @param domainService the domain use cases
 	 */
 	@Inject
 	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
-		DriverRegistry driverRegistry, TaskService taskService, GroupService groupService, ScriptService scriptService) {
+		DriverRegistry driverRegistry, TaskService taskService, GroupService groupService, ScriptService scriptService,
+		DomainService domainService) {
 		this.deviceService = deviceService;
+		this.groupService = groupService;
+		this.domainService = domainService;
 		this.deviceCreationService = deviceCreationService;
 		this.searchService = searchService;
 		this.driverRegistry = driverRegistry;
@@ -138,6 +151,30 @@ public class DeviceResource {
 	public ListResponse<DeviceDto> listDevices(
 		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query) {
 		return list(this.searchService, this.driverRegistry, this.request, this.uriInfo, query, null);
+	}
+
+	/**
+	 * Counts the devices.
+	 *
+	 * @param query the device search query
+	 * @return the counts
+	 */
+	@GET
+	@Path("/stats")
+	@RolesAllowed(User.ROLE_READONLY)
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Operation(summary = "Count the devices", description = "Counts the devices matching the filters of the device list (and the "
+		+ "query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, "
+		+ "softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week "
+		+ "or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone).")
+	public StatsResponse getDeviceStats(
+		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query) {
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.searchService.deviceListSchema(),
+			"createdDate", QUERY);
+		ListResult<StatsRow> rows = this.searchService.deviceStats(parsed.query(), parsed.stats(), query);
+		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
+			"mgmtDomain", DomainMapper.resolver(this.domainService),
+			"group", GroupMapper.resolver(this.groupService)));
 	}
 
 	/**
