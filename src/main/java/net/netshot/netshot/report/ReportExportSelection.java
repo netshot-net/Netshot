@@ -32,6 +32,7 @@ import java.util.Set;
  * @param compliance whether to export the compliance results
  * @param deviceGroups whether to export the groups and their memberships
  * @param deviceDriverAttributes whether to export the driver-specific attributes
+ * @param devices the devices to export (null: any; combined with the domains and groups)
  */
 public record ReportExportSelection(
 	Set<Long> domains,
@@ -42,5 +43,25 @@ public record ReportExportSelection(
 	boolean locations,
 	boolean compliance,
 	boolean deviceGroups,
-	boolean deviceDriverAttributes) {
+	boolean deviceDriverAttributes,
+	Set<Long> devices) {
+
+	/**
+	 * Creates a selection which isn't restricted to some devices.
+	 *
+	 * @param domains the domains to export the devices of (empty: any)
+	 * @param groups the groups to export the devices of (empty: any)
+	 * @param interfaces whether to export the interfaces
+	 * @param inventory whether to export the inventory (modules)
+	 * @param inventoryHistory whether the inventory includes the removed modules
+	 * @param locations whether to export the locations and contacts
+	 * @param compliance whether to export the compliance results
+	 * @param deviceGroups whether to export the groups and their memberships
+	 * @param deviceDriverAttributes whether to export the driver-specific attributes
+	 */
+	public ReportExportSelection(Set<Long> domains, Set<Long> groups, boolean interfaces, boolean inventory,
+		boolean inventoryHistory, boolean locations, boolean compliance, boolean deviceGroups, boolean deviceDriverAttributes) {
+		this(domains, groups, interfaces, inventory, inventoryHistory, locations, compliance, deviceGroups,
+			deviceDriverAttributes, null);
+	}
 }

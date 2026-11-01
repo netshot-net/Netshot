@@ -55,6 +55,7 @@ import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.report.ReportExportSelection;
 import net.netshot.netshot.report.ReportService;
+import net.netshot.netshot.report.XlsxReportWriter;
 
 /**
  * The REST resource of the reports: statistics, device lists behind them, and the data export.
