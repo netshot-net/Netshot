@@ -1,6 +1,5 @@
 import { queryClient } from "@/App"
 import { QUERIES } from "@/constants"
-import api from "@/api"
 import { ListParams } from "@/api/client"
 import { Device, DeviceType, Group } from "@/types"
 import { create } from "zustand"
@@ -14,7 +13,7 @@ export type DeviceSidebarStoreState = {
   group: Group | null
 
   select(devices: Device[]): void
-  /** The parameters of the list shown (to select all the matching devices, not only the loaded ones). */
+  /** The parameters of the list shown (to export the matching devices). */
   listParams: ListParams | null
   setListParams(params: ListParams | null): void
   selectAll(): Promise<void>
@@ -47,12 +46,7 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
   },
 
   async selectAll() {
-    const { listParams, devices } = get()
-    if (!listParams) {
-      set({ selected: devices })
-      return
-    }
-    set({ selected: await api.device.getAllRows(listParams) })
+    set({ selected: get().devices })
   },
 
   deselectAll() {

@@ -1,5 +1,5 @@
 import { User } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts"
@@ -33,7 +33,7 @@ export default function AdministrationUserScreen() {
   const { user: currentUser } = useAuth()
   const userLevelOptions = useUserLevelOptions()
 
-  const { rows: data, isPending, onBottomReached } = useList<User>(
+  const { rows: data, isPending } = useListAll<User>(
     [QUERIES.ADMIN_USERS],
     "/users",
     { q: pagination.query, sort: "username" }
@@ -148,7 +148,7 @@ export default function AdministrationUserScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

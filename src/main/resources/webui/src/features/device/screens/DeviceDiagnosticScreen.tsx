@@ -1,5 +1,5 @@
 import { Schemas } from "@/api/client"
-import { listAll } from "@/api/device"
+import { listAll } from "@/api/client"
 import { DataTable, EmptyResult, EntityLink, ExpandableTextCell, Protected } from "@/components"
 import { LuActivity } from "react-icons/lu"
 import Search from "@/components/Search"

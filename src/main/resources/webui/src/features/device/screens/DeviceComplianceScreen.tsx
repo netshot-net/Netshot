@@ -5,7 +5,7 @@ import { useMemo } from "react"
 import { Trans, useTranslation } from "react-i18next"
 import { useParams, useSearchParams } from "react-router"
 
-import { listAll } from "@/api/device"
+import { listAll } from "@/api/client"
 import { Schemas } from "@/api/client"
 import { AlertBox, DataTable, EntityLink, ExpandableTextCell, Protected } from "@/components"
 import Search from "@/components/Search"

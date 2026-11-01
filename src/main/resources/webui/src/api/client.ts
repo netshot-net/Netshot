@@ -58,6 +58,23 @@ export async function list<T>(path: string, params: ListParams = {}, signal?: Ab
   })) as ListResponse<T>
 }
 
+/** The size of the pages read by listAll. */
+const ALL_PAGE_SIZE = 500
+
+/**
+ * Gets every item of a list, page after page (the lists the screens show whole, the choices of the selectors).
+ */
+export async function listAll<T>(path: string, params: ListParams = {}, signal?: AbortSignal) {
+  const items: T[] = []
+  for (;;) {
+    const page = await list<T>(path, { ...params, offset: items.length, limit: ALL_PAGE_SIZE, count: false }, signal)
+    items.push(...page.results)
+    if (!page.next || page.results.length === 0) {
+      return items
+    }
+  }
+}
+
 /**
  * Changes some properties of an object (JSON merge patch), if it is still at the version read (ETag).
  */

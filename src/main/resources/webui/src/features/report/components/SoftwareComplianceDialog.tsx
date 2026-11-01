@@ -1,5 +1,5 @@
 import { Schemas } from "@/api/client"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { EmptyResult, VirtualizedDataTable } from "@/components"
 import { useDialogConfig } from "@/dialog"
 import { DeviceBadge, DeviceGroupBadge, DeviceSoftwareLevelBadge } from "@/components/entity"
@@ -25,7 +25,7 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
   const dialogConfig = useDialogConfig()
   const navigate = useNavigate()
 
-  const { rows: data, isPending, onBottomReached } = useList<Schemas["Device"]>(
+  const { rows: data, isPending } = useListAll<Schemas["Device"]>(
     [QUERIES.SOFTWARE_COMPLIANCE_DEVICES, groupId, level],
     "/devices",
     {
@@ -34,8 +34,7 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
       softwareLevel: level === DeviceSoftwareLevel.GOLD || level === DeviceSoftwareLevel.SILVER || level === DeviceSoftwareLevel.BRONZE ? level : "UNKNOWN",
       fields: "name,networkClass,family,softwareVersion",
       sort: "name",
-    },
-    { limit: 100 }
+    }
   )
 
   function goToDevice(device: Schemas["Device"]) {
@@ -116,7 +115,6 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
                       data={data}
                       columns={columns}
                       onClickRow={goToDevice}
-                      onBottomReached={onBottomReached}
                       primaryKey="id"
                       flex="1"
                       minH="0"

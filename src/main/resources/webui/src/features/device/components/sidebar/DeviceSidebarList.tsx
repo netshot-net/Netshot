@@ -34,15 +34,15 @@ export default function DeviceSidebarList({ query = "" }: DeviceSidebarListProps
     }))
   )
 
-  const { rows: data, count, isPending, onBottomReached } = useDevices(query ? 0 : (group?.id ?? 0), query)
+  const { rows: data, isPending } = useDevices(query ? 0 : (group?.id ?? 0), query)
   const isSuccess = !isPending
 
   useEffect(() => {
     if (isSuccess) {
-      setTotal(count ?? data.length)
+      setTotal(data.length)
       setDevices(data)
     }
-  }, [isSuccess, data, count, setTotal, setDevices])
+  }, [isSuccess, data, setTotal, setDevices])
 
   useEffect(() => {
     setListParams(deviceListParams(query ? 0 : (group?.id ?? 0), query))
@@ -58,13 +58,6 @@ export default function DeviceSidebarList({ query = "" }: DeviceSidebarListProps
   })
 
   const virtualItems = virtualizer.getVirtualItems()
-  const lastIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : -1
-
-  useEffect(() => {
-    if (lastIndex >= 0 && lastIndex >= data.length - 20) {
-      onBottomReached()
-    }
-  }, [lastIndex, data.length, onBottomReached])
 
   const activeIndex = data?.findIndex((device) => device.id === +(params?.id ?? 0)) ?? -1
 

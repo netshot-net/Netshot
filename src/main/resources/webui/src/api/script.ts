@@ -1,6 +1,5 @@
 import type { Script } from "@/types"
-import { client, ListParams, Schemas } from "./client"
-import { listAll } from "./device"
+import { client, listAll, ListParams, Schemas } from "./client"
 
 /** Every saved script (brief view: without the code). */
 async function getAll(params: ListParams = {}) {

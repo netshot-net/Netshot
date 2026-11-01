@@ -1,5 +1,5 @@
 import { CredentialSet } from "@/api/admin"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { usePagination } from "@/hooks"
@@ -20,7 +20,7 @@ export default function AdministrationDeviceCredentialSetScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending, onBottomReached } = useList<CredentialSet>(
+  const { rows: data, isPending } = useListAll<CredentialSet>(
     [QUERIES.ADMIN_DEVICE_CREDENTIALS],
     "/credential-sets",
     { q: pagination.query, sort: "name", view: "full" }
@@ -131,7 +131,7 @@ export default function AdministrationDeviceCredentialSetScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
+              <DataTable columns={columns} data={data} loading={isPending} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (

@@ -1,5 +1,5 @@
-import { client, replace, Schemas } from "./client"
-import rule, { listAll, Rule } from "./rule"
+import { client, listAll, replace, Schemas } from "./client"
+import rule, { Rule } from "./rule"
 
 /** A compliance policy (the server always gives these properties, the generated type makes them optional). */
 export type Policy = Schemas["Policy"] & Required<Pick<Schemas["Policy"], "id" | "name" | "targetGroups">>

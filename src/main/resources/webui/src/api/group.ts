@@ -1,7 +1,7 @@
 import { Group } from "@/types"
 import type { Device } from "@/types"
-import { client, list, ListParams, patch, replace, Schemas } from "./client"
-import { etagOf, listAll } from "./device"
+import { client, list, listAll, ListParams, patch, replace, Schemas } from "./client"
+import { etagOf } from "./device"
 
 /** The definition of a group, to create one (a static group's devices are the IDs of its members). */
 export type CreateGroupPayload = Schemas["GroupRequest"]

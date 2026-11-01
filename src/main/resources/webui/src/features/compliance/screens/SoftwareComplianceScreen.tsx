@@ -8,7 +8,7 @@ import { MUTATIONS } from "@/constants"
 import { useAuth } from "@/contexts"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { usePagination, useSoftwareLevels, useToast } from "@/hooks"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { DeviceSoftwareLevel, Level } from "@/types"
 import { Badge, Button, Heading, Icon, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
@@ -41,8 +41,7 @@ export default function SoftwareComplianceScreen() {
   const {
     rows: rules,
     isPending,
-    onBottomReached,
-  } = useList<SoftwareRule>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
+  } = useListAll<SoftwareRule>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
     family__ic: pagination.query?.trim(),
     sort: "priority",
     view: "full",
@@ -287,7 +286,6 @@ export default function SoftwareComplianceScreen() {
                 draggable={isDraggable}
                 primaryKey="id"
                 onDropRow={onDrop}
-                onBottomReached={onBottomReached}
               />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>

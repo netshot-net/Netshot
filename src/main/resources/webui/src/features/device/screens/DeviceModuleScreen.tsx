@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import { listAll } from "@/api/device"
+import { listAll } from "@/api/client"
 import { search } from "@/utils"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"

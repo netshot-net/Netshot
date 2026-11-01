@@ -1,8 +1,8 @@
 import api from "@/api"
-import { listAll } from "@/api/device"
+import { listAll } from "@/api/client"
 import { ListParams, Schemas } from "@/api/client"
 import { QUERIES } from "@/constants"
-import { useList } from "@/hooks/useList"
+import { useListAll } from "@/hooks/useListAll"
 import { Config, Device, DeviceFamily, DeviceTag, DeviceType } from "@/types"
 import { sortAlphabetical } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
@@ -76,10 +76,10 @@ export function deviceListParams(groupId: number, query = ""): ListParams {
 
 /**
  * The devices of the sidebar list: all the devices, or those of a group, or those matching a search query
- * (Netshot query language), page after page.
+ * (Netshot query language), loaded whole (the list is virtualized).
  */
 export function useDevices(groupId: number, query = "") {
-  return useList<Device>([QUERIES.DEVICE_LIST], "/devices", deviceListParams(groupId, query), { limit: 200 })
+  return useListAll<Device>([QUERIES.DEVICE_LIST], "/devices", deviceListParams(groupId, query))
 }
 
 export function useDeviceFamilies() {
