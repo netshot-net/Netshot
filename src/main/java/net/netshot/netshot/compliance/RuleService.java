@@ -48,6 +48,8 @@ import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 
 /**
  * The compliance rule use cases: list, read, add, edit, delete and test the rules, and read their
@@ -635,6 +637,52 @@ public class RuleService {
 		catch (DataAccessException e) {
 			log.error("Unable to fetch the compliance results.", e);
 			throw DatabaseErrors.listFailure(e, "Unable to fetch the compliance results");
+		}
+	}
+
+	/**
+	 * Gets what the lists of check results across devices can be filtered, sorted and counted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public QuerySchema allResultsSchema() {
+		return RuleRepository.ALL_RESULT_LIST.schema();
+	}
+
+	/**
+	 * Lists the check results across all the devices matching a query (one per device and rule that has been checked).
+	 *
+	 * @param query the query
+	 * @return the results of the window, with the total number if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the results can't be read
+	 */
+	public ListResult<DeviceCheckResult> listResults(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findResults(dsl, query),
+				query.count() ? this.repository.countResults(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the compliance results.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the compliance results");
+		}
+	}
+
+	/**
+	 * Counts the check results across all the devices matching a query, by field values and/or time buckets.
+	 *
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows, with the number of matching results
+	 * @throws NetshotException if a filter is invalid, or the results can't be read
+	 */
+	public ListResult<StatsRow> resultStats(ListQuery query, StatsQuery stats) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.resultStats(dsl, query, stats),
+				this.repository.countResults(dsl, query)));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to count the compliance results.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to count the compliance results");
 		}
 	}
 
