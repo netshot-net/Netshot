@@ -2,7 +2,7 @@ import api from "@/api"
 import { getExpandedKeys, getVisibleGroups } from "@/features/group"
 import { useTreeOpenKeys } from "@/hooks"
 import { QUERIES } from "@/constants"
-import { useArrowKeyNavigation, usePagination } from "@/hooks"
+import { useArrowKeyNavigation } from "@/hooks"
 import { Group } from "@/types"
 import { createFoldersFromGroups, Folder, isGroup } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
@@ -40,13 +40,12 @@ export function useDeviceGroupTree(options: UseDeviceGroupTreeOptions) {
   const navigate = useNavigate()
   const setGroup = useDeviceSidebarStore((state) => state.setGroup)
   const updateQueryAndDriver = useDeviceSidebarStore((state) => state.updateQueryAndDriver)
-  const pagination = usePagination()
   const [searchParams] = useSearchParams()
   const selectedGroupId = +(searchParams.get("group") ?? 0)
 
   const { data: items, isPending } = useQuery({
     queryKey: [QUERIES.DEVICE_GROUPS],
-    queryFn: async () => api.group.getAll(pagination),
+    queryFn: async () => api.group.getAll(),
     select: createFoldersFromGroups,
   })
 
