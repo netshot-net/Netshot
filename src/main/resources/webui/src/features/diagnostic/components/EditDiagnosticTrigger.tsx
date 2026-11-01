@@ -1,9 +1,11 @@
-import api, { CreateOrUpdateDiagnosticPayload, CreateOrUpdateDiagnosticScriptPayload } from "@/api"
+import api from "@/api"
+import type { DiagnosticRequest } from "@/api/diagnostic"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Diagnostic, DiagnosticType } from "@/types"
+import type { Diagnostic } from "@/api/diagnostic"
+import { DiagnosticResultType, DiagnosticType } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import React, { useEffect, useMemo } from "react"
 import Slot from "@/components/Slot"
@@ -11,6 +13,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { QUERIES } from "../constants"
 import { Form } from "../types"
+import { toDiagnosticRequest } from "../utils"
 import EditDiagnosticScript from "./EditDiagnosticScript"
 import EditDiagnosticText from "./EditDiagnosticText"
 
@@ -38,16 +41,16 @@ export default function EditDiagnosticTrigger(props: EditDiagnosticTriggerProps)
       enabled: diagnostic?.enabled ?? true,
       resultType: null,
       targetGroup: null,
-      deviceDriver: diagnostic?.deviceDriver,
+      deviceDriver: diagnostic?.deviceDriver ?? null,
       cliMode: null,
-      command: diagnostic?.command,
-      modifierPattern: diagnostic?.modifierPattern,
-      modifierReplacement: diagnostic?.modifierReplacement,
-      script: diagnostic?.script,
+      command: diagnostic?.command ?? "",
+      modifierPattern: diagnostic?.modifierPattern ?? "",
+      modifierReplacement: diagnostic?.modifierReplacement ?? "",
+      script: diagnostic?.script ?? "",
     } as Form
 
     if (diagnostic?.resultType) {
-      values.resultType = diagnostic?.resultType
+      values.resultType = diagnostic.resultType as DiagnosticResultType
     }
 
     if (diagnostic?.targetGroup) {
@@ -68,9 +71,7 @@ export default function EditDiagnosticTrigger(props: EditDiagnosticTriggerProps)
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.DIAGNOSTIC_UPDATE,
-    mutationFn: async (
-      payload: Partial<CreateOrUpdateDiagnosticPayload | CreateOrUpdateDiagnosticScriptPayload>
-    ) => api.diagnostic.update(diagnostic?.id, payload),
+    mutationFn: async (payload: DiagnosticRequest) => api.diagnostic.update(diagnostic.id, payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -92,29 +93,18 @@ export default function EditDiagnosticTrigger(props: EditDiagnosticTriggerProps)
     const dialogRef = dialog.open(MUTATIONS.DIAGNOSTIC_UPDATE, {
       title: t("diagnostic.edit"),
       description: hasScript ? (
-        <EditDiagnosticScript type={diagnostic?.type} />
+        <EditDiagnosticScript type={diagnostic.type as DiagnosticType} />
       ) : (
-        <EditDiagnosticText type={diagnostic?.type} />
+        <EditDiagnosticText type={diagnostic.type as DiagnosticType} />
       ),
       form,
       size: hasScript ? "lg" : "4xl",
       variant: hasScript ? "full-floating" : undefined,
       bodyProps: hasScript ? undefined : { display: "flex" },
       async onSubmit(values: Form) {
-        const data = await mutation.mutateAsync({
-          deviceDriver: values.deviceDriver!,
-          cliMode: values.cliMode!,
-          command: values.command,
-          modifierPattern: values.modifierPattern,
-          modifierReplacement: values.modifierReplacement,
-          id: diagnostic.id,
-          enabled: values.enabled,
-          type: diagnostic.type,
-          name: values.name,
-          resultType: values.resultType!,
-          targetGroup: values.targetGroup ? values.targetGroup.toString() : "-1",
-          script: values.script,
-        })
+        const data = await mutation.mutateAsync(
+          toDiagnosticRequest(diagnostic.type as DiagnosticType, values)
+        )
 
         toast.success({
           title: t("common.success"),
