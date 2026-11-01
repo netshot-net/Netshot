@@ -10,7 +10,8 @@
     "lint": "eslint",
     "preview": "vite preview",
     "tsx": "tsc --noEmit",
-    "chakra:typegen": "npx @chakra-ui/cli typegen ./src/theme/system.ts"
+    "chakra:typegen": "npx @chakra-ui/cli typegen ./src/theme/system.ts",
+    "api:types": "node scripts/generate-api-types.mjs"
   },
   "dependencies": {
     "@chakra-ui/charts": "^3.37.0",
@@ -62,6 +63,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.12.0",
     "i18next-cli": "^1.73.0",
+    "openapi-typescript": "7.13.0",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.69.0",
@@ -73,6 +75,9 @@
   },
   "overrides": {
     "dompurify": "3.4.17",
-    "@ai-sdk/provider-utils": "4.0.56"
+    "@ai-sdk/provider-utils": "4.0.56",
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }
