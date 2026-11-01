@@ -1,152 +1,228 @@
-import {
+import type {
   Config,
   Device,
-  DeviceComplianceResult,
-  DeviceDiagnosticResult,
-  DeviceFamily,
   DeviceInterface,
   DeviceModule,
-  DeviceTag,
   DeviceType,
-  LightDevice,
 } from "@/types"
-import { LightTask, Task } from "@/types/task"
-import withQuery from "with-query"
-import httpClient from "./httpClient"
-import {
-  CreateDevicePayload,
-  DeviceModuleQueryParams,
-  DeviceQueryParams,
-  DeviceSearchPayload,
-  DeviceSearchResult,
-  PaginationQueryParams,
-  UpdateDevicePayload,
-} from "./types"
+import { TaskType } from "@/types"
+import { client, list, ListParams, patch, Schemas } from "./client"
 
-async function search(payload: DeviceSearchPayload) {
-  return httpClient.post<DeviceSearchResult, DeviceSearchPayload>(
-    withQuery("/devices/search", {
-      offset: payload.offset,
-      limit: payload.limit,
-    }),
-    {
-      query: payload.query,
-    }
-  )
+type Task = Schemas["Task"]
+
+/** The scheduling options of a task, as the schedule form gives them. */
+export type ScheduleOptions = {
+  scheduleType: string
+  scheduleReference: number
+  scheduleFactor: number
+  schedulePriority: number
+  scheduleMode?: string
+  stopOnFailure?: boolean
 }
 
-async function getAll(queryParams: DeviceQueryParams = {}) {
-  return httpClient.get<LightDevice[]>("/devices", {
-    queryParams,
-  })
-}
+/** The summary properties of a device: enough for a list, and light for the server. */
+export const DEVICE_SUMMARY_FIELDS =
+  "name,mgmtAddress,status,family,driver,driverDescription,networkClass,softwareLevel,compliant,endOfLife,endOfSale"
 
-async function getById(id: number) {
-  return httpClient.get<Device>(`/devices/${id}`)
-}
+const PAGE_SIZE = 500
 
-async function create(payload: CreateDevicePayload) {
-  return httpClient.post<Task, CreateDevicePayload>("/devices", payload)
-}
-
-async function update(id: number, payload: Partial<UpdateDevicePayload>) {
-  return httpClient.put<Device, Partial<UpdateDevicePayload>>(`/devices/${id}`, payload)
-}
-
-async function remove(id: number) {
-  return httpClient.delete(`/devices/${id}`)
-}
-
-async function getComplianceResultById(id: number, queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<DeviceComplianceResult[]>(`/devices/${id}/complianceresults`, {
-    queryParams,
-  })
-}
-
-async function getDiagnosticResultById(id: number, queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<DeviceDiagnosticResult[]>(`/devices/${id}/diagnosticresults`, {
-    queryParams,
-  })
-}
-
-async function getAllDeviceConfigsById(id: number, queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<Config[]>(`/devices/${id}/configs`, {
-    queryParams,
-  })
+/** The ETag (If-Match value) of an object at a version. */
+export function etagOf(version: number | null | undefined) {
+  return version === null || version === undefined ? undefined : `"${version}"`
 }
 
 /**
- * @todo: Add endpoint to get current config from device
+ * Gets every item of a list, page after page.
  */
-async function getCurrentConfig(deviceId: number) {
-  const configs = await getAllDeviceConfigsById(deviceId, {
-    limit: 1,
-  })
-
-  return configs?.[0]
+export async function listAll<T>(path: string, params: ListParams = {}) {
+  const items: T[] = []
+  let offset = 0
+  for (;;) {
+    const page = await list<T>(path, { ...params, offset, limit: PAGE_SIZE, count: false })
+    items.push(...page.results)
+    if (!page.next || page.results.length === 0) {
+      return items
+    }
+    offset += page.results.length
+  }
 }
 
-async function getAllInterfacesById(id: number, queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<DeviceInterface[]>(`/devices/${id}/interfaces`, {
-    queryParams,
-  })
+/** The body of a scheduled action. */
+export function scheduleBody(schedule?: Partial<ScheduleOptions>, group = false) {
+  if (!schedule) {
+    return {}
+  }
+  return {
+    scheduleType: schedule.scheduleType,
+    scheduleReference: schedule.scheduleReference ? new Date(schedule.scheduleReference) : undefined,
+    scheduleFactor: schedule.scheduleFactor,
+    priority: schedule.schedulePriority,
+    ...(group ? { scheduleMode: schedule.scheduleMode, stopOnFailure: schedule.stopOnFailure } : {}),
+  }
 }
 
-async function getAllModulesById(id: number, queryParams: DeviceModuleQueryParams = {}) {
-  return httpClient.get<DeviceModule[]>(`/devices/${id}/modules`, {
-    queryParams,
-  })
+async function getOne<R>(path: string, params?: ListParams) {
+  const result = await client.get<R>(path, { queryParams: params })
+  return result as R
 }
 
-async function getAllTasksById(id: number, queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<LightTask[]>(`/devices/${id}/tasks`, {
-    queryParams,
-  })
+async function search(payload: { query: string; offset?: number; limit?: number } & ListParams) {
+  return list<Device>("/devices", payload)
 }
 
-async function getAllFamilies(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<DeviceFamily[]>("/devicefamilies", {
-    queryParams,
-  })
+async function getAll(params: ListParams = {}) {
+  return list<Device>("/devices", params)
 }
 
-async function getAllPartNumbers(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<
-    Array<{
-      partNumber: string
-    }>
-  >(`/partnumbers`, {
-    queryParams,
-  })
+/** Every device matching the filters (all the pages). */
+async function getAllRows(params: ListParams = {}) {
+  return listAll<Device>("/devices", params)
 }
 
-async function getAllSoftwareVersions(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<Array<{ version: string }>>("/softwareversions", {
-    queryParams,
-  })
+async function getById(id: number) {
+  return getOne<Device>(`/devices/${id}`)
 }
 
-async function getAllTags(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<DeviceTag[]>("/devicetags", {
-    queryParams,
-  })
+async function create(payload: Schemas["DeviceCreationRequest"]) {
+  return (await client.post<Task, Schemas["DeviceCreationRequest"]>("/devices", payload)) as Task
+}
+
+/** Changes some properties of a device (JSON merge patch), if it is still at the given version. */
+async function update(id: number, changes: Partial<Schemas["DeviceRequest"]>, version?: number | null) {
+  return patch<Device, Partial<Schemas["DeviceRequest"]>>(`/devices/${id}`, changes, etagOf(version))
+}
+
+async function remove(id: number) {
+  await client.delete(`/devices/${id}`)
+}
+
+async function postAction<B>(path: string, body: B) {
+  return (await client.post<Task, B>(path, body)) as Task
+}
+
+/**
+ * Takes a snapshot of devices: a task per device action, or a group task for several devices.
+ */
+async function takeSnapshot(
+  ids: number[],
+  options: { dontRunDiagnostics: boolean; dontCheckCompliance: boolean; debugEnabled: boolean },
+  schedule?: Partial<ScheduleOptions>
+) {
+  const { debugEnabled, ...parameters } = options
+  if (ids.length === 1) {
+    return postAction(`/devices/${ids[0]}/snapshot`, { ...parameters, debugEnabled, ...scheduleBody(schedule) })
+  }
+  return createTask(TaskType.TakeGroupSnapshot, ids, parameters, schedule, debugEnabled)
+}
+
+async function checkCompliance(ids: number[], schedule?: Partial<ScheduleOptions>) {
+  if (ids.length === 1) {
+    return postAction(`/devices/${ids[0]}/compliance-check`, { ...scheduleBody(schedule) })
+  }
+  return createTask(TaskType.CheckGroupCompliance, ids, {}, schedule)
+}
+
+async function runDiagnostics(ids: number[], options: { dontCheckCompliance: boolean }, schedule?: Partial<ScheduleOptions>) {
+  if (ids.length === 1) {
+    return postAction(`/devices/${ids[0]}/diagnostics-run`, { ...options, ...scheduleBody(schedule) })
+  }
+  return createTask(TaskType.RunGroupDiagnostic, ids, options, schedule)
+}
+
+async function runScript(
+  ids: number[],
+  options: {
+    script: string
+    deviceDriver: string
+    userInputValues: Record<string, string>
+    runSnapshot: boolean
+    runDiagnostics: boolean
+    checkCompliance: boolean
+    debugEnabled: boolean
+  },
+  schedule?: Partial<ScheduleOptions>
+) {
+  const { debugEnabled, ...parameters } = options
+  if (ids.length === 1) {
+    return postAction(`/devices/${ids[0]}/script-runs`, { ...parameters, debugEnabled, ...scheduleBody(schedule) })
+  }
+  return createTask(TaskType.RunDeviceGroupScript, ids, parameters, schedule, debugEnabled)
+}
+
+/** Creates a task on a list of devices (a group task whose children are the per-device tasks). */
+async function createTask(
+  type: TaskType,
+  deviceList: number[],
+  parameters: Record<string, unknown>,
+  schedule?: Partial<ScheduleOptions>,
+  debugEnabled = false
+) {
+  const body = { type, deviceList, parameters, debugEnabled, ...scheduleBody(schedule, true) }
+  return (await client.post<Task, typeof body>("/tasks", body)) as Task
+}
+
+async function getComplianceResultById(id: number, params: ListParams = {}) {
+  return list<Schemas["DeviceComplianceResult"]>(`/devices/${id}/compliance-results`, params)
+}
+
+async function getDiagnosticResultById(id: number, params: ListParams = {}) {
+  return list<Schemas["DiagnosticResult"]>(`/devices/${id}/diagnostic-results`, params)
+}
+
+/** The configurations of a device, the latest first, with their attributes. */
+async function getAllConfigsById(id: number, params: ListParams = {}) {
+  return list<Config>(`/devices/${id}/configs`, { view: "full", ...params })
+}
+
+async function getAllInterfacesById(id: number, params: ListParams = {}) {
+  return list<DeviceInterface>(`/devices/${id}/interfaces`, params)
+}
+
+/** The current modules of a device (`removed`: the removed ones too, kept for the history). */
+async function getAllModulesById(id: number, params: ListParams = {}) {
+  return list<DeviceModule>(`/devices/${id}/modules`, params)
+}
+
+async function getAllTasksById(id: number, params: ListParams = {}) {
+  return list<Task>(`/devices/${id}/tasks`, params)
+}
+
+async function getAllFamilies() {
+  return listAll<Schemas["DeviceFamily"]>("/device-families")
+}
+
+async function getAllPartNumbers() {
+  return listAll<Schemas["PartNumber"]>("/part-numbers")
+}
+
+async function getAllSoftwareVersions() {
+  return listAll<Schemas["SoftwareVersion"]>("/software-versions")
+}
+
+async function getAllTags() {
+  return listAll<Schemas["DeviceTag"]>("/device-tags")
 }
 
 async function getAllTypes() {
-  return httpClient.get<DeviceType[]>(`/devicetypes`)
+  return listAll<DeviceType>("/device-types")
 }
+
 
 export default {
   search,
   getAll,
+  getAllRows,
   getById,
   create,
   update,
   remove,
+  takeSnapshot,
+  checkCompliance,
+  runDiagnostics,
+  runScript,
   getComplianceResultById,
   getDiagnosticResultById,
-  getAllConfigsById: getAllDeviceConfigsById,
-  getCurrentConfig,
+  getAllConfigsById,
   getAllInterfacesById,
   getAllModulesById,
   getAllTasksById,

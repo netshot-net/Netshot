@@ -27,7 +27,7 @@ export default function DeviceConfigurationView(
     isError,
   } = useQuery({
     queryKey: [QUERIES.DEVICE_CONFIG, attribute?.name, id],
-    queryFn: async () => api.config.getItem(id, attribute?.name),
+    queryFn: async () => api.config.getItem(id, attribute?.name ?? ""),
   });
 
   if (isPending) {

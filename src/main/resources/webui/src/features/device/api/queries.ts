@@ -1,7 +1,9 @@
-import api, { DeviceQueryParams } from "@/api"
-import { DeviceSearchResult } from "@/api/types"
+import api from "@/api"
+import { DEVICE_SUMMARY_FIELDS, listAll } from "@/api/device"
+import { ListParams, Schemas } from "@/api/client"
 import { QUERIES } from "@/constants"
-import { DeviceFamily, DeviceTag, DeviceType, LightDevice } from "@/types"
+import { useList } from "@/hooks/useList"
+import { Config, Device, DeviceFamily, DeviceTag, DeviceType } from "@/types"
 import { sortAlphabetical } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
@@ -38,50 +40,56 @@ export function useDeviceTypesWithOptions() {
   })
 }
 
+/** The global credential sets (to pick one for an access of a device). */
 export function useCredentialSets() {
   return useQuery({
-    queryKey: [QUERIES.CREDENTIAL_SET_LIST],
-    queryFn: async () =>
-      api.admin.fetchAllCredentialSets(),
+    queryKey: [QUERIES.CREDENTIAL_SET_LIST, "device-accesses"],
+    queryFn: async () => listAll<Schemas["CredentialSet"]>("/credential-sets"),
+  })
+}
+
+/** The Vault instances (to read the secrets of an access from). */
+export function useVaultInstanceChoices() {
+  return useQuery({
+    queryKey: ["vault-instance-choices"],
+    queryFn: async () => listAll<Schemas["VaultInstance"]>("/vault-instances", { fields: "name" }),
   })
 }
 
 export function useDeviceConfigs(deviceId: number | undefined) {
   return useQuery({
     queryKey: [QUERIES.DEVICE_CONFIGS, deviceId],
-    queryFn: async () => {
-      return (await api.device.getAllConfigsById(deviceId!)) ?? []
-    },
+    queryFn: async () => listAll<Schemas["Config"]>(`/devices/${deviceId}/configs`, { view: "full" }),
+    select: (data) => data as Config[],
     enabled: !!deviceId,
   })
 }
 
-export function useDevices(groupId: number) {
-  return useQuery({
-    queryKey: [QUERIES.DEVICE_LIST, groupId],
-    queryFn: async () => {
-      const params = {} as DeviceQueryParams
+/** The parameters of the list of devices of the sidebar. */
+export function deviceListParams(groupId: number, query = ""): ListParams {
+  return {
+    fields: DEVICE_SUMMARY_FIELDS,
+    sort: "name",
+    group: groupId || undefined,
+    query: query || undefined,
+  }
+}
 
-      if (groupId) {
-        params.group = groupId
-      }
-
-      return (await api.device.getAll(params)) ?? []
-    },
-    select: useCallback(
-      (data: LightDevice[]) => (groupId ? data : sortAlphabetical(data, "name")),
-      [groupId]
-    ),
-  })
+/**
+ * The devices of the sidebar list: all the devices, or those of a group, or those matching a search query
+ * (Netshot query language), page after page.
+ */
+export function useDevices(groupId: number, query = "") {
+  return useList<Device>([QUERIES.DEVICE_LIST], "/devices", deviceListParams(groupId, query), { limit: 200 })
 }
 
 export function useDeviceFamilies() {
   return useQuery({
     queryKey: [QUERIES.DEVICE_FAMILY_LIST],
-    queryFn: async () => (await api.device.getAllFamilies({ limit: 99999 })) ?? [],
+    queryFn: async () => (await api.device.getAllFamilies()) ?? [],
     select: useCallback(
       (data: DeviceFamily[]) =>
-        Array.from(new Set(data.map((f) => f.deviceFamily).filter(Boolean))).sort(),
+        Array.from(new Set(data.map((f) => f.family).filter((f): f is string => Boolean(f)))).sort(),
       []
     ),
   })
@@ -90,10 +98,10 @@ export function useDeviceFamilies() {
 export function useDevicePartNumbers() {
   return useQuery({
     queryKey: [QUERIES.DEVICE_PART_NUMBER_LIST],
-    queryFn: async () => (await api.device.getAllPartNumbers({ limit: 99999 })) ?? [],
+    queryFn: async () => (await api.device.getAllPartNumbers()) ?? [],
     select: useCallback(
-      (data: Array<{ partNumber: string }>) =>
-        Array.from(new Set(data.map((p) => p.partNumber).filter(Boolean))).sort(),
+      (data: Schemas["PartNumber"][]) =>
+        Array.from(new Set(data.map((p) => p.partNumber).filter((p): p is string => Boolean(p)))).sort(),
       []
     ),
   })
@@ -102,10 +110,10 @@ export function useDevicePartNumbers() {
 export function useDeviceSoftwareVersions() {
   return useQuery({
     queryKey: [QUERIES.DEVICE_SOFTWARE_VERSION_LIST],
-    queryFn: async () => (await api.device.getAllSoftwareVersions({ limit: 99999 })) ?? [],
+    queryFn: async () => (await api.device.getAllSoftwareVersions()) ?? [],
     select: useCallback(
-      (data: Array<{ version: string }>) =>
-        Array.from(new Set(data.map((v) => v.version).filter(Boolean))).sort(),
+      (data: Schemas["SoftwareVersion"][]) =>
+        Array.from(new Set(data.map((v) => v.version).filter((v): v is string => Boolean(v)))).sort(),
       []
     ),
   })
@@ -115,16 +123,8 @@ export function useDeviceTags() {
   return useQuery({
     queryKey: [QUERIES.DEVICE_TAG_LIST],
     queryFn: async () => (await api.device.getAllTags()) ?? [],
-    select: useCallback((data: DeviceTag[]) => data.map((tag) => tag.name), []),
-  })
-}
-
-export function useSearchDevices(query: string) {
-  return useQuery({
-    queryKey: [QUERIES.DEVICE_SEARCH_LIST, query],
-    queryFn: async () => (await api.device.search({ query })) ?? { query, devices: [] },
     select: useCallback(
-      (data: DeviceSearchResult) => ({ ...data, devices: sortAlphabetical(data.devices, "name") }),
+      (data: DeviceTag[]) => data.map((tag) => tag.name).filter((n): n is string => Boolean(n)),
       []
     ),
   })

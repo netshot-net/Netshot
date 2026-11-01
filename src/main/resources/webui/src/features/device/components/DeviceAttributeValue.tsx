@@ -2,9 +2,6 @@ import {
   DeviceAttribute,
   DeviceAttributeDefinition,
   DeviceAttributeType,
-  DeviceBinaryAttribute,
-  DeviceNumericAttribute,
-  DeviceTextAttribute,
 } from "@/types"
 import { Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next"
@@ -25,19 +22,19 @@ export function DeviceAttributeValue(props: DeviceAttributeValueProps) {
     case DeviceAttributeType.Numeric:
       return (
         <DeviceNumericAttributeValue
-          attribute={attribute as DeviceNumericAttribute}
+          attribute={attribute}
         />
       )
     case DeviceAttributeType.Text:
       return (
         <DeviceTextAttributeValue
-          attribute={attribute as DeviceTextAttribute}
+          attribute={attribute}
         />
       )
     case DeviceAttributeType.Binary:
       return (
         <DeviceBinaryAttributeValue
-          attribute={attribute as DeviceBinaryAttribute}
+          attribute={attribute}
         />
       )
     default:

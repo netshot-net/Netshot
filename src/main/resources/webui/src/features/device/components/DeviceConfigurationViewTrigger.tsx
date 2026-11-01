@@ -26,7 +26,7 @@ export default function DeviceConfigurationViewTrigger({ id, filename, attribute
       size: "xl",
       footerExtra: (
         <Button asChild variant="ghost">
-          <a href={`/api/configs/${id}/${attribute?.name}`} download={filename} target="_blank" rel="noreferrer">
+          <a href={attribute?.url ?? undefined} download={filename} target="_blank" rel="noreferrer">
             <LuDownload />
             {t("common.download")}
           </a>

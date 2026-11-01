@@ -1,5 +1,5 @@
 import { useDialogConfig } from "@/dialog"
-import { Device, LightDevice } from "@/types"
+import { Device } from "@/types"
 import {
   Box,
   Button,
@@ -18,8 +18,8 @@ import { useTranslation } from "react-i18next"
 import DeviceListItem from "@/components/entity/DeviceListItem"
 
 export type DeviceReorderDialogProps = {
-  devices: (LightDevice | Device)[]
-  onSave(devices: (LightDevice | Device)[]): void
+  devices: Device[]
+  onSave(devices: Device[]): void
 }
 
 export default function DeviceReorderDialog(props: DeviceReorderDialogProps) {

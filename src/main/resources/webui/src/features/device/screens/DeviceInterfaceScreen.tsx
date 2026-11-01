@@ -1,16 +1,15 @@
 import { Badge, Icon, List, Skeleton, Span, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import api from "@/api"
+import { listAll } from "@/api/device"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"
 import { usePagination } from "@/hooks"
 import { DeviceInterface } from "@/types"
-import { merge, search } from "@/utils"
 
 import { QUERIES } from "../constants"
 import { LuChevronsLeftRightEllipsis, LuPowerOff } from "react-icons/lu"
@@ -30,32 +29,10 @@ export default function DeviceInterfaceScreen() {
       QUERIES.DEVICE_INTERFACES,
       params.id,
       pagination.query,
-      pagination.offset,
-      pagination.limit,
     ],
-    queryFn: async () => api.device.getAllInterfacesById(+(params.id ?? 0), pagination),
-    select: useCallback(
-      (res: DeviceInterface[]): DeviceInterface[] => {
-        // Search on IP addresses
-        const passA = res.filter((item) => {
-          return item.ip4Addresses.some((address) => {
-            return (
-              address.ip.toLocaleLowerCase().startsWith(pagination.query ?? "") ||
-              address.ip.toLocaleLowerCase().includes(pagination.query ?? "")
-            )
-          })
-        })
-
-        // Search on other props
-        const passB = search(res, "description", "interfaceName", "macAddress", "vrfInstance").with(
-          pagination.query
-        )
-
-        // Merge two results in one
-        return merge(passA, passB, "id")
-      },
-      [pagination.query]
-    ),
+    // The server searches the name and description
+    queryFn: async () =>
+      listAll<DeviceInterface>(`/devices/${params.id}/interfaces`, { q: pagination.query?.trim() }),
   })
 
   const isSearching = Boolean(pagination.query?.trim())
@@ -70,7 +47,7 @@ export default function DeviceInterfaceScreen() {
             enableSorting: true,
             size: 15000,
           }),
-        columnHelper.accessor("interfaceName", {
+        columnHelper.accessor("name", {
           cell: (info) => <Text>{info.getValue()}</Text>,
           header: t("common.name"),
           enableSorting: true,
@@ -121,17 +98,17 @@ export default function DeviceInterfaceScreen() {
           enableSorting: true,
           size: 12000,
         }),
-        data.find((i) => !!i.vrfInstance) &&
-          columnHelper.accessor("vrfInstance", {
+        data.find((i) => !!i.vrf) &&
+          columnHelper.accessor("vrf", {
             cell: (info) => <Text>{info.getValue()}</Text>,
             header: t("common.vrf"),
             enableSorting: true,
             size: 15000,
           }),
-        columnHelper.accessor("ip4Addresses", {
+        columnHelper.accessor("ipAddresses", {
           cell: (info) => {
             const value = info.getValue()
-            if (value?.length > 0) {
+            if (value && value.length > 0) {
               return (
                 <List.Root as="ul" listStyleType="''" lineHeight="1.5em">
                   {value.map((i) => (
