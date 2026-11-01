@@ -7,6 +7,10 @@ export const useResultTypeOptions = createOptionHook([
     value: DiagnosticResultType.Text,
   },
   {
+    label: "diagnostic.longText",
+    value: DiagnosticResultType.LongText,
+  },
+  {
     label: "common.numeric",
     value: DiagnosticResultType.Numeric,
   },

@@ -1,29 +1,12 @@
-import { Group } from "./group";
-
 export enum DiagnosticResultType {
   Text = "TEXT",
+  LongText = "LONGTEXT",
   Numeric = "NUMERIC",
   Binary = "BINARY",
 }
 
 export enum DiagnosticType {
-  Simple = "SimpleDiagnostic",
-  Javascript = "JavaScriptDiagnostic",
-  Python = "PythonDiagnostic",
+  Simple = "SIMPLE",
+  Javascript = "JAVASCRIPT",
+  Python = "PYTHON",
 }
-
-export type Diagnostic = {
-  id: number;
-  name: string;
-  targetGroup: Group;
-  enabled: boolean;
-  resultType: DiagnosticResultType;
-  type: DiagnosticType;
-  deviceDriver: string;
-  deviceDriverDescription: string;
-  cliMode: string;
-  command: string;
-  modifierPattern: string;
-  modifierReplacement: string;
-  script: string;
-};
