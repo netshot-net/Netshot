@@ -1,4 +1,4 @@
-import { Domain } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -14,16 +14,16 @@ import RemoveDomainTrigger from "../components/RemoveDomainTrigger"
 import { QUERIES } from "../constants"
 import TableButtonStack from "../components/TableButtonStack"
 
-const columnHelper = createColumnHelper<Domain>()
+const columnHelper = createColumnHelper<Brief["Domain"]>()
 
 export default function AdministrationDomainScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending } = useListAll<Domain>(
+  const { rows: data, isPending } = useListAll<Brief["Domain"]>(
     [QUERIES.ADMIN_DEVICE_DOMAINS],
     "/domains",
-    { q: pagination.query, sort: "name", view: "full" }
+    { q: pagination.query, sort: "name" }
   )
 
   const isSearching = Boolean(pagination.query?.trim())

@@ -113,7 +113,7 @@ public class V1ScriptResourceTest {
 		JsonNode page = this.admin.get("/scripts").json();
 		Assertions.assertEquals(2, page.get("count").asInt());
 		Assertions.assertEquals(List.of("Clock", "Other"), values(page, "name"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "folder", "deviceDriver"), keys(page.get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "folder", "deviceDriver", "deviceDriverDescription", "author"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Clock"), values(this.admin.get("/scripts?folder=Basics").json(), "name"));
 		Assertions.assertEquals(List.of("Other", "Clock"), values(this.admin.get("/scripts?sort=-name").json(), "name"));
 		Assertions.assertEquals(List.of("Other"), values(this.admin.get("/scripts?q=oth").json(), "name"));

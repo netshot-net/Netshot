@@ -1,10 +1,10 @@
 import React, { MouseEvent } from "react"
 import Slot from "@/components/Slot"
 import { useCustomDialog } from "@/dialog"
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import EditGroupDialog from "./EditGroupDialog"
 
-export type EditGroupTriggerProps = { group: Group; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type EditGroupTriggerProps = { group: GroupBrief; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function EditGroupTrigger({ group, children, ...rest }: EditGroupTriggerProps) {
   const dialog = useCustomDialog()

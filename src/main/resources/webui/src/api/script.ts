@@ -1,9 +1,9 @@
-import type { Script } from "@/types"
+import type { Script, ScriptBrief } from "@/types"
 import { client, listAll, ListParams, Schemas } from "./client"
 
 /** Every saved script (brief view: without the code). */
 async function getAll(params: ListParams = {}) {
-  return listAll<Script>("/scripts", { view: "full", ...params })
+  return listAll<ScriptBrief>("/scripts", params)
 }
 
 async function getById(id: number) {

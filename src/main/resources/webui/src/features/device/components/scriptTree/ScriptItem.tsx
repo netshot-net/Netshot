@@ -1,7 +1,7 @@
 import { Protected } from "@/components"
 import { Icon } from "@chakra-ui/react"
 import { LuFileTerminal, LuTrash, LuEllipsis } from "react-icons/lu"
-import { Level, Script } from "@/types"
+import { Level, ScriptBrief } from "@/types"
 import {
   Box,
   BoxProps,
@@ -20,7 +20,7 @@ import RemoveScriptTrigger from "./RemoveScriptTrigger"
 import { useTreeScript } from "./TreeScriptProvider"
 
 export type ScriptItemProps = {
-  script: Script
+  script: ScriptBrief
 } & BoxProps
 
 export default function ScriptItem(props: ScriptItemProps) {

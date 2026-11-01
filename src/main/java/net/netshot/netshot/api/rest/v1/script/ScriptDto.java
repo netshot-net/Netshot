@@ -46,8 +46,8 @@ public record ScriptDto(
 	@Brief String name,
 	@Brief String folder,
 	@Brief String deviceDriver,
-	String deviceDriverDescription,
-	String author,
+	@Brief String deviceDriverDescription,
+	@Brief String author,
 	String script,
 	Map<String, UserInputDefinitionDto> userInputDefinitions) {
 }

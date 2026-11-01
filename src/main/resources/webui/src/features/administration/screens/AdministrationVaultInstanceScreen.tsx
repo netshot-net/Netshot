@@ -1,4 +1,4 @@
-import { VaultInstance } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -25,10 +25,10 @@ import { QUERIES } from "../constants"
 import { useVaultAuthMethodOptions } from "../hooks"
 import TableButtonStack from "../components/TableButtonStack"
 
-const columnHelper = createColumnHelper<VaultInstance>()
+const columnHelper = createColumnHelper<Brief["VaultInstance"]>()
 
 /** HTTPS with the certificate (and hostname) actually verified - anything else (plain HTTP, or TRUST_ANY) is "not secured". */
-function isConnectionSecured(vaultInstance: VaultInstance): boolean {
+function isConnectionSecured(vaultInstance: Brief["VaultInstance"]): boolean {
   return (
     vaultInstance.baseUrl?.toLowerCase().startsWith("https://") === true &&
     vaultInstance.httpsCaTrustMode !== HttpsCaTrustMode.TrustAny
@@ -40,10 +40,10 @@ export default function AdministrationVaultInstanceScreen() {
   const pagination = usePagination()
   const vaultAuthMethodOptions = useVaultAuthMethodOptions()
 
-  const { rows: data, isPending } = useListAll<VaultInstance>(
+  const { rows: data, isPending } = useListAll<Brief["VaultInstance"]>(
     [QUERIES.ADMIN_VAULT_INSTANCES],
     "/vault-instances",
-    { q: pagination.query, sort: "name", view: "full" }
+    { q: pagination.query, sort: "name" }
   )
 
   const isSearching = Boolean(pagination.query?.trim())

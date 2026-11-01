@@ -1,4 +1,4 @@
-import { client, listAll, ListParams, patch, replace, Schemas } from "./client"
+import { Brief, client, listAll, ListParams, patch, replace, Schemas } from "./client"
 
 /** A diagnostic: every property of the diagnostic types in one type, only those of its type are set. */
 export type Diagnostic = Schemas["Diagnostic"] & {
@@ -8,11 +8,14 @@ export type Diagnostic = Schemas["Diagnostic"] & {
   resultType: DiagnosticRequest["resultType"]
 }
 
+/** A diagnostic in its brief view (the diagnostic lists and choices). */
+export type DiagnosticBrief = Brief["Diagnostic"] & Pick<Diagnostic, "name" | "type" | "resultType">
+
 /** The definition of a diagnostic, to create or replace one (its type can't change afterwards). */
 export type DiagnosticRequest = Schemas["DiagnosticRequest"]
 
 async function getAll(params: ListParams = {}) {
-  return listAll<Diagnostic>("/diagnostics", { sort: "name", view: "full", ...params })
+  return listAll<DiagnosticBrief>("/diagnostics", { sort: "name", ...params })
 }
 
 async function getById(id: number) {

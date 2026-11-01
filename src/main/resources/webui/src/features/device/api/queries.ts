@@ -1,6 +1,5 @@
 import api from "@/api"
-import { listAll } from "@/api/client"
-import { ListParams, Schemas } from "@/api/client"
+import { Brief, listAll, ListParams, Schemas } from "@/api/client"
 import { QUERIES } from "@/constants"
 import { useListAll } from "@/hooks/useListAll"
 import { Config, Device, DeviceFamily, DeviceTag, DeviceType } from "@/types"
@@ -44,7 +43,7 @@ export function useDeviceTypesWithOptions() {
 export function useCredentialSets() {
   return useQuery({
     queryKey: [QUERIES.CREDENTIAL_SET_LIST, "device-accesses"],
-    queryFn: async () => listAll<Schemas["CredentialSet"]>("/credential-sets", { view: "full" }),
+    queryFn: async () => listAll<Brief["CredentialSet"]>("/credential-sets"),
   })
 }
 

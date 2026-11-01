@@ -67,7 +67,7 @@ public record CredentialSetDto(
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) Instant changeDate,
 	@Brief String name,
 	@Brief @Schema(allowableValues = {"SSH", "SSH_KEY", "TELNET", "HTTP", "SNMP_V1", "SNMP_V2C", "SNMP_V3"}) String type,
-	@Ref DomainDto mgmtDomain,
+	@Brief @Ref DomainDto mgmtDomain,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) boolean deviceSpecific,
 	String username,
 	VaultSecretDto usernameVault,
