@@ -2389,4 +2389,17 @@
 			<column name="ipv6_usage"/>
 		</dropColumn>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_11">
+		<!-- The dates of the last successful and failed snapshots are kept on the device (they were only known from
+			the task history, which is purged). They are initialized from the history. -->
+		<addColumn tableName="device">
+			<column name="last_snapshot_success_date" type="datetime"/>
+			<column name="last_snapshot_failure_date" type="datetime"/>
+		</addColumn>
+		<sql>UPDATE device SET
+			last_snapshot_success_date = (SELECT max(t.execution_date) FROM task t
+				WHERE t.dtype = 'TakeSnapshotTask' AND t.device = device.id AND t.status = 'SUCCESS'),
+			last_snapshot_failure_date = (SELECT max(t.execution_date) FROM task t
+				WHERE t.dtype = 'TakeSnapshotTask' AND t.device = device.id AND t.status = 'FAILURE')</sql>
+	</changeSet>
 </databaseChangeLog>

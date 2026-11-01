@@ -89,6 +89,7 @@ public final class DeviceMapper {
 			device.cachedIpAddress() == null ? null : device.cachedIpAddress().getHostAddress(),
 			device.compliant(), isPast(device.eolDate()), isPast(device.eosDate()),
 			device.eolDate(), toDto(device.eolModule()), device.eosDate(), toDto(device.eosModule()),
+			device.lastSnapshotSuccessDate(), device.lastSnapshotFailureDate(),
 			device.tags(), device.virtualDevices(), device.vrfInstances(), device.options(),
 			device.attributes() == null ? null : device.attributes().stream().map(DeviceMapper::toDto).toList(),
 			device.accesses() == null ? null : device.accesses().stream().map(DeviceMapper::toDto).toList(),
@@ -108,7 +109,7 @@ public final class DeviceMapper {
 			device.name(), device.mgmtAddress(), device.status(), null, device.family(), device.driver(),
 			driverDescription(driverRegistry, device.driver()), device.networkClass(), null, device.softwareLevel(), null,
 			null, null, null, null, device.configCompliant(), device.eol(), device.eos(), null, null, null, null,
-			null, null, null, null, null, null, null);
+			null, null, null, null, null, null, null, null, null);
 	}
 
 	/**

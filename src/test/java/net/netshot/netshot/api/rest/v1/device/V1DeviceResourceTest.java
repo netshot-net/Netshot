@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.device;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -132,6 +133,31 @@ public class V1DeviceResourceTest {
 		Assertions.assertEquals(List.of("router00002"), this.list("?q=isr"));
 		Assertions.assertEquals(400, this.admin.get("/devices?status=BROKEN").status());
 		Assertions.assertEquals(400, this.admin.get("/devices?color=red").status());
+	}
+
+	@Test
+	@DisplayName("Snapshot dates: exposed, filterable (including never) and sortable, not changed by a device update")
+	void snapshotDates() throws Exception {
+		TestDevices.setSnapshotDate(this.router1.id(), true, Instant.parse("2026-01-10T10:00:00Z"));
+		TestDevices.setSnapshotDate(this.router2.id(), true, Instant.parse("2026-03-10T10:00:00Z"));
+		TestDevices.setSnapshotDate(this.router2.id(), false, Instant.parse("2026-04-10T10:00:00Z"));
+
+		JsonNode device = this.admin.get("/devices/" + this.router2.id()).json();
+		Assertions.assertEquals(Instant.parse("2026-03-10T10:00:00Z"), Instant.parse(device.get("lastSnapshotSuccessDate").asText()));
+		Assertions.assertEquals(Instant.parse("2026-04-10T10:00:00Z"), Instant.parse(device.get("lastSnapshotFailureDate").asText()));
+		Assertions.assertTrue(this.admin.get("/devices/" + this.router1.id()).json().get("lastSnapshotFailureDate").isNull());
+
+		Assertions.assertEquals(List.of("router00001"), this.list("?status=INPRODUCTION&lastSnapshotSuccessDate__lt=2026-02-01T00:00:00Z"));
+		Assertions.assertEquals(List.of("router00003"), this.list("?lastSnapshotSuccessDate__empty=true"));
+		Assertions.assertEquals(List.of("router00002"), this.list("?lastSnapshotFailureDate__gt=2026-04-01T00:00:00Z"));
+		Assertions.assertEquals(List.of("router00001", "router00002", "router00003"), this.list("?sort=lastSnapshotSuccessDate"));
+		Assertions.assertEquals(List.of("router00002", "router00001"), this.list("?status=INPRODUCTION&sort=-lastSnapshotSuccessDate"));
+		Assertions.assertEquals(List.of("router00001", "router00002"),
+			this.list("?lastSnapshotSuccessDate__empty=false&sort=lastSnapshotSuccessDate"));
+
+		Device edited = TestDevices.save(TestDevices.find(this.router2.id()).toBuilder().comments("edited").build());
+		Assertions.assertEquals(Instant.parse("2026-03-10T10:00:00Z"), edited.lastSnapshotSuccessDate());
+		Assertions.assertEquals(Instant.parse("2026-04-10T10:00:00Z"), edited.lastSnapshotFailureDate());
 	}
 
 	@Test
