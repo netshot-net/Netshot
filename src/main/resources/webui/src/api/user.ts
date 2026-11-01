@@ -1,7 +1,9 @@
 import { User } from "@/types";
-import httpClient, { HttpMethod, HttpStatus, isNetshotError } from "./httpClient";
+import { toUser } from "./auth";
+import { HttpMethod, HttpStatus, isNetshotError } from "./httpClient";
 import oidc from "./oidc";
 import { UpdateUserPayload } from "./types";
+import { client, Schemas } from "./client";
 
 export type OidcInfo = {
   endpoint: string | null;
@@ -15,9 +17,9 @@ export type MeResult = {
 
 async function me(): Promise<MeResult> {
   try {
-    const response = await httpClient.request(HttpMethod.GET, "/user");
+    const response = await client.request(HttpMethod.GET, "/auth/me");
     const oidcInfo = oidc.extractInfoFromHeaders(response.headers);
-    const user = await response.json() as User;
+    const user = toUser(await response.json() as Schemas["CurrentUser"]);
     return {
       user,
       oidcInfo,
@@ -38,8 +40,15 @@ async function me(): Promise<MeResult> {
   }
 }
 
-async function update(id: number, payload: UpdateUserPayload) {
-  return httpClient.put<User, UpdateUserPayload>(`/user/${id}`, payload);
+/**
+ * Changes the password of the current (local) user.
+ */
+async function update(payload: UpdateUserPayload) {
+  const user = await client.patch<Schemas["CurrentUser"], Schemas["PasswordChangeRequest"]>("/auth/me", {
+    currentPassword: payload.password,
+    newPassword: payload.newPassword,
+  });
+  return toUser(user ?? undefined);
 }
 
 export default {

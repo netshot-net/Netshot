@@ -1,0 +1,6886 @@
+// Generated from openapi.json by `npm run api:types`: do not edit.
+
+export interface paths {
+    "/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the API tokens
+         * @description Lists the API tokens (never their values), in their brief view by default.
+         */
+        get: operations["listApiTokens"];
+        put?: never;
+        /**
+         * Create an API token
+         * @description Creates an API token, with a random value or the one given (32 alphanumeric characters). The value is in the answer, and ONLY in that answer: Netshot only keeps a hash of it, so it can't be read afterwards.
+         */
+        post: operations["createApiToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an API token
+         * @description Gets an API token, without its value.
+         */
+        get: operations["getApiToken"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete an API token
+         * @description Deletes an API token, which can't authenticate anymore.
+         */
+        delete: operations["deleteApiToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current user
+         * @description Gets the principal the request is authenticated as: kind USER for the user of a session or of a JWT access token, API_TOKEN for an API token (which has no user name), with the authentication method, the permission level and its role.
+         */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change own password
+         * @description Changes the password of the current user, who must be a local user (not an API token, nor a user authenticated by an identity provider). The current password must be given, and the new one must comply with the password policy (400 otherwise).
+         */
+        patch: operations["changePassword"];
+        trace?: never;
+    };
+    "/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the current session
+         * @description Gets the session identified by the session cookie: its user, when it was created and its idle timeout. Answers 401 if the request is not authenticated, and 404 if it is authenticated otherwise than by a session (API token, JWT access token): use GET /auth/me for the principal of any request.
+         */
+        get: operations["getSession"];
+        put?: never;
+        /**
+         * Log in
+         * @description Logs in with a username and a password, or an OIDC authorization code with its redirect URI, and creates a session: the session cookie is set in the response, and the previous session of the client (if any) is dropped. Answers 201 with the session. A wrong user name, password or code is a 401. An expired password is a 403 (give a newPassword to change it while logging in); a new password which does not comply with the password policy is a 400. Useless when using API tokens.
+         */
+        post: operations["login"];
+        /**
+         * Log out
+         * @description Terminates the session identified by the session cookie. Always answers 204, even without a session (the operation is idempotent). For a user who logged in through an identity provider (not a local user), when OIDC is available, the X-OIDC-EndSessionEndpoint header gives the IdP endpoint the client can send the user to, to end the session there too.
+         */
+        delete: operations["logout"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance-results/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the compliance results
+         * @description Counts the compliance results matching the filters of the list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket (interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device.
+         */
+        get: operations["getResultStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the compliance results
+         * @description Lists the results of the last compliance checks, one per device and rule (a rule never checked on a device has no result here), with the exemption of the device from the rule. Filters: device, deviceName, domain and group (of the device), rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate; q searches the device, rule and policy names.
+         */
+        get: operations["listResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/compliance-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the compliance results of a device
+         * @description Lists the rules of the policies applying to a device (through its groups) with the result of their last check (none if never checked) and the exemption of the device. (unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.
+         */
+        get: operations["listResults_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/hardware-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the hardware rules
+         * @description Lists the hardware compliance rules, in their brief view by default.
+         */
+        get: operations["listHardwareRules"];
+        put?: never;
+        /** Create a hardware rule */
+        post: operations["createHardwareRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/hardware-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a hardware rule */
+        get: operations["getHardwareRule"];
+        /**
+         * Replace a hardware rule
+         * @description Replaces the definition of a hardware rule.
+         */
+        put: operations["replaceHardwareRule"];
+        post?: never;
+        /** Delete a hardware rule */
+        delete: operations["deleteHardwareRule"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a hardware rule
+         * @description Changes some properties of a hardware rule (JSON merge patch, RFC 7396).
+         */
+        patch: operations["updateHardwareRule"];
+        trace?: never;
+    };
+    "/compliance/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the compliance policies
+         * @description Lists the compliance policies, in their brief view by default. The targetGroup filter gives the policies applying to a group.
+         */
+        get: operations["listPolicies"];
+        put?: never;
+        /**
+         * Create a compliance policy
+         * @description Creates a compliance policy, without rules.
+         */
+        post: operations["createPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/policies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a compliance policy */
+        get: operations["getPolicy"];
+        /**
+         * Replace a compliance policy
+         * @description Replaces the name and the target groups of a policy. The compliance results of the devices of a group removed from the policy are deleted.
+         */
+        put: operations["replacePolicy"];
+        post?: never;
+        /**
+         * Delete a compliance policy
+         * @description Deletes a policy, with its rules, their exemptions and results.
+         */
+        delete: operations["deletePolicy"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a compliance policy
+         * @description Changes some properties of a policy (JSON merge patch, RFC 7396).
+         */
+        patch: operations["updatePolicy"];
+        trace?: never;
+    };
+    "/compliance/policies/{id}/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the rules of a policy
+         * @description Lists the rules of a policy, as the rule list filtered on the policy (same parameters).
+         */
+        get: operations["listPolicyRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the compliance rules
+         * @description Lists the compliance rules of all the policies, in their brief view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has).
+         */
+        get: operations["listRules"];
+        put?: never;
+        /**
+         * Create a compliance rule
+         * @description Creates a rule in a policy (required). A script rule without script gets the template script; the rule is disabled unless enabled is true.
+         */
+        post: operations["createRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a compliance rule */
+        get: operations["getRule"];
+        /**
+         * Replace a compliance rule
+         * @description Replaces the definition of a rule (its type and its policy can't change; its exemptions are unchanged).
+         */
+        put: operations["replaceRule"];
+        post?: never;
+        /**
+         * Delete a compliance rule
+         * @description Deletes a rule, with its exemptions and results.
+         */
+        delete: operations["deleteRule"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a compliance rule
+         * @description Changes some properties of a rule (JSON merge patch, RFC 7396).
+         */
+        patch: operations["updateRule"];
+        trace?: never;
+    };
+    "/compliance/rules/{id}/exemptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the exemptions of a rule
+         * @description Lists the devices exempted from a rule, with the date their exemption ends. Filters: device, expirationDate.
+         */
+        get: operations["listExemptions"];
+        /**
+         * Replace the exemptions of a rule
+         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set.
+         */
+        put: operations["replaceExemptions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/rules/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a compliance rule
+         * @description Checks a rule definition (which isn't stored) against a device, without any side effect, and answers the result, with what the check logged. A device without configuration gives a NOTAPPLICABLE result.
+         */
+        post: operations["testRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/software-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the software rules
+         * @description Lists the software compliance rules, in the order they are checked in by default (priority is the position of the rule, from 1).
+         */
+        get: operations["listSoftwareRules"];
+        put?: never;
+        /**
+         * Create a software rule
+         * @description Creates a software rule, at the given priority (position) or as the last one.
+         */
+        post: operations["createSoftwareRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/compliance/software-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a software rule */
+        get: operations["getSoftwareRule"];
+        /**
+         * Replace a software rule
+         * @description Replaces the definition of a software rule. A priority moves the rule to that position (the other rules shift); without priority the rule keeps its position.
+         */
+        put: operations["replaceSoftwareRule"];
+        post?: never;
+        /**
+         * Delete a software rule
+         * @description Deletes a software rule (the rules after it move up).
+         */
+        delete: operations["deleteSoftwareRule"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a software rule
+         * @description Changes some properties of a software rule (JSON merge patch, RFC 7396), possibly its priority (position).
+         */
+        patch: operations["updateSoftwareRule"];
+        trace?: never;
+    };
+    "/configs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a configuration
+         * @description Gets a configuration with its attributes. The long texts and files are not inlined: the attributes give the url to download them.
+         */
+        get: operations["getConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/configs/{id}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare a configuration with another one
+         * @description Compares the configuration (the revised one) with another one (the original one, given by with, by default the one gathered just before it on the same device, or an empty configuration if it is the first). The configurations must be of the same type of device. The configurations are written in their brief view unless expanded (expand=original,revised).
+         */
+        get: operations["getConfigDiff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/configs/{id}/items/{item}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download an item of a configuration
+         * @description Downloads a long text item (text/plain, UTF-8) or a file item (application/octet-stream) of a configuration, as an attachment. 404 if the configuration has no such item, or not a downloadable one (a short value), or if it has no content.
+         */
+        get: operations["getConfigItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/configs/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the configurations
+         * @description Counts the configurations (the configuration changes) matching the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, day, week or month, on changeDate, from/to, timeZone).
+         */
+        get: operations["getConfigStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the configurations
+         * @description Lists the configurations of all the devices, in their brief view by default (device, date, author), the latest first. The attributes are only there in the full view (or with fields=attributes), and never hold the long texts and files: download them from their url. The filters on domain and group apply to the device of the configuration.
+         */
+        get: operations["listConfigs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the configurations of a device
+         * @description Lists the configurations of a device, as the configuration list filtered on the device (same parameters), the latest first.
+         */
+        get: operations["listDeviceConfigs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/credential-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the credential sets
+         * @description Lists the global credential sets, in their brief view by default. The credential sets specific to a device access are left out, unless the deviceSpecific filter is given (deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned.
+         */
+        get: operations["listCredentialSets"];
+        put?: never;
+        /**
+         * Create a credential set
+         * @description Creates a global credential set. The secrets the type needs must be given, by value or as a location in a Vault instance.
+         */
+        post: operations["createCredentialSet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/credential-sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a credential set
+         * @description Gets a credential set. The secrets are never returned, only whether they are set.
+         */
+        get: operations["getCredentialSet"];
+        /**
+         * Replace a credential set
+         * @description Replaces the definition of a global credential set (its type can't change). A username, secret or Vault location left out is unchanged; a secret set to null is cleared (which the secrets the type needs refuse). With If-Match, the credential set must still be at the given version (ETag).
+         */
+        put: operations["replaceCredentialSet"];
+        post?: never;
+        /**
+         * Delete a credential set
+         * @description Deletes a global credential set, which must not be used by any device or task. With If-Match, the credential set must still be at the given version (ETag).
+         */
+        delete: operations["deleteCredentialSet"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a credential set
+         * @description Changes some properties of a global credential set (JSON merge patch, RFC 7396). The usernames and secrets are unchanged unless the patch gives them (or a Vault location replacing them). With If-Match, the credential set must still be at the given version (ETag).
+         */
+        patch: operations["updateCredentialSet"];
+        trace?: never;
+    };
+    "/device-families": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the device families
+         * @description Lists the distinct device families (driver and family) of the devices, with their number of devices. An aggregate: items have no id nor url.
+         */
+        get: operations["listDeviceFamilies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/interfaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the interfaces of a device
+         * @description Lists the network interfaces of a device, in their brief view by default (name, description, enabled; view=full adds the addresses). Besides the filters on the fields, ipAddress (exact or net lookup) and macAddress filter on the addresses.
+         */
+        get: operations["listDeviceInterfaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the modules of a device
+         * @description Lists the hardware modules of a device, in their brief view by default (slot, part number, serial number): the current ones only, unless removed=true, which lists the modules removed from the device (kept for the history) too, flagged removed.
+         */
+        get: operations["listDeviceModules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the devices
+         * @description Lists the devices, in their brief view by default. Besides the filters on the fields, the query parameter takes a device search query (such as [Family] is "Cisco IOS" and [Location] contains "Paris"), and group, tag and compliant filter on the group membership, the tags and the configuration compliance. Like any list, it can be exported as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). With the Excel format, the include parameter writes a workbook with more sheets for the matching devices.
+         */
+        get: operations["listDevices"];
+        put?: never;
+        /**
+         * Add a device
+         * @description Adds a device, asynchronously: answers 202 with the task doing the work, whose location is in the Location header. Without a driver, a task discovers the type of the device and the device is only created if the discovery succeeds (an SNMP community is needed). With a driver, the device is created immediately and a task takes its first snapshot.
+         */
+        post: operations["addDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/compliance-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check the compliance of a device
+         * @description Creates a task which checks the configuration compliance of the device (as soon as possible by default). Answers 202 with the task, whose location is in the Location header.
+         */
+        post: operations["checkCompliance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a device */
+        get: operations["getDevice"];
+        /**
+         * Replace a device
+         * @description Replaces the editable properties of a device (status, management address and domain, comments, tags, options, accesses). The other properties are read only and ignored. The secrets of the credential sets specific to the device which are left out are kept. With If-Match, the device must still be at the given version (ETag).
+         */
+        put: operations["replaceDevice"];
+        post?: never;
+        /**
+         * Delete a device
+         * @description Deletes a device, with its configurations and results. With If-Match, the device must still be at the given version (ETag).
+         */
+        delete: operations["deleteDevice"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a device
+         * @description Changes some editable properties of a device (JSON merge patch, RFC 7396; a list such as the accesses is replaced as a whole). With If-Match, the device must still be at the given version (ETag).
+         */
+        patch: operations["updateDevice"];
+        trace?: never;
+    };
+    "/devices/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the devices
+         * @description Counts the devices matching the filters of the device list (and the query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone).
+         */
+        get: operations["getDeviceStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/diagnostics-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the diagnostics of a device
+         * @description Creates a task which runs the diagnostics of the device (as soon as possible by default). Answers 202 with the task, whose location is in the Location header.
+         */
+        post: operations["runDiagnostics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/script-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a script on a device
+         * @description Creates a task which runs a script on the device (as soon as possible by default): either a saved script (savedScript), or the text of a script with the driver it is written for (script and deviceDriver). Answers 202 with the task, whose location is in the Location header.
+         */
+        post: operations["runScript"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take a snapshot of a device
+         * @description Creates a task which takes a snapshot of the device (as soon as possible by default). Answers 202 with the task, whose location is in the Location header.
+         */
+        post: operations["takeSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/device-tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the device tags
+         * @description Lists the distinct tags attached to at least one device, with their number of devices. An aggregate: items have no id nor url.
+         */
+        get: operations["listDeviceTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/device-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the device types
+         * @description Lists the device types: the device drivers loaded by the server, in their brief view by default (name, description, version). View full adds the attributes, options, accesses... Items have no id nor url: the name is what the devices refer to.
+         */
+        get: operations["listDeviceTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/part-numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the part numbers
+         * @description Lists the distinct part numbers of the modules, with their number of modules. An aggregate: items have no id nor url.
+         */
+        get: operations["listPartNumbers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/software-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the software versions
+         * @description Lists the distinct (non empty) software versions of the devices, with their number of devices. An aggregate: items have no id nor url.
+         */
+        get: operations["listSoftwareVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the diagnostics
+         * @description Lists the diagnostics, in their brief view by default.
+         */
+        get: operations["listDiagnostics"];
+        put?: never;
+        /**
+         * Create a diagnostic
+         * @description Creates a diagnostic: a CLI command (SIMPLE), or a JavaScript or Python script.
+         */
+        post: operations["createDiagnostic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/diagnostics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a diagnostic */
+        get: operations["getDiagnostic"];
+        /**
+         * Replace a diagnostic
+         * @description Replaces the definition of a diagnostic (its type can't change). The results of the diagnostic are deleted when its target group changes.
+         */
+        put: operations["replaceDiagnostic"];
+        post?: never;
+        /**
+         * Delete a diagnostic
+         * @description Deletes a diagnostic, with its results.
+         */
+        delete: operations["deleteDiagnostic"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a diagnostic
+         * @description Changes some properties of a diagnostic (JSON merge patch, RFC 7396).
+         */
+        patch: operations["updateDiagnostic"];
+        trace?: never;
+    };
+    "/devices/{id}/diagnostic-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the diagnostic results of a device
+         * @description Lists the last result of each diagnostic run on a device, with the diagnostic as a reference.
+         */
+        get: operations["listDiagnosticResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the domains
+         * @description Lists the device domains, in their brief view by default.
+         */
+        get: operations["listDomains"];
+        put?: never;
+        /** Create a domain */
+        post: operations["createDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a domain */
+        get: operations["getDomain"];
+        /**
+         * Replace a domain
+         * @description Replaces the definition of a domain. With If-Match, the domain must still be at the given version (ETag).
+         */
+        put: operations["replaceDomain"];
+        post?: never;
+        /**
+         * Delete a domain
+         * @description Deletes a domain, which must not be used by any device or credential set. With If-Match, the domain must still be at the given version (ETag).
+         */
+        delete: operations["deleteDomain"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a domain
+         * @description Changes some properties of a domain (JSON merge patch, RFC 7396). With If-Match, the domain must still be at the given version (ETag).
+         */
+        patch: operations["updateDomain"];
+        trace?: never;
+    };
+    "/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the groups
+         * @description Lists the device groups, in their brief view by default. The device filter gives the groups a device is a member of.
+         */
+        get: operations["listGroups"];
+        put?: never;
+        /**
+         * Create a group
+         * @description Creates a device group: a static group of the given devices, or a dynamic group of the devices matching the query.
+         */
+        post: operations["createGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a group */
+        get: operations["getGroup"];
+        /**
+         * Replace a group
+         * @description Replaces the definition of a group (its type can't change; the devices of a static group are unchanged unless given). With If-Match, the group must still be at the given version (ETag).
+         */
+        put: operations["replaceGroup"];
+        post?: never;
+        /**
+         * Delete a group
+         * @description Deletes a group (not its devices). With If-Match, the group must still be at the given version (ETag).
+         */
+        delete: operations["deleteGroup"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a group
+         * @description Changes some properties of a group (JSON merge patch, RFC 7396). With If-Match, the group must still be at the given version (ETag).
+         */
+        patch: operations["updateGroup"];
+        trace?: never;
+    };
+    "/groups/{id}/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the devices of a group
+         * @description Lists the devices of a group, as the device list filtered on the group (same parameters).
+         */
+        get: operations["listGroupDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the hooks
+         * @description Lists the hooks, in their brief view by default.
+         */
+        get: operations["listHooks"];
+        put?: never;
+        /**
+         * Create a hook
+         * @description Creates a hook: Netshot runs its action when one of its triggers occurs (a Web hook posts the event to a URL).
+         */
+        post: operations["createHook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hooks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a hook */
+        get: operations["getHook"];
+        /**
+         * Replace a hook
+         * @description Replaces the definition of a hook (its type can't change). Hooks have no version: there is no ETag.
+         */
+        put: operations["replaceHook"];
+        post?: never;
+        /** Delete a hook */
+        delete: operations["deleteHook"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a hook
+         * @description Changes some properties of a hook (JSON merge patch, RFC 7396; the triggers are replaced as a whole).
+         */
+        patch: operations["updateHook"];
+        trace?: never;
+    };
+    "/scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the scripts
+         * @description Lists the command scripts, in their brief view by default (without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for.
+         */
+        get: operations["listScripts"];
+        put?: never;
+        /**
+         * Create a script
+         * @description Validates and creates a command script, the author being the user.
+         */
+        post: operations["createScript"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scripts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a script */
+        get: operations["getScript"];
+        put?: never;
+        post?: never;
+        /** Delete a script */
+        delete: operations["deleteScript"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scripts/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate a script
+         * @description Checks the driver, the name and the code of a script definition (by evaluating it) without saving it: 200 with the script and its user inputs, 400 with the problem otherwise.
+         */
+        post: operations["validateScript"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Probe the health of the server
+         * @description Liveness and readiness probe, for load balancers and orchestrators. Not authenticated, and it gives nothing but the status (no version, no detail): 200 with status UP when all the services of the server are running and healthy, 503 with status DOWN otherwise (while starting or stopping, or when a service fails). The services are detailed by GET /system/services.
+         */
+        get: operations["getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/cluster/master": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check whether the server is the cluster master
+         * @description Gets the mastership status of the server answering, to let a load balancer send the requests to the master only. Not authenticated. Answers 200 when the server is the master (or clustering is not enabled) and 503 when it is not.
+         */
+        get: operations["getClusterMaster"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the server information
+         * @description Gets the version of Netshot, the time of the server and the idle timeout of the user sessions.
+         */
+        get: operations["getInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/cluster/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the cluster members
+         * @description Lists the members of the high availability cluster (none if clustering is not enabled), in a single page.
+         */
+        get: operations["listClusterMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the services of the server
+         * @description Lists the services of the server (task manager, Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, in a single page.
+         */
+        get: operations["listServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/devices/{id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tasks of a device
+         * @description Lists the tasks targeting a device, as the task list filtered on the device (same parameters).
+         */
+        get: operations["listDeviceTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a task
+         * @description Cancels a scheduled task, or requests the cancellation of a running group task or of a device task still waiting for its device (cancelRequested). Refused (409) in any other status.
+         */
+        post: operations["cancelTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tasks
+         * @description Lists the tasks, in their brief view by default, the latest first.
+         */
+        get: operations["listTasks"];
+        put?: never;
+        /**
+         * Create a task
+         * @description Creates a task and schedules it (as soon as possible by default). Answers 202 with the task, whose location is in the Location header. Running scripts needs the execute-read-write role, scanning subnets the read-write role, and purging the database the admin role.
+         */
+        post: operations["createTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a task */
+        get: operations["getTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/debug-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the debug log of a task
+         * @description Gets the full debug log of a task run with debug enabled.
+         */
+        get: operations["getTaskDebugLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Count the tasks
+         * @description Counts the tasks matching the filters of the task list, by the values of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket (interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, from/to, timeZone). Without execution date, a task isn't counted by executionDate.
+         */
+        get: operations["getTaskStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/status-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the number of tasks by status
+         * @description Returns the number of tasks in each status (0 included), and the number of task threads.
+         */
+        get: operations["getTaskStatusCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the users
+         * @description Lists the Netshot users, in their brief view by default.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Create a user
+         * @description Creates a local user (the password is required, and must comply with the password policy) or a remote one (no password: it authenticates through RADIUS, TACACS+ or OIDC, and the user only gives it its permission level).
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a user */
+        get: operations["getUser"];
+        /**
+         * Replace a user
+         * @description Replaces the definition of a user. An absent password is unchanged (it is required to make a remote user a local one). A user can't edit itself (403). Users have no version: there is no ETag.
+         */
+        put: operations["replaceUser"];
+        post?: never;
+        /**
+         * Delete a user
+         * @description Deletes a user. A user can't delete itself (403).
+         */
+        delete: operations["deleteUser"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a user
+         * @description Changes some properties of a user (JSON merge patch, RFC 7396). The password is changed by giving one. A user can't edit itself (403).
+         */
+        patch: operations["updateUser"];
+        trace?: never;
+    };
+    "/vault-instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the Vault instances
+         * @description Lists the Vault instances, in their brief view by default. The secrets are never returned.
+         */
+        get: operations["listVaultInstances"];
+        put?: never;
+        /**
+         * Create a Vault instance
+         * @description Creates a Vault instance. The secrets required by the authentication method must be given.
+         */
+        post: operations["createVaultInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vault-instances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a Vault instance
+         * @description Gets a Vault instance. The secrets are never returned, only whether they are set.
+         */
+        get: operations["getVaultInstance"];
+        /**
+         * Replace a Vault instance
+         * @description Replaces the definition of a Vault instance. A secret left out is unchanged; a secret set to null is cleared (which an authentication method needing it refuses). With If-Match, the Vault instance must still be at the given version (ETag).
+         */
+        put: operations["replaceVaultInstance"];
+        post?: never;
+        /**
+         * Delete a Vault instance
+         * @description Deletes a Vault instance, which must not be referenced by any credential field. With If-Match, the Vault instance must still be at the given version (ETag).
+         */
+        delete: operations["deleteVaultInstance"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a Vault instance
+         * @description Changes some properties of a Vault instance (JSON merge patch, RFC 7396). The secrets are unchanged unless the patch gives them. With If-Match, the Vault instance must still be at the given version (ETag).
+         */
+        patch: operations["updateVaultInstance"];
+        trace?: never;
+    };
+    "/vault-instances/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a Vault instance
+         * @description Tries to log in to a saved Vault instance, without changing anything. A failed login is a successful answer with success=false and the reason.
+         */
+        post: operations["testVaultInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vault-instances/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test a Vault instance definition
+         * @description Tries to log in with a Vault instance definition which isn't saved (it must be complete, secrets included). A failed login is a successful answer with success=false and the reason.
+         */
+        post: operations["testVaultInstanceDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
+export type webhooks = Record<string, never>;
+export interface components {
+    schemas: {
+        /** @description A newly created API token, with its value (only given once) */
+        ApiTokenCreated: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            description?: string;
+            /** Format: int32 */
+            level?: number;
+            readonly role?: string | null;
+            /** Format: password */
+            readonly token?: string;
+        };
+        /** @description Definition of an API token */
+        ApiTokenRequest: {
+            description?: string;
+            /** Format: int32 */
+            level: number;
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            token?: string | null;
+        };
+        /** @description API token (the value of the token is not part of it) */
+        ApiToken: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            description?: string;
+            /** Format: int32 */
+            level?: number;
+            readonly role?: string | null;
+        };
+        ListResponseApiToken: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["ApiToken"][];
+        };
+        /** @description The principal (user or API token) a request is authenticated as */
+        CurrentUser: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string | null;
+            readonly display?: string;
+            readonly kind?: string;
+            readonly authMethod?: string;
+            readonly username?: string | null;
+            readonly local?: boolean | null;
+            /** Format: int32 */
+            readonly level?: number;
+            readonly role?: string | null;
+        };
+        /** @description Change of the password of the current user */
+        PasswordChangeRequest: {
+            /** Format: password */
+            currentPassword: string;
+            /** Format: password */
+            newPassword: string;
+        };
+        /** @description A user session (cookie-authenticated) */
+        Session: {
+            readonly url?: string;
+            /** Format: date-time */
+            readonly creationDate?: Date;
+            /** Format: int32 */
+            readonly maxIdleTime?: number;
+            user?: components["schemas"]["CurrentUser"];
+        };
+        /** @description Credentials to log in: username and password, or OIDC authorization code */
+        SessionRequest: {
+            username?: string;
+            /** Format: password */
+            password?: string;
+            /** Format: password */
+            newPassword?: string;
+            /** Format: password */
+            authorizationCode?: string;
+            redirectUri?: string;
+        };
+        /** @description Counts of objects, by field values and/or by time bucket */
+        Stats: {
+            /** Format: int64 */
+            count?: number;
+            groupBy?: string[];
+            interval?: string;
+            on?: string;
+            /** Format: date-time */
+            from?: Date;
+            /** Format: date-time */
+            to?: Date;
+            timeZone?: string;
+            results?: {
+                [key: string]: Record<string, never>;
+            }[];
+        };
+        /** @description Device credential set (secrets are never returned) */
+        CredentialSet: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            /** Format: int64 */
+            readonly version?: number;
+            /** Format: date-time */
+            readonly changeDate?: Date;
+            name?: string;
+            /** @enum {string} */
+            type?: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3";
+            mgmtDomain?: components["schemas"]["Domain"];
+            readonly deviceSpecific?: boolean;
+            username?: string;
+            usernameVault?: components["schemas"]["VaultSecret"];
+            readonly hasPassword?: boolean;
+            passwordVault?: components["schemas"]["VaultSecret"];
+            readonly hasSuperPassword?: boolean;
+            superPasswordVault?: components["schemas"]["VaultSecret"];
+            readonly hasPrivateKey?: boolean;
+            privateKeyVault?: components["schemas"]["VaultSecret"];
+            readonly hasCommunity?: boolean;
+            communityVault?: components["schemas"]["VaultSecret"];
+            /** @enum {string} */
+            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512";
+            readonly hasAuthKey?: boolean;
+            authKeyVault?: components["schemas"]["VaultSecret"];
+            /** @enum {string} */
+            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256";
+            readonly hasPrivKey?: boolean;
+            privKeyVault?: components["schemas"]["VaultSecret"];
+        };
+        /** @description Device (network or security equipment) */
+        Device: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            changeDate?: Date;
+            /** Format: date-time */
+            createdDate?: Date;
+            creator?: string;
+            name?: string;
+            mgmtAddress?: string;
+            /** @enum {string} */
+            status?: "DISABLED" | "INPRODUCTION" | "PREPRODUCTION";
+            mgmtDomain?: components["schemas"]["Domain"];
+            family?: string;
+            driver?: string;
+            driverDescription?: string;
+            /** @enum {string} */
+            networkClass?: "FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY";
+            softwareVersion?: string;
+            /** @enum {string} */
+            softwareLevel?: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN";
+            serialNumber?: string;
+            location?: string;
+            contact?: string;
+            comments?: string;
+            cachedIpAddress?: string;
+            compliant?: boolean;
+            endOfLife?: boolean;
+            endOfSale?: boolean;
+            /** Format: date-time */
+            eolDate?: Date;
+            eolModule?: components["schemas"]["Module"];
+            /** Format: date-time */
+            eosDate?: Date;
+            eosModule?: components["schemas"]["Module"];
+            /** Format: date-time */
+            lastSnapshotSuccessDate?: Date;
+            /** Format: date-time */
+            lastSnapshotFailureDate?: Date;
+            tags?: string[];
+            virtualDevices?: string[];
+            vrfInstances?: string[];
+            options?: {
+                [key: string]: Record<string, never>;
+            };
+            attributes?: components["schemas"]["DeviceAttribute"][];
+            accesses?: components["schemas"]["DeviceAccess"][];
+            ownerGroups?: components["schemas"]["Group"][];
+        };
+        /** @description Per-access settings of a device */
+        DeviceAccess: {
+            accessName?: string;
+            address?: string;
+            /** Format: int32 */
+            port?: number;
+            globalCredentialSet?: components["schemas"]["CredentialSet"];
+            specificCredentialSet?: components["schemas"]["CredentialSet"];
+            /** @enum {string} */
+            sshHostKeyVerification?: "TRUST_ANY" | "TRUST_KNOWN";
+            sshTrustedHostKeys?: string;
+            /** Format: date-time */
+            sshTrustedHostKeysSince?: Date;
+            /** @enum {string} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
+            httpsCustomCaCertificate?: string;
+        };
+        /** @description Device attribute collected by the driver */
+        DeviceAttribute: {
+            name?: string;
+            type?: string;
+            value?: Record<string, never>;
+        };
+        /** @description Compliance state of a device for a rule */
+        DeviceComplianceResult: {
+            device?: components["schemas"]["Device"];
+            rule?: components["schemas"]["Rule"];
+            policy?: components["schemas"]["Policy"];
+            /** @enum {string} */
+            result?: "CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE";
+            comment?: string;
+            /** Format: date-time */
+            checkDate?: Date;
+            /** Format: date-time */
+            exemptionExpirationDate?: Date;
+        };
+        /** @description Device domain */
+        Domain: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            /** Format: int64 */
+            readonly version?: number;
+            /** Format: date-time */
+            readonly changeDate?: Date;
+            name?: string;
+            description?: string;
+            server4Address?: string;
+            readonly server6Address?: string;
+        };
+        /** @description Device group */
+        Group: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            changeDate?: Date;
+            name?: string;
+            folder?: string;
+            type?: string;
+            hiddenFromReports?: boolean;
+            query?: string;
+        };
+        /** @description Compliance rule checked by a JavaScript script */
+        JavaScriptRule: Omit<components["schemas"]["Rule"], "type"> & {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            type?: string;
+            name?: string;
+            enabled?: boolean;
+            policy?: components["schemas"]["Policy"];
+            script?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "JavaScriptRule";
+        };
+        ListResponseDeviceComplianceResult: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DeviceComplianceResult"][];
+        };
+        /** @description Device module */
+        Module: {
+            /** Format: int64 */
+            id?: number;
+            slot?: string;
+            partNumber?: string;
+            serialNumber?: string;
+            /** Format: date-time */
+            firstSeenDate?: Date;
+            /** Format: date-time */
+            lastSeenDate?: Date;
+            removed?: boolean;
+        };
+        /** @description Compliance policy */
+        Policy: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            name?: string;
+            targetGroups?: components["schemas"]["Group"][];
+        };
+        /** @description Compliance rule checked by a Python script */
+        PythonRule: Omit<components["schemas"]["Rule"], "type"> & {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            type?: string;
+            name?: string;
+            enabled?: boolean;
+            policy?: components["schemas"]["Policy"];
+            script?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PythonRule";
+        };
+        /** @description Compliance rule */
+        Rule: {
+            type: string;
+        } & (components["schemas"]["TextRule"] | components["schemas"]["JavaScriptRule"] | components["schemas"]["PythonRule"]);
+        /** @description Compliance rule matching a text */
+        TextRule: Omit<components["schemas"]["Rule"], "type"> & {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            type?: string;
+            name?: string;
+            enabled?: boolean;
+            policy?: components["schemas"]["Policy"];
+            field?: string;
+            context?: string;
+            text?: string;
+            regExp?: boolean;
+            invert?: boolean;
+            anyBlock?: boolean;
+            matchAll?: boolean;
+            normalize?: boolean;
+            deviceDriver?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "TextRule";
+        };
+        /** @description Vault instance, an external secret store (secrets are never returned) */
+        VaultInstance: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            /** Format: int64 */
+            readonly version?: number;
+            /** Format: date-time */
+            readonly changeDate?: Date;
+            name?: string;
+            /** @enum {string} */
+            type?: "HASHICORP_KV2";
+            baseUrl?: string;
+            namespace?: string;
+            /** @enum {string} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
+            httpsCustomCaCertificate?: string;
+            kvMountPath?: string;
+            /** @enum {string} */
+            authMethod?: "APPROLE" | "JWT";
+            appRoleMountPath?: string;
+            appRoleId?: string;
+            readonly hasAppRoleSecretId?: boolean;
+            jwtMountPath?: string;
+            jwtIdpTokenEndpoint?: string;
+            jwtClientId?: string;
+            readonly hasJwtClientSecret?: boolean;
+            jwtVaultRole?: string;
+            jwtScope?: string;
+        };
+        /** @description Location of a secret in a Vault instance */
+        VaultSecret: {
+            vaultInstance?: components["schemas"]["VaultInstance"];
+            path?: string;
+        };
+        /** @description Hardware compliance rule */
+        HardwareRule: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            partNumber?: string;
+            /** Format: date-time */
+            endOfSale?: Date;
+            /** Format: date-time */
+            endOfLife?: Date;
+            group?: components["schemas"]["Group"];
+            driver?: string;
+            family?: string;
+            familyRegExp?: boolean;
+            partNumberRegExp?: boolean;
+        };
+        /** @description Definition of a hardware compliance rule */
+        HardwareRuleRequest: {
+            partNumber?: string;
+            /** Format: date-time */
+            endOfSale?: Date;
+            /** Format: date-time */
+            endOfLife?: Date;
+            /** Format: int64 */
+            group?: number;
+            driver?: string;
+            family?: string;
+            familyRegExp?: boolean;
+            partNumberRegExp?: boolean;
+        };
+        ListResponseHardwareRule: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["HardwareRule"][];
+        };
+        JsonNode: Record<string, never>;
+        /** @description Definition of a compliance policy */
+        PolicyRequest: {
+            name: string;
+            targetGroups?: number[];
+        };
+        ListResponsePolicy: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Policy"][];
+        };
+        ListResponseRule: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Rule"][];
+        };
+        /** @description Definition of a JavaScript compliance rule */
+        JavaScriptRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
+            name: string;
+            enabled?: boolean;
+            /** Format: int64 */
+            policy?: number;
+            script?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "JavaScriptRuleRequest";
+        };
+        /** @description Definition of a Python compliance rule */
+        PythonRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
+            name: string;
+            enabled?: boolean;
+            /** Format: int64 */
+            policy?: number;
+            script?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "PythonRuleRequest";
+        };
+        /** @description Definition of a compliance rule */
+        RuleRequest: {
+            type: string;
+        } & (components["schemas"]["TextRuleRequest"] | components["schemas"]["JavaScriptRuleRequest"] | components["schemas"]["PythonRuleRequest"]);
+        /** @description Definition of a text compliance rule */
+        TextRuleRequest: Omit<components["schemas"]["RuleRequest"], "type"> & {
+            name: string;
+            enabled?: boolean;
+            /** Format: int64 */
+            policy?: number;
+            field?: string;
+            context?: string;
+            text?: string;
+            regExp?: boolean;
+            invert?: boolean;
+            anyBlock?: boolean;
+            matchAll?: boolean;
+            normalize?: boolean;
+            deviceDriver?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "TextRuleRequest";
+        };
+        /** @description Exemption of a device from a compliance rule */
+        Exemption: {
+            device?: components["schemas"]["Device"];
+            /** Format: date-time */
+            expirationDate?: Date;
+        };
+        ListResponseExemption: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Exemption"][];
+        };
+        /** @description Exemption of a device from a compliance rule */
+        ExemptionRequest: {
+            /** Format: int64 */
+            device: number;
+            /** Format: date-time */
+            expirationDate: Date;
+        };
+        /** @description Set of exemptions of a compliance rule */
+        ExemptionsRequest: {
+            exemptions: components["schemas"]["ExemptionRequest"][];
+        };
+        /** @description Result of the test of a compliance rule */
+        RuleTestResult: {
+            /** @enum {string} */
+            result?: "CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE";
+            log?: string;
+            comment?: string;
+        };
+        /** @description Test of a compliance rule definition against a device */
+        RuleTestRequest: {
+            rule: components["schemas"]["RuleRequest"];
+            /** Format: int64 */
+            device: number;
+        };
+        /** @description Software compliance rule */
+        SoftwareRule: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            /** Format: int32 */
+            priority?: number;
+            /** @enum {string} */
+            level?: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN";
+            group?: components["schemas"]["Group"];
+            driver?: string;
+            family?: string;
+            familyRegExp?: boolean;
+            version?: string;
+            versionRegExp?: boolean;
+            partNumber?: string;
+            partNumberRegExp?: boolean;
+        };
+        /** @description Definition of a software compliance rule */
+        SoftwareRuleRequest: {
+            /** Format: int32 */
+            priority?: number;
+            /** @enum {string} */
+            level: "GOLD" | "SILVER" | "BRONZE" | "UNKNOWN";
+            /** Format: int64 */
+            group?: number;
+            driver?: string;
+            family?: string;
+            familyRegExp?: boolean;
+            version?: string;
+            versionRegExp?: boolean;
+            partNumber?: string;
+            partNumberRegExp?: boolean;
+        };
+        ListResponseSoftwareRule: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["SoftwareRule"][];
+        };
+        Binary: {
+            type: "Binary";
+        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name?: string;
+            assumption?: boolean;
+        });
+        BinaryFile: {
+            type: "BinaryFile";
+        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name?: string;
+            originalName?: string;
+            /** Format: int64 */
+            fileSize?: number;
+            checksum?: string;
+            url?: string;
+        });
+        /** @description Device configuration */
+        Config: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            /** Format: int64 */
+            version?: number;
+            device?: components["schemas"]["Device"];
+            /** Format: date-time */
+            changeDate?: Date;
+            author?: string;
+            customHash?: string;
+            attributes?: components["schemas"]["ConfigAttribute"][];
+        };
+        /** @description Attribute of a configuration */
+        ConfigAttribute: {
+            type: string;
+        };
+        LongText: {
+            type: "LongText";
+        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name?: string;
+            url?: string;
+        });
+        Numeric: {
+            type: "Numeric";
+        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name?: string;
+            /** Format: double */
+            number?: number;
+        });
+        Text: {
+            type: "Text";
+        } & (Omit<components["schemas"]["ConfigAttribute"], "type"> & {
+            name?: string;
+            text?: string;
+        });
+        /** @description Differences between two configurations */
+        ConfigDiff: {
+            original?: components["schemas"]["Config"];
+            revised?: components["schemas"]["Config"];
+            /** Format: date-time */
+            originalDate?: Date;
+            /** Format: date-time */
+            revisedDate?: Date;
+            deltas?: {
+                [key: string]: components["schemas"]["Delta"][];
+            };
+        };
+        Delta: {
+            /** @enum {string} */
+            type?: "CHANGE" | "DELETE" | "INSERT";
+            /** Format: int32 */
+            originalPosition?: number;
+            /** Format: int32 */
+            revisedPosition?: number;
+            originalLines?: string[];
+            revisedLines?: string[];
+            preContext?: string[];
+            postContext?: string[];
+            hierarchy?: components["schemas"]["LineWithPosition"][];
+        };
+        LineWithPosition: {
+            line?: string;
+            /** Format: int32 */
+            position?: number;
+        };
+        ListResponseConfig: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Config"][];
+        };
+        /** @description Definition of a global credential set */
+        CredentialSetRequest: {
+            name: string;
+            /** @enum {string} */
+            type: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3";
+            /** Format: int64 */
+            mgmtDomain?: number;
+            username?: string;
+            usernameVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            password?: string | null;
+            passwordVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            superPassword?: string | null;
+            superPasswordVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            privateKey?: string | null;
+            privateKeyVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            community?: string | null;
+            communityVault?: components["schemas"]["VaultSecretRequest"];
+            /** @enum {string} */
+            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512";
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            authKey?: string | null;
+            authKeyVault?: components["schemas"]["VaultSecretRequest"];
+            /** @enum {string} */
+            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256";
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            privKey?: string | null;
+            privKeyVault?: components["schemas"]["VaultSecretRequest"];
+        };
+        /** @description Location of a secret in a Vault instance */
+        VaultSecretRequest: {
+            /** Format: int64 */
+            vaultInstance: number;
+            path: string;
+        };
+        ListResponseCredentialSet: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["CredentialSet"][];
+        };
+        /** @description Device family (driver and family) with its number of devices */
+        DeviceFamily: {
+            driver?: string;
+            family?: string;
+            /** Format: int64 */
+            deviceCount?: number;
+        };
+        ListResponseDeviceFamily: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DeviceFamily"][];
+        };
+        /** @description Network interface of a device */
+        DeviceInterface: {
+            /** Format: int64 */
+            id?: number;
+            display?: string;
+            name?: string;
+            description?: string;
+            enabled?: boolean;
+            level3?: boolean;
+            vrf?: string;
+            virtualDevice?: string;
+            macAddress?: string;
+            ipAddresses?: components["schemas"]["IpAddress"][];
+        };
+        IpAddress: {
+            ip?: string;
+            /** Format: int32 */
+            prefixLength?: number;
+            /** Format: int32 */
+            version?: number;
+            /** @enum {string} */
+            usage?: "PRIMARY" | "SECONDARY" | "VRRP" | "HSRP" | "SECONDARYVRRP" | "SECONDARYHSRP";
+        };
+        ListResponseDeviceInterface: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DeviceInterface"][];
+        };
+        /** @description Hardware module of a device */
+        DeviceModule: {
+            /** Format: int64 */
+            id?: number;
+            display?: string;
+            slot?: string;
+            partNumber?: string;
+            serialNumber?: string;
+            /** Format: date-time */
+            firstSeenDate?: Date;
+            /** Format: date-time */
+            lastSeenDate?: Date;
+            removed?: boolean;
+        };
+        ListResponseDeviceModule: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DeviceModule"][];
+        };
+        /** @description Task */
+        Task: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            /** Format: int64 */
+            version?: number;
+            type?: string;
+            /** @enum {string} */
+            status?: "CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED";
+            description?: string;
+            target?: string;
+            author?: string;
+            comments?: string;
+            device?: components["schemas"]["Device"];
+            group?: components["schemas"]["Group"];
+            parentTask?: components["schemas"]["Task"];
+            /** Format: int32 */
+            childOrder?: number;
+            /** Format: int32 */
+            priority?: number;
+            /** @enum {string} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            /** Format: int32 */
+            scheduleFactor?: number;
+            /** Format: date-time */
+            scheduleReference?: Date;
+            /** Format: date-time */
+            nextExecutionDate?: Date;
+            repeating?: boolean;
+            /** @enum {string} */
+            scheduleMode?: "PARALLEL" | "SEQUENTIAL";
+            stopOnFailure?: boolean;
+            /** Format: date-time */
+            creationDate?: Date;
+            /** Format: date-time */
+            changeDate?: Date;
+            /** Format: date-time */
+            executionDate?: Date;
+            runnerId?: string;
+            debugEnabled?: boolean;
+            cancelRequested?: boolean;
+            log?: string;
+            /** @description Parameters of the type of task */
+            parameters?: {
+                [key: string]: Record<string, never>;
+            };
+        };
+        /** @description Settings of one access of a device */
+        DeviceAccessRequest: {
+            accessName: string;
+            address?: string;
+            /** Format: int32 */
+            port?: number;
+            /** Format: int64 */
+            globalCredentialSet?: number;
+            specificCredentialSet?: components["schemas"]["DeviceCredentialSetRequest"];
+            /** @enum {string} */
+            sshHostKeyVerification?: "TRUST_ANY" | "TRUST_KNOWN";
+            sshTrustedHostKeys?: string;
+            /** @enum {string} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
+            httpsCustomCaCertificate?: string;
+        };
+        /** @description Device to add */
+        DeviceCreationRequest: {
+            mgmtAddress: string;
+            /** Format: int64 */
+            mgmtDomain: number;
+            /** @description Name of the device driver; if absent, the device type is auto discovered */
+            driver?: string;
+            comments?: string;
+            tags?: string[];
+            options?: {
+                [key: string]: Record<string, never>;
+            };
+            accesses?: components["schemas"]["DeviceAccessRequest"][];
+        };
+        /** @description Credential set specific to one access of a device */
+        DeviceCredentialSetRequest: {
+            /** @enum {string} */
+            type: "SSH" | "SSH_KEY" | "TELNET" | "HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3";
+            username?: string;
+            usernameVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            password?: string | null;
+            passwordVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            superPassword?: string | null;
+            superPasswordVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            privateKey?: string | null;
+            privateKeyVault?: components["schemas"]["VaultSecretRequest"];
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            community?: string | null;
+            communityVault?: components["schemas"]["VaultSecretRequest"];
+            /** @enum {string} */
+            authType?: "NONE" | "MD5" | "SHA" | "HMAC128SHA224" | "HMAC192SHA256" | "HMAC256SHA384" | "HMAC384SHA512";
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            authKey?: string | null;
+            authKeyVault?: components["schemas"]["VaultSecretRequest"];
+            /** @enum {string} */
+            privType?: "NONE" | "DES" | "DES3" | "AES128" | "AES192" | "AES256";
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            privKey?: string | null;
+            privKeyVault?: components["schemas"]["VaultSecretRequest"];
+        };
+        /** @description Options of a compliance check of a device */
+        ComplianceCheckRequest: {
+            comments?: string;
+            /** @enum {string} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            /** Format: date-time */
+            scheduleReference?: Date;
+            /** Format: int32 */
+            scheduleFactor?: number;
+            /** Format: int32 */
+            priority?: number;
+            debugEnabled?: boolean;
+        };
+        ListResponseDevice: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Device"][];
+        };
+        /** @description Editable properties of a device */
+        DeviceRequest: {
+            mgmtAddress: string;
+            /** Format: int64 */
+            mgmtDomain: number;
+            /** @enum {string} */
+            status?: "DISABLED" | "INPRODUCTION" | "PREPRODUCTION";
+            comments?: string;
+            tags?: string[];
+            options?: {
+                [key: string]: Record<string, never>;
+            };
+            accesses?: components["schemas"]["DeviceAccessRequest"][];
+        };
+        /** @description Options of a run of the diagnostics of a device */
+        DiagnosticsRunRequest: {
+            dontCheckCompliance?: boolean;
+            comments?: string;
+            /** @enum {string} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            /** Format: date-time */
+            scheduleReference?: Date;
+            /** Format: int32 */
+            scheduleFactor?: number;
+            /** Format: int32 */
+            priority?: number;
+            debugEnabled?: boolean;
+        };
+        /** @description Script to run on a device */
+        ScriptRunRequest: {
+            /** Format: int64 */
+            savedScript?: number;
+            script?: string;
+            deviceDriver?: string;
+            userInputValues?: {
+                [key: string]: string;
+            };
+            runSnapshot?: boolean;
+            runDiagnostics?: boolean;
+            checkCompliance?: boolean;
+            comments?: string;
+            /** @enum {string} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            /** Format: date-time */
+            scheduleReference?: Date;
+            /** Format: int32 */
+            scheduleFactor?: number;
+            /** Format: int32 */
+            priority?: number;
+            debugEnabled?: boolean;
+        };
+        /** @description Options of a snapshot of a device */
+        SnapshotRequest: {
+            dontRunDiagnostics?: boolean;
+            dontCheckCompliance?: boolean;
+            comments?: string;
+            /** @enum {string} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            /** Format: date-time */
+            scheduleReference?: Date;
+            /** Format: int32 */
+            scheduleFactor?: number;
+            /** Format: int32 */
+            priority?: number;
+            debugEnabled?: boolean;
+        };
+        /** @description Device tag with its number of devices */
+        DeviceTag: {
+            name?: string;
+            /** Format: int64 */
+            deviceCount?: number;
+        };
+        ListResponseDeviceTag: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DeviceTag"][];
+        };
+        Access: {
+            name?: string;
+            /** @enum {string} */
+            protocol?: "TELNET" | "SSH" | "SNMPV1" | "SNMPV2C" | "SNMPV3" | "HTTP" | "HTTPS";
+            description?: string;
+            /** Format: int32 */
+            defaultPort?: number;
+            group?: string;
+            /** Format: int32 */
+            priority?: number;
+        };
+        Attribute: {
+            name?: string;
+            title?: string;
+            /** @enum {string} */
+            type?: "NUMERIC" | "TEXT" | "LONGTEXT" | "DATE" | "BINARY" | "BINARYFILE" | "ENUM";
+            /** @enum {string} */
+            level?: "DEVICE" | "CONFIG";
+            comparable?: boolean;
+            searchable?: boolean;
+            checkable?: boolean;
+        };
+        /** @description Device type (device driver loaded by the server) */
+        DeviceType: {
+            name?: string;
+            description?: string;
+            version?: string;
+            author?: string;
+            /** Format: int32 */
+            priority?: number;
+            protocols?: ("TELNET" | "SSH" | "SNMPV1" | "SNMPV2C" | "SNMPV3" | "HTTP" | "HTTPS")[];
+            cliMainModes?: string[];
+            sourceHash?: string;
+            location?: components["schemas"]["Location"];
+            attributes?: components["schemas"]["Attribute"][];
+            options?: components["schemas"]["Option"][];
+            accesses?: components["schemas"]["Access"][];
+        };
+        ListResponseDeviceType: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DeviceType"][];
+        };
+        Location: {
+            /** @enum {string} */
+            type?: "EMBEDDED" | "FILE";
+            fileName?: string;
+        };
+        Option: {
+            name?: string;
+            title?: string;
+            /** @enum {string} */
+            type?: "TEXT" | "BOOLEAN";
+            choices?: string[];
+            defaultValue?: Record<string, never>;
+        };
+        ListResponsePartNumber: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["PartNumber"][];
+        };
+        /** @description Part number of modules with its number of modules */
+        PartNumber: {
+            partNumber?: string;
+            /** Format: int64 */
+            moduleCount?: number;
+        };
+        ListResponseSoftwareVersion: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["SoftwareVersion"][];
+        };
+        /** @description Software version with its number of devices */
+        SoftwareVersion: {
+            version?: string;
+            /** Format: int64 */
+            deviceCount?: number;
+        };
+        /** @description Diagnostic (data collected from devices) */
+        Diagnostic: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            name?: string;
+            type?: string;
+            resultType?: string;
+            enabled?: boolean;
+            targetGroup?: components["schemas"]["Group"];
+            script?: string;
+            deviceDriver?: string;
+            deviceDriverDescription?: string;
+            cliMode?: string;
+            command?: string;
+            modifierPattern?: string;
+            modifierReplacement?: string;
+        };
+        /** @description Definition of a diagnostic */
+        DiagnosticRequest: {
+            name: string;
+            /** @enum {string} */
+            type: "SIMPLE" | "JAVASCRIPT" | "PYTHON";
+            /** @enum {string} */
+            resultType: "TEXT" | "LONGTEXT" | "NUMERIC" | "BINARY";
+            enabled?: boolean;
+            /**
+             * Format: int64
+             * @description The target group: its ID, or an object with its ID (such as the one read)
+             */
+            targetGroup?: number;
+            script?: string;
+            deviceDriver?: string;
+            cliMode?: string;
+            command?: string;
+            modifierPattern?: string;
+            modifierReplacement?: string;
+        };
+        ListResponseDiagnostic: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Diagnostic"][];
+        };
+        /** @description Result of a diagnostic on a device */
+        DiagnosticResult: {
+            display?: string;
+            diagnostic?: components["schemas"]["Diagnostic"];
+            type?: string;
+            value?: Record<string, never>;
+            /** Format: date-time */
+            creationDate?: Date;
+            /** Format: date-time */
+            lastCheckDate?: Date;
+        };
+        ListResponseDiagnosticResult: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["DiagnosticResult"][];
+        };
+        /** @description Definition of a device domain */
+        DomainRequest: {
+            name: string;
+            description?: string;
+            server4Address: string;
+        };
+        ListResponseDomain: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Domain"][];
+        };
+        /** @description Definition of a device group */
+        GroupRequest: {
+            name: string;
+            folder?: string;
+            /** @enum {string} */
+            type: "STATIC" | "DYNAMIC";
+            hiddenFromReports?: boolean;
+            query?: string;
+            /** @description IDs of the devices of a static group (write-only: absent means unchanged) */
+            devices?: number[];
+        };
+        ListResponseGroup: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Group"][];
+        };
+        /** @description Hook (action run when an event occurs) */
+        Hook: {
+            type: string;
+        } & components["schemas"]["WebHook"];
+        /** @description Event which triggers a hook */
+        HookTrigger: {
+            /** @enum {string} */
+            type: "POST_TASK";
+            item?: string;
+        };
+        /** @description Hook calling a URL */
+        WebHook: Omit<components["schemas"]["Hook"], "type"> & {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            type?: string;
+            name?: string;
+            enabled?: boolean;
+            triggers?: components["schemas"]["HookTrigger"][];
+            /** @enum {string} */
+            action?: "POST_XML" | "POST_JSON" | "POST_YAML";
+            targetUrl?: string;
+            /** @enum {string} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
+            httpsCustomCaCertificate?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "WebHook";
+        };
+        /** @description Definition of a hook */
+        HookRequest: {
+            type: string;
+        } & components["schemas"]["WebHookRequest"];
+        /** @description Definition of a hook calling a URL */
+        WebHookRequest: Omit<components["schemas"]["HookRequest"], "type"> & {
+            name: string;
+            enabled?: boolean;
+            triggers?: components["schemas"]["HookTrigger"][];
+            /** @enum {string} */
+            action: "POST_XML" | "POST_JSON" | "POST_YAML";
+            targetUrl: string;
+            /** @enum {string} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
+            httpsCustomCaCertificate?: string;
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "WebHookRequest";
+        };
+        ListResponseHook: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Hook"][];
+        };
+        /** @description Command script */
+        Script: {
+            /** Format: int64 */
+            id?: number;
+            url?: string;
+            display?: string;
+            name?: string;
+            folder?: string;
+            deviceDriver?: string;
+            deviceDriverDescription?: string;
+            author?: string;
+            script?: string;
+            userInputDefinitions?: {
+                [key: string]: components["schemas"]["UserInputDefinition"];
+            };
+        };
+        /** @description User input of a command script */
+        UserInputDefinition: {
+            name?: string;
+            /** @enum {string} */
+            type?: "TEXT" | "BOOLEAN";
+            label?: string;
+            description?: string;
+            choices?: string[];
+            defaultValue?: string;
+        };
+        /** @description Definition of a command script */
+        ScriptRequest: {
+            name: string;
+            folder?: string;
+            deviceDriver: string;
+            script: string;
+        };
+        ListResponseScript: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Script"][];
+        };
+        /** @description Liveness and readiness of the server */
+        Health: {
+            status?: string;
+        };
+        /** @description Mastership status of the server in the high availability cluster */
+        ClusterMaster: {
+            clusterEnabled?: boolean;
+            master?: boolean;
+            currentMasterId?: string | null;
+        };
+        /** @description General information about the Netshot server */
+        SystemInfo: {
+            readonly version?: string;
+            /** Format: date-time */
+            readonly serverTime?: Date;
+            /** Format: int32 */
+            readonly sessionMaxIdleTime?: number;
+        };
+        /** @description Member of the high availability cluster */
+        ClusterMember: {
+            readonly instanceId?: string;
+            readonly display?: string;
+            local?: boolean;
+            hostname?: string;
+            /** Format: int32 */
+            clusteringVersion?: number;
+            /** Format: int32 */
+            masterPriority?: number;
+            /** Format: int32 */
+            runnerPriority?: number;
+            /** Format: int32 */
+            runnerWeight?: number;
+            appVersion?: string;
+            jvmVersion?: string;
+            driverHash?: string;
+            status?: string;
+            /** Format: date-time */
+            lastStatusChangeDate?: Date;
+            /** Format: date-time */
+            lastSeenDate?: Date;
+        };
+        ListResponseClusterMember: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["ClusterMember"][];
+        };
+        ListResponseService: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Service"][];
+        };
+        /** @description Service of the Netshot server */
+        Service: {
+            readonly display?: string;
+            name?: string;
+            state?: string;
+            healthy?: boolean;
+            error?: string | null;
+            stats?: {
+                [key: string]: Record<string, never>;
+            };
+        };
+        ListResponseTask: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["Task"][];
+        };
+        /** @description Task to create */
+        TaskRequest: {
+            type: string;
+            /** Format: int64 */
+            device?: number;
+            /** Format: int64 */
+            group?: number;
+            deviceList?: number[];
+            /** @description Parameters of the type of task */
+            parameters?: {
+                [key: string]: Record<string, never>;
+            };
+            comments?: string;
+            /** @enum {string} */
+            scheduleType?: "ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY";
+            /** Format: date-time */
+            scheduleReference?: Date;
+            /** Format: int32 */
+            scheduleFactor?: number;
+            /** Format: int32 */
+            priority?: number;
+            debugEnabled?: boolean;
+            /** @enum {string} */
+            scheduleMode?: "PARALLEL" | "SEQUENTIAL";
+            stopOnFailure?: boolean;
+        };
+        /** @description Number of tasks by status */
+        TaskStatusCounts: {
+            countByStatus?: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            threadCount?: number;
+        };
+        /** @description Netshot user */
+        User: {
+            /** Format: int64 */
+            readonly id?: number;
+            readonly url?: string;
+            readonly display?: string;
+            username?: string;
+            local?: boolean;
+            /** Format: int32 */
+            level?: number;
+            readonly role?: string | null;
+            readonly hasPassword?: boolean;
+            /** Format: date-time */
+            readonly lastPasswordChangeDate?: Date | null;
+        };
+        /** @description Definition of a Netshot user */
+        UserRequest: {
+            username: string;
+            local: boolean;
+            /** Format: int32 */
+            level: number;
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            password?: string | null;
+        };
+        ListResponseUser: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["User"][];
+        };
+        /** @description Definition of a Vault instance */
+        VaultInstanceRequest: {
+            name: string;
+            /** @enum {string} */
+            type: "HASHICORP_KV2";
+            baseUrl: string;
+            namespace?: string;
+            /** @enum {string} */
+            httpsCaTrustMode?: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA";
+            httpsCustomCaCertificate?: string;
+            kvMountPath?: string;
+            /** @enum {string} */
+            authMethod: "APPROLE" | "JWT";
+            appRoleMountPath?: string;
+            appRoleId?: string;
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            appRoleSecretId?: string | null;
+            jwtMountPath?: string;
+            jwtIdpTokenEndpoint?: string;
+            jwtClientId?: string;
+            /**
+             * Format: password
+             * @description Write-only secret: absent leaves the stored value unchanged, null clears it
+             */
+            jwtClientSecret?: string | null;
+            jwtVaultRole?: string;
+            jwtScope?: string;
+        };
+        ListResponseVaultInstance: {
+            /**
+             * Format: int64
+             * @description Total number of matching items (null if count=false)
+             */
+            count?: number | null;
+            /**
+             * Format: int32
+             * @description Offset of the first item of the page
+             */
+            offset?: number;
+            /**
+             * Format: int32
+             * @description Maximum number of items of the page
+             */
+            limit?: number;
+            /** @description Path of the next page */
+            next?: string | null;
+            /** @description Path of the previous page */
+            previous?: string | null;
+            /** @description The items of the page */
+            results?: components["schemas"]["VaultInstance"][];
+        };
+        /** @description Outcome of a test of the connection to a Vault server */
+        VaultConnectionTest: {
+            success?: boolean;
+            message?: string;
+        };
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
+}
+export type $defs = Record<string, never>;
+export interface operations {
+    listApiTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseApiToken"];
+                    "application/xml": components["schemas"]["ListResponseApiToken"];
+                    "application/yaml": components["schemas"]["ListResponseApiToken"];
+                };
+            };
+        };
+    };
+    createApiToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApiTokenRequest"];
+                "application/xml": components["schemas"]["ApiTokenRequest"];
+                "application/yaml": components["schemas"]["ApiTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenCreated"];
+                    "application/xml": components["schemas"]["ApiTokenCreated"];
+                    "application/yaml": components["schemas"]["ApiTokenCreated"];
+                };
+            };
+        };
+    };
+    getApiToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API token ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiToken"];
+                    "application/xml": components["schemas"]["ApiToken"];
+                    "application/yaml": components["schemas"]["ApiToken"];
+                };
+            };
+        };
+    };
+    deleteApiToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API token ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                    "application/xml": components["schemas"]["CurrentUser"];
+                    "application/yaml": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+                "application/xml": components["schemas"]["PasswordChangeRequest"];
+                "application/yaml": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUser"];
+                    "application/xml": components["schemas"]["CurrentUser"];
+                    "application/yaml": components["schemas"]["CurrentUser"];
+                };
+            };
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                    "application/xml": components["schemas"]["Session"];
+                    "application/yaml": components["schemas"]["Session"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SessionRequest"];
+                "application/xml": components["schemas"]["SessionRequest"];
+                "application/yaml": components["schemas"]["SessionRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                    "application/xml": components["schemas"]["Session"];
+                    "application/yaml": components["schemas"]["Session"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    getResultStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stats"];
+                    "application/xml": components["schemas"]["Stats"];
+                    "application/yaml": components["schemas"]["Stats"];
+                };
+            };
+        };
+    };
+    listResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceComplianceResult"];
+                    "application/xml": components["schemas"]["ListResponseDeviceComplianceResult"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceComplianceResult"];
+                };
+            };
+        };
+    };
+    listResults_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceComplianceResult"];
+                    "application/xml": components["schemas"]["ListResponseDeviceComplianceResult"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceComplianceResult"];
+                };
+            };
+        };
+    };
+    listHardwareRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseHardwareRule"];
+                    "application/xml": components["schemas"]["ListResponseHardwareRule"];
+                    "application/yaml": components["schemas"]["ListResponseHardwareRule"];
+                };
+            };
+        };
+    };
+    createHardwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HardwareRuleRequest"];
+                "application/xml": components["schemas"]["HardwareRuleRequest"];
+                "application/yaml": components["schemas"]["HardwareRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HardwareRule"];
+                    "application/xml": components["schemas"]["HardwareRule"];
+                    "application/yaml": components["schemas"]["HardwareRule"];
+                };
+            };
+        };
+    };
+    getHardwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hardware rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HardwareRule"];
+                    "application/xml": components["schemas"]["HardwareRule"];
+                    "application/yaml": components["schemas"]["HardwareRule"];
+                };
+            };
+        };
+    };
+    replaceHardwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hardware rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HardwareRuleRequest"];
+                "application/xml": components["schemas"]["HardwareRuleRequest"];
+                "application/yaml": components["schemas"]["HardwareRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HardwareRule"];
+                    "application/xml": components["schemas"]["HardwareRule"];
+                    "application/yaml": components["schemas"]["HardwareRule"];
+                };
+            };
+        };
+    };
+    deleteHardwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hardware rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateHardwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hardware rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HardwareRule"];
+                    "application/xml": components["schemas"]["HardwareRule"];
+                    "application/yaml": components["schemas"]["HardwareRule"];
+                };
+            };
+        };
+    };
+    listPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponsePolicy"];
+                    "application/xml": components["schemas"]["ListResponsePolicy"];
+                    "application/yaml": components["schemas"]["ListResponsePolicy"];
+                };
+            };
+        };
+    };
+    createPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PolicyRequest"];
+                "application/xml": components["schemas"]["PolicyRequest"];
+                "application/yaml": components["schemas"]["PolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                    "application/xml": components["schemas"]["Policy"];
+                    "application/yaml": components["schemas"]["Policy"];
+                };
+            };
+        };
+    };
+    getPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Policy ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                    "application/xml": components["schemas"]["Policy"];
+                    "application/yaml": components["schemas"]["Policy"];
+                };
+            };
+        };
+    };
+    replacePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Policy ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PolicyRequest"];
+                "application/xml": components["schemas"]["PolicyRequest"];
+                "application/yaml": components["schemas"]["PolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                    "application/xml": components["schemas"]["Policy"];
+                    "application/yaml": components["schemas"]["Policy"];
+                };
+            };
+        };
+    };
+    deletePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Policy ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Policy ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
+                    "application/xml": components["schemas"]["Policy"];
+                    "application/yaml": components["schemas"]["Policy"];
+                };
+            };
+        };
+    };
+    listPolicyRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Policy ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseRule"];
+                    "application/xml": components["schemas"]["ListResponseRule"];
+                    "application/yaml": components["schemas"]["ListResponseRule"];
+                };
+            };
+        };
+    };
+    listRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseRule"];
+                    "application/xml": components["schemas"]["ListResponseRule"];
+                    "application/yaml": components["schemas"]["ListResponseRule"];
+                };
+            };
+        };
+    };
+    createRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RuleRequest"];
+                "application/xml": components["schemas"]["RuleRequest"];
+                "application/yaml": components["schemas"]["RuleRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                    "application/xml": components["schemas"]["Rule"];
+                    "application/yaml": components["schemas"]["Rule"];
+                };
+            };
+        };
+    };
+    getRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                    "application/xml": components["schemas"]["Rule"];
+                    "application/yaml": components["schemas"]["Rule"];
+                };
+            };
+        };
+    };
+    replaceRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RuleRequest"];
+                "application/xml": components["schemas"]["RuleRequest"];
+                "application/yaml": components["schemas"]["RuleRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                    "application/xml": components["schemas"]["Rule"];
+                    "application/yaml": components["schemas"]["Rule"];
+                };
+            };
+        };
+    };
+    deleteRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                    "application/xml": components["schemas"]["Rule"];
+                    "application/yaml": components["schemas"]["Rule"];
+                };
+            };
+        };
+    };
+    listExemptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseExemption"];
+                    "application/xml": components["schemas"]["ListResponseExemption"];
+                    "application/yaml": components["schemas"]["ListResponseExemption"];
+                };
+            };
+        };
+    };
+    replaceExemptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExemptionsRequest"];
+                "application/xml": components["schemas"]["ExemptionsRequest"];
+                "application/yaml": components["schemas"]["ExemptionsRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseExemption"];
+                    "application/xml": components["schemas"]["ListResponseExemption"];
+                    "application/yaml": components["schemas"]["ListResponseExemption"];
+                };
+            };
+        };
+    };
+    testRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RuleTestRequest"];
+                "application/xml": components["schemas"]["RuleTestRequest"];
+                "application/yaml": components["schemas"]["RuleTestRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleTestResult"];
+                    "application/xml": components["schemas"]["RuleTestResult"];
+                    "application/yaml": components["schemas"]["RuleTestResult"];
+                };
+            };
+        };
+    };
+    listSoftwareRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseSoftwareRule"];
+                    "application/xml": components["schemas"]["ListResponseSoftwareRule"];
+                    "application/yaml": components["schemas"]["ListResponseSoftwareRule"];
+                };
+            };
+        };
+    };
+    createSoftwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SoftwareRuleRequest"];
+                "application/xml": components["schemas"]["SoftwareRuleRequest"];
+                "application/yaml": components["schemas"]["SoftwareRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoftwareRule"];
+                    "application/xml": components["schemas"]["SoftwareRule"];
+                    "application/yaml": components["schemas"]["SoftwareRule"];
+                };
+            };
+        };
+    };
+    getSoftwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Software rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoftwareRule"];
+                    "application/xml": components["schemas"]["SoftwareRule"];
+                    "application/yaml": components["schemas"]["SoftwareRule"];
+                };
+            };
+        };
+    };
+    replaceSoftwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Software rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SoftwareRuleRequest"];
+                "application/xml": components["schemas"]["SoftwareRuleRequest"];
+                "application/yaml": components["schemas"]["SoftwareRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoftwareRule"];
+                    "application/xml": components["schemas"]["SoftwareRule"];
+                    "application/yaml": components["schemas"]["SoftwareRule"];
+                };
+            };
+        };
+    };
+    deleteSoftwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Software rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateSoftwareRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Software rule ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoftwareRule"];
+                    "application/xml": components["schemas"]["SoftwareRule"];
+                    "application/yaml": components["schemas"]["SoftwareRule"];
+                };
+            };
+        };
+    };
+    getConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Configuration ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Config"];
+                    "application/xml": components["schemas"]["Config"];
+                    "application/yaml": components["schemas"]["Config"];
+                };
+            };
+        };
+    };
+    getConfigDiff: {
+        parameters: {
+            query?: {
+                /** @description ID of the configuration to compare with (the original one) */
+                with?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Configuration ID (the revised one) */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigDiff"];
+                    "application/xml": components["schemas"]["ConfigDiff"];
+                    "application/yaml": components["schemas"]["ConfigDiff"];
+                };
+            };
+        };
+    };
+    getConfigItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Configuration ID */
+                id: number;
+                /** @description Name of the item (an attribute of the configuration) */
+                item: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": unknown;
+                    "application/octet-stream": unknown;
+                };
+            };
+        };
+    };
+    getConfigStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stats"];
+                    "application/xml": components["schemas"]["Stats"];
+                    "application/yaml": components["schemas"]["Stats"];
+                };
+            };
+        };
+    };
+    listConfigs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseConfig"];
+                    "application/xml": components["schemas"]["ListResponseConfig"];
+                    "application/yaml": components["schemas"]["ListResponseConfig"];
+                };
+            };
+        };
+    };
+    listDeviceConfigs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseConfig"];
+                    "application/xml": components["schemas"]["ListResponseConfig"];
+                    "application/yaml": components["schemas"]["ListResponseConfig"];
+                };
+            };
+        };
+    };
+    listCredentialSets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseCredentialSet"];
+                    "application/xml": components["schemas"]["ListResponseCredentialSet"];
+                    "application/yaml": components["schemas"]["ListResponseCredentialSet"];
+                };
+            };
+        };
+    };
+    createCredentialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CredentialSetRequest"];
+                "application/xml": components["schemas"]["CredentialSetRequest"];
+                "application/yaml": components["schemas"]["CredentialSetRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialSet"];
+                    "application/xml": components["schemas"]["CredentialSet"];
+                    "application/yaml": components["schemas"]["CredentialSet"];
+                };
+            };
+        };
+    };
+    getCredentialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential set ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialSet"];
+                    "application/xml": components["schemas"]["CredentialSet"];
+                    "application/yaml": components["schemas"]["CredentialSet"];
+                };
+            };
+        };
+    };
+    replaceCredentialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential set ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CredentialSetRequest"];
+                "application/xml": components["schemas"]["CredentialSetRequest"];
+                "application/yaml": components["schemas"]["CredentialSetRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialSet"];
+                    "application/xml": components["schemas"]["CredentialSet"];
+                    "application/yaml": components["schemas"]["CredentialSet"];
+                };
+            };
+        };
+    };
+    deleteCredentialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential set ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateCredentialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential set ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CredentialSet"];
+                    "application/xml": components["schemas"]["CredentialSet"];
+                    "application/yaml": components["schemas"]["CredentialSet"];
+                };
+            };
+        };
+    };
+    listDeviceFamilies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceFamily"];
+                    "application/xml": components["schemas"]["ListResponseDeviceFamily"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceFamily"];
+                };
+            };
+        };
+    };
+    listDeviceInterfaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceInterface"];
+                    "application/xml": components["schemas"]["ListResponseDeviceInterface"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceInterface"];
+                };
+            };
+        };
+    };
+    listDeviceModules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceModule"];
+                    "application/xml": components["schemas"]["ListResponseDeviceModule"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceModule"];
+                };
+            };
+        };
+    };
+    listDevices: {
+        parameters: {
+            query?: {
+                /** @description Device search query, in the Netshot query language */
+                query?: string;
+                /** @description Excel export only: the extra sheets of the workbook, among interfaces, inventory, inventoryHistory (with the removed modules), locations, compliance, groups and driverAttributes */
+                include?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDevice"];
+                    "application/xml": components["schemas"]["ListResponseDevice"];
+                    "application/yaml": components["schemas"]["ListResponseDevice"];
+                };
+            };
+        };
+    };
+    addDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeviceCreationRequest"];
+                "application/xml": components["schemas"]["DeviceCreationRequest"];
+                "application/yaml": components["schemas"]["DeviceCreationRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    checkCompliance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ComplianceCheckRequest"];
+                "application/xml": components["schemas"]["ComplianceCheckRequest"];
+                "application/yaml": components["schemas"]["ComplianceCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    getDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                    "application/xml": components["schemas"]["Device"];
+                    "application/yaml": components["schemas"]["Device"];
+                };
+            };
+        };
+    };
+    replaceDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeviceRequest"];
+                "application/xml": components["schemas"]["DeviceRequest"];
+                "application/yaml": components["schemas"]["DeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                    "application/xml": components["schemas"]["Device"];
+                    "application/yaml": components["schemas"]["Device"];
+                };
+            };
+        };
+    };
+    deleteDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"];
+                    "application/xml": components["schemas"]["Device"];
+                    "application/yaml": components["schemas"]["Device"];
+                };
+            };
+        };
+    };
+    getDeviceStats: {
+        parameters: {
+            query?: {
+                /** @description Device search query, in the Netshot query language */
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stats"];
+                    "application/xml": components["schemas"]["Stats"];
+                    "application/yaml": components["schemas"]["Stats"];
+                };
+            };
+        };
+    };
+    runDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DiagnosticsRunRequest"];
+                "application/xml": components["schemas"]["DiagnosticsRunRequest"];
+                "application/yaml": components["schemas"]["DiagnosticsRunRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    runScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ScriptRunRequest"];
+                "application/xml": components["schemas"]["ScriptRunRequest"];
+                "application/yaml": components["schemas"]["ScriptRunRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    takeSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SnapshotRequest"];
+                "application/xml": components["schemas"]["SnapshotRequest"];
+                "application/yaml": components["schemas"]["SnapshotRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    listDeviceTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceTag"];
+                    "application/xml": components["schemas"]["ListResponseDeviceTag"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceTag"];
+                };
+            };
+        };
+    };
+    listDeviceTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDeviceType"];
+                    "application/xml": components["schemas"]["ListResponseDeviceType"];
+                    "application/yaml": components["schemas"]["ListResponseDeviceType"];
+                };
+            };
+        };
+    };
+    listPartNumbers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponsePartNumber"];
+                    "application/xml": components["schemas"]["ListResponsePartNumber"];
+                    "application/yaml": components["schemas"]["ListResponsePartNumber"];
+                };
+            };
+        };
+    };
+    listSoftwareVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseSoftwareVersion"];
+                    "application/xml": components["schemas"]["ListResponseSoftwareVersion"];
+                    "application/yaml": components["schemas"]["ListResponseSoftwareVersion"];
+                };
+            };
+        };
+    };
+    listDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDiagnostic"];
+                    "application/xml": components["schemas"]["ListResponseDiagnostic"];
+                    "application/yaml": components["schemas"]["ListResponseDiagnostic"];
+                };
+            };
+        };
+    };
+    createDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DiagnosticRequest"];
+                "application/xml": components["schemas"]["DiagnosticRequest"];
+                "application/yaml": components["schemas"]["DiagnosticRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                    "application/xml": components["schemas"]["Diagnostic"];
+                    "application/yaml": components["schemas"]["Diagnostic"];
+                };
+            };
+        };
+    };
+    getDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diagnostic ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                    "application/xml": components["schemas"]["Diagnostic"];
+                    "application/yaml": components["schemas"]["Diagnostic"];
+                };
+            };
+        };
+    };
+    replaceDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diagnostic ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DiagnosticRequest"];
+                "application/xml": components["schemas"]["DiagnosticRequest"];
+                "application/yaml": components["schemas"]["DiagnosticRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                    "application/xml": components["schemas"]["Diagnostic"];
+                    "application/yaml": components["schemas"]["Diagnostic"];
+                };
+            };
+        };
+    };
+    deleteDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diagnostic ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateDiagnostic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Diagnostic ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnostic"];
+                    "application/xml": components["schemas"]["Diagnostic"];
+                    "application/yaml": components["schemas"]["Diagnostic"];
+                };
+            };
+        };
+    };
+    listDiagnosticResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDiagnosticResult"];
+                    "application/xml": components["schemas"]["ListResponseDiagnosticResult"];
+                    "application/yaml": components["schemas"]["ListResponseDiagnosticResult"];
+                };
+            };
+        };
+    };
+    listDomains: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDomain"];
+                    "application/xml": components["schemas"]["ListResponseDomain"];
+                    "application/yaml": components["schemas"]["ListResponseDomain"];
+                };
+            };
+        };
+    };
+    createDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DomainRequest"];
+                "application/xml": components["schemas"]["DomainRequest"];
+                "application/yaml": components["schemas"]["DomainRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Domain"];
+                    "application/xml": components["schemas"]["Domain"];
+                    "application/yaml": components["schemas"]["Domain"];
+                };
+            };
+        };
+    };
+    getDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Domain"];
+                    "application/xml": components["schemas"]["Domain"];
+                    "application/yaml": components["schemas"]["Domain"];
+                };
+            };
+        };
+    };
+    replaceDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DomainRequest"];
+                "application/xml": components["schemas"]["DomainRequest"];
+                "application/yaml": components["schemas"]["DomainRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Domain"];
+                    "application/xml": components["schemas"]["Domain"];
+                    "application/yaml": components["schemas"]["Domain"];
+                };
+            };
+        };
+    };
+    deleteDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Domain ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Domain"];
+                    "application/xml": components["schemas"]["Domain"];
+                    "application/yaml": components["schemas"]["Domain"];
+                };
+            };
+        };
+    };
+    listGroups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseGroup"];
+                    "application/xml": components["schemas"]["ListResponseGroup"];
+                    "application/yaml": components["schemas"]["ListResponseGroup"];
+                };
+            };
+        };
+    };
+    createGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GroupRequest"];
+                "application/xml": components["schemas"]["GroupRequest"];
+                "application/yaml": components["schemas"]["GroupRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                    "application/xml": components["schemas"]["Group"];
+                    "application/yaml": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    getGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Group ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                    "application/xml": components["schemas"]["Group"];
+                    "application/yaml": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    replaceGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Group ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["GroupRequest"];
+                "application/xml": components["schemas"]["GroupRequest"];
+                "application/yaml": components["schemas"]["GroupRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                    "application/xml": components["schemas"]["Group"];
+                    "application/yaml": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    deleteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Group ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Group ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Group"];
+                    "application/xml": components["schemas"]["Group"];
+                    "application/yaml": components["schemas"]["Group"];
+                };
+            };
+        };
+    };
+    listGroupDevices: {
+        parameters: {
+            query?: {
+                /** @description Device search query, in the Netshot query language */
+                query?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Group ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseDevice"];
+                    "application/xml": components["schemas"]["ListResponseDevice"];
+                    "application/yaml": components["schemas"]["ListResponseDevice"];
+                };
+            };
+        };
+    };
+    listHooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseHook"];
+                    "application/xml": components["schemas"]["ListResponseHook"];
+                    "application/yaml": components["schemas"]["ListResponseHook"];
+                };
+            };
+        };
+    };
+    createHook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HookRequest"];
+                "application/xml": components["schemas"]["HookRequest"];
+                "application/yaml": components["schemas"]["HookRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Hook"];
+                    "application/xml": components["schemas"]["Hook"];
+                    "application/yaml": components["schemas"]["Hook"];
+                };
+            };
+        };
+    };
+    getHook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hook ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Hook"];
+                    "application/xml": components["schemas"]["Hook"];
+                    "application/yaml": components["schemas"]["Hook"];
+                };
+            };
+        };
+    };
+    replaceHook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hook ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HookRequest"];
+                "application/xml": components["schemas"]["HookRequest"];
+                "application/yaml": components["schemas"]["HookRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Hook"];
+                    "application/xml": components["schemas"]["Hook"];
+                    "application/yaml": components["schemas"]["Hook"];
+                };
+            };
+        };
+    };
+    deleteHook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hook ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateHook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Hook ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Hook"];
+                    "application/xml": components["schemas"]["Hook"];
+                    "application/yaml": components["schemas"]["Hook"];
+                };
+            };
+        };
+    };
+    listScripts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseScript"];
+                    "application/xml": components["schemas"]["ListResponseScript"];
+                    "application/yaml": components["schemas"]["ListResponseScript"];
+                };
+            };
+        };
+    };
+    createScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ScriptRequest"];
+                "application/xml": components["schemas"]["ScriptRequest"];
+                "application/yaml": components["schemas"]["ScriptRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Script"];
+                    "application/xml": components["schemas"]["Script"];
+                    "application/yaml": components["schemas"]["Script"];
+                };
+            };
+        };
+    };
+    getScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Script ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Script"];
+                    "application/xml": components["schemas"]["Script"];
+                    "application/yaml": components["schemas"]["Script"];
+                };
+            };
+        };
+    };
+    deleteScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Script ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    validateScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ScriptRequest"];
+                "application/xml": components["schemas"]["ScriptRequest"];
+                "application/yaml": components["schemas"]["ScriptRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Script"];
+                    "application/xml": components["schemas"]["Script"];
+                    "application/yaml": components["schemas"]["Script"];
+                };
+            };
+        };
+    };
+    getHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                    "application/xml": components["schemas"]["Health"];
+                    "application/yaml": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    getClusterMaster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterMaster"];
+                    "application/xml": components["schemas"]["ClusterMaster"];
+                    "application/yaml": components["schemas"]["ClusterMaster"];
+                };
+            };
+        };
+    };
+    getInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemInfo"];
+                    "application/xml": components["schemas"]["SystemInfo"];
+                    "application/yaml": components["schemas"]["SystemInfo"];
+                };
+            };
+        };
+    };
+    listClusterMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseClusterMember"];
+                    "application/xml": components["schemas"]["ListResponseClusterMember"];
+                    "application/yaml": components["schemas"]["ListResponseClusterMember"];
+                };
+            };
+        };
+    };
+    listServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseService"];
+                    "application/xml": components["schemas"]["ListResponseService"];
+                    "application/yaml": components["schemas"]["ListResponseService"];
+                };
+            };
+        };
+    };
+    listDeviceTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseTask"];
+                    "application/xml": components["schemas"]["ListResponseTask"];
+                    "application/yaml": components["schemas"]["ListResponseTask"];
+                };
+            };
+        };
+    };
+    cancelTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    listTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseTask"];
+                    "application/xml": components["schemas"]["ListResponseTask"];
+                    "application/yaml": components["schemas"]["ListResponseTask"];
+                };
+            };
+        };
+    };
+    createTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TaskRequest"];
+                "application/xml": components["schemas"]["TaskRequest"];
+                "application/yaml": components["schemas"]["TaskRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    getTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                    "application/xml": components["schemas"]["Task"];
+                    "application/yaml": components["schemas"]["Task"];
+                };
+            };
+        };
+    };
+    getTaskDebugLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getTaskStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Stats"];
+                    "application/xml": components["schemas"]["Stats"];
+                    "application/yaml": components["schemas"]["Stats"];
+                };
+            };
+        };
+    };
+    getTaskStatusCounts: {
+        parameters: {
+            query?: {
+                /** @description Only count the child tasks of this parent task ID */
+                parentTask?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatusCounts"];
+                    "application/xml": components["schemas"]["TaskStatusCounts"];
+                    "application/yaml": components["schemas"]["TaskStatusCounts"];
+                };
+            };
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseUser"];
+                    "application/xml": components["schemas"]["ListResponseUser"];
+                    "application/yaml": components["schemas"]["ListResponseUser"];
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UserRequest"];
+                "application/xml": components["schemas"]["UserRequest"];
+                "application/yaml": components["schemas"]["UserRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                    "application/xml": components["schemas"]["User"];
+                    "application/yaml": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                    "application/xml": components["schemas"]["User"];
+                    "application/yaml": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    replaceUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UserRequest"];
+                "application/xml": components["schemas"]["UserRequest"];
+                "application/yaml": components["schemas"]["UserRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                    "application/xml": components["schemas"]["User"];
+                    "application/yaml": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    deleteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                    "application/xml": components["schemas"]["User"];
+                    "application/yaml": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    listVaultInstances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponseVaultInstance"];
+                    "application/xml": components["schemas"]["ListResponseVaultInstance"];
+                    "application/yaml": components["schemas"]["ListResponseVaultInstance"];
+                };
+            };
+        };
+    };
+    createVaultInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VaultInstanceRequest"];
+                "application/xml": components["schemas"]["VaultInstanceRequest"];
+                "application/yaml": components["schemas"]["VaultInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultInstance"];
+                    "application/xml": components["schemas"]["VaultInstance"];
+                    "application/yaml": components["schemas"]["VaultInstance"];
+                };
+            };
+        };
+    };
+    getVaultInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Vault instance ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultInstance"];
+                    "application/xml": components["schemas"]["VaultInstance"];
+                    "application/yaml": components["schemas"]["VaultInstance"];
+                };
+            };
+        };
+    };
+    replaceVaultInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Vault instance ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VaultInstanceRequest"];
+                "application/xml": components["schemas"]["VaultInstanceRequest"];
+                "application/yaml": components["schemas"]["VaultInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultInstance"];
+                    "application/xml": components["schemas"]["VaultInstance"];
+                    "application/yaml": components["schemas"]["VaultInstance"];
+                };
+            };
+        };
+    };
+    deleteVaultInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Vault instance ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateVaultInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Vault instance ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultInstance"];
+                    "application/xml": components["schemas"]["VaultInstance"];
+                    "application/yaml": components["schemas"]["VaultInstance"];
+                };
+            };
+        };
+    };
+    testVaultInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Vault instance ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultConnectionTest"];
+                    "application/xml": components["schemas"]["VaultConnectionTest"];
+                    "application/yaml": components["schemas"]["VaultConnectionTest"];
+                };
+            };
+        };
+    };
+    testVaultInstanceDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VaultInstanceRequest"];
+                "application/xml": components["schemas"]["VaultInstanceRequest"];
+                "application/yaml": components["schemas"]["VaultInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultConnectionTest"];
+                    "application/xml": components["schemas"]["VaultConnectionTest"];
+                    "application/yaml": components["schemas"]["VaultConnectionTest"];
+                };
+            };
+        };
+    };
+}
