@@ -1,9 +1,9 @@
 # REST API
 
-Netshot exposes most of its functionality through a REST API. The Web UI itself is built entirely on top of it — any feature available in the Web UI has a corresponding API endpoint. The API supports both JSON and XML encoding.
+This page describes the legacy REST API of Netshot, served on `/api`. It is kept unchanged for the existing integrations, and is **disabled by default**: set `netshot.http.api.v0.enabled` to `true` to serve it (see the [configuration reference](../configuration-reference.md#embedded-http-server)). The API supports both JSON and XML encoding.
 
 !!! tip "REST API v1"
-    A new version of the API, with paginated lists, NetBox-style filters, field selection and standard HTTP semantics, is being built under `/api/v1`: see [REST API v1](rest-api-v1.md). This page describes the legacy API, served on `/api`. The legacy API can be disabled with `netshot.http.api.v0.enabled` (the Web UI still needs it for now).
+    The current API, which the Web UI is built on, is the [REST API v1](rest-api-v1.md) (`/api/v1`): paginated lists, NetBox-style filters, field selection, statistics, exports and standard HTTP semantics. New integrations should use it.
 
 ## Exploring the API
 

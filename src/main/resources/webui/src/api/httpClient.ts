@@ -282,7 +282,3 @@ function createHttpClient(opts: HttpClientOptions = {}) {
 }
 
 export { createHttpClient }
-
-export default createHttpClient({
-  baseUrl: "/api",
-})

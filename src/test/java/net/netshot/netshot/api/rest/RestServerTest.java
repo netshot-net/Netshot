@@ -53,7 +53,7 @@ public class RestServerTest {
 			Assertions.assertTrue(server.isHealthy());
 			HttpClient client = HttpClient.newHttpClient();
 			HttpResponse<String> response = client.send(
-				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/user".formatted(port))).build(),
+				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/v1/auth/me".formatted(port))).build(),
 				HttpResponse.BodyHandlers.ofString());
 			Assertions.assertEquals(401, response.statusCode());
 			client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/nothing".formatted(port))).build(),
