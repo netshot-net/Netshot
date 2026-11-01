@@ -976,7 +976,7 @@
       "privKeySecret": "Clé de chiffrement"
     },
     "api": {
-      "documentation": "Documentation API",
+      "documentation": "Documentation API (v1)",
       "successfullyCreated": "Le token API a été créé avec succès",
       "successfullyRemoved": "Le token API a été supprimé avec succès",
       "tokens": "Tokens API",
