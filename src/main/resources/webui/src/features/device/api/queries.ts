@@ -44,7 +44,7 @@ export function useDeviceTypesWithOptions() {
 export function useCredentialSets() {
   return useQuery({
     queryKey: [QUERIES.CREDENTIAL_SET_LIST, "device-accesses"],
-    queryFn: async () => listAll<Schemas["CredentialSet"]>("/credential-sets"),
+    queryFn: async () => listAll<Schemas["CredentialSet"]>("/credential-sets", { view: "full" }),
   })
 }
 

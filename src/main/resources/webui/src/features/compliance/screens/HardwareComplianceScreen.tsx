@@ -34,6 +34,7 @@ export default function HardwareComplianceScreen() {
   } = useList<HardwareRule>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
     family__ic: pagination.query?.trim(),
     sort: "id",
+    view: "full",
   })
 
   const isSearching = Boolean(pagination.query?.trim())
