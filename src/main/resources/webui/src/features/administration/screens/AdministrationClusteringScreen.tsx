@@ -40,13 +40,13 @@ export default function AdministrationClusteringScreen() {
     refetch,
   } = useQuery({
     queryKey: [QUERIES.ADMIN_CLUSTERS],
-    queryFn: async () => (await api.admin.getAllClusterMembers()) ?? [],
+    queryFn: async () => (await api.admin.getAllClusterMembers()).results,
   })
 
   const members = useMemo(() => {
     return [...data].sort((a, b) => {
-      const order = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
-      return order !== 0 ? order : a.hostname.localeCompare(b.hostname)
+      const order = STATUS_ORDER[a.status as ClusterMemberStatus] - STATUS_ORDER[b.status as ClusterMemberStatus]
+      return order !== 0 ? order : (a.hostname ?? "").localeCompare(b.hostname ?? "")
     })
   }, [data])
 
@@ -107,7 +107,7 @@ export default function AdministrationClusteringScreen() {
                           <Text fontWeight="semibold" fontSize="lg">
                             {item?.hostname}
                           </Text>
-                          <ClusterStatusBadge status={item.status} />
+                          <ClusterStatusBadge status={item.status as ClusterMemberStatus} />
                           {item?.local && (
                             <IconBadge colorPalette="gray">
                               <Icon size="sm" flexShrink={0}>
@@ -118,12 +118,12 @@ export default function AdministrationClusteringScreen() {
                           )}
                         </Stack>
                         <Tooltip
-                          content={item.lastSeenTime ? formatDateTime(item.lastSeenTime) : undefined}
-                          disabled={!item.lastSeenTime}
+                          content={item.lastSeenDate ? formatDateTime(item.lastSeenDate) : undefined}
+                          disabled={!item.lastSeenDate}
                         >
                           <Text color="grey.400" fontSize="sm">
-                            {item.lastSeenTime
-                              ? t("admin.clustering.lastSeenAgo", { time: formatRelativeTime(item.lastSeenTime) })
+                            {item.lastSeenDate
+                              ? t("admin.clustering.lastSeenAgo", { time: formatRelativeTime(item.lastSeenDate) })
                               : "—"}
                           </Text>
                         </Tooltip>
@@ -181,7 +181,7 @@ export default function AdministrationClusteringScreen() {
                                 {item?.driverHash?.substring(0, 8)}
                               </Text>
                             </Tooltip>
-                            <Clipboard.Root value={item?.driverHash}>
+                            <Clipboard.Root value={item?.driverHash ?? ""}>
                               <Clipboard.Trigger asChild>
                                 <IconButton size="xs" variant="ghost" aria-label={t("common.copy")}>
                                   <Clipboard.Indicator copied={<LuCopyCheck />}>
@@ -195,7 +195,7 @@ export default function AdministrationClusteringScreen() {
                         <Stack gap="0" gridColumn="span 2">
                           <Text color="grey.400">{t("compliance.lastStatusChange")}</Text>
                           <Text fontWeight="semibold" fontSize="lg">
-                            {formatDateTime(item?.lastStatusChangeTime)}
+                            {item?.lastStatusChangeDate ? formatDateTime(item.lastStatusChangeDate) : "—"}
                           </Text>
                         </Stack>
                       </SimpleGrid>
