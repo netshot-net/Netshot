@@ -107,7 +107,7 @@ public class SystemResource {
 	@Operation(summary = "List the cluster members", description = "Lists the members of the high availability cluster "
 		+ "(none if clustering is not enabled), in a single page.")
 	public ListResponse<ClusterMemberDto> listClusterMembers() {
-		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
+		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters(), ListParams.EXPORT);
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ClusterMemberDto.class, Selection.View.FULL),
 			ClusterMemberDto.class);
 		return single(this.clusterService.members().stream().map(SystemMapper::toDto).toList());
@@ -149,7 +149,7 @@ public class SystemResource {
 		+ "Syslog server, web server...) in start order, with their state, whether they are healthy and their statistics, "
 		+ "in a single page.")
 	public ListResponse<ServiceDto> listServices() {
-		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
+		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters(), ListParams.EXPORT);
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ServiceDto.class, Selection.View.FULL),
 			ServiceDto.class);
 		return single(this.serviceHealthService.services().stream().map(SystemMapper::toDto).toList());
