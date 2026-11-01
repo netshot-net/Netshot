@@ -1,9 +1,9 @@
 import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
-import { useToast } from "@/hooks"
-import { Domain } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { Domain } from "@/api/admin"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent, useCallback } from "react"
@@ -17,15 +17,14 @@ export type RemoveDomainTriggerProps = { domain: Domain; children: React.ReactEl
 export default function RemoveDomainTrigger({ domain, children, ...rest }: RemoveDomainTriggerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const toast = useToast()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_DEVICE_DOMAINS)
   const dialog = useConfirmDialogWithMutation()
 
   const { mutateAsync } = useMutation({
     mutationKey: MUTATIONS.ADMIN_DOMAIN_REMOVE,
-    mutationFn: async () => api.admin.removeDomain(domain?.id),
+    mutationFn: async () => api.admin.removeDomain(domain.id!, domain.version),
     onError(err: NetshotError) {
-      console.log(err)
-      toast.error(err)
+      handleError(err)
     },
   })
 
@@ -44,6 +43,7 @@ export default function RemoveDomainTrigger({ domain, children, ...rest }: Remov
         async onConfirm() {
           await mutateAsync()
           queryClient.invalidateQueries({ queryKey: [QUERIES.ADMIN_DEVICE_DOMAINS] })
+          queryClient.invalidateQueries({ queryKey: [APP_QUERIES.DOMAIN_LIST] })
           dialogRef.close()
         },
         confirmButton: {

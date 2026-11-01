@@ -21,8 +21,8 @@ export function useQueryBuilderAttribute() {
   function getAllGenericOption(): AttributeOption[] {
     const domainChoices = Array.isArray(domainQuery.data)
       ? domainQuery.data.map((domain) => ({
-          label: domain?.name,
-          value: domain?.id,
+          label: domain?.name ?? "",
+          value: domain.id as number,
         }))
       : []
 

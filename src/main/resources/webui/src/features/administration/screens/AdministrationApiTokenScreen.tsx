@@ -1,13 +1,12 @@
-import api from "@/api"
+import { ApiToken } from "@/api/admin"
+import { useList } from "@/hooks/useList"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
+import { Level } from "@/types"
 import { usePagination, useUserLevelOptions } from "@/hooks"
-import { ApiToken } from "@/types"
-import { search } from "@/utils"
 import { Button, Heading, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuPlus, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddApiTokenTrigger from "../components/AddApiTokenTrigger"
@@ -22,16 +21,11 @@ export default function AdministrationApiTokenScreen() {
   const pagination = usePagination()
   const userLevelOptions = useUserLevelOptions()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [QUERIES.ADMIN_API_TOKENS, pagination.query, pagination.offset, pagination.limit],
-    queryFn: async () => api.admin.getAllApiTokens(pagination),
-    select: useCallback(
-      (res: ApiToken[]): ApiToken[] => {
-        return search(res, "description").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending, onBottomReached } = useList<ApiToken>(
+    [QUERIES.ADMIN_API_TOKENS],
+    "/api-tokens",
+    { q: pagination.query, sort: "description" }
+  )
 
   const isSearching = Boolean(pagination.query?.trim())
 
@@ -44,7 +38,7 @@ export default function AdministrationApiTokenScreen() {
         size: 20000,
       }),
       columnHelper.accessor("level", {
-        cell: (info) => <Text>{userLevelOptions.getByValue(info.getValue())?.label}</Text>,
+        cell: (info) => <Text>{userLevelOptions.getByValue(info.getValue() as Level)?.label}</Text>,
         header: t("user.permissionLevel"),
         enableSorting: true,
         size: 10000,
@@ -114,7 +108,7 @@ export default function AdministrationApiTokenScreen() {
         ) : (
           <>
             {data?.length > 0 ? (
-              <DataTable columns={columns} data={data} loading={isPending} />
+              <DataTable columns={columns} data={data} loading={isPending} onBottomReached={onBottomReached} />
             ) : isSearching ? (
               <Text>{t("common.noResults")}</Text>
             ) : (
