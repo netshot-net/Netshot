@@ -1,37 +1,80 @@
-import { Group } from "@/types";
-import httpClient from "./httpClient";
-import {
-  CreateGroupPayload,
-  PaginationQueryParams,
-  UpdateGroupPayload,
-} from "./types";
+import { Group } from "@/types"
+import type { Device } from "@/types"
+import { client, list, ListParams, patch, replace, Schemas } from "./client"
+import { etagOf, listAll } from "./device"
 
-async function getAll(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<Group[]>("/groups", {
-    queryParams,
-  });
+/** The definition of a group, to create one (a static group's devices are the IDs of its members). */
+export type CreateGroupPayload = Schemas["GroupRequest"]
+
+/** The changes of a group: the type can't change, the devices of a static group are left unchanged when absent. */
+export type UpdateGroupPayload = Partial<Omit<Schemas["GroupRequest"], "type">>
+
+/** The filters of the group list. */
+export type GroupListParams = {
+  folder?: string
+  type?: "STATIC" | "DYNAMIC"
+  q?: string
+  sort?: string
+  /** Ignored: every page of the list is read (kept so callers can keep passing their pagination). */
+  limit?: number
+  /** Ignored: every page of the list is read. */
+  offset?: number
+}
+
+/** The groups (all the pages), in their brief view (name, folder and type), by folder then name. */
+async function getAll(params: GroupListParams = {}) {
+  const { folder, type, q, sort } = params
+  return listAll<Group>("/groups", { folder, type, q, sort })
+}
+
+/** A group in its full view, with the ETag (If-Match value) of its version. */
+async function getWithETag(id: number) {
+  const { data, etag } = await client.getWithETag<Group>(`/groups/${id}`)
+  return { group: data as Group, etag }
 }
 
 async function getById(id: number) {
-  return httpClient.get<Group>(`/groups/${id}`);
+  return (await client.get<Group>(`/groups/${id}`)) as Group
+}
+
+/** A page of the devices of a group (the parameters of the device list: query, q, sort, fields, offset, limit). */
+async function getDevices(id: number, params: ListParams = {}) {
+  return list<Device>(`/groups/${id}/devices`, params)
+}
+
+/** Every device of a group. */
+async function getAllDevices(id: number, params: ListParams = {}) {
+  return listAll<Device>(`/groups/${id}/devices`, params)
 }
 
 async function create(payload: CreateGroupPayload) {
-  return httpClient.post<Group, CreateGroupPayload>("/groups", payload);
+  return (await client.post<Group, CreateGroupPayload>("/groups", payload)) as Group
 }
 
-async function update(id: number, payload: UpdateGroupPayload) {
-  return httpClient.put<Group, UpdateGroupPayload>(`/groups/${id}`, payload);
+/** Replaces a group (PUT), if it is still at the given version. */
+async function replaceGroup(id: number, payload: CreateGroupPayload, version?: number | null) {
+  return replace<Group, CreateGroupPayload>(`/groups/${id}`, payload, etagOf(version))
 }
 
-async function remove(id: number) {
-  return httpClient.delete(`/groups/${id}`);
+/** Changes some properties of a group (JSON merge patch), if it is still at the given version. */
+async function update(id: number, changes: UpdateGroupPayload, version?: number | null) {
+  return patch<Group, UpdateGroupPayload>(`/groups/${id}`, changes, etagOf(version))
+}
+
+/** Deletes a group, if it is still at the given version (when given). */
+async function remove(id: number, version?: number | null) {
+  const etag = etagOf(version)
+  await client.delete(`/groups/${id}`, etag ? { headers: { "If-Match": etag } } : {})
 }
 
 export default {
   getAll,
   getById,
+  getWithETag,
+  getDevices,
+  getAllDevices,
   create,
+  replace: replaceGroup,
   update,
   remove,
-};
+}
