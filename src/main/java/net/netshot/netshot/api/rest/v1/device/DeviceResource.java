@@ -18,8 +18,13 @@
  */
 package net.netshot.netshot.api.rest.v1.device;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -47,7 +52,14 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
+import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.export.ExportFormat;
+import net.netshot.netshot.api.rest.v1.export.ListExport;
+import net.netshot.netshot.inventory.device.DeviceSummary;
+import net.netshot.netshot.report.ReportExportSelection;
+import net.netshot.netshot.report.ReportService;
+import net.netshot.netshot.report.XlsxReportWriter;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.query.ListResult;
@@ -88,6 +100,13 @@ public class DeviceResource {
 	/** The parameter of the device search query. */
 	static final String QUERY = "query";
 
+	/** The parameter listing the sheets of the Excel workbook export. */
+	static final String INCLUDE = "include";
+
+	/** The sheets of the Excel workbook export which can be included. */
+	private static final List<String> WORKBOOK_SHEETS = List.of("interfaces", "inventory", "inventoryHistory", "locations",
+		"compliance", "groups", "driverAttributes");
+
 	private final DeviceService deviceService;
 	private final DeviceCreationService deviceCreationService;
 	private final SearchService searchService;
@@ -95,6 +114,7 @@ public class DeviceResource {
 	private final DomainService domainService;
 	private final DriverRegistry driverRegistry;
 	private final ScriptService scriptService;
+	private final ReportService reportService;
 	private final TaskResponses taskResponses;
 
 	@Context
@@ -120,12 +140,14 @@ public class DeviceResource {
 	 * @param groupService the group use cases
 	 * @param scriptService the saved script use cases
 	 * @param domainService the domain use cases
+	 * @param reportService the report use cases (the export of the devices as a workbook)
 	 */
 	@Inject
 	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
 		DriverRegistry driverRegistry, TaskService taskService, GroupService groupService, ScriptService scriptService,
-		DomainService domainService) {
+		DomainService domainService, ReportService reportService) {
 		this.deviceService = deviceService;
+		this.reportService = reportService;
 		this.groupService = groupService;
 		this.domainService = domainService;
 		this.deviceCreationService = deviceCreationService;
@@ -139,6 +161,7 @@ public class DeviceResource {
 	 * Lists the devices.
 	 *
 	 * @param query the device search query
+	 * @param include the sheets of the workbook of an Excel export (read from the request, here for the documentation)
 	 * @return the page of devices
 	 */
 	@GET
@@ -147,10 +170,70 @@ public class DeviceResource {
 	@Operation(summary = "List the devices", description = "Lists the devices, in their brief view by default. "
 		+ "Besides the filters on the fields, the query parameter takes a device search query "
 		+ "(such as [Family] is \"Cisco IOS\" and [Location] contains \"Paris\"), and group, tag and compliant filter "
-		+ "on the group membership, the tags and the configuration compliance.")
+		+ "on the group membership, the tags and the configuration compliance. Like any list, it can be exported "
+		+ "as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). "
+		+ "With the Excel format, the include parameter writes a workbook with more sheets for the matching devices.")
 	public ListResponse<DeviceDto> listDevices(
-		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query) {
+		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query,
+		@QueryParam(INCLUDE) @Parameter(description = "Excel export only: the extra sheets of the workbook, among interfaces, inventory, "
+			+ "inventoryHistory (with the removed modules), locations, compliance, groups and driverAttributes") String include) {
+		if (this.uriInfo.getQueryParameters().containsKey(INCLUDE)) {
+			return this.exportWorkbook(query);
+		}
 		return list(this.searchService, this.driverRegistry, this.request, this.uriInfo, query, null);
+	}
+
+	/**
+	 * Prepares the export of the matching devices as a workbook with a sheet for the devices and a sheet for each
+	 * kind of data asked for with the include parameter (the workbook of the v0 export, restricted to the devices of
+	 * the list). The workbook is written with the response, and the returned list is empty.
+	 *
+	 * @param query the device search query
+	 * @return an empty list (the workbook replaces it)
+	 * @throws NetshotException if the export isn't an Excel one, or a parameter is invalid
+	 */
+	private ListResponse<DeviceDto> exportWorkbook(String query) {
+		if (ListExport.format(this.request) != ExportFormat.XLSX) {
+			throw NetshotException.invalidParameter(INCLUDE, "The include parameter only applies to an export as an Excel workbook "
+				+ "(Accept: " + ExportFormat.APPLICATION_XLSX + ")");
+		}
+		Set<String> include = new HashSet<>();
+		for (String value : this.uriInfo.getQueryParameters().get(INCLUDE)) {
+			for (String item : value.split(",")) {
+				String name = item.trim();
+				if (name.isEmpty()) {
+					continue;
+				}
+				if (!WORKBOOK_SHEETS.contains(name)) {
+					throw NetshotException.invalidParameter(INCLUDE, "Unknown sheet '%s': %s are expected".formatted(name, WORKBOOK_SHEETS));
+				}
+				include.add(name);
+			}
+		}
+		ListQuery listQuery = ListParams.parse(this.uriInfo.getQueryParameters(), this.searchService.deviceListSchema(), QUERY, INCLUDE);
+		ListResult<DeviceSummary> devices = this.searchService.listDeviceSummaries(listQuery, query);
+		if (devices.items().size() > ListParams.exportMaxRows()) {
+			throw NetshotException.invalidParameter(ListParams.LIMIT,
+				"The export can't have more than %d devices: filter the list or use limit and offset".formatted(ListParams.exportMaxRows()));
+		}
+		Set<Long> ids = new HashSet<>();
+		devices.items().forEach(device -> ids.add(device.id()));
+		ReportExportSelection selection = new ReportExportSelection(Set.of(), Set.of(), include.contains("interfaces"),
+			include.contains("inventory") || include.contains("inventoryHistory"), include.contains("inventoryHistory"),
+			include.contains("locations"), include.contains("compliance"), include.contains("groups"),
+			include.contains("driverAttributes"), ids);
+		String userName = ((User) this.securityContext.getUserPrincipal()).username();
+		ListExport.write(this.request, output -> {
+			SXSSFWorkbook workBook = new SXSSFWorkbook(100);
+			try {
+				this.reportService.export(selection, new XlsxReportWriter(workBook, Netshot.VERSION, userName));
+				workBook.write(output);
+			}
+			finally {
+				workBook.close();
+			}
+		});
+		return new ListResponse<>(devices.count(), 0, devices.items().size(), null, null, List.of());
 	}
 
 	/**
