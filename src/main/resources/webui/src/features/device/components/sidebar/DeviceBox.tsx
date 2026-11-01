@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useLocation, useMatch, useNavigate, useParams } from "react-router"
 
 import { LuTriangleAlert, LuCircleCheck } from "react-icons/lu"
-import { DeviceStatus, LightDevice } from "@/types"
+import { DeviceStatus, Device } from "@/types"
 import { DeviceNetworkClassIcon } from "@/components/entity"
 import DeviceSoftwareLevelBadge from "@/components/entity/DeviceSoftwareLevelBadge"
 import DeviceConfigComplianceBadge from "@/components/entity/DeviceConfigComplianceBadge"
@@ -15,7 +15,7 @@ import { useShallow } from "zustand/react/shallow"
 import { useDeviceSidebarStore } from "../../stores"
 
 type DeviceBoxProps = {
-  device: LightDevice
+  device: Device
   ref?: Ref<HTMLDivElement>
 } & StackProps
 
@@ -88,7 +88,7 @@ function DeviceBox(props: DeviceBoxProps) {
       }
 
       const dataClone = [...deviceSidebarStore.devices]
-      const range: LightDevice[] =
+      const range: Device[] =
         firstIndex < lastIndex
           ? dataClone.slice(firstIndex, lastIndex + 1)
           : dataClone.slice(lastIndex, firstIndex + 1)
@@ -111,15 +111,15 @@ function DeviceBox(props: DeviceBoxProps) {
       return false
     }
 
-    if (!device.configCompliant) {
+    if (!device.compliant) {
       return false
     }
 
-    if (device.eol) {
+    if (device.endOfLife) {
       return false
     }
 
-    if (device.eos) {
+    if (device.endOfSale) {
       return false
     }
 
@@ -181,11 +181,11 @@ function DeviceBox(props: DeviceBoxProps) {
                     </Stack>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" gap="12">
                       <Text>{t("compliance.hardware.label")}</Text>
-                      <DeviceHardwareComplianceBadge eol={device.eol} eos={device.eos} />
+                      <DeviceHardwareComplianceBadge eol={!!device.endOfLife} eos={!!device.endOfSale} />
                     </Stack>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" gap="12">
                       <Text>{t("device.config.label")}</Text>
-                      <DeviceConfigComplianceBadge compliant={device.configCompliant} />
+                      <DeviceConfigComplianceBadge compliant={!!device.compliant} />
                     </Stack>
                   </Stack>
                 </HoverCard.Content>

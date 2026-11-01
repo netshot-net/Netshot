@@ -1,31 +1,27 @@
-import { Script } from "@/types"
-import httpClient from "./httpClient"
-import { PaginationQueryParams } from "./types"
+import type { Script } from "@/types"
+import { client, ListParams, Schemas } from "./client"
+import { listAll } from "./device"
 
-async function getAll(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<Script[]>("/scripts", {
-    queryParams,
-  })
+/** Every saved script (brief view: without the code). */
+async function getAll(params: ListParams = {}) {
+  return listAll<Script>("/scripts", params)
 }
 
 async function getById(id: number) {
-  return httpClient.get<Script>(`/scripts/${id}`)
+  return (await client.get<Script>(`/scripts/${id}`)) as Script
 }
 
-async function create(payload: Partial<Script>) {
-  return httpClient.post<Script, Partial<Script>>("/scripts", payload)
+async function create(payload: Schemas["ScriptRequest"]) {
+  return (await client.post<Script, Schemas["ScriptRequest"]>("/scripts", payload)) as Script
 }
 
-async function validate(payload: Partial<Script>) {
-  return httpClient.post<Script, Partial<Script>>("/scripts", payload, {
-    queryParams: {
-      validateonly: true,
-    },
-  })
+/** Checks a script without saving it, and gives the user inputs it asks for. */
+async function validate(payload: Schemas["ScriptRequest"]) {
+  return (await client.post<Script, Schemas["ScriptRequest"]>("/scripts/validation", payload)) as Script
 }
 
 async function remove(id: number) {
-  return httpClient.delete(`/scripts/${id}`)
+  await client.delete(`/scripts/${id}`)
 }
 
 export default {

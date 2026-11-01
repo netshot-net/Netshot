@@ -12,7 +12,7 @@ import { MUTATIONS } from "@/constants"
 import { useCustomDialog, useDialogConfig } from "@/dialog"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { useToast } from "@/hooks"
-import { Device, DeviceTypeProtocol, DriverOptionType, Script, ScriptUserInputDefinition, LightDevice, TaskType } from "@/types"
+import { Device, DeviceTypeProtocol, DriverOptionType, Script, ScriptUserInputDefinition } from "@/types"
 import DriverValueField from "@/features/device/components/DriverValueField"
 import {
   Badge,
@@ -181,8 +181,8 @@ function ConfigureStep(props: ConfigureStepProps) {
 }
 
 type RunStepProps = {
-  devices: LightDevice[] | Device[]
-  onReorderDevices(devices: LightDevice[] | Device[]): void
+  devices: Device[]
+  onReorderDevices(devices: Device[]): void
   inputs: ScriptUserInputDefinition[]
 }
 
@@ -262,7 +262,7 @@ function RunStep(props: RunStepProps) {
 }
 
 export type RunDeviceScriptDialogProps = {
-  devices: LightDevice[] | Device[]
+  devices: Device[]
 }
 
 export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps) {
@@ -317,11 +317,11 @@ export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps)
   }
 
   function loadScript(script: Script) {
-    form.setValue("script", script.script, { shouldValidate: true })
+    form.setValue("script", script.script ?? "", { shouldValidate: true })
     form.setValue("driver", script.deviceDriver, { shouldValidate: true })
-    setScriptMeta({ id: script.id, name: script.name, folder: script.folder })
+    setScriptMeta({ id: script.id, name: script.name, folder: script.folder ?? "" })
     setIsNewScript(false)
-    setOriginalContent(script.script)
+    setOriginalContent(script.script ?? "")
   }
 
   function writeNewScript() {
@@ -347,7 +347,7 @@ export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps)
         driver={values.driver!}
         scriptContent={values.script}
         onSaved={(saved) => {
-          setScriptMeta({ id: saved.id, name: saved.name, folder: saved.folder })
+          setScriptMeta({ id: saved.id, name: saved.name, folder: saved.folder ?? "" })
           setIsNewScript(false)
           setOriginalContent(values.script)
           toast.success({
@@ -410,15 +410,16 @@ export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps)
   }
 
   const inputs = useMemo(() => {
-    if (!validatedScript?.userInputDefinitions) return []
-    return Object.keys(validatedScript.userInputDefinitions).map(
-      (key) => validatedScript.userInputDefinitions[key]
-    )
+    return Object.values(validatedScript?.userInputDefinitions ?? {})
   }, [validatedScript])
 
   const runMutation = useMutation({
     mutationKey: MUTATIONS.TASK_CREATE,
-    mutationFn: api.task.create,
+    mutationFn: async (values: {
+      ids: number[]
+      options: Parameters<typeof api.device.runScript>[1]
+      schedule: ScheduleFormType["schedule"]
+    }) => api.device.runScript(values.ids, values.options, values.schedule),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -445,36 +446,23 @@ export default function RunDeviceScriptDialog(props: RunDeviceScriptDialogProps)
       userInputs[key] = typeof value === "boolean" ? String(value) : value
     }
 
-    const task = await runMutation.mutateAsync(
-      devices.length > 1
-        ? {
-            type: TaskType.RunDeviceGroupScript,
-            deviceList: orderedDevices.map((device) => device.id),
-            driver: driver!,
-            script,
-            userInputs,
-            runSnapshot,
-            runDiagnostics,
-            checkCompliance,
-            ...schedule,
-          }
-        : {
-            type: TaskType.RunDeviceScript,
-            device: devices?.[0]?.id,
-            driver: driver!,
-            script,
-            userInputs,
-            debugEnabled,
-            runSnapshot,
-            runDiagnostics,
-            checkCompliance,
-            ...schedule,
-          }
-    )
+    const task = await runMutation.mutateAsync({
+      ids: orderedDevices.map((device) => device.id),
+      options: {
+        deviceDriver: driver!,
+        script,
+        userInputValues: userInputs,
+        runSnapshot,
+        runDiagnostics,
+        checkCompliance,
+        debugEnabled,
+      },
+      schedule,
+    })
 
     await dialogConfig.close()
 
-    if (task) {
+    if (task?.id) {
       customDialog.open(<TaskDialog id={task.id} />)
     }
   }
