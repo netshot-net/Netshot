@@ -9,7 +9,7 @@ import { DeviceBadge, DeviceGroupBadge } from "@/components/entity"
 import { QUERIES as TASK_QUERIES, SCHEDULE_UNIT_KEY, TASK_TYPE_ICONS } from "../constants"
 import { useToast } from "@/hooks"
 import { useLocalization } from "@/i18n"
-import { Level, TaskScheduleMode, TaskStatus, TaskType } from "@/types"
+import { Level, SchedulePriority, TaskScheduleMode, TaskScheduleType, TaskStatus, TaskType } from "@/types"
 import { getSchedulePriorityLabel } from "@/utils"
 import { BarSegment, BarSegmentData, useChart } from "@chakra-ui/charts"
 import {
@@ -94,14 +94,13 @@ export default function TaskDialog(props: TaskDialogProps) {
     },
   })
 
-  const purgeGroupId =
-    task?.type === TaskType.PurgeDatabase && task?.deviceGroupId ? task.deviceGroupId : null
-
-  const { data: purgeGroup } = useQuery({
-    queryKey: [QUERIES.GROUP_DETAIL, purgeGroupId],
-    queryFn: async () => api.group.getById(purgeGroupId!),
-    enabled: Boolean(purgeGroupId),
-  })
+  const params = (task?.parameters ?? {}) as Record<string, unknown>
+  const numberParam = (name: string) => (typeof params[name] === "number" ? (params[name] as number) : 0)
+  const script = typeof params.script === "string" ? params.script : null
+  const deviceDriver = typeof params.deviceDriver === "string" ? params.deviceDriver : null
+  const userInputValues = (params.userInputValues ?? {}) as Record<string, string | null>
+  const discoveredDeviceType =
+    typeof params.discoveredDeviceType === "string" ? params.discoveredDeviceType : null
 
   const isGroupTask = Boolean(task?.type && GROUP_SCHEDULING_TYPES.includes(task.type as TaskType))
   const isChainTask = Boolean(task?.type && CHAIN_TASK_TYPES.includes(task.type as TaskType))
@@ -112,7 +111,7 @@ export default function TaskDialog(props: TaskDialogProps) {
 
   const { data: childSummary } = useQuery({
     queryKey: [TASK_QUERIES.TASK_SUMMARY, "children", id],
-    queryFn: async () => api.task.getSummary(id),
+    queryFn: async () => api.task.getStatusCounts(id),
     enabled: canHaveChildren,
     refetchIntervalInBackground: true,
     refetchInterval: (q) => {
@@ -160,12 +159,12 @@ export default function TaskDialog(props: TaskDialogProps) {
   // their total is stable from the very start of the run. Chain tasks instead spawn a single
   // follow-up task once they complete, and that follow-up may itself chain another one, so the
   // total grows one task at a time as the chain unfolds.
-  const childTotal = childSummary
+  const childTotal = childSummary?.countByStatus
     ? Object.values(childSummary.countByStatus).reduce((sum, count) => sum + (count ?? 0), 0)
     : 0
 
   const childStatusData = useMemo(() => {
-    if (!childSummary) return []
+    if (!childSummary?.countByStatus) return []
     return Object.entries(childSummary.countByStatus)
       .filter(([, count]) => (count ?? 0) > 0)
       .map(([status, count]) => ({
@@ -188,8 +187,8 @@ export default function TaskDialog(props: TaskDialogProps) {
   const { data: chainChild } = useQuery({
     queryKey: [QUERIES.TASK, "children", id, "chain"],
     queryFn: async () => {
-      const rows = await api.task.getAll({ parentTaskId: id, limit: 1 })
-      return rows?.[0] ?? null
+      const page = await api.task.getAll({ parentTask: id, sort: "childOrder", limit: 1 })
+      return page.results[0] ?? null
     },
     enabled: isChainTask && childTotal > 0,
     refetchIntervalInBackground: true,
@@ -218,7 +217,7 @@ export default function TaskDialog(props: TaskDialogProps) {
   }
 
   const creationDate = task?.creationDate ? formatDateTime(task?.creationDate) : null
-  const priorityLabel = getSchedulePriorityLabel(task?.priority)
+  const priorityLabel = getSchedulePriorityLabel((task?.priority ?? undefined) as SchedulePriority | undefined)
 
   // Not started yet: show the next scheduled run instead of the (empty) execution date
   const isNotYetExecuted =
@@ -243,8 +242,8 @@ export default function TaskDialog(props: TaskDialogProps) {
 
   const scheduleLabel = task?.repeating
     ? `${t("time.every")} ${task.scheduleFactor} ${t(
-        SCHEDULE_UNIT_KEY[task.scheduleType] ?? "time.day",
-        { count: task.scheduleFactor }
+        SCHEDULE_UNIT_KEY[task.scheduleType as TaskScheduleType] ?? "time.day",
+        { count: task.scheduleFactor ?? 1 }
       )}`
     : t("task.once")
 
@@ -257,7 +256,7 @@ export default function TaskDialog(props: TaskDialogProps) {
 
   const cancelMutation = useMutation({
     mutationKey: MUTATIONS.TASK_CANCEL,
-    mutationFn: async () => api.task.update(id, { cancelled: true }),
+    mutationFn: async () => api.task.cancel(id),
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: [QUERIES.TASK, id] })
       queryClient.invalidateQueries({
@@ -326,13 +325,13 @@ export default function TaskDialog(props: TaskDialogProps) {
             >
               {t("task.details")}
               <Stack direction="row" gap="3" alignItems="center">
-                {task && (task.parentTaskId ?? 0) > 0 && (
+                {task?.parentTask && (
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={async () => {
                       await dialogConfig.close()
-                      taskDialog.open(<TaskDialog id={task.parentTaskId!} />)
+                      taskDialog.open(<TaskDialog id={task.parentTask!.id} />)
                     }}
                   >
                     {t("task.parentTask")}
@@ -364,7 +363,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                       <Text color="grey.400">{t("common.description")}</Text>
                     </Box>
                     <Skeleton loading={isPending}>
-                      <Text>{task?.taskDescription ?? t("common.nA")}</Text>
+                      <Text>{task?.description ?? t("common.nA")}</Text>
                     </Skeleton>
                   </Flex>
                   <Flex alignItems="center">
@@ -380,19 +379,19 @@ export default function TaskDialog(props: TaskDialogProps) {
                       <Text color="grey.400">{t("common.target")}</Text>
                     </Box>
                     <Skeleton loading={isPending}>
-                      {task?.deviceId ? (
+                      {task?.device ? (
                         <DeviceBadge>
                           <Link
-                            to={`/app/devices/${task.deviceId}/tasks`}
+                            to={`/app/devices/${task.device.id}/tasks`}
                             onClick={() => removeAllDialogs()}
                           >
                             {task.target}
                           </Link>
                         </DeviceBadge>
-                      ) : task?.deviceGroupId && task?.type !== TaskType.PurgeDatabase ? (
+                      ) : task?.group && task?.type !== TaskType.PurgeDatabase ? (
                         <DeviceGroupBadge
-                          id={task.deviceGroupId}
-                          name={task.target}
+                          id={task.group.id}
+                          name={task.target ?? ""}
                           onClick={() => removeAllDialogs()}
                         />
                       ) : (
@@ -455,7 +454,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                       <Text color="grey.400">{t("common.status")}</Text>
                     </Box>
                     <Skeleton loading={isPending}>
-                      {task?.status && <TaskStatusBadge status={task.status} />}
+                      {task?.status && <TaskStatusBadge status={task.status as TaskStatus} />}
                     </Skeleton>
                   </Flex>
                 </Stack>
@@ -464,12 +463,12 @@ export default function TaskDialog(props: TaskDialogProps) {
                   <>
                     <Separator />
                     <Stack gap="3">
-                      {task?.discoveredDeviceTypeDescription && (
+                      {discoveredDeviceType && (
                         <Flex alignItems="center">
                           <Box w="140px">
                             <Text color="grey.400">{t("task.discoveredDeviceType")}</Text>
                           </Box>
-                          <Text>{task.discoveredDeviceTypeDescription}</Text>
+                          <Text>{discoveredDeviceType}</Text>
                         </Flex>
                       )}
                     </Stack>
@@ -485,62 +484,62 @@ export default function TaskDialog(props: TaskDialogProps) {
                           <Text color="grey.400">{t("task.purge")}</Text>
                         </Box>
                         <Text>
-                          {task.days} {t("time.day", { count: task.days })}
+                          {numberParam("days")} {t("time.day", { count: numberParam("days") })}
                         </Text>
                       </Flex>
-                      {(task?.configDays ?? 0) > 0 && (
+                      {numberParam("configDays") > 0 && (
                         <Flex alignItems="center">
                           <Box w="140px">
                             <Text color="grey.400">{t("device.config.purge")}</Text>
                           </Box>
                           <Text>
-                            {task.configDays} {t("time.day", { count: task.configDays })}
+                            {numberParam("configDays")} {t("time.day", { count: numberParam("configDays") })}
                           </Text>
                         </Flex>
                       )}
-                      {(task?.configSize ?? 0) > 0 && (
+                      {numberParam("configSize") > 0 && (
                         <Flex alignItems="center">
                           <Box w="140px">
                             <Text color="grey.400">{t("device.config.size")}</Text>
                           </Box>
                           <Text>
-                            {task.configSize} {t("common.kb")}
+                            {numberParam("configSize")} {t("common.kb")}
                           </Text>
                         </Flex>
                       )}
-                      {(task?.configKeepDays ?? 0) > 0 && (
+                      {numberParam("configKeepDays") > 0 && (
                         <Flex alignItems="center">
                           <Box w="140px">
                             <Text color="grey.400">{t("device.config.keep")}</Text>
                           </Box>
                           <Text>
-                            {task.configKeepDays} {t("time.day", { count: task.configKeepDays })}
+                            {numberParam("configKeepDays")} {t("time.day", { count: numberParam("configKeepDays") })}
                           </Text>
                         </Flex>
                       )}
-                      {(task?.moduleDays ?? 0) > 0 && (
+                      {numberParam("moduleDays") > 0 && (
                         <Flex alignItems="center">
                           <Box w="140px">
                             <Text color="grey.400">{t("device.module.delete")}</Text>
                           </Box>
                           <Text>
-                            {task.moduleDays} {t("time.day", { count: task.moduleDays })}
+                            {numberParam("moduleDays")} {t("time.day", { count: numberParam("moduleDays") })}
                           </Text>
                         </Flex>
                       )}
-                      {purgeGroup && (
+                      {task.group && (
                         <Flex alignItems="center">
                           <Box w="140px">
                             <Text color="grey.400">{t("common.limitTo")}</Text>
                           </Box>
                           <DeviceGroupBadge
-                            id={purgeGroup.id}
-                            name={purgeGroup.name}
+                            id={task.group.id}
+                            name={task.group.display ?? task.target ?? ""}
                             onClick={() => removeAllDialogs()}
                           />
                         </Flex>
                       )}
-                      {task?.removeOrphanFiles && (
+                      {params.removeOrphanFiles === true && (
                         <Flex alignItems="center">
                           <Text color="grey.400">{t("device.config.removeOrphanFilesDesc")}</Text>
                         </Flex>
@@ -549,7 +548,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                   </>
                 )}
 
-                {task?.type === TaskType.TakeGroupSnapshot && (task?.limitToOutofdateDeviceHours ?? 0) > 0 && (
+                {task?.type === TaskType.TakeGroupSnapshot && numberParam("limitToOutofdateDeviceHours") > 0 && (
                   <>
                     <Separator />
                     <Stack gap="3">
@@ -558,15 +557,15 @@ export default function TaskDialog(props: TaskDialogProps) {
                           <Text color="grey.400">{t("device.limitToUnchangedFor")}</Text>
                         </Box>
                         <Text>
-                          {task.limitToOutofdateDeviceHours}{" "}
-                          {t("time.hour", { count: task.limitToOutofdateDeviceHours })}
+                          {numberParam("limitToOutofdateDeviceHours")}{" "}
+                          {t("time.hour", { count: numberParam("limitToOutofdateDeviceHours") })}
                         </Text>
                       </Flex>
                     </Stack>
                   </>
                 )}
 
-                {task?.script && (
+                {script && (
                   <>
                     <Separator />
                     <Stack gap="4">
@@ -576,7 +575,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                         </Heading>
                         <LogPanel
                           title={t("script.label")}
-                          copyValue={task.script}
+                          copyValue={script}
                           trigger={
                             <Button size="sm" variant="ghost">
                               <LuFileTerminal />
@@ -585,27 +584,27 @@ export default function TaskDialog(props: TaskDialogProps) {
                           }
                         >
                           <Text fontSize="xs" whiteSpace="pre-wrap" fontFamily="mono">
-                            {task.script}
+                            {script}
                           </Text>
                         </LogPanel>
                       </Flex>
                       <Stack gap="4">
-                        {task?.deviceDriver && (
+                        {deviceDriver && (
                           <Flex alignItems="center">
                             <Box w="140px">
                               <Text color="grey.400">{t("admin.driver.label")}</Text>
                             </Box>
-                            <Text>{task.deviceDriver}</Text>
+                            <Text>{deviceDriver}</Text>
                           </Flex>
                         )}
 
-                        {Object.keys(task?.userInputValues ?? {}).map((key) => (
+                        {Object.keys(userInputValues).map((key) => (
                           <Flex alignItems="center" key={key}>
                             <Box w="140px">
                               <Text color="grey.400">{key}</Text>
                             </Box>
 
-                            <Text>{task?.userInputValues?.[key] ?? t("common.nA")}</Text>
+                            <Text>{userInputValues[key] ?? t("common.nA")}</Text>
                           </Flex>
                         ))}
                       </Stack>
@@ -671,7 +670,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                               <Icon size="sm">{TASK_TYPE_ICONS[chainChild.type as TaskType]}</Icon>
                               {t(`task.type.${chainChild.type}`)}
                             </Button>
-                            <TaskStatusBadge status={chainChild.status} />
+                            <TaskStatusBadge status={chainChild.status as TaskStatus} />
                           </Flex>
                         )
                       )}
@@ -685,7 +684,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                 {isTaskOver && (
                   <LogPanel
                     title={t("admin.logs.info")}
-                    copyValue={task?.log}
+                    copyValue={task?.log ?? ""}
                     trigger={
                       <Button size="sm" variant="ghost">
                         <LuScrollText />
@@ -702,7 +701,7 @@ export default function TaskDialog(props: TaskDialogProps) {
                   <Protected minLevel={Level.ReadWrite}>
                     <Button size="sm" variant="ghost" asChild>
                       <a
-                        href={`/api/tasks/${task.id}/debuglog`}
+                        href={`/api/v1/tasks/${task.id}/debug-log`}
                         download={`task-${task.id}-debug.log`}
                       >
                         <LuDownload />

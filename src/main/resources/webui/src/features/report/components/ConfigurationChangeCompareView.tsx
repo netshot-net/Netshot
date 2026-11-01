@@ -1,7 +1,7 @@
 import api from "@/api"
 import { ConfigCompareView } from "@/components"
 import { useDevice, useDeviceTypes } from "@/features/device/api"
-import { Config, LightConfig } from "@/types"
+import { Config } from "@/types"
 import { getConfigDeviceAttributeDefinitions } from "@/utils"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -9,25 +9,26 @@ import { useTranslation } from "react-i18next"
 import { QUERIES } from "../constants"
 
 export type ConfigurationChangeCompareViewProps = {
-  config: LightConfig
+  configId: number
+  deviceId: number
 }
 
 export default function ConfigurationChangeCompareView(
   props: ConfigurationChangeCompareViewProps
 ) {
-  const { config } = props
+  const { configId, deviceId } = props
   const { t } = useTranslation()
 
   const { data: deviceTypes, isPending: isDeviceTypeLoading } = useDeviceTypes()
-  const { data: device, isPending: isDeviceLoading } = useDevice(config.deviceId)
+  const { data: device, isPending: isDeviceLoading } = useDevice(deviceId)
 
   const {
     data: diff,
     isPending: isDiffLoading,
     isError: isDiffError,
   } = useQuery({
-    queryKey: [QUERIES.DEVICE_CONFIG_DIFF, config.id],
-    queryFn: () => api.config.getDiff(config.id),
+    queryKey: [QUERIES.DEVICE_CONFIG_DIFF, configId],
+    queryFn: () => api.config.getDiff(configId),
   })
 
   const isLoading = isDiffLoading || isDeviceTypeLoading || isDeviceLoading
