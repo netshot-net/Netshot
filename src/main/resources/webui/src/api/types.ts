@@ -2,11 +2,9 @@ import {
   CredentialSetType,
   DeviceAccess,
   DeviceComplianceResultType,
-  DeviceSoftwareLevel,
   GroupType,
   HashingAlgorithm,
   HttpsCaTrustMode,
-  RuleType,
   LightDevice,
   TaskScheduleMode,
   TaskScheduleType,
@@ -172,24 +170,6 @@ export type UpdateGroupPayload = {
   query?: string
 }
 
-export type CreateOrUpdateHardwareRule = {
-  id?: number
-  group: number
-  driver: string
-  partNumber: string
-  partNumberRegExp: boolean
-  family: string
-  familyRegExp: boolean
-  endOfSale?: number
-  endOfLife?: number
-}
-
-export type CreateOrUpdatePolicy = {
-  id?: number
-  name: string
-  targetGroups: number[]
-}
-
 export type ReportQueryParams = Partial<{
   domain: number[]
   group: number[]
@@ -218,64 +198,6 @@ export type ReportHardwareSupportQueryParams = Partial<{
   domain: number[]
   group: number[]
 }>
-
-export type CreateOrUpdateRule = {
-  id: number
-  name: string
-  type: string
-  script: string
-  policy: number
-  enabled: boolean
-  text: string
-  context: string
-  driver: string
-  field: string
-  anyBlock: boolean
-  matchAll: boolean
-  invert: boolean
-  normalize: boolean
-  regExp: boolean
-  // consregExp: boolean
-}
-
-export type TestRuleScriptOnDevicePayload = {
-  device: number
-  script: string
-  type: RuleType
-}
-
-export type TestRuleTextOnDevicePayload = {
-  anyBlock: boolean
-  context: string
-  device: number
-  driver: string
-  field: string
-  invert: boolean
-  matchAll: boolean
-  normalize: boolean
-  regExp: boolean
-  text: string
-  type: RuleType
-}
-
-export type RuleStateChangePayload = {
-  enabled: boolean
-  exemptions: Record<number, number>
-  name: string
-}
-
-export type CreateOrUpdateSoftwareRule = {
-  id?: number
-  group: number
-  driver: string
-  version: string
-  versionRegExp: boolean
-  family: string
-  familyRegExp: boolean
-  partNumber: string
-  partNumberRegExp: boolean
-  level: DeviceSoftwareLevel
-}
 
 export type TaskQueryParams = {
   status?: TaskStatus | TaskStatus[]

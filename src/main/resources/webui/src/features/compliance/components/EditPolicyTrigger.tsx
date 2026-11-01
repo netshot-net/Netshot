@@ -1,9 +1,10 @@
-import api, { CreateOrUpdatePolicy } from "@/api"
+import api from "@/api"
+import type { Schemas } from "@/api/client"
+import type { Policy } from "@/api/policy"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Policy } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent, useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -36,7 +37,7 @@ export default function EditPolicyTrigger({ policy, children, ...rest }: EditPol
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.POLICY_UPDATE,
-    mutationFn: async (payload: CreateOrUpdatePolicy) => api.policy.update(policy.id, payload),
+    mutationFn: async (payload: Schemas["PolicyRequest"]) => api.policy.update(policy.id, payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
