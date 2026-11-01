@@ -20,6 +20,8 @@ package net.netshot.netshot.platform.database;
 
 import java.net.InetAddress;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -234,7 +237,7 @@ public final class QueryMapping {
 			}
 		}
 		Condition condition = this.condition(query).and(extra == null ? DSL.noCondition() : extra);
-		Field<Instant> bucket = null;
+		Field<Integer> bucket = null;
 		List<Instant> starts = null;
 		if (stats.interval() != null) {
 			Mapped on = this.fields.get(stats.on());
@@ -242,18 +245,20 @@ public final class QueryMapping {
 				throw new IllegalArgumentException("Can't count by time on " + stats.on());
 			}
 			Field<Instant> column = (Field<Instant>) on.column();
-			// The start of the bucket, aligned in the time zone, back in UTC (as the dates are stored); inlined so
-			// that the expression of the select and the one of the group by are identical
-			bucket = DSL.field("(date_trunc({0}, ({1} at time zone 'UTC') at time zone {2}) at time zone {2}) at time zone 'UTC'",
-				column.getDataType(), DSL.inline(stats.interval().sqlUnit()), column, DSL.inline(stats.timeZone().getId()));
-			condition = condition.and(column.ge(stats.from())).and(column.lt(stats.to()));
 			starts = stats.interval().starts(stats.from(), stats.to(), stats.timeZone(), Interval.MAX_BUCKETS);
 			if (starts == null) {
 				throw new IllegalArgumentException("Too many time buckets");
 			}
+			// The bucket boundaries are computed once, in Java (time zone rules, daylight saving changes), and each row
+			// is placed in them by the database (1 for the first bucket): truncating the local time in SQL would merge
+			// the two hours of the same local time at the end of the daylight saving time
+			String boundaries = starts.stream().map(start -> LocalDateTime.ofInstant(start, ZoneOffset.UTC).toString())
+				.collect(Collectors.joining(",", "{", "}"));
+			bucket = DSL.field("width_bucket({0}, cast({1} as timestamp[]))", Integer.class, column, DSL.inline(boundaries));
+			condition = condition.and(column.ge(stats.from())).and(column.lt(stats.to()));
 		}
 		List<SelectField<?>> select = new ArrayList<>(keys);
-		Field<Instant> bucketAlias = bucket == null ? null : bucket.as("bucket");
+		Field<Integer> bucketAlias = bucket == null ? null : bucket.as("bucket");
 		if (bucketAlias != null) {
 			select.add(bucketAlias);
 		}
@@ -276,7 +281,15 @@ public final class QueryMapping {
 			for (Field<?> key : keys) {
 				values.add(r.get(key));
 			}
-			rows.add(new StatsRow(values, bucketAlias == null ? null : r.get(bucketAlias), r.get(count)));
+			Instant start = null;
+			if (bucketAlias != null) {
+				int index = r.get(bucketAlias);
+				if (index < 1 || index > starts.size()) {
+					continue;
+				}
+				start = starts.get(index - 1);
+			}
+			rows.add(new StatsRow(values, start, r.get(count)));
 		}
 		if (starts == null) {
 			rows.sort(Comparator.comparingLong(StatsRow::count).reversed());
