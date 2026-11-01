@@ -1,7 +1,8 @@
 import { DataTable, EntityLink } from "@/components"
 import { LuChevronDown } from "react-icons/lu"
 import { DeviceBadge, DeviceConfigComplianceBadge } from "@/components/entity"
-import { ConfigComplianceDeviceStatus } from "@/types"
+import { ComplianceResult } from "@/api/report"
+import { DeviceNetworkClass } from "@/types"
 import { useLocalization } from "@/i18n"
 import { IconButton, Separator, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
@@ -10,14 +11,15 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 
 export type DeviceConfigurationPanelProps = {
-  name: string
-  configs: ConfigComplianceDeviceStatus[]
+  results: ComplianceResult[]
 }
 
-const columnHelper = createColumnHelper<ConfigComplianceDeviceStatus>()
+const columnHelper = createColumnHelper<ComplianceResult>()
 
 export default function DeviceConfigurationCompliancePanel(props: DeviceConfigurationPanelProps) {
-  const { name, configs } = props
+  const { results } = props
+  const device = results[0]?.device
+  const name = device?.name ?? ""
   const { t } = useTranslation()
   const { formatDateTime } = useLocalization()
   const [isExpanded, setIsExpanded] = useState<boolean>(false)
@@ -28,15 +30,17 @@ export default function DeviceConfigurationCompliancePanel(props: DeviceConfigur
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor("configCompliant", {
+      columnHelper.accessor((row) => row.result === "CONFORMING", {
+        id: "configCompliant",
         cell: (info) => <DeviceConfigComplianceBadge compliant={info.getValue()} />,
         header: t("common.status"),
         enableSorting: true,
       }),
-      columnHelper.accessor("policyName", {
+      columnHelper.accessor((row) => row.policy?.display ?? row.policy?.name ?? "", {
+        id: "policyName",
         cell: (info) => (
           <EntityLink
-            to={`/app/compliance/config/${info.row.original.policyId}`}
+            to={`/app/compliance/config/${info.row.original.policy?.id}`}
             textDecoration="none"
             _hover={{ color: "green.600" }}
           >
@@ -46,10 +50,11 @@ export default function DeviceConfigurationCompliancePanel(props: DeviceConfigur
         header: t("policy.label"),
         enableSorting: true,
       }),
-      columnHelper.accessor("ruleName", {
+      columnHelper.accessor((row) => row.rule?.display ?? row.rule?.name ?? "", {
+        id: "ruleName",
         cell: (info) => (
           <EntityLink
-            to={`/app/compliance/config/${info.row.original.policyId}/${info.row.original.ruleId}`}
+            to={`/app/compliance/config/${info.row.original.policy?.id}/${info.row.original.rule?.id}`}
             textDecoration="none"
             _hover={{ color: "green.600" }}
           >
@@ -60,7 +65,10 @@ export default function DeviceConfigurationCompliancePanel(props: DeviceConfigur
         enableSorting: true,
       }),
       columnHelper.accessor("checkDate", {
-        cell: (info) => <Text>{info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")}</Text>,
+        cell: (info) => {
+          const checkDate = info.getValue()
+          return <Text>{checkDate ? formatDateTime(checkDate) : t("common.nA")}</Text>
+        },
         header: t("time.testDateTime"),
         enableSorting: true,
       }),
@@ -89,9 +97,9 @@ export default function DeviceConfigurationCompliancePanel(props: DeviceConfigur
         >
           <LuChevronDown />
         </IconButton>
-        <DeviceBadge networkClass={configs?.[0]?.networkClass}>
+        <DeviceBadge networkClass={device?.networkClass as DeviceNetworkClass | undefined}>
           <Link
-            to={`/app/devices/${configs?.[0]?.id}/compliance?open=config`}
+            to={`/app/devices/${device?.id}/compliance?open=config`}
             onClick={(e) => e.stopPropagation()}
           >
             {name}
@@ -102,7 +110,7 @@ export default function DeviceConfigurationCompliancePanel(props: DeviceConfigur
         <>
           <Separator />
           <Stack direction="column" gap="3" pb="1">
-            <DataTable columns={columns} data={configs} border="none" borderRadius="0" />
+            <DataTable columns={columns} data={results} border="none" borderRadius="0" />
           </Stack>
         </>
       )}

@@ -33,7 +33,8 @@ export default function TaskChildrenDialog(props: TaskChildrenDialogProps) {
     refetch,
   } = useQuery({
     queryKey: [QUERIES.TASK, "children", parentTaskId, statusFilter],
-    queryFn: async () => api.task.getAll({ parentTaskId, status: statusFilter, limit: 500 }),
+    queryFn: async () =>
+      (await api.task.getAll({ parentTask: parentTaskId, status: statusFilter, sort: "childOrder", limit: 500 })).results,
   })
 
   return (

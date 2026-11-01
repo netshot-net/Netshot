@@ -4,7 +4,7 @@ import { DomainSelect } from "@/features/administration/components"
 import { TreeGroupSelector } from "@/features/group"
 import { Tooltip } from "@/components/ui/tooltip"
 import { LuFilter, LuFilterX, LuRefreshCcw } from "react-icons/lu"
-import { GroupedHardwareSupportStat, HardwareSupportStatType } from "@/types"
+import { GroupedHardwareSupportStat } from "@/types"
 import { groupStatByDate } from "@/utils"
 import {
   Button,
@@ -71,7 +71,7 @@ export default function ReportHardwareSupportStatusScreen() {
   } = useQuery({
     queryKey: [QUERIES.HARDWARE_SUPPORT_STATS, filter.domain, filter.group],
     queryFn: async () =>
-      api.report.getAllHardwareSupportStats({
+      api.report.getHardwareSupportStats({
         domain: filter.domain != null ? [filter.domain] : undefined,
         group: filter.group != null ? [filter.group] : undefined,
       }),
@@ -139,9 +139,9 @@ export default function ReportHardwareSupportStatusScreen() {
     const baseMonth = today(tz).set({ day: 1 })
 
     for (const stat of stats) {
-      if (stat.type === HardwareSupportStatType.Eos) {
+      if (stat.type === "eos") {
         max.eos += stat.deviceCount
-      } else if (stat.type === HardwareSupportStatType.Eol) {
+      } else if (stat.type === "eol") {
         max.eol += stat.deviceCount
       }
     }
@@ -154,10 +154,10 @@ export default function ReportHardwareSupportStatusScreen() {
       const monthEnd = toZoned(endOfMonth(month), tz).set({ hour: 23, minute: 59, second: 59, millisecond: 999 }).toDate().getTime()
 
       for (const stat of stats) {
-        if (stat.eoxDate >= monthStart && stat.eoxDate < monthEnd) {
-          if (stat.type === HardwareSupportStatType.Eos) {
+        if (stat.date >= monthStart && stat.date < monthEnd) {
+          if (stat.type === "eos") {
             counts.eos += stat.deviceCount
-          } else if (stat.type === HardwareSupportStatType.Eol) {
+          } else if (stat.type === "eol") {
             counts.eol += stat.deviceCount
           }
         }

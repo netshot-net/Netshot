@@ -1,4 +1,5 @@
-import api, { ReportExportDataQueryParams } from "@/api"
+import api from "@/api"
+import { ExportInclude, ReportFilters } from "@/api/report"
 import { NetshotError } from "@/api/httpClient"
 import { Switch } from "@/components"
 import { DomainSelect } from "@/features/administration/components"
@@ -152,8 +153,8 @@ export default function ExportDataTrigger({ children, ...rest }: ExportDataTrigg
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.EXPORT_DATA,
-    mutationFn: async (queryParams: ReportExportDataQueryParams) =>
-      api.report.exportData(queryParams),
+    mutationFn: async (params: { filters: ReportFilters; include: ExportInclude[] }) =>
+      api.report.exportDevices(params.filters, params.include),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -166,37 +167,24 @@ export default function ExportDataTrigger({ children, ...rest }: ExportDataTrigg
       form,
       size: "lg",
       async onSubmit(values: Form) {
-        const params: ReportExportDataQueryParams = {};
+        const filters: ReportFilters = {}
         if (values.domain) {
-          Object.assign(params, { domain: [+values.domain] });
+          filters.domain = [+values.domain]
         }
         if (values.groups?.length) {
-          Object.assign(params, { group: values.groups });
+          filters.group = values.groups
         }
-        if (values.withGroups) {
-          Object.assign(params, { groups: true });
-        }
-        if (values.withInterfaces) {
-          Object.assign(params, { interfaces: true });
-        }
-        if (values.withInventory) {
-          Object.assign(params, { inventory: true });
-        }
-        if (values.withInventoryHistory) {
-          Object.assign(params, { inventoryhistory: true });
-        }
-        if (values.withLocations) {
-          Object.assign(params, { locations: true });
-        }
-        if (values.withCompliance) {
-          Object.assign(params, { compliance: true });
-        }
-        if (values.withDeviceDriverAttributes) {
-          Object.assign(params, { devicedriverattributes: true });
-        }
-        const res = await mutation.mutateAsync(params)
+        const include: ExportInclude[] = []
+        if (values.withGroups) include.push("groups")
+        if (values.withInterfaces) include.push("interfaces")
+        if (values.withInventory) include.push("inventory")
+        if (values.withInventoryHistory) include.push("inventoryHistory")
+        if (values.withLocations) include.push("locations")
+        if (values.withCompliance) include.push("compliance")
+        if (values.withDeviceDriverAttributes) include.push("driverAttributes")
+        const res = await mutation.mutateAsync({ filters, include })
 
-        download(res.blob, res.filename ?? "download")
+        download(res.blob, res.fileName)
         toast.success({
           title: t("common.success"),
           description: t("report.exportSuccess"),

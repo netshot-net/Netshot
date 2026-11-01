@@ -4,7 +4,8 @@ import TaskDialog from "./TaskDialog"
 import { useCustomDialog, useDialogStore } from "@/dialog"
 import { DeviceBadge, DeviceGroupBadge } from "@/components/entity"
 import { useLocalization } from "@/i18n"
-import { LightTask, TaskStatus, TaskType } from "@/types"
+import { Task } from "@/api/task"
+import { TaskScheduleType, TaskStatus, TaskType } from "@/types"
 import { Icon, Skeleton, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
@@ -15,12 +16,12 @@ import { SCHEDULE_UNIT_KEY, TASK_TYPE_ICONS } from "../constants"
 import { useTaskTreeModeStore } from "../stores/useTaskTreeModeStore"
 import { buildTaskTree, computeNextExecutionDate, isRepeatingSchedule, TaskTreeRow } from "../utils"
 
-const columnHelper = createColumnHelper<TaskTreeRow<LightTask>>()
+const columnHelper = createColumnHelper<TaskTreeRow<Task>>()
 
 const TREE_INDENT_PX = 10
 
 export type TaskTableProps = {
-  rows: LightTask[]
+  rows: Task[]
   isPending: boolean
   onBottomReached?(): void
   showTarget?: boolean
@@ -83,12 +84,12 @@ export default function TaskTable(props: TaskTableProps) {
         ? [
             columnHelper.accessor("target", {
               cell: (info) => {
-                const { deviceId, deviceGroupId, type } = info.row.original
-                if (deviceId) {
+                const { device, group, type } = info.row.original
+                if (device) {
                   return (
                     <DeviceBadge>
                       <Link
-                        to={`/app/devices/${deviceId}/tasks`}
+                        to={`/app/devices/${device.id}/tasks`}
                         onClick={(e) => {
                           e.stopPropagation()
                           removeAllDialogs()
@@ -99,11 +100,11 @@ export default function TaskTable(props: TaskTableProps) {
                     </DeviceBadge>
                   )
                 }
-                if (deviceGroupId && type !== TaskType.PurgeDatabase) {
+                if (group && type !== TaskType.PurgeDatabase) {
                   return (
                     <DeviceGroupBadge
-                      id={deviceGroupId}
-                      name={info.getValue()}
+                      id={group.id}
+                      name={info.getValue() ?? ""}
                       onClick={(e) => {
                         e.stopPropagation()
                         removeAllDialogs()
@@ -130,7 +131,7 @@ export default function TaskTable(props: TaskTableProps) {
           ]
         : []),
       columnHelper.accessor("status", {
-        cell: (info) => <TaskStatusBadge status={info.getValue()} />,
+        cell: (info) => <TaskStatusBadge status={info.getValue() as TaskStatus} />,
         header: t("common.status"),
         enableSorting: !treeMode,
         size: 8000,
@@ -139,6 +140,7 @@ export default function TaskTable(props: TaskTableProps) {
         cell: (info) => {
           const task = info.row.original
           const repeating = isRepeatingSchedule(task.scheduleType)
+          const executionDate = info.getValue()
 
           const date = (() => {
             switch (task.status) {
@@ -146,16 +148,16 @@ export default function TaskTable(props: TaskTableProps) {
               case TaskStatus.Waiting:
               case TaskStatus.Scheduled: {
                 const next = computeNextExecutionDate(
-                  task.scheduleReference,
+                  task.scheduleReference?.getTime() ?? 0,
                   task.scheduleType,
-                  task.scheduleFactor
+                  task.scheduleFactor ?? 1
                 )
                 return next ? formatDateTime(next) : t("task.asSoonAsPossible")
               }
               case TaskStatus.Running:
               case TaskStatus.Success:
               case TaskStatus.Failure:
-                return info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")
+                return executionDate ? formatDateTime(executionDate) : t("common.nA")
               default:
                 return t("common.nA")
             }
@@ -169,8 +171,8 @@ export default function TaskTable(props: TaskTableProps) {
               {repeating && (
                 <Tooltip
                   content={`${t("time.every")} ${task.scheduleFactor} ${t(
-                    SCHEDULE_UNIT_KEY[task.scheduleType] ?? "time.day",
-                    { count: task.scheduleFactor }
+                    SCHEDULE_UNIT_KEY[task.scheduleType as TaskScheduleType] ?? "time.day",
+                    { count: task.scheduleFactor ?? 1 }
                   )}`}
                 >
                   <Icon size="xs" color="grey.400" flexShrink={0}>
