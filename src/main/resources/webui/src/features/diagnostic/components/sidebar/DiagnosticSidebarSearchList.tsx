@@ -1,6 +1,6 @@
 import api from "@/api"
 import { useArrowKeyNavigation } from "@/hooks"
-import type { Diagnostic } from "@/api/diagnostic"
+import type { DiagnosticBrief } from "@/api/diagnostic"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback, useEffect } from "react"
@@ -31,7 +31,7 @@ export default function DiagnosticSidebarSearchList() {
   const activeIndex = data?.findIndex((diagnostic) => diagnostic.id === +(params?.id ?? "0")) ?? -1
 
   const onNavigate = useCallback(
-    (diagnostic: Diagnostic) => navigate(`./${diagnostic.id}`),
+    (diagnostic: DiagnosticBrief) => navigate(`./${diagnostic.id}`),
     [navigate]
   )
 

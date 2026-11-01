@@ -3,7 +3,7 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useAdminErrorHandler } from "../hooks"
-import { Domain } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent, useCallback } from "react"
@@ -12,7 +12,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 
-export type RemoveDomainTriggerProps = { domain: Domain; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveDomainTriggerProps = { domain: Brief["Domain"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveDomainTrigger({ domain, children, ...rest }: RemoveDomainTriggerProps) {
   const { t } = useTranslation()
@@ -22,7 +22,7 @@ export default function RemoveDomainTrigger({ domain, children, ...rest }: Remov
 
   const { mutateAsync } = useMutation({
     mutationKey: MUTATIONS.ADMIN_DOMAIN_REMOVE,
-    mutationFn: async () => api.admin.removeDomain(domain.id!, domain.version),
+    mutationFn: async () => api.admin.removeDomain(domain.id),
     onError(err: NetshotError) {
       handleError(err)
     },

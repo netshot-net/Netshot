@@ -1,7 +1,7 @@
 import { queryClient } from "@/App"
 import { QUERIES } from "@/constants"
 import { ListParams } from "@/api/client"
-import { Device, DeviceType, Group } from "@/types"
+import { Device, DeviceType, GroupBrief } from "@/types"
 import { create } from "zustand"
 
 export type DeviceSidebarStoreState = {
@@ -10,7 +10,7 @@ export type DeviceSidebarStoreState = {
   total: number
   selected: Device[]
   devices: Device[]
-  group: Group | null
+  group: GroupBrief | null
 
   select(devices: Device[]): void
   /** The parameters of the list shown (to export the matching devices). */
@@ -23,7 +23,7 @@ export type DeviceSidebarStoreState = {
   updateQueryAndDriver(query: string, driver: DeviceType["name"] | null): void
   setTotal(total: number): void
   setDevices(devices: Device[]): void
-  setGroup(group: Group | null): void
+  setGroup(group: GroupBrief | null): void
   setQuery(query: string): void
   refresh(): Promise<void>
 }
@@ -77,7 +77,7 @@ export const useDeviceSidebarStore = create<DeviceSidebarStoreState>((set, get) 
     set({ devices })
   },
 
-  setGroup(group: Group | null) {
+  setGroup(group: GroupBrief | null) {
     set({ group })
   },
 

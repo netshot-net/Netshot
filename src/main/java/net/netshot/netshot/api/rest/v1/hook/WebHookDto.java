@@ -53,7 +53,7 @@ public record WebHookDto(
 	@Brief boolean enabled,
 	List<HookTriggerDto> triggers,
 	Action action,
-	String targetUrl,
-	HttpsCaTrustMode httpsCaTrustMode,
+	@Brief String targetUrl,
+	@Brief HttpsCaTrustMode httpsCaTrustMode,
 	String httpsCustomCaCertificate) implements HookDto {
 }

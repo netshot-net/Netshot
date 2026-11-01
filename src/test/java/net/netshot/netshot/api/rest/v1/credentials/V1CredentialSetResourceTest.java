@@ -218,7 +218,7 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertEquals(200, all.status(), all.toString());
 		this.assertNoSecret(all);
 		Assertions.assertEquals(List.of("Alpha SSH", "Beta SSH", "Gamma SNMP"), values(all.json(), "name"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type"), names(all.json().get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "mgmtDomain"), names(all.json().get("results").get(0)));
 		Assertions.assertEquals(3, all.json().get("count").asInt());
 
 		Assertions.assertEquals(List.of("DEVICESPECIFIC-1"), values(this.admin.get("/credential-sets?deviceSpecific=true").json(), "name"));
@@ -242,7 +242,7 @@ public class V1CredentialSetResourceTest {
 			"username", "usernameVault", "hasPassword", "passwordVault", "hasSuperPassword", "superPasswordVault", "hasPrivateKey",
 			"privateKeyVault", "hasCommunity", "communityVault", "authType", "hasAuthKey", "authKeyVault", "privType", "hasPrivKey",
 			"privKeyVault"), names(full));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name"), names(full.get("mgmtDomain")));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "description", "server4Address"), names(full.get("mgmtDomain")));
 
 		Answer get = this.admin.get("/credential-sets/" + ssh1);
 		Assertions.assertEquals(200, get.status());

@@ -1,4 +1,4 @@
-import type { Schemas } from "@/api/client"
+import type { Brief, Schemas } from "@/api/client"
 
 export enum GroupType {
   Static = "STATIC",
@@ -10,6 +10,13 @@ export enum GroupType {
  * the other properties (version, change date, hiddenFromReports and query).
  */
 export type Group = Omit<Schemas["Group"], "name" | "folder" | "type"> & {
+  name: string
+  folder: string
+  type: GroupType
+}
+
+/** A device group in its brief view (the group lists and trees). */
+export type GroupBrief = Omit<Brief["Group"], "name" | "folder" | "type"> & {
   name: string
   folder: string
   type: GroupType

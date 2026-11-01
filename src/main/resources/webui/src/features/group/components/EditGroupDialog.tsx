@@ -4,7 +4,7 @@ import { HttpStatus, NetshotError } from "@/api/httpClient"
 import { QUERIES } from "@/constants"
 import { useDialogConfig } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Group, GroupType } from "@/types"
+import { GroupBrief, GroupType } from "@/types"
 import { Button, CloseButton, Dialog, Portal, Stack } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo } from "react"
@@ -17,7 +17,7 @@ import { GroupForm } from "../types"
 
 export type EditGroupDialogProps = {
   /** The group, as the list gives it (the dialog reads the full group). */
-  group: Group
+  group: GroupBrief
 }
 
 export default function EditGroupDialog(props: EditGroupDialogProps) {
@@ -39,9 +39,9 @@ export default function EditGroupDialog(props: EditGroupDialogProps) {
     defaultValues: {
       name: group.name,
       folder: group.folder,
-      visibleInReports: !group.hiddenFromReports,
+      visibleInReports: true,
       staticDevices: [],
-      query: group.query ?? "",
+      query: "",
     },
   })
 

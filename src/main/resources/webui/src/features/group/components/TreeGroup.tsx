@@ -1,16 +1,16 @@
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { findNodeWithPath, Folder, isGroup } from "@/utils"
 import { JSX } from "react"
 import GroupOrFolderItem from "./GroupOrFolderItem"
 import { TreeGroupProvider } from "./TreeGroupProvider"
 
-type FolderOrGroup = Folder | Group
+type FolderOrGroup = Folder | GroupBrief
 
 export type TreeGroupProps = {
   items: FolderOrGroup[]
-  onGroupSelect?(group: Group): void
-  isSelected?(group: Group): boolean
-  renderGroupChildren?(group: Group): JSX.Element
+  onGroupSelect?(group: GroupBrief): void
+  isSelected?(group: GroupBrief): boolean
+  renderGroupChildren?(group: GroupBrief): JSX.Element
   isFolderOpen(key: string): boolean
   toggleFolderOpen(key: string): void
   showMenu?: boolean
@@ -53,8 +53,8 @@ export function getExpandedKeys(items: FolderOrGroup[], groupId: number) {
 export function getVisibleGroups(
   items: FolderOrGroup[],
   isFolderOpen: (key: string) => boolean
-): Group[] {
-  const result: Group[] = []
+): GroupBrief[] {
+  const result: GroupBrief[] = []
 
   for (const item of items ?? []) {
     if (isGroup(item)) {

@@ -1,14 +1,14 @@
 import { client, listAll, replace, Schemas } from "./client"
 import rule, { Rule } from "./rule"
 
-/** A compliance policy (the server always gives these properties, the generated type makes them optional). */
-export type Policy = Schemas["Policy"] & Required<Pick<Schemas["Policy"], "id" | "name" | "targetGroups">>
+/** A compliance policy, as the list gives it (fields name and targetGroups). */
+export type Policy = Pick<Schemas["Policy"], "id" | "name" | "targetGroups">
 
 /** A policy with the (brief) rules it contains. */
 export type PolicyWithRules = Policy & { rules: Rule[] }
 
 async function getAll() {
-  return listAll<Policy>("/compliance/policies", { view: "full", sort: "name" })
+  return listAll<Policy>("/compliance/policies", { fields: "name,targetGroups", sort: "name" })
 }
 
 async function getById(id: number) {

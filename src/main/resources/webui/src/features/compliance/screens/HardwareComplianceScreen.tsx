@@ -1,7 +1,7 @@
+import type { Brief } from "@/api/client"
 import { DataTable, EmptyResult, Protected, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
-import type { HardwareRule } from "@/api/hardwareRule"
 import { usePagination } from "@/hooks"
 import { useListAll } from "@/hooks/useListAll"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
@@ -19,7 +19,7 @@ import RuleFieldValue from "../components/RuleFieldValue"
 import { QUERIES } from "../constants"
 import TableButtonStack from "@/features/administration/components/TableButtonStack"
 
-const columnHelper = createColumnHelper<HardwareRule>()
+const columnHelper = createColumnHelper<Brief["HardwareRule"]>()
 
 export default function HardwareComplianceScreen() {
   const { t } = useTranslation()
@@ -30,10 +30,9 @@ export default function HardwareComplianceScreen() {
   const {
     rows: rules,
     isPending,
-  } = useListAll<HardwareRule>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
+  } = useListAll<Brief["HardwareRule"]>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
     family__ic: pagination.query?.trim(),
     sort: "id",
-    view: "full",
   })
 
   const isSearching = Boolean(pagination.query?.trim())

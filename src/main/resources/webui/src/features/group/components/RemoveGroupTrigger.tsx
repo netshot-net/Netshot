@@ -5,12 +5,12 @@ import { HttpStatus, NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { Alert, Stack, Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trans, useTranslation } from "react-i18next"
 
-export type RemoveGroupTriggerProps = { group: Group; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveGroupTriggerProps = { group: GroupBrief; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveGroupTrigger({ group, children, ...rest }: RemoveGroupTriggerProps) {
   const { t } = useTranslation()
@@ -20,7 +20,7 @@ export default function RemoveGroupTrigger({ group, children, ...rest }: RemoveG
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.GROUP_REMOVE,
-    mutationFn: async (target: Group) => {
+    mutationFn: async (target: GroupBrief) => {
       // The brief view of the list has no version: delete the group as it is now
       const { group: current } = await api.group.getWithETag(target.id)
       await api.group.remove(target.id, current.version)

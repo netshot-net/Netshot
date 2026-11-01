@@ -1,4 +1,4 @@
-import { Hook } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -25,10 +25,10 @@ import RemoveWebhookTrigger from "../components/RemoveWebhookTrigger"
 import { QUERIES } from "../constants"
 import TableButtonStack from "../components/TableButtonStack"
 
-const columnHelper = createColumnHelper<Hook>()
+const columnHelper = createColumnHelper<Brief["WebHook"]>()
 
 /** HTTPS with the certificate (and hostname) actually verified - anything else (plain HTTP, or TRUST_ANY) is "not secured". */
-function isConnectionSecured(webhook: Hook): boolean {
+function isConnectionSecured(webhook: Brief["WebHook"]): boolean {
   return (
     webhook.targetUrl?.toLowerCase().startsWith("https://") === true &&
     webhook.httpsCaTrustMode !== HttpsCaTrustMode.TrustAny
@@ -39,10 +39,10 @@ export default function AdministrationApiTokenScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending } = useListAll<Hook>(
+  const { rows: data, isPending } = useListAll<Brief["WebHook"]>(
     [QUERIES.ADMIN_WEBHOOKS],
     "/hooks",
-    { q: pagination.query, sort: "name", view: "full" }
+    { q: pagination.query, sort: "name" }
   )
 
   const isSearching = Boolean(pagination.query?.trim())

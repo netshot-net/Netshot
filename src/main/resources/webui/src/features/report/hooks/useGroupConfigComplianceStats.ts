@@ -19,8 +19,9 @@ export function useGroupConfigComplianceStats(groupId?: number) {
   const policyKey = [...policies].sort().join(",")
 
   const { data: groups, isPending: isGroupsPending } = useQuery({
-    queryKey: [GLOBAL_QUERIES.DEVICE_GROUPS],
-    queryFn: async () => api.group.getAll(),
+    // The groups shown in the reports
+    queryKey: [GLOBAL_QUERIES.DEVICE_GROUPS, "reports"],
+    queryFn: async () => api.group.getAll({ hiddenFromReports: false }),
   })
 
   const { data: stats, isPending: isStatsPending } = useQuery({
@@ -35,7 +36,7 @@ export function useGroupConfigComplianceStats(groupId?: number) {
   })
 
   const visibleStats = useMemo(() => {
-    const visibleGroupIds = new Set((groups ?? []).filter((g) => !g.hiddenFromReports).map((g) => g.id))
+    const visibleGroupIds = new Set((groups ?? []).map((g) => g.id))
     return (stats ?? []).filter((stat) => stat.deviceCount > 0 && visibleGroupIds.has(stat.groupId))
   }, [groups, stats])
 

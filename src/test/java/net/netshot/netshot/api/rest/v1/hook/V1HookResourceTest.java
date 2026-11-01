@@ -156,7 +156,7 @@ public class V1HookResourceTest {
 		JsonNode page = all.json();
 		Assertions.assertEquals(3, page.get("count").asLong());
 		Assertions.assertEquals("Alpha", page.get("results").get(0).get("name").asText());
-		Assertions.assertEquals(Set.of("id", "url", "display", "type", "name", "enabled"), names(page.get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "type", "name", "enabled", "targetUrl", "httpsCaTrustMode"), names(page.get("results").get(0)));
 
 		Assertions.assertEquals(1, this.admin.get("/hooks?enabled=false").json().get("count").asLong());
 		Assertions.assertEquals(3, this.admin.get("/hooks?type=WEB").json().get("count").asLong());

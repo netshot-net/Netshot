@@ -1,24 +1,24 @@
-import { Script } from "@/types"
+import { ScriptBrief } from "@/types"
 import { splitFolderPath } from "./createFoldersFromGroups"
 
 export type ScriptFolder = {
   name: string
   // Full path from the root (e.g. "a/b"), unique in the tree unlike the name
   path: string
-  children: Array<ScriptFolder | Script>
+  children: Array<ScriptFolder | ScriptBrief>
 }
 
 /**
  * Check if current object is a script (as opposed to a folder)
  */
-export function isScript(x: ScriptFolder | Script): x is Script {
+export function isScript(x: ScriptFolder | ScriptBrief): x is ScriptBrief {
   return !("children" in x)
 }
 
 /**
  * Check if current object is a folder
  */
-export function isScriptFolder(x: ScriptFolder | Script): x is ScriptFolder {
+export function isScriptFolder(x: ScriptFolder | ScriptBrief): x is ScriptFolder {
   return "children" in x
 }
 
@@ -26,8 +26,8 @@ export function isScriptFolder(x: ScriptFolder | Script): x is ScriptFolder {
  * Sort folders before scripts; folders by name, scripts by name then by id.
  */
 export function compareScriptFolderOrItem(
-  a: ScriptFolder | Script,
-  b: ScriptFolder | Script
+  a: ScriptFolder | ScriptBrief,
+  b: ScriptFolder | ScriptBrief
 ) {
   const aIsFolder = isScriptFolder(a)
   const bIsFolder = isScriptFolder(b)
@@ -40,15 +40,15 @@ export function compareScriptFolderOrItem(
     return a.name.localeCompare(b.name)
   }
 
-  const script1 = a as Script
-  const script2 = b as Script
+  const script1 = a as ScriptBrief
+  const script2 = b as ScriptBrief
 
   return script1.name.localeCompare(script2.name) || script1.id - script2.id
 }
 
 export function addScriptFolder(
   paths: string[],
-  script: Script,
+  script: ScriptBrief,
   children: ScriptFolder["children"],
   parentPath = ""
 ) {
@@ -73,7 +73,7 @@ export function addScriptFolder(
 /**
  * Create nested list of folders with scripts from netshot backend
  */
-export function createFoldersFromScripts(scripts: Script[] = []) {
+export function createFoldersFromScripts(scripts: ScriptBrief[] = []) {
   return scripts
     .reduce(
       (arr, script) => {
@@ -86,18 +86,18 @@ export function createFoldersFromScripts(scripts: Script[] = []) {
 
         return arr
       },
-      [] as Array<ScriptFolder | Script>
+      [] as Array<ScriptFolder | ScriptBrief>
     )
     .sort(compareScriptFolderOrItem)
 }
 
 interface FindResult {
-  node: ScriptFolder | Script
+  node: ScriptFolder | ScriptBrief
   path: ScriptFolder[]
 }
 
 export function findScriptNodeWithPath(
-  tree: Array<ScriptFolder | Script>,
+  tree: Array<ScriptFolder | ScriptBrief>,
   id: number,
   path: ScriptFolder[] = []
 ): FindResult | null {
