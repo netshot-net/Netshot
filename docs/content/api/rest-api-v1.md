@@ -143,7 +143,9 @@ curl -H "X-Netshot-API-Token: <token>" \
   'https://<server:port>/api/v1/devices?query=%5BFamily%5D%20is%20%22Cisco%20ISR%22&location__isw=paris&fields=name,mgmtAddress'
 ```
 
-`GET /api/v1/devices/stats` counts the devices (see [Statistics](#statistics)): `groupBy` `status`, `mgmtDomain`, `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `location`, `eolDate`, `eosDate`, `group`, `tag`, `compliant`; time buckets on `createdDate` (default), `changeDate`, `eolDate` or `eosDate`. For instance the compliance of the devices of each group: `/api/v1/devices/stats?groupBy=group,compliant`.
+`GET /api/v1/devices/stats` counts the devices (see [Statistics](#statistics)): `groupBy` `status`, `mgmtDomain`, `family`, `driver`, `networkClass`, `softwareVersion`, `softwareLevel`, `location`, `eolDate`, `eosDate`, `group`, `tag`, `compliant`; time buckets on `createdDate` (default), `changeDate`, `eolDate`, `eosDate`, `lastSnapshotSuccessDate` or `lastSnapshotFailureDate`. For instance the compliance of the devices of each group: `/api/v1/devices/stats?groupBy=group,compliant`.
+
+`lastSnapshotSuccessDate` and `lastSnapshotFailureDate` (full view; null if never) tell when the last snapshot of the device succeeded and failed. They are maintained by the snapshot tasks (a cancelled snapshot changes neither) and read-only; at upgrade, they are initialized from the task history. They can be filtered and sorted on, for instance the devices in production without successful snapshot for a week: `/api/v1/devices?status=INPRODUCTION&lastSnapshotSuccessDate__lt=2026-10-25T00:00:00Z&sort=lastSnapshotSuccessDate`.
 
 **Adding a device** is asynchronous: `POST /api/v1/devices` answers `202 Accepted` with the task and its `Location: /api/v1/tasks/{id}`. Without `driver`, a discovery task finds the type of the device (an SNMP community must exist for the domain), and the device is only created if the discovery succeeds (`accesses` and `options` are then refused). With `driver`, the device is created at once, with a snapshot task. Properties: `mgmtAddress` and `mgmtDomain` (required), `driver`, `comments`, `tags`, `options`, `accesses`. A device with the same address in the domain is a 409.
 
@@ -270,23 +272,29 @@ The compliance resources have no version: there is no `ETag`, and `If-Match` doe
 
 **Compliance results of a device**: `GET /api/v1/devices/{id}/compliance-results` lists the rules of the policies applying to the device (through its groups): `rule` and `policy` references, `result` (null if never checked), `comment`, `checkDate`, `exemptionExpirationDate`. Filters: `rule`, `ruleName`, `policy`, `policyName`, `result`, `checkDate`, `exemptionExpirationDate`; `q` searches the rule and policy names. An unknown device is a 404.
 
+### Compliance results
+
+`GET /api/v1/compliance-results` (read-only level) lists the compliance results across the devices: the result of the last check of each rule on each device, one row per device and rule (paginated). A result links a device and a rule: it has no `id` nor `url`. Properties: `device`, `rule`, `policy` (references), `result` (`CONFORMING`, `NONCONFORMING`, `EXEMPTED`, `INVALIDRULE`, `DISABLED`, `NOTAPPLICABLE`), `comment`, `checkDate`, `exemptionExpirationDate`; the brief view has `device`, `rule`, `policy`, `result` and `checkDate`. Filters: `device`, `deviceName`, `domain`, `group` (the groups of the device), `rule`, `ruleName`, `policy`, `policyName`, `result`, `checkDate`, `exemptionExpirationDate`; `q` searches the device, rule and policy names. Default order: device name, policy, rule.
+
+`GET /api/v1/devices/{id}/compliance-results` lists the results of a device; unlike the list above, it also lists the rules which apply to the device but were never checked on it (with a null `result`).
+
+`GET /api/v1/compliance-results/stats` counts the results (see [Statistics](#statistics)): `groupBy` `result`, `policy`, `rule`, `device`, `group`, `domain`; time buckets on `checkDate`. For instance `/api/v1/compliance-results/stats?groupBy=policy,result`.
+
 ### Reports
 
-`/api/v1/reports/...` (read-only level). The filters are query parameters: `domain`, `group` and `policy` take IDs, repeated or comma-separated (none means any). An unknown parameter or an invalid value is a 400; an unknown required group is a 404. The device of a row is a reference (brief unless `expand=device`). The statistics are written in the list envelope but never paginated (`limit` and `offset` are refused); the lists of devices are paginated.
+The v1 API has no report endpoints: the reports of the legacy API are queries on the lists and their statistics.
 
-| Report | Parameters | Rows |
-|---|---|---|
-| `group-config-compliance-stats` | `domain`, `group`, `policy` | `group`, `folder`, `compliantDeviceCount`, `deviceCount` |
-| `group-software-compliance-stats` | `domain` | `group`, `goldDeviceCount`, `silverDeviceCount`, `bronzeDeviceCount`, `deviceCount` |
-| `hardware-support-stats` | `domain`, `group` | `type` (`EOS`, `EOL`), `date` (null: no date), `deviceCount` |
-| `changes-by-day` | `days` (1 to 366, 7 by default), `timeZone` (IANA name) | `date` (start of the day), `changeCount`, the oldest first |
-| `access-failure-devices` | `days` (3 by default), `domain` | `device`, `lastSuccess`, `lastFailure`: the devices without a successful snapshot for that many days |
-| `config-compliance-device-statuses` | `domain`, `group`, `policy`, `result` | `device`, `policy`, `rule`, `checkDate`, `result` |
-| `group-config-non-compliant-devices` | `group` (required), `domain`, `policy` | the non-conforming results of the devices of a group (same rows) |
-| `group-devices-by-software-level` | `group` and `level` (`GOLD`, `SILVER`, `BRONZE`, `UNKNOWN`) required, `domain` | `device`, `softwareVersion` |
-| `hardware-support-devices` | `type` (`EOS` or `EOL`, required), `date` (as given by the statistics; absent: the devices without date), `domain`, `group` | devices |
-
-`GET /api/v1/reports/export?domain=&group=&include=&format=xlsx` exports the devices as an Excel workbook (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, as an attachment); `include` lists the optional sections: `interfaces`, `inventory`, `inventoryHistory` (implies `inventory`), `locations`, `compliance`, `groups`, `driverAttributes`.
+| Legacy report | v1 query |
+|---|---|
+| Configuration compliance of the groups | `GET /api/v1/devices/stats?groupBy=group,compliant` |
+| Software compliance of the groups | `GET /api/v1/devices/stats?groupBy=group,softwareLevel` |
+| Hardware support (end of sale/life) statistics | `GET /api/v1/devices/stats?groupBy=eosDate` (or `eolDate`) |
+| Configuration changes of the last days | `GET /api/v1/configs/stats?interval=day` |
+| Devices without successful snapshot | `GET /api/v1/devices?status=INPRODUCTION&lastSnapshotSuccessDate__lt=<date>` (`lastSnapshotSuccessDate__empty=true`: never) |
+| Configuration compliance statuses | `GET /api/v1/compliance-results?...` (counts: `/api/v1/compliance-results/stats?groupBy=policy,result`) |
+| Non-compliant devices of a group | `GET /api/v1/compliance-results?group=<id>&result=NONCONFORMING` |
+| Devices of a group by software level | `GET /api/v1/devices?group=<id>&softwareLevel=<level>` |
+| Devices reaching end of sale/life | `GET /api/v1/devices?eosDate__lte=<date>` (or `eolDate__lte`) |
 
 ### Authentication
 
