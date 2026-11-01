@@ -1,9 +1,9 @@
 import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Domain } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -19,21 +19,22 @@ export default function AddDomainTrigger({ children, ...rest }: AddDomainTrigger
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_DEVICE_DOMAINS)
 
   const form = useForm<DomainForm>({
     mode: "onChange",
     defaultValues: {
       name: "",
       description: "",
-      ipAddress: "",
+      server4Address: "",
     },
   })
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_DOMAIN_CREATE,
-    mutationFn: async (payload: Partial<Domain>) => api.admin.createDomain(payload),
+    mutationFn: async (payload: { name: string; description: string; server4Address: string }) => api.admin.createDomain(payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -47,7 +48,7 @@ export default function AddDomainTrigger({ children, ...rest }: AddDomainTrigger
         await mutation.mutateAsync({
           name: values.name,
           description: values.description,
-          ipAddress: values.ipAddress,
+          server4Address: values.server4Address,
         })
 
         dialogRef.close()
@@ -62,6 +63,7 @@ export default function AddDomainTrigger({ children, ...rest }: AddDomainTrigger
         form.reset()
 
         queryClient.invalidateQueries({ queryKey: [QUERIES.ADMIN_DEVICE_DOMAINS] })
+        queryClient.invalidateQueries({ queryKey: [APP_QUERIES.DOMAIN_LIST] })
       },
       onCancel() {
         form.reset()

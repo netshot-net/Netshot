@@ -1,3 +1,4 @@
+import { CredentialSet as AdminCredentialSet } from "@/api/admin"
 import { useDeviceCredentialSetAuthTypeOptions, useDeviceCredentialSetPrivateKeyTypeOptions } from "@/features/administration/hooks"
 import { useVaultInstances } from "@/features/administration/api"
 import FormControl, { FormControlType } from "@/components/FormControl"
@@ -486,14 +487,14 @@ function AccessRow({
         value: TRY_ALL_CREDENTIALS_VALUE,
       },
       ...(credentialSets ?? [])
-        .filter((cs) => compatibleTypes.includes(cs.type))
-        .map((cs) => ({ label: cs.name, value: String(cs.id) })),
+        .filter((cs) => compatibleTypes.includes(cs.type as CredentialSetType))
+        .map((cs) => ({ label: cs.name ?? "", value: String(cs.id) })),
     ],
     [credentialSets, compatibleTypes, t]
   )
 
   const globalCredentialSetName = useMemo(
-    () => (credentialSets ?? []).find((cs) => String(cs.id) === globalCredentialSetId)?.name,
+    () => (credentialSets ?? []).find((cs) => String(cs.id) === globalCredentialSetId)?.name ?? undefined,
     [credentialSets, globalCredentialSetId]
   )
 
@@ -726,7 +727,7 @@ export default function DeviceAccessFields({ control, setValue, accessDefinition
   const { data: vaultInstanceList } = useVaultInstances()
 
   const vaultInstances = useMemo(
-    () => (vaultInstanceList ?? []).map((instance) => ({ label: instance.name, value: instance.id })),
+    () => (vaultInstanceList ?? []).map((instance) => ({ label: instance.name ?? "", value: instance.id as number })),
     [vaultInstanceList]
   )
 
@@ -939,7 +940,7 @@ function buildSpecificCredentialPayload(access: DeviceAccessFormValue): Credenti
  */
 export function buildAccessesPayload(
   accesses: DeviceAccessFormValue[] | undefined,
-  credentialSets: CredentialSet[] | null | undefined
+  credentialSets: AdminCredentialSet[] | null | undefined
 ): DeviceAccess[] {
   const result: DeviceAccess[] = []
   for (const access of accesses ?? []) {
@@ -965,7 +966,7 @@ export function buildAccessesPayload(
         && access.globalCredentialSetId !== TRY_ALL_CREDENTIALS_VALUE) {
       const credentialSet = (credentialSets ?? []).find((cs) => String(cs.id) === access.globalCredentialSetId)
       if (credentialSet) {
-        entry.globalCredentialSet = { id: credentialSet.id, type: credentialSet.type } as CredentialSet
+        entry.globalCredentialSet = { id: credentialSet.id, type: credentialSet.type } as unknown as CredentialSet
       }
     }
     else if (access.mode === "specific") {

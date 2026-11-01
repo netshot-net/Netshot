@@ -1,4 +1,5 @@
-import { ClusterMember, ClusterMemberStatus } from "@/types"
+import { ClusterMember } from "@/api/admin"
+import { ClusterMemberStatus } from "@/types"
 import { Box, Icon, SimpleGrid, Stack, Text } from "@chakra-ui/react"
 import { useMemo } from "react"
 import { LuCrown, LuFingerprint, LuServer, LuTriangleAlert } from "react-icons/lu"

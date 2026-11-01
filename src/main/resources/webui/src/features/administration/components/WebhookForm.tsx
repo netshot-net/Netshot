@@ -1,7 +1,8 @@
 import { FormControl, Switch } from "@/components"
 import { FormControlType } from "@/components/FormControl"
 import { Select } from "@/components/Select"
-import { HookActionType, HookTrigger, HttpsCaTrustMode } from "@/types"
+import { Hook, HookTrigger } from "@/api/admin"
+import { HttpsCaTrustMode } from "@/types"
 import { Badge, Heading, Switch as NativeSwitch, Separator, Stack, Text } from "@chakra-ui/react"
 import { Fragment, useCallback } from "react"
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form"
@@ -11,12 +12,11 @@ import { useWebhookDataTypeOptions, useWebhookTriggerOptions } from "../hooks"
 export type WebhookForm = {
   name: string
   enabled: boolean
-  action: HookActionType
+  action: Hook["action"]
   httpsCaTrustMode: HttpsCaTrustMode
   httpsCustomCaCertificate: string
   triggers: HookTrigger[]
-  type: string
-  url: string
+  targetUrl: string
 }
 
 const HTTPS_CA_TRUST_MODE_OPTIONS = [
@@ -101,7 +101,7 @@ export default function WebhookForm() {
           type={FormControlType.Url}
           required
           control={form.control}
-          name="url"
+          name="targetUrl"
         />
         <Stack direction="row" gap="6">
           <Stack gap="0" flex="1">
