@@ -9,7 +9,8 @@ import ScheduleForm, { ScheduleFormType } from "@/components/ScheduleForm"
 import TaskDialog from "./TaskDialog"
 import { useCustomDialog, useDialogConfig } from "@/dialog"
 import { useToast } from "@/hooks"
-import { TaskScheduleType, TaskType } from "@/types"
+import { useAuth } from "@/contexts"
+import { Level, TaskScheduleType, TaskType } from "@/types"
 import {
   Alert,
   Button,
@@ -222,6 +223,8 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
     })
   }
 
+  // The types of task the user can create (the server checks the same levels)
+  const userLevel = useAuth().user?.level ?? 0
   const taskTypeOptions = useMemo(
     () => [
       {
@@ -253,15 +256,17 @@ export default function AddTaskDialog({ initialType }: AddTaskDialogProps = {}) 
         type: TaskType.ScanSubnets,
         label: t("device.discover"),
         description: t("task.scanSubnetsDesc"),
+        minLevel: Level.ReadWrite,
       },
       {
         icon: TASK_TYPE_ICONS[TaskType.PurgeDatabase],
         type: TaskType.PurgeDatabase,
         label: t("admin.purge.database"),
         description: t("admin.purge.desc"),
+        minLevel: Level.Admin,
       },
-    ],
-    [t]
+    ].filter((option) => userLevel >= (option.minLevel ?? Level.Operator)),
+    [t, userLevel]
   )
 
   const taskInfoBox = useMemo(() => {
