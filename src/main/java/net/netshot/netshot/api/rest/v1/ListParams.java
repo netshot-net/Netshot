@@ -62,12 +62,18 @@ public final class ListParams {
 	/** Count parameter. */
 	public static final String COUNT = "count";
 
+	/**
+	 * The internal parameter telling that the list is exported (CSV or Excel), set by the export negotiation
+	 * (the value is the format) and never by a client (it is removed from the requests).
+	 */
+	public static final String EXPORT = "_export";
+
 	/** The parameters which are not filters. */
 	private static final Set<String> RESERVED;
 
 	static {
 		Set<String> reserved = new HashSet<>(Selection.PARAMETERS);
-		reserved.addAll(Set.of(OFFSET, LIMIT, SORT, SEARCH, COUNT));
+		reserved.addAll(Set.of(OFFSET, LIMIT, SORT, SEARCH, COUNT, EXPORT));
 		RESERVED = Set.copyOf(reserved);
 	}
 
@@ -104,8 +110,15 @@ public final class ListParams {
 		}
 	}
 
+	/** The maximum number of rows of an export. */
+	static final Setting<Integer> EXPORT_MAX_ROWS = Setting.integer("netshot.http.api.export.maxrows")
+		.defaultValue(100000).range(1, 5000000).live();
+
 	/** The settings, from the configuration. */
 	private static final ConfigStore.Binding<Settings> SETTINGS = Netshot.config().bind(Settings::from);
+
+	/** The maximum number of rows of an export, from the configuration. */
+	private static final ConfigStore.Binding<Integer> EXPORT_ROWS = Netshot.config().bind(config -> config.get(EXPORT_MAX_ROWS));
 
 	private ListParams() {
 	}
@@ -120,7 +133,19 @@ public final class ListParams {
 	}
 
 	/**
-	 * Reads the list query of a request.
+	 * Gets the maximum number of rows of an export (CSV or Excel), which is not paged: all the rows are written
+	 * unless the request has a limit.
+	 *
+	 * @return the maximum number of rows
+	 */
+	public static int exportMaxRows() {
+		return EXPORT_ROWS.get();
+	}
+
+	/**
+	 * Reads the list query of a request. An export ({@link #EXPORT}) has no page by default: it asks for one row
+	 * more than {@link #exportMaxRows()} (so that a bigger export is detected and refused), unless the request
+	 * has a {@code limit}, which can then be up to {@link #exportMaxRows()} instead of the maximum page size.
 	 *
 	 * @param params the query parameters
 	 * @param schema what the list can be filtered and sorted on
@@ -135,7 +160,15 @@ public final class ListParams {
 			offset = 0;
 		}
 		Integer limit = integer(params, LIMIT, 1);
-		if (limit == null) {
+		if (params.containsKey(EXPORT)) {
+			if (limit == null) {
+				limit = exportMaxRows() + 1;
+			}
+			else if (limit > exportMaxRows()) {
+				throw NetshotException.invalidParameter(LIMIT, "The limit of an export can't be more than %d".formatted(exportMaxRows()));
+			}
+		}
+		else if (limit == null) {
 			limit = settings.defaultPageSize();
 		}
 		else if (settings.maxPageSize() != null && limit > settings.maxPageSize()) {

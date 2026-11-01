@@ -55,7 +55,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.v0.report.XlsxReportWriter;
+import net.netshot.netshot.report.XlsxReportWriter;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.Selection;
