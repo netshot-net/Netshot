@@ -44,7 +44,7 @@ public record DomainDto(
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) long version,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) Instant changeDate,
 	@Brief String name,
-	String description,
-	String server4Address,
+	@Brief String description,
+	@Brief String server4Address,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) String server6Address) {
 }

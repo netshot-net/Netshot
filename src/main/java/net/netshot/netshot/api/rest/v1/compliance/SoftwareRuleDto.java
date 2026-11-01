@@ -50,11 +50,11 @@ public record SoftwareRuleDto(
 	@Brief int priority,
 	@Brief ConformanceLevel level,
 	@Brief @Ref GroupDto group,
-	String driver,
-	String family,
-	boolean familyRegExp,
-	String version,
-	boolean versionRegExp,
-	String partNumber,
-	boolean partNumberRegExp) {
+	@Brief String driver,
+	@Brief String family,
+	@Brief boolean familyRegExp,
+	@Brief String version,
+	@Brief boolean versionRegExp,
+	@Brief String partNumber,
+	@Brief boolean partNumberRegExp) {
 }

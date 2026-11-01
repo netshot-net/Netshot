@@ -1,7 +1,7 @@
 import { Protected } from "@/components"
 import { Icon } from "@chakra-ui/react"
 import { LuSquareStack, LuSquarePen, LuTrash, LuEllipsis } from "react-icons/lu"
-import { Group, Level } from "@/types"
+import { GroupBrief, Level } from "@/types"
 import {
   Box,
   BoxProps,
@@ -20,7 +20,7 @@ import RemoveGroupTrigger from "./RemoveGroupTrigger"
 import { useTreeGroup } from "./TreeGroupProvider"
 
 export type GroupItemProps = {
-  group: Group
+  group: GroupBrief
 } & BoxProps
 
 export default function GroupItem(props: GroupItemProps) {

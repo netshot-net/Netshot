@@ -178,7 +178,7 @@ public class V1DeviceResourceTest {
 	void listViews() throws Exception {
 		JsonNode full = this.admin.get("/devices?view=full&name=router00001").json().get("results").get(0);
 		Assertions.assertEquals("Paris 1", full.get("location").asText());
-		Assertions.assertEquals(Set.of("id", "url", "display", "name"), keys(full.get("mgmtDomain")));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "description", "server4Address"), keys(full.get("mgmtDomain")));
 		Assertions.assertEquals(3, full.get("attributes").size());
 		Assertions.assertTrue(full.get("ownerGroups").get(0).has("folder"));
 		Assertions.assertFalse(full.get("ownerGroups").get(0).has("hiddenFromReports"));
@@ -203,7 +203,7 @@ public class V1DeviceResourceTest {
 		JsonNode device = answer.json();
 		Assertions.assertEquals("router00001", device.get("name").asText());
 		Assertions.assertEquals("/api/v1/devices/" + this.router1.id(), device.get("url").asText());
-		Assertions.assertEquals(Set.of("id", "url", "display", "name"), keys(device.get("mgmtDomain")));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "description", "server4Address"), keys(device.get("mgmtDomain")));
 		Assertions.assertEquals(List.of("core", "edge"), List.of(device.get("tags").get(0).asText(), device.get("tags").get(1).asText()));
 		Assertions.assertEquals("TEXT", device.get("attributes").get(1).get("type").asText());
 		Assertions.assertEquals("0x1202", device.get("attributes").get(1).get("value").asText());

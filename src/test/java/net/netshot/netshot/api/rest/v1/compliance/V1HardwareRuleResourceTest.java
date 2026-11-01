@@ -102,7 +102,8 @@ public class V1HardwareRuleResourceTest {
 		JsonNode page = this.reader.get("/compliance/hardware-rules?sort=partNumber").json();
 		Assertions.assertEquals(2, page.get("count").asInt());
 		Assertions.assertEquals(List.of("N9K-.*", "WS-C3750"), values(page, "partNumber"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "partNumber", "endOfSale", "endOfLife"), keys(page.get("results").get(1)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "partNumber", "endOfSale", "endOfLife", "group", "driver", "family",
+			"familyRegExp", "partNumberRegExp"), keys(page.get("results").get(1)));
 		Assertions.assertEquals(List.of("WS-C3750"), values(this.reader.get("/compliance/hardware-rules?q=3750").json(), "partNumber"));
 		Assertions.assertEquals(List.of("N9K-.*"), values(this.reader.get("/compliance/hardware-rules?driver=CiscoIOS12").json(), "partNumber"));
 		Assertions.assertEquals(List.of("N9K-.*"),

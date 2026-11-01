@@ -1,4 +1,4 @@
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { Folder, isGroup } from "@/utils"
 import { BoxProps } from "@chakra-ui/react";
 import { PropsWithChildren } from "react"
@@ -6,7 +6,7 @@ import FolderItem from "./FolderItem"
 import GroupItem from "./GroupItem"
 
 export type GroupOrFolderItemProps = {
-  item: Group | Folder
+  item: GroupBrief | Folder
 } & BoxProps
 
 export default function GroupOrFolderItem(

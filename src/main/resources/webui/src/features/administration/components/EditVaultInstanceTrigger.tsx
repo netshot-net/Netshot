@@ -1,5 +1,6 @@
 import api from "@/api"
 import { VaultInstance, VaultInstanceRequest } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { PASSWORD_UNCHANGED } from "@/components/FormControl"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
@@ -8,7 +9,7 @@ import { HttpsCaTrustMode, VaultAuthMethod, VaultInstanceType } from "@/types"
 import { useToast } from "@/hooks"
 import { useAdminErrorHandler } from "../hooks"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo } from "react"
+import { useRef } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import React from "react"
@@ -20,7 +21,30 @@ import VaultInstanceFormComponent, {
   buildVaultInstancePayload,
 } from "./VaultInstanceForm"
 
-export type EditVaultInstanceTriggerProps = { vaultInstance: VaultInstance; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+/** The form values of a Vault instance (its secrets are write-only: left unchanged unless typed). */
+function formValues(full: VaultInstance): Partial<VaultInstanceForm> {
+  return {
+    name: full.name ?? "",
+    type: full.type as VaultInstanceType,
+    baseUrl: full.baseUrl ?? "",
+    namespace: full.namespace ?? "",
+    httpsCaTrustMode: full.httpsCaTrustMode as HttpsCaTrustMode,
+    httpsCustomCaCertificate: full.httpsCustomCaCertificate ?? "",
+    kvMountPath: full.kvMountPath ?? "secret",
+    authMethod: full.authMethod as VaultAuthMethod,
+    appRoleMountPath: full.appRoleMountPath ?? "approle",
+    appRoleId: full.appRoleId ?? "",
+    appRoleSecretId: PASSWORD_UNCHANGED,
+    jwtMountPath: full.jwtMountPath ?? "jwt",
+    jwtIdpTokenEndpoint: full.jwtIdpTokenEndpoint ?? "",
+    jwtClientId: full.jwtClientId ?? "",
+    jwtClientSecret: PASSWORD_UNCHANGED,
+    jwtVaultRole: full.jwtVaultRole ?? "",
+    jwtScope: full.jwtScope ?? "",
+  }
+}
+
+export type EditVaultInstanceTriggerProps = { vaultInstance: Brief["VaultInstance"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function EditVaultInstanceTrigger({ vaultInstance, children, ...rest }: EditVaultInstanceTriggerProps) {
   const { t } = useTranslation()
@@ -29,48 +53,32 @@ export default function EditVaultInstanceTrigger({ vaultInstance, children, ...r
   const dialog = useFormDialogWithMutation()
   const handleError = useAdminErrorHandler(QUERIES.ADMIN_VAULT_INSTANCES)
 
-  const defaultValues = useMemo<Partial<VaultInstanceForm>>(
-    () => ({
-      name: vaultInstance.name ?? "",
-      type: vaultInstance.type as VaultInstanceType,
-      baseUrl: vaultInstance.baseUrl ?? "",
-      namespace: vaultInstance.namespace ?? "",
-      httpsCaTrustMode: vaultInstance.httpsCaTrustMode as HttpsCaTrustMode,
-      httpsCustomCaCertificate: vaultInstance.httpsCustomCaCertificate ?? "",
-      kvMountPath: vaultInstance.kvMountPath ?? "secret",
-      authMethod: vaultInstance.authMethod as VaultAuthMethod,
-      appRoleMountPath: vaultInstance.appRoleMountPath ?? "approle",
-      appRoleId: vaultInstance.appRoleId ?? "",
-      appRoleSecretId: PASSWORD_UNCHANGED,
-      jwtMountPath: vaultInstance.jwtMountPath ?? "jwt",
-      jwtIdpTokenEndpoint: vaultInstance.jwtIdpTokenEndpoint ?? "",
-      jwtClientId: vaultInstance.jwtClientId ?? "",
-      jwtClientSecret: PASSWORD_UNCHANGED,
-      jwtVaultRole: vaultInstance.jwtVaultRole ?? "",
-      jwtScope: vaultInstance.jwtScope ?? "",
-    }),
-    [vaultInstance]
-  )
+  // The full Vault instance, read when the dialog opens (its version is sent back with the changes)
+  const fullRef = useRef<VaultInstance | null>(null)
 
   const form = useForm<VaultInstanceForm>({
     mode: "onChange",
-    defaultValues,
   })
-
-  useEffect(() => {
-    form.reset(defaultValues)
-  }, [defaultValues, form])
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_VAULT_INSTANCE_UPDATE,
     mutationFn: async (payload: VaultInstanceRequest) =>
-      api.admin.updateVaultInstance(vaultInstance.id!, payload, vaultInstance.version),
+      api.admin.updateVaultInstance(vaultInstance.id, payload, fullRef.current?.version),
     onError(err: NetshotError) {
       handleError(err, form)
     },
   })
 
-  const open = () => {
+  const open = async () => {
+    let full: VaultInstance
+    try {
+      full = await api.admin.getVaultInstance(vaultInstance.id)
+    } catch (err) {
+      toast.error(err as NetshotError)
+      return
+    }
+    fullRef.current = full
+    form.reset(formValues(full))
     const dialogRef = dialog.open(MUTATIONS.ADMIN_VAULT_INSTANCE_UPDATE, {
       title: t("vault.edit"),
       description: <VaultInstanceFormComponent freezeType freezeSecrets />,

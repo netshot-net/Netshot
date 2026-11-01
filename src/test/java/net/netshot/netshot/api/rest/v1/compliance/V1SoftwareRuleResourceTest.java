@@ -111,7 +111,8 @@ public class V1SoftwareRuleResourceTest {
 		JsonNode page = this.reader.get("/compliance/software-rules").json();
 		Assertions.assertEquals(3, page.get("count").asInt());
 		JsonNode first = page.get("results").get(0);
-		Assertions.assertEquals(Set.of("id", "url", "display", "priority", "level", "group"), keys(first));
+		Assertions.assertEquals(Set.of("id", "url", "display", "priority", "level", "group", "driver", "family", "familyRegExp",
+			"version", "versionRegExp", "partNumber", "partNumberRegExp"), keys(first));
 		Assertions.assertEquals(1, first.get("priority").asInt());
 		Assertions.assertEquals(3, page.get("results").get(2).get("priority").asInt());
 		Assertions.assertEquals(this.core.id(), page.get("results").get(2).get("group").get("id").asLong());

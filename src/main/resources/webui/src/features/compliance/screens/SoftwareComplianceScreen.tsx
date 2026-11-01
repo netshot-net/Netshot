@@ -1,3 +1,4 @@
+import type { Brief } from "@/api/client"
 import api from "@/api"
 import type { SoftwareRule } from "@/api/softwareRule"
 import { NetshotError } from "@/api/httpClient"
@@ -24,7 +25,7 @@ import RuleFieldValue from "../components/RuleFieldValue"
 import { QUERIES } from "../constants"
 import TableButtonStack from "@/features/administration/components/TableButtonStack"
 
-const columnHelper = createColumnHelper<SoftwareRule>()
+const columnHelper = createColumnHelper<Brief["SoftwareRule"]>()
 
 export default function SoftwareComplianceScreen() {
   const { t } = useTranslation()
@@ -41,10 +42,9 @@ export default function SoftwareComplianceScreen() {
   const {
     rows: rules,
     isPending,
-  } = useListAll<SoftwareRule>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
+  } = useListAll<Brief["SoftwareRule"]>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
     family__ic: pagination.query?.trim(),
     sort: "priority",
-    view: "full",
   })
   const isSuccess = !isPending
 

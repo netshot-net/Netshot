@@ -1,4 +1,4 @@
-import { CredentialSet } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -14,16 +14,16 @@ import RemoveDeviceCredentialSetTrigger from "../components/RemoveDeviceCredenti
 import { QUERIES } from "../constants"
 import TableButtonStack from "../components/TableButtonStack"
 
-const columnHelper = createColumnHelper<CredentialSet>()
+const columnHelper = createColumnHelper<Brief["CredentialSet"]>()
 
 export default function AdministrationDeviceCredentialSetScreen() {
   const { t } = useTranslation()
   const pagination = usePagination()
 
-  const { rows: data, isPending } = useListAll<CredentialSet>(
+  const { rows: data, isPending } = useListAll<Brief["CredentialSet"]>(
     [QUERIES.ADMIN_DEVICE_CREDENTIALS],
     "/credential-sets",
-    { q: pagination.query, sort: "name", view: "full" }
+    { q: pagination.query, sort: "name" }
   )
 
   const isSearching = Boolean(pagination.query?.trim())

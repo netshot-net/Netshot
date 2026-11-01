@@ -1,4 +1,4 @@
-import { Group } from "@/types"
+import { Group, GroupBrief } from "@/types"
 import type { Device } from "@/types"
 import { client, list, listAll, ListParams, patch, replace, Schemas } from "./client"
 import { etagOf } from "./device"
@@ -13,6 +13,8 @@ export type UpdateGroupPayload = Partial<Omit<Schemas["GroupRequest"], "type">>
 export type GroupListParams = {
   folder?: string
   type?: "STATIC" | "DYNAMIC"
+  /** false: the groups shown in the reports only. */
+  hiddenFromReports?: boolean
   q?: string
   sort?: string
   /** Ignored: every page of the list is read (kept so callers can keep passing their pagination). */
@@ -21,10 +23,10 @@ export type GroupListParams = {
   offset?: number
 }
 
-/** The groups (all the pages), in their full view (the reports skip the groups hidden from reports). */
+/** All the groups, in their brief view (name, folder and type). */
 async function getAll(params: GroupListParams = {}) {
-  const { folder, type, q, sort } = params
-  return listAll<Group>("/groups", { folder, type, q, sort, view: "full" })
+  const { folder, type, hiddenFromReports, q, sort } = params
+  return listAll<GroupBrief>("/groups", { folder, type, hiddenFromReports, q, sort })
 }
 
 /** A group in its full view, with the ETag (If-Match value) of its version. */

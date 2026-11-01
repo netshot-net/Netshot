@@ -1,17 +1,17 @@
 import { Protected } from "@/components"
 import { AddGroupTrigger, TreeGroup } from "@/features/group"
 import { Tooltip } from "@/components/ui/tooltip"
-import { Group, Level } from "@/types"
+import { GroupBrief, Level } from "@/types"
 import { Folder } from "@/utils"
 import { Center, Flex, Heading, IconButton, Skeleton, Stack, Text } from "@chakra-ui/react"
 import { LuPlus } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 
 export type DeviceSidebarGroupProps = {
-  items: Array<Folder | Group>
+  items: Array<Folder | GroupBrief>
   isPending: boolean
   selectedGroupId: number
-  onGroupSelect(group: Group): void
+  onGroupSelect(group: GroupBrief): void
   isFolderOpen(key: string): boolean
   toggleFolderOpen(key: string): void
 }

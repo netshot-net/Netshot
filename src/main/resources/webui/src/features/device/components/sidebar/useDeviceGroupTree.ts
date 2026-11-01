@@ -3,14 +3,14 @@ import { getExpandedKeys, getVisibleGroups } from "@/features/group"
 import { useTreeOpenKeys } from "@/hooks"
 import { QUERIES } from "@/constants"
 import { useArrowKeyNavigation } from "@/hooks"
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { createFoldersFromGroups, Folder, isGroup } from "@/utils"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo } from "react"
 import { useLocation, useNavigate, useSearchParams } from "react-router"
 import { useDeviceSidebarStore } from "../../stores"
 
-function findGroupInTree(items: Array<Folder | Group>, id: number): Group | null {
+function findGroupInTree(items: Array<Folder | GroupBrief>, id: number): GroupBrief | null {
   for (const item of items) {
     if (isGroup(item)) {
       if (item.id === id) return item
@@ -59,7 +59,7 @@ export function useDeviceGroupTree(options: UseDeviceGroupTreeOptions) {
   }, [selectedGroupId, items, isPending, setGroup])
 
   const onGroupSelect = useCallback(
-    (group: Group) => {
+    (group: GroupBrief) => {
       if (group?.id === selectedGroupId) {
         onAfterSelect?.()
         return

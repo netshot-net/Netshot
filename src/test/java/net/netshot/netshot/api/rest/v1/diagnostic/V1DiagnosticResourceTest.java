@@ -129,7 +129,7 @@ public class V1DiagnosticResourceTest {
 		JsonNode page = this.reader.get("/diagnostics").json();
 		Assertions.assertEquals(3, page.get("count").asInt());
 		Assertions.assertEquals(List.of("Counter", "Flag", "Version"), values(page, "name"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "resultType"), keys(page.get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "resultType", "enabled", "targetGroup"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Version", "Flag", "Counter"), values(this.reader.get("/diagnostics?sort=-name").json(), "name"));
 		Assertions.assertEquals(List.of("Counter"), values(this.reader.get("/diagnostics?type=JAVASCRIPT").json(), "name"));
 		Assertions.assertEquals(List.of("Counter"), values(this.reader.get("/diagnostics?resultType=NUMERIC").json(), "name"));

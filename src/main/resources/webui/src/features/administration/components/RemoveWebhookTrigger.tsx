@@ -4,7 +4,7 @@ import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
 import { useAdminErrorHandler } from "../hooks"
-import { Hook } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent, useCallback } from "react"
@@ -13,7 +13,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 
-export type RemoveWebhookTriggerProps = { webhook: Hook; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveWebhookTriggerProps = { webhook: Brief["WebHook"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveWebhookTrigger({ webhook, children, ...rest }: RemoveWebhookTriggerProps) {
   const { t } = useTranslation()

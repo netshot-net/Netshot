@@ -1,4 +1,4 @@
-import type { Diagnostic } from "@/api/diagnostic"
+import type { DiagnosticBrief } from "@/api/diagnostic"
 import {
   Dispatch,
   PropsWithChildren,
@@ -13,8 +13,8 @@ export type DiagnosticSidebarContextType = {
   setQuery: Dispatch<SetStateAction<string>>
   total: number
   setTotal: Dispatch<SetStateAction<number>>
-  data: Diagnostic[]
-  setData: Dispatch<SetStateAction<Diagnostic[]>>
+  data: DiagnosticBrief[]
+  setData: Dispatch<SetStateAction<DiagnosticBrief[]>>
 }
 
 export const DiagnosticSidebarContext = createContext<DiagnosticSidebarContextType>(null!)
@@ -24,7 +24,7 @@ export default function DiagnosticSidebarProvider(props: PropsWithChildren) {
   const { children } = props
   const [query, setQuery] = useState<string>("")
   const [total, setTotal] = useState<number>(0)
-  const [data, setData] = useState<Diagnostic[]>([])
+  const [data, setData] = useState<DiagnosticBrief[]>([])
 
   return (
     <DiagnosticSidebarContext

@@ -48,9 +48,9 @@ public record HardwareRuleDto(
 	@Brief String partNumber,
 	@Brief Instant endOfSale,
 	@Brief Instant endOfLife,
-	@Ref GroupDto group,
-	String driver,
-	String family,
-	boolean familyRegExp,
-	boolean partNumberRegExp) {
+	@Brief @Ref GroupDto group,
+	@Brief String driver,
+	@Brief String family,
+	@Brief boolean familyRegExp,
+	@Brief boolean partNumberRegExp) {
 }

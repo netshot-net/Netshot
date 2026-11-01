@@ -5,9 +5,9 @@ import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
 import { useAdminErrorHandler } from "../hooks"
 import { Hook, HookRequest } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { HttpsCaTrustMode } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import React from "react"
@@ -15,7 +15,7 @@ import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 import WebhookFormComponent, { WebhookForm } from "./WebhookForm"
 
-export type EditWebhookTriggerProps = { webhook: Hook; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type EditWebhookTriggerProps = { webhook: Brief["WebHook"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function EditWebhookTrigger({ webhook, children, ...rest }: EditWebhookTriggerProps) {
   const { t } = useTranslation()
@@ -24,36 +24,35 @@ export default function EditWebhookTrigger({ webhook, children, ...rest }: EditW
   const dialog = useFormDialogWithMutation()
   const handleError = useAdminErrorHandler(QUERIES.ADMIN_WEBHOOKS)
 
-  const defaultValues = useMemo(() => {
-    return {
-      name: webhook.name,
-      enabled: webhook.enabled,
-      action: webhook.action as WebhookForm["action"],
-      targetUrl: webhook.targetUrl,
-      httpsCaTrustMode: webhook.httpsCaTrustMode as HttpsCaTrustMode,
-      httpsCustomCaCertificate: webhook.httpsCustomCaCertificate ?? "",
-      triggers: webhook.triggers,
-    }
-  }, [webhook])
-
   const form = useForm<WebhookForm>({
     mode: "onChange",
-    defaultValues,
   })
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_HOOK_UPDATE,
-    mutationFn: async (payload: HookRequest) => api.admin.updateHook(webhook.id!, payload),
+    mutationFn: async (payload: HookRequest) => api.admin.updateHook(webhook.id, payload),
     onError(err: NetshotError) {
       handleError(err, form)
     },
   })
 
-  useEffect(() => {
-    form.reset(defaultValues)
-  }, [defaultValues, form])
-
-  const open = () => {
+  const open = async () => {
+    let full: Hook
+    try {
+      full = await api.admin.getHook(webhook.id)
+    } catch (err) {
+      toast.error(err as NetshotError)
+      return
+    }
+    form.reset({
+      name: full.name,
+      enabled: full.enabled,
+      action: full.action as WebhookForm["action"],
+      targetUrl: full.targetUrl,
+      httpsCaTrustMode: full.httpsCaTrustMode as HttpsCaTrustMode,
+      httpsCustomCaCertificate: full.httpsCustomCaCertificate ?? "",
+      triggers: full.triggers,
+    })
     const dialogRef = dialog.open(MUTATIONS.ADMIN_HOOK_UPDATE, {
       title: t("webhook.update"),
       description: <WebhookFormComponent />,

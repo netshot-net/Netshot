@@ -61,7 +61,12 @@ async function getAllCredentialSets(params: ListParams = {}) {
 
 /** All the global credential sets (the choices of the devices' accesses). */
 async function fetchAllCredentialSets() {
-  return listAll<CredentialSet>("/credential-sets", { sort: "name", view: "full" })
+  return listAll<Brief["CredentialSet"]>("/credential-sets", { sort: "name" })
+}
+
+/** A credential set in its full view (to edit it). */
+async function getCredentialSet(id: number) {
+  return (await client.get<CredentialSet>(`/credential-sets/${id}`)) as CredentialSet
 }
 
 async function createCredentialSet(payload: CredentialSetRequest) {
@@ -85,6 +90,11 @@ async function fetchAllDomains() {
   return listAll<Brief["Domain"]>("/domains", { sort: "name" })
 }
 
+/** A domain in its full view (to edit it). */
+async function getDomain(id: number) {
+  return (await client.get<Domain>(`/domains/${id}`)) as Domain
+}
+
 async function createDomain(payload: Partial<Domain>) {
   return (await client.post<Domain, Partial<Domain>>("/domains", payload)) as Domain
 }
@@ -99,6 +109,11 @@ async function removeDomain(id: number, version?: number | null) {
 
 async function getAllHooks(params: ListParams = {}) {
   return list<Brief["WebHook"]>("/hooks", params)
+}
+
+/** A hook in its full view (to edit it). */
+async function getHook(id: number) {
+  return (await client.get<Hook>(`/hooks/${id}`)) as Hook
 }
 
 async function createHook(payload: HookRequest) {
@@ -149,6 +164,11 @@ async function fetchAllVaultInstances() {
   return listAll<Brief["VaultInstance"]>("/vault-instances", { sort: "name" })
 }
 
+/** A Vault instance in its full view (to edit it). */
+async function getVaultInstance(id: number) {
+  return (await client.get<VaultInstance>(`/vault-instances/${id}`)) as VaultInstance
+}
+
 async function createVaultInstance(payload: VaultInstanceRequest) {
   return (await client.post<VaultInstance, VaultInstanceRequest>("/vault-instances", payload)) as VaultInstance
 }
@@ -181,15 +201,18 @@ export default {
   removeApiToken,
   getAllCredentialSets,
   fetchAllCredentialSets,
+  getCredentialSet,
   createCredentialSet,
   updateCredentialSet,
   removeCredentialSet,
   getAllDomains,
   fetchAllDomains,
+  getDomain,
   createDomain,
   updateDomain,
   removeDomain,
   getAllHooks,
+  getHook,
   createHook,
   updateHook,
   removeHook,
@@ -201,6 +224,7 @@ export default {
   reloadDrivers,
   getAllVaultInstances,
   fetchAllVaultInstances,
+  getVaultInstance,
   createVaultInstance,
   updateVaultInstance,
   removeVaultInstance,

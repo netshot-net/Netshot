@@ -179,7 +179,7 @@ public class V1VaultInstanceResourceTest {
 		Assertions.assertEquals(200, all.status(), all.toString());
 		this.assertNoSecret(all);
 		Assertions.assertEquals(List.of("Alpha", "Beta", "Gamma"), values(all.json(), "name"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "baseUrl"), names(all.json().get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "baseUrl", "authMethod", "httpsCaTrustMode"), names(all.json().get("results").get(0)));
 		Assertions.assertEquals(3, all.json().get("count").asInt());
 		Assertions.assertEquals(List.of("Gamma"), values(this.admin.get("/vault-instances?authMethod=JWT").json(), "name"));
 		Assertions.assertEquals(List.of("Alpha", "Beta", "Gamma"), values(this.admin.get("/vault-instances?type=HASHICORP_KV2").json(), "name"));

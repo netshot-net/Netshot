@@ -169,7 +169,7 @@ public class V1DomainResourceTest {
 		Assertions.assertEquals("/api/v1/domains?offset=2&limit=2", page.get("next").asText());
 		Assertions.assertTrue(page.get("previous").isNull());
 		Assertions.assertEquals(List.of("D1", "D2"), values(page, "name"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name"), names(page.get("results").get(0)));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "description", "server4Address"), names(page.get("results").get(0)));
 
 		JsonNode last = this.admin.get("/domains?limit=2&offset=4").json();
 		Assertions.assertEquals(List.of("D5"), values(last, "name"));
@@ -248,7 +248,7 @@ public class V1DomainResourceTest {
 			"server4Address", "server6Address"), names(this.admin.get("/domains?view=full").json().get("results").get(0)));
 		Assertions.assertEquals(Set.of("id", "name", "description"),
 			names(this.admin.get("/domains?fields=name,description").json().get("results").get(0)));
-		Assertions.assertEquals(Set.of("id", "url", "display", "name"), names(this.admin.get("/domains/" + id + "?view=brief").json()));
+		Assertions.assertEquals(Set.of("id", "url", "display", "name", "description", "server4Address"), names(this.admin.get("/domains/" + id + "?view=brief").json()));
 		Assertions.assertEquals(Set.of("id", "server4Address"), names(this.admin.get("/domains/" + id + "?fields=server4Address").json()));
 		Assertions.assertEquals(Set.of("id", "url", "display", "version", "changeDate", "name", "server4Address", "server6Address"),
 			names(this.admin.get("/domains/" + id + "?omit=description").json()));

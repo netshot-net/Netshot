@@ -3,7 +3,7 @@ import { EmptyResult, Search } from "@/components"
 import { QUERIES } from "@/constants"
 import { usePagination } from "@/hooks"
 import { ComplianceResult } from "@/api/report"
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next"
 import DeviceConfigurationCompliancePanel from "./DeviceConfigurationCompliancePanel"
 
 export type ConfigurationComplianceDeviceListProps = {
-  group: Group
+  group: GroupBrief
 }
 
 export default function ConfigurationComplianceDeviceList(

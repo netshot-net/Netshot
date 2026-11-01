@@ -1,7 +1,7 @@
 import { getExpandedKeys, getVisibleGroups, TreeGroup } from "@/features/group"
 import { useTreeOpenKeys } from "@/hooks"
 import { useArrowKeyNavigation } from "@/hooks"
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { createFoldersFromGroups, Folder, search } from "@/utils"
 import { Skeleton, Stack } from "@chakra-ui/react"
 import { useCallback, useMemo } from "react"
@@ -16,7 +16,7 @@ export default function ConfigurationCompliantSidebarList() {
 
   const { groups, stats, isPending } = useGroupConfigComplianceStats()
 
-  const items = useMemo((): (Group | Folder)[] => {
+  const items = useMemo((): (GroupBrief | Folder)[] => {
     if (!groups) return []
 
     const nonEmptyGroupIds = new Set(stats.map((stat) => stat.groupId))
@@ -26,7 +26,7 @@ export default function ConfigurationCompliantSidebarList() {
   }, [groups, stats, query])
 
   const onGroupSelect = useCallback(
-    (group: Group) => {
+    (group: GroupBrief) => {
       navigate(`./${group.id}`, {
         replace: true,
       })

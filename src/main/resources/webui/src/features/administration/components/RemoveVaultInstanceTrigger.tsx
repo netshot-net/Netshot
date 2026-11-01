@@ -4,7 +4,7 @@ import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
 import { useAdminErrorHandler } from "../hooks"
-import { VaultInstance } from "@/api/admin"
+import type { Brief } from "@/api/client"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent } from "react"
@@ -13,7 +13,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 
-export type RemoveVaultInstanceTriggerProps = { vaultInstance: VaultInstance; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveVaultInstanceTriggerProps = { vaultInstance: Brief["VaultInstance"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveVaultInstanceTrigger({ vaultInstance, children, ...rest }: RemoveVaultInstanceTriggerProps) {
   const { t } = useTranslation()
@@ -24,7 +24,7 @@ export default function RemoveVaultInstanceTrigger({ vaultInstance, children, ..
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_VAULT_INSTANCE_REMOVE,
-    mutationFn: async () => api.admin.removeVaultInstance(vaultInstance.id!, vaultInstance.version),
+    mutationFn: async () => api.admin.removeVaultInstance(vaultInstance.id),
     onError(err: NetshotError) {
       handleError(err)
     },

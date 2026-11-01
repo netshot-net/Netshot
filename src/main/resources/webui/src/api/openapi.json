@@ -8515,7 +8515,7 @@
           }
         },
         "description" : "Device credential set (secrets are never returned)",
-        "x-netshot-brief" : [ "id", "url", "display", "name", "type" ]
+        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "mgmtDomain" ]
       },
       "Device" : {
         "required" : [ "accesses", "attributes", "cachedIpAddress", "changeDate", "comments", "compliant", "contact", "createdDate", "creator", "display", "driver", "driverDescription", "endOfLife", "endOfSale", "eolDate", "eolModule", "eosDate", "eosModule", "family", "id", "lastSnapshotFailureDate", "lastSnapshotSuccessDate", "location", "mgmtAddress", "mgmtDomain", "name", "networkClass", "options", "ownerGroups", "serialNumber", "softwareLevel", "softwareVersion", "status", "tags", "url", "version", "virtualDevices", "vrfInstances" ],
@@ -8884,7 +8884,7 @@
           }
         },
         "description" : "Device domain",
-        "x-netshot-brief" : [ "id", "url", "display", "name" ]
+        "x-netshot-brief" : [ "id", "url", "display", "name", "description", "server4Address" ]
       },
       "Group" : {
         "required" : [ "changeDate", "display", "folder", "hiddenFromReports", "id", "name", "query", "type", "url", "version" ],
@@ -9320,7 +9320,7 @@
           }
         },
         "description" : "Vault instance, an external secret store (secrets are never returned)",
-        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "baseUrl" ]
+        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "baseUrl", "httpsCaTrustMode", "authMethod" ]
       },
       "VaultSecret" : {
         "required" : [ "path", "vaultInstance" ],
@@ -9392,7 +9392,7 @@
           }
         },
         "description" : "Hardware compliance rule",
-        "x-netshot-brief" : [ "id", "url", "display", "partNumber", "endOfSale", "endOfLife" ]
+        "x-netshot-brief" : [ "id", "url", "display", "partNumber", "endOfSale", "endOfLife", "group", "driver", "family", "familyRegExp", "partNumberRegExp" ]
       },
       "HardwareRuleRequest" : {
         "type" : "object",
@@ -9897,7 +9897,7 @@
           }
         },
         "description" : "Software compliance rule",
-        "x-netshot-brief" : [ "id", "url", "display", "priority", "level", "group" ]
+        "x-netshot-brief" : [ "id", "url", "display", "priority", "level", "group", "driver", "family", "familyRegExp", "version", "versionRegExp", "partNumber", "partNumberRegExp" ]
       },
       "SoftwareRuleRequest" : {
         "required" : [ "level" ],
@@ -11814,7 +11814,7 @@
           }
         },
         "description" : "Diagnostic (data collected from devices)",
-        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "resultType" ]
+        "x-netshot-brief" : [ "id", "url", "display", "name", "type", "resultType", "enabled", "targetGroup" ]
       },
       "DiagnosticRequest" : {
         "required" : [ "name", "resultType", "type" ],
@@ -12209,7 +12209,7 @@
           }
         },
         "description" : "Hook calling a URL",
-        "x-netshot-brief" : [ "id", "url", "display", "type", "name", "enabled" ]
+        "x-netshot-brief" : [ "id", "url", "display", "type", "name", "enabled", "targetUrl", "httpsCaTrustMode" ]
       },
       "HookRequest" : {
         "required" : [ "type" ],
@@ -12363,7 +12363,7 @@
           }
         },
         "description" : "Command script",
-        "x-netshot-brief" : [ "id", "url", "display", "name", "folder", "deviceDriver" ]
+        "x-netshot-brief" : [ "id", "url", "display", "name", "folder", "deviceDriver", "deviceDriverDescription", "author" ]
       },
       "UserInputDefinition" : {
         "required" : [ "choices", "defaultValue", "description", "label", "name", "type" ],

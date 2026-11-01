@@ -8,7 +8,7 @@ import { useCustomDialog } from "@/dialog"
 import { DeviceSoftwareLevelBadge } from "@/components/entity"
 import { usePagination } from "@/hooks"
 import { GroupSoftwareComplianceStat } from "@/api/report"
-import { DeviceSoftwareLevel, Group } from "@/types"
+import { DeviceSoftwareLevel, GroupBrief } from "@/types"
 import { createFoldersFromGroups, Folder, isGroup, search } from "@/utils"
 import {
   Box,
@@ -59,13 +59,13 @@ type GroupRow = {
   kind: "group"
   key: string
   depth: number
-  group: Group
+  group: GroupBrief
 }
 
 type TreeRow = FolderRow | GroupRow
 
 function flattenTree(
-  items: (Group | Folder)[],
+  items: (GroupBrief | Folder)[],
   depth: number,
   isFolderOpen: (key: string) => boolean
 ): TreeRow[] {
@@ -151,7 +151,7 @@ function FolderGridRow(props: FolderGridRowProps) {
 type GroupGridRowProps = {
   row: GroupRow
   item: GroupSoftwareComplianceStat
-  onGroupSelect(group: Group): void
+  onGroupSelect(group: GroupBrief): void
 }
 
 function GroupGridRow(props: GroupGridRowProps) {
@@ -267,18 +267,17 @@ export default function ReportSoftwareComplianceScreen() {
   })
 
   const { data: groups, isPending: isGroupPending } = useQuery({
-    queryKey: [GLOBAL_QUERIES.DEVICE_GROUPS],
+    // The groups shown in the reports
+    queryKey: [GLOBAL_QUERIES.DEVICE_GROUPS, "reports"],
     queryFn: async () => {
-      return api.group.getAll()
+      return api.group.getAll({ hiddenFromReports: false })
     },
   })
 
   const treeItems = useMemo(() => {
     const nonEmptyGroupIds = new Set((stats ?? []).map((stat) => stat.groupId))
-    // Groups flagged as hidden from the reports must not appear in the tree either
-    const visibleGroups = (groups ?? []).filter(
-      (group) => nonEmptyGroupIds.has(group.id) && !group.hiddenFromReports
-    )
+    // The groups hidden from the reports are not listed
+    const visibleGroups = (groups ?? []).filter((group) => nonEmptyGroupIds.has(group.id))
     return createFoldersFromGroups(search(visibleGroups, "name").with(pagination.query))
   }, [groups, stats, pagination.query])
 
@@ -313,7 +312,7 @@ export default function ReportSoftwareComplianceScreen() {
   const { isOpen, toggle } = useTreeOpenKeys()
 
   const onGroupSelect = useCallback(
-    (group: Group) => {
+    (group: GroupBrief) => {
       navigate(`/app/devices?group=${group.id}`)
     },
     [navigate]

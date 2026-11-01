@@ -4,7 +4,7 @@ import { Select } from "@/components/Select"
 import Switch from "@/components/Switch"
 import VaultableInput from "@/components/VaultableInput"
 import BulkEditLockToggle from "./BulkEditLockToggle"
-import { Schemas } from "@/api/client"
+import { Brief, Schemas } from "@/api/client"
 import { DeviceAccessDefinition, DeviceTypeProtocol, HashingAlgorithm, HttpsCaTrustMode, Option, SshHostKeyVerification, VaultableFieldRefs } from "@/types"
 import { Collapsible, Separator, Stack, Text } from "@chakra-ui/react"
 import { useEffect, useMemo, useState } from "react"
@@ -940,7 +940,7 @@ function buildSpecificCredentialPayload(access: DeviceAccessFormValue): Credenti
  */
 export function buildAccessesPayload(
   accesses: DeviceAccessFormValue[] | undefined,
-  credentialSets: Schemas["CredentialSet"][] | null | undefined
+  credentialSets: Brief["CredentialSet"][] | null | undefined
 ): Schemas["DeviceAccessRequest"][] {
   const result: Schemas["DeviceAccessRequest"][] = []
   for (const access of accesses ?? []) {

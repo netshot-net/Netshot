@@ -3,7 +3,7 @@ import { useTreeOpenKeys } from "@/hooks"
 import { TreeScript } from "../scriptTree"
 import { QUERIES } from "@/constants"
 import { useFormDialog } from "@/dialog"
-import { Script } from "@/types"
+import { Script, ScriptBrief } from "@/types"
 import { createFoldersFromScripts } from "@/utils"
 import { Box, Button, ButtonProps, Center, Spinner, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -35,10 +35,10 @@ function SelectScriptDialogBody() {
   const items = useMemo(() => createFoldersFromScripts(scripts ?? []), [scripts])
   const { isOpen, toggle } = useTreeOpenKeys()
 
-  const isSelected = useCallback((script: Script) => script.id === scriptId, [scriptId])
+  const isSelected = useCallback((script: ScriptBrief) => script.id === scriptId, [scriptId])
 
   const onScriptSelect = useCallback(
-    (script: Script) => {
+    (script: ScriptBrief) => {
       field.onChange(script.id)
     },
     [field]
