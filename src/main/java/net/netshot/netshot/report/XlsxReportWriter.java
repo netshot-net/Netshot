@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Netshot.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.netshot.netshot.api.rest.v0.report;
+package net.netshot.netshot.report;
 
 import java.util.Date;
 import java.util.List;
@@ -36,9 +36,6 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
-import net.netshot.netshot.report.GroupConfigComplianceStat;
-import net.netshot.netshot.report.PolicyRuleDevice;
-import net.netshot.netshot.report.ReportExportSink;
 
 /**
  * Writes the data export as a spreadsheet: a sheet per section, a title row (bold, frozen, with
