@@ -2,8 +2,7 @@
 
 The v1 REST API is served under `/api/v1`, beside the [legacy API](rest-api.md) (`/api`), which is unchanged. It shares the authentication of the legacy API (API tokens, `Authorization: Bearer` with an API token or a [JWT access token](rest-api.md#jwt-access-tokens-oidc), session cookie) and its permission levels.
 
-!!! note "Preview"
-    The v1 API covers the features of the legacy API (the resource list below); the Web UI still uses the legacy API. The OpenAPI document describes every endpoint: `https://<server:port>/api/v1/openapi.json` (or `.yaml`).
+The Web UI is built on the v1 API: any feature of the Web UI has its endpoints here. The OpenAPI document describes every endpoint: `https://<server:port>/api/v1/openapi.json` (or `.yaml`); an API browser is built into the Web UI (**Help** menu).
 
 ## Formats
 

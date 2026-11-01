@@ -73,6 +73,7 @@ final class V1OpenApiEnhancer {
 	 * @param openApi the document built from the resources
 	 * @param resources the resource classes
 	 */
+	@SuppressWarnings("rawtypes")
 	static void enhance(OpenAPI openApi, Set<Class<?>> resources) {
 		Map<String, Class<?>> answers = new LinkedHashMap<>();
 		Map<String, Class<?>> polymorphic = new LinkedHashMap<>();
