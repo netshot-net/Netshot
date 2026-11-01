@@ -24,8 +24,8 @@ platform/          technical building blocks; depends on no feature
 api/               API channels: how the outside world talks to the core
 ├── rest/          web server (RestServer) and what both API versions share: AuthenticationFilter with one
 │                  RequestAuthenticator per method (ApiTokenAuthenticator, JwtAuthenticator, SessionAuthenticator), LoggerFilter
-│   ├── v0/        the legacy (unversioned) REST API, served on /api (V0Application, its exception mapper, filters and pagination; netshot.http.api.v0.enabled)
-│   └── v1/        the v1 REST API, served on /api/v1 (its own Jersey application)
+│   ├── v0/        the legacy (unversioned) REST API, served on /api, off by default (V0Application, its exception mapper, filters and pagination; netshot.http.api.v0.enabled)
+│   └── v1/        the v1 REST API, served on /api/v1 (its own Jersey application), used by the web UI
 ├── hook/          webhook channel: HookDispatcher (reacts to domain events), WebHookSender (HTTP), payload/ (payload DTOs and mapper)
 └── grpc/          (later)
 domain/ credentials/ driver/ inventory/ access/ vault/ diagnostic/ devicescript/

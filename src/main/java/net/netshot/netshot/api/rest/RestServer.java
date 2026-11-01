@@ -78,8 +78,8 @@ public final class RestServer implements Service {
 	/** The path the REST API is served on. */
 	static final Setting<String> API_PATH = Setting.text("netshot.http.apipath").defaultValue("/api").restart();
 
-	/** Whether the legacy (v0) REST API is served (the web UI uses it). */
-	static final Setting<Boolean> V0_ENABLED = Setting.bool("netshot.http.api.v0.enabled").defaultValue(true).restart();
+	/** Whether the legacy (v0) REST API is served (off by default: the web UI uses the v1 API). */
+	static final Setting<Boolean> V0_ENABLED = Setting.bool("netshot.http.api.v0.enabled").defaultValue(false).restart();
 
 	/** Name of the session cookie. */
 	static final Setting<String> SESSION_COOKIE_NAME = Setting.text("netshot.http.sessioncookiename")
@@ -219,7 +219,7 @@ public final class RestServer implements Service {
 			deployment.addServlet(v0);
 		}
 		else {
-			log.warn("The legacy REST API (v0) is disabled (netshot.http.api.v0.enabled), the web UI can't work without it.");
+			log.info("The legacy REST API (v0) is disabled (netshot.http.api.v0.enabled).");
 		}
 		deployment
 			.setServletSessionConfig(new ServletSessionConfig()

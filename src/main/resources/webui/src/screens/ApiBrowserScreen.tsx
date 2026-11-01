@@ -7,7 +7,7 @@ export function ApiBrowserScreen() {
     <Stack h="100vh" overflow="auto">
       <ApiReferenceReact
         configuration={{
-          url: "/api/openapi.json",
+          url: "/api/v1/openapi.json",
           hideClientButton: true,
           telemetry: false,
           agent: { disabled: true },
