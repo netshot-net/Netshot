@@ -25,6 +25,7 @@ import net.netshot.netshot.inventory.compliance.CheckResult;
 /**
  * The compliance state of a device for one rule (projection of the compliance results of a device).
  *
+ * @param deviceId the device ID
  * @param ruleId the rule ID
  * @param policyId the ID of the policy owning the rule
  * @param result the result of the last check, or null if the device has not been checked
@@ -33,6 +34,7 @@ import net.netshot.netshot.inventory.compliance.CheckResult;
  * @param exemptionExpirationDate the expiration date of the exemption of the device, or null if it isn't exempted
  */
 public record DeviceCheckResult(
+	long deviceId,
 	long ruleId,
 	long policyId,
 	CheckResult.ResultOption result,

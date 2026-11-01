@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -44,8 +45,12 @@ import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import org.jooq.impl.DSL;
 
 /**
@@ -89,6 +94,38 @@ public class RuleRepository {
 		.date("checkDate", CHECK_RESULT.CHECK_DATE, Option.SORTABLE)
 		.date("exemptionExpirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
 		.defaultSort(SortOrder.asc("policy"), SortOrder.asc("id"))
+		.build();
+
+	/** The check results across devices (one per device and rule), with the rule, policy, device and exemption. */
+	private static final org.jooq.Table<?> ALL_RESULTS = CHECK_RESULT
+		.join(RULE).on(RULE.ID.eq(CHECK_RESULT.RULE))
+		.join(POLICY).on(POLICY.ID.eq(RULE.POLICY))
+		.join(DEVICE).on(DEVICE.ID.eq(CHECK_RESULT.DEVICE))
+		.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(CHECK_RESULT.RULE).and(EXEMPTION.DEVICE.eq(CHECK_RESULT.DEVICE)));
+
+	/**
+	 * The fields the lists of check results across devices can be filtered, sorted and counted on (the ID is the one
+	 * of the rule: a result is identified by its device and rule).
+	 */
+	static final QueryMapping ALL_RESULT_LIST = QueryMapping.builder(RULE.ID)
+		.integer("device", CHECK_RESULT.DEVICE, Option.SORTABLE, Option.GROUPABLE)
+		.string("deviceName", DEVICE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.integer("domain", DEVICE.MGMT_DOMAIN, Option.GROUPABLE)
+		.custom("group", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
+			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(CHECK_RESULT.DEVICE))
+				.and(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(values.stream().map(Long.class::cast).toList()))))
+		.integer("rule", RULE.ID, Option.SORTABLE, Option.GROUPABLE)
+		.string("ruleName", RULE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.integer("policy", POLICY.ID, Option.SORTABLE, Option.GROUPABLE)
+		.string("policyName", POLICY.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("result", CHECK_RESULT.RESULT, ResultOption.class, Option.SORTABLE, Option.GROUPABLE)
+		.date("checkDate", CHECK_RESULT.CHECK_DATE, Option.SORTABLE)
+		.date("exemptionExpirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
+		// A result is counted once per group of its device (no group: null)
+		.grouping("group", DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, from -> from.leftJoin(DEVICE_GROUP_CACHED_DEVICES)
+			.on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(CHECK_RESULT.DEVICE)))
+		.defaultSort(SortOrder.asc("deviceName"), SortOrder.asc("device"), SortOrder.asc("policy"), SortOrder.asc("rule"))
 		.build();
 
 	private static Rule toRule(Record r) {
@@ -217,7 +254,7 @@ public class RuleRepository {
 				.from(resultsOf(deviceId))
 				.where(appliesTo(deviceId)).and(RESULT_LIST.condition(query))
 				.orderBy(RESULT_LIST.orderBy(query)))
-			.fetch(r -> new DeviceCheckResult(r.value1(), r.value2(), r.value3() == null ? null : ResultOption.valueOf(r.value3()),
+			.fetch(r -> new DeviceCheckResult(deviceId, r.value1(), r.value2(), r.value3() == null ? null : ResultOption.valueOf(r.value3()),
 				r.value4(), r.value5(), r.value6()));
 	}
 
@@ -231,6 +268,46 @@ public class RuleRepository {
 	 */
 	public long countDeviceResults(DSLContext dsl, long deviceId, ListQuery query) {
 		return dsl.fetchCount(dsl.selectOne().from(resultsOf(deviceId)).where(appliesTo(deviceId)).and(RESULT_LIST.condition(query)));
+	}
+
+	/**
+	 * Lists the check results across all the devices matching a query (one per device and rule).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the results of the window of the query
+	 */
+	public List<DeviceCheckResult> findResults(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(CHECK_RESULT.DEVICE, CHECK_RESULT.RULE, POLICY.ID, CHECK_RESULT.RESULT, CHECK_RESULT.COMMENT,
+					CHECK_RESULT.CHECK_DATE, EXEMPTION.EXPIRATION_DATE)
+				.from(ALL_RESULTS)
+				.where(ALL_RESULT_LIST.condition(query))
+				.orderBy(ALL_RESULT_LIST.orderBy(query)))
+			.fetch(r -> new DeviceCheckResult(r.value1(), r.value2(), r.value3(), r.value4() == null ? null : ResultOption.valueOf(r.value4()),
+				r.value5(), r.value6(), r.value7()));
+	}
+
+	/**
+	 * Counts the check results across all the devices matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of results
+	 */
+	public long countResults(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(dsl.selectOne().from(ALL_RESULTS).where(ALL_RESULT_LIST.condition(query)));
+	}
+
+	/**
+	 * Counts the check results across all the devices matching a query, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows
+	 */
+	public List<StatsRow> resultStats(DSLContext dsl, ListQuery query, StatsQuery stats) {
+		return ALL_RESULT_LIST.stats(dsl, ALL_RESULTS, query, stats, null);
 	}
 
 	/**

@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.task;
 
+import java.util.List;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.api.rest.v1.ListParams;
+import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
@@ -49,7 +51,6 @@ import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.api.rest.v1.report.ReportParams;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -246,8 +247,24 @@ public class TaskResource {
 		})
 	public TaskStatusCountsDto getTaskStatusCounts() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ReportParams.only(params, "parentTask");
-		String parent = ReportParams.single(params, "parentTask");
-		return TaskStatusCountsDto.of(this.taskService.getOverview(parent == null ? null : ReportParams.id("parentTask", parent)));
+		for (String name : params.keySet()) {
+			if (!"parentTask".equals(name)) {
+				throw NetshotException.invalidParameter(name, "Unknown parameter '%s'".formatted(name));
+			}
+		}
+		List<String> parents = params.get("parentTask");
+		Long parent = null;
+		if (parents != null && !parents.isEmpty()) {
+			try {
+				parent = parents.size() == 1 ? Long.parseLong(parents.get(0).trim()) : 0L;
+			}
+			catch (NumberFormatException e) {
+				parent = 0L;
+			}
+			if (parent < 1) {
+				throw NetshotException.invalidParameter("parentTask", "Invalid parameter 'parentTask': a single task ID is expected");
+			}
+		}
+		return TaskStatusCountsDto.of(this.taskService.getOverview(parent));
 	}
 }

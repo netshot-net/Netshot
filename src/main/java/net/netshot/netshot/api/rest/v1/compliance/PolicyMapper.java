@@ -22,13 +22,18 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.LongFunction;
+import java.util.stream.Collectors;
 
+import net.netshot.netshot.api.rest.v1.RefDto;
 import net.netshot.netshot.api.rest.v1.RefId;
+import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PolicyDefinition;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * Maps the compliance policies to their v1 representation, and the requests to the definitions the service takes.
@@ -96,5 +101,16 @@ public final class PolicyMapper {
 		List<Long> groups = request.targetGroups() == null ? List.of() : request.targetGroups().stream().map(RefId::id).toList();
 		Set<Long> ids = new LinkedHashSet<>(groups);
 		return new PolicyDefinition(request.name(), ids);
+	}
+
+	/**
+	 * Builds the resolver of policy IDs into references (statistics grouped by policy).
+	 *
+	 * @param service the policy use cases
+	 * @return the resolver
+	 */
+	public static StatsResponse.Resolver resolver(PolicyService service) {
+		return ids -> service.list(ListQuery.byIds(ids)).items().stream()
+			.collect(Collectors.toMap(Policy::id, o -> new RefDto(o.id(), V1Links.of(PATH, o.id()), o.name())));
 	}
 }
