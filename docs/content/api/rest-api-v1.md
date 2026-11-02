@@ -79,7 +79,7 @@ An unknown parameter, an unknown property, a lookup which doesn't apply to the p
 - `view=brief` or `view=full`: a list answers the brief view of its items by default, a single object its full view.
 - `fields=name,mgmtDomain.description`: only these properties (and `id`); a dotted path selects in a nested object.
 - `omit=attributes,accesses`: every property but these.
-- `expand=mgmtDomain,ownerGroups`: the full view of these referenced objects instead of their brief view.
+- `expand=mgmtDomain,ownerGroups`: the full view of these referenced objects instead of their brief view. An expanded reference is written even when the view or `fields` doesn't include it (`GET /api/v1/devices?expand=mgmtDomain` gives the brief view of the devices with their full domain); expanding an omitted property is refused (400).
 
 Omitting the heavy properties also makes the request lighter on the server (for instance, a device list which only needs summary properties doesn't load the attributes and accesses of the devices).
 

@@ -3586,7 +3586,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -3858,7 +3858,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -3899,7 +3899,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -3943,7 +3943,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4124,7 +4124,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4305,7 +4305,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4349,7 +4349,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4530,7 +4530,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4574,7 +4574,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4652,7 +4652,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4947,7 +4947,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -4988,7 +4988,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5032,7 +5032,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5213,7 +5213,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5254,7 +5254,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5298,7 +5298,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5346,7 +5346,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5688,7 +5688,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5729,7 +5729,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5790,7 +5790,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5831,7 +5831,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -5872,7 +5872,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6053,7 +6053,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6097,7 +6097,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6278,7 +6278,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6461,7 +6461,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6505,7 +6505,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6686,7 +6686,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6887,7 +6887,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6918,7 +6918,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -6959,7 +6959,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -7028,7 +7028,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -7205,7 +7205,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;
@@ -7386,7 +7386,7 @@ export interface operations {
                 fields?: string;
                 /** @description Properties not to write, comma-separated */
                 omit?: string;
-                /** @description References to write in their full view, comma-separated */
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
             };
             header?: never;

@@ -458,7 +458,7 @@ final class V1OpenApiEnhancer {
 		add(operation, Selection.VIEW, view, "View of the items: brief or full");
 		add(operation, Selection.FIELDS, new StringSchema(), "Properties to write, comma-separated (dotted paths for nested ones)");
 		add(operation, Selection.OMIT, new StringSchema(), "Properties not to write, comma-separated");
-		add(operation, Selection.EXPAND, new StringSchema(), "References to write in their full view, comma-separated");
+		add(operation, Selection.EXPAND, new StringSchema(), "References to write in their full view (written even when the view or the fields don't include them), comma-separated");
 	}
 
 	private static void addStatsParameters(Operation operation) {
