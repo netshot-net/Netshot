@@ -109,8 +109,10 @@ public class ComplianceResultResource {
 		Selection selection = Selection.of(uriInfo.getQueryParameters(), DeviceComplianceResultDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, DeviceComplianceResultDto.class);
 		var devices = refs.devices(selection, "device", results.items().stream().map(DeviceCheckResult::deviceId).toList());
-		var rules = refs.rules(selection, "rule", results.items().stream().map(DeviceCheckResult::ruleId).toList());
-		var policies = refs.policies(selection, "policy", results.items().stream().map(DeviceCheckResult::policyId).toList());
+		// The policies of the results are those of their rules: loaded once for both
+		var loadedPolicies = refs.loadedPolicies(selection, "policy", results.items().stream().map(DeviceCheckResult::policyId).toList());
+		var rules = refs.rules(selection, "rule", results.items().stream().map(DeviceCheckResult::ruleId).toList(), loadedPolicies);
+		var policies = ComplianceRefs.policies(loadedPolicies);
 		return ListResponse.of(uriInfo, query, results, r -> new DeviceComplianceResultDto(devices.apply(r.deviceId()),
 			rules.apply(r.ruleId()), policies.apply(r.policyId()), r.result(), r.comment(), r.checkDate(), r.exemptionExpirationDate()));
 	}
