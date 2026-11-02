@@ -42,7 +42,8 @@ import net.netshot.netshot.platform.error.NetshotException;
  * objects; it replaces the view;</li>
  * <li>{@code omit=attributes,accesses}: every property but these;</li>
  * <li>{@code expand=mgmtDomain}: the full form of these referenced objects ({@link Ref}), which are otherwise
- * written in their brief view.</li>
+ * written in their brief view; an expanded reference is written even when the view or the fields don't include it
+ * (but it can't be omitted).</li>
  * </ul>
  * The parameters can be repeated or hold comma-separated values. The paths are checked against the
  * {@link DtoModel} of the representation (400 for an unknown property). The selection is applied by
@@ -145,7 +146,22 @@ public final class Selection {
 		PathTree fields = params.containsKey(FIELDS) ? paths(params, FIELDS, model, false) : null;
 		PathTree omit = paths(params, OMIT, model, false);
 		PathTree expand = paths(params, EXPAND, model, true);
+		checkNotOmitted(expand, omit, "");
 		return new Selection(model, view, fields, omit, expand);
+	}
+
+	// An expanded reference can't be omitted (nor what holds it)
+	private static void checkNotOmitted(PathTree expand, PathTree omit, String prefix) {
+		for (Map.Entry<String, PathTree> child : expand.children.entrySet()) {
+			String path = prefix + child.getKey();
+			PathTree omitted = omit.child(child.getKey());
+			if (omitted != null && omitted.isLeaf()) {
+				throw NetshotException.invalidParameter(OMIT, "The property '%s' can't be both omitted and expanded".formatted(path));
+			}
+			if (omitted != null) {
+				checkNotOmitted(child.getValue(), omitted, path + ".");
+			}
+		}
 	}
 
 	/**
@@ -166,6 +182,9 @@ public final class Selection {
 	 * @return true if the property will be written
 	 */
 	public boolean includes(String name) {
+		if (this.expand.child(name) != null) {
+			return true;
+		}
 		if (this.fields != null) {
 			return this.fields.child(name) != null;
 		}
@@ -294,6 +313,9 @@ public final class Selection {
 		}
 		if (keep != null && model.isPolymorphic()) {
 			keep.add("type");
+		}
+		if (keep != null && expand != null) {
+			keep.addAll(expand.children.keySet());
 		}
 		generator.writeStartObject(value);
 		Map.Entry<String, String> typeId = record.typeId();

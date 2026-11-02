@@ -160,7 +160,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -627,7 +627,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -742,7 +742,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -848,7 +848,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1182,7 +1182,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1527,7 +1527,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1633,7 +1633,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1978,7 +1978,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2091,7 +2091,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2265,7 +2265,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2805,7 +2805,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2920,7 +2920,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -3026,7 +3026,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -3363,7 +3363,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -3478,7 +3478,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -3593,7 +3593,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -3713,7 +3713,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4374,7 +4374,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4480,7 +4480,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4602,7 +4602,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4708,7 +4708,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4814,7 +4814,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -5159,7 +5159,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -5265,7 +5265,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -5600,7 +5600,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -5952,7 +5952,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -6058,7 +6058,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -6393,7 +6393,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -6705,7 +6705,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -6769,7 +6769,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -6884,7 +6884,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -7030,7 +7030,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -7372,7 +7372,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -7708,7 +7708,7 @@
         }, {
           "name" : "expand",
           "in" : "query",
-          "description" : "References to write in their full view, comma-separated",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
           "schema" : {
             "type" : "string"
