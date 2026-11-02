@@ -20,8 +20,10 @@ package net.netshot.netshot.api.rest.v1.export;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.netshot.netshot.api.rest.v1.ListResponse;
@@ -96,12 +98,19 @@ public final class ListExport {
 	 * @return the table
 	 */
 	static ExportTable table(HttpServletRequest request, ListResponse<?> list) {
-		JsonNode results = V1Mappers.json().valueToTree(list).get("results");
 		Selection selection = V1Response.selectionOf(request, list);
-		if (selection != null) {
-			selection.apply(results);
+		if (selection == null) {
+			return ExportTable.of(V1Mappers.json().valueToTree(list.results()));
 		}
-		return ExportTable.of(results);
+		// The tree of the selected properties only
+		JsonMapper mapper = V1Mappers.json();
+		try (TokenBuffer buffer = new TokenBuffer(mapper, false)) {
+			selection.write(buffer, mapper.getSerializerProviderInstance(), list.results());
+			return ExportTable.of(mapper.readTree(buffer.asParser()));
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException("Unable to write the exported items", e);
+		}
 	}
 
 	/**

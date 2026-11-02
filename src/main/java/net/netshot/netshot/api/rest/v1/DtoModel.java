@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
@@ -32,7 +34,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
 /**
  * The structure of a v1 representation (a DTO record, or a sealed interface of records with a {@code type}
@@ -53,8 +55,24 @@ final class DtoModel {
 	 * @param ref whether the property refers to other objects
 	 * @param target the class of the nested object (or of the elements of the nested list), if it has a model;
 	 *        null for a value
+	 * @param accessor the accessor of the record component (null for the type property of a polymorphic type)
 	 */
-	record Prop(String name, boolean brief, boolean ref, Class<?> target) {
+	record Prop(String name, boolean brief, boolean ref, Class<?> target, MethodHandle accessor) {
+
+		/**
+		 * Reads the property of a record.
+		 *
+		 * @param record the record
+		 * @return the value
+		 */
+		Object get(Object record) {
+			try {
+				return this.accessor.invoke(record);
+			}
+			catch (Throwable e) {
+				throw new IllegalStateException("Unable to read the property " + this.name, e);
+			}
+		}
 
 		/**
 		 * Gets the model of the nested object.
@@ -78,10 +96,17 @@ final class DtoModel {
 	/** The name of the type property, for a polymorphic type (null otherwise). */
 	private final String typeProperty;
 
-	private DtoModel(Map<String, Prop> props, Map<String, Class<?>> subtypes, String typeProperty) {
+	/**
+	 * The type property Jackson adds to a record (subtype of a polymorphic type whose type is not one of its
+	 * components, {@link JsonTypeInfo.As#PROPERTY}): its name and value, null otherwise.
+	 */
+	private final Map.Entry<String, String> typeId;
+
+	private DtoModel(Map<String, Prop> props, Map<String, Class<?>> subtypes, String typeProperty, Map.Entry<String, String> typeId) {
 		this.props = props;
 		this.subtypes = subtypes;
 		this.typeProperty = typeProperty;
+		this.typeId = typeId;
 	}
 
 	/**
@@ -118,10 +143,17 @@ final class DtoModel {
 				}
 				JsonProperty property = component.getAnnotation(JsonProperty.class);
 				String name = property != null && !property.value().isEmpty() ? property.value() : component.getName();
+				MethodHandle accessor;
+				try {
+					accessor = MethodHandles.publicLookup().unreflect(component.getAccessor());
+				}
+				catch (IllegalAccessException e) {
+					throw new IllegalArgumentException("Inaccessible property " + name + " of " + type, e);
+				}
 				props.put(name, new Prop(name, component.isAnnotationPresent(Brief.class) || ALWAYS_BRIEF.contains(name),
-					component.isAnnotationPresent(Ref.class), targetOf(component.getGenericType())));
+					component.isAnnotationPresent(Ref.class), targetOf(component.getGenericType()), accessor));
 			}
-			return new DtoModel(props, Map.of(), null);
+			return new DtoModel(props, Map.of(), null, typeIdOf(type));
 		}
 		JsonSubTypes subTypes = type.getAnnotation(JsonSubTypes.class);
 		if (subTypes == null) {
@@ -132,7 +164,39 @@ final class DtoModel {
 		for (JsonSubTypes.Type subType : subTypes.value()) {
 			subtypes.put(subType.name(), subType.value());
 		}
-		return new DtoModel(Map.of(), subtypes, typeInfo == null ? "type" : typeInfo.property());
+		return new DtoModel(Map.of(), subtypes, typeInfo == null ? "type" : typeInfo.property(), null);
+	}
+
+	/**
+	 * Gets the type property Jackson writes for a record, as the subtype of a polymorphic interface which doesn't
+	 * have it as a component ({@link JsonTypeInfo.As#PROPERTY}, named types).
+	 *
+	 * @param type the record class
+	 * @return the name and the value of the property, or null
+	 */
+	private static Map.Entry<String, String> typeIdOf(Class<?> type) {
+		for (Class<?> parent : type.getInterfaces()) {
+			JsonTypeInfo typeInfo = parent.getAnnotation(JsonTypeInfo.class);
+			if (typeInfo == null || typeInfo.include() != JsonTypeInfo.As.PROPERTY || typeInfo.use() != JsonTypeInfo.Id.NAME) {
+				continue;
+			}
+			String name = null;
+			JsonTypeName typeName = type.getAnnotation(JsonTypeName.class);
+			if (typeName != null && !typeName.value().isEmpty()) {
+				name = typeName.value();
+			}
+			JsonSubTypes subTypes = parent.getAnnotation(JsonSubTypes.class);
+			if (name == null && subTypes != null) {
+				for (JsonSubTypes.Type subType : subTypes.value()) {
+					if (subType.value() == type && !subType.name().isEmpty()) {
+						name = subType.name();
+					}
+				}
+			}
+			String property = typeInfo.property().isEmpty() ? typeInfo.use().getDefaultPropertyName() : typeInfo.property();
+			return Map.entry(property, name == null ? type.getSimpleName() : name);
+		}
+		return null;
 	}
 
 	/**
@@ -162,21 +226,6 @@ final class DtoModel {
 	}
 
 	/**
-	 * Gets the model applying to a node: the model of its type for a polymorphic model.
-	 *
-	 * @param node the object node
-	 * @return the model of the records (this model if it isn't polymorphic)
-	 */
-	DtoModel resolve(JsonNode node) {
-		if (!this.isPolymorphic()) {
-			return this;
-		}
-		JsonNode type = node.get(this.typeProperty);
-		Class<?> subtype = type == null ? null : this.subtypes.get(type.asText());
-		return subtype == null ? this : of(subtype);
-	}
-
-	/**
 	 * Gets a property, looking into every subtype for a polymorphic model (for the validation of the paths).
 	 *
 	 * @param name the name of the property
@@ -187,7 +236,7 @@ final class DtoModel {
 			return this.props.get(name);
 		}
 		if (name.equals(this.typeProperty)) {
-			return new Prop(name, true, false, null);
+			return new Prop(name, true, false, null, null);
 		}
 		for (Class<?> subtype : this.subtypes.values()) {
 			Prop prop = of(subtype).anyProp(name);
@@ -215,6 +264,34 @@ final class DtoModel {
 	 */
 	Set<String> names() {
 		return this.props.keySet();
+	}
+
+	/**
+	 * Gets the properties of a record model, in their order.
+	 *
+	 * @return the properties
+	 */
+	Collection<Prop> props() {
+		return this.props.values();
+	}
+
+	/**
+	 * Gets the type property Jackson adds to the records of this model (see {@link #typeIdOf(Class)}).
+	 *
+	 * @return the name and value of the property, or null
+	 */
+	Map.Entry<String, String> typeId() {
+		return this.typeId;
+	}
+
+	/**
+	 * Gets the model of a representation: the model of its own class for a polymorphic type, this one otherwise.
+	 *
+	 * @param value the representation (a record)
+	 * @return the model
+	 */
+	DtoModel resolve(Object value) {
+		return this.isPolymorphic() && value.getClass().isRecord() ? of(value.getClass()) : this;
 	}
 
 	/**
