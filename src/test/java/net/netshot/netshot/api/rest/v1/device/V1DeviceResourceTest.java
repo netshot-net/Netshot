@@ -192,6 +192,15 @@ public class V1DeviceResourceTest {
 		Assertions.assertEquals("Lyon", located.get("location").asText());
 		Assertions.assertEquals(Set.of("id", "description"), keys(located.get("mgmtDomain")));
 		Assertions.assertEquals("Lyon DC", located.get("mgmtDomain").get("description").asText());
+
+		// An expanded reference is written even when the view or the fields don't include it
+		JsonNode brief = this.admin.get("/devices?expand=mgmtDomain&name=router00001").json().get("results").get(0);
+		Assertions.assertEquals("Paris DC", brief.get("mgmtDomain").get("description").asText());
+		Assertions.assertTrue(brief.get("mgmtDomain").has("changeDate"), "full view of the domain");
+		Assertions.assertFalse(brief.has("location"), "brief view of the device");
+		JsonNode named = this.admin.get("/devices?fields=name&expand=mgmtDomain&name=router00001").json().get("results").get(0);
+		Assertions.assertEquals(Set.of("id", "name", "mgmtDomain"), keys(named));
+		Assertions.assertTrue(named.get("mgmtDomain").has("changeDate"));
 	}
 
 	@Test
@@ -222,6 +231,7 @@ public class V1DeviceResourceTest {
 		Assertions.assertTrue(omitted.has("location"));
 
 		Assertions.assertEquals(400, this.admin.get("/devices/" + this.router1.id() + "?expand=location").status());
+		Assertions.assertEquals(400, this.admin.get("/devices/" + this.router1.id() + "?omit=mgmtDomain&expand=mgmtDomain").status());
 		Answer missing = this.admin.get("/devices/" + TestServer.UNKNOWN_ID);
 		Assertions.assertEquals(404, missing.status());
 		Assertions.assertEquals("NETSHOT_DEVICE_NOT_FOUND", missing.json().get("code").asText());
