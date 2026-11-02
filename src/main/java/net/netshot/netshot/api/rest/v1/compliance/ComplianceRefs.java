@@ -105,10 +105,32 @@ final class ComplianceRefs {
 	 * @return the policies by ID
 	 */
 	LongFunction<PolicyDto> policies(Selection selection, String property, Collection<Long> ids) {
-		return selection.includes(property) ? this.loadPolicies(ids, selection.expands(property)) : this.loadPolicies(List.of(), false);
+		return policies(this.loadedPolicies(selection, property, ids));
 	}
 
-	private LongFunction<PolicyDto> loadPolicies(Collection<Long> ids, boolean expand) {
+	/**
+	 * Loads policies, to be shared by several resolutions of the same response.
+	 *
+	 * @param selection the selection of the response
+	 * @param property the name of the property holding the references
+	 * @param ids the IDs
+	 * @return the loaded policies by ID (empty when the response doesn't write the property)
+	 */
+	Map<Long, PolicyDto> loadedPolicies(Selection selection, String property, Collection<Long> ids) {
+		return selection.includes(property) ? this.loadPolicies(ids, selection.expands(property)) : Map.of();
+	}
+
+	/**
+	 * Resolves policies from the loaded ones.
+	 *
+	 * @param loaded the loaded policies by ID
+	 * @return the policies by ID
+	 */
+	static LongFunction<PolicyDto> policies(Map<Long, PolicyDto> loaded) {
+		return orIds(loaded, id -> new PolicyDto(id, V1Links.of(PolicyMapper.PATH, id), null, null, null));
+	}
+
+	private Map<Long, PolicyDto> loadPolicies(Collection<Long> ids, boolean expand) {
 		Map<Long, PolicyDto> policies = new HashMap<>();
 		Set<Long> wanted = nonNull(ids);
 		if (!wanted.isEmpty()) {
@@ -119,7 +141,7 @@ final class ComplianceRefs {
 				: PolicyMapper::groupRef;
 			found.forEach(p -> policies.put(p.id(), PolicyMapper.toDto(p, groups)));
 		}
-		return orIds(policies, id -> new PolicyDto(id, V1Links.of(PolicyMapper.PATH, id), null, null, null));
+		return policies;
 	}
 
 	/**
@@ -128,15 +150,18 @@ final class ComplianceRefs {
 	 * @param selection the selection of the response
 	 * @param property the name of the property holding the references
 	 * @param ids the IDs
+	 * @param loadedPolicies the policies already loaded for the response, not loaded again for the rules
 	 * @return the rules by ID (null for a rule which couldn't be loaded)
 	 */
-	LongFunction<RuleDto> rules(Selection selection, String property, Collection<Long> ids) {
+	LongFunction<RuleDto> rules(Selection selection, String property, Collection<Long> ids, Map<Long, PolicyDto> loadedPolicies) {
 		Map<Long, RuleDto> rules = new HashMap<>();
 		Set<Long> wanted = nonNull(ids);
 		if (!wanted.isEmpty() && selection.includes(property)) {
 			List<Rule> found = this.ruleService.list(ListQuery.byIds(wanted)).items();
-			LongFunction<PolicyDto> policies = this.loadPolicies(found.stream().map(Rule::policyId).toList(), false);
-			found.forEach(r -> rules.put(r.id(), RuleMapper.toDto(r, policies)));
+			Map<Long, PolicyDto> policies = new HashMap<>(loadedPolicies);
+			policies.putAll(this.loadPolicies(found.stream().map(Rule::policyId).filter(id -> !loadedPolicies.containsKey(id)).toList(), false));
+			LongFunction<PolicyDto> rulePolicies = policies(policies);
+			found.forEach(r -> rules.put(r.id(), RuleMapper.toDto(r, rulePolicies)));
 		}
 		return id -> rules.get(id);
 	}
