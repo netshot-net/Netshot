@@ -18,7 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1;
 
-import java.util.Iterator;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,8 +27,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
 
 import jakarta.ws.rs.core.MultivaluedMap;
 import net.netshot.netshot.platform.error.NetshotException;
@@ -45,7 +46,7 @@ import net.netshot.netshot.platform.error.NetshotException;
  * </ul>
  * The parameters can be repeated or hold comma-separated values. The paths are checked against the
  * {@link DtoModel} of the representation (400 for an unknown property). The selection is applied by
- * {@link V1EntityProvider} to the JSON tree of the response, whatever the format.
+ * {@link V1EntityProvider} while it writes the response, whatever the format.
  */
 public final class Selection {
 
@@ -256,30 +257,33 @@ public final class Selection {
 	}
 
 	/**
-	 * Applies the selection to the JSON tree of a representation (in place).
+	 * Writes a representation with the selection applied: only the selected properties are written (the brief view
+	 * of a referenced object unless it is expanded), the values themselves are written by Jackson.
 	 *
-	 * @param node the representation (an object, or an array of objects)
-	 * @return the node
+	 * @param generator the generator (of the mapper of the response format)
+	 * @param provider the serializer provider of the mapper, for the values
+	 * @param value the representation (a record, or a collection of records)
+	 * @throws IOException if the representation can't be written
 	 */
-	public JsonNode apply(JsonNode node) {
-		prune(node, this.model, this.view, this.fields, this.omit, this.expand);
-		return node;
+	public void write(JsonGenerator generator, SerializerProvider provider, Object value) throws IOException {
+		write(generator, provider, value, this.model, this.view, this.fields, this.omit, this.expand);
 	}
 
-	private static void prune(JsonNode node, DtoModel model, View view, PathTree fields, PathTree omit, PathTree expand) {
-		if (node == null || model == null) {
-			return;
-		}
-		if (node.isArray()) {
-			for (JsonNode element : node) {
-				prune(element, model, view, fields, omit, expand);
+	private static void write(JsonGenerator generator, SerializerProvider provider, Object value, DtoModel model, View view,
+		PathTree fields, PathTree omit, PathTree expand) throws IOException {
+		if (value instanceof Collection<?> items && model != null) {
+			generator.writeStartArray();
+			for (Object item : items) {
+				write(generator, provider, item, model, view, fields, omit, expand);
 			}
+			generator.writeEndArray();
 			return;
 		}
-		if (!(node instanceof ObjectNode object)) {
+		if (value == null || model == null || !value.getClass().isRecord()) {
+			provider.defaultSerializeValue(value, generator);
 			return;
 		}
-		DtoModel record = model.resolve(object);
+		DtoModel record = model.resolve(value);
 		Set<String> keep = null;
 		if (fields != null && !fields.isLeaf()) {
 			keep = new LinkedHashSet<>(fields.children.keySet());
@@ -291,26 +295,35 @@ public final class Selection {
 		if (keep != null && model.isPolymorphic()) {
 			keep.add("type");
 		}
-		Iterator<Map.Entry<String, JsonNode>> it = object.properties().iterator();
-		while (it.hasNext()) {
-			Map.Entry<String, JsonNode> entry = it.next();
-			String name = entry.getKey();
-			PathTree omitted = omit == null ? null : omit.child(name);
-			if ((keep != null && !keep.contains(name)) || (omitted != null && omitted.isLeaf())) {
-				it.remove();
+		generator.writeStartObject(value);
+		Map.Entry<String, String> typeId = record.typeId();
+		if (typeId != null && isWritten(typeId.getKey(), keep, omit)) {
+			generator.writeStringField(typeId.getKey(), typeId.getValue());
+		}
+		for (DtoModel.Prop prop : record.props()) {
+			String name = prop.name();
+			if (!isWritten(name, keep, omit)) {
 				continue;
 			}
-			DtoModel.Prop prop = record.prop(name);
-			if (prop == null || prop.target() == null) {
+			generator.writeFieldName(name);
+			Object propValue = prop.get(value);
+			if (prop.target() == null) {
+				provider.defaultSerializeValue(propValue, generator);
 				continue;
 			}
 			PathTree childFields = fields == null ? null : fields.child(name);
 			PathTree childExpand = expand == null ? null : expand.child(name);
 			boolean expanded = childExpand != null || (childFields != null && !childFields.isLeaf());
 			View childView = prop.ref() && !expanded ? View.BRIEF : View.FULL;
-			prune(entry.getValue(), prop.model(), childView,
+			write(generator, provider, propValue, prop.model(), childView,
 				childFields == null || childFields.isLeaf() ? null : childFields,
-				omitted, childExpand);
+				omit == null ? null : omit.child(name), childExpand);
 		}
+		generator.writeEndObject();
+	}
+
+	private static boolean isWritten(String name, Set<String> keep, PathTree omit) {
+		PathTree omitted = omit == null ? null : omit.child(name);
+		return (keep == null || keep.contains(name)) && (omitted == null || !omitted.isLeaf());
 	}
 }

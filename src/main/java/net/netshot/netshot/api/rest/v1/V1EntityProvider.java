@@ -26,9 +26,15 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Locale;
 
+import javax.xml.namespace.QName;
+
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
+import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
@@ -42,9 +48,9 @@ import jakarta.ws.rs.ext.MessageBodyWriter;
 /**
  * Reads and writes the bodies of the v1 API, in JSON, XML and YAML, with the {@link V1Mappers}.
  *
- * <p>A response is first turned into its JSON tree, the {@link Selection} attached to the request (if any) is
- * applied to it ({@link V1Response#select}), and the tree is written in the negotiated format: the
- * representation is the same whatever the format. In XML, the root element is {@code list} for a page
+ * <p>A response is written in the negotiated format with the {@link Selection} attached to the request (if any,
+ * {@link V1Response#select}): only the selected properties are written, without building the whole
+ * representation first; the representation is the same whatever the format. In XML, the root element is {@code list} for a page
  * ({@link ListResponse}), otherwise the name given by {@link JacksonXmlRootElement} or the class name without
  * its {@code Dto} suffix ({@code domain}).</p>
  */
@@ -89,23 +95,51 @@ public class V1EntityProvider implements MessageBodyReader<Object>, MessageBodyW
 	@Override
 	public void writeTo(Object entity, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType,
 		MultivaluedMap<String, Object> httpHeaders, OutputStream entityStream) throws IOException {
-		JsonNode tree = entity instanceof JsonNode node ? node : V1Mappers.json().valueToTree(entity);
-		Selection selection = V1Response.selectionOf(this.request, entity);
-		if (selection != null) {
-			if (entity instanceof ListResponse<?>) {
-				selection.apply(tree.get("results"));
+		ObjectMapper mapper = V1Mappers.forMediaType(mediaType);
+		Selection selection = entity instanceof JsonNode ? null : V1Response.selectionOf(this.request, entity);
+		if (selection == null) {
+			ObjectWriter writer = V1Mappers.isXml(mediaType) ? mapper.writer().withRootName(rootName(entity)) : mapper.writer();
+			writer.writeValue(entityStream, entity);
+			return;
+		}
+		// The selection is applied while writing (no intermediate tree): the selected properties only
+		try (JsonGenerator generator = mapper.createGenerator(entityStream)) {
+			if (generator instanceof ToXmlGenerator xml) {
+				xml.setNextName(new QName(rootName(entity)));
+				xml.initGenerator();
+			}
+			SerializerProvider provider = mapper.getSerializerProviderInstance();
+			if (entity instanceof ListResponse<?> list) {
+				writeList(generator, provider, list, selection);
 			}
 			else {
-				selection.apply(tree);
+				selection.write(generator, provider, entity);
 			}
 		}
-		ObjectMapper mapper = V1Mappers.forMediaType(mediaType);
-		if (V1Mappers.isXml(mediaType)) {
-			mapper.writer().withRootName(rootName(entity)).writeValue(entityStream, tree);
+	}
+
+	/**
+	 * Writes a list: the envelope as it is, the items with the selection.
+	 *
+	 * @param generator the generator
+	 * @param provider the serializer provider, for the values
+	 * @param list the list
+	 * @param selection the selection of the items
+	 * @throws IOException if the list can't be written
+	 */
+	private static void writeList(JsonGenerator generator, SerializerProvider provider, ListResponse<?> list, Selection selection)
+		throws IOException {
+		generator.writeStartObject(list);
+		for (DtoModel.Prop prop : DtoModel.of(ListResponse.class).props()) {
+			generator.writeFieldName(prop.name());
+			if ("results".equals(prop.name())) {
+				selection.write(generator, provider, list.results());
+			}
+			else {
+				provider.defaultSerializeValue(prop.get(list), generator);
+			}
 		}
-		else {
-			mapper.writeValue(entityStream, tree);
-		}
+		generator.writeEndObject();
 	}
 
 	/**
