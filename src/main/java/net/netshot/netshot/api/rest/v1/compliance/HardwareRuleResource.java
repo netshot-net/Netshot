@@ -44,8 +44,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -108,8 +110,9 @@ public class HardwareRuleResource {
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the hardware rules", description = "Lists the hardware compliance rules, in their brief view by default.")
+	@ListFilters(ListSchema.HARDWARE_RULES)
 	public ListResponse<HardwareRuleDto> listHardwareRules() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.hardwareRuleService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.HARDWARE_RULES.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), HardwareRuleDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, HardwareRuleDto.class);
 		ListResult<HardwareRule> rules = this.hardwareRuleService.list(query);

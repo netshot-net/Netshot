@@ -44,8 +44,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -110,8 +112,9 @@ public class PolicyResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the compliance policies", description = "Lists the compliance policies, in their brief view by default. "
 		+ "The targetGroup filter gives the policies applying to a group.")
+	@ListFilters(ListSchema.POLICIES)
 	public ListResponse<PolicyDto> listPolicies() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.policyService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.POLICIES.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), PolicyDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, PolicyDto.class);
 		var policies = this.policyService.list(query);
@@ -147,6 +150,7 @@ public class PolicyResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the rules of a policy", description = "Lists the rules of a policy, "
 		+ "as the rule list filtered on the policy (same parameters).")
+	@ListFilters(ListSchema.RULES)
 	public ListResponse<RuleDto> listPolicyRules(@PathParam("id") @Parameter(description = "Policy ID") long id) {
 		this.policyService.get(id);
 		return RuleResource.list(this.ruleService, this.refs, this.request, this.uriInfo, new Criterion("policy", Lookup.EXACT, List.of(id)));

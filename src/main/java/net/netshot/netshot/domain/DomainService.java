@@ -84,7 +84,7 @@ public class DomainService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return DomainRepository.LIST.schema();
 	}
 

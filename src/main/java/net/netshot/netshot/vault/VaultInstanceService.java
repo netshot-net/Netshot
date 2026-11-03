@@ -96,7 +96,7 @@ public class VaultInstanceService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return VaultInstanceRepository.LIST.schema();
 	}
 

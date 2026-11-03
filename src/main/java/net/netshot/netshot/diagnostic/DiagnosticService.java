@@ -92,7 +92,7 @@ public class DiagnosticService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return DiagnosticRepository.LIST.schema();
 	}
 
@@ -119,7 +119,7 @@ public class DiagnosticService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listResultSchema() {
+	public static QuerySchema listResultSchema() {
 		return DiagnosticResultRepository.LIST.schema();
 	}
 

@@ -40,8 +40,10 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -103,9 +105,10 @@ public class DiagnosticResultResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the diagnostic results of a device", description = "Lists the last result of each diagnostic "
 		+ "run on a device, with the diagnostic as a reference.")
+	@ListFilters(ListSchema.DIAGNOSTIC_RESULTS)
 	public ListResponse<DiagnosticResultDto> listDiagnosticResults(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceService.get(id);
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.diagnosticService.listResultSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DIAGNOSTIC_RESULTS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), DiagnosticResultDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, DiagnosticResultDto.class);
 		ListResult<DiagnosticResult> results = this.diagnosticService.listResults(query.and(new Criterion("device", Lookup.EXACT, List.of(id))));

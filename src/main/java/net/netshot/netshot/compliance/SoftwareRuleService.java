@@ -97,7 +97,7 @@ public class SoftwareRuleService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return SoftwareRuleRepository.LIST.schema();
 	}
 

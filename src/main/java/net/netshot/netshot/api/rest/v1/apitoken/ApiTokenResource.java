@@ -38,8 +38,10 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenService;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
@@ -84,8 +86,9 @@ public class ApiTokenResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the API tokens", description = "Lists the API tokens (never their values), in their brief "
 		+ "view by default.")
+	@ListFilters(ListSchema.API_TOKENS)
 	public ListResponse<ApiTokenDto> listApiTokens() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.apiTokenService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.API_TOKENS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ApiTokenDto.class, Selection.View.BRIEF),
 			ApiTokenDto.class);
 		return ListResponse.of(this.uriInfo, query, this.apiTokenService.list(query), ApiTokenMapper::toDto);

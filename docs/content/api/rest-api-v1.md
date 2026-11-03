@@ -72,7 +72,7 @@ Any other parameter is a filter on a property, NetBox style: `<property>=<value>
 
 A parameter given several times matches any of its values (`status=INPRODUCTION&status=PREPRODUCTION`), and none of them for the negated lookups; different parameters must all match. Wildcards (`%`, `_`) are literal. A date is a date (`2026-10-30`, midnight UTC) or a date and time with offset.
 
-An unknown parameter, an unknown property, a lookup which doesn't apply to the property or an invalid value is refused with a 400 error naming the parameter.
+The OpenAPI document declares the filters of each list (one parameter per property and lookup), and lists the properties it can be sorted, searched and (statistics) grouped by. An unknown parameter, an unknown property, a lookup which doesn't apply to the property or an invalid value is refused with a 400 error naming the parameter.
 
 ### Views and fields
 

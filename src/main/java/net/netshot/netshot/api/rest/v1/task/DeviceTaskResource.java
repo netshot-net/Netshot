@@ -34,7 +34,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -90,6 +92,7 @@ public class DeviceTaskResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the tasks of a device", description = "Lists the tasks targeting a device, "
 		+ "as the task list filtered on the device (same parameters).")
+	@ListFilters(ListSchema.TASKS)
 	public ListResponse<TaskDto> listDeviceTasks(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
 		return TaskResource.list(this.taskService, this.responses, this.request, this.uriInfo,

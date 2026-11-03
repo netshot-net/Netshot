@@ -92,7 +92,7 @@ public class PolicyService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return PolicyRepository.LIST.schema();
 	}
 

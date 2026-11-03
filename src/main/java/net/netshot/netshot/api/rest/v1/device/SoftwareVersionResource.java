@@ -31,8 +31,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -74,9 +76,10 @@ public class SoftwareVersionResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the software versions", description = "Lists the distinct (non empty) software versions of the devices, with their number of devices. An "
 		+ "aggregate: items have no id nor url.")
+	@ListFilters(ListSchema.SOFTWARE_VERSIONS)
 	public ListResponse<SoftwareVersionDto> listSoftwareVersions() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, this.catalogService.softwareVersionSchema());
+		ListQuery query = ListParams.parse(params, ListSchema.SOFTWARE_VERSIONS.schema());
 		Selection selection = Selection.of(params, SoftwareVersionDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, SoftwareVersionDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listSoftwareVersions(query), DeviceInventoryMapper::toDto);

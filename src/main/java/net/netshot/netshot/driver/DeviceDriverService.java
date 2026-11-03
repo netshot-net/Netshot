@@ -81,7 +81,7 @@ public class DeviceDriverService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return LIST.schema();
 	}
 

@@ -43,6 +43,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
+import net.netshot.netshot.api.rest.v1.ListFilters;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.StatsParams;
@@ -114,8 +116,9 @@ public class ConfigResource {
 	@Operation(summary = "Count the configurations", description = "Counts the configurations (the configuration changes) matching "
 		+ "the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, "
 		+ "day, week or month, on changeDate, from/to, timeZone).")
+	@ListFilters(ListSchema.CONFIGS)
 	public StatsResponse getConfigStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.configService.listSchema(), "changeDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.CONFIGS.schema(), "changeDate");
 		ListResult<StatsRow> rows = this.configService.stats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of("device", DeviceMapper.resolver(this.searchService)));
 	}
@@ -132,6 +135,7 @@ public class ConfigResource {
 		+ "in their brief view by default (device, date, author), the latest first. The attributes are only there "
 		+ "in the full view (or with fields=attributes), and never hold the long texts and files: download them "
 		+ "from their url. The filters on domain and group apply to the device of the configuration.")
+	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listConfigs() {
 		return list(this.configService, this.searchService, this.driverRegistry, this.request, this.uriInfo, null);
 	}
@@ -151,7 +155,7 @@ public class ConfigResource {
 	public static ListResponse<ConfigDto> list(ConfigService configService, SearchService searchService,
 		DriverRegistry driverRegistry, HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, configService.listSchema());
+		ListQuery listQuery = ListParams.parse(params, ListSchema.CONFIGS.schema());
 		Selection selection = Selection.of(params, ConfigDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, ConfigDto.class);
 		boolean withAttributes = selection.includes("attributes");

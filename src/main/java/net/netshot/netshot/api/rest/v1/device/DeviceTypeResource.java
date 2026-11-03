@@ -33,8 +33,10 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -77,9 +79,10 @@ public class DeviceTypeResource {
 	@Operation(summary = "List the device types", description = "Lists the device types: the device drivers loaded by the server, in their brief view by default "
 		+ "(name, description, version). View full adds the attributes, options, accesses... Items have no id "
 		+ "nor url: the name is what the devices refer to.")
+	@ListFilters(ListSchema.DEVICE_TYPES)
 	public ListResponse<DeviceTypeDto> listDeviceTypes() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, this.driverService.listSchema());
+		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_TYPES.schema());
 		Selection selection = Selection.of(params, DeviceTypeDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTypeDto.class);
 		return ListResponse.of(this.uriInfo, query, this.driverService.list(query), DeviceInventoryMapper::toDto);

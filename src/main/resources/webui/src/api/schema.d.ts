@@ -10,7 +10,7 @@ export interface paths {
         };
         /**
          * List the API tokens
-         * @description Lists the API tokens (never their values), in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the API tokens (never their values), in their brief view by default.
          */
         get: operations["listApiTokens"];
         put?: never;
@@ -110,7 +110,7 @@ export interface paths {
         };
         /**
          * Count the compliance results
-         * @description Counts the compliance results matching the filters of the list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket (interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device. Any other parameter is a filter of the list.
+         * @description Counts the compliance results matching the filters of the list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket (interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device.
          */
         get: operations["getResultStats"];
         put?: never;
@@ -130,7 +130,7 @@ export interface paths {
         };
         /**
          * List the compliance results
-         * @description Lists the results of the last compliance checks, one per device and rule (a rule never checked on a device has no result here), with the exemption of the device from the rule. Filters: device, deviceName, domain and group (of the device), rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate; q searches the device, rule and policy names. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the results of the last compliance checks, one per device and rule (a rule never checked on a device has no result here), with the exemption of the device from the rule. Filters: device, deviceName, domain and group (of the device), rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate; q searches the device, rule and policy names.
          */
         get: operations["listResults"];
         put?: never;
@@ -150,7 +150,7 @@ export interface paths {
         };
         /**
          * List the compliance results of a device
-         * @description Lists the rules of the policies applying to a device (through its groups) with the result of their last check (none if never checked) and the exemption of the device. (unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the rules of the policies applying to a device (through its groups) with the result of their last check (none if never checked) and the exemption of the device. (unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.
          */
         get: operations["listResults_1"];
         put?: never;
@@ -170,7 +170,7 @@ export interface paths {
         };
         /**
          * List the hardware rules
-         * @description Lists the hardware compliance rules, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the hardware compliance rules, in their brief view by default.
          */
         get: operations["listHardwareRules"];
         put?: never;
@@ -217,7 +217,7 @@ export interface paths {
         };
         /**
          * List the compliance policies
-         * @description Lists the compliance policies, in their brief view by default. The targetGroup filter gives the policies applying to a group. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the compliance policies, in their brief view by default. The targetGroup filter gives the policies applying to a group.
          */
         get: operations["listPolicies"];
         put?: never;
@@ -270,7 +270,7 @@ export interface paths {
         };
         /**
          * List the rules of a policy
-         * @description Lists the rules of a policy, as the rule list filtered on the policy (same parameters). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the rules of a policy, as the rule list filtered on the policy (same parameters).
          */
         get: operations["listPolicyRules"];
         put?: never;
@@ -290,7 +290,7 @@ export interface paths {
         };
         /**
          * List the compliance rules
-         * @description Lists the compliance rules of all the policies, in their brief view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the compliance rules of all the policies, in their brief view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has).
          */
         get: operations["listRules"];
         put?: never;
@@ -343,12 +343,12 @@ export interface paths {
         };
         /**
          * List the exemptions of a rule
-         * @description Lists the devices exempted from a rule, with the date their exemption ends. Filters: device, expirationDate. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the devices exempted from a rule, with the date their exemption ends. Filters: device, expirationDate.
          */
         get: operations["listExemptions"];
         /**
          * Replace the exemptions of a rule
-         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set.
          */
         put: operations["replaceExemptions"];
         post?: never;
@@ -387,7 +387,7 @@ export interface paths {
         };
         /**
          * List the software rules
-         * @description Lists the software compliance rules, in the order they are checked in by default (priority is the position of the rule, from 1). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the software compliance rules, in the order they are checked in by default (priority is the position of the rule, from 1).
          */
         get: operations["listSoftwareRules"];
         put?: never;
@@ -500,7 +500,7 @@ export interface paths {
         };
         /**
          * Count the configurations
-         * @description Counts the configurations (the configuration changes) matching the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, day, week or month, on changeDate, from/to, timeZone). Any other parameter is a filter of the list.
+         * @description Counts the configurations (the configuration changes) matching the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, day, week or month, on changeDate, from/to, timeZone).
          */
         get: operations["getConfigStats"];
         put?: never;
@@ -520,7 +520,7 @@ export interface paths {
         };
         /**
          * List the configurations
-         * @description Lists the configurations of all the devices, in their brief view by default (device, date, author), the latest first. The attributes are only there in the full view (or with fields=attributes), and never hold the long texts and files: download them from their url. The filters on domain and group apply to the device of the configuration. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the configurations of all the devices, in their brief view by default (device, date, author), the latest first. The attributes are only there in the full view (or with fields=attributes), and never hold the long texts and files: download them from their url. The filters on domain and group apply to the device of the configuration.
          */
         get: operations["listConfigs"];
         put?: never;
@@ -540,7 +540,7 @@ export interface paths {
         };
         /**
          * List the configurations of a device
-         * @description Lists the configurations of a device, as the configuration list filtered on the device (same parameters), the latest first. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the configurations of a device, as the configuration list filtered on the device (same parameters), the latest first.
          */
         get: operations["listDeviceConfigs"];
         put?: never;
@@ -560,7 +560,7 @@ export interface paths {
         };
         /**
          * List the credential sets
-         * @description Lists the global credential sets, in their brief view by default. The credential sets specific to a device access are left out, unless the deviceSpecific filter is given (deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the global credential sets, in their brief view by default. The credential sets specific to a device access are left out, unless the deviceSpecific filter is given (deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned.
          */
         get: operations["listCredentialSets"];
         put?: never;
@@ -616,7 +616,7 @@ export interface paths {
         };
         /**
          * List the device families
-         * @description Lists the distinct device families (driver and family) of the devices, with their number of devices. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the distinct device families (driver and family) of the devices, with their number of devices. An aggregate: items have no id nor url.
          */
         get: operations["listDeviceFamilies"];
         put?: never;
@@ -636,7 +636,7 @@ export interface paths {
         };
         /**
          * List the interfaces of a device
-         * @description Lists the network interfaces of a device, in their brief view by default (name, description, enabled; view=full adds the addresses). Besides the filters on the fields, ipAddress (exact or net lookup) and macAddress filter on the addresses. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the network interfaces of a device, in their brief view by default (name, description, enabled; view=full adds the addresses). Besides the filters on the fields, ipAddress (exact or net lookup) and macAddress filter on the addresses.
          */
         get: operations["listDeviceInterfaces"];
         put?: never;
@@ -656,7 +656,7 @@ export interface paths {
         };
         /**
          * List the modules of a device
-         * @description Lists the hardware modules of a device, in their brief view by default (slot, part number, serial number): the current ones only, unless removed=true, which lists the modules removed from the device (kept for the history) too, flagged removed. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the hardware modules of a device, in their brief view by default (slot, part number, serial number): the current ones only, unless removed=true, which lists the modules removed from the device (kept for the history) too, flagged removed.
          */
         get: operations["listDeviceModules"];
         put?: never;
@@ -676,7 +676,7 @@ export interface paths {
         };
         /**
          * List the devices
-         * @description Lists the devices, in their brief view by default. Besides the filters on the fields, the query parameter takes a device search query (such as [Family] is "Cisco IOS" and [Location] contains "Paris"), and group, tag and compliant filter on the group membership, the tags and the configuration compliance. Like any list, it can be exported as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). With the Excel format, the include parameter writes a workbook with more sheets for the matching devices. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the devices, in their brief view by default. Besides the filters on the fields, the query parameter takes a device search query (such as [Family] is "Cisco IOS" and [Location] contains "Paris"), and group, tag and compliant filter on the group membership, the tags and the configuration compliance. Like any list, it can be exported as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). With the Excel format, the include parameter writes a workbook with more sheets for the matching devices.
          */
         get: operations["listDevices"];
         put?: never;
@@ -749,7 +749,7 @@ export interface paths {
         };
         /**
          * Count the devices
-         * @description Counts the devices matching the filters of the device list (and the query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone). Any other parameter is a filter of the list.
+         * @description Counts the devices matching the filters of the device list (and the query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone).
          */
         get: operations["getDeviceStats"];
         put?: never;
@@ -829,7 +829,7 @@ export interface paths {
         };
         /**
          * List the device tags
-         * @description Lists the distinct tags attached to at least one device, with their number of devices. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the distinct tags attached to at least one device, with their number of devices. An aggregate: items have no id nor url.
          */
         get: operations["listDeviceTags"];
         put?: never;
@@ -849,7 +849,7 @@ export interface paths {
         };
         /**
          * List the device types
-         * @description Lists the device types: the device drivers loaded by the server, in their brief view by default (name, description, version). View full adds the attributes, options, accesses... Items have no id nor url: the name is what the devices refer to. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the device types: the device drivers loaded by the server, in their brief view by default (name, description, version). View full adds the attributes, options, accesses... Items have no id nor url: the name is what the devices refer to.
          */
         get: operations["listDeviceTypes"];
         put?: never;
@@ -889,7 +889,7 @@ export interface paths {
         };
         /**
          * List the part numbers
-         * @description Lists the distinct part numbers of the modules, with their number of modules. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the distinct part numbers of the modules, with their number of modules. An aggregate: items have no id nor url.
          */
         get: operations["listPartNumbers"];
         put?: never;
@@ -909,7 +909,7 @@ export interface paths {
         };
         /**
          * List the software versions
-         * @description Lists the distinct (non empty) software versions of the devices, with their number of devices. An aggregate: items have no id nor url. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the distinct (non empty) software versions of the devices, with their number of devices. An aggregate: items have no id nor url.
          */
         get: operations["listSoftwareVersions"];
         put?: never;
@@ -929,7 +929,7 @@ export interface paths {
         };
         /**
          * List the diagnostics
-         * @description Lists the diagnostics, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the diagnostics, in their brief view by default.
          */
         get: operations["listDiagnostics"];
         put?: never;
@@ -982,7 +982,7 @@ export interface paths {
         };
         /**
          * List the diagnostic results of a device
-         * @description Lists the last result of each diagnostic run on a device, with the diagnostic as a reference. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the last result of each diagnostic run on a device, with the diagnostic as a reference.
          */
         get: operations["listDiagnosticResults"];
         put?: never;
@@ -1002,7 +1002,7 @@ export interface paths {
         };
         /**
          * List the domains
-         * @description Lists the device domains, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the device domains, in their brief view by default.
          */
         get: operations["listDomains"];
         put?: never;
@@ -1052,7 +1052,7 @@ export interface paths {
         };
         /**
          * List the groups
-         * @description Lists the device groups, in their brief view by default. The device filter gives the groups a device is a member of. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the device groups, in their brief view by default. The device filter gives the groups a device is a member of.
          */
         get: operations["listGroups"];
         put?: never;
@@ -1105,7 +1105,7 @@ export interface paths {
         };
         /**
          * List the devices of a group
-         * @description Lists the devices of a group, as the device list filtered on the group (same parameters). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the devices of a group, as the device list filtered on the group (same parameters).
          */
         get: operations["listGroupDevices"];
         put?: never;
@@ -1125,7 +1125,7 @@ export interface paths {
         };
         /**
          * List the hooks
-         * @description Lists the hooks, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the hooks, in their brief view by default.
          */
         get: operations["listHooks"];
         put?: never;
@@ -1175,7 +1175,7 @@ export interface paths {
         };
         /**
          * List the scripts
-         * @description Lists the command scripts, in their brief view by default (without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the command scripts, in their brief view by default (without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for.
          */
         get: operations["listScripts"];
         put?: never;
@@ -1337,7 +1337,7 @@ export interface paths {
         };
         /**
          * List the tasks of a device
-         * @description Lists the tasks targeting a device, as the task list filtered on the device (same parameters). Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the tasks targeting a device, as the task list filtered on the device (same parameters).
          */
         get: operations["listDeviceTasks"];
         put?: never;
@@ -1377,7 +1377,7 @@ export interface paths {
         };
         /**
          * List the tasks
-         * @description Lists the tasks, in their brief view by default, the latest first. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the tasks, in their brief view by default, the latest first.
          */
         get: operations["listTasks"];
         put?: never;
@@ -1438,7 +1438,7 @@ export interface paths {
         };
         /**
          * Count the tasks
-         * @description Counts the tasks matching the filters of the task list, by the values of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket (interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, from/to, timeZone). Without execution date, a task isn't counted by executionDate. Any other parameter is a filter of the list.
+         * @description Counts the tasks matching the filters of the task list, by the values of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket (interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, from/to, timeZone). Without execution date, a task isn't counted by executionDate.
          */
         get: operations["getTaskStats"];
         put?: never;
@@ -1478,7 +1478,7 @@ export interface paths {
         };
         /**
          * List the users
-         * @description Lists the Netshot users, in their brief view by default. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the Netshot users, in their brief view by default.
          */
         get: operations["listUsers"];
         put?: never;
@@ -1531,7 +1531,7 @@ export interface paths {
         };
         /**
          * List the Vault instances
-         * @description Lists the Vault instances, in their brief view by default. The secrets are never returned. Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).
+         * @description Lists the Vault instances, in their brief view by default. The secrets are never returned.
          */
         get: operations["listVaultInstances"];
         put?: never;
@@ -3574,9 +3574,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, description, level */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: description */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -3588,6 +3588,60 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: description equal to */
+                description?: string[];
+                /** @description Filter: description not equal to */
+                description__n?: string[];
+                /** @description Filter: description equal to, ignoring the case */
+                description__ie?: string[];
+                /** @description Filter: description not equal to, ignoring the case */
+                description__nie?: string[];
+                /** @description Filter: description contains, ignoring the case */
+                description__ic?: string[];
+                /** @description Filter: description doesn't contain, ignoring the case */
+                description__nic?: string[];
+                /** @description Filter: description starts with, ignoring the case */
+                description__isw?: string[];
+                /** @description Filter: description doesn't start with, ignoring the case */
+                description__nisw?: string[];
+                /** @description Filter: description ends with, ignoring the case */
+                description__iew?: string[];
+                /** @description Filter: description doesn't end with, ignoring the case */
+                description__niew?: string[];
+                /** @description Filter: description matches the (POSIX) regular expression */
+                description__regex?: string[];
+                /** @description Filter: description matches the (POSIX) regular expression, ignoring the case */
+                description__iregex?: string[];
+                /** @description Filter: description is empty (null, or an empty string) for true, isn't for false */
+                description__empty?: boolean;
+                /** @description Filter: level equal to */
+                level?: number[];
+                /** @description Filter: level not equal to */
+                level__n?: number[];
+                /** @description Filter: level lower than */
+                level__lt?: number[];
+                /** @description Filter: level lower than or equal to */
+                level__lte?: number[];
+                /** @description Filter: level greater than */
+                level__gt?: number[];
+                /** @description Filter: level greater than or equal to */
+                level__gte?: number[];
+                /** @description Filter: level is empty (null, or an empty string) for true, isn't for false */
+                level__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -3863,11 +3917,11 @@ export interface operations {
             query?: {
                 /** @description Free text search (as in the list) */
                 q?: string;
-                /** @description Fields to count by (up to two), comma-separated */
+                /** @description Fields to count by (up to two), comma-separated; fields: device, domain, group, rule, policy, result */
                 groupBy?: string;
                 /** @description Size of the time buckets */
                 interval?: "hour" | "day" | "week" | "month";
-                /** @description Date field of the time buckets */
+                /** @description Date field of the time buckets; fields: checkDate, exemptionExpirationDate */
                 on?: string;
                 /** @description Start of the range (included) */
                 from?: Date;
@@ -3875,6 +3929,192 @@ export interface operations {
                 to?: Date;
                 /** @description Time zone of the buckets (IANA name, UTC by default) */
                 timeZone?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: deviceName equal to */
+                deviceName?: string[];
+                /** @description Filter: deviceName not equal to */
+                deviceName__n?: string[];
+                /** @description Filter: deviceName equal to, ignoring the case */
+                deviceName__ie?: string[];
+                /** @description Filter: deviceName not equal to, ignoring the case */
+                deviceName__nie?: string[];
+                /** @description Filter: deviceName contains, ignoring the case */
+                deviceName__ic?: string[];
+                /** @description Filter: deviceName doesn't contain, ignoring the case */
+                deviceName__nic?: string[];
+                /** @description Filter: deviceName starts with, ignoring the case */
+                deviceName__isw?: string[];
+                /** @description Filter: deviceName doesn't start with, ignoring the case */
+                deviceName__nisw?: string[];
+                /** @description Filter: deviceName ends with, ignoring the case */
+                deviceName__iew?: string[];
+                /** @description Filter: deviceName doesn't end with, ignoring the case */
+                deviceName__niew?: string[];
+                /** @description Filter: deviceName matches the (POSIX) regular expression */
+                deviceName__regex?: string[];
+                /** @description Filter: deviceName matches the (POSIX) regular expression, ignoring the case */
+                deviceName__iregex?: string[];
+                /** @description Filter: deviceName is empty (null, or an empty string) for true, isn't for false */
+                deviceName__empty?: boolean;
+                /** @description Filter: domain equal to */
+                domain?: number[];
+                /** @description Filter: domain not equal to */
+                domain__n?: number[];
+                /** @description Filter: domain lower than */
+                domain__lt?: number[];
+                /** @description Filter: domain lower than or equal to */
+                domain__lte?: number[];
+                /** @description Filter: domain greater than */
+                domain__gt?: number[];
+                /** @description Filter: domain greater than or equal to */
+                domain__gte?: number[];
+                /** @description Filter: domain is empty (null, or an empty string) for true, isn't for false */
+                domain__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: rule equal to */
+                rule?: number[];
+                /** @description Filter: rule not equal to */
+                rule__n?: number[];
+                /** @description Filter: rule lower than */
+                rule__lt?: number[];
+                /** @description Filter: rule lower than or equal to */
+                rule__lte?: number[];
+                /** @description Filter: rule greater than */
+                rule__gt?: number[];
+                /** @description Filter: rule greater than or equal to */
+                rule__gte?: number[];
+                /** @description Filter: rule is empty (null, or an empty string) for true, isn't for false */
+                rule__empty?: boolean;
+                /** @description Filter: ruleName equal to */
+                ruleName?: string[];
+                /** @description Filter: ruleName not equal to */
+                ruleName__n?: string[];
+                /** @description Filter: ruleName equal to, ignoring the case */
+                ruleName__ie?: string[];
+                /** @description Filter: ruleName not equal to, ignoring the case */
+                ruleName__nie?: string[];
+                /** @description Filter: ruleName contains, ignoring the case */
+                ruleName__ic?: string[];
+                /** @description Filter: ruleName doesn't contain, ignoring the case */
+                ruleName__nic?: string[];
+                /** @description Filter: ruleName starts with, ignoring the case */
+                ruleName__isw?: string[];
+                /** @description Filter: ruleName doesn't start with, ignoring the case */
+                ruleName__nisw?: string[];
+                /** @description Filter: ruleName ends with, ignoring the case */
+                ruleName__iew?: string[];
+                /** @description Filter: ruleName doesn't end with, ignoring the case */
+                ruleName__niew?: string[];
+                /** @description Filter: ruleName matches the (POSIX) regular expression */
+                ruleName__regex?: string[];
+                /** @description Filter: ruleName matches the (POSIX) regular expression, ignoring the case */
+                ruleName__iregex?: string[];
+                /** @description Filter: ruleName is empty (null, or an empty string) for true, isn't for false */
+                ruleName__empty?: boolean;
+                /** @description Filter: policy equal to */
+                policy?: number[];
+                /** @description Filter: policy not equal to */
+                policy__n?: number[];
+                /** @description Filter: policy lower than */
+                policy__lt?: number[];
+                /** @description Filter: policy lower than or equal to */
+                policy__lte?: number[];
+                /** @description Filter: policy greater than */
+                policy__gt?: number[];
+                /** @description Filter: policy greater than or equal to */
+                policy__gte?: number[];
+                /** @description Filter: policy is empty (null, or an empty string) for true, isn't for false */
+                policy__empty?: boolean;
+                /** @description Filter: policyName equal to */
+                policyName?: string[];
+                /** @description Filter: policyName not equal to */
+                policyName__n?: string[];
+                /** @description Filter: policyName equal to, ignoring the case */
+                policyName__ie?: string[];
+                /** @description Filter: policyName not equal to, ignoring the case */
+                policyName__nie?: string[];
+                /** @description Filter: policyName contains, ignoring the case */
+                policyName__ic?: string[];
+                /** @description Filter: policyName doesn't contain, ignoring the case */
+                policyName__nic?: string[];
+                /** @description Filter: policyName starts with, ignoring the case */
+                policyName__isw?: string[];
+                /** @description Filter: policyName doesn't start with, ignoring the case */
+                policyName__nisw?: string[];
+                /** @description Filter: policyName ends with, ignoring the case */
+                policyName__iew?: string[];
+                /** @description Filter: policyName doesn't end with, ignoring the case */
+                policyName__niew?: string[];
+                /** @description Filter: policyName matches the (POSIX) regular expression */
+                policyName__regex?: string[];
+                /** @description Filter: policyName matches the (POSIX) regular expression, ignoring the case */
+                policyName__iregex?: string[];
+                /** @description Filter: policyName is empty (null, or an empty string) for true, isn't for false */
+                policyName__empty?: boolean;
+                /** @description Filter: result equal to */
+                result?: ("CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE")[];
+                /** @description Filter: result not equal to */
+                result__n?: ("CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE")[];
+                /** @description Filter: result is empty (null, or an empty string) for true, isn't for false */
+                result__empty?: boolean;
+                /** @description Filter: checkDate equal to */
+                checkDate?: string[];
+                /** @description Filter: checkDate not equal to */
+                checkDate__n?: string[];
+                /** @description Filter: checkDate lower than */
+                checkDate__lt?: string[];
+                /** @description Filter: checkDate lower than or equal to */
+                checkDate__lte?: string[];
+                /** @description Filter: checkDate greater than */
+                checkDate__gt?: string[];
+                /** @description Filter: checkDate greater than or equal to */
+                checkDate__gte?: string[];
+                /** @description Filter: checkDate is empty (null, or an empty string) for true, isn't for false */
+                checkDate__empty?: boolean;
+                /** @description Filter: exemptionExpirationDate equal to */
+                exemptionExpirationDate?: string[];
+                /** @description Filter: exemptionExpirationDate not equal to */
+                exemptionExpirationDate__n?: string[];
+                /** @description Filter: exemptionExpirationDate lower than */
+                exemptionExpirationDate__lt?: string[];
+                /** @description Filter: exemptionExpirationDate lower than or equal to */
+                exemptionExpirationDate__lte?: string[];
+                /** @description Filter: exemptionExpirationDate greater than */
+                exemptionExpirationDate__gt?: string[];
+                /** @description Filter: exemptionExpirationDate greater than or equal to */
+                exemptionExpirationDate__gte?: string[];
+                /** @description Filter: exemptionExpirationDate is empty (null, or an empty string) for true, isn't for false */
+                exemptionExpirationDate__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -3902,9 +4142,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, device, deviceName, rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: deviceName, ruleName, policyName */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -3916,6 +4156,192 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: deviceName equal to */
+                deviceName?: string[];
+                /** @description Filter: deviceName not equal to */
+                deviceName__n?: string[];
+                /** @description Filter: deviceName equal to, ignoring the case */
+                deviceName__ie?: string[];
+                /** @description Filter: deviceName not equal to, ignoring the case */
+                deviceName__nie?: string[];
+                /** @description Filter: deviceName contains, ignoring the case */
+                deviceName__ic?: string[];
+                /** @description Filter: deviceName doesn't contain, ignoring the case */
+                deviceName__nic?: string[];
+                /** @description Filter: deviceName starts with, ignoring the case */
+                deviceName__isw?: string[];
+                /** @description Filter: deviceName doesn't start with, ignoring the case */
+                deviceName__nisw?: string[];
+                /** @description Filter: deviceName ends with, ignoring the case */
+                deviceName__iew?: string[];
+                /** @description Filter: deviceName doesn't end with, ignoring the case */
+                deviceName__niew?: string[];
+                /** @description Filter: deviceName matches the (POSIX) regular expression */
+                deviceName__regex?: string[];
+                /** @description Filter: deviceName matches the (POSIX) regular expression, ignoring the case */
+                deviceName__iregex?: string[];
+                /** @description Filter: deviceName is empty (null, or an empty string) for true, isn't for false */
+                deviceName__empty?: boolean;
+                /** @description Filter: domain equal to */
+                domain?: number[];
+                /** @description Filter: domain not equal to */
+                domain__n?: number[];
+                /** @description Filter: domain lower than */
+                domain__lt?: number[];
+                /** @description Filter: domain lower than or equal to */
+                domain__lte?: number[];
+                /** @description Filter: domain greater than */
+                domain__gt?: number[];
+                /** @description Filter: domain greater than or equal to */
+                domain__gte?: number[];
+                /** @description Filter: domain is empty (null, or an empty string) for true, isn't for false */
+                domain__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: rule equal to */
+                rule?: number[];
+                /** @description Filter: rule not equal to */
+                rule__n?: number[];
+                /** @description Filter: rule lower than */
+                rule__lt?: number[];
+                /** @description Filter: rule lower than or equal to */
+                rule__lte?: number[];
+                /** @description Filter: rule greater than */
+                rule__gt?: number[];
+                /** @description Filter: rule greater than or equal to */
+                rule__gte?: number[];
+                /** @description Filter: rule is empty (null, or an empty string) for true, isn't for false */
+                rule__empty?: boolean;
+                /** @description Filter: ruleName equal to */
+                ruleName?: string[];
+                /** @description Filter: ruleName not equal to */
+                ruleName__n?: string[];
+                /** @description Filter: ruleName equal to, ignoring the case */
+                ruleName__ie?: string[];
+                /** @description Filter: ruleName not equal to, ignoring the case */
+                ruleName__nie?: string[];
+                /** @description Filter: ruleName contains, ignoring the case */
+                ruleName__ic?: string[];
+                /** @description Filter: ruleName doesn't contain, ignoring the case */
+                ruleName__nic?: string[];
+                /** @description Filter: ruleName starts with, ignoring the case */
+                ruleName__isw?: string[];
+                /** @description Filter: ruleName doesn't start with, ignoring the case */
+                ruleName__nisw?: string[];
+                /** @description Filter: ruleName ends with, ignoring the case */
+                ruleName__iew?: string[];
+                /** @description Filter: ruleName doesn't end with, ignoring the case */
+                ruleName__niew?: string[];
+                /** @description Filter: ruleName matches the (POSIX) regular expression */
+                ruleName__regex?: string[];
+                /** @description Filter: ruleName matches the (POSIX) regular expression, ignoring the case */
+                ruleName__iregex?: string[];
+                /** @description Filter: ruleName is empty (null, or an empty string) for true, isn't for false */
+                ruleName__empty?: boolean;
+                /** @description Filter: policy equal to */
+                policy?: number[];
+                /** @description Filter: policy not equal to */
+                policy__n?: number[];
+                /** @description Filter: policy lower than */
+                policy__lt?: number[];
+                /** @description Filter: policy lower than or equal to */
+                policy__lte?: number[];
+                /** @description Filter: policy greater than */
+                policy__gt?: number[];
+                /** @description Filter: policy greater than or equal to */
+                policy__gte?: number[];
+                /** @description Filter: policy is empty (null, or an empty string) for true, isn't for false */
+                policy__empty?: boolean;
+                /** @description Filter: policyName equal to */
+                policyName?: string[];
+                /** @description Filter: policyName not equal to */
+                policyName__n?: string[];
+                /** @description Filter: policyName equal to, ignoring the case */
+                policyName__ie?: string[];
+                /** @description Filter: policyName not equal to, ignoring the case */
+                policyName__nie?: string[];
+                /** @description Filter: policyName contains, ignoring the case */
+                policyName__ic?: string[];
+                /** @description Filter: policyName doesn't contain, ignoring the case */
+                policyName__nic?: string[];
+                /** @description Filter: policyName starts with, ignoring the case */
+                policyName__isw?: string[];
+                /** @description Filter: policyName doesn't start with, ignoring the case */
+                policyName__nisw?: string[];
+                /** @description Filter: policyName ends with, ignoring the case */
+                policyName__iew?: string[];
+                /** @description Filter: policyName doesn't end with, ignoring the case */
+                policyName__niew?: string[];
+                /** @description Filter: policyName matches the (POSIX) regular expression */
+                policyName__regex?: string[];
+                /** @description Filter: policyName matches the (POSIX) regular expression, ignoring the case */
+                policyName__iregex?: string[];
+                /** @description Filter: policyName is empty (null, or an empty string) for true, isn't for false */
+                policyName__empty?: boolean;
+                /** @description Filter: result equal to */
+                result?: ("CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE")[];
+                /** @description Filter: result not equal to */
+                result__n?: ("CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE")[];
+                /** @description Filter: result is empty (null, or an empty string) for true, isn't for false */
+                result__empty?: boolean;
+                /** @description Filter: checkDate equal to */
+                checkDate?: string[];
+                /** @description Filter: checkDate not equal to */
+                checkDate__n?: string[];
+                /** @description Filter: checkDate lower than */
+                checkDate__lt?: string[];
+                /** @description Filter: checkDate lower than or equal to */
+                checkDate__lte?: string[];
+                /** @description Filter: checkDate greater than */
+                checkDate__gt?: string[];
+                /** @description Filter: checkDate greater than or equal to */
+                checkDate__gte?: string[];
+                /** @description Filter: checkDate is empty (null, or an empty string) for true, isn't for false */
+                checkDate__empty?: boolean;
+                /** @description Filter: exemptionExpirationDate equal to */
+                exemptionExpirationDate?: string[];
+                /** @description Filter: exemptionExpirationDate not equal to */
+                exemptionExpirationDate__n?: string[];
+                /** @description Filter: exemptionExpirationDate lower than */
+                exemptionExpirationDate__lt?: string[];
+                /** @description Filter: exemptionExpirationDate lower than or equal to */
+                exemptionExpirationDate__lte?: string[];
+                /** @description Filter: exemptionExpirationDate greater than */
+                exemptionExpirationDate__gt?: string[];
+                /** @description Filter: exemptionExpirationDate greater than or equal to */
+                exemptionExpirationDate__gte?: string[];
+                /** @description Filter: exemptionExpirationDate is empty (null, or an empty string) for true, isn't for false */
+                exemptionExpirationDate__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -3943,9 +4369,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: ruleName, policyName */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -3957,6 +4383,132 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: rule equal to */
+                rule?: number[];
+                /** @description Filter: rule not equal to */
+                rule__n?: number[];
+                /** @description Filter: rule lower than */
+                rule__lt?: number[];
+                /** @description Filter: rule lower than or equal to */
+                rule__lte?: number[];
+                /** @description Filter: rule greater than */
+                rule__gt?: number[];
+                /** @description Filter: rule greater than or equal to */
+                rule__gte?: number[];
+                /** @description Filter: rule is empty (null, or an empty string) for true, isn't for false */
+                rule__empty?: boolean;
+                /** @description Filter: ruleName equal to */
+                ruleName?: string[];
+                /** @description Filter: ruleName not equal to */
+                ruleName__n?: string[];
+                /** @description Filter: ruleName equal to, ignoring the case */
+                ruleName__ie?: string[];
+                /** @description Filter: ruleName not equal to, ignoring the case */
+                ruleName__nie?: string[];
+                /** @description Filter: ruleName contains, ignoring the case */
+                ruleName__ic?: string[];
+                /** @description Filter: ruleName doesn't contain, ignoring the case */
+                ruleName__nic?: string[];
+                /** @description Filter: ruleName starts with, ignoring the case */
+                ruleName__isw?: string[];
+                /** @description Filter: ruleName doesn't start with, ignoring the case */
+                ruleName__nisw?: string[];
+                /** @description Filter: ruleName ends with, ignoring the case */
+                ruleName__iew?: string[];
+                /** @description Filter: ruleName doesn't end with, ignoring the case */
+                ruleName__niew?: string[];
+                /** @description Filter: ruleName matches the (POSIX) regular expression */
+                ruleName__regex?: string[];
+                /** @description Filter: ruleName matches the (POSIX) regular expression, ignoring the case */
+                ruleName__iregex?: string[];
+                /** @description Filter: ruleName is empty (null, or an empty string) for true, isn't for false */
+                ruleName__empty?: boolean;
+                /** @description Filter: policy equal to */
+                policy?: number[];
+                /** @description Filter: policy not equal to */
+                policy__n?: number[];
+                /** @description Filter: policy lower than */
+                policy__lt?: number[];
+                /** @description Filter: policy lower than or equal to */
+                policy__lte?: number[];
+                /** @description Filter: policy greater than */
+                policy__gt?: number[];
+                /** @description Filter: policy greater than or equal to */
+                policy__gte?: number[];
+                /** @description Filter: policy is empty (null, or an empty string) for true, isn't for false */
+                policy__empty?: boolean;
+                /** @description Filter: policyName equal to */
+                policyName?: string[];
+                /** @description Filter: policyName not equal to */
+                policyName__n?: string[];
+                /** @description Filter: policyName equal to, ignoring the case */
+                policyName__ie?: string[];
+                /** @description Filter: policyName not equal to, ignoring the case */
+                policyName__nie?: string[];
+                /** @description Filter: policyName contains, ignoring the case */
+                policyName__ic?: string[];
+                /** @description Filter: policyName doesn't contain, ignoring the case */
+                policyName__nic?: string[];
+                /** @description Filter: policyName starts with, ignoring the case */
+                policyName__isw?: string[];
+                /** @description Filter: policyName doesn't start with, ignoring the case */
+                policyName__nisw?: string[];
+                /** @description Filter: policyName ends with, ignoring the case */
+                policyName__iew?: string[];
+                /** @description Filter: policyName doesn't end with, ignoring the case */
+                policyName__niew?: string[];
+                /** @description Filter: policyName matches the (POSIX) regular expression */
+                policyName__regex?: string[];
+                /** @description Filter: policyName matches the (POSIX) regular expression, ignoring the case */
+                policyName__iregex?: string[];
+                /** @description Filter: policyName is empty (null, or an empty string) for true, isn't for false */
+                policyName__empty?: boolean;
+                /** @description Filter: result equal to */
+                result?: ("CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE")[];
+                /** @description Filter: result not equal to */
+                result__n?: ("CONFORMING" | "EXEMPTED" | "INVALIDRULE" | "DISABLED" | "NONCONFORMING" | "NOTAPPLICABLE")[];
+                /** @description Filter: result is empty (null, or an empty string) for true, isn't for false */
+                result__empty?: boolean;
+                /** @description Filter: checkDate equal to */
+                checkDate?: string[];
+                /** @description Filter: checkDate not equal to */
+                checkDate__n?: string[];
+                /** @description Filter: checkDate lower than */
+                checkDate__lt?: string[];
+                /** @description Filter: checkDate lower than or equal to */
+                checkDate__lte?: string[];
+                /** @description Filter: checkDate greater than */
+                checkDate__gt?: string[];
+                /** @description Filter: checkDate greater than or equal to */
+                checkDate__gte?: string[];
+                /** @description Filter: checkDate is empty (null, or an empty string) for true, isn't for false */
+                checkDate__empty?: boolean;
+                /** @description Filter: exemptionExpirationDate equal to */
+                exemptionExpirationDate?: string[];
+                /** @description Filter: exemptionExpirationDate not equal to */
+                exemptionExpirationDate__n?: string[];
+                /** @description Filter: exemptionExpirationDate lower than */
+                exemptionExpirationDate__lt?: string[];
+                /** @description Filter: exemptionExpirationDate lower than or equal to */
+                exemptionExpirationDate__lte?: string[];
+                /** @description Filter: exemptionExpirationDate greater than */
+                exemptionExpirationDate__gt?: string[];
+                /** @description Filter: exemptionExpirationDate greater than or equal to */
+                exemptionExpirationDate__gte?: string[];
+                /** @description Filter: exemptionExpirationDate is empty (null, or an empty string) for true, isn't for false */
+                exemptionExpirationDate__empty?: boolean;
             };
             header?: never;
             path: {
@@ -3987,9 +4539,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, driver, family, partNumber, endOfSale, endOfLife */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: family, partNumber */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -4001,6 +4553,144 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: group lower than */
+                group__lt?: number[];
+                /** @description Filter: group lower than or equal to */
+                group__lte?: number[];
+                /** @description Filter: group greater than */
+                group__gt?: number[];
+                /** @description Filter: group greater than or equal to */
+                group__gte?: number[];
+                /** @description Filter: group is empty (null, or an empty string) for true, isn't for false */
+                group__empty?: boolean;
+                /** @description Filter: driver equal to */
+                driver?: string[];
+                /** @description Filter: driver not equal to */
+                driver__n?: string[];
+                /** @description Filter: driver equal to, ignoring the case */
+                driver__ie?: string[];
+                /** @description Filter: driver not equal to, ignoring the case */
+                driver__nie?: string[];
+                /** @description Filter: driver contains, ignoring the case */
+                driver__ic?: string[];
+                /** @description Filter: driver doesn't contain, ignoring the case */
+                driver__nic?: string[];
+                /** @description Filter: driver starts with, ignoring the case */
+                driver__isw?: string[];
+                /** @description Filter: driver doesn't start with, ignoring the case */
+                driver__nisw?: string[];
+                /** @description Filter: driver ends with, ignoring the case */
+                driver__iew?: string[];
+                /** @description Filter: driver doesn't end with, ignoring the case */
+                driver__niew?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression */
+                driver__regex?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression, ignoring the case */
+                driver__iregex?: string[];
+                /** @description Filter: driver is empty (null, or an empty string) for true, isn't for false */
+                driver__empty?: boolean;
+                /** @description Filter: family equal to */
+                family?: string[];
+                /** @description Filter: family not equal to */
+                family__n?: string[];
+                /** @description Filter: family equal to, ignoring the case */
+                family__ie?: string[];
+                /** @description Filter: family not equal to, ignoring the case */
+                family__nie?: string[];
+                /** @description Filter: family contains, ignoring the case */
+                family__ic?: string[];
+                /** @description Filter: family doesn't contain, ignoring the case */
+                family__nic?: string[];
+                /** @description Filter: family starts with, ignoring the case */
+                family__isw?: string[];
+                /** @description Filter: family doesn't start with, ignoring the case */
+                family__nisw?: string[];
+                /** @description Filter: family ends with, ignoring the case */
+                family__iew?: string[];
+                /** @description Filter: family doesn't end with, ignoring the case */
+                family__niew?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression */
+                family__regex?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression, ignoring the case */
+                family__iregex?: string[];
+                /** @description Filter: family is empty (null, or an empty string) for true, isn't for false */
+                family__empty?: boolean;
+                /** @description Filter: familyRegExp equal to */
+                familyRegExp?: boolean[];
+                /** @description Filter: partNumber equal to */
+                partNumber?: string[];
+                /** @description Filter: partNumber not equal to */
+                partNumber__n?: string[];
+                /** @description Filter: partNumber equal to, ignoring the case */
+                partNumber__ie?: string[];
+                /** @description Filter: partNumber not equal to, ignoring the case */
+                partNumber__nie?: string[];
+                /** @description Filter: partNumber contains, ignoring the case */
+                partNumber__ic?: string[];
+                /** @description Filter: partNumber doesn't contain, ignoring the case */
+                partNumber__nic?: string[];
+                /** @description Filter: partNumber starts with, ignoring the case */
+                partNumber__isw?: string[];
+                /** @description Filter: partNumber doesn't start with, ignoring the case */
+                partNumber__nisw?: string[];
+                /** @description Filter: partNumber ends with, ignoring the case */
+                partNumber__iew?: string[];
+                /** @description Filter: partNumber doesn't end with, ignoring the case */
+                partNumber__niew?: string[];
+                /** @description Filter: partNumber matches the (POSIX) regular expression */
+                partNumber__regex?: string[];
+                /** @description Filter: partNumber matches the (POSIX) regular expression, ignoring the case */
+                partNumber__iregex?: string[];
+                /** @description Filter: partNumber is empty (null, or an empty string) for true, isn't for false */
+                partNumber__empty?: boolean;
+                /** @description Filter: partNumberRegExp equal to */
+                partNumberRegExp?: boolean[];
+                /** @description Filter: endOfSale equal to */
+                endOfSale?: string[];
+                /** @description Filter: endOfSale not equal to */
+                endOfSale__n?: string[];
+                /** @description Filter: endOfSale lower than */
+                endOfSale__lt?: string[];
+                /** @description Filter: endOfSale lower than or equal to */
+                endOfSale__lte?: string[];
+                /** @description Filter: endOfSale greater than */
+                endOfSale__gt?: string[];
+                /** @description Filter: endOfSale greater than or equal to */
+                endOfSale__gte?: string[];
+                /** @description Filter: endOfSale is empty (null, or an empty string) for true, isn't for false */
+                endOfSale__empty?: boolean;
+                /** @description Filter: endOfLife equal to */
+                endOfLife?: string[];
+                /** @description Filter: endOfLife not equal to */
+                endOfLife__n?: string[];
+                /** @description Filter: endOfLife lower than */
+                endOfLife__lt?: string[];
+                /** @description Filter: endOfLife lower than or equal to */
+                endOfLife__lte?: string[];
+                /** @description Filter: endOfLife greater than */
+                endOfLife__gt?: string[];
+                /** @description Filter: endOfLife greater than or equal to */
+                endOfLife__gte?: string[];
+                /** @description Filter: endOfLife is empty (null, or an empty string) for true, isn't for false */
+                endOfLife__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -4204,9 +4894,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -4218,6 +4908,50 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: targetGroup equal to */
+                targetGroup?: number[];
+                /** @description Filter: targetGroup not equal to */
+                targetGroup__n?: number[];
             };
             header?: never;
             path?: never;
@@ -4421,9 +5155,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, type, enabled, field, deviceDriver */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, text */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -4435,6 +5169,144 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("JAVASCRIPT" | "PYTHON" | "TEXT")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("JAVASCRIPT" | "PYTHON" | "TEXT")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: enabled equal to */
+                enabled?: boolean[];
+                /** @description Filter: policy equal to */
+                policy?: number[];
+                /** @description Filter: policy not equal to */
+                policy__n?: number[];
+                /** @description Filter: policy lower than */
+                policy__lt?: number[];
+                /** @description Filter: policy lower than or equal to */
+                policy__lte?: number[];
+                /** @description Filter: policy greater than */
+                policy__gt?: number[];
+                /** @description Filter: policy greater than or equal to */
+                policy__gte?: number[];
+                /** @description Filter: policy is empty (null, or an empty string) for true, isn't for false */
+                policy__empty?: boolean;
+                /** @description Filter: field equal to */
+                field?: string[];
+                /** @description Filter: field not equal to */
+                field__n?: string[];
+                /** @description Filter: field equal to, ignoring the case */
+                field__ie?: string[];
+                /** @description Filter: field not equal to, ignoring the case */
+                field__nie?: string[];
+                /** @description Filter: field contains, ignoring the case */
+                field__ic?: string[];
+                /** @description Filter: field doesn't contain, ignoring the case */
+                field__nic?: string[];
+                /** @description Filter: field starts with, ignoring the case */
+                field__isw?: string[];
+                /** @description Filter: field doesn't start with, ignoring the case */
+                field__nisw?: string[];
+                /** @description Filter: field ends with, ignoring the case */
+                field__iew?: string[];
+                /** @description Filter: field doesn't end with, ignoring the case */
+                field__niew?: string[];
+                /** @description Filter: field matches the (POSIX) regular expression */
+                field__regex?: string[];
+                /** @description Filter: field matches the (POSIX) regular expression, ignoring the case */
+                field__iregex?: string[];
+                /** @description Filter: field is empty (null, or an empty string) for true, isn't for false */
+                field__empty?: boolean;
+                /** @description Filter: deviceDriver equal to */
+                deviceDriver?: string[];
+                /** @description Filter: deviceDriver not equal to */
+                deviceDriver__n?: string[];
+                /** @description Filter: deviceDriver equal to, ignoring the case */
+                deviceDriver__ie?: string[];
+                /** @description Filter: deviceDriver not equal to, ignoring the case */
+                deviceDriver__nie?: string[];
+                /** @description Filter: deviceDriver contains, ignoring the case */
+                deviceDriver__ic?: string[];
+                /** @description Filter: deviceDriver doesn't contain, ignoring the case */
+                deviceDriver__nic?: string[];
+                /** @description Filter: deviceDriver starts with, ignoring the case */
+                deviceDriver__isw?: string[];
+                /** @description Filter: deviceDriver doesn't start with, ignoring the case */
+                deviceDriver__nisw?: string[];
+                /** @description Filter: deviceDriver ends with, ignoring the case */
+                deviceDriver__iew?: string[];
+                /** @description Filter: deviceDriver doesn't end with, ignoring the case */
+                deviceDriver__niew?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression */
+                deviceDriver__regex?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression, ignoring the case */
+                deviceDriver__iregex?: string[];
+                /** @description Filter: deviceDriver is empty (null, or an empty string) for true, isn't for false */
+                deviceDriver__empty?: boolean;
+                /** @description Filter: text equal to */
+                text?: string[];
+                /** @description Filter: text not equal to */
+                text__n?: string[];
+                /** @description Filter: text equal to, ignoring the case */
+                text__ie?: string[];
+                /** @description Filter: text not equal to, ignoring the case */
+                text__nie?: string[];
+                /** @description Filter: text contains, ignoring the case */
+                text__ic?: string[];
+                /** @description Filter: text doesn't contain, ignoring the case */
+                text__nic?: string[];
+                /** @description Filter: text starts with, ignoring the case */
+                text__isw?: string[];
+                /** @description Filter: text doesn't start with, ignoring the case */
+                text__nisw?: string[];
+                /** @description Filter: text ends with, ignoring the case */
+                text__iew?: string[];
+                /** @description Filter: text doesn't end with, ignoring the case */
+                text__niew?: string[];
+                /** @description Filter: text matches the (POSIX) regular expression */
+                text__regex?: string[];
+                /** @description Filter: text matches the (POSIX) regular expression, ignoring the case */
+                text__iregex?: string[];
+                /** @description Filter: text is empty (null, or an empty string) for true, isn't for false */
+                text__empty?: boolean;
             };
             header?: never;
             path: {
@@ -4465,9 +5337,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, type, enabled, field, deviceDriver */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, text */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -4479,6 +5351,146 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("JAVASCRIPT" | "PYTHON" | "TEXT")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("JAVASCRIPT" | "PYTHON" | "TEXT")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: enabled equal to */
+                enabled?: boolean[];
+                /** @description Filter: policy equal to */
+                policy?: number[];
+                /** @description Filter: policy not equal to */
+                policy__n?: number[];
+                /** @description Filter: policy lower than */
+                policy__lt?: number[];
+                /** @description Filter: policy lower than or equal to */
+                policy__lte?: number[];
+                /** @description Filter: policy greater than */
+                policy__gt?: number[];
+                /** @description Filter: policy greater than or equal to */
+                policy__gte?: number[];
+                /** @description Filter: policy is empty (null, or an empty string) for true, isn't for false */
+                policy__empty?: boolean;
+                /** @description Filter: field equal to */
+                field?: string[];
+                /** @description Filter: field not equal to */
+                field__n?: string[];
+                /** @description Filter: field equal to, ignoring the case */
+                field__ie?: string[];
+                /** @description Filter: field not equal to, ignoring the case */
+                field__nie?: string[];
+                /** @description Filter: field contains, ignoring the case */
+                field__ic?: string[];
+                /** @description Filter: field doesn't contain, ignoring the case */
+                field__nic?: string[];
+                /** @description Filter: field starts with, ignoring the case */
+                field__isw?: string[];
+                /** @description Filter: field doesn't start with, ignoring the case */
+                field__nisw?: string[];
+                /** @description Filter: field ends with, ignoring the case */
+                field__iew?: string[];
+                /** @description Filter: field doesn't end with, ignoring the case */
+                field__niew?: string[];
+                /** @description Filter: field matches the (POSIX) regular expression */
+                field__regex?: string[];
+                /** @description Filter: field matches the (POSIX) regular expression, ignoring the case */
+                field__iregex?: string[];
+                /** @description Filter: field is empty (null, or an empty string) for true, isn't for false */
+                field__empty?: boolean;
+                /** @description Filter: deviceDriver equal to */
+                deviceDriver?: string[];
+                /** @description Filter: deviceDriver not equal to */
+                deviceDriver__n?: string[];
+                /** @description Filter: deviceDriver equal to, ignoring the case */
+                deviceDriver__ie?: string[];
+                /** @description Filter: deviceDriver not equal to, ignoring the case */
+                deviceDriver__nie?: string[];
+                /** @description Filter: deviceDriver contains, ignoring the case */
+                deviceDriver__ic?: string[];
+                /** @description Filter: deviceDriver doesn't contain, ignoring the case */
+                deviceDriver__nic?: string[];
+                /** @description Filter: deviceDriver starts with, ignoring the case */
+                deviceDriver__isw?: string[];
+                /** @description Filter: deviceDriver doesn't start with, ignoring the case */
+                deviceDriver__nisw?: string[];
+                /** @description Filter: deviceDriver ends with, ignoring the case */
+                deviceDriver__iew?: string[];
+                /** @description Filter: deviceDriver doesn't end with, ignoring the case */
+                deviceDriver__niew?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression */
+                deviceDriver__regex?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression, ignoring the case */
+                deviceDriver__iregex?: string[];
+                /** @description Filter: deviceDriver is empty (null, or an empty string) for true, isn't for false */
+                deviceDriver__empty?: boolean;
+                /** @description Filter: text equal to */
+                text?: string[];
+                /** @description Filter: text not equal to */
+                text__n?: string[];
+                /** @description Filter: text equal to, ignoring the case */
+                text__ie?: string[];
+                /** @description Filter: text not equal to, ignoring the case */
+                text__nie?: string[];
+                /** @description Filter: text contains, ignoring the case */
+                text__ic?: string[];
+                /** @description Filter: text doesn't contain, ignoring the case */
+                text__nic?: string[];
+                /** @description Filter: text starts with, ignoring the case */
+                text__isw?: string[];
+                /** @description Filter: text doesn't start with, ignoring the case */
+                text__nisw?: string[];
+                /** @description Filter: text ends with, ignoring the case */
+                text__iew?: string[];
+                /** @description Filter: text doesn't end with, ignoring the case */
+                text__niew?: string[];
+                /** @description Filter: text matches the (POSIX) regular expression */
+                text__regex?: string[];
+                /** @description Filter: text matches the (POSIX) regular expression, ignoring the case */
+                text__iregex?: string[];
+                /** @description Filter: text is empty (null, or an empty string) for true, isn't for false */
+                text__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -4682,7 +5694,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, expirationDate */
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
@@ -4696,6 +5708,60 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: rule equal to */
+                rule?: number[];
+                /** @description Filter: rule not equal to */
+                rule__n?: number[];
+                /** @description Filter: rule lower than */
+                rule__lt?: number[];
+                /** @description Filter: rule lower than or equal to */
+                rule__lte?: number[];
+                /** @description Filter: rule greater than */
+                rule__gt?: number[];
+                /** @description Filter: rule greater than or equal to */
+                rule__gte?: number[];
+                /** @description Filter: rule is empty (null, or an empty string) for true, isn't for false */
+                rule__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: expirationDate equal to */
+                expirationDate?: string[];
+                /** @description Filter: expirationDate not equal to */
+                expirationDate__n?: string[];
+                /** @description Filter: expirationDate lower than */
+                expirationDate__lt?: string[];
+                /** @description Filter: expirationDate lower than or equal to */
+                expirationDate__lte?: string[];
+                /** @description Filter: expirationDate greater than */
+                expirationDate__gt?: string[];
+                /** @description Filter: expirationDate greater than or equal to */
+                expirationDate__gte?: string[];
+                /** @description Filter: expirationDate is empty (null, or an empty string) for true, isn't for false */
+                expirationDate__empty?: boolean;
             };
             header?: never;
             path: {
@@ -4726,7 +5792,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, expirationDate */
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
@@ -4740,6 +5806,60 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: rule equal to */
+                rule?: number[];
+                /** @description Filter: rule not equal to */
+                rule__n?: number[];
+                /** @description Filter: rule lower than */
+                rule__lt?: number[];
+                /** @description Filter: rule lower than or equal to */
+                rule__lte?: number[];
+                /** @description Filter: rule greater than */
+                rule__gt?: number[];
+                /** @description Filter: rule greater than or equal to */
+                rule__gte?: number[];
+                /** @description Filter: rule is empty (null, or an empty string) for true, isn't for false */
+                rule__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: expirationDate equal to */
+                expirationDate?: string[];
+                /** @description Filter: expirationDate not equal to */
+                expirationDate__n?: string[];
+                /** @description Filter: expirationDate lower than */
+                expirationDate__lt?: string[];
+                /** @description Filter: expirationDate lower than or equal to */
+                expirationDate__lte?: string[];
+                /** @description Filter: expirationDate greater than */
+                expirationDate__gt?: string[];
+                /** @description Filter: expirationDate greater than or equal to */
+                expirationDate__gte?: string[];
+                /** @description Filter: expirationDate is empty (null, or an empty string) for true, isn't for false */
+                expirationDate__empty?: boolean;
             };
             header?: never;
             path: {
@@ -4813,9 +5933,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, priority, driver, family, version, partNumber, level */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: family, version, partNumber */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -4827,6 +5947,164 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: priority equal to */
+                priority?: number[];
+                /** @description Filter: priority not equal to */
+                priority__n?: number[];
+                /** @description Filter: priority lower than */
+                priority__lt?: number[];
+                /** @description Filter: priority lower than or equal to */
+                priority__lte?: number[];
+                /** @description Filter: priority greater than */
+                priority__gt?: number[];
+                /** @description Filter: priority greater than or equal to */
+                priority__gte?: number[];
+                /** @description Filter: priority is empty (null, or an empty string) for true, isn't for false */
+                priority__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: group lower than */
+                group__lt?: number[];
+                /** @description Filter: group lower than or equal to */
+                group__lte?: number[];
+                /** @description Filter: group greater than */
+                group__gt?: number[];
+                /** @description Filter: group greater than or equal to */
+                group__gte?: number[];
+                /** @description Filter: group is empty (null, or an empty string) for true, isn't for false */
+                group__empty?: boolean;
+                /** @description Filter: driver equal to */
+                driver?: string[];
+                /** @description Filter: driver not equal to */
+                driver__n?: string[];
+                /** @description Filter: driver equal to, ignoring the case */
+                driver__ie?: string[];
+                /** @description Filter: driver not equal to, ignoring the case */
+                driver__nie?: string[];
+                /** @description Filter: driver contains, ignoring the case */
+                driver__ic?: string[];
+                /** @description Filter: driver doesn't contain, ignoring the case */
+                driver__nic?: string[];
+                /** @description Filter: driver starts with, ignoring the case */
+                driver__isw?: string[];
+                /** @description Filter: driver doesn't start with, ignoring the case */
+                driver__nisw?: string[];
+                /** @description Filter: driver ends with, ignoring the case */
+                driver__iew?: string[];
+                /** @description Filter: driver doesn't end with, ignoring the case */
+                driver__niew?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression */
+                driver__regex?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression, ignoring the case */
+                driver__iregex?: string[];
+                /** @description Filter: driver is empty (null, or an empty string) for true, isn't for false */
+                driver__empty?: boolean;
+                /** @description Filter: family equal to */
+                family?: string[];
+                /** @description Filter: family not equal to */
+                family__n?: string[];
+                /** @description Filter: family equal to, ignoring the case */
+                family__ie?: string[];
+                /** @description Filter: family not equal to, ignoring the case */
+                family__nie?: string[];
+                /** @description Filter: family contains, ignoring the case */
+                family__ic?: string[];
+                /** @description Filter: family doesn't contain, ignoring the case */
+                family__nic?: string[];
+                /** @description Filter: family starts with, ignoring the case */
+                family__isw?: string[];
+                /** @description Filter: family doesn't start with, ignoring the case */
+                family__nisw?: string[];
+                /** @description Filter: family ends with, ignoring the case */
+                family__iew?: string[];
+                /** @description Filter: family doesn't end with, ignoring the case */
+                family__niew?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression */
+                family__regex?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression, ignoring the case */
+                family__iregex?: string[];
+                /** @description Filter: family is empty (null, or an empty string) for true, isn't for false */
+                family__empty?: boolean;
+                /** @description Filter: familyRegExp equal to */
+                familyRegExp?: boolean[];
+                /** @description Filter: version equal to */
+                version?: string[];
+                /** @description Filter: version not equal to */
+                version__n?: string[];
+                /** @description Filter: version equal to, ignoring the case */
+                version__ie?: string[];
+                /** @description Filter: version not equal to, ignoring the case */
+                version__nie?: string[];
+                /** @description Filter: version contains, ignoring the case */
+                version__ic?: string[];
+                /** @description Filter: version doesn't contain, ignoring the case */
+                version__nic?: string[];
+                /** @description Filter: version starts with, ignoring the case */
+                version__isw?: string[];
+                /** @description Filter: version doesn't start with, ignoring the case */
+                version__nisw?: string[];
+                /** @description Filter: version ends with, ignoring the case */
+                version__iew?: string[];
+                /** @description Filter: version doesn't end with, ignoring the case */
+                version__niew?: string[];
+                /** @description Filter: version matches the (POSIX) regular expression */
+                version__regex?: string[];
+                /** @description Filter: version matches the (POSIX) regular expression, ignoring the case */
+                version__iregex?: string[];
+                /** @description Filter: version is empty (null, or an empty string) for true, isn't for false */
+                version__empty?: boolean;
+                /** @description Filter: versionRegExp equal to */
+                versionRegExp?: boolean[];
+                /** @description Filter: partNumber equal to */
+                partNumber?: string[];
+                /** @description Filter: partNumber not equal to */
+                partNumber__n?: string[];
+                /** @description Filter: partNumber equal to, ignoring the case */
+                partNumber__ie?: string[];
+                /** @description Filter: partNumber not equal to, ignoring the case */
+                partNumber__nie?: string[];
+                /** @description Filter: partNumber contains, ignoring the case */
+                partNumber__ic?: string[];
+                /** @description Filter: partNumber doesn't contain, ignoring the case */
+                partNumber__nic?: string[];
+                /** @description Filter: partNumber starts with, ignoring the case */
+                partNumber__isw?: string[];
+                /** @description Filter: partNumber doesn't start with, ignoring the case */
+                partNumber__nisw?: string[];
+                /** @description Filter: partNumber ends with, ignoring the case */
+                partNumber__iew?: string[];
+                /** @description Filter: partNumber doesn't end with, ignoring the case */
+                partNumber__niew?: string[];
+                /** @description Filter: partNumber matches the (POSIX) regular expression */
+                partNumber__regex?: string[];
+                /** @description Filter: partNumber matches the (POSIX) regular expression, ignoring the case */
+                partNumber__iregex?: string[];
+                /** @description Filter: partNumber is empty (null, or an empty string) for true, isn't for false */
+                partNumber__empty?: boolean;
+                /** @description Filter: partNumberRegExp equal to */
+                partNumberRegExp?: boolean[];
+                /** @description Filter: level equal to */
+                level?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: level not equal to */
+                level__n?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: level is empty (null, or an empty string) for true, isn't for false */
+                level__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -5124,11 +6402,11 @@ export interface operations {
             query?: {
                 /** @description Free text search (as in the list) */
                 q?: string;
-                /** @description Fields to count by (up to two), comma-separated */
+                /** @description Fields to count by (up to two), comma-separated; fields: device, author */
                 groupBy?: string;
                 /** @description Size of the time buckets */
                 interval?: "hour" | "day" | "week" | "month";
-                /** @description Date field of the time buckets */
+                /** @description Date field of the time buckets; fields: changeDate */
                 on?: string;
                 /** @description Start of the range (included) */
                 from?: Date;
@@ -5136,6 +6414,82 @@ export interface operations {
                 to?: Date;
                 /** @description Time zone of the buckets (IANA name, UTC by default) */
                 timeZone?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
+                /** @description Filter: domain equal to */
+                domain?: number[];
+                /** @description Filter: domain not equal to */
+                domain__n?: number[];
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
             };
             header?: never;
             path?: never;
@@ -5163,9 +6517,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, changeDate, author */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: author */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5177,6 +6531,82 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
+                /** @description Filter: domain equal to */
+                domain?: number[];
+                /** @description Filter: domain not equal to */
+                domain__n?: number[];
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
             };
             header?: never;
             path?: never;
@@ -5204,9 +6634,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, changeDate, author */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: author */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5218,6 +6648,80 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
+                /** @description Filter: domain equal to */
+                domain?: number[];
+                /** @description Filter: domain not equal to */
+                domain__n?: number[];
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
             };
             header?: never;
             path: {
@@ -5248,9 +6752,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, type, username, changeDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, username */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5262,6 +6766,108 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3" | "SSH" | "SSH_KEY" | "TELNET")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("HTTP" | "SNMP_V1" | "SNMP_V2C" | "SNMP_V3" | "SSH" | "SSH_KEY" | "TELNET")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: mgmtDomain equal to */
+                mgmtDomain?: number[];
+                /** @description Filter: mgmtDomain not equal to */
+                mgmtDomain__n?: number[];
+                /** @description Filter: mgmtDomain lower than */
+                mgmtDomain__lt?: number[];
+                /** @description Filter: mgmtDomain lower than or equal to */
+                mgmtDomain__lte?: number[];
+                /** @description Filter: mgmtDomain greater than */
+                mgmtDomain__gt?: number[];
+                /** @description Filter: mgmtDomain greater than or equal to */
+                mgmtDomain__gte?: number[];
+                /** @description Filter: mgmtDomain is empty (null, or an empty string) for true, isn't for false */
+                mgmtDomain__empty?: boolean;
+                /** @description Filter: deviceSpecific equal to */
+                deviceSpecific?: boolean[];
+                /** @description Filter: username equal to */
+                username?: string[];
+                /** @description Filter: username not equal to */
+                username__n?: string[];
+                /** @description Filter: username equal to, ignoring the case */
+                username__ie?: string[];
+                /** @description Filter: username not equal to, ignoring the case */
+                username__nie?: string[];
+                /** @description Filter: username contains, ignoring the case */
+                username__ic?: string[];
+                /** @description Filter: username doesn't contain, ignoring the case */
+                username__nic?: string[];
+                /** @description Filter: username starts with, ignoring the case */
+                username__isw?: string[];
+                /** @description Filter: username doesn't start with, ignoring the case */
+                username__nisw?: string[];
+                /** @description Filter: username ends with, ignoring the case */
+                username__iew?: string[];
+                /** @description Filter: username doesn't end with, ignoring the case */
+                username__niew?: string[];
+                /** @description Filter: username matches the (POSIX) regular expression */
+                username__regex?: string[];
+                /** @description Filter: username matches the (POSIX) regular expression, ignoring the case */
+                username__iregex?: string[];
+                /** @description Filter: username is empty (null, or an empty string) for true, isn't for false */
+                username__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -5465,9 +7071,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: driver, family, deviceCount */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: driver, family */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5479,6 +7085,58 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: driver equal to */
+                driver?: string[];
+                /** @description Filter: driver not equal to */
+                driver__n?: string[];
+                /** @description Filter: driver equal to, ignoring the case */
+                driver__ie?: string[];
+                /** @description Filter: driver not equal to, ignoring the case */
+                driver__nie?: string[];
+                /** @description Filter: driver contains, ignoring the case */
+                driver__ic?: string[];
+                /** @description Filter: driver doesn't contain, ignoring the case */
+                driver__nic?: string[];
+                /** @description Filter: driver starts with, ignoring the case */
+                driver__isw?: string[];
+                /** @description Filter: driver doesn't start with, ignoring the case */
+                driver__nisw?: string[];
+                /** @description Filter: driver ends with, ignoring the case */
+                driver__iew?: string[];
+                /** @description Filter: driver doesn't end with, ignoring the case */
+                driver__niew?: string[];
+                /** @description Filter: family equal to */
+                family?: string[];
+                /** @description Filter: family not equal to */
+                family__n?: string[];
+                /** @description Filter: family equal to, ignoring the case */
+                family__ie?: string[];
+                /** @description Filter: family not equal to, ignoring the case */
+                family__nie?: string[];
+                /** @description Filter: family contains, ignoring the case */
+                family__ic?: string[];
+                /** @description Filter: family doesn't contain, ignoring the case */
+                family__nic?: string[];
+                /** @description Filter: family starts with, ignoring the case */
+                family__isw?: string[];
+                /** @description Filter: family doesn't start with, ignoring the case */
+                family__nisw?: string[];
+                /** @description Filter: family ends with, ignoring the case */
+                family__iew?: string[];
+                /** @description Filter: family doesn't end with, ignoring the case */
+                family__niew?: string[];
+                /** @description Filter: deviceCount equal to */
+                deviceCount?: number[];
+                /** @description Filter: deviceCount not equal to */
+                deviceCount__n?: number[];
+                /** @description Filter: deviceCount lower than */
+                deviceCount__lt?: number[];
+                /** @description Filter: deviceCount lower than or equal to */
+                deviceCount__lte?: number[];
+                /** @description Filter: deviceCount greater than */
+                deviceCount__gt?: number[];
+                /** @description Filter: deviceCount greater than or equal to */
+                deviceCount__gte?: number[];
             };
             header?: never;
             path?: never;
@@ -5506,9 +7164,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, description, vrf, virtualDevice, enabled, level3 */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, description */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5520,6 +7178,136 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: description equal to */
+                description?: string[];
+                /** @description Filter: description not equal to */
+                description__n?: string[];
+                /** @description Filter: description equal to, ignoring the case */
+                description__ie?: string[];
+                /** @description Filter: description not equal to, ignoring the case */
+                description__nie?: string[];
+                /** @description Filter: description contains, ignoring the case */
+                description__ic?: string[];
+                /** @description Filter: description doesn't contain, ignoring the case */
+                description__nic?: string[];
+                /** @description Filter: description starts with, ignoring the case */
+                description__isw?: string[];
+                /** @description Filter: description doesn't start with, ignoring the case */
+                description__nisw?: string[];
+                /** @description Filter: description ends with, ignoring the case */
+                description__iew?: string[];
+                /** @description Filter: description doesn't end with, ignoring the case */
+                description__niew?: string[];
+                /** @description Filter: description matches the (POSIX) regular expression */
+                description__regex?: string[];
+                /** @description Filter: description matches the (POSIX) regular expression, ignoring the case */
+                description__iregex?: string[];
+                /** @description Filter: description is empty (null, or an empty string) for true, isn't for false */
+                description__empty?: boolean;
+                /** @description Filter: vrf equal to */
+                vrf?: string[];
+                /** @description Filter: vrf not equal to */
+                vrf__n?: string[];
+                /** @description Filter: vrf equal to, ignoring the case */
+                vrf__ie?: string[];
+                /** @description Filter: vrf not equal to, ignoring the case */
+                vrf__nie?: string[];
+                /** @description Filter: vrf contains, ignoring the case */
+                vrf__ic?: string[];
+                /** @description Filter: vrf doesn't contain, ignoring the case */
+                vrf__nic?: string[];
+                /** @description Filter: vrf starts with, ignoring the case */
+                vrf__isw?: string[];
+                /** @description Filter: vrf doesn't start with, ignoring the case */
+                vrf__nisw?: string[];
+                /** @description Filter: vrf ends with, ignoring the case */
+                vrf__iew?: string[];
+                /** @description Filter: vrf doesn't end with, ignoring the case */
+                vrf__niew?: string[];
+                /** @description Filter: vrf matches the (POSIX) regular expression */
+                vrf__regex?: string[];
+                /** @description Filter: vrf matches the (POSIX) regular expression, ignoring the case */
+                vrf__iregex?: string[];
+                /** @description Filter: vrf is empty (null, or an empty string) for true, isn't for false */
+                vrf__empty?: boolean;
+                /** @description Filter: virtualDevice equal to */
+                virtualDevice?: string[];
+                /** @description Filter: virtualDevice not equal to */
+                virtualDevice__n?: string[];
+                /** @description Filter: virtualDevice equal to, ignoring the case */
+                virtualDevice__ie?: string[];
+                /** @description Filter: virtualDevice not equal to, ignoring the case */
+                virtualDevice__nie?: string[];
+                /** @description Filter: virtualDevice contains, ignoring the case */
+                virtualDevice__ic?: string[];
+                /** @description Filter: virtualDevice doesn't contain, ignoring the case */
+                virtualDevice__nic?: string[];
+                /** @description Filter: virtualDevice starts with, ignoring the case */
+                virtualDevice__isw?: string[];
+                /** @description Filter: virtualDevice doesn't start with, ignoring the case */
+                virtualDevice__nisw?: string[];
+                /** @description Filter: virtualDevice ends with, ignoring the case */
+                virtualDevice__iew?: string[];
+                /** @description Filter: virtualDevice doesn't end with, ignoring the case */
+                virtualDevice__niew?: string[];
+                /** @description Filter: virtualDevice matches the (POSIX) regular expression */
+                virtualDevice__regex?: string[];
+                /** @description Filter: virtualDevice matches the (POSIX) regular expression, ignoring the case */
+                virtualDevice__iregex?: string[];
+                /** @description Filter: virtualDevice is empty (null, or an empty string) for true, isn't for false */
+                virtualDevice__empty?: boolean;
+                /** @description Filter: enabled equal to */
+                enabled?: boolean[];
+                /** @description Filter: level3 equal to */
+                level3?: boolean[];
+                /** @description Filter: macAddress equal to */
+                macAddress?: string[];
+                /** @description Filter: macAddress not equal to */
+                macAddress__n?: string[];
+                /** @description Filter: ipAddress equal to */
+                ipAddress?: string[];
+                /** @description Filter: ipAddress not equal to */
+                ipAddress__n?: string[];
+                /** @description Filter: ipAddress IP address within the given subnet (10.0.0.0/8) */
+                ipAddress__net?: string[];
             };
             header?: never;
             path: {
@@ -5550,9 +7338,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, slot, partNumber, serialNumber, firstSeenDate, lastSeenDate, removed */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: slot, partNumber, serialNumber */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5564,6 +7352,126 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: slot equal to */
+                slot?: string[];
+                /** @description Filter: slot not equal to */
+                slot__n?: string[];
+                /** @description Filter: slot equal to, ignoring the case */
+                slot__ie?: string[];
+                /** @description Filter: slot not equal to, ignoring the case */
+                slot__nie?: string[];
+                /** @description Filter: slot contains, ignoring the case */
+                slot__ic?: string[];
+                /** @description Filter: slot doesn't contain, ignoring the case */
+                slot__nic?: string[];
+                /** @description Filter: slot starts with, ignoring the case */
+                slot__isw?: string[];
+                /** @description Filter: slot doesn't start with, ignoring the case */
+                slot__nisw?: string[];
+                /** @description Filter: slot ends with, ignoring the case */
+                slot__iew?: string[];
+                /** @description Filter: slot doesn't end with, ignoring the case */
+                slot__niew?: string[];
+                /** @description Filter: slot matches the (POSIX) regular expression */
+                slot__regex?: string[];
+                /** @description Filter: slot matches the (POSIX) regular expression, ignoring the case */
+                slot__iregex?: string[];
+                /** @description Filter: slot is empty (null, or an empty string) for true, isn't for false */
+                slot__empty?: boolean;
+                /** @description Filter: partNumber equal to */
+                partNumber?: string[];
+                /** @description Filter: partNumber not equal to */
+                partNumber__n?: string[];
+                /** @description Filter: partNumber equal to, ignoring the case */
+                partNumber__ie?: string[];
+                /** @description Filter: partNumber not equal to, ignoring the case */
+                partNumber__nie?: string[];
+                /** @description Filter: partNumber contains, ignoring the case */
+                partNumber__ic?: string[];
+                /** @description Filter: partNumber doesn't contain, ignoring the case */
+                partNumber__nic?: string[];
+                /** @description Filter: partNumber starts with, ignoring the case */
+                partNumber__isw?: string[];
+                /** @description Filter: partNumber doesn't start with, ignoring the case */
+                partNumber__nisw?: string[];
+                /** @description Filter: partNumber ends with, ignoring the case */
+                partNumber__iew?: string[];
+                /** @description Filter: partNumber doesn't end with, ignoring the case */
+                partNumber__niew?: string[];
+                /** @description Filter: partNumber matches the (POSIX) regular expression */
+                partNumber__regex?: string[];
+                /** @description Filter: partNumber matches the (POSIX) regular expression, ignoring the case */
+                partNumber__iregex?: string[];
+                /** @description Filter: partNumber is empty (null, or an empty string) for true, isn't for false */
+                partNumber__empty?: boolean;
+                /** @description Filter: serialNumber equal to */
+                serialNumber?: string[];
+                /** @description Filter: serialNumber not equal to */
+                serialNumber__n?: string[];
+                /** @description Filter: serialNumber equal to, ignoring the case */
+                serialNumber__ie?: string[];
+                /** @description Filter: serialNumber not equal to, ignoring the case */
+                serialNumber__nie?: string[];
+                /** @description Filter: serialNumber contains, ignoring the case */
+                serialNumber__ic?: string[];
+                /** @description Filter: serialNumber doesn't contain, ignoring the case */
+                serialNumber__nic?: string[];
+                /** @description Filter: serialNumber starts with, ignoring the case */
+                serialNumber__isw?: string[];
+                /** @description Filter: serialNumber doesn't start with, ignoring the case */
+                serialNumber__nisw?: string[];
+                /** @description Filter: serialNumber ends with, ignoring the case */
+                serialNumber__iew?: string[];
+                /** @description Filter: serialNumber doesn't end with, ignoring the case */
+                serialNumber__niew?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression */
+                serialNumber__regex?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression, ignoring the case */
+                serialNumber__iregex?: string[];
+                /** @description Filter: serialNumber is empty (null, or an empty string) for true, isn't for false */
+                serialNumber__empty?: boolean;
+                /** @description Filter: firstSeenDate equal to */
+                firstSeenDate?: string[];
+                /** @description Filter: firstSeenDate not equal to */
+                firstSeenDate__n?: string[];
+                /** @description Filter: firstSeenDate lower than */
+                firstSeenDate__lt?: string[];
+                /** @description Filter: firstSeenDate lower than or equal to */
+                firstSeenDate__lte?: string[];
+                /** @description Filter: firstSeenDate greater than */
+                firstSeenDate__gt?: string[];
+                /** @description Filter: firstSeenDate greater than or equal to */
+                firstSeenDate__gte?: string[];
+                /** @description Filter: firstSeenDate is empty (null, or an empty string) for true, isn't for false */
+                firstSeenDate__empty?: boolean;
+                /** @description Filter: lastSeenDate equal to */
+                lastSeenDate?: string[];
+                /** @description Filter: lastSeenDate not equal to */
+                lastSeenDate__n?: string[];
+                /** @description Filter: lastSeenDate lower than */
+                lastSeenDate__lt?: string[];
+                /** @description Filter: lastSeenDate lower than or equal to */
+                lastSeenDate__lte?: string[];
+                /** @description Filter: lastSeenDate greater than */
+                lastSeenDate__gt?: string[];
+                /** @description Filter: lastSeenDate greater than or equal to */
+                lastSeenDate__gte?: string[];
+                /** @description Filter: lastSeenDate is empty (null, or an empty string) for true, isn't for false */
+                lastSeenDate__empty?: boolean;
+                /** @description Filter: removed equal to */
+                removed?: boolean[];
             };
             header?: never;
             path: {
@@ -5598,9 +7506,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, mgmtAddress, status, family, driver, networkClass, softwareVersion, softwareLevel, serialNumber, location, contact, creator, createdDate, changeDate, eolDate, eosDate, lastSnapshotSuccessDate, lastSnapshotFailureDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, mgmtAddress, family, softwareVersion, serialNumber, location, contact, comments */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -5612,6 +7520,428 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: mgmtAddress equal to */
+                mgmtAddress?: string[];
+                /** @description Filter: mgmtAddress not equal to */
+                mgmtAddress__n?: string[];
+                /** @description Filter: mgmtAddress equal to, ignoring the case */
+                mgmtAddress__ie?: string[];
+                /** @description Filter: mgmtAddress not equal to, ignoring the case */
+                mgmtAddress__nie?: string[];
+                /** @description Filter: mgmtAddress contains, ignoring the case */
+                mgmtAddress__ic?: string[];
+                /** @description Filter: mgmtAddress doesn't contain, ignoring the case */
+                mgmtAddress__nic?: string[];
+                /** @description Filter: mgmtAddress starts with, ignoring the case */
+                mgmtAddress__isw?: string[];
+                /** @description Filter: mgmtAddress doesn't start with, ignoring the case */
+                mgmtAddress__nisw?: string[];
+                /** @description Filter: mgmtAddress ends with, ignoring the case */
+                mgmtAddress__iew?: string[];
+                /** @description Filter: mgmtAddress doesn't end with, ignoring the case */
+                mgmtAddress__niew?: string[];
+                /** @description Filter: mgmtAddress matches the (POSIX) regular expression */
+                mgmtAddress__regex?: string[];
+                /** @description Filter: mgmtAddress matches the (POSIX) regular expression, ignoring the case */
+                mgmtAddress__iregex?: string[];
+                /** @description Filter: mgmtAddress is empty (null, or an empty string) for true, isn't for false */
+                mgmtAddress__empty?: boolean;
+                /** @description Filter: status equal to */
+                status?: ("DISABLED" | "INPRODUCTION" | "PREPRODUCTION")[];
+                /** @description Filter: status not equal to */
+                status__n?: ("DISABLED" | "INPRODUCTION" | "PREPRODUCTION")[];
+                /** @description Filter: status is empty (null, or an empty string) for true, isn't for false */
+                status__empty?: boolean;
+                /** @description Filter: mgmtDomain equal to */
+                mgmtDomain?: number[];
+                /** @description Filter: mgmtDomain not equal to */
+                mgmtDomain__n?: number[];
+                /** @description Filter: mgmtDomain lower than */
+                mgmtDomain__lt?: number[];
+                /** @description Filter: mgmtDomain lower than or equal to */
+                mgmtDomain__lte?: number[];
+                /** @description Filter: mgmtDomain greater than */
+                mgmtDomain__gt?: number[];
+                /** @description Filter: mgmtDomain greater than or equal to */
+                mgmtDomain__gte?: number[];
+                /** @description Filter: mgmtDomain is empty (null, or an empty string) for true, isn't for false */
+                mgmtDomain__empty?: boolean;
+                /** @description Filter: family equal to */
+                family?: string[];
+                /** @description Filter: family not equal to */
+                family__n?: string[];
+                /** @description Filter: family equal to, ignoring the case */
+                family__ie?: string[];
+                /** @description Filter: family not equal to, ignoring the case */
+                family__nie?: string[];
+                /** @description Filter: family contains, ignoring the case */
+                family__ic?: string[];
+                /** @description Filter: family doesn't contain, ignoring the case */
+                family__nic?: string[];
+                /** @description Filter: family starts with, ignoring the case */
+                family__isw?: string[];
+                /** @description Filter: family doesn't start with, ignoring the case */
+                family__nisw?: string[];
+                /** @description Filter: family ends with, ignoring the case */
+                family__iew?: string[];
+                /** @description Filter: family doesn't end with, ignoring the case */
+                family__niew?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression */
+                family__regex?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression, ignoring the case */
+                family__iregex?: string[];
+                /** @description Filter: family is empty (null, or an empty string) for true, isn't for false */
+                family__empty?: boolean;
+                /** @description Filter: driver equal to */
+                driver?: string[];
+                /** @description Filter: driver not equal to */
+                driver__n?: string[];
+                /** @description Filter: driver equal to, ignoring the case */
+                driver__ie?: string[];
+                /** @description Filter: driver not equal to, ignoring the case */
+                driver__nie?: string[];
+                /** @description Filter: driver contains, ignoring the case */
+                driver__ic?: string[];
+                /** @description Filter: driver doesn't contain, ignoring the case */
+                driver__nic?: string[];
+                /** @description Filter: driver starts with, ignoring the case */
+                driver__isw?: string[];
+                /** @description Filter: driver doesn't start with, ignoring the case */
+                driver__nisw?: string[];
+                /** @description Filter: driver ends with, ignoring the case */
+                driver__iew?: string[];
+                /** @description Filter: driver doesn't end with, ignoring the case */
+                driver__niew?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression */
+                driver__regex?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression, ignoring the case */
+                driver__iregex?: string[];
+                /** @description Filter: driver is empty (null, or an empty string) for true, isn't for false */
+                driver__empty?: boolean;
+                /** @description Filter: networkClass equal to */
+                networkClass?: ("FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY")[];
+                /** @description Filter: networkClass not equal to */
+                networkClass__n?: ("FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY")[];
+                /** @description Filter: networkClass is empty (null, or an empty string) for true, isn't for false */
+                networkClass__empty?: boolean;
+                /** @description Filter: softwareVersion equal to */
+                softwareVersion?: string[];
+                /** @description Filter: softwareVersion not equal to */
+                softwareVersion__n?: string[];
+                /** @description Filter: softwareVersion equal to, ignoring the case */
+                softwareVersion__ie?: string[];
+                /** @description Filter: softwareVersion not equal to, ignoring the case */
+                softwareVersion__nie?: string[];
+                /** @description Filter: softwareVersion contains, ignoring the case */
+                softwareVersion__ic?: string[];
+                /** @description Filter: softwareVersion doesn't contain, ignoring the case */
+                softwareVersion__nic?: string[];
+                /** @description Filter: softwareVersion starts with, ignoring the case */
+                softwareVersion__isw?: string[];
+                /** @description Filter: softwareVersion doesn't start with, ignoring the case */
+                softwareVersion__nisw?: string[];
+                /** @description Filter: softwareVersion ends with, ignoring the case */
+                softwareVersion__iew?: string[];
+                /** @description Filter: softwareVersion doesn't end with, ignoring the case */
+                softwareVersion__niew?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression */
+                softwareVersion__regex?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression, ignoring the case */
+                softwareVersion__iregex?: string[];
+                /** @description Filter: softwareVersion is empty (null, or an empty string) for true, isn't for false */
+                softwareVersion__empty?: boolean;
+                /** @description Filter: softwareLevel equal to */
+                softwareLevel?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: softwareLevel not equal to */
+                softwareLevel__n?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: softwareLevel is empty (null, or an empty string) for true, isn't for false */
+                softwareLevel__empty?: boolean;
+                /** @description Filter: serialNumber equal to */
+                serialNumber?: string[];
+                /** @description Filter: serialNumber not equal to */
+                serialNumber__n?: string[];
+                /** @description Filter: serialNumber equal to, ignoring the case */
+                serialNumber__ie?: string[];
+                /** @description Filter: serialNumber not equal to, ignoring the case */
+                serialNumber__nie?: string[];
+                /** @description Filter: serialNumber contains, ignoring the case */
+                serialNumber__ic?: string[];
+                /** @description Filter: serialNumber doesn't contain, ignoring the case */
+                serialNumber__nic?: string[];
+                /** @description Filter: serialNumber starts with, ignoring the case */
+                serialNumber__isw?: string[];
+                /** @description Filter: serialNumber doesn't start with, ignoring the case */
+                serialNumber__nisw?: string[];
+                /** @description Filter: serialNumber ends with, ignoring the case */
+                serialNumber__iew?: string[];
+                /** @description Filter: serialNumber doesn't end with, ignoring the case */
+                serialNumber__niew?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression */
+                serialNumber__regex?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression, ignoring the case */
+                serialNumber__iregex?: string[];
+                /** @description Filter: serialNumber is empty (null, or an empty string) for true, isn't for false */
+                serialNumber__empty?: boolean;
+                /** @description Filter: location equal to */
+                location?: string[];
+                /** @description Filter: location not equal to */
+                location__n?: string[];
+                /** @description Filter: location equal to, ignoring the case */
+                location__ie?: string[];
+                /** @description Filter: location not equal to, ignoring the case */
+                location__nie?: string[];
+                /** @description Filter: location contains, ignoring the case */
+                location__ic?: string[];
+                /** @description Filter: location doesn't contain, ignoring the case */
+                location__nic?: string[];
+                /** @description Filter: location starts with, ignoring the case */
+                location__isw?: string[];
+                /** @description Filter: location doesn't start with, ignoring the case */
+                location__nisw?: string[];
+                /** @description Filter: location ends with, ignoring the case */
+                location__iew?: string[];
+                /** @description Filter: location doesn't end with, ignoring the case */
+                location__niew?: string[];
+                /** @description Filter: location matches the (POSIX) regular expression */
+                location__regex?: string[];
+                /** @description Filter: location matches the (POSIX) regular expression, ignoring the case */
+                location__iregex?: string[];
+                /** @description Filter: location is empty (null, or an empty string) for true, isn't for false */
+                location__empty?: boolean;
+                /** @description Filter: contact equal to */
+                contact?: string[];
+                /** @description Filter: contact not equal to */
+                contact__n?: string[];
+                /** @description Filter: contact equal to, ignoring the case */
+                contact__ie?: string[];
+                /** @description Filter: contact not equal to, ignoring the case */
+                contact__nie?: string[];
+                /** @description Filter: contact contains, ignoring the case */
+                contact__ic?: string[];
+                /** @description Filter: contact doesn't contain, ignoring the case */
+                contact__nic?: string[];
+                /** @description Filter: contact starts with, ignoring the case */
+                contact__isw?: string[];
+                /** @description Filter: contact doesn't start with, ignoring the case */
+                contact__nisw?: string[];
+                /** @description Filter: contact ends with, ignoring the case */
+                contact__iew?: string[];
+                /** @description Filter: contact doesn't end with, ignoring the case */
+                contact__niew?: string[];
+                /** @description Filter: contact matches the (POSIX) regular expression */
+                contact__regex?: string[];
+                /** @description Filter: contact matches the (POSIX) regular expression, ignoring the case */
+                contact__iregex?: string[];
+                /** @description Filter: contact is empty (null, or an empty string) for true, isn't for false */
+                contact__empty?: boolean;
+                /** @description Filter: comments equal to */
+                comments?: string[];
+                /** @description Filter: comments not equal to */
+                comments__n?: string[];
+                /** @description Filter: comments equal to, ignoring the case */
+                comments__ie?: string[];
+                /** @description Filter: comments not equal to, ignoring the case */
+                comments__nie?: string[];
+                /** @description Filter: comments contains, ignoring the case */
+                comments__ic?: string[];
+                /** @description Filter: comments doesn't contain, ignoring the case */
+                comments__nic?: string[];
+                /** @description Filter: comments starts with, ignoring the case */
+                comments__isw?: string[];
+                /** @description Filter: comments doesn't start with, ignoring the case */
+                comments__nisw?: string[];
+                /** @description Filter: comments ends with, ignoring the case */
+                comments__iew?: string[];
+                /** @description Filter: comments doesn't end with, ignoring the case */
+                comments__niew?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression */
+                comments__regex?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression, ignoring the case */
+                comments__iregex?: string[];
+                /** @description Filter: comments is empty (null, or an empty string) for true, isn't for false */
+                comments__empty?: boolean;
+                /** @description Filter: creator equal to */
+                creator?: string[];
+                /** @description Filter: creator not equal to */
+                creator__n?: string[];
+                /** @description Filter: creator equal to, ignoring the case */
+                creator__ie?: string[];
+                /** @description Filter: creator not equal to, ignoring the case */
+                creator__nie?: string[];
+                /** @description Filter: creator contains, ignoring the case */
+                creator__ic?: string[];
+                /** @description Filter: creator doesn't contain, ignoring the case */
+                creator__nic?: string[];
+                /** @description Filter: creator starts with, ignoring the case */
+                creator__isw?: string[];
+                /** @description Filter: creator doesn't start with, ignoring the case */
+                creator__nisw?: string[];
+                /** @description Filter: creator ends with, ignoring the case */
+                creator__iew?: string[];
+                /** @description Filter: creator doesn't end with, ignoring the case */
+                creator__niew?: string[];
+                /** @description Filter: creator matches the (POSIX) regular expression */
+                creator__regex?: string[];
+                /** @description Filter: creator matches the (POSIX) regular expression, ignoring the case */
+                creator__iregex?: string[];
+                /** @description Filter: creator is empty (null, or an empty string) for true, isn't for false */
+                creator__empty?: boolean;
+                /** @description Filter: cachedIpAddress equal to */
+                cachedIpAddress?: string[];
+                /** @description Filter: cachedIpAddress not equal to */
+                cachedIpAddress__n?: string[];
+                /** @description Filter: cachedIpAddress is empty (null, or an empty string) for true, isn't for false */
+                cachedIpAddress__empty?: boolean;
+                /** @description Filter: cachedIpAddress IP address within the given subnet (10.0.0.0/8) */
+                cachedIpAddress__net?: string[];
+                /** @description Filter: createdDate equal to */
+                createdDate?: string[];
+                /** @description Filter: createdDate not equal to */
+                createdDate__n?: string[];
+                /** @description Filter: createdDate lower than */
+                createdDate__lt?: string[];
+                /** @description Filter: createdDate lower than or equal to */
+                createdDate__lte?: string[];
+                /** @description Filter: createdDate greater than */
+                createdDate__gt?: string[];
+                /** @description Filter: createdDate greater than or equal to */
+                createdDate__gte?: string[];
+                /** @description Filter: createdDate is empty (null, or an empty string) for true, isn't for false */
+                createdDate__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: eolDate equal to */
+                eolDate?: string[];
+                /** @description Filter: eolDate not equal to */
+                eolDate__n?: string[];
+                /** @description Filter: eolDate lower than */
+                eolDate__lt?: string[];
+                /** @description Filter: eolDate lower than or equal to */
+                eolDate__lte?: string[];
+                /** @description Filter: eolDate greater than */
+                eolDate__gt?: string[];
+                /** @description Filter: eolDate greater than or equal to */
+                eolDate__gte?: string[];
+                /** @description Filter: eolDate is empty (null, or an empty string) for true, isn't for false */
+                eolDate__empty?: boolean;
+                /** @description Filter: eosDate equal to */
+                eosDate?: string[];
+                /** @description Filter: eosDate not equal to */
+                eosDate__n?: string[];
+                /** @description Filter: eosDate lower than */
+                eosDate__lt?: string[];
+                /** @description Filter: eosDate lower than or equal to */
+                eosDate__lte?: string[];
+                /** @description Filter: eosDate greater than */
+                eosDate__gt?: string[];
+                /** @description Filter: eosDate greater than or equal to */
+                eosDate__gte?: string[];
+                /** @description Filter: eosDate is empty (null, or an empty string) for true, isn't for false */
+                eosDate__empty?: boolean;
+                /** @description Filter: lastSnapshotSuccessDate equal to */
+                lastSnapshotSuccessDate?: string[];
+                /** @description Filter: lastSnapshotSuccessDate not equal to */
+                lastSnapshotSuccessDate__n?: string[];
+                /** @description Filter: lastSnapshotSuccessDate lower than */
+                lastSnapshotSuccessDate__lt?: string[];
+                /** @description Filter: lastSnapshotSuccessDate lower than or equal to */
+                lastSnapshotSuccessDate__lte?: string[];
+                /** @description Filter: lastSnapshotSuccessDate greater than */
+                lastSnapshotSuccessDate__gt?: string[];
+                /** @description Filter: lastSnapshotSuccessDate greater than or equal to */
+                lastSnapshotSuccessDate__gte?: string[];
+                /** @description Filter: lastSnapshotSuccessDate is empty (null, or an empty string) for true, isn't for false */
+                lastSnapshotSuccessDate__empty?: boolean;
+                /** @description Filter: lastSnapshotFailureDate equal to */
+                lastSnapshotFailureDate?: string[];
+                /** @description Filter: lastSnapshotFailureDate not equal to */
+                lastSnapshotFailureDate__n?: string[];
+                /** @description Filter: lastSnapshotFailureDate lower than */
+                lastSnapshotFailureDate__lt?: string[];
+                /** @description Filter: lastSnapshotFailureDate lower than or equal to */
+                lastSnapshotFailureDate__lte?: string[];
+                /** @description Filter: lastSnapshotFailureDate greater than */
+                lastSnapshotFailureDate__gt?: string[];
+                /** @description Filter: lastSnapshotFailureDate greater than or equal to */
+                lastSnapshotFailureDate__gte?: string[];
+                /** @description Filter: lastSnapshotFailureDate is empty (null, or an empty string) for true, isn't for false */
+                lastSnapshotFailureDate__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: tag equal to */
+                tag?: string[];
+                /** @description Filter: tag not equal to */
+                tag__n?: string[];
+                /** @description Filter: tag equal to, ignoring the case */
+                tag__ie?: string[];
+                /** @description Filter: tag not equal to, ignoring the case */
+                tag__nie?: string[];
+                /** @description Filter: tag contains, ignoring the case */
+                tag__ic?: string[];
+                /** @description Filter: tag doesn't contain, ignoring the case */
+                tag__nic?: string[];
+                /** @description Filter: tag starts with, ignoring the case */
+                tag__isw?: string[];
+                /** @description Filter: tag doesn't start with, ignoring the case */
+                tag__nisw?: string[];
+                /** @description Filter: tag is empty (null, or an empty string) for true, isn't for false */
+                tag__empty?: boolean;
+                /** @description Filter: compliant equal to */
+                compliant?: boolean[];
             };
             header?: never;
             path?: never;
@@ -5855,11 +8185,11 @@ export interface operations {
                 query?: string;
                 /** @description Free text search (as in the list) */
                 q?: string;
-                /** @description Fields to count by (up to two), comma-separated */
+                /** @description Fields to count by (up to two), comma-separated; fields: status, mgmtDomain, family, driver, networkClass, softwareVersion, softwareLevel, location, eolDate, eosDate, group, tag, compliant */
                 groupBy?: string;
                 /** @description Size of the time buckets */
                 interval?: "hour" | "day" | "week" | "month";
-                /** @description Date field of the time buckets */
+                /** @description Date field of the time buckets; fields: createdDate, changeDate, eolDate, eosDate, lastSnapshotSuccessDate, lastSnapshotFailureDate */
                 on?: string;
                 /** @description Start of the range (included) */
                 from?: Date;
@@ -5867,6 +8197,428 @@ export interface operations {
                 to?: Date;
                 /** @description Time zone of the buckets (IANA name, UTC by default) */
                 timeZone?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: mgmtAddress equal to */
+                mgmtAddress?: string[];
+                /** @description Filter: mgmtAddress not equal to */
+                mgmtAddress__n?: string[];
+                /** @description Filter: mgmtAddress equal to, ignoring the case */
+                mgmtAddress__ie?: string[];
+                /** @description Filter: mgmtAddress not equal to, ignoring the case */
+                mgmtAddress__nie?: string[];
+                /** @description Filter: mgmtAddress contains, ignoring the case */
+                mgmtAddress__ic?: string[];
+                /** @description Filter: mgmtAddress doesn't contain, ignoring the case */
+                mgmtAddress__nic?: string[];
+                /** @description Filter: mgmtAddress starts with, ignoring the case */
+                mgmtAddress__isw?: string[];
+                /** @description Filter: mgmtAddress doesn't start with, ignoring the case */
+                mgmtAddress__nisw?: string[];
+                /** @description Filter: mgmtAddress ends with, ignoring the case */
+                mgmtAddress__iew?: string[];
+                /** @description Filter: mgmtAddress doesn't end with, ignoring the case */
+                mgmtAddress__niew?: string[];
+                /** @description Filter: mgmtAddress matches the (POSIX) regular expression */
+                mgmtAddress__regex?: string[];
+                /** @description Filter: mgmtAddress matches the (POSIX) regular expression, ignoring the case */
+                mgmtAddress__iregex?: string[];
+                /** @description Filter: mgmtAddress is empty (null, or an empty string) for true, isn't for false */
+                mgmtAddress__empty?: boolean;
+                /** @description Filter: status equal to */
+                status?: ("DISABLED" | "INPRODUCTION" | "PREPRODUCTION")[];
+                /** @description Filter: status not equal to */
+                status__n?: ("DISABLED" | "INPRODUCTION" | "PREPRODUCTION")[];
+                /** @description Filter: status is empty (null, or an empty string) for true, isn't for false */
+                status__empty?: boolean;
+                /** @description Filter: mgmtDomain equal to */
+                mgmtDomain?: number[];
+                /** @description Filter: mgmtDomain not equal to */
+                mgmtDomain__n?: number[];
+                /** @description Filter: mgmtDomain lower than */
+                mgmtDomain__lt?: number[];
+                /** @description Filter: mgmtDomain lower than or equal to */
+                mgmtDomain__lte?: number[];
+                /** @description Filter: mgmtDomain greater than */
+                mgmtDomain__gt?: number[];
+                /** @description Filter: mgmtDomain greater than or equal to */
+                mgmtDomain__gte?: number[];
+                /** @description Filter: mgmtDomain is empty (null, or an empty string) for true, isn't for false */
+                mgmtDomain__empty?: boolean;
+                /** @description Filter: family equal to */
+                family?: string[];
+                /** @description Filter: family not equal to */
+                family__n?: string[];
+                /** @description Filter: family equal to, ignoring the case */
+                family__ie?: string[];
+                /** @description Filter: family not equal to, ignoring the case */
+                family__nie?: string[];
+                /** @description Filter: family contains, ignoring the case */
+                family__ic?: string[];
+                /** @description Filter: family doesn't contain, ignoring the case */
+                family__nic?: string[];
+                /** @description Filter: family starts with, ignoring the case */
+                family__isw?: string[];
+                /** @description Filter: family doesn't start with, ignoring the case */
+                family__nisw?: string[];
+                /** @description Filter: family ends with, ignoring the case */
+                family__iew?: string[];
+                /** @description Filter: family doesn't end with, ignoring the case */
+                family__niew?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression */
+                family__regex?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression, ignoring the case */
+                family__iregex?: string[];
+                /** @description Filter: family is empty (null, or an empty string) for true, isn't for false */
+                family__empty?: boolean;
+                /** @description Filter: driver equal to */
+                driver?: string[];
+                /** @description Filter: driver not equal to */
+                driver__n?: string[];
+                /** @description Filter: driver equal to, ignoring the case */
+                driver__ie?: string[];
+                /** @description Filter: driver not equal to, ignoring the case */
+                driver__nie?: string[];
+                /** @description Filter: driver contains, ignoring the case */
+                driver__ic?: string[];
+                /** @description Filter: driver doesn't contain, ignoring the case */
+                driver__nic?: string[];
+                /** @description Filter: driver starts with, ignoring the case */
+                driver__isw?: string[];
+                /** @description Filter: driver doesn't start with, ignoring the case */
+                driver__nisw?: string[];
+                /** @description Filter: driver ends with, ignoring the case */
+                driver__iew?: string[];
+                /** @description Filter: driver doesn't end with, ignoring the case */
+                driver__niew?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression */
+                driver__regex?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression, ignoring the case */
+                driver__iregex?: string[];
+                /** @description Filter: driver is empty (null, or an empty string) for true, isn't for false */
+                driver__empty?: boolean;
+                /** @description Filter: networkClass equal to */
+                networkClass?: ("FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY")[];
+                /** @description Filter: networkClass not equal to */
+                networkClass__n?: ("FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY")[];
+                /** @description Filter: networkClass is empty (null, or an empty string) for true, isn't for false */
+                networkClass__empty?: boolean;
+                /** @description Filter: softwareVersion equal to */
+                softwareVersion?: string[];
+                /** @description Filter: softwareVersion not equal to */
+                softwareVersion__n?: string[];
+                /** @description Filter: softwareVersion equal to, ignoring the case */
+                softwareVersion__ie?: string[];
+                /** @description Filter: softwareVersion not equal to, ignoring the case */
+                softwareVersion__nie?: string[];
+                /** @description Filter: softwareVersion contains, ignoring the case */
+                softwareVersion__ic?: string[];
+                /** @description Filter: softwareVersion doesn't contain, ignoring the case */
+                softwareVersion__nic?: string[];
+                /** @description Filter: softwareVersion starts with, ignoring the case */
+                softwareVersion__isw?: string[];
+                /** @description Filter: softwareVersion doesn't start with, ignoring the case */
+                softwareVersion__nisw?: string[];
+                /** @description Filter: softwareVersion ends with, ignoring the case */
+                softwareVersion__iew?: string[];
+                /** @description Filter: softwareVersion doesn't end with, ignoring the case */
+                softwareVersion__niew?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression */
+                softwareVersion__regex?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression, ignoring the case */
+                softwareVersion__iregex?: string[];
+                /** @description Filter: softwareVersion is empty (null, or an empty string) for true, isn't for false */
+                softwareVersion__empty?: boolean;
+                /** @description Filter: softwareLevel equal to */
+                softwareLevel?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: softwareLevel not equal to */
+                softwareLevel__n?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: softwareLevel is empty (null, or an empty string) for true, isn't for false */
+                softwareLevel__empty?: boolean;
+                /** @description Filter: serialNumber equal to */
+                serialNumber?: string[];
+                /** @description Filter: serialNumber not equal to */
+                serialNumber__n?: string[];
+                /** @description Filter: serialNumber equal to, ignoring the case */
+                serialNumber__ie?: string[];
+                /** @description Filter: serialNumber not equal to, ignoring the case */
+                serialNumber__nie?: string[];
+                /** @description Filter: serialNumber contains, ignoring the case */
+                serialNumber__ic?: string[];
+                /** @description Filter: serialNumber doesn't contain, ignoring the case */
+                serialNumber__nic?: string[];
+                /** @description Filter: serialNumber starts with, ignoring the case */
+                serialNumber__isw?: string[];
+                /** @description Filter: serialNumber doesn't start with, ignoring the case */
+                serialNumber__nisw?: string[];
+                /** @description Filter: serialNumber ends with, ignoring the case */
+                serialNumber__iew?: string[];
+                /** @description Filter: serialNumber doesn't end with, ignoring the case */
+                serialNumber__niew?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression */
+                serialNumber__regex?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression, ignoring the case */
+                serialNumber__iregex?: string[];
+                /** @description Filter: serialNumber is empty (null, or an empty string) for true, isn't for false */
+                serialNumber__empty?: boolean;
+                /** @description Filter: location equal to */
+                location?: string[];
+                /** @description Filter: location not equal to */
+                location__n?: string[];
+                /** @description Filter: location equal to, ignoring the case */
+                location__ie?: string[];
+                /** @description Filter: location not equal to, ignoring the case */
+                location__nie?: string[];
+                /** @description Filter: location contains, ignoring the case */
+                location__ic?: string[];
+                /** @description Filter: location doesn't contain, ignoring the case */
+                location__nic?: string[];
+                /** @description Filter: location starts with, ignoring the case */
+                location__isw?: string[];
+                /** @description Filter: location doesn't start with, ignoring the case */
+                location__nisw?: string[];
+                /** @description Filter: location ends with, ignoring the case */
+                location__iew?: string[];
+                /** @description Filter: location doesn't end with, ignoring the case */
+                location__niew?: string[];
+                /** @description Filter: location matches the (POSIX) regular expression */
+                location__regex?: string[];
+                /** @description Filter: location matches the (POSIX) regular expression, ignoring the case */
+                location__iregex?: string[];
+                /** @description Filter: location is empty (null, or an empty string) for true, isn't for false */
+                location__empty?: boolean;
+                /** @description Filter: contact equal to */
+                contact?: string[];
+                /** @description Filter: contact not equal to */
+                contact__n?: string[];
+                /** @description Filter: contact equal to, ignoring the case */
+                contact__ie?: string[];
+                /** @description Filter: contact not equal to, ignoring the case */
+                contact__nie?: string[];
+                /** @description Filter: contact contains, ignoring the case */
+                contact__ic?: string[];
+                /** @description Filter: contact doesn't contain, ignoring the case */
+                contact__nic?: string[];
+                /** @description Filter: contact starts with, ignoring the case */
+                contact__isw?: string[];
+                /** @description Filter: contact doesn't start with, ignoring the case */
+                contact__nisw?: string[];
+                /** @description Filter: contact ends with, ignoring the case */
+                contact__iew?: string[];
+                /** @description Filter: contact doesn't end with, ignoring the case */
+                contact__niew?: string[];
+                /** @description Filter: contact matches the (POSIX) regular expression */
+                contact__regex?: string[];
+                /** @description Filter: contact matches the (POSIX) regular expression, ignoring the case */
+                contact__iregex?: string[];
+                /** @description Filter: contact is empty (null, or an empty string) for true, isn't for false */
+                contact__empty?: boolean;
+                /** @description Filter: comments equal to */
+                comments?: string[];
+                /** @description Filter: comments not equal to */
+                comments__n?: string[];
+                /** @description Filter: comments equal to, ignoring the case */
+                comments__ie?: string[];
+                /** @description Filter: comments not equal to, ignoring the case */
+                comments__nie?: string[];
+                /** @description Filter: comments contains, ignoring the case */
+                comments__ic?: string[];
+                /** @description Filter: comments doesn't contain, ignoring the case */
+                comments__nic?: string[];
+                /** @description Filter: comments starts with, ignoring the case */
+                comments__isw?: string[];
+                /** @description Filter: comments doesn't start with, ignoring the case */
+                comments__nisw?: string[];
+                /** @description Filter: comments ends with, ignoring the case */
+                comments__iew?: string[];
+                /** @description Filter: comments doesn't end with, ignoring the case */
+                comments__niew?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression */
+                comments__regex?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression, ignoring the case */
+                comments__iregex?: string[];
+                /** @description Filter: comments is empty (null, or an empty string) for true, isn't for false */
+                comments__empty?: boolean;
+                /** @description Filter: creator equal to */
+                creator?: string[];
+                /** @description Filter: creator not equal to */
+                creator__n?: string[];
+                /** @description Filter: creator equal to, ignoring the case */
+                creator__ie?: string[];
+                /** @description Filter: creator not equal to, ignoring the case */
+                creator__nie?: string[];
+                /** @description Filter: creator contains, ignoring the case */
+                creator__ic?: string[];
+                /** @description Filter: creator doesn't contain, ignoring the case */
+                creator__nic?: string[];
+                /** @description Filter: creator starts with, ignoring the case */
+                creator__isw?: string[];
+                /** @description Filter: creator doesn't start with, ignoring the case */
+                creator__nisw?: string[];
+                /** @description Filter: creator ends with, ignoring the case */
+                creator__iew?: string[];
+                /** @description Filter: creator doesn't end with, ignoring the case */
+                creator__niew?: string[];
+                /** @description Filter: creator matches the (POSIX) regular expression */
+                creator__regex?: string[];
+                /** @description Filter: creator matches the (POSIX) regular expression, ignoring the case */
+                creator__iregex?: string[];
+                /** @description Filter: creator is empty (null, or an empty string) for true, isn't for false */
+                creator__empty?: boolean;
+                /** @description Filter: cachedIpAddress equal to */
+                cachedIpAddress?: string[];
+                /** @description Filter: cachedIpAddress not equal to */
+                cachedIpAddress__n?: string[];
+                /** @description Filter: cachedIpAddress is empty (null, or an empty string) for true, isn't for false */
+                cachedIpAddress__empty?: boolean;
+                /** @description Filter: cachedIpAddress IP address within the given subnet (10.0.0.0/8) */
+                cachedIpAddress__net?: string[];
+                /** @description Filter: createdDate equal to */
+                createdDate?: string[];
+                /** @description Filter: createdDate not equal to */
+                createdDate__n?: string[];
+                /** @description Filter: createdDate lower than */
+                createdDate__lt?: string[];
+                /** @description Filter: createdDate lower than or equal to */
+                createdDate__lte?: string[];
+                /** @description Filter: createdDate greater than */
+                createdDate__gt?: string[];
+                /** @description Filter: createdDate greater than or equal to */
+                createdDate__gte?: string[];
+                /** @description Filter: createdDate is empty (null, or an empty string) for true, isn't for false */
+                createdDate__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: eolDate equal to */
+                eolDate?: string[];
+                /** @description Filter: eolDate not equal to */
+                eolDate__n?: string[];
+                /** @description Filter: eolDate lower than */
+                eolDate__lt?: string[];
+                /** @description Filter: eolDate lower than or equal to */
+                eolDate__lte?: string[];
+                /** @description Filter: eolDate greater than */
+                eolDate__gt?: string[];
+                /** @description Filter: eolDate greater than or equal to */
+                eolDate__gte?: string[];
+                /** @description Filter: eolDate is empty (null, or an empty string) for true, isn't for false */
+                eolDate__empty?: boolean;
+                /** @description Filter: eosDate equal to */
+                eosDate?: string[];
+                /** @description Filter: eosDate not equal to */
+                eosDate__n?: string[];
+                /** @description Filter: eosDate lower than */
+                eosDate__lt?: string[];
+                /** @description Filter: eosDate lower than or equal to */
+                eosDate__lte?: string[];
+                /** @description Filter: eosDate greater than */
+                eosDate__gt?: string[];
+                /** @description Filter: eosDate greater than or equal to */
+                eosDate__gte?: string[];
+                /** @description Filter: eosDate is empty (null, or an empty string) for true, isn't for false */
+                eosDate__empty?: boolean;
+                /** @description Filter: lastSnapshotSuccessDate equal to */
+                lastSnapshotSuccessDate?: string[];
+                /** @description Filter: lastSnapshotSuccessDate not equal to */
+                lastSnapshotSuccessDate__n?: string[];
+                /** @description Filter: lastSnapshotSuccessDate lower than */
+                lastSnapshotSuccessDate__lt?: string[];
+                /** @description Filter: lastSnapshotSuccessDate lower than or equal to */
+                lastSnapshotSuccessDate__lte?: string[];
+                /** @description Filter: lastSnapshotSuccessDate greater than */
+                lastSnapshotSuccessDate__gt?: string[];
+                /** @description Filter: lastSnapshotSuccessDate greater than or equal to */
+                lastSnapshotSuccessDate__gte?: string[];
+                /** @description Filter: lastSnapshotSuccessDate is empty (null, or an empty string) for true, isn't for false */
+                lastSnapshotSuccessDate__empty?: boolean;
+                /** @description Filter: lastSnapshotFailureDate equal to */
+                lastSnapshotFailureDate?: string[];
+                /** @description Filter: lastSnapshotFailureDate not equal to */
+                lastSnapshotFailureDate__n?: string[];
+                /** @description Filter: lastSnapshotFailureDate lower than */
+                lastSnapshotFailureDate__lt?: string[];
+                /** @description Filter: lastSnapshotFailureDate lower than or equal to */
+                lastSnapshotFailureDate__lte?: string[];
+                /** @description Filter: lastSnapshotFailureDate greater than */
+                lastSnapshotFailureDate__gt?: string[];
+                /** @description Filter: lastSnapshotFailureDate greater than or equal to */
+                lastSnapshotFailureDate__gte?: string[];
+                /** @description Filter: lastSnapshotFailureDate is empty (null, or an empty string) for true, isn't for false */
+                lastSnapshotFailureDate__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: tag equal to */
+                tag?: string[];
+                /** @description Filter: tag not equal to */
+                tag__n?: string[];
+                /** @description Filter: tag equal to, ignoring the case */
+                tag__ie?: string[];
+                /** @description Filter: tag not equal to, ignoring the case */
+                tag__nie?: string[];
+                /** @description Filter: tag contains, ignoring the case */
+                tag__ic?: string[];
+                /** @description Filter: tag doesn't contain, ignoring the case */
+                tag__nic?: string[];
+                /** @description Filter: tag starts with, ignoring the case */
+                tag__isw?: string[];
+                /** @description Filter: tag doesn't start with, ignoring the case */
+                tag__nisw?: string[];
+                /** @description Filter: tag is empty (null, or an empty string) for true, isn't for false */
+                tag__empty?: boolean;
+                /** @description Filter: compliant equal to */
+                compliant?: boolean[];
             };
             header?: never;
             path?: never;
@@ -6014,9 +8766,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: name, deviceCount */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6028,6 +8780,38 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: deviceCount equal to */
+                deviceCount?: number[];
+                /** @description Filter: deviceCount not equal to */
+                deviceCount__n?: number[];
+                /** @description Filter: deviceCount lower than */
+                deviceCount__lt?: number[];
+                /** @description Filter: deviceCount lower than or equal to */
+                deviceCount__lte?: number[];
+                /** @description Filter: deviceCount greater than */
+                deviceCount__gt?: number[];
+                /** @description Filter: deviceCount greater than or equal to */
+                deviceCount__gte?: number[];
             };
             header?: never;
             path?: never;
@@ -6055,9 +8839,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: name, description, author, version, priority */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, description, author */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6069,6 +8853,98 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: description equal to */
+                description?: string[];
+                /** @description Filter: description not equal to */
+                description__n?: string[];
+                /** @description Filter: description equal to, ignoring the case */
+                description__ie?: string[];
+                /** @description Filter: description not equal to, ignoring the case */
+                description__nie?: string[];
+                /** @description Filter: description contains, ignoring the case */
+                description__ic?: string[];
+                /** @description Filter: description doesn't contain, ignoring the case */
+                description__nic?: string[];
+                /** @description Filter: description starts with, ignoring the case */
+                description__isw?: string[];
+                /** @description Filter: description doesn't start with, ignoring the case */
+                description__nisw?: string[];
+                /** @description Filter: description ends with, ignoring the case */
+                description__iew?: string[];
+                /** @description Filter: description doesn't end with, ignoring the case */
+                description__niew?: string[];
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: version equal to */
+                version?: string[];
+                /** @description Filter: version not equal to */
+                version__n?: string[];
+                /** @description Filter: version equal to, ignoring the case */
+                version__ie?: string[];
+                /** @description Filter: version not equal to, ignoring the case */
+                version__nie?: string[];
+                /** @description Filter: version contains, ignoring the case */
+                version__ic?: string[];
+                /** @description Filter: version doesn't contain, ignoring the case */
+                version__nic?: string[];
+                /** @description Filter: version starts with, ignoring the case */
+                version__isw?: string[];
+                /** @description Filter: version doesn't start with, ignoring the case */
+                version__nisw?: string[];
+                /** @description Filter: version ends with, ignoring the case */
+                version__iew?: string[];
+                /** @description Filter: version doesn't end with, ignoring the case */
+                version__niew?: string[];
+                /** @description Filter: priority equal to */
+                priority?: number[];
+                /** @description Filter: priority not equal to */
+                priority__n?: number[];
+                /** @description Filter: priority lower than */
+                priority__lt?: number[];
+                /** @description Filter: priority lower than or equal to */
+                priority__lte?: number[];
+                /** @description Filter: priority greater than */
+                priority__gt?: number[];
+                /** @description Filter: priority greater than or equal to */
+                priority__gte?: number[];
             };
             header?: never;
             path?: never;
@@ -6116,9 +8992,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: partNumber, moduleCount */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: partNumber */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6130,6 +9006,38 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: partNumber equal to */
+                partNumber?: string[];
+                /** @description Filter: partNumber not equal to */
+                partNumber__n?: string[];
+                /** @description Filter: partNumber equal to, ignoring the case */
+                partNumber__ie?: string[];
+                /** @description Filter: partNumber not equal to, ignoring the case */
+                partNumber__nie?: string[];
+                /** @description Filter: partNumber contains, ignoring the case */
+                partNumber__ic?: string[];
+                /** @description Filter: partNumber doesn't contain, ignoring the case */
+                partNumber__nic?: string[];
+                /** @description Filter: partNumber starts with, ignoring the case */
+                partNumber__isw?: string[];
+                /** @description Filter: partNumber doesn't start with, ignoring the case */
+                partNumber__nisw?: string[];
+                /** @description Filter: partNumber ends with, ignoring the case */
+                partNumber__iew?: string[];
+                /** @description Filter: partNumber doesn't end with, ignoring the case */
+                partNumber__niew?: string[];
+                /** @description Filter: moduleCount equal to */
+                moduleCount?: number[];
+                /** @description Filter: moduleCount not equal to */
+                moduleCount__n?: number[];
+                /** @description Filter: moduleCount lower than */
+                moduleCount__lt?: number[];
+                /** @description Filter: moduleCount lower than or equal to */
+                moduleCount__lte?: number[];
+                /** @description Filter: moduleCount greater than */
+                moduleCount__gt?: number[];
+                /** @description Filter: moduleCount greater than or equal to */
+                moduleCount__gte?: number[];
             };
             header?: never;
             path?: never;
@@ -6157,9 +9065,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: version, deviceCount */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: version */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6171,6 +9079,38 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: version equal to */
+                version?: string[];
+                /** @description Filter: version not equal to */
+                version__n?: string[];
+                /** @description Filter: version equal to, ignoring the case */
+                version__ie?: string[];
+                /** @description Filter: version not equal to, ignoring the case */
+                version__nie?: string[];
+                /** @description Filter: version contains, ignoring the case */
+                version__ic?: string[];
+                /** @description Filter: version doesn't contain, ignoring the case */
+                version__nic?: string[];
+                /** @description Filter: version starts with, ignoring the case */
+                version__isw?: string[];
+                /** @description Filter: version doesn't start with, ignoring the case */
+                version__nisw?: string[];
+                /** @description Filter: version ends with, ignoring the case */
+                version__iew?: string[];
+                /** @description Filter: version doesn't end with, ignoring the case */
+                version__niew?: string[];
+                /** @description Filter: deviceCount equal to */
+                deviceCount?: number[];
+                /** @description Filter: deviceCount not equal to */
+                deviceCount__n?: number[];
+                /** @description Filter: deviceCount lower than */
+                deviceCount__lt?: number[];
+                /** @description Filter: deviceCount lower than or equal to */
+                deviceCount__lte?: number[];
+                /** @description Filter: deviceCount greater than */
+                deviceCount__gt?: number[];
+                /** @description Filter: deviceCount greater than or equal to */
+                deviceCount__gte?: number[];
             };
             header?: never;
             path?: never;
@@ -6198,9 +9138,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, type, resultType, enabled, deviceDriver */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6212,6 +9152,100 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("JAVASCRIPT" | "PYTHON" | "SIMPLE")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("JAVASCRIPT" | "PYTHON" | "SIMPLE")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: resultType equal to */
+                resultType?: ("BINARY" | "LONGTEXT" | "NUMERIC" | "TEXT")[];
+                /** @description Filter: resultType not equal to */
+                resultType__n?: ("BINARY" | "LONGTEXT" | "NUMERIC" | "TEXT")[];
+                /** @description Filter: resultType is empty (null, or an empty string) for true, isn't for false */
+                resultType__empty?: boolean;
+                /** @description Filter: enabled equal to */
+                enabled?: boolean[];
+                /** @description Filter: targetGroup equal to */
+                targetGroup?: number[];
+                /** @description Filter: targetGroup not equal to */
+                targetGroup__n?: number[];
+                /** @description Filter: targetGroup lower than */
+                targetGroup__lt?: number[];
+                /** @description Filter: targetGroup lower than or equal to */
+                targetGroup__lte?: number[];
+                /** @description Filter: targetGroup greater than */
+                targetGroup__gt?: number[];
+                /** @description Filter: targetGroup greater than or equal to */
+                targetGroup__gte?: number[];
+                /** @description Filter: targetGroup is empty (null, or an empty string) for true, isn't for false */
+                targetGroup__empty?: boolean;
+                /** @description Filter: deviceDriver equal to */
+                deviceDriver?: string[];
+                /** @description Filter: deviceDriver not equal to */
+                deviceDriver__n?: string[];
+                /** @description Filter: deviceDriver equal to, ignoring the case */
+                deviceDriver__ie?: string[];
+                /** @description Filter: deviceDriver not equal to, ignoring the case */
+                deviceDriver__nie?: string[];
+                /** @description Filter: deviceDriver contains, ignoring the case */
+                deviceDriver__ic?: string[];
+                /** @description Filter: deviceDriver doesn't contain, ignoring the case */
+                deviceDriver__nic?: string[];
+                /** @description Filter: deviceDriver starts with, ignoring the case */
+                deviceDriver__isw?: string[];
+                /** @description Filter: deviceDriver doesn't start with, ignoring the case */
+                deviceDriver__nisw?: string[];
+                /** @description Filter: deviceDriver ends with, ignoring the case */
+                deviceDriver__iew?: string[];
+                /** @description Filter: deviceDriver doesn't end with, ignoring the case */
+                deviceDriver__niew?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression */
+                deviceDriver__regex?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression, ignoring the case */
+                deviceDriver__iregex?: string[];
+                /** @description Filter: deviceDriver is empty (null, or an empty string) for true, isn't for false */
+                deviceDriver__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -6415,9 +9449,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, diagnosticName, type, creationDate, lastCheckDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: diagnosticName */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6429,6 +9463,106 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: diagnostic equal to */
+                diagnostic?: number[];
+                /** @description Filter: diagnostic not equal to */
+                diagnostic__n?: number[];
+                /** @description Filter: diagnostic lower than */
+                diagnostic__lt?: number[];
+                /** @description Filter: diagnostic lower than or equal to */
+                diagnostic__lte?: number[];
+                /** @description Filter: diagnostic greater than */
+                diagnostic__gt?: number[];
+                /** @description Filter: diagnostic greater than or equal to */
+                diagnostic__gte?: number[];
+                /** @description Filter: diagnostic is empty (null, or an empty string) for true, isn't for false */
+                diagnostic__empty?: boolean;
+                /** @description Filter: diagnosticName equal to */
+                diagnosticName?: string[];
+                /** @description Filter: diagnosticName not equal to */
+                diagnosticName__n?: string[];
+                /** @description Filter: diagnosticName equal to, ignoring the case */
+                diagnosticName__ie?: string[];
+                /** @description Filter: diagnosticName not equal to, ignoring the case */
+                diagnosticName__nie?: string[];
+                /** @description Filter: diagnosticName contains, ignoring the case */
+                diagnosticName__ic?: string[];
+                /** @description Filter: diagnosticName doesn't contain, ignoring the case */
+                diagnosticName__nic?: string[];
+                /** @description Filter: diagnosticName starts with, ignoring the case */
+                diagnosticName__isw?: string[];
+                /** @description Filter: diagnosticName doesn't start with, ignoring the case */
+                diagnosticName__nisw?: string[];
+                /** @description Filter: diagnosticName ends with, ignoring the case */
+                diagnosticName__iew?: string[];
+                /** @description Filter: diagnosticName doesn't end with, ignoring the case */
+                diagnosticName__niew?: string[];
+                /** @description Filter: diagnosticName matches the (POSIX) regular expression */
+                diagnosticName__regex?: string[];
+                /** @description Filter: diagnosticName matches the (POSIX) regular expression, ignoring the case */
+                diagnosticName__iregex?: string[];
+                /** @description Filter: diagnosticName is empty (null, or an empty string) for true, isn't for false */
+                diagnosticName__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("BINARY" | "LONGTEXT" | "NUMERIC" | "TEXT")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("BINARY" | "LONGTEXT" | "NUMERIC" | "TEXT")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: creationDate equal to */
+                creationDate?: string[];
+                /** @description Filter: creationDate not equal to */
+                creationDate__n?: string[];
+                /** @description Filter: creationDate lower than */
+                creationDate__lt?: string[];
+                /** @description Filter: creationDate lower than or equal to */
+                creationDate__lte?: string[];
+                /** @description Filter: creationDate greater than */
+                creationDate__gt?: string[];
+                /** @description Filter: creationDate greater than or equal to */
+                creationDate__gte?: string[];
+                /** @description Filter: creationDate is empty (null, or an empty string) for true, isn't for false */
+                creationDate__empty?: boolean;
+                /** @description Filter: lastCheckDate equal to */
+                lastCheckDate?: string[];
+                /** @description Filter: lastCheckDate not equal to */
+                lastCheckDate__n?: string[];
+                /** @description Filter: lastCheckDate lower than */
+                lastCheckDate__lt?: string[];
+                /** @description Filter: lastCheckDate lower than or equal to */
+                lastCheckDate__lte?: string[];
+                /** @description Filter: lastCheckDate greater than */
+                lastCheckDate__gt?: string[];
+                /** @description Filter: lastCheckDate greater than or equal to */
+                lastCheckDate__gte?: string[];
+                /** @description Filter: lastCheckDate is empty (null, or an empty string) for true, isn't for false */
+                lastCheckDate__empty?: boolean;
             };
             header?: never;
             path: {
@@ -6459,9 +9593,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, changeDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, description */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6473,6 +9607,94 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: description equal to */
+                description?: string[];
+                /** @description Filter: description not equal to */
+                description__n?: string[];
+                /** @description Filter: description equal to, ignoring the case */
+                description__ie?: string[];
+                /** @description Filter: description not equal to, ignoring the case */
+                description__nie?: string[];
+                /** @description Filter: description contains, ignoring the case */
+                description__ic?: string[];
+                /** @description Filter: description doesn't contain, ignoring the case */
+                description__nic?: string[];
+                /** @description Filter: description starts with, ignoring the case */
+                description__isw?: string[];
+                /** @description Filter: description doesn't start with, ignoring the case */
+                description__nisw?: string[];
+                /** @description Filter: description ends with, ignoring the case */
+                description__iew?: string[];
+                /** @description Filter: description doesn't end with, ignoring the case */
+                description__niew?: string[];
+                /** @description Filter: description matches the (POSIX) regular expression */
+                description__regex?: string[];
+                /** @description Filter: description matches the (POSIX) regular expression, ignoring the case */
+                description__iregex?: string[];
+                /** @description Filter: description is empty (null, or an empty string) for true, isn't for false */
+                description__empty?: boolean;
+                /** @description Filter: server4Address equal to */
+                server4Address?: string[];
+                /** @description Filter: server4Address not equal to */
+                server4Address__n?: string[];
+                /** @description Filter: server4Address is empty (null, or an empty string) for true, isn't for false */
+                server4Address__empty?: boolean;
+                /** @description Filter: server4Address IP address within the given subnet (10.0.0.0/8) */
+                server4Address__net?: string[];
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -6676,9 +9898,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, folder, type, changeDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, folder, query */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6690,6 +9912,124 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: folder equal to */
+                folder?: string[];
+                /** @description Filter: folder not equal to */
+                folder__n?: string[];
+                /** @description Filter: folder equal to, ignoring the case */
+                folder__ie?: string[];
+                /** @description Filter: folder not equal to, ignoring the case */
+                folder__nie?: string[];
+                /** @description Filter: folder contains, ignoring the case */
+                folder__ic?: string[];
+                /** @description Filter: folder doesn't contain, ignoring the case */
+                folder__nic?: string[];
+                /** @description Filter: folder starts with, ignoring the case */
+                folder__isw?: string[];
+                /** @description Filter: folder doesn't start with, ignoring the case */
+                folder__nisw?: string[];
+                /** @description Filter: folder ends with, ignoring the case */
+                folder__iew?: string[];
+                /** @description Filter: folder doesn't end with, ignoring the case */
+                folder__niew?: string[];
+                /** @description Filter: folder matches the (POSIX) regular expression */
+                folder__regex?: string[];
+                /** @description Filter: folder matches the (POSIX) regular expression, ignoring the case */
+                folder__iregex?: string[];
+                /** @description Filter: folder is empty (null, or an empty string) for true, isn't for false */
+                folder__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("STATIC" | "DYNAMIC")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("STATIC" | "DYNAMIC")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: hiddenFromReports equal to */
+                hiddenFromReports?: boolean[];
+                /** @description Filter: query equal to */
+                query?: string[];
+                /** @description Filter: query not equal to */
+                query__n?: string[];
+                /** @description Filter: query equal to, ignoring the case */
+                query__ie?: string[];
+                /** @description Filter: query not equal to, ignoring the case */
+                query__nie?: string[];
+                /** @description Filter: query contains, ignoring the case */
+                query__ic?: string[];
+                /** @description Filter: query doesn't contain, ignoring the case */
+                query__nic?: string[];
+                /** @description Filter: query starts with, ignoring the case */
+                query__isw?: string[];
+                /** @description Filter: query doesn't start with, ignoring the case */
+                query__nisw?: string[];
+                /** @description Filter: query ends with, ignoring the case */
+                query__iew?: string[];
+                /** @description Filter: query doesn't end with, ignoring the case */
+                query__niew?: string[];
+                /** @description Filter: query matches the (POSIX) regular expression */
+                query__regex?: string[];
+                /** @description Filter: query matches the (POSIX) regular expression, ignoring the case */
+                query__iregex?: string[];
+                /** @description Filter: query is empty (null, or an empty string) for true, isn't for false */
+                query__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
             };
             header?: never;
             path?: never;
@@ -6895,9 +10235,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, mgmtAddress, status, family, driver, networkClass, softwareVersion, softwareLevel, serialNumber, location, contact, creator, createdDate, changeDate, eolDate, eosDate, lastSnapshotSuccessDate, lastSnapshotFailureDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, mgmtAddress, family, softwareVersion, serialNumber, location, contact, comments */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6909,6 +10249,426 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: mgmtAddress equal to */
+                mgmtAddress?: string[];
+                /** @description Filter: mgmtAddress not equal to */
+                mgmtAddress__n?: string[];
+                /** @description Filter: mgmtAddress equal to, ignoring the case */
+                mgmtAddress__ie?: string[];
+                /** @description Filter: mgmtAddress not equal to, ignoring the case */
+                mgmtAddress__nie?: string[];
+                /** @description Filter: mgmtAddress contains, ignoring the case */
+                mgmtAddress__ic?: string[];
+                /** @description Filter: mgmtAddress doesn't contain, ignoring the case */
+                mgmtAddress__nic?: string[];
+                /** @description Filter: mgmtAddress starts with, ignoring the case */
+                mgmtAddress__isw?: string[];
+                /** @description Filter: mgmtAddress doesn't start with, ignoring the case */
+                mgmtAddress__nisw?: string[];
+                /** @description Filter: mgmtAddress ends with, ignoring the case */
+                mgmtAddress__iew?: string[];
+                /** @description Filter: mgmtAddress doesn't end with, ignoring the case */
+                mgmtAddress__niew?: string[];
+                /** @description Filter: mgmtAddress matches the (POSIX) regular expression */
+                mgmtAddress__regex?: string[];
+                /** @description Filter: mgmtAddress matches the (POSIX) regular expression, ignoring the case */
+                mgmtAddress__iregex?: string[];
+                /** @description Filter: mgmtAddress is empty (null, or an empty string) for true, isn't for false */
+                mgmtAddress__empty?: boolean;
+                /** @description Filter: status equal to */
+                status?: ("DISABLED" | "INPRODUCTION" | "PREPRODUCTION")[];
+                /** @description Filter: status not equal to */
+                status__n?: ("DISABLED" | "INPRODUCTION" | "PREPRODUCTION")[];
+                /** @description Filter: status is empty (null, or an empty string) for true, isn't for false */
+                status__empty?: boolean;
+                /** @description Filter: mgmtDomain equal to */
+                mgmtDomain?: number[];
+                /** @description Filter: mgmtDomain not equal to */
+                mgmtDomain__n?: number[];
+                /** @description Filter: mgmtDomain lower than */
+                mgmtDomain__lt?: number[];
+                /** @description Filter: mgmtDomain lower than or equal to */
+                mgmtDomain__lte?: number[];
+                /** @description Filter: mgmtDomain greater than */
+                mgmtDomain__gt?: number[];
+                /** @description Filter: mgmtDomain greater than or equal to */
+                mgmtDomain__gte?: number[];
+                /** @description Filter: mgmtDomain is empty (null, or an empty string) for true, isn't for false */
+                mgmtDomain__empty?: boolean;
+                /** @description Filter: family equal to */
+                family?: string[];
+                /** @description Filter: family not equal to */
+                family__n?: string[];
+                /** @description Filter: family equal to, ignoring the case */
+                family__ie?: string[];
+                /** @description Filter: family not equal to, ignoring the case */
+                family__nie?: string[];
+                /** @description Filter: family contains, ignoring the case */
+                family__ic?: string[];
+                /** @description Filter: family doesn't contain, ignoring the case */
+                family__nic?: string[];
+                /** @description Filter: family starts with, ignoring the case */
+                family__isw?: string[];
+                /** @description Filter: family doesn't start with, ignoring the case */
+                family__nisw?: string[];
+                /** @description Filter: family ends with, ignoring the case */
+                family__iew?: string[];
+                /** @description Filter: family doesn't end with, ignoring the case */
+                family__niew?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression */
+                family__regex?: string[];
+                /** @description Filter: family matches the (POSIX) regular expression, ignoring the case */
+                family__iregex?: string[];
+                /** @description Filter: family is empty (null, or an empty string) for true, isn't for false */
+                family__empty?: boolean;
+                /** @description Filter: driver equal to */
+                driver?: string[];
+                /** @description Filter: driver not equal to */
+                driver__n?: string[];
+                /** @description Filter: driver equal to, ignoring the case */
+                driver__ie?: string[];
+                /** @description Filter: driver not equal to, ignoring the case */
+                driver__nie?: string[];
+                /** @description Filter: driver contains, ignoring the case */
+                driver__ic?: string[];
+                /** @description Filter: driver doesn't contain, ignoring the case */
+                driver__nic?: string[];
+                /** @description Filter: driver starts with, ignoring the case */
+                driver__isw?: string[];
+                /** @description Filter: driver doesn't start with, ignoring the case */
+                driver__nisw?: string[];
+                /** @description Filter: driver ends with, ignoring the case */
+                driver__iew?: string[];
+                /** @description Filter: driver doesn't end with, ignoring the case */
+                driver__niew?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression */
+                driver__regex?: string[];
+                /** @description Filter: driver matches the (POSIX) regular expression, ignoring the case */
+                driver__iregex?: string[];
+                /** @description Filter: driver is empty (null, or an empty string) for true, isn't for false */
+                driver__empty?: boolean;
+                /** @description Filter: networkClass equal to */
+                networkClass?: ("FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY")[];
+                /** @description Filter: networkClass not equal to */
+                networkClass__n?: ("FIREWALL" | "LOADBALANCER" | "ROUTER" | "SERVER" | "SWITCH" | "SWITCHROUTER" | "ACCESSPOINT" | "WIRELESSCONTROLLER" | "CONSOLESERVER" | "UNKNOWN" | "VOICEGATEWAY")[];
+                /** @description Filter: networkClass is empty (null, or an empty string) for true, isn't for false */
+                networkClass__empty?: boolean;
+                /** @description Filter: softwareVersion equal to */
+                softwareVersion?: string[];
+                /** @description Filter: softwareVersion not equal to */
+                softwareVersion__n?: string[];
+                /** @description Filter: softwareVersion equal to, ignoring the case */
+                softwareVersion__ie?: string[];
+                /** @description Filter: softwareVersion not equal to, ignoring the case */
+                softwareVersion__nie?: string[];
+                /** @description Filter: softwareVersion contains, ignoring the case */
+                softwareVersion__ic?: string[];
+                /** @description Filter: softwareVersion doesn't contain, ignoring the case */
+                softwareVersion__nic?: string[];
+                /** @description Filter: softwareVersion starts with, ignoring the case */
+                softwareVersion__isw?: string[];
+                /** @description Filter: softwareVersion doesn't start with, ignoring the case */
+                softwareVersion__nisw?: string[];
+                /** @description Filter: softwareVersion ends with, ignoring the case */
+                softwareVersion__iew?: string[];
+                /** @description Filter: softwareVersion doesn't end with, ignoring the case */
+                softwareVersion__niew?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression */
+                softwareVersion__regex?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression, ignoring the case */
+                softwareVersion__iregex?: string[];
+                /** @description Filter: softwareVersion is empty (null, or an empty string) for true, isn't for false */
+                softwareVersion__empty?: boolean;
+                /** @description Filter: softwareLevel equal to */
+                softwareLevel?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: softwareLevel not equal to */
+                softwareLevel__n?: ("GOLD" | "SILVER" | "BRONZE" | "UNKNOWN")[];
+                /** @description Filter: softwareLevel is empty (null, or an empty string) for true, isn't for false */
+                softwareLevel__empty?: boolean;
+                /** @description Filter: serialNumber equal to */
+                serialNumber?: string[];
+                /** @description Filter: serialNumber not equal to */
+                serialNumber__n?: string[];
+                /** @description Filter: serialNumber equal to, ignoring the case */
+                serialNumber__ie?: string[];
+                /** @description Filter: serialNumber not equal to, ignoring the case */
+                serialNumber__nie?: string[];
+                /** @description Filter: serialNumber contains, ignoring the case */
+                serialNumber__ic?: string[];
+                /** @description Filter: serialNumber doesn't contain, ignoring the case */
+                serialNumber__nic?: string[];
+                /** @description Filter: serialNumber starts with, ignoring the case */
+                serialNumber__isw?: string[];
+                /** @description Filter: serialNumber doesn't start with, ignoring the case */
+                serialNumber__nisw?: string[];
+                /** @description Filter: serialNumber ends with, ignoring the case */
+                serialNumber__iew?: string[];
+                /** @description Filter: serialNumber doesn't end with, ignoring the case */
+                serialNumber__niew?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression */
+                serialNumber__regex?: string[];
+                /** @description Filter: serialNumber matches the (POSIX) regular expression, ignoring the case */
+                serialNumber__iregex?: string[];
+                /** @description Filter: serialNumber is empty (null, or an empty string) for true, isn't for false */
+                serialNumber__empty?: boolean;
+                /** @description Filter: location equal to */
+                location?: string[];
+                /** @description Filter: location not equal to */
+                location__n?: string[];
+                /** @description Filter: location equal to, ignoring the case */
+                location__ie?: string[];
+                /** @description Filter: location not equal to, ignoring the case */
+                location__nie?: string[];
+                /** @description Filter: location contains, ignoring the case */
+                location__ic?: string[];
+                /** @description Filter: location doesn't contain, ignoring the case */
+                location__nic?: string[];
+                /** @description Filter: location starts with, ignoring the case */
+                location__isw?: string[];
+                /** @description Filter: location doesn't start with, ignoring the case */
+                location__nisw?: string[];
+                /** @description Filter: location ends with, ignoring the case */
+                location__iew?: string[];
+                /** @description Filter: location doesn't end with, ignoring the case */
+                location__niew?: string[];
+                /** @description Filter: location matches the (POSIX) regular expression */
+                location__regex?: string[];
+                /** @description Filter: location matches the (POSIX) regular expression, ignoring the case */
+                location__iregex?: string[];
+                /** @description Filter: location is empty (null, or an empty string) for true, isn't for false */
+                location__empty?: boolean;
+                /** @description Filter: contact equal to */
+                contact?: string[];
+                /** @description Filter: contact not equal to */
+                contact__n?: string[];
+                /** @description Filter: contact equal to, ignoring the case */
+                contact__ie?: string[];
+                /** @description Filter: contact not equal to, ignoring the case */
+                contact__nie?: string[];
+                /** @description Filter: contact contains, ignoring the case */
+                contact__ic?: string[];
+                /** @description Filter: contact doesn't contain, ignoring the case */
+                contact__nic?: string[];
+                /** @description Filter: contact starts with, ignoring the case */
+                contact__isw?: string[];
+                /** @description Filter: contact doesn't start with, ignoring the case */
+                contact__nisw?: string[];
+                /** @description Filter: contact ends with, ignoring the case */
+                contact__iew?: string[];
+                /** @description Filter: contact doesn't end with, ignoring the case */
+                contact__niew?: string[];
+                /** @description Filter: contact matches the (POSIX) regular expression */
+                contact__regex?: string[];
+                /** @description Filter: contact matches the (POSIX) regular expression, ignoring the case */
+                contact__iregex?: string[];
+                /** @description Filter: contact is empty (null, or an empty string) for true, isn't for false */
+                contact__empty?: boolean;
+                /** @description Filter: comments equal to */
+                comments?: string[];
+                /** @description Filter: comments not equal to */
+                comments__n?: string[];
+                /** @description Filter: comments equal to, ignoring the case */
+                comments__ie?: string[];
+                /** @description Filter: comments not equal to, ignoring the case */
+                comments__nie?: string[];
+                /** @description Filter: comments contains, ignoring the case */
+                comments__ic?: string[];
+                /** @description Filter: comments doesn't contain, ignoring the case */
+                comments__nic?: string[];
+                /** @description Filter: comments starts with, ignoring the case */
+                comments__isw?: string[];
+                /** @description Filter: comments doesn't start with, ignoring the case */
+                comments__nisw?: string[];
+                /** @description Filter: comments ends with, ignoring the case */
+                comments__iew?: string[];
+                /** @description Filter: comments doesn't end with, ignoring the case */
+                comments__niew?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression */
+                comments__regex?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression, ignoring the case */
+                comments__iregex?: string[];
+                /** @description Filter: comments is empty (null, or an empty string) for true, isn't for false */
+                comments__empty?: boolean;
+                /** @description Filter: creator equal to */
+                creator?: string[];
+                /** @description Filter: creator not equal to */
+                creator__n?: string[];
+                /** @description Filter: creator equal to, ignoring the case */
+                creator__ie?: string[];
+                /** @description Filter: creator not equal to, ignoring the case */
+                creator__nie?: string[];
+                /** @description Filter: creator contains, ignoring the case */
+                creator__ic?: string[];
+                /** @description Filter: creator doesn't contain, ignoring the case */
+                creator__nic?: string[];
+                /** @description Filter: creator starts with, ignoring the case */
+                creator__isw?: string[];
+                /** @description Filter: creator doesn't start with, ignoring the case */
+                creator__nisw?: string[];
+                /** @description Filter: creator ends with, ignoring the case */
+                creator__iew?: string[];
+                /** @description Filter: creator doesn't end with, ignoring the case */
+                creator__niew?: string[];
+                /** @description Filter: creator matches the (POSIX) regular expression */
+                creator__regex?: string[];
+                /** @description Filter: creator matches the (POSIX) regular expression, ignoring the case */
+                creator__iregex?: string[];
+                /** @description Filter: creator is empty (null, or an empty string) for true, isn't for false */
+                creator__empty?: boolean;
+                /** @description Filter: cachedIpAddress equal to */
+                cachedIpAddress?: string[];
+                /** @description Filter: cachedIpAddress not equal to */
+                cachedIpAddress__n?: string[];
+                /** @description Filter: cachedIpAddress is empty (null, or an empty string) for true, isn't for false */
+                cachedIpAddress__empty?: boolean;
+                /** @description Filter: cachedIpAddress IP address within the given subnet (10.0.0.0/8) */
+                cachedIpAddress__net?: string[];
+                /** @description Filter: createdDate equal to */
+                createdDate?: string[];
+                /** @description Filter: createdDate not equal to */
+                createdDate__n?: string[];
+                /** @description Filter: createdDate lower than */
+                createdDate__lt?: string[];
+                /** @description Filter: createdDate lower than or equal to */
+                createdDate__lte?: string[];
+                /** @description Filter: createdDate greater than */
+                createdDate__gt?: string[];
+                /** @description Filter: createdDate greater than or equal to */
+                createdDate__gte?: string[];
+                /** @description Filter: createdDate is empty (null, or an empty string) for true, isn't for false */
+                createdDate__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: eolDate equal to */
+                eolDate?: string[];
+                /** @description Filter: eolDate not equal to */
+                eolDate__n?: string[];
+                /** @description Filter: eolDate lower than */
+                eolDate__lt?: string[];
+                /** @description Filter: eolDate lower than or equal to */
+                eolDate__lte?: string[];
+                /** @description Filter: eolDate greater than */
+                eolDate__gt?: string[];
+                /** @description Filter: eolDate greater than or equal to */
+                eolDate__gte?: string[];
+                /** @description Filter: eolDate is empty (null, or an empty string) for true, isn't for false */
+                eolDate__empty?: boolean;
+                /** @description Filter: eosDate equal to */
+                eosDate?: string[];
+                /** @description Filter: eosDate not equal to */
+                eosDate__n?: string[];
+                /** @description Filter: eosDate lower than */
+                eosDate__lt?: string[];
+                /** @description Filter: eosDate lower than or equal to */
+                eosDate__lte?: string[];
+                /** @description Filter: eosDate greater than */
+                eosDate__gt?: string[];
+                /** @description Filter: eosDate greater than or equal to */
+                eosDate__gte?: string[];
+                /** @description Filter: eosDate is empty (null, or an empty string) for true, isn't for false */
+                eosDate__empty?: boolean;
+                /** @description Filter: lastSnapshotSuccessDate equal to */
+                lastSnapshotSuccessDate?: string[];
+                /** @description Filter: lastSnapshotSuccessDate not equal to */
+                lastSnapshotSuccessDate__n?: string[];
+                /** @description Filter: lastSnapshotSuccessDate lower than */
+                lastSnapshotSuccessDate__lt?: string[];
+                /** @description Filter: lastSnapshotSuccessDate lower than or equal to */
+                lastSnapshotSuccessDate__lte?: string[];
+                /** @description Filter: lastSnapshotSuccessDate greater than */
+                lastSnapshotSuccessDate__gt?: string[];
+                /** @description Filter: lastSnapshotSuccessDate greater than or equal to */
+                lastSnapshotSuccessDate__gte?: string[];
+                /** @description Filter: lastSnapshotSuccessDate is empty (null, or an empty string) for true, isn't for false */
+                lastSnapshotSuccessDate__empty?: boolean;
+                /** @description Filter: lastSnapshotFailureDate equal to */
+                lastSnapshotFailureDate?: string[];
+                /** @description Filter: lastSnapshotFailureDate not equal to */
+                lastSnapshotFailureDate__n?: string[];
+                /** @description Filter: lastSnapshotFailureDate lower than */
+                lastSnapshotFailureDate__lt?: string[];
+                /** @description Filter: lastSnapshotFailureDate lower than or equal to */
+                lastSnapshotFailureDate__lte?: string[];
+                /** @description Filter: lastSnapshotFailureDate greater than */
+                lastSnapshotFailureDate__gt?: string[];
+                /** @description Filter: lastSnapshotFailureDate greater than or equal to */
+                lastSnapshotFailureDate__gte?: string[];
+                /** @description Filter: lastSnapshotFailureDate is empty (null, or an empty string) for true, isn't for false */
+                lastSnapshotFailureDate__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: tag equal to */
+                tag?: string[];
+                /** @description Filter: tag not equal to */
+                tag__n?: string[];
+                /** @description Filter: tag equal to, ignoring the case */
+                tag__ie?: string[];
+                /** @description Filter: tag not equal to, ignoring the case */
+                tag__nie?: string[];
+                /** @description Filter: tag contains, ignoring the case */
+                tag__ic?: string[];
+                /** @description Filter: tag doesn't contain, ignoring the case */
+                tag__nic?: string[];
+                /** @description Filter: tag starts with, ignoring the case */
+                tag__isw?: string[];
+                /** @description Filter: tag doesn't start with, ignoring the case */
+                tag__nisw?: string[];
+                /** @description Filter: tag is empty (null, or an empty string) for true, isn't for false */
+                tag__empty?: boolean;
+                /** @description Filter: compliant equal to */
+                compliant?: boolean[];
             };
             header?: never;
             path: {
@@ -6939,9 +10699,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, type, enabled */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, url */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6953,6 +10713,100 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: string[];
+                /** @description Filter: type not equal to */
+                type__n?: string[];
+                /** @description Filter: type equal to, ignoring the case */
+                type__ie?: string[];
+                /** @description Filter: type not equal to, ignoring the case */
+                type__nie?: string[];
+                /** @description Filter: type contains, ignoring the case */
+                type__ic?: string[];
+                /** @description Filter: type doesn't contain, ignoring the case */
+                type__nic?: string[];
+                /** @description Filter: type starts with, ignoring the case */
+                type__isw?: string[];
+                /** @description Filter: type doesn't start with, ignoring the case */
+                type__nisw?: string[];
+                /** @description Filter: type ends with, ignoring the case */
+                type__iew?: string[];
+                /** @description Filter: type doesn't end with, ignoring the case */
+                type__niew?: string[];
+                /** @description Filter: type matches the (POSIX) regular expression */
+                type__regex?: string[];
+                /** @description Filter: type matches the (POSIX) regular expression, ignoring the case */
+                type__iregex?: string[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: enabled equal to */
+                enabled?: boolean[];
+                /** @description Filter: url equal to */
+                url?: string[];
+                /** @description Filter: url not equal to */
+                url__n?: string[];
+                /** @description Filter: url equal to, ignoring the case */
+                url__ie?: string[];
+                /** @description Filter: url not equal to, ignoring the case */
+                url__nie?: string[];
+                /** @description Filter: url contains, ignoring the case */
+                url__ic?: string[];
+                /** @description Filter: url doesn't contain, ignoring the case */
+                url__nic?: string[];
+                /** @description Filter: url starts with, ignoring the case */
+                url__isw?: string[];
+                /** @description Filter: url doesn't start with, ignoring the case */
+                url__nisw?: string[];
+                /** @description Filter: url ends with, ignoring the case */
+                url__iew?: string[];
+                /** @description Filter: url doesn't end with, ignoring the case */
+                url__niew?: string[];
+                /** @description Filter: url matches the (POSIX) regular expression */
+                url__regex?: string[];
+                /** @description Filter: url matches the (POSIX) regular expression, ignoring the case */
+                url__iregex?: string[];
+                /** @description Filter: url is empty (null, or an empty string) for true, isn't for false */
+                url__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -7156,9 +11010,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, folder, deviceDriver, author */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, folder, author */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -7170,6 +11024,124 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: folder equal to */
+                folder?: string[];
+                /** @description Filter: folder not equal to */
+                folder__n?: string[];
+                /** @description Filter: folder equal to, ignoring the case */
+                folder__ie?: string[];
+                /** @description Filter: folder not equal to, ignoring the case */
+                folder__nie?: string[];
+                /** @description Filter: folder contains, ignoring the case */
+                folder__ic?: string[];
+                /** @description Filter: folder doesn't contain, ignoring the case */
+                folder__nic?: string[];
+                /** @description Filter: folder starts with, ignoring the case */
+                folder__isw?: string[];
+                /** @description Filter: folder doesn't start with, ignoring the case */
+                folder__nisw?: string[];
+                /** @description Filter: folder ends with, ignoring the case */
+                folder__iew?: string[];
+                /** @description Filter: folder doesn't end with, ignoring the case */
+                folder__niew?: string[];
+                /** @description Filter: folder matches the (POSIX) regular expression */
+                folder__regex?: string[];
+                /** @description Filter: folder matches the (POSIX) regular expression, ignoring the case */
+                folder__iregex?: string[];
+                /** @description Filter: folder is empty (null, or an empty string) for true, isn't for false */
+                folder__empty?: boolean;
+                /** @description Filter: deviceDriver equal to */
+                deviceDriver?: string[];
+                /** @description Filter: deviceDriver not equal to */
+                deviceDriver__n?: string[];
+                /** @description Filter: deviceDriver equal to, ignoring the case */
+                deviceDriver__ie?: string[];
+                /** @description Filter: deviceDriver not equal to, ignoring the case */
+                deviceDriver__nie?: string[];
+                /** @description Filter: deviceDriver contains, ignoring the case */
+                deviceDriver__ic?: string[];
+                /** @description Filter: deviceDriver doesn't contain, ignoring the case */
+                deviceDriver__nic?: string[];
+                /** @description Filter: deviceDriver starts with, ignoring the case */
+                deviceDriver__isw?: string[];
+                /** @description Filter: deviceDriver doesn't start with, ignoring the case */
+                deviceDriver__nisw?: string[];
+                /** @description Filter: deviceDriver ends with, ignoring the case */
+                deviceDriver__iew?: string[];
+                /** @description Filter: deviceDriver doesn't end with, ignoring the case */
+                deviceDriver__niew?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression */
+                deviceDriver__regex?: string[];
+                /** @description Filter: deviceDriver matches the (POSIX) regular expression, ignoring the case */
+                deviceDriver__iregex?: string[];
+                /** @description Filter: deviceDriver is empty (null, or an empty string) for true, isn't for false */
+                deviceDriver__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -7483,9 +11455,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, childOrder */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: author, target, comments */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -7497,6 +11469,268 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("CheckComplianceTask" | "CheckGroupComplianceTask" | "CheckGroupSoftwareTask" | "DiscoverDeviceTypeTask" | "PurgeDatabaseTask" | "RunDeviceGroupScriptTask" | "RunDeviceScriptTask" | "RunDiagnosticsTask" | "RunGroupDiagnosticsTask" | "ScanSubnetsTask" | "TakeGroupSnapshotTask" | "TakeSnapshotTask")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("CheckComplianceTask" | "CheckGroupComplianceTask" | "CheckGroupSoftwareTask" | "DiscoverDeviceTypeTask" | "PurgeDatabaseTask" | "RunDeviceGroupScriptTask" | "RunDeviceScriptTask" | "RunDiagnosticsTask" | "RunGroupDiagnosticsTask" | "ScanSubnetsTask" | "TakeGroupSnapshotTask" | "TakeSnapshotTask")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: status equal to */
+                status?: ("CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED")[];
+                /** @description Filter: status not equal to */
+                status__n?: ("CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED")[];
+                /** @description Filter: status is empty (null, or an empty string) for true, isn't for false */
+                status__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
+                /** @description Filter: target equal to */
+                target?: string[];
+                /** @description Filter: target not equal to */
+                target__n?: string[];
+                /** @description Filter: target equal to, ignoring the case */
+                target__ie?: string[];
+                /** @description Filter: target not equal to, ignoring the case */
+                target__nie?: string[];
+                /** @description Filter: target contains, ignoring the case */
+                target__ic?: string[];
+                /** @description Filter: target doesn't contain, ignoring the case */
+                target__nic?: string[];
+                /** @description Filter: target starts with, ignoring the case */
+                target__isw?: string[];
+                /** @description Filter: target doesn't start with, ignoring the case */
+                target__nisw?: string[];
+                /** @description Filter: target ends with, ignoring the case */
+                target__iew?: string[];
+                /** @description Filter: target doesn't end with, ignoring the case */
+                target__niew?: string[];
+                /** @description Filter: target matches the (POSIX) regular expression */
+                target__regex?: string[];
+                /** @description Filter: target matches the (POSIX) regular expression, ignoring the case */
+                target__iregex?: string[];
+                /** @description Filter: target is empty (null, or an empty string) for true, isn't for false */
+                target__empty?: boolean;
+                /** @description Filter: comments equal to */
+                comments?: string[];
+                /** @description Filter: comments not equal to */
+                comments__n?: string[];
+                /** @description Filter: comments equal to, ignoring the case */
+                comments__ie?: string[];
+                /** @description Filter: comments not equal to, ignoring the case */
+                comments__nie?: string[];
+                /** @description Filter: comments contains, ignoring the case */
+                comments__ic?: string[];
+                /** @description Filter: comments doesn't contain, ignoring the case */
+                comments__nic?: string[];
+                /** @description Filter: comments starts with, ignoring the case */
+                comments__isw?: string[];
+                /** @description Filter: comments doesn't start with, ignoring the case */
+                comments__nisw?: string[];
+                /** @description Filter: comments ends with, ignoring the case */
+                comments__iew?: string[];
+                /** @description Filter: comments doesn't end with, ignoring the case */
+                comments__niew?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression */
+                comments__regex?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression, ignoring the case */
+                comments__iregex?: string[];
+                /** @description Filter: comments is empty (null, or an empty string) for true, isn't for false */
+                comments__empty?: boolean;
+                /** @description Filter: priority equal to */
+                priority?: number[];
+                /** @description Filter: priority not equal to */
+                priority__n?: number[];
+                /** @description Filter: priority lower than */
+                priority__lt?: number[];
+                /** @description Filter: priority lower than or equal to */
+                priority__lte?: number[];
+                /** @description Filter: priority greater than */
+                priority__gt?: number[];
+                /** @description Filter: priority greater than or equal to */
+                priority__gte?: number[];
+                /** @description Filter: priority is empty (null, or an empty string) for true, isn't for false */
+                priority__empty?: boolean;
+                /** @description Filter: scheduleType equal to */
+                scheduleType?: ("ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY")[];
+                /** @description Filter: scheduleType not equal to */
+                scheduleType__n?: ("ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY")[];
+                /** @description Filter: scheduleType is empty (null, or an empty string) for true, isn't for false */
+                scheduleType__empty?: boolean;
+                /** @description Filter: scheduleReference equal to */
+                scheduleReference?: string[];
+                /** @description Filter: scheduleReference not equal to */
+                scheduleReference__n?: string[];
+                /** @description Filter: scheduleReference lower than */
+                scheduleReference__lt?: string[];
+                /** @description Filter: scheduleReference lower than or equal to */
+                scheduleReference__lte?: string[];
+                /** @description Filter: scheduleReference greater than */
+                scheduleReference__gt?: string[];
+                /** @description Filter: scheduleReference greater than or equal to */
+                scheduleReference__gte?: string[];
+                /** @description Filter: scheduleReference is empty (null, or an empty string) for true, isn't for false */
+                scheduleReference__empty?: boolean;
+                /** @description Filter: creationDate equal to */
+                creationDate?: string[];
+                /** @description Filter: creationDate not equal to */
+                creationDate__n?: string[];
+                /** @description Filter: creationDate lower than */
+                creationDate__lt?: string[];
+                /** @description Filter: creationDate lower than or equal to */
+                creationDate__lte?: string[];
+                /** @description Filter: creationDate greater than */
+                creationDate__gt?: string[];
+                /** @description Filter: creationDate greater than or equal to */
+                creationDate__gte?: string[];
+                /** @description Filter: creationDate is empty (null, or an empty string) for true, isn't for false */
+                creationDate__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: executionDate equal to */
+                executionDate?: string[];
+                /** @description Filter: executionDate not equal to */
+                executionDate__n?: string[];
+                /** @description Filter: executionDate lower than */
+                executionDate__lt?: string[];
+                /** @description Filter: executionDate lower than or equal to */
+                executionDate__lte?: string[];
+                /** @description Filter: executionDate greater than */
+                executionDate__gt?: string[];
+                /** @description Filter: executionDate greater than or equal to */
+                executionDate__gte?: string[];
+                /** @description Filter: executionDate is empty (null, or an empty string) for true, isn't for false */
+                executionDate__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: group lower than */
+                group__lt?: number[];
+                /** @description Filter: group lower than or equal to */
+                group__lte?: number[];
+                /** @description Filter: group greater than */
+                group__gt?: number[];
+                /** @description Filter: group greater than or equal to */
+                group__gte?: number[];
+                /** @description Filter: group is empty (null, or an empty string) for true, isn't for false */
+                group__empty?: boolean;
+                /** @description Filter: parentTask equal to */
+                parentTask?: number[];
+                /** @description Filter: parentTask not equal to */
+                parentTask__n?: number[];
+                /** @description Filter: parentTask lower than */
+                parentTask__lt?: number[];
+                /** @description Filter: parentTask lower than or equal to */
+                parentTask__lte?: number[];
+                /** @description Filter: parentTask greater than */
+                parentTask__gt?: number[];
+                /** @description Filter: parentTask greater than or equal to */
+                parentTask__gte?: number[];
+                /** @description Filter: parentTask is empty (null, or an empty string) for true, isn't for false */
+                parentTask__empty?: boolean;
+                /** @description Filter: childOrder equal to */
+                childOrder?: number[];
+                /** @description Filter: childOrder not equal to */
+                childOrder__n?: number[];
+                /** @description Filter: childOrder lower than */
+                childOrder__lt?: number[];
+                /** @description Filter: childOrder lower than or equal to */
+                childOrder__lte?: number[];
+                /** @description Filter: childOrder greater than */
+                childOrder__gt?: number[];
+                /** @description Filter: childOrder greater than or equal to */
+                childOrder__gte?: number[];
+                /** @description Filter: childOrder is empty (null, or an empty string) for true, isn't for false */
+                childOrder__empty?: boolean;
+                /** @description Filter: runnerId equal to */
+                runnerId?: string[];
+                /** @description Filter: runnerId not equal to */
+                runnerId__n?: string[];
+                /** @description Filter: runnerId equal to, ignoring the case */
+                runnerId__ie?: string[];
+                /** @description Filter: runnerId not equal to, ignoring the case */
+                runnerId__nie?: string[];
+                /** @description Filter: runnerId contains, ignoring the case */
+                runnerId__ic?: string[];
+                /** @description Filter: runnerId doesn't contain, ignoring the case */
+                runnerId__nic?: string[];
+                /** @description Filter: runnerId starts with, ignoring the case */
+                runnerId__isw?: string[];
+                /** @description Filter: runnerId doesn't start with, ignoring the case */
+                runnerId__nisw?: string[];
+                /** @description Filter: runnerId ends with, ignoring the case */
+                runnerId__iew?: string[];
+                /** @description Filter: runnerId doesn't end with, ignoring the case */
+                runnerId__niew?: string[];
+                /** @description Filter: runnerId matches the (POSIX) regular expression */
+                runnerId__regex?: string[];
+                /** @description Filter: runnerId matches the (POSIX) regular expression, ignoring the case */
+                runnerId__iregex?: string[];
+                /** @description Filter: runnerId is empty (null, or an empty string) for true, isn't for false */
+                runnerId__empty?: boolean;
+                /** @description Filter: debugEnabled equal to */
+                debugEnabled?: boolean[];
             };
             header?: never;
             path: {
@@ -7561,9 +11795,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, type, status, author, target, priority, scheduleType, scheduleReference, creationDate, changeDate, executionDate, childOrder */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: author, target, comments */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -7575,6 +11809,270 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("CheckComplianceTask" | "CheckGroupComplianceTask" | "CheckGroupSoftwareTask" | "DiscoverDeviceTypeTask" | "PurgeDatabaseTask" | "RunDeviceGroupScriptTask" | "RunDeviceScriptTask" | "RunDiagnosticsTask" | "RunGroupDiagnosticsTask" | "ScanSubnetsTask" | "TakeGroupSnapshotTask" | "TakeSnapshotTask")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("CheckComplianceTask" | "CheckGroupComplianceTask" | "CheckGroupSoftwareTask" | "DiscoverDeviceTypeTask" | "PurgeDatabaseTask" | "RunDeviceGroupScriptTask" | "RunDeviceScriptTask" | "RunDiagnosticsTask" | "RunGroupDiagnosticsTask" | "ScanSubnetsTask" | "TakeGroupSnapshotTask" | "TakeSnapshotTask")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: status equal to */
+                status?: ("CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED")[];
+                /** @description Filter: status not equal to */
+                status__n?: ("CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED")[];
+                /** @description Filter: status is empty (null, or an empty string) for true, isn't for false */
+                status__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
+                /** @description Filter: target equal to */
+                target?: string[];
+                /** @description Filter: target not equal to */
+                target__n?: string[];
+                /** @description Filter: target equal to, ignoring the case */
+                target__ie?: string[];
+                /** @description Filter: target not equal to, ignoring the case */
+                target__nie?: string[];
+                /** @description Filter: target contains, ignoring the case */
+                target__ic?: string[];
+                /** @description Filter: target doesn't contain, ignoring the case */
+                target__nic?: string[];
+                /** @description Filter: target starts with, ignoring the case */
+                target__isw?: string[];
+                /** @description Filter: target doesn't start with, ignoring the case */
+                target__nisw?: string[];
+                /** @description Filter: target ends with, ignoring the case */
+                target__iew?: string[];
+                /** @description Filter: target doesn't end with, ignoring the case */
+                target__niew?: string[];
+                /** @description Filter: target matches the (POSIX) regular expression */
+                target__regex?: string[];
+                /** @description Filter: target matches the (POSIX) regular expression, ignoring the case */
+                target__iregex?: string[];
+                /** @description Filter: target is empty (null, or an empty string) for true, isn't for false */
+                target__empty?: boolean;
+                /** @description Filter: comments equal to */
+                comments?: string[];
+                /** @description Filter: comments not equal to */
+                comments__n?: string[];
+                /** @description Filter: comments equal to, ignoring the case */
+                comments__ie?: string[];
+                /** @description Filter: comments not equal to, ignoring the case */
+                comments__nie?: string[];
+                /** @description Filter: comments contains, ignoring the case */
+                comments__ic?: string[];
+                /** @description Filter: comments doesn't contain, ignoring the case */
+                comments__nic?: string[];
+                /** @description Filter: comments starts with, ignoring the case */
+                comments__isw?: string[];
+                /** @description Filter: comments doesn't start with, ignoring the case */
+                comments__nisw?: string[];
+                /** @description Filter: comments ends with, ignoring the case */
+                comments__iew?: string[];
+                /** @description Filter: comments doesn't end with, ignoring the case */
+                comments__niew?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression */
+                comments__regex?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression, ignoring the case */
+                comments__iregex?: string[];
+                /** @description Filter: comments is empty (null, or an empty string) for true, isn't for false */
+                comments__empty?: boolean;
+                /** @description Filter: priority equal to */
+                priority?: number[];
+                /** @description Filter: priority not equal to */
+                priority__n?: number[];
+                /** @description Filter: priority lower than */
+                priority__lt?: number[];
+                /** @description Filter: priority lower than or equal to */
+                priority__lte?: number[];
+                /** @description Filter: priority greater than */
+                priority__gt?: number[];
+                /** @description Filter: priority greater than or equal to */
+                priority__gte?: number[];
+                /** @description Filter: priority is empty (null, or an empty string) for true, isn't for false */
+                priority__empty?: boolean;
+                /** @description Filter: scheduleType equal to */
+                scheduleType?: ("ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY")[];
+                /** @description Filter: scheduleType not equal to */
+                scheduleType__n?: ("ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY")[];
+                /** @description Filter: scheduleType is empty (null, or an empty string) for true, isn't for false */
+                scheduleType__empty?: boolean;
+                /** @description Filter: scheduleReference equal to */
+                scheduleReference?: string[];
+                /** @description Filter: scheduleReference not equal to */
+                scheduleReference__n?: string[];
+                /** @description Filter: scheduleReference lower than */
+                scheduleReference__lt?: string[];
+                /** @description Filter: scheduleReference lower than or equal to */
+                scheduleReference__lte?: string[];
+                /** @description Filter: scheduleReference greater than */
+                scheduleReference__gt?: string[];
+                /** @description Filter: scheduleReference greater than or equal to */
+                scheduleReference__gte?: string[];
+                /** @description Filter: scheduleReference is empty (null, or an empty string) for true, isn't for false */
+                scheduleReference__empty?: boolean;
+                /** @description Filter: creationDate equal to */
+                creationDate?: string[];
+                /** @description Filter: creationDate not equal to */
+                creationDate__n?: string[];
+                /** @description Filter: creationDate lower than */
+                creationDate__lt?: string[];
+                /** @description Filter: creationDate lower than or equal to */
+                creationDate__lte?: string[];
+                /** @description Filter: creationDate greater than */
+                creationDate__gt?: string[];
+                /** @description Filter: creationDate greater than or equal to */
+                creationDate__gte?: string[];
+                /** @description Filter: creationDate is empty (null, or an empty string) for true, isn't for false */
+                creationDate__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: executionDate equal to */
+                executionDate?: string[];
+                /** @description Filter: executionDate not equal to */
+                executionDate__n?: string[];
+                /** @description Filter: executionDate lower than */
+                executionDate__lt?: string[];
+                /** @description Filter: executionDate lower than or equal to */
+                executionDate__lte?: string[];
+                /** @description Filter: executionDate greater than */
+                executionDate__gt?: string[];
+                /** @description Filter: executionDate greater than or equal to */
+                executionDate__gte?: string[];
+                /** @description Filter: executionDate is empty (null, or an empty string) for true, isn't for false */
+                executionDate__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: group lower than */
+                group__lt?: number[];
+                /** @description Filter: group lower than or equal to */
+                group__lte?: number[];
+                /** @description Filter: group greater than */
+                group__gt?: number[];
+                /** @description Filter: group greater than or equal to */
+                group__gte?: number[];
+                /** @description Filter: group is empty (null, or an empty string) for true, isn't for false */
+                group__empty?: boolean;
+                /** @description Filter: parentTask equal to */
+                parentTask?: number[];
+                /** @description Filter: parentTask not equal to */
+                parentTask__n?: number[];
+                /** @description Filter: parentTask lower than */
+                parentTask__lt?: number[];
+                /** @description Filter: parentTask lower than or equal to */
+                parentTask__lte?: number[];
+                /** @description Filter: parentTask greater than */
+                parentTask__gt?: number[];
+                /** @description Filter: parentTask greater than or equal to */
+                parentTask__gte?: number[];
+                /** @description Filter: parentTask is empty (null, or an empty string) for true, isn't for false */
+                parentTask__empty?: boolean;
+                /** @description Filter: childOrder equal to */
+                childOrder?: number[];
+                /** @description Filter: childOrder not equal to */
+                childOrder__n?: number[];
+                /** @description Filter: childOrder lower than */
+                childOrder__lt?: number[];
+                /** @description Filter: childOrder lower than or equal to */
+                childOrder__lte?: number[];
+                /** @description Filter: childOrder greater than */
+                childOrder__gt?: number[];
+                /** @description Filter: childOrder greater than or equal to */
+                childOrder__gte?: number[];
+                /** @description Filter: childOrder is empty (null, or an empty string) for true, isn't for false */
+                childOrder__empty?: boolean;
+                /** @description Filter: runnerId equal to */
+                runnerId?: string[];
+                /** @description Filter: runnerId not equal to */
+                runnerId__n?: string[];
+                /** @description Filter: runnerId equal to, ignoring the case */
+                runnerId__ie?: string[];
+                /** @description Filter: runnerId not equal to, ignoring the case */
+                runnerId__nie?: string[];
+                /** @description Filter: runnerId contains, ignoring the case */
+                runnerId__ic?: string[];
+                /** @description Filter: runnerId doesn't contain, ignoring the case */
+                runnerId__nic?: string[];
+                /** @description Filter: runnerId starts with, ignoring the case */
+                runnerId__isw?: string[];
+                /** @description Filter: runnerId doesn't start with, ignoring the case */
+                runnerId__nisw?: string[];
+                /** @description Filter: runnerId ends with, ignoring the case */
+                runnerId__iew?: string[];
+                /** @description Filter: runnerId doesn't end with, ignoring the case */
+                runnerId__niew?: string[];
+                /** @description Filter: runnerId matches the (POSIX) regular expression */
+                runnerId__regex?: string[];
+                /** @description Filter: runnerId matches the (POSIX) regular expression, ignoring the case */
+                runnerId__iregex?: string[];
+                /** @description Filter: runnerId is empty (null, or an empty string) for true, isn't for false */
+                runnerId__empty?: boolean;
+                /** @description Filter: debugEnabled equal to */
+                debugEnabled?: boolean[];
             };
             header?: never;
             path?: never;
@@ -7694,11 +12192,11 @@ export interface operations {
             query?: {
                 /** @description Free text search (as in the list) */
                 q?: string;
-                /** @description Fields to count by (up to two), comma-separated */
+                /** @description Fields to count by (up to two), comma-separated; fields: type, status, author, scheduleType, device, group, runnerId */
                 groupBy?: string;
                 /** @description Size of the time buckets */
                 interval?: "hour" | "day" | "week" | "month";
-                /** @description Date field of the time buckets */
+                /** @description Date field of the time buckets; fields: scheduleReference, creationDate, changeDate, executionDate */
                 on?: string;
                 /** @description Start of the range (included) */
                 from?: Date;
@@ -7706,6 +12204,270 @@ export interface operations {
                 to?: Date;
                 /** @description Time zone of the buckets (IANA name, UTC by default) */
                 timeZone?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: ("CheckComplianceTask" | "CheckGroupComplianceTask" | "CheckGroupSoftwareTask" | "DiscoverDeviceTypeTask" | "PurgeDatabaseTask" | "RunDeviceGroupScriptTask" | "RunDeviceScriptTask" | "RunDiagnosticsTask" | "RunGroupDiagnosticsTask" | "ScanSubnetsTask" | "TakeGroupSnapshotTask" | "TakeSnapshotTask")[];
+                /** @description Filter: type not equal to */
+                type__n?: ("CheckComplianceTask" | "CheckGroupComplianceTask" | "CheckGroupSoftwareTask" | "DiscoverDeviceTypeTask" | "PurgeDatabaseTask" | "RunDeviceGroupScriptTask" | "RunDeviceScriptTask" | "RunDiagnosticsTask" | "RunGroupDiagnosticsTask" | "ScanSubnetsTask" | "TakeGroupSnapshotTask" | "TakeSnapshotTask")[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: status equal to */
+                status?: ("CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED")[];
+                /** @description Filter: status not equal to */
+                status__n?: ("CANCELLED" | "FAILURE" | "NEW" | "RUNNING" | "SCHEDULED" | "SUCCESS" | "WAITING" | "DELAYED")[];
+                /** @description Filter: status is empty (null, or an empty string) for true, isn't for false */
+                status__empty?: boolean;
+                /** @description Filter: author equal to */
+                author?: string[];
+                /** @description Filter: author not equal to */
+                author__n?: string[];
+                /** @description Filter: author equal to, ignoring the case */
+                author__ie?: string[];
+                /** @description Filter: author not equal to, ignoring the case */
+                author__nie?: string[];
+                /** @description Filter: author contains, ignoring the case */
+                author__ic?: string[];
+                /** @description Filter: author doesn't contain, ignoring the case */
+                author__nic?: string[];
+                /** @description Filter: author starts with, ignoring the case */
+                author__isw?: string[];
+                /** @description Filter: author doesn't start with, ignoring the case */
+                author__nisw?: string[];
+                /** @description Filter: author ends with, ignoring the case */
+                author__iew?: string[];
+                /** @description Filter: author doesn't end with, ignoring the case */
+                author__niew?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression */
+                author__regex?: string[];
+                /** @description Filter: author matches the (POSIX) regular expression, ignoring the case */
+                author__iregex?: string[];
+                /** @description Filter: author is empty (null, or an empty string) for true, isn't for false */
+                author__empty?: boolean;
+                /** @description Filter: target equal to */
+                target?: string[];
+                /** @description Filter: target not equal to */
+                target__n?: string[];
+                /** @description Filter: target equal to, ignoring the case */
+                target__ie?: string[];
+                /** @description Filter: target not equal to, ignoring the case */
+                target__nie?: string[];
+                /** @description Filter: target contains, ignoring the case */
+                target__ic?: string[];
+                /** @description Filter: target doesn't contain, ignoring the case */
+                target__nic?: string[];
+                /** @description Filter: target starts with, ignoring the case */
+                target__isw?: string[];
+                /** @description Filter: target doesn't start with, ignoring the case */
+                target__nisw?: string[];
+                /** @description Filter: target ends with, ignoring the case */
+                target__iew?: string[];
+                /** @description Filter: target doesn't end with, ignoring the case */
+                target__niew?: string[];
+                /** @description Filter: target matches the (POSIX) regular expression */
+                target__regex?: string[];
+                /** @description Filter: target matches the (POSIX) regular expression, ignoring the case */
+                target__iregex?: string[];
+                /** @description Filter: target is empty (null, or an empty string) for true, isn't for false */
+                target__empty?: boolean;
+                /** @description Filter: comments equal to */
+                comments?: string[];
+                /** @description Filter: comments not equal to */
+                comments__n?: string[];
+                /** @description Filter: comments equal to, ignoring the case */
+                comments__ie?: string[];
+                /** @description Filter: comments not equal to, ignoring the case */
+                comments__nie?: string[];
+                /** @description Filter: comments contains, ignoring the case */
+                comments__ic?: string[];
+                /** @description Filter: comments doesn't contain, ignoring the case */
+                comments__nic?: string[];
+                /** @description Filter: comments starts with, ignoring the case */
+                comments__isw?: string[];
+                /** @description Filter: comments doesn't start with, ignoring the case */
+                comments__nisw?: string[];
+                /** @description Filter: comments ends with, ignoring the case */
+                comments__iew?: string[];
+                /** @description Filter: comments doesn't end with, ignoring the case */
+                comments__niew?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression */
+                comments__regex?: string[];
+                /** @description Filter: comments matches the (POSIX) regular expression, ignoring the case */
+                comments__iregex?: string[];
+                /** @description Filter: comments is empty (null, or an empty string) for true, isn't for false */
+                comments__empty?: boolean;
+                /** @description Filter: priority equal to */
+                priority?: number[];
+                /** @description Filter: priority not equal to */
+                priority__n?: number[];
+                /** @description Filter: priority lower than */
+                priority__lt?: number[];
+                /** @description Filter: priority lower than or equal to */
+                priority__lte?: number[];
+                /** @description Filter: priority greater than */
+                priority__gt?: number[];
+                /** @description Filter: priority greater than or equal to */
+                priority__gte?: number[];
+                /** @description Filter: priority is empty (null, or an empty string) for true, isn't for false */
+                priority__empty?: boolean;
+                /** @description Filter: scheduleType equal to */
+                scheduleType?: ("ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY")[];
+                /** @description Filter: scheduleType not equal to */
+                scheduleType__n?: ("ASAP" | "AT" | "DAILY" | "MONTHLY" | "WEEKLY" | "HOURLY")[];
+                /** @description Filter: scheduleType is empty (null, or an empty string) for true, isn't for false */
+                scheduleType__empty?: boolean;
+                /** @description Filter: scheduleReference equal to */
+                scheduleReference?: string[];
+                /** @description Filter: scheduleReference not equal to */
+                scheduleReference__n?: string[];
+                /** @description Filter: scheduleReference lower than */
+                scheduleReference__lt?: string[];
+                /** @description Filter: scheduleReference lower than or equal to */
+                scheduleReference__lte?: string[];
+                /** @description Filter: scheduleReference greater than */
+                scheduleReference__gt?: string[];
+                /** @description Filter: scheduleReference greater than or equal to */
+                scheduleReference__gte?: string[];
+                /** @description Filter: scheduleReference is empty (null, or an empty string) for true, isn't for false */
+                scheduleReference__empty?: boolean;
+                /** @description Filter: creationDate equal to */
+                creationDate?: string[];
+                /** @description Filter: creationDate not equal to */
+                creationDate__n?: string[];
+                /** @description Filter: creationDate lower than */
+                creationDate__lt?: string[];
+                /** @description Filter: creationDate lower than or equal to */
+                creationDate__lte?: string[];
+                /** @description Filter: creationDate greater than */
+                creationDate__gt?: string[];
+                /** @description Filter: creationDate greater than or equal to */
+                creationDate__gte?: string[];
+                /** @description Filter: creationDate is empty (null, or an empty string) for true, isn't for false */
+                creationDate__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
+                /** @description Filter: executionDate equal to */
+                executionDate?: string[];
+                /** @description Filter: executionDate not equal to */
+                executionDate__n?: string[];
+                /** @description Filter: executionDate lower than */
+                executionDate__lt?: string[];
+                /** @description Filter: executionDate lower than or equal to */
+                executionDate__lte?: string[];
+                /** @description Filter: executionDate greater than */
+                executionDate__gt?: string[];
+                /** @description Filter: executionDate greater than or equal to */
+                executionDate__gte?: string[];
+                /** @description Filter: executionDate is empty (null, or an empty string) for true, isn't for false */
+                executionDate__empty?: boolean;
+                /** @description Filter: device equal to */
+                device?: number[];
+                /** @description Filter: device not equal to */
+                device__n?: number[];
+                /** @description Filter: device lower than */
+                device__lt?: number[];
+                /** @description Filter: device lower than or equal to */
+                device__lte?: number[];
+                /** @description Filter: device greater than */
+                device__gt?: number[];
+                /** @description Filter: device greater than or equal to */
+                device__gte?: number[];
+                /** @description Filter: device is empty (null, or an empty string) for true, isn't for false */
+                device__empty?: boolean;
+                /** @description Filter: group equal to */
+                group?: number[];
+                /** @description Filter: group not equal to */
+                group__n?: number[];
+                /** @description Filter: group lower than */
+                group__lt?: number[];
+                /** @description Filter: group lower than or equal to */
+                group__lte?: number[];
+                /** @description Filter: group greater than */
+                group__gt?: number[];
+                /** @description Filter: group greater than or equal to */
+                group__gte?: number[];
+                /** @description Filter: group is empty (null, or an empty string) for true, isn't for false */
+                group__empty?: boolean;
+                /** @description Filter: parentTask equal to */
+                parentTask?: number[];
+                /** @description Filter: parentTask not equal to */
+                parentTask__n?: number[];
+                /** @description Filter: parentTask lower than */
+                parentTask__lt?: number[];
+                /** @description Filter: parentTask lower than or equal to */
+                parentTask__lte?: number[];
+                /** @description Filter: parentTask greater than */
+                parentTask__gt?: number[];
+                /** @description Filter: parentTask greater than or equal to */
+                parentTask__gte?: number[];
+                /** @description Filter: parentTask is empty (null, or an empty string) for true, isn't for false */
+                parentTask__empty?: boolean;
+                /** @description Filter: childOrder equal to */
+                childOrder?: number[];
+                /** @description Filter: childOrder not equal to */
+                childOrder__n?: number[];
+                /** @description Filter: childOrder lower than */
+                childOrder__lt?: number[];
+                /** @description Filter: childOrder lower than or equal to */
+                childOrder__lte?: number[];
+                /** @description Filter: childOrder greater than */
+                childOrder__gt?: number[];
+                /** @description Filter: childOrder greater than or equal to */
+                childOrder__gte?: number[];
+                /** @description Filter: childOrder is empty (null, or an empty string) for true, isn't for false */
+                childOrder__empty?: boolean;
+                /** @description Filter: runnerId equal to */
+                runnerId?: string[];
+                /** @description Filter: runnerId not equal to */
+                runnerId__n?: string[];
+                /** @description Filter: runnerId equal to, ignoring the case */
+                runnerId__ie?: string[];
+                /** @description Filter: runnerId not equal to, ignoring the case */
+                runnerId__nie?: string[];
+                /** @description Filter: runnerId contains, ignoring the case */
+                runnerId__ic?: string[];
+                /** @description Filter: runnerId doesn't contain, ignoring the case */
+                runnerId__nic?: string[];
+                /** @description Filter: runnerId starts with, ignoring the case */
+                runnerId__isw?: string[];
+                /** @description Filter: runnerId doesn't start with, ignoring the case */
+                runnerId__nisw?: string[];
+                /** @description Filter: runnerId ends with, ignoring the case */
+                runnerId__iew?: string[];
+                /** @description Filter: runnerId doesn't end with, ignoring the case */
+                runnerId__niew?: string[];
+                /** @description Filter: runnerId matches the (POSIX) regular expression */
+                runnerId__regex?: string[];
+                /** @description Filter: runnerId matches the (POSIX) regular expression, ignoring the case */
+                runnerId__iregex?: string[];
+                /** @description Filter: runnerId is empty (null, or an empty string) for true, isn't for false */
+                runnerId__empty?: boolean;
+                /** @description Filter: debugEnabled equal to */
+                debugEnabled?: boolean[];
             };
             header?: never;
             path?: never;
@@ -7766,9 +12528,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, username, local, level */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: username */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -7780,6 +12542,62 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: username equal to */
+                username?: string[];
+                /** @description Filter: username not equal to */
+                username__n?: string[];
+                /** @description Filter: username equal to, ignoring the case */
+                username__ie?: string[];
+                /** @description Filter: username not equal to, ignoring the case */
+                username__nie?: string[];
+                /** @description Filter: username contains, ignoring the case */
+                username__ic?: string[];
+                /** @description Filter: username doesn't contain, ignoring the case */
+                username__nic?: string[];
+                /** @description Filter: username starts with, ignoring the case */
+                username__isw?: string[];
+                /** @description Filter: username doesn't start with, ignoring the case */
+                username__nisw?: string[];
+                /** @description Filter: username ends with, ignoring the case */
+                username__iew?: string[];
+                /** @description Filter: username doesn't end with, ignoring the case */
+                username__niew?: string[];
+                /** @description Filter: username matches the (POSIX) regular expression */
+                username__regex?: string[];
+                /** @description Filter: username matches the (POSIX) regular expression, ignoring the case */
+                username__iregex?: string[];
+                /** @description Filter: username is empty (null, or an empty string) for true, isn't for false */
+                username__empty?: boolean;
+                /** @description Filter: local equal to */
+                local?: boolean[];
+                /** @description Filter: level equal to */
+                level?: number[];
+                /** @description Filter: level not equal to */
+                level__n?: number[];
+                /** @description Filter: level lower than */
+                level__lt?: number[];
+                /** @description Filter: level lower than or equal to */
+                level__lte?: number[];
+                /** @description Filter: level greater than */
+                level__gt?: number[];
+                /** @description Filter: level greater than or equal to */
+                level__gte?: number[];
+                /** @description Filter: level is empty (null, or an empty string) for true, isn't for false */
+                level__empty?: boolean;
             };
             header?: never;
             path?: never;
@@ -7983,9 +12801,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate) */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, name, type, baseUrl, authMethod, changeDate */
                 sort?: string;
-                /** @description Free text search */
+                /** @description Free text search; fields: name, baseUrl, namespace */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -7997,6 +12815,124 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
+                /** @description Filter: id equal to */
+                id?: number[];
+                /** @description Filter: id not equal to */
+                id__n?: number[];
+                /** @description Filter: id lower than */
+                id__lt?: number[];
+                /** @description Filter: id lower than or equal to */
+                id__lte?: number[];
+                /** @description Filter: id greater than */
+                id__gt?: number[];
+                /** @description Filter: id greater than or equal to */
+                id__gte?: number[];
+                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
+                id__empty?: boolean;
+                /** @description Filter: name equal to */
+                name?: string[];
+                /** @description Filter: name not equal to */
+                name__n?: string[];
+                /** @description Filter: name equal to, ignoring the case */
+                name__ie?: string[];
+                /** @description Filter: name not equal to, ignoring the case */
+                name__nie?: string[];
+                /** @description Filter: name contains, ignoring the case */
+                name__ic?: string[];
+                /** @description Filter: name doesn't contain, ignoring the case */
+                name__nic?: string[];
+                /** @description Filter: name starts with, ignoring the case */
+                name__isw?: string[];
+                /** @description Filter: name doesn't start with, ignoring the case */
+                name__nisw?: string[];
+                /** @description Filter: name ends with, ignoring the case */
+                name__iew?: string[];
+                /** @description Filter: name doesn't end with, ignoring the case */
+                name__niew?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression */
+                name__regex?: string[];
+                /** @description Filter: name matches the (POSIX) regular expression, ignoring the case */
+                name__iregex?: string[];
+                /** @description Filter: name is empty (null, or an empty string) for true, isn't for false */
+                name__empty?: boolean;
+                /** @description Filter: type equal to */
+                type?: "HASHICORP_KV2"[];
+                /** @description Filter: type not equal to */
+                type__n?: "HASHICORP_KV2"[];
+                /** @description Filter: type is empty (null, or an empty string) for true, isn't for false */
+                type__empty?: boolean;
+                /** @description Filter: baseUrl equal to */
+                baseUrl?: string[];
+                /** @description Filter: baseUrl not equal to */
+                baseUrl__n?: string[];
+                /** @description Filter: baseUrl equal to, ignoring the case */
+                baseUrl__ie?: string[];
+                /** @description Filter: baseUrl not equal to, ignoring the case */
+                baseUrl__nie?: string[];
+                /** @description Filter: baseUrl contains, ignoring the case */
+                baseUrl__ic?: string[];
+                /** @description Filter: baseUrl doesn't contain, ignoring the case */
+                baseUrl__nic?: string[];
+                /** @description Filter: baseUrl starts with, ignoring the case */
+                baseUrl__isw?: string[];
+                /** @description Filter: baseUrl doesn't start with, ignoring the case */
+                baseUrl__nisw?: string[];
+                /** @description Filter: baseUrl ends with, ignoring the case */
+                baseUrl__iew?: string[];
+                /** @description Filter: baseUrl doesn't end with, ignoring the case */
+                baseUrl__niew?: string[];
+                /** @description Filter: baseUrl matches the (POSIX) regular expression */
+                baseUrl__regex?: string[];
+                /** @description Filter: baseUrl matches the (POSIX) regular expression, ignoring the case */
+                baseUrl__iregex?: string[];
+                /** @description Filter: baseUrl is empty (null, or an empty string) for true, isn't for false */
+                baseUrl__empty?: boolean;
+                /** @description Filter: namespace equal to */
+                namespace?: string[];
+                /** @description Filter: namespace not equal to */
+                namespace__n?: string[];
+                /** @description Filter: namespace equal to, ignoring the case */
+                namespace__ie?: string[];
+                /** @description Filter: namespace not equal to, ignoring the case */
+                namespace__nie?: string[];
+                /** @description Filter: namespace contains, ignoring the case */
+                namespace__ic?: string[];
+                /** @description Filter: namespace doesn't contain, ignoring the case */
+                namespace__nic?: string[];
+                /** @description Filter: namespace starts with, ignoring the case */
+                namespace__isw?: string[];
+                /** @description Filter: namespace doesn't start with, ignoring the case */
+                namespace__nisw?: string[];
+                /** @description Filter: namespace ends with, ignoring the case */
+                namespace__iew?: string[];
+                /** @description Filter: namespace doesn't end with, ignoring the case */
+                namespace__niew?: string[];
+                /** @description Filter: namespace matches the (POSIX) regular expression */
+                namespace__regex?: string[];
+                /** @description Filter: namespace matches the (POSIX) regular expression, ignoring the case */
+                namespace__iregex?: string[];
+                /** @description Filter: namespace is empty (null, or an empty string) for true, isn't for false */
+                namespace__empty?: boolean;
+                /** @description Filter: authMethod equal to */
+                authMethod?: ("APPROLE" | "JWT")[];
+                /** @description Filter: authMethod not equal to */
+                authMethod__n?: ("APPROLE" | "JWT")[];
+                /** @description Filter: authMethod is empty (null, or an empty string) for true, isn't for false */
+                authMethod__empty?: boolean;
+                /** @description Filter: changeDate equal to */
+                changeDate?: string[];
+                /** @description Filter: changeDate not equal to */
+                changeDate__n?: string[];
+                /** @description Filter: changeDate lower than */
+                changeDate__lt?: string[];
+                /** @description Filter: changeDate lower than or equal to */
+                changeDate__lte?: string[];
+                /** @description Filter: changeDate greater than */
+                changeDate__gt?: string[];
+                /** @description Filter: changeDate greater than or equal to */
+                changeDate__gte?: string[];
+                /** @description Filter: changeDate is empty (null, or an empty string) for true, isn't for false */
+                changeDate__empty?: boolean;
             };
             header?: never;
             path?: never;

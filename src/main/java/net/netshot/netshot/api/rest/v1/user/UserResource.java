@@ -45,8 +45,10 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -97,8 +99,9 @@ public class UserResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the users", description = "Lists the Netshot users, in their brief view by default.")
+	@ListFilters(ListSchema.USERS)
 	public ListResponse<UserDto> listUsers() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.userService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.USERS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), UserDto.class, Selection.View.BRIEF),
 			UserDto.class);
 		return ListResponse.of(this.uriInfo, query, this.userService.list(query), UserMapper::toDto);

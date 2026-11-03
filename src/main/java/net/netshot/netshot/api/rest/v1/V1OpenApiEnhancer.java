@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -44,6 +46,10 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.Path;
+import net.netshot.netshot.platform.query.FieldSpec;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * Completes the OpenAPI document of the v1 API with what the annotations don't tell:
@@ -53,6 +59,8 @@ import jakarta.ws.rs.Path;
  * meaning);</li>
  * <li>the common parameters of the lists (paging, sort, search, selection), of the statistics, and the selection
  * parameters of the operations answering a single representation;</li>
+ * <li>the filters of the lists and statistics (a parameter per field and lookup), and the fields they can be sorted,
+ * searched or grouped by, from their schema ({@link ListFilters});</li>
  * <li>the optional properties of the requests can be null (null clears them);</li>
  * <li>a Java {@code Object} (any JSON value, as the values of the driver options) is any value, not an empty object;</li>
  * <li>the type value of each subtype of a polymorphic representation;</li>
@@ -92,14 +100,18 @@ final class V1OpenApiEnhancer {
 				if (operation == null) {
 					continue;
 				}
+				ListFilters filters = method.getAnnotation(ListFilters.class);
+				QuerySchema querySchema = filters == null ? null : filters.value().schema();
 				if (method.getReturnType() == ListResponse.class && method.isAnnotationPresent(Unpaged.class)) {
 					addSelectionParameters(operation);
 				}
 				else if (method.getReturnType() == ListResponse.class) {
-					addListParameters(operation);
+					addListParameters(operation, querySchema);
+					addFilterParameters(operation, querySchema);
 				}
 				else if (method.getReturnType() == StatsResponse.class) {
-					addStatsParameters(operation);
+					addStatsParameters(operation, querySchema);
+					addFilterParameters(operation, querySchema);
 				}
 				else if (DtoModel.isModel(method.getReturnType())) {
 					// A single representation (read or written): the selection applies to it
@@ -446,15 +458,83 @@ final class V1OpenApiEnhancer {
 		operation.setParameters(parameters);
 	}
 
-	private static void addListParameters(Operation operation) {
+	private static void addListParameters(Operation operation, QuerySchema querySchema) {
 		add(operation, ListParams.OFFSET, new IntegerSchema(), "Number of items to skip (paging)");
 		add(operation, ListParams.LIMIT, new IntegerSchema(), "Number of items of the page (0: all the items, unless a maximum page size is set)");
-		add(operation, ListParams.SORT, new StringSchema(), "Sort fields, comma-separated, - for a descending order (name,-changeDate)");
-		add(operation, ListParams.SEARCH, new StringSchema(), "Free text search");
+		add(operation, ListParams.SORT, new StringSchema(), "Sort fields, comma-separated, - for a descending order (name,-changeDate)"
+			+ fieldList(querySchema, FieldSpec::sortable));
+		add(operation, ListParams.SEARCH, new StringSchema(), "Free text search" + fieldList(querySchema, FieldSpec::searchable));
 		add(operation, ListParams.COUNT, new BooleanSchema(), "true to count the matching items (in count; not counted by default)");
 		addSelectionParameters(operation);
-		operation.setDescription((operation.getDescription() == null ? "" : operation.getDescription() + " ")
-			+ "Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).");
+	}
+
+	/**
+	 * Declares the filters of a list: a parameter per field and lookup (field=value, field__lookup=value), which can be
+	 * repeated.
+	 *
+	 * @param operation the operation of the list (or of its statistics)
+	 * @param querySchema the schema of the list (null if not named, nothing is declared then)
+	 */
+	private static void addFilterParameters(Operation operation, QuerySchema querySchema) {
+		if (querySchema == null) {
+			return;
+		}
+		for (FieldSpec field : querySchema.fields().values()) {
+			for (Lookup lookup : Lookup.values()) {
+				if (!field.lookups().contains(lookup)) {
+					continue;
+				}
+				String name = lookup == Lookup.EXACT ? field.name() : field.name() + QuerySchema.LOOKUP_SEPARATOR + lookup.suffix();
+				Schema<?> value = filterValueSchema(field, lookup);
+				String description = "Filter: " + field.name() + " " + lookup.description();
+				if (lookup == Lookup.EMPTY) {
+					add(operation, name, value, description);
+				}
+				else {
+					// Repeated: any of the values (none of them for a negated lookup)
+					add(operation, name, new ArraySchema().items(value), description);
+					Parameter parameter = operation.getParameters().getLast();
+					parameter.style(Parameter.StyleEnum.FORM).explode(true);
+				}
+			}
+		}
+	}
+
+	private static Schema<?> filterValueSchema(FieldSpec field, Lookup lookup) {
+		if (lookup == Lookup.EMPTY) {
+			return new BooleanSchema();
+		}
+		if (lookup == Lookup.REGEX || lookup == Lookup.IREGEX) {
+			return new StringSchema();
+		}
+		return switch (field.type()) {
+			case STRING -> new StringSchema();
+			case INTEGER -> new IntegerSchema().format("int64");
+			case BOOLEAN -> new BooleanSchema();
+			case ENUM -> {
+				StringSchema values = new StringSchema();
+				values.setEnum(field.enumValues());
+				yield values;
+			}
+			// A date (midnight UTC) or a date and time with offset
+			case DATE -> new StringSchema().description("ISO-8601 date or date and time with offset");
+			case INET -> new StringSchema().description(lookup == Lookup.NET ? "IP subnet (address/length)" : "IP address");
+		};
+	}
+
+	/**
+	 * Lists the fields of a schema which have a capability, for a parameter description.
+	 *
+	 * @param querySchema the schema (null: nothing)
+	 * @param capability the capability (sortable...)
+	 * @return the text ("" if no schema)
+	 */
+	private static String fieldList(QuerySchema querySchema, Predicate<FieldSpec> capability) {
+		if (querySchema == null) {
+			return "";
+		}
+		List<String> names = querySchema.fields().values().stream().filter(capability).map(FieldSpec::name).toList();
+		return names.isEmpty() ? "" : "; fields: " + String.join(", ", names);
 	}
 
 	private static void addSelectionParameters(Operation operation) {
@@ -466,17 +546,17 @@ final class V1OpenApiEnhancer {
 		add(operation, Selection.EXPAND, new StringSchema(), "References to write in their full view (written even when the view or the fields don't include them), comma-separated");
 	}
 
-	private static void addStatsParameters(Operation operation) {
+	private static void addStatsParameters(Operation operation, QuerySchema querySchema) {
 		add(operation, ListParams.SEARCH, new StringSchema(), "Free text search (as in the list)");
-		add(operation, StatsParams.GROUP_BY, new StringSchema(), "Fields to count by (up to two), comma-separated");
+		add(operation, StatsParams.GROUP_BY, new StringSchema(), "Fields to count by (up to two), comma-separated"
+			+ fieldList(querySchema, FieldSpec::groupable));
 		StringSchema interval = new StringSchema();
 		interval.setEnum(List.of("hour", "day", "week", "month"));
 		add(operation, StatsParams.INTERVAL, interval, "Size of the time buckets");
-		add(operation, StatsParams.ON, new StringSchema(), "Date field of the time buckets");
+		add(operation, StatsParams.ON, new StringSchema(), "Date field of the time buckets"
+			+ fieldList(querySchema, field -> field.type() == FieldType.DATE));
 		add(operation, StatsParams.FROM, new StringSchema().format("date-time"), "Start of the range (included)");
 		add(operation, StatsParams.TO, new StringSchema().format("date-time"), "End of the range (excluded)");
 		add(operation, StatsParams.TIME_ZONE, new StringSchema(), "Time zone of the buckets (IANA name, UTC by default)");
-		operation.setDescription((operation.getDescription() == null ? "" : operation.getDescription() + " ")
-			+ "Any other parameter is a filter of the list.");
 	}
 }

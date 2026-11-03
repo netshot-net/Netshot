@@ -44,8 +44,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -109,8 +111,9 @@ public class SoftwareRuleResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the software rules", description = "Lists the software compliance rules, in the order they are "
 		+ "checked in by default (priority is the position of the rule, from 1).")
+	@ListFilters(ListSchema.SOFTWARE_RULES)
 	public ListResponse<SoftwareRuleDto> listSoftwareRules() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.softwareRuleService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.SOFTWARE_RULES.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), SoftwareRuleDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, SoftwareRuleDto.class);
 		ListResult<RankedSoftwareRule> rules = this.softwareRuleService.list(query);

@@ -43,8 +43,10 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -92,8 +94,9 @@ public class DomainResource {
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the domains", description = "Lists the device domains, in their brief view by default.")
+	@ListFilters(ListSchema.DOMAINS)
 	public ListResponse<DomainDto> listDomains() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.domainService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DOMAINS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.BRIEF),
 			DomainDto.class);
 		return ListResponse.of(this.uriInfo, query, this.domainService.list(query), DomainMapper::toDto);

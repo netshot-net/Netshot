@@ -86,7 +86,7 @@ public class ScriptService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return ScriptRepository.LIST.schema();
 	}
 

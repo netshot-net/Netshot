@@ -224,6 +224,60 @@ public class V1ConventionSweepTest {
 			|| message.endsWith("doesn't apply to statistics");
 	}
 
+	@Test
+	@DisplayName("OpenAPI: the lists and statistics name their schema, to declare their filters")
+	void listsNameTheirSchema() throws Exception {
+		Set<String> unnamed = new TreeSet<>();
+		for (Endpoint endpoint : V1Resources.endpoints()) {
+			boolean filtered = (endpoint.method().getReturnType() == ListResponse.class && !endpoint.isUnpaged()) || endpoint.isStats();
+			if (filtered != endpoint.method().isAnnotationPresent(ListFilters.class)) {
+				unnamed.add(endpoint.key());
+			}
+		}
+		Assertions.assertEquals(Set.of(), unnamed, "Lists and statistics without @ListFilters (or other endpoints with it)");
+	}
+
+	// A valid value of a documented filter parameter, from its schema
+	private static String sampleValue(JsonNode parameter) {
+		JsonNode schema = parameter.get("schema");
+		if (schema.has("items")) {
+			schema = schema.get("items");
+		}
+		String description = schema.path("description").asText();
+		if (schema.has("enum")) {
+			return schema.get("enum").get(0).asText();
+		}
+		return switch (schema.path("type").asText()) {
+			case "boolean" -> "true";
+			case "integer" -> "1";
+			default -> description.startsWith("IP subnet") ? "10.0.0.0/8"
+				: description.startsWith("IP address") ? "10.0.0.1"
+				: description.contains("date") ? "2026-01-01" : "a";
+		};
+	}
+
+	@TestFactory
+	@DisplayName("OpenAPI: each documented filter is accepted")
+	Stream<DynamicTest> documentedFilters() throws Exception {
+		JsonNode paths = this.anonymous.get("/openapi.json").json().get("paths");
+		return V1Resources.endpoints().stream().filter(e -> (e.isList() && !e.isUnpaged()) || e.isStats())
+			.map(endpoint -> DynamicTest.dynamicTest(endpoint.key(), () -> {
+				String path = endpoint.hasPathParameters() ? endpoint.unknownPath() : endpoint.template();
+				int filters = 0;
+				for (JsonNode parameter : paths.get(endpoint.template()).get("get").get("parameters")) {
+					if (!parameter.path("description").asText().startsWith("Filter: ")) {
+						continue;
+					}
+					filters++;
+					String query = parameter.get("name").asText() + "=" + sampleValue(parameter);
+					// (an unknown object is reported once the parameters are read)
+					Answer answer = send(this.admin, endpoint, path + "?" + query);
+					Assertions.assertNotEquals(400, answer.status(), endpoint.key() + "?" + query + " -> " + answer);
+				}
+				Assertions.assertTrue(filters > 0, endpoint.key() + ": no documented filter");
+			}));
+	}
+
 	@TestFactory
 	@DisplayName("OpenAPI: each GET endpoint documents the common parameters it accepts, and only them")
 	Stream<DynamicTest> documentedParameters() throws Exception {

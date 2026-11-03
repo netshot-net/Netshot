@@ -431,7 +431,7 @@ public class RuleService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return RuleRepository.LIST.schema();
 	}
 
@@ -576,7 +576,7 @@ public class RuleService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema exemptionSchema() {
+	public static QuerySchema exemptionSchema() {
 		return RuleRepository.EXEMPTION_LIST.schema();
 	}
 
@@ -611,7 +611,7 @@ public class RuleService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema resultSchema() {
+	public static QuerySchema resultSchema() {
 		return RuleRepository.RESULT_LIST.schema();
 	}
 
@@ -645,7 +645,7 @@ public class RuleService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema allResultsSchema() {
+	public static QuerySchema allResultsSchema() {
 		return RuleRepository.ALL_RESULT_LIST.schema();
 	}
 
