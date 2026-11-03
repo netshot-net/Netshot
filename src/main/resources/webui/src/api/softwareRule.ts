@@ -1,11 +1,7 @@
-import { Brief, client, list, ListParams, patch, replace, Schemas } from "./client"
+import { client, patch, replace, Schemas } from "./client"
 
 export type SoftwareRule = Schemas["SoftwareRule"] & { id: number }
 export type SoftwareRuleRequest = Schemas["SoftwareRuleRequest"]
-
-async function getAll(params: ListParams = {}) {
-  return list<Brief["SoftwareRule"]>("/compliance/software-rules", params)
-}
 
 async function create(payload: SoftwareRuleRequest) {
   return (await client.post<SoftwareRule, SoftwareRuleRequest>("/compliance/software-rules", payload)) as SoftwareRule
@@ -25,7 +21,6 @@ async function remove(id: number) {
 }
 
 export default {
-  getAll,
   create,
   update,
   remove,

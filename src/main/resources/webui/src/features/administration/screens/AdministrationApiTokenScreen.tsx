@@ -3,7 +3,7 @@ import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { Level } from "@/types"
-import { usePagination, useUserLevelOptions } from "@/hooks"
+import { useSearchQuery, useUserLevelOptions } from "@/hooks"
 import { Button, Heading, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
@@ -18,16 +18,16 @@ const columnHelper = createColumnHelper<ApiToken>()
 
 export default function AdministrationApiTokenScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const userLevelOptions = useUserLevelOptions()
 
   const { rows: data, isPending } = useListAll<ApiToken>(
     [QUERIES.ADMIN_API_TOKENS],
     "/api-tokens",
-    { q: pagination.query, sort: "description" }
+    { q: searchBox.query, sort: "description" }
   )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -86,8 +86,8 @@ export default function AdministrationApiTokenScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

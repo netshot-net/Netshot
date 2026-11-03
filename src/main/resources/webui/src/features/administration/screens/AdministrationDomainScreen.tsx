@@ -2,7 +2,7 @@ import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { Button, Heading, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
@@ -18,15 +18,15 @@ const columnHelper = createColumnHelper<Brief["Domain"]>()
 
 export default function AdministrationDomainScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
   const { rows: data, isPending } = useListAll<Brief["Domain"]>(
     [QUERIES.ADMIN_DEVICE_DOMAINS],
     "/domains",
-    { q: pagination.query, sort: "name" }
+    { q: searchBox.query, sort: "name" }
   )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -98,8 +98,8 @@ export default function AdministrationDomainScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

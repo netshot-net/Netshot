@@ -16,7 +16,7 @@ import {
   Level,
 } from "@/types"
 import { useLocalization } from "@/i18n"
-import { usePagination, useSoftwareLevels } from "@/hooks"
+import { useSearchQuery, useSoftwareLevels } from "@/hooks"
 import { search } from "@/utils"
 
 import { DeviceComplianceTag } from "@/components/entity"
@@ -56,7 +56,7 @@ export default function DeviceComplianceScreen() {
   const params = useParams<{ id: string }>()
   const { getColor: getLevelColor } = useSoftwareLevels()
   const [searchParams, setSearchParams] = useSearchParams()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
   const { data = [], isPending } = useQuery({
     queryKey: [QUERIES.DEVICE_COMPLIANCE, params?.id],
@@ -77,11 +77,11 @@ export default function DeviceComplianceScreen() {
       })),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const filteredData = useMemo(
-    () => search(data, "policyName", "ruleName", "comment").with(pagination.query),
-    [data, pagination.query]
+    () => search(data, "policyName", "ruleName", "comment").with(searchBox.query),
+    [data, searchBox.query]
   )
 
   const openSections = useMemo(() => {
@@ -169,8 +169,8 @@ export default function DeviceComplianceScreen() {
       <Stack direction="row">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="25%"
         />
         <Spacer />
