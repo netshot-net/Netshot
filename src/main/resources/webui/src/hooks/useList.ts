@@ -11,10 +11,10 @@ export type UseListConfig = {
 
 /**
  * Loads a list page by page, for an infinite scroll: the next page is requested by onBottomReached, as long as
- * the server gives a next page. The total number of matching items is in count.
+ * the server gives a next page. The items aren't counted (the count of a large list costs more than its pages).
  *
  * @example
- * const { rows, count, isPending, onBottomReached } = useList<Schemas["Domain"]>(
+ * const { rows, isPending, onBottomReached } = useList<Schemas["Domain"]>(
  *   [QUERIES.DOMAIN_LIST, query], "/domains", { q: query, sort: "name" })
  */
 export function useList<T>(queryKey: QueryKey, path: string, params: ListParams = {}, config: UseListConfig = {}) {
@@ -31,7 +31,6 @@ export function useList<T>(queryKey: QueryKey, path: string, params: ListParams 
   })
 
   const rows = useMemo(() => query.data?.pages?.flatMap((page) => page.results) ?? [], [query.data])
-  const count = query.data?.pages?.[0]?.count ?? undefined
 
   function onBottomReached() {
     if (query.isFetchingNextPage || !query.hasNextPage) {
@@ -42,7 +41,6 @@ export function useList<T>(queryKey: QueryKey, path: string, params: ListParams 
 
   return {
     rows,
-    count,
     isPending: query.isPending,
     isFetching: query.isFetching,
     hasNextPage: query.hasNextPage,

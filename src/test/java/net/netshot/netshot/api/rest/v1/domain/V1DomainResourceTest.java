@@ -160,13 +160,13 @@ public class V1DomainResourceTest {
 		for (int i = 1; i <= 5; i++) {
 			this.create("D" + i, "Domain " + i, "10.0.0." + i);
 		}
-		Answer first = this.admin.get("/domains?limit=2");
+		Answer first = this.admin.get("/domains?limit=2&count=true");
 		Assertions.assertEquals(200, first.status(), first.toString());
 		JsonNode page = first.json();
 		Assertions.assertEquals(5, page.get("count").asLong());
 		Assertions.assertEquals(0, page.get("offset").asInt());
 		Assertions.assertEquals(2, page.get("limit").asInt());
-		Assertions.assertEquals("/api/v1/domains?offset=2&limit=2", page.get("next").asText());
+		Assertions.assertEquals("/api/v1/domains?offset=2&count=true&limit=2", page.get("next").asText());
 		Assertions.assertTrue(page.get("previous").isNull());
 		Assertions.assertEquals(List.of("D1", "D2"), values(page, "name"));
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "description", "server4Address"), names(page.get("results").get(0)));
@@ -176,9 +176,14 @@ public class V1DomainResourceTest {
 		Assertions.assertTrue(last.get("next").isNull());
 		Assertions.assertEquals("/api/v1/domains?offset=2&limit=2", last.get("previous").asText());
 
-		JsonNode uncounted = this.admin.get("/domains?limit=2&count=false").json();
+		// Not counted by default: a next page as long as a page is full
+		JsonNode uncounted = this.admin.get("/domains?limit=2").json();
 		Assertions.assertTrue(uncounted.get("count").isNull());
 		Assertions.assertFalse(uncounted.get("next").isNull());
+		Assertions.assertTrue(this.admin.get("/domains?limit=2&count=false").json().get("count").isNull());
+		JsonNode beyond = this.admin.get("/domains?limit=5").json();
+		Assertions.assertEquals("/api/v1/domains?offset=5&limit=5", beyond.get("next").asText(), "full page: maybe more");
+		Assertions.assertEquals(0, this.admin.get("/domains?limit=5&offset=5").json().get("results").size());
 
 		// No maximum by default (netshot.http.api.pagesize.max)
 		Assertions.assertEquals(200, this.admin.get("/domains?limit=100000").status());
@@ -348,14 +353,14 @@ public class V1DomainResourceTest {
 		Assertions.assertTrue(created.body().startsWith("<domain>"), created.body());
 		Assertions.assertTrue(created.body().contains("<name>Paris</name>"), created.body());
 
-		Answer list = this.admin.get("/domains?view=full", "Accept", "application/xml");
+		Answer list = this.admin.get("/domains?view=full&count=true", "Accept", "application/xml");
 		Assertions.assertEquals(200, list.status(), list.toString());
 		Assertions.assertTrue(list.body().startsWith("<list><count>1</count>"), list.body());
 		Assertions.assertTrue(list.body().contains("<results><id>"), list.body());
 		Assertions.assertTrue(list.body().contains("<previous xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:nil=\"true\"/>"),
 			list.body());
 
-		Answer yaml = this.admin.get("/domains", "Accept", "application/yaml");
+		Answer yaml = this.admin.get("/domains?count=true", "Accept", "application/yaml");
 		Assertions.assertEquals(200, yaml.status(), yaml.toString());
 		Assertions.assertTrue(yaml.body().contains("count: 1"), yaml.body());
 

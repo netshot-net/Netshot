@@ -107,7 +107,7 @@ public class V1DeviceInventoryResourceTest {
 	@DisplayName("Interfaces: brief and full views, children have an id but no url")
 	void interfaceViews() throws Exception {
 		JsonNode page = this.reader.get("/devices/%d/interfaces".formatted(this.router1.id())).json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(List.of("GigabitEthernet0/0", "GigabitEthernet0/1"), values(page, "name"));
 		JsonNode first = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("id", "display", "name", "description", "enabled"), keys(first));
@@ -149,7 +149,7 @@ public class V1DeviceInventoryResourceTest {
 		Assertions.assertEquals(400, this.reader.get("/devices/%d/interfaces?ipAddress=nope".formatted(this.router1.id())).status());
 		Assertions.assertEquals(400, this.reader.get("/devices/%d/interfaces?bogus=1".formatted(this.router1.id())).status());
 
-		JsonNode page = this.reader.get("/devices/%d/interfaces?limit=1".formatted(this.router1.id())).json();
+		JsonNode page = this.reader.get("/devices/%d/interfaces?limit=1&count=true".formatted(this.router1.id())).json();
 		Assertions.assertEquals(2, page.get("count").asInt());
 		Assertions.assertEquals(1, page.get("results").size());
 		Assertions.assertFalse(page.get("next").isNull());
@@ -171,7 +171,7 @@ public class V1DeviceInventoryResourceTest {
 	void modules() throws Exception {
 		Assertions.assertEquals(List.of("chassis"), this.modules(this.router1, "", "slot"));
 		JsonNode page = this.reader.get("/devices/%d/modules?removed=true".formatted(this.router1.id())).json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(List.of("chassis", "slot"), values(page, "slot"));
 		JsonNode first = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("id", "display", "slot", "partNumber", "serialNumber"), keys(first));

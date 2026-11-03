@@ -127,7 +127,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -805,7 +805,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -920,7 +920,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -1026,7 +1026,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -1493,7 +1493,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -1971,7 +1971,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -2077,7 +2077,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -2555,7 +2555,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -2668,7 +2668,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -2876,7 +2876,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -3623,7 +3623,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -3738,7 +3738,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -3844,7 +3844,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -4314,7 +4314,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -4429,7 +4429,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -4544,7 +4544,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -4664,7 +4664,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -5598,7 +5598,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -5704,7 +5704,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -5826,7 +5826,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -5932,7 +5932,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -6038,7 +6038,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -6516,7 +6516,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -6622,7 +6622,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -7090,7 +7090,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -7575,7 +7575,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -7681,7 +7681,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -8149,7 +8149,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -8843,7 +8843,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -9022,7 +9022,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -9472,7 +9472,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -9941,7 +9941,7 @@
         }, {
           "name" : "count",
           "in" : "query",
-          "description" : "false to skip the count of the matching items",
+          "description" : "true to count the matching items (in count; not counted by default)",
           "required" : false,
           "schema" : {
             "type" : "boolean"
@@ -10632,7 +10632,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -11447,7 +11447,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -11907,7 +11907,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -11968,7 +11968,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -12008,7 +12008,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -12208,7 +12208,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -12421,7 +12421,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -12761,7 +12761,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -12926,7 +12926,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -12986,7 +12986,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -13099,7 +13099,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -13180,7 +13180,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -13596,7 +13596,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -13841,7 +13841,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14021,7 +14021,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14107,7 +14107,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14163,7 +14163,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14340,7 +14340,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14415,7 +14415,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14472,7 +14472,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14548,7 +14548,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14746,7 +14746,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -14893,7 +14893,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -15054,7 +15054,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -15094,7 +15094,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -15167,7 +15167,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -15370,7 +15370,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },
@@ -15488,7 +15488,7 @@
         "properties" : {
           "count" : {
             "type" : "integer",
-            "description" : "Total number of matching items (null if count=false)",
+            "description" : "Total number of matching items (null unless count=true)",
             "format" : "int64",
             "nullable" : true
           },

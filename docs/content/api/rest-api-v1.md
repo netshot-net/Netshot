@@ -37,7 +37,7 @@ The read-only properties of an object (`id`, `url`, `version`, dates...) are ign
 
 ## Lists
 
-A list answers one page, in an envelope:
+A list answers one page, in an envelope (here with `count=true`):
 
 ```json
 {
@@ -51,7 +51,7 @@ A list answers one page, in an envelope:
 ```
 
 - `offset` and `limit` select the page. Without `limit`, a page holds `netshot.http.api.pagesize.default` items (100); there is no maximum unless `netshot.http.api.pagesize.max` is set, a `limit` above it is then refused (see the [configuration reference](../configuration-reference.md#embedded-http-server)). `limit=0` gives all the matching items in one answer (`limit` is then `0` in the answer, and `next` is `null`), unless a maximum is set (400).
-- `count` is the total number of matching items; `count=false` skips counting it (faster on large lists, `next` is then given as long as a page is full).
+- `count` is the total number of matching items, given with `count=true` only (`null` otherwise): counting costs more than reading a page on a large list. Without it, `next` is given as long as a page is full (the last page can then be empty).
 - `sort=name,-changeDate` sorts the list (`-` for a descending order); the ID always ends the order, so that the pages are stable. Without `sort`, a list is in the order of its IDs (the cheapest, indexed order), except where its resource tells otherwise (tasks: newest first; configurations: by decreasing change date; software rules: by priority; compliance results: by device, then rule).
 - `q=<text>` searches the text in the main text properties (case-insensitive).
 
@@ -92,7 +92,7 @@ curl -H "X-Netshot-API-Token: <token>" -H "Accept: text/csv" -o devices.csv \
   'https://<server:port>/api/v1/devices?status=INPRODUCTION&fields=name,mgmtAddress,mgmtDomain'
 ```
 
-The export is the same list as in JSON: same filters, `q`, `sort` and selection (`view`, `fields`, `omit`). The answer is an attachment (`Content-Disposition: attachment; filename="devices-20261101-120000.csv"`), without the list envelope; the number of matching items is in the `X-Total-Count` header (unless `count=false`). A client which prefers JSON, or accepts `*/*`, gets JSON; only the lists can be exported (406 otherwise).
+The export is the same list as in JSON: same filters, `q`, `sort` and selection (`view`, `fields`, `omit`). The answer is an attachment (`Content-Disposition: attachment; filename="devices-20261101-120000.csv"`), without the list envelope; the number of matching items is in the `X-Total-Count` header (with `count=true`). A client which prefers JSON, or accepts `*/*`, gets JSON; only the lists can be exported (406 otherwise).
 
 - Columns: the properties of the items (the brief view by default: `view=full` or `fields` for more). A nested object gives dotted columns (`mgmtDomain.description`, selected with `fields`), a reference gives its `display`, a list gives one cell (`;`-separated), an empty value an empty cell. Dates are ISO-8601 (UTC); in Excel, numbers, booleans and dates (UTC) are typed cells. In CSV, a text starting with `=`, `+`, `-` or `@` gets a leading `'`, so spreadsheet applications don't run it as a formula.
 - An export isn't paginated: it has all the matching items, unless `limit` (and `offset`) is given. It can't have more than `netshot.http.api.export.maxrows` rows (100000 by default, see the [configuration reference](../configuration-reference.md#embedded-http-server)): beyond, the request is refused (400), asking for filters or `limit`/`offset`.

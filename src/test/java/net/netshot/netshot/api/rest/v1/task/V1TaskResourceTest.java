@@ -117,7 +117,7 @@ public class V1TaskResourceTest {
 	@DisplayName("List: latest first, brief view, filters")
 	void list() throws Exception {
 		JsonNode page = this.reader.get("/tasks").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals(List.of(this.deviceTask.id(), this.childTask.id(), this.groupTask.id()), ids(page));
 		JsonNode first = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("id", "url", "display", "type", "status"), keys(first));

@@ -63,7 +63,7 @@ export async function list<T>(path: string, params: ListParams = {}, signal?: Ab
  * of the selectors.
  */
 export async function listAll<T>(path: string, params: ListParams = {}, signal?: AbortSignal) {
-  return (await list<T>(path, { ...params, offset: undefined, limit: 0, count: false }, signal)).results
+  return (await list<T>(path, { ...params, offset: undefined, limit: 0 }, signal)).results
 }
 
 /**

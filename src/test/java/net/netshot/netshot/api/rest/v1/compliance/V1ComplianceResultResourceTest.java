@@ -147,7 +147,7 @@ public class V1ComplianceResultResourceTest {
 	@DisplayName("List: one row per device and rule, brief view with references, no ID of its own")
 	void list() throws Exception {
 		JsonNode page = this.get("/compliance-results");
-		Assertions.assertEquals(5, page.get("count").asInt());
+		Assertions.assertEquals(5, page.get("results").size());
 		Assertions.assertEquals(5, page.get("results").size());
 		JsonNode first = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("device", "rule", "policy", "result", "checkDate"), keys(first));
@@ -173,39 +173,39 @@ public class V1ComplianceResultResourceTest {
 	@Test
 	@DisplayName("List: filters on the result, rule, policy, device, domain and group, search, sort and paging")
 	void filters() throws Exception {
-		Assertions.assertEquals(3, this.get("/compliance-results?result=NONCONFORMING").get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?result=CONFORMING").get("count").asInt());
-		Assertions.assertEquals(3, this.get("/compliance-results?rule=" + this.telnet.id()).get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?ruleName=Banner").get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?policyName=Hygiene").get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?device=" + this.router2.id()).get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?deviceName=" + this.router2.name()).get("count").asInt());
-		Assertions.assertEquals(1, this.get("/compliance-results?device=" + this.router1.id() + "&result=NONCONFORMING").get("count").asInt());
+		Assertions.assertEquals(3, this.get("/compliance-results?result=NONCONFORMING").get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?result=CONFORMING").get("results").size());
+		Assertions.assertEquals(3, this.get("/compliance-results?rule=" + this.telnet.id()).get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?ruleName=Banner").get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?policyName=Hygiene").get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?device=" + this.router2.id()).get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?deviceName=" + this.router2.name()).get("results").size());
+		Assertions.assertEquals(1, this.get("/compliance-results?device=" + this.router1.id() + "&result=NONCONFORMING").get("results").size());
 
 		// Of the device: its domain, its groups (a device in two groups isn't duplicated)
-		Assertions.assertEquals(4, this.get("/compliance-results?domain=" + this.paris.id()).get("count").asInt());
-		Assertions.assertEquals(4, this.get("/compliance-results?group=" + this.core).get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?group=" + this.edge).get("count").asInt());
+		Assertions.assertEquals(4, this.get("/compliance-results?domain=" + this.paris.id()).get("results").size());
+		Assertions.assertEquals(4, this.get("/compliance-results?group=" + this.core).get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?group=" + this.edge).get("results").size());
 		JsonNode both = this.get("/compliance-results?group=" + this.core + "&group=" + this.edge);
-		Assertions.assertEquals(4, both.get("count").asInt());
 		Assertions.assertEquals(4, both.get("results").size());
-		Assertions.assertEquals(1, this.get("/compliance-results?group__n=" + this.core).get("count").asInt());
+		Assertions.assertEquals(4, both.get("results").size());
+		Assertions.assertEquals(1, this.get("/compliance-results?group__n=" + this.core).get("results").size());
 
-		Assertions.assertEquals(3, this.get("/compliance-results?q=telnet").get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?q=hygiene").get("count").asInt());
-		Assertions.assertEquals(2, this.get("/compliance-results?checkDate__gte=2026-10-03T00:00:00Z").get("count").asInt());
-		Assertions.assertEquals(1, this.get("/compliance-results?exemptionExpirationDate__gt=2030-01-01T00:00:00Z").get("count").asInt());
+		Assertions.assertEquals(3, this.get("/compliance-results?q=telnet").get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?q=hygiene").get("results").size());
+		Assertions.assertEquals(2, this.get("/compliance-results?checkDate__gte=2026-10-03T00:00:00Z").get("results").size());
+		Assertions.assertEquals(1, this.get("/compliance-results?exemptionExpirationDate__gt=2030-01-01T00:00:00Z").get("results").size());
 
 		JsonNode byDate = this.get("/compliance-results?sort=-checkDate");
 		Assertions.assertEquals("2026-10-03T12:00:00.000Z", byDate.get("results").get(0).get("checkDate").asText());
-		JsonNode page = this.get("/compliance-results?limit=2&offset=1&sort=checkDate");
+		JsonNode page = this.get("/compliance-results?limit=2&offset=1&sort=checkDate&count=true");
 		Assertions.assertEquals(5, page.get("count").asInt());
 		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals("2026-10-01T11:00:00.000Z", page.get("results").get(0).get("checkDate").asText());
 
 		// The same rows through the list of the device
 		JsonNode ofDevice = this.get("/devices/" + this.router1.id() + "/compliance-results");
-		Assertions.assertEquals(2, ofDevice.get("count").asInt());
+		Assertions.assertEquals(2, ofDevice.get("results").size());
 	}
 
 	@Test

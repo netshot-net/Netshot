@@ -109,7 +109,7 @@ public class V1GroupResourceTest {
 	@DisplayName("List: brief view, filters (type, name, device membership), devices of a group")
 	void list() throws Exception {
 		JsonNode page = this.reader.get("/groups?sort=name").json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(List.of("Core", "Lyon devices"), values(page, "name"));
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "folder", "type"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Lyon devices"), values(this.reader.get("/groups?type=DYNAMIC").json(), "name"));
@@ -121,7 +121,7 @@ public class V1GroupResourceTest {
 		Assertions.assertEquals(List.of("router00001", "router00002"), this.deviceNames(this.core.id()));
 		JsonNode filtered = this.reader.get("/groups/" + this.core.id() + "/devices?name__iew=2").json();
 		Assertions.assertEquals(List.of("router00002"), values(filtered, "name"));
-		Assertions.assertEquals(1, filtered.get("count").asInt());
+		Assertions.assertEquals(1, filtered.get("results").size());
 		Assertions.assertEquals(404, this.reader.get("/groups/" + TestServer.UNKNOWN_ID + "/devices").status());
 	}
 

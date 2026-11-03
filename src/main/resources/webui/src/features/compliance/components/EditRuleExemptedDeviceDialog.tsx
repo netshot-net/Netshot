@@ -137,7 +137,6 @@ export default function EditRuleExemptedDeviceDialog(props: EditRuleExemptedDevi
         fields: "name,family,status,networkClass",
         sort: "name",
         limit: 20,
-        count: false,
       }),
   })
 
