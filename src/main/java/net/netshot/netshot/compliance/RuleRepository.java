@@ -33,6 +33,8 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -46,6 +48,7 @@ import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
@@ -294,7 +297,22 @@ public class RuleRepository {
 	 * @return the number of results
 	 */
 	public long countResults(DSLContext dsl, ListQuery query) {
-		return dsl.fetchCount(dsl.selectOne().from(ALL_RESULTS).where(ALL_RESULT_LIST.condition(query)));
+		// Only the tables the filters use are joined: a result always has its device (foreign key) and at most one
+		// exemption; the rule is joined to keep the results of the rules with a policy only, as the list
+		Set<String> used = query.criteria().stream().map(Criterion::field).collect(Collectors.toSet());
+		boolean search = query.search() != null;
+		Table<?> from = CHECK_RESULT.join(RULE).on(RULE.ID.eq(CHECK_RESULT.RULE));
+		Condition condition = RULE.POLICY.isNotNull();
+		if (search || used.contains("policy") || used.contains("policyName")) {
+			from = from.join(POLICY).on(POLICY.ID.eq(RULE.POLICY));
+		}
+		if (search || used.contains("deviceName") || used.contains("domain")) {
+			from = from.join(DEVICE).on(DEVICE.ID.eq(CHECK_RESULT.DEVICE));
+		}
+		if (used.contains("exemptionExpirationDate")) {
+			from = from.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(CHECK_RESULT.RULE).and(EXEMPTION.DEVICE.eq(CHECK_RESULT.DEVICE)));
+		}
+		return dsl.fetchCount(dsl.selectOne().from(from).where(condition).and(ALL_RESULT_LIST.condition(query)));
 	}
 
 	/**
