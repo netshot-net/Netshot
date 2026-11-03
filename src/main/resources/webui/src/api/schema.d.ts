@@ -3610,7 +3610,16 @@ export interface operations {
     };
     createApiToken: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3638,7 +3647,16 @@ export interface operations {
     };
     getApiToken: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description API token ID */
@@ -3686,7 +3704,16 @@ export interface operations {
     };
     getMe: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3708,7 +3735,16 @@ export interface operations {
     };
     changePassword: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3736,7 +3772,16 @@ export interface operations {
     };
     getSession: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3758,7 +3803,16 @@ export interface operations {
     };
     login: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3807,6 +3861,8 @@ export interface operations {
     getResultStats: {
         parameters: {
             query?: {
+                /** @description Free text search (as in the list) */
+                q?: string;
                 /** @description Fields to count by (up to two), comma-separated */
                 groupBy?: string;
                 /** @description Size of the time buckets */
@@ -3967,7 +4023,16 @@ export interface operations {
     };
     createHardwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3995,7 +4060,16 @@ export interface operations {
     };
     getHardwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Hardware rule ID */
@@ -4020,7 +4094,16 @@ export interface operations {
     };
     replaceHardwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Hardware rule ID */
@@ -4074,7 +4157,16 @@ export interface operations {
     };
     updateHardwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Hardware rule ID */
@@ -4148,7 +4240,16 @@ export interface operations {
     };
     createPolicy: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4176,7 +4277,16 @@ export interface operations {
     };
     getPolicy: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Policy ID */
@@ -4201,7 +4311,16 @@ export interface operations {
     };
     replacePolicy: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Policy ID */
@@ -4255,7 +4374,16 @@ export interface operations {
     };
     updatePolicy: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Policy ID */
@@ -4373,7 +4501,16 @@ export interface operations {
     };
     createRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4401,7 +4538,16 @@ export interface operations {
     };
     getRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Rule ID */
@@ -4426,7 +4572,16 @@ export interface operations {
     };
     replaceRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Rule ID */
@@ -4480,7 +4635,16 @@ export interface operations {
     };
     updateRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Rule ID */
@@ -4607,7 +4771,16 @@ export interface operations {
     };
     testRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4676,7 +4849,16 @@ export interface operations {
     };
     createSoftwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4704,7 +4886,16 @@ export interface operations {
     };
     getSoftwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Software rule ID */
@@ -4729,7 +4920,16 @@ export interface operations {
     };
     replaceSoftwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Software rule ID */
@@ -4783,7 +4983,16 @@ export interface operations {
     };
     updateSoftwareRule: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Software rule ID */
@@ -4816,7 +5025,16 @@ export interface operations {
     };
     getConfig: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Configuration ID */
@@ -4844,6 +5062,14 @@ export interface operations {
             query?: {
                 /** @description ID of the configuration to compare with (the original one) */
                 with?: string;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
             };
             header?: never;
             path: {
@@ -4896,6 +5122,8 @@ export interface operations {
     getConfigStats: {
         parameters: {
             query?: {
+                /** @description Free text search (as in the list) */
+                q?: string;
                 /** @description Fields to count by (up to two), comma-separated */
                 groupBy?: string;
                 /** @description Size of the time buckets */
@@ -5056,7 +5284,16 @@ export interface operations {
     };
     createCredentialSet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5084,7 +5321,16 @@ export interface operations {
     };
     getCredentialSet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Credential set ID */
@@ -5109,7 +5355,16 @@ export interface operations {
     };
     replaceCredentialSet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Credential set ID */
@@ -5163,7 +5418,16 @@ export interface operations {
     };
     updateCredentialSet: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Credential set ID */
@@ -5370,7 +5634,16 @@ export interface operations {
     };
     addDevice: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5398,7 +5671,16 @@ export interface operations {
     };
     checkCompliance: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5429,7 +5711,16 @@ export interface operations {
     };
     getDevice: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5454,7 +5745,16 @@ export interface operations {
     };
     replaceDevice: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5508,7 +5808,16 @@ export interface operations {
     };
     updateDevice: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5544,6 +5853,8 @@ export interface operations {
             query?: {
                 /** @description Device search query, in the Netshot query language */
                 query?: string;
+                /** @description Free text search (as in the list) */
+                q?: string;
                 /** @description Fields to count by (up to two), comma-separated */
                 groupBy?: string;
                 /** @description Size of the time buckets */
@@ -5578,7 +5889,16 @@ export interface operations {
     };
     runDiagnostics: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5609,7 +5929,16 @@ export interface operations {
     };
     runScript: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5640,7 +5969,16 @@ export interface operations {
     };
     takeSnapshot: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Device ID */
@@ -5896,7 +6234,16 @@ export interface operations {
     };
     createDiagnostic: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5924,7 +6271,16 @@ export interface operations {
     };
     getDiagnostic: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Diagnostic ID */
@@ -5949,7 +6305,16 @@ export interface operations {
     };
     replaceDiagnostic: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Diagnostic ID */
@@ -6003,7 +6368,16 @@ export interface operations {
     };
     updateDiagnostic: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Diagnostic ID */
@@ -6121,7 +6495,16 @@ export interface operations {
     };
     createDomain: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6149,7 +6532,16 @@ export interface operations {
     };
     getDomain: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Domain ID */
@@ -6174,7 +6566,16 @@ export interface operations {
     };
     replaceDomain: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Domain ID */
@@ -6228,7 +6629,16 @@ export interface operations {
     };
     updateDomain: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Domain ID */
@@ -6302,7 +6712,16 @@ export interface operations {
     };
     createGroup: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6330,7 +6749,16 @@ export interface operations {
     };
     getGroup: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Group ID */
@@ -6355,7 +6783,16 @@ export interface operations {
     };
     replaceGroup: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Group ID */
@@ -6409,7 +6846,16 @@ export interface operations {
     };
     updateGroup: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Group ID */
@@ -6529,7 +6975,16 @@ export interface operations {
     };
     createHook: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6557,7 +7012,16 @@ export interface operations {
     };
     getHook: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Hook ID */
@@ -6582,7 +7046,16 @@ export interface operations {
     };
     replaceHook: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Hook ID */
@@ -6636,7 +7109,16 @@ export interface operations {
     };
     updateHook: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Hook ID */
@@ -6710,7 +7192,16 @@ export interface operations {
     };
     createScript: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6738,7 +7229,16 @@ export interface operations {
     };
     getScript: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Script ID */
@@ -6786,7 +7286,16 @@ export interface operations {
     };
     validateScript: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6814,7 +7323,16 @@ export interface operations {
     };
     getHealth: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6836,7 +7354,16 @@ export interface operations {
     };
     getClusterMaster: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6858,7 +7385,16 @@ export interface operations {
     };
     getInfo: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6986,7 +7522,16 @@ export interface operations {
     };
     cancelTask: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Task ID */
@@ -7052,7 +7597,16 @@ export interface operations {
     };
     createTask: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7080,7 +7634,16 @@ export interface operations {
     };
     getTask: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Task ID */
@@ -7129,6 +7692,8 @@ export interface operations {
     getTaskStats: {
         parameters: {
             query?: {
+                /** @description Free text search (as in the list) */
+                q?: string;
                 /** @description Fields to count by (up to two), comma-separated */
                 groupBy?: string;
                 /** @description Size of the time buckets */
@@ -7166,6 +7731,14 @@ export interface operations {
             query?: {
                 /** @description Only count the child tasks of this parent task ID */
                 parentTask?: string;
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
             };
             header?: never;
             path?: never;
@@ -7229,7 +7802,16 @@ export interface operations {
     };
     createUser: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7257,7 +7839,16 @@ export interface operations {
     };
     getUser: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description User ID */
@@ -7282,7 +7873,16 @@ export interface operations {
     };
     replaceUser: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description User ID */
@@ -7336,7 +7936,16 @@ export interface operations {
     };
     updateUser: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description User ID */
@@ -7410,7 +8019,16 @@ export interface operations {
     };
     createVaultInstance: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7438,7 +8056,16 @@ export interface operations {
     };
     getVaultInstance: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Vault instance ID */
@@ -7463,7 +8090,16 @@ export interface operations {
     };
     replaceVaultInstance: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Vault instance ID */
@@ -7517,7 +8153,16 @@ export interface operations {
     };
     updateVaultInstance: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Vault instance ID */
@@ -7550,7 +8195,16 @@ export interface operations {
     };
     testVaultInstance: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path: {
                 /** @description Vault instance ID */
@@ -7575,7 +8229,16 @@ export interface operations {
     };
     testVaultInstanceDefinition: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;

@@ -202,6 +202,52 @@ public class V1ConventionSweepTest {
 			}));
 	}
 
+	/** The common query parameters, whose documentation is checked against what each GET endpoint accepts. */
+	private static final List<String> COMMON_PARAMETERS = List.of(Selection.VIEW, Selection.FIELDS, Selection.OMIT, Selection.EXPAND,
+		ListParams.OFFSET, ListParams.LIMIT, ListParams.SORT, ListParams.SEARCH, ListParams.COUNT,
+		StatsParams.GROUP_BY, StatsParams.INTERVAL, StatsParams.ON, StatsParams.FROM, StatsParams.TO, StatsParams.TIME_ZONE);
+
+	// Whether the answer refuses the parameter as unknown (rather than its value, or not at all)
+	private static boolean refusedAsUnknown(Answer answer, String parameter) {
+		if (answer.status() != 400) {
+			return false;
+		}
+		JsonNode errors = answer.json().get("errors");
+		if (errors == null || errors.isEmpty() || !parameter.equals(errors.get(0).get("field").asText())) {
+			return false;
+		}
+		String message = errors.get(0).get("message").asText();
+		return message.startsWith("Unknown parameter") || message.startsWith("Unknown filter parameter")
+			|| message.endsWith("doesn't apply to statistics");
+	}
+
+	@TestFactory
+	@DisplayName("OpenAPI: each GET endpoint documents the common parameters it accepts, and only them")
+	Stream<DynamicTest> documentedParameters() throws Exception {
+		JsonNode paths = this.anonymous.get("/openapi.json").json().get("paths");
+		return V1Resources.endpoints().stream().filter(e -> "GET".equals(e.httpMethod()) && !PUBLIC.contains(e.key()))
+			.map(endpoint -> DynamicTest.dynamicTest(endpoint.key(), () -> {
+				JsonNode operation = paths.get(endpoint.template()).get("get");
+				Set<String> documented = new TreeSet<>();
+				if (operation.has("parameters")) {
+					operation.get("parameters").forEach(p -> documented.add(p.get("name").asText()));
+				}
+				String path = endpoint.hasPathParameters() ? endpoint.unknownPath() : endpoint.template();
+				for (String parameter : COMMON_PARAMETERS) {
+					Answer answer = send(this.admin, endpoint, path + "?" + parameter + "=1");
+					if (documented.contains(parameter)) {
+						Assertions.assertFalse(refusedAsUnknown(answer, parameter),
+							endpoint.key() + ": documented '" + parameter + "' refused -> " + answer);
+					}
+					else if (answer.status() != 404) {
+						// (an unknown object can be reported before the parameters are checked)
+						Assertions.assertTrue(refusedAsUnknown(answer, parameter),
+							endpoint.key() + ": undocumented '" + parameter + "' not refused -> " + answer);
+					}
+				}
+			}));
+	}
+
 	@Test
 	@DisplayName("The exceptions are still needed")
 	void exceptionsAreCurrent() throws Exception {

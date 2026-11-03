@@ -194,6 +194,40 @@
         "summary" : "Create an API token",
         "description" : "Creates an API token, with a random value or the one given (32 alphanumeric characters). The value is in the answer, and ONLY in that answer: Netshot only keeps a hash of it, so it can't be read afterwards.",
         "operationId" : "createApiToken",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -252,6 +286,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -307,6 +374,40 @@
         "summary" : "Get the current user",
         "description" : "Gets the principal the request is authenticated as: kind USER for the user of a session or of a JWT access token, API_TOKEN for an API token (which has no user name), with the authentication method, the permission level and its role.",
         "operationId" : "getMe",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "default" : {
             "description" : "default response",
@@ -335,6 +436,40 @@
         "summary" : "Change own password",
         "description" : "Changes the password of the current user, who must be a local user (not an API token, nor a user authenticated by an identity provider). The current password must be given, and the new one must comply with the password policy (400 otherwise).",
         "operationId" : "changePassword",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -384,6 +519,40 @@
         "summary" : "Get the current session",
         "description" : "Gets the session identified by the session cookie: its user, when it was created and its idle timeout. Answers 401 if the request is not authenticated, and 404 if it is authenticated otherwise than by a session (API token, JWT access token): use GET /auth/me for the principal of any request.",
         "operationId" : "getSession",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "default" : {
             "description" : "default response",
@@ -412,6 +581,40 @@
         "summary" : "Log in",
         "description" : "Logs in with a username and a password, or an OIDC authorization code with its redirect URI, and creates a session: the session cookie is set in the response, and the previous session of the client (if any) is dropped. Answers 201 with the session. A wrong user name, password or code is a 401. An expired password is a 403 (give a newPassword to change it while logging in); a new password which does not comply with the password policy is a 400. Useless when using API tokens.",
         "operationId" : "login",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -476,6 +679,14 @@
         "description" : "Counts the compliance results matching the filters of the list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket (interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device. Any other parameter is a filter of the list.",
         "operationId" : "getResultStats",
         "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "description" : "Free text search (as in the list)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "name" : "groupBy",
           "in" : "query",
           "description" : "Fields to count by (up to two), comma-separated",
@@ -881,6 +1092,40 @@
         "tags" : [ "Hardware rules" ],
         "summary" : "Create a hardware rule",
         "operationId" : "createHardwareRule",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -938,6 +1183,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -975,6 +1253,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1055,6 +1366,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1216,6 +1560,40 @@
         "summary" : "Create a compliance policy",
         "description" : "Creates a compliance policy, without rules.",
         "operationId" : "createPolicy",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1273,6 +1651,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -1310,6 +1721,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1391,6 +1835,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1667,6 +2144,40 @@
         "summary" : "Create a compliance rule",
         "description" : "Creates a rule in a policy (required). A script rule without script gets the template script; the rule is disabled unless enabled is true.",
         "operationId" : "createRule",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1724,6 +2235,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -1761,6 +2305,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -1842,6 +2419,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -2146,6 +2756,40 @@
         "summary" : "Test a compliance rule",
         "description" : "Checks a rule definition (which isn't stored) against a device, without any side effect, and answers the result, with what the check logged. A device without configuration gives a NOTAPPLICABLE result.",
         "operationId" : "testRule",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2299,6 +2943,40 @@
         "summary" : "Create a software rule",
         "description" : "Creates a software rule, at the given priority (position) or as the last one.",
         "operationId" : "createSoftwareRule",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2356,6 +3034,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -2393,6 +3104,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -2475,6 +3219,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "description" : "The properties to change",
@@ -2540,6 +3317,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -2584,6 +3394,39 @@
           "name" : "with",
           "in" : "query",
           "description" : "ID of the configuration to compare with (the original one)",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -2654,6 +3497,14 @@
         "description" : "Counts the configurations (the configuration changes) matching the filters of the configuration list, by device and/or author (groupBy) and/or by time bucket (interval: hour, day, week or month, on changeDate, from/to, timeZone). Any other parameter is a filter of the list.",
         "operationId" : "getConfigStats",
         "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "description" : "Free text search (as in the list)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "name" : "groupBy",
           "in" : "query",
           "description" : "Fields to count by (up to two), comma-separated",
@@ -3060,6 +3911,40 @@
         "summary" : "Create a credential set",
         "description" : "Creates a global credential set. The secrets the type needs must be given, by value or as a location in a Vault instance.",
         "operationId" : "createCredentialSet",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3118,6 +4003,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -3155,6 +4073,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -3236,6 +4187,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -3747,6 +4731,40 @@
         "summary" : "Add a device",
         "description" : "Adds a device, asynchronously: answers 202 with the task doing the work, whose location is in the Location header. Without a driver, a task discovers the type of the device and the device is only created if the discovery succeeds (an SNMP community is needed). With a driver, the device is created immediately and a task takes its first snapshot.",
         "operationId" : "addDevice",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3804,6 +4822,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -3863,6 +4914,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -3900,6 +4984,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -3982,6 +5099,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "description" : "The properties to change",
@@ -4042,6 +5192,14 @@
           "name" : "query",
           "in" : "query",
           "description" : "Device search query, in the Netshot query language",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "description" : "Free text search (as in the list)",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -4136,6 +5294,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -4195,6 +5386,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -4253,6 +5477,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -4848,6 +6105,40 @@
         "summary" : "Create a diagnostic",
         "description" : "Creates a diagnostic: a CLI command (SIMPLE), or a JavaScript or Python script.",
         "operationId" : "createDiagnostic",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -4905,6 +6196,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -4942,6 +6266,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -5023,6 +6380,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -5298,6 +6688,40 @@
         "tags" : [ "Domains" ],
         "summary" : "Create a domain",
         "operationId" : "createDomain",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -5355,6 +6779,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -5392,6 +6849,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -5473,6 +6963,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -5634,6 +7157,40 @@
         "summary" : "Create a group",
         "description" : "Creates a device group: a static group of the given devices, or a dynamic group of the devices matching the query.",
         "operationId" : "createGroup",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -5691,6 +7248,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -5728,6 +7318,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -5809,6 +7432,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -6092,6 +7748,40 @@
         "summary" : "Create a hook",
         "description" : "Creates a hook: Netshot runs its action when one of its triggers occurs (a Web hook posts the event to a URL).",
         "operationId" : "createHook",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6149,6 +7839,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -6186,6 +7909,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -6266,6 +8022,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -6427,6 +8216,40 @@
         "summary" : "Create a script",
         "description" : "Validates and creates a command script, the author being the user.",
         "operationId" : "createScript",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6484,6 +8307,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -6538,6 +8394,40 @@
         "summary" : "Validate a script",
         "description" : "Checks the driver, the name and the code of a script definition (by evaluating it) without saving it: 200 with the script and its user inputs, 400 with the problem otherwise.",
         "operationId" : "validateScript",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6587,6 +8477,40 @@
         "summary" : "Probe the health of the server",
         "description" : "Liveness and readiness probe, for load balancers and orchestrators. Not authenticated, and it gives nothing but the status (no version, no detail): 200 with status UP when all the services of the server are running and healthy, 503 with status DOWN otherwise (while starting or stopping, or when a service fails). The services are detailed by GET /system/services.",
         "operationId" : "getHealth",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "default" : {
             "description" : "default response",
@@ -6617,6 +8541,40 @@
         "summary" : "Check whether the server is the cluster master",
         "description" : "Gets the mastership status of the server answering, to let a load balancer send the requests to the master only. Not authenticated. Answers 200 when the server is the master (or clustering is not enabled) and 503 when it is not.",
         "operationId" : "getClusterMaster",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "default" : {
             "description" : "default response",
@@ -6647,6 +8605,40 @@
         "summary" : "Get the server information",
         "description" : "Gets the version of Netshot, the time of the server and the idle timeout of the user sessions.",
         "operationId" : "getInfo",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "default" : {
             "description" : "default response",
@@ -6929,6 +8921,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -7064,6 +9089,40 @@
         "summary" : "Create a task",
         "description" : "Creates a task and schedules it (as soon as possible by default). Answers 202 with the task, whose location is in the Location header. Running scripts needs the execute-read-write role, scanning subnets the read-write role, and purging the database the admin role.",
         "operationId" : "createTask",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7120,6 +9179,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -7183,6 +9275,14 @@
         "description" : "Counts the tasks matching the filters of the task list, by the values of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket (interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, from/to, timeZone). Without execution date, a task isn't counted by executionDate. Any other parameter is a filter of the list.",
         "operationId" : "getTaskStats",
         "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "description" : "Free text search (as in the list)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "name" : "groupBy",
           "in" : "query",
           "description" : "Fields to count by (up to two), comma-separated",
@@ -7268,6 +9368,39 @@
           "name" : "parentTask",
           "in" : "query",
           "description" : "Only count the child tasks of this parent task ID",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
           "schema" : {
             "type" : "string"
           }
@@ -7406,6 +9539,40 @@
         "summary" : "Create a user",
         "description" : "Creates a local user (the password is required, and must comply with the password policy) or a remote one (no password: it authenticates through RADIUS, TACACS+ or OIDC, and the user only gives it its permission level).",
         "operationId" : "createUser",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7463,6 +9630,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -7500,6 +9700,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -7581,6 +9814,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -7742,6 +10008,40 @@
         "summary" : "Create a Vault instance",
         "description" : "Creates a Vault instance. The secrets required by the authentication method must be given.",
         "operationId" : "createVaultInstance",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7800,6 +10100,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -7837,6 +10170,39 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -7919,6 +10285,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "description" : "The properties to change",
@@ -7984,6 +10383,39 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "default" : {
@@ -8015,6 +10447,40 @@
         "summary" : "Test a Vault instance definition",
         "description" : "Tries to log in with a Vault instance definition which isn't saved (it must be complete, secrets included). A failed login is a successful answer with success=false and the reason.",
         "operationId" : "testVaultInstanceDefinition",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {

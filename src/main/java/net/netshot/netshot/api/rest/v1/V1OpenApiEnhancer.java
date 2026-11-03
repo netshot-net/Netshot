@@ -51,7 +51,8 @@ import jakarta.ws.rs.Path;
  * <li>the properties of the representations (answers) are all written, null included: they are marked required, and
  * nullable unless their type is primitive (the request types are left as they are: their absent properties have a
  * meaning);</li>
- * <li>the common parameters of the lists (paging, sort, search, selection) and of the statistics;</li>
+ * <li>the common parameters of the lists (paging, sort, search, selection), of the statistics, and the selection
+ * parameters of the operations answering a single representation;</li>
  * <li>the optional properties of the requests can be null (null clears them);</li>
  * <li>a Java {@code Object} (any JSON value, as the values of the driver options) is any value, not an empty object;</li>
  * <li>the type value of each subtype of a polymorphic representation;</li>
@@ -99,6 +100,10 @@ final class V1OpenApiEnhancer {
 				}
 				else if (method.getReturnType() == StatsResponse.class) {
 					addStatsParameters(operation);
+				}
+				else if (DtoModel.isModel(method.getReturnType())) {
+					// A single representation (read or written): the selection applies to it
+					addSelectionParameters(operation);
 				}
 			}
 		}
@@ -462,6 +467,7 @@ final class V1OpenApiEnhancer {
 	}
 
 	private static void addStatsParameters(Operation operation) {
+		add(operation, ListParams.SEARCH, new StringSchema(), "Free text search (as in the list)");
 		add(operation, StatsParams.GROUP_BY, new StringSchema(), "Fields to count by (up to two), comma-separated");
 		StringSchema interval = new StringSchema();
 		interval.setEnum(List.of("hour", "day", "week", "month"));
