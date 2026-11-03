@@ -806,6 +806,7 @@
       "scheduledFuture": "Planifiées (à venir)",
       "scheduledWillTrigger": "Se déclenchera à l'heure prévue",
       "childTasks": "Tâches enfants",
+      "rowLimitNotice": "Seules les {{count}} premières tâches sont affichées",
       "childTaskProgress": "Progression",
       "parentTask": "Tâche parente",
       "viewChildTasks": "Voir les tâches enfants",

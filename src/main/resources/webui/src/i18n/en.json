@@ -807,6 +807,7 @@
       "scheduledFuture": "Scheduled (future)",
       "scheduledWillTrigger": "Will trigger at their set time",
       "childTasks": "Child tasks",
+      "rowLimitNotice": "Only the first {{count}} tasks are shown",
       "childTaskProgress": "Progress",
       "parentTask": "Parent task",
       "viewChildTasks": "View child tasks",

@@ -6,7 +6,8 @@ import { LIVE_STATUS_KEYS, QUERIES } from "../constants"
 import { useActiveTaskFilterStore } from "../stores/useActiveTaskFilterStore"
 import { useRecentCompletedTasks } from "./useRecentCompletedTasks"
 
-const LIVE_ROWS_LIMIT = 500
+/** The maximum number of live tasks shown (truncated tells when there are more). */
+export const LIVE_ROWS_LIMIT = 500
 
 function significantDate(task: Task) {
   return (task.executionDate ?? task.changeDate)?.getTime() ?? 0
@@ -15,6 +16,7 @@ function significantDate(task: Task) {
 /**
  * Rows shown on the Active page: live tasks (new/running/waiting/scheduled, fetched unbounded) plus recently
  * completed ones (within the last hour, capped), both narrowed by the page's status/type filters (server-side).
+ * The live tasks are limited to LIVE_ROWS_LIMIT: truncated is true when there are more.
  */
 export function useActiveTasks() {
   const statusSel = useActiveTaskFilterStore((s) => s.statusSel)
@@ -24,8 +26,7 @@ export function useActiveTasks() {
 
   const liveQuery = useQuery({
     queryKey: [QUERIES.TASK_ACTIVE_ROWS, "live", statuses, typeSel],
-    queryFn: async () =>
-      (await api.task.getAll({ status: statuses, type: typeSel, limit: LIVE_ROWS_LIMIT })).results,
+    queryFn: async () => api.task.getAll({ status: statuses, type: typeSel, limit: LIVE_ROWS_LIMIT }),
     enabled: statuses.length > 0,
   })
 
@@ -33,7 +34,7 @@ export function useActiveTasks() {
 
   const rows = useMemo(
     () =>
-      [...(liveQuery.data ?? []), ...recentQuery.data].sort(
+      [...(liveQuery.data?.results ?? []), ...recentQuery.data].sort(
         (a, b) => significantDate(b) - significantDate(a)
       ),
     [liveQuery.data, recentQuery.data]
@@ -46,6 +47,7 @@ export function useActiveTasks() {
 
   return {
     rows,
+    truncated: statuses.length > 0 && liveQuery.data?.next != null,
     isPending: (statuses.length > 0 && liveQuery.isPending) || recentQuery.isPending,
     isFetching: liveQuery.isFetching || recentQuery.isFetching,
     refetch,
