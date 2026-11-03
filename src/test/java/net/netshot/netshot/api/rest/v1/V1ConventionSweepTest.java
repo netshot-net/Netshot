@@ -158,7 +158,7 @@ public class V1ConventionSweepTest {
 				Assertions.assertEquals("zzzUnknown", unknown.json().get("errors").get(0).get("field").asText(), path);
 				if (endpoint.isUnpaged()) {
 					// A single page, as documented: no paging, sort or search
-					for (String query : List.of("limit=0", "offset=1", "sort=id", "q=x", "count=false")) {
+					for (String query : List.of("limit=0", "offset=1", "sort=id", "q=x", "count=false", "count=true")) {
 						assertProblem(this.admin.get(path + "?" + query), 400, path + "?" + query);
 					}
 				}
@@ -167,6 +167,9 @@ public class V1ConventionSweepTest {
 					Assertions.assertEquals(200, all.status(), path + "?limit=0 -> " + all);
 					Assertions.assertEquals(0, all.json().get("limit").asInt(), path + "?limit=0");
 					Assertions.assertTrue(all.json().get("next").isNull(), path + "?limit=0");
+					Assertions.assertTrue(json.get("count").isNull(), path + ": not counted by default");
+					Answer counted = this.admin.get(path + "?limit=0&count=true");
+					Assertions.assertEquals(counted.json().get("results").size(), counted.json().get("count").asInt(), path + "?count=true");
 				}
 				for (String query : List.of("limit=-1", "offset=-1", "sort=zzzUnknown", "fields=zzzUnknown", "view=zzz", "count=maybe")) {
 					assertProblem(this.admin.get(path + "?" + query), 400, path + "?" + query);

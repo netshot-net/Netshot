@@ -122,7 +122,7 @@ public class V1ListExportTest {
 		Assertions.assertEquals("text/csv;charset=UTF-8", response.headers().firstValue("Content-Type").orElse(null).replace("; ", ";"));
 		Assertions.assertTrue(response.headers().firstValue("Content-Disposition").orElse("")
 			.matches("attachment; filename=\"devices-\\d{8}-\\d{6}\\.csv\""), response.headers().toString());
-		Assertions.assertEquals("2", response.headers().firstValue("X-Total-Count").orElse(null));
+		Assertions.assertTrue(response.headers().firstValue("X-Total-Count").isEmpty(), "not counted by default");
 		List<String> lines = lines(response);
 		Assertions.assertEquals(3, lines.size(), text(response));
 		Assertions.assertEquals("id,name,status,mgmtDomain", lines.get(0));
@@ -162,7 +162,7 @@ public class V1ListExportTest {
 	@DisplayName("Export: all the rows without paging, unless the limit is explicit")
 	void paging() throws Exception {
 		Assertions.assertEquals(4, lines(this.export("/devices", CSV)).size());
-		HttpResponse<byte[]> limited = this.export("/devices?limit=2&offset=1&fields=name", CSV);
+		HttpResponse<byte[]> limited = this.export("/devices?limit=2&offset=1&fields=name&count=true", CSV);
 		Assertions.assertEquals(List.of("id,name"), List.of(lines(limited).get(0)));
 		Assertions.assertEquals(3, lines(limited).size());
 		Assertions.assertTrue(lines(limited).get(1).endsWith("router00002"), text(limited));
@@ -269,7 +269,7 @@ public class V1ListExportTest {
 		Assertions.assertEquals(200, this.admin.get("/devices", "Accept", "application/json, text/csv;q=0.5").status());
 		Answer any = this.admin.get("/devices", "Accept", "*/*");
 		Assertions.assertEquals(200, any.status());
-		Assertions.assertEquals(3, any.json().get("count").asInt());
+		Assertions.assertEquals(3, any.json().get("results").size());
 		// The internal parameter can't be given by a client
 		Answer forged = this.admin.get("/devices?_export=csv");
 		Assertions.assertEquals(200, forged.status(), forged.toString());

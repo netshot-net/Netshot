@@ -185,7 +185,7 @@ public class V1CredentialSetResourceTest {
 			Assertions.assertEquals(400, answer.status(), test + " -> " + answer);
 			Assertions.assertEquals(parts[1], answer.json().get("errors").get(0).get("field").asText(), test + " -> " + answer);
 		}
-		Assertions.assertEquals(0, this.admin.get("/credential-sets").json().get("count").asInt());
+		Assertions.assertEquals(0, this.admin.get("/credential-sets").json().get("results").size());
 
 		// Every type can be created
 		for (String body : List.of(
@@ -219,10 +219,10 @@ public class V1CredentialSetResourceTest {
 		this.assertNoSecret(all);
 		Assertions.assertEquals(List.of("Alpha SSH", "Beta SSH", "Gamma SNMP"), values(all.json(), "name"));
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "mgmtDomain"), names(all.json().get("results").get(0)));
-		Assertions.assertEquals(3, all.json().get("count").asInt());
+		Assertions.assertEquals(3, all.json().get("results").size());
 
 		Assertions.assertEquals(List.of("DEVICESPECIFIC-1"), values(this.admin.get("/credential-sets?deviceSpecific=true").json(), "name"));
-		Assertions.assertEquals(3, this.admin.get("/credential-sets?deviceSpecific=false").json().get("count").asInt());
+		Assertions.assertEquals(3, this.admin.get("/credential-sets?deviceSpecific=false").json().get("results").size());
 		Assertions.assertEquals(List.of("Alpha SSH", "Beta SSH"), values(this.admin.get("/credential-sets?type=SSH").json(), "name"));
 		Assertions.assertEquals(List.of("Gamma SNMP"), values(this.admin.get("/credential-sets?type=SNMP_V2C").json(), "name"));
 		Assertions.assertEquals(List.of("Gamma SNMP"), values(this.admin.get("/credential-sets?type__n=SSH").json(), "name"));

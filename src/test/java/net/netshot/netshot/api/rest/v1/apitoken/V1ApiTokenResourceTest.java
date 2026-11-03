@@ -136,12 +136,12 @@ public class V1ApiTokenResourceTest {
 		Answer all = this.admin.get("/api-tokens");
 		Assertions.assertEquals(200, all.status(), all.toString());
 		JsonNode page = all.json();
-		Assertions.assertEquals(TestServer.API_TOKENS.size(), page.get("count").asInt());
+		Assertions.assertEquals(TestServer.API_TOKENS.size(), page.get("results").size());
 		Assertions.assertEquals(Set.of("id", "url", "display", "description", "level"), names(page.get("results").get(0)));
 
-		Assertions.assertEquals(1, this.admin.get("/api-tokens?level=1000").json().get("count").asLong());
-		Assertions.assertEquals(2, this.admin.get("/api-tokens?level__gte=500").json().get("count").asLong());
-		Assertions.assertEquals(TestServer.API_TOKENS.size(), this.admin.get("/api-tokens?q=test").json().get("count").asLong());
+		Assertions.assertEquals(1, this.admin.get("/api-tokens?level=1000").json().get("results").size());
+		Assertions.assertEquals(2, this.admin.get("/api-tokens?level__gte=500").json().get("results").size());
+		Assertions.assertEquals(TestServer.API_TOKENS.size(), this.admin.get("/api-tokens?q=test").json().get("results").size());
 		Assertions.assertEquals(1000, this.admin.get("/api-tokens?sort=-level&limit=1").json().get("results").get(0).get("level").asInt());
 		Assertions.assertEquals(400, this.admin.get("/api-tokens?hashedToken=x").status());
 	}

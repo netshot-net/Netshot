@@ -1660,7 +1660,7 @@ export interface components {
         ListResponseApiToken: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -1911,7 +1911,7 @@ export interface components {
         ListResponseDeviceComplianceResult: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2067,7 +2067,7 @@ export interface components {
         ListResponseHardwareRule: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2096,7 +2096,7 @@ export interface components {
         ListResponsePolicy: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2119,7 +2119,7 @@ export interface components {
         ListResponseRule: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2199,7 +2199,7 @@ export interface components {
         ListResponseExemption: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2281,7 +2281,7 @@ export interface components {
         ListResponseSoftwareRule: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2403,7 +2403,7 @@ export interface components {
         ListResponseConfig: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2482,7 +2482,7 @@ export interface components {
         ListResponseCredentialSet: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2512,7 +2512,7 @@ export interface components {
         ListResponseDeviceFamily: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2558,7 +2558,7 @@ export interface components {
         ListResponseDeviceInterface: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2595,7 +2595,7 @@ export interface components {
         ListResponseDeviceModule: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2757,7 +2757,7 @@ export interface components {
         ListResponseDevice: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2852,7 +2852,7 @@ export interface components {
         ListResponseDeviceTag: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2913,7 +2913,7 @@ export interface components {
         ListResponseDeviceType: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2949,7 +2949,7 @@ export interface components {
         ListResponsePartNumber: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -2978,7 +2978,7 @@ export interface components {
         ListResponseSoftwareVersion: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3046,7 +3046,7 @@ export interface components {
         ListResponseDiagnostic: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3080,7 +3080,7 @@ export interface components {
         ListResponseDiagnosticResult: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3109,7 +3109,7 @@ export interface components {
         ListResponseDomain: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3143,7 +3143,7 @@ export interface components {
         ListResponseGroup: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3218,7 +3218,7 @@ export interface components {
         ListResponseHook: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3274,7 +3274,7 @@ export interface components {
         ListResponseScript: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3338,7 +3338,7 @@ export interface components {
         ListResponseClusterMember: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3361,7 +3361,7 @@ export interface components {
         ListResponseService: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3395,7 +3395,7 @@ export interface components {
         ListResponseTask: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3479,7 +3479,7 @@ export interface components {
         ListResponseUser: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3533,7 +3533,7 @@ export interface components {
         ListResponseVaultInstance: {
             /**
              * Format: int64
-             * @description Total number of matching items (null if count=false)
+             * @description Total number of matching items (null unless count=true)
              */
             count: number | null;
             /**
@@ -3578,7 +3578,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -3906,7 +3906,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -3947,7 +3947,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -3991,7 +3991,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -4208,7 +4208,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -4425,7 +4425,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -4469,7 +4469,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -4686,7 +4686,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -4730,7 +4730,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -4817,7 +4817,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5167,7 +5167,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5208,7 +5208,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5252,7 +5252,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5469,7 +5469,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5510,7 +5510,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5554,7 +5554,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -5602,7 +5602,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6018,7 +6018,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6059,7 +6059,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6120,7 +6120,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6161,7 +6161,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6202,7 +6202,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6419,7 +6419,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6463,7 +6463,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6680,7 +6680,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6899,7 +6899,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -6943,7 +6943,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -7160,7 +7160,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -7487,7 +7487,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -7565,7 +7565,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -7770,7 +7770,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";
@@ -7987,7 +7987,7 @@ export interface operations {
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
-                /** @description false to skip the count of the matching items */
+                /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
                 /** @description View of the items: brief or full */
                 view?: "brief" | "full";

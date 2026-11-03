@@ -154,13 +154,13 @@ public class V1HookResourceTest {
 		Answer all = this.admin.get("/hooks");
 		Assertions.assertEquals(200, all.status(), all.toString());
 		JsonNode page = all.json();
-		Assertions.assertEquals(3, page.get("count").asLong());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals("Zulu", page.get("results").get(0).get("name").asText(), "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "type", "name", "enabled", "targetUrl", "httpsCaTrustMode"), names(page.get("results").get(0)));
 
-		Assertions.assertEquals(1, this.admin.get("/hooks?enabled=false").json().get("count").asLong());
-		Assertions.assertEquals(3, this.admin.get("/hooks?type=WEB").json().get("count").asLong());
-		Assertions.assertEquals(1, this.admin.get("/hooks?q=zul").json().get("count").asLong());
+		Assertions.assertEquals(1, this.admin.get("/hooks?enabled=false").json().get("results").size());
+		Assertions.assertEquals(3, this.admin.get("/hooks?type=WEB").json().get("results").size());
+		Assertions.assertEquals(1, this.admin.get("/hooks?q=zul").json().get("results").size());
 		Assertions.assertEquals("Zulu", this.admin.get("/hooks?sort=-name&limit=1").json().get("results").get(0).get("name").asText());
 		Assertions.assertEquals(2, this.admin.get("/hooks?view=full").json().get("results").get(0).get("triggers").size());
 		Assertions.assertEquals(400, this.admin.get("/hooks?color=red").status());

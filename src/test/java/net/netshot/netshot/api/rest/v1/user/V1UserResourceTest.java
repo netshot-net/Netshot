@@ -199,16 +199,16 @@ public class V1UserResourceTest {
 		Answer all = this.admin.get("/users");
 		Assertions.assertEquals(200, all.status(), all.toString());
 		JsonNode page = all.json();
-		Assertions.assertEquals(3, page.get("count").asLong());
+		Assertions.assertEquals(3, page.get("results").size());
 		List<String> names = new ArrayList<>();
 		page.get("results").forEach(u -> names.add(u.get("username").asText()));
 		Assertions.assertEquals(List.of("zoe", "adam", "adele"), names, "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "username", "local", "level"), names(page.get("results").get(0)));
 		assertNoSecret(all, "Zoepassword123");
 
-		Assertions.assertEquals(2, this.admin.get("/users?local=false").json().get("count").asLong());
-		Assertions.assertEquals(1, this.admin.get("/users?level__gte=1000").json().get("count").asLong());
-		Assertions.assertEquals(2, this.admin.get("/users?q=ad").json().get("count").asLong());
+		Assertions.assertEquals(2, this.admin.get("/users?local=false").json().get("results").size());
+		Assertions.assertEquals(1, this.admin.get("/users?level__gte=1000").json().get("results").size());
+		Assertions.assertEquals(2, this.admin.get("/users?q=ad").json().get("results").size());
 		Assertions.assertEquals("zoe", this.admin.get("/users?sort=-username&limit=1").json().get("results").get(0).get("username").asText());
 		Assertions.assertEquals(400, this.admin.get("/users?color=red").status());
 		Assertions.assertEquals(400, this.admin.get("/users?sort=hashedPassword").status());

@@ -99,7 +99,7 @@ public class V1DeviceTaskResourceTest {
 		Assertions.assertEquals(List.of(this.failed.id(), this.succeeded.id()), this.ids(this.router1, "?sort=id"));
 		Assertions.assertEquals(List.of(this.succeeded.id()), this.ids(this.router1, "?author=bob"));
 		Assertions.assertEquals(List.of(), this.ids(this.router1, "?author=carol"));
-		JsonNode page = this.reader.get("/devices/%d/tasks?limit=1".formatted(this.router1.id())).json();
+		JsonNode page = this.reader.get("/devices/%d/tasks?limit=1&count=true".formatted(this.router1.id())).json();
 		Assertions.assertEquals(2, page.get("count").asInt());
 		Assertions.assertFalse(page.get("next").isNull());
 		JsonNode first = this.reader.get("/devices/%d/tasks?fields=device,status".formatted(this.router1.id())).json().get("results").get(0);
