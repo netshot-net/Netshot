@@ -118,7 +118,8 @@ public class SearchService {
 	}
 
 	/**
-	 * Lists the devices (with all their details) matching a list query and a search query.
+	 * Lists the devices matching a list query and a search query, with all their details but their modules and
+	 * network interfaces (not loaded: empty).
 	 *
 	 * @param listQuery the list query (filters, order, window)
 	 * @param searchQuery the string-based search query (see {@link Finder}), or null

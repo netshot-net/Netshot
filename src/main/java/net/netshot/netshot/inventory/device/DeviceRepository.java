@@ -239,12 +239,17 @@ public class DeviceRepository {
 
 	private static final List<SelectField<?>> FIELDS;
 
+	/** The fields of a device without its components (modules and network interfaces), for the lists. */
+	private static final List<SelectField<?>> LIST_FIELDS;
+
 	static {
 		List<SelectField<?>> fields = new ArrayList<>(List.of(DEVICE.fields()));
 		fields.addAll(List.of(DOMAIN.fields()));
 		fields.addAll(List.of(EOL.fields()));
 		fields.addAll(List.of(EOS.fields()));
-		fields.addAll(List.of(COMPLIANT, TAGS, VIRTUAL_DEVICES, VRF_INSTANCES, ATTRIBUTES, ACCESSES, MODULES, INTERFACES, GROUPS));
+		fields.addAll(List.of(COMPLIANT, TAGS, VIRTUAL_DEVICES, VRF_INSTANCES, ATTRIBUTES, ACCESSES, GROUPS));
+		LIST_FIELDS = List.copyOf(fields);
+		fields.addAll(List.of(MODULES, INTERFACES));
 		FIELDS = List.copyOf(fields);
 	}
 
@@ -383,8 +388,8 @@ public class DeviceRepository {
 			r.get(VRF_INSTANCES),
 			r.get(ATTRIBUTES),
 			r.get(ACCESSES),
-			r.get(MODULES),
-			r.get(INTERFACES),
+			r.field(MODULES) == null ? null : r.get(MODULES),
+			r.field(INTERFACES) == null ? null : r.get(INTERFACES),
 			r.get(GROUPS));
 	}
 
@@ -553,15 +558,16 @@ public class DeviceRepository {
 	}
 
 	/**
-	 * Lists the devices (with all their details) matching a query and a condition.
+	 * Lists the devices matching a query and a condition, with all their details but their components: their
+	 * modules and network interfaces aren't loaded (empty), they have their own lists.
 	 *
 	 * @param dsl the jOOQ context
 	 * @param query the list query
 	 * @param condition another condition (such as the one of a device search query)
-	 * @return the devices of the window of the query
+	 * @return the devices of the window of the query, without their modules and network interfaces
 	 */
 	public List<Device> findAll(DSLContext dsl, ListQuery query, Condition condition) {
-		return query.page().apply(dsl.select(FIELDS)
+		return query.page().apply(dsl.select(LIST_FIELDS)
 				.from(DEVICE)
 				.leftJoin(DOMAIN).on(DOMAIN.ID.eq(DEVICE.MGMT_DOMAIN))
 				.leftJoin(EOL).on(EOL.ID.eq(DEVICE.EOL_MODULE))
