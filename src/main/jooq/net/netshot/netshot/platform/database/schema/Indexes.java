@@ -51,6 +51,7 @@ public class Indexes {
     public static final Index EXECUTIONDATEINDEX = Internal.createIndex(DSL.name("executionDateIndex"), Task.TASK, new OrderField[] { Task.TASK.EXECUTION_DATE }, false);
     public static final Index HASHEDTOKENINDEX = Internal.createIndex(DSL.name("hashedTokenIndex"), ApiToken.API_TOKEN, new OrderField[] { ApiToken.API_TOKEN.HASHED_TOKEN }, false);
     public static final Index IDX_DEVICE_TAGS_TAG = Internal.createIndex(DSL.name("IDX_device_tags_tag"), DeviceTags.DEVICE_TAGS, new OrderField[] { DeviceTags.DEVICE_TAGS.TAG }, false);
+    public static final Index IX_CHECK_RESULT_DEVICE_NONCONFORMING = Internal.createIndex(DSL.name("ix_check_result_device_nonconforming"), CheckResult.CHECK_RESULT, new OrderField[] { CheckResult.CHECK_RESULT.DEVICE }, false);
     public static final Index IX_CHECK_RESULT_RULE = Internal.createIndex(DSL.name("ix_check_result_rule"), CheckResult.CHECK_RESULT, new OrderField[] { CheckResult.CHECK_RESULT.RULE }, false);
     public static final Index IX_CONFIG_ATTRIBUTE_CONFIG = Internal.createIndex(DSL.name("ix_config_attribute_config"), ConfigAttribute.CONFIG_ATTRIBUTE, new OrderField[] { ConfigAttribute.CONFIG_ATTRIBUTE.CONFIG }, false);
     public static final Index IX_CONFIG_ATTRIBUTE_LONG_TEXT = Internal.createIndex(DSL.name("ix_config_attribute_long_text"), ConfigAttribute.CONFIG_ATTRIBUTE, new OrderField[] { ConfigAttribute.CONFIG_ATTRIBUTE.LONG_TEXT }, false);
