@@ -286,7 +286,7 @@ public class Device extends TableImpl<DeviceRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_DEVICE_EOL_MODULE, Indexes.IX_DEVICE_EOS_MODULE, Indexes.IX_DEVICE_LAST_CONFIG, Indexes.IX_DEVICE_MGMT_DOMAIN);
+        return Arrays.asList(Indexes.IX_DEVICE_EOL_MODULE, Indexes.IX_DEVICE_EOS_MODULE, Indexes.IX_DEVICE_LAST_CONFIG, Indexes.IX_DEVICE_MGMT_DOMAIN, Indexes.IX_DEVICE_NAME_ID);
     }
 
     @Override

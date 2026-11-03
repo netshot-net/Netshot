@@ -120,8 +120,8 @@ public class V1RuleResourceTest {
 
 		JsonNode page = this.reader.get("/compliance/rules").json();
 		Assertions.assertEquals(3, page.get("count").asInt());
-		Assertions.assertEquals(List.of("JS rule", "Python rule", "Text rule"), values(page, "name"));
-		JsonNode js = page.get("results").get(0);
+		Assertions.assertEquals(List.of("Text rule", "JS rule", "Python rule"), values(page, "name"), "without sort: by ID");
+		JsonNode js = page.get("results").get(1);
 		Assertions.assertEquals(Set.of("id", "url", "display", "type", "name", "enabled", "policy"), keys(js));
 		Assertions.assertEquals("JAVASCRIPT", js.get("type").asText());
 		Assertions.assertEquals(this.policy.id(), js.get("policy").get("id").asLong());

@@ -2402,4 +2402,12 @@
 			last_snapshot_failure_date = (SELECT max(t.execution_date) FROM task t
 				WHERE t.dtype = 'TakeSnapshotTask' AND t.device = device.id AND t.status = 'FAILURE')</sql>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_12">
+		<!-- The device lists are sorted by name (the web UI, the API clients paging by name): an index serves a page
+			without sorting all the devices. -->
+		<createIndex indexName="ix_device_name_id" tableName="device">
+			<column name="name"/>
+			<column name="id"/>
+		</createIndex>
+	</changeSet>
 </databaseChangeLog>

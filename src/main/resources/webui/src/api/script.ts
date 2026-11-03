@@ -3,7 +3,7 @@ import { client, listAll, ListParams, Schemas } from "./client"
 
 /** Every saved script (brief view: without the code). */
 async function getAll(params: ListParams = {}) {
-  return listAll<ScriptBrief>("/scripts", params)
+  return listAll<ScriptBrief>("/scripts", { sort: "name", ...params })
 }
 
 async function getById(id: number) {

@@ -52,7 +52,7 @@ A list answers one page, in an envelope:
 
 - `offset` and `limit` select the page. Without `limit`, a page holds `netshot.http.api.pagesize.default` items (100); there is no maximum unless `netshot.http.api.pagesize.max` is set, a `limit` above it is then refused (see the [configuration reference](../configuration-reference.md#embedded-http-server)). `limit=0` gives all the matching items in one answer (`limit` is then `0` in the answer, and `next` is `null`), unless a maximum is set (400).
 - `count` is the total number of matching items; `count=false` skips counting it (faster on large lists, `next` is then given as long as a page is full).
-- `sort=name,-changeDate` sorts the list (`-` for a descending order); the ID always ends the order, so that the pages are stable.
+- `sort=name,-changeDate` sorts the list (`-` for a descending order); the ID always ends the order, so that the pages are stable. Without `sort`, a list is in the order of its IDs (the cheapest, indexed order), except where its resource tells otherwise (tasks: newest first; configurations: by decreasing change date; software rules: by priority; compliance results: by device, then rule).
 - `q=<text>` searches the text in the main text properties (case-insensitive).
 
 ### Filters
@@ -212,7 +212,7 @@ Read-only lists of the values found in the inventory (read-only level), with fil
 
 `GET /api/v1/groups/{id}/devices` lists the devices of a group, with the parameters of the device list (it is the device list filtered on `group={id}`).
 
-Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDate`, `device` (the groups a device is a member of); sort: `id`, `name`, `folder`, `type`, `changeDate` (default: folder, then name); `q` searches the name, folder and query.
+Filters: `id`, `name`, `folder`, `type`, `hiddenFromReports`, `query`, `changeDate`, `device` (the groups a device is a member of); sort: `id`, `name`, `folder`, `type`, `changeDate`; `q` searches the name, folder and query.
 
 ### Tasks
 
@@ -289,7 +289,7 @@ The compliance resources have no version: there is no `ETag`, and `If-Match` doe
 
 ### Compliance results
 
-`GET /api/v1/compliance-results` (read-only level) lists the compliance results across the devices: the result of the last check of each rule on each device, one row per device and rule (paginated). A result links a device and a rule: it has no `id` nor `url`. Properties: `device`, `rule`, `policy` (references), `result` (`CONFORMING`, `NONCONFORMING`, `EXEMPTED`, `INVALIDRULE`, `DISABLED`, `NOTAPPLICABLE`), `comment`, `checkDate`, `exemptionExpirationDate`; the brief view has `device`, `rule`, `policy`, `result` and `checkDate`. Filters: `device`, `deviceName`, `domain`, `group` (the groups of the device), `rule`, `ruleName`, `policy`, `policyName`, `result`, `checkDate`, `exemptionExpirationDate`; `q` searches the device, rule and policy names. Default order: device name, policy, rule.
+`GET /api/v1/compliance-results` (read-only level) lists the compliance results across the devices: the result of the last check of each rule on each device, one row per device and rule (paginated). A result links a device and a rule: it has no `id` nor `url`. Properties: `device`, `rule`, `policy` (references), `result` (`CONFORMING`, `NONCONFORMING`, `EXEMPTED`, `INVALIDRULE`, `DISABLED`, `NOTAPPLICABLE`), `comment`, `checkDate`, `exemptionExpirationDate`; the brief view has `device`, `rule`, `policy`, `result` and `checkDate`. Filters: `device`, `deviceName`, `domain`, `group` (the groups of the device), `rule`, `ruleName`, `policy`, `policyName`, `result`, `checkDate`, `exemptionExpirationDate`; `q` searches the device, rule and policy names. Default order: device (ID), then rule (ID).
 
 `GET /api/v1/devices/{id}/compliance-results` lists the results of a device; unlike the list above, it also lists the rules which apply to the device but were never checked on it (with a null `result`).
 

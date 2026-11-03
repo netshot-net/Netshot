@@ -223,6 +223,7 @@ async function getNonCompliantResults(groupId: number) {
     group: groupId,
     result: "NONCONFORMING",
     fields: "device.name,device.networkClass,rule.name,policy.name,result,checkDate",
+    sort: "deviceName,policyName,ruleName",
   })
 }
 

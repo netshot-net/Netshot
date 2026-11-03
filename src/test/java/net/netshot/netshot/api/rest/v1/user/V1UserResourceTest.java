@@ -202,7 +202,7 @@ public class V1UserResourceTest {
 		Assertions.assertEquals(3, page.get("count").asLong());
 		List<String> names = new ArrayList<>();
 		page.get("results").forEach(u -> names.add(u.get("username").asText()));
-		Assertions.assertEquals(List.of("adam", "adele", "zoe"), names);
+		Assertions.assertEquals(List.of("zoe", "adam", "adele"), names, "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "username", "local", "level"), names(page.get("results").get(0)));
 		assertNoSecret(all, "Zoepassword123");
 

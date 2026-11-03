@@ -128,12 +128,12 @@ public class V1DiagnosticResourceTest {
 			"enabled": true}""");
 		JsonNode page = this.reader.get("/diagnostics").json();
 		Assertions.assertEquals(3, page.get("count").asInt());
-		Assertions.assertEquals(List.of("Counter", "Flag", "Version"), values(page, "name"));
+		Assertions.assertEquals(List.of("Version", "Counter", "Flag"), values(page, "name"), "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "resultType", "enabled", "targetGroup"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Version", "Flag", "Counter"), values(this.reader.get("/diagnostics?sort=-name").json(), "name"));
 		Assertions.assertEquals(List.of("Counter"), values(this.reader.get("/diagnostics?type=JAVASCRIPT").json(), "name"));
 		Assertions.assertEquals(List.of("Counter"), values(this.reader.get("/diagnostics?resultType=NUMERIC").json(), "name"));
-		Assertions.assertEquals(List.of("Flag", "Version"), values(this.reader.get("/diagnostics?enabled=true").json(), "name"));
+		Assertions.assertEquals(List.of("Version", "Flag"), values(this.reader.get("/diagnostics?enabled=true").json(), "name"));
 		Assertions.assertEquals(List.of("Version"), values(this.reader.get("/diagnostics?targetGroup=" + this.core.id()).json(), "name"));
 		Assertions.assertEquals(List.of("Version"), values(this.reader.get("/diagnostics?name__ic=VERS").json(), "name"));
 		Assertions.assertEquals(List.of("Flag"), values(this.reader.get("/diagnostics?q=fla").json(), "name"));
@@ -235,7 +235,7 @@ public class V1DiagnosticResourceTest {
 			DiagnosticTextResult.of(version, "Version", "15.2"), DiagnosticNumericResult.of(count, "Counter", 42.0),
 			DiagnosticBinaryResult.of(flag, "Flag", true));
 
-		JsonNode page = this.reader.get("/devices/" + device.id() + "/diagnostic-results").json();
+		JsonNode page = this.reader.get("/devices/" + device.id() + "/diagnostic-results?sort=diagnosticName").json();
 		Assertions.assertEquals(3, page.get("count").asInt());
 		Assertions.assertEquals(List.of("Counter", "Flag", "Version"), values(page, "display"));
 		JsonNode counter = page.get("results").get(0);

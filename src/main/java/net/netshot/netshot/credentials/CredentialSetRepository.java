@@ -43,7 +43,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 
 /**
@@ -222,7 +221,6 @@ public class CredentialSetRepository {
 		.bool("deviceSpecific", CS.DEVICE_SPECIFIC)
 		.string("username", CS.USERNAME, Option.SORTABLE, Option.SEARCHABLE)
 		.date("changeDate", CS.CHANGE_DATE, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

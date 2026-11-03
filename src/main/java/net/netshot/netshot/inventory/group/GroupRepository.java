@@ -41,7 +41,6 @@ import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
-import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.database.schema.tables.records.DeviceGroupCachedDevicesRecord;
 
 /**
@@ -103,7 +102,6 @@ public class GroupRepository {
 			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
 				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(DEVICE_GROUP.ID))
 				.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.in(values.stream().map(Long.class::cast).toList()))))
-		.defaultSort(SortOrder.asc("folder"), SortOrder.asc("name"))
 		.build();
 
 	/**

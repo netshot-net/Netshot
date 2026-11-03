@@ -35,7 +35,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the diagnostic results (one per device and diagnostic). The {@link DSLContext}
@@ -78,7 +77,6 @@ public class DiagnosticResultRepository {
 		.enumeration("type", TYPE_NAME, List.of("TEXT", "LONGTEXT", "NUMERIC", "BINARY"), Option.SORTABLE)
 		.date("creationDate", DIAGNOSTIC_RESULT.CREATION_DATE, Option.SORTABLE)
 		.date("lastCheckDate", DIAGNOSTIC_RESULT.LAST_CHECK_DATE, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("diagnosticName"))
 		.build();
 
 	/**
