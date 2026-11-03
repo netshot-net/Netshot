@@ -247,11 +247,8 @@ public class TaskResource {
 		})
 	public TaskStatusCountsDto getTaskStatusCounts() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		for (String name : params.keySet()) {
-			if (!"parentTask".equals(name)) {
-				throw NetshotException.invalidParameter(name, "Unknown parameter '%s'".formatted(name));
-			}
-		}
+		ListParams.checkSelectionOnly(params, "parentTask");
+		V1Response.select(this.request, Selection.of(params, TaskStatusCountsDto.class, Selection.View.FULL), TaskStatusCountsDto.class);
 		List<String> parents = params.get("parentTask");
 		Long parent = null;
 		if (parents != null && !parents.isEmpty()) {
