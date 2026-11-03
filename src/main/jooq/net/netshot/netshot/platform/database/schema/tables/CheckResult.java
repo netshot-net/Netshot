@@ -156,7 +156,7 @@ public class CheckResult extends TableImpl<CheckResultRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_CHECK_RESULT_RULE);
+        return Arrays.asList(Indexes.IX_CHECK_RESULT_DEVICE_NONCONFORMING, Indexes.IX_CHECK_RESULT_RULE);
     }
 
     @Override
