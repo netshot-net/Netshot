@@ -46,7 +46,7 @@ import net.netshot.netshot.platform.error.NetshotException;
  */
 public class ExportFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
-	/** The header telling how many items match the list (when the count is not disabled). */
+	/** The header telling how many items match the list (when counted: count=true). */
 	static final String TOTAL_COUNT = "X-Total-Count";
 
 	@Context

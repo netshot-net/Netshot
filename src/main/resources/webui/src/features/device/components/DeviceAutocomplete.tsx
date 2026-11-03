@@ -85,7 +85,6 @@ export default function DeviceAutocomplete(props: DeviceAutocompleteProps) {
       return api.device.search({
         query: `[Name] containsnocase "${query.replace(/"/g, '\\"')}"`,
         limit: 20,
-        count: false,
       })
     },
     select(data) {

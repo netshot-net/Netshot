@@ -111,13 +111,13 @@ public class V1ScriptResourceTest {
 		Assertions.assertTrue(this.admin.get("/scripts/" + id).json().get("userInputDefinitions").isObject());
 
 		JsonNode page = this.admin.get("/scripts").json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(List.of("Clock", "Other"), values(page, "name"));
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "folder", "deviceDriver", "deviceDriverDescription", "author"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Clock"), values(this.admin.get("/scripts?folder=Basics").json(), "name"));
 		Assertions.assertEquals(List.of("Other", "Clock"), values(this.admin.get("/scripts?sort=-name").json(), "name"));
 		Assertions.assertEquals(List.of("Other"), values(this.admin.get("/scripts?q=oth").json(), "name"));
-		Assertions.assertEquals(2, this.admin.get("/scripts?deviceDriver=CiscoIOS12").json().get("count").asInt());
+		Assertions.assertEquals(2, this.admin.get("/scripts?deviceDriver=CiscoIOS12").json().get("results").size());
 		JsonNode withInputs = this.admin.get("/scripts?fields=name,userInputDefinitions").json().get("results").get(0);
 		Assertions.assertTrue(withInputs.get("userInputDefinitions").isObject());
 		Assertions.assertEquals(400, this.admin.get("/scripts?foo=1").status());
@@ -136,7 +136,7 @@ public class V1ScriptResourceTest {
 		Assertions.assertEquals(200, valid.status(), valid.toString());
 		Assertions.assertEquals(0, valid.json().get("id").asLong());
 		Assertions.assertTrue(valid.json().get("userInputDefinitions").isObject());
-		Assertions.assertEquals(0, this.admin.get("/scripts").json().get("count").asInt());
+		Assertions.assertEquals(0, this.admin.get("/scripts").json().get("results").size());
 
 		Assertions.assertEquals(400, this.admin.post("/scripts/validation", body("Bad", "", "function run( {")).status());
 		Assertions.assertEquals(400, this.admin.post("/scripts/validation", body(" ", "", CODE)).status());
@@ -144,7 +144,7 @@ public class V1ScriptResourceTest {
 			{"name": "X", "deviceDriver": "NoSuchDriver", "script": "x"}""").status());
 		Assertions.assertEquals(400, this.admin.post("/scripts/validation", "{\"name\": \"X\"}").status());
 		Assertions.assertEquals(400, this.admin.post("/scripts", body("Bad", "", "function run( {")).status());
-		Assertions.assertEquals(0, this.admin.get("/scripts").json().get("count").asInt());
+		Assertions.assertEquals(0, this.admin.get("/scripts").json().get("results").size());
 	}
 
 	@Test

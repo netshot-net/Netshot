@@ -113,7 +113,7 @@ public class V1DeviceComplianceResultResourceTest {
 	void list() throws Exception {
 		String path = "/devices/" + this.router1.id() + "/compliance-results";
 		JsonNode page = this.reader.get(path).json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(Set.of("No telnet", "Banner"), Set.copyOf(ruleNames(page)));
 
 		JsonNode telnetResult = page.get("results").get(0).get("rule").get("name").asText().equals("No telnet")
@@ -134,7 +134,7 @@ public class V1DeviceComplianceResultResourceTest {
 		Assertions.assertEquals(List.of("No telnet"), ruleNames(this.reader.get(path + "?q=telnet").json()));
 		Assertions.assertEquals(List.of("Banner", "No telnet"), ruleNames(this.reader.get(path + "?sort=ruleName").json()));
 		Assertions.assertEquals(1, this.reader.get(path + "?limit=1").json().get("results").size());
-		Assertions.assertEquals(2, this.reader.get(path + "?limit=1").json().get("count").asInt());
+		Assertions.assertEquals(2, this.reader.get(path + "?limit=1&count=true").json().get("count").asInt());
 		Assertions.assertEquals(400, this.reader.get(path + "?result=NOPE").status());
 		JsonNode expanded = this.reader.get(path + "?expand=rule&rule=" + this.telnet.id()).json().get("results").get(0);
 		Assertions.assertTrue(expanded.get("rule").has("regExp"));

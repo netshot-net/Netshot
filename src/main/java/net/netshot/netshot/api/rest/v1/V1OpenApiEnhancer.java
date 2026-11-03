@@ -451,7 +451,7 @@ final class V1OpenApiEnhancer {
 		add(operation, ListParams.LIMIT, new IntegerSchema(), "Number of items of the page (0: all the items, unless a maximum page size is set)");
 		add(operation, ListParams.SORT, new StringSchema(), "Sort fields, comma-separated, - for a descending order (name,-changeDate)");
 		add(operation, ListParams.SEARCH, new StringSchema(), "Free text search");
-		add(operation, ListParams.COUNT, new BooleanSchema(), "false to skip the count of the matching items");
+		add(operation, ListParams.COUNT, new BooleanSchema(), "true to count the matching items (in count; not counted by default)");
 		addSelectionParameters(operation);
 		operation.setDescription((operation.getDescription() == null ? "" : operation.getDescription() + " ")
 			+ "Any other parameter is a filter on a field: field=value or field__lookup=value (see the API documentation).");

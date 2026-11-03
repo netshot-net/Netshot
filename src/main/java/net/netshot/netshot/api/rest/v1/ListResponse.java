@@ -32,7 +32,7 @@ import net.netshot.netshot.platform.query.ListResult;
  * A page of a list: every list of the v1 API is written in this envelope.
  *
  * @param <T> the type of the items
- * @param count the total number of matching items (null when the request disabled the count with {@code count=false})
+ * @param count the total number of matching items (null unless the request asked for it with {@code count=true})
  * @param offset the offset of the first item of the page
  * @param limit the maximum number of items of the page
  * @param next the path of the next page (null on the last page)
@@ -40,7 +40,7 @@ import net.netshot.netshot.platform.query.ListResult;
  * @param results the items of the page
  */
 public record ListResponse<T>(
-	@Schema(description = "Total number of matching items (null if count=false)", nullable = true) Long count,
+	@Schema(description = "Total number of matching items (null unless count=true)", nullable = true) Long count,
 	@Schema(description = "Offset of the first item of the page") int offset,
 	@Schema(description = "Maximum number of items of the page (0: all the items)") int limit,
 	@Schema(description = "Path of the next page", nullable = true) String next,

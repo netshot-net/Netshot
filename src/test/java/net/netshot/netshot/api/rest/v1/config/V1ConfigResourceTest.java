@@ -144,7 +144,7 @@ public class V1ConfigResourceTest {
 	@DisplayName("List: latest first, brief view with device reference and no attributes, filters")
 	void list() throws Exception {
 		JsonNode page = this.reader.get("/configs").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals(List.of(this.other, this.second, this.first), this.ids("/configs"));
 		JsonNode item = page.get("results").get(1);
 		Assertions.assertEquals(Set.of("id", "url", "display", "device", "changeDate", "author"), keys(item));
@@ -303,7 +303,7 @@ public class V1ConfigResourceTest {
 		Assertions.assertEquals(List.of(this.other), this.ids("/devices/%d/configs".formatted(this.router2.id())));
 		Assertions.assertEquals(List.of(this.first), this.ids("/devices/%d/configs?author=alice".formatted(this.router1.id())));
 		Assertions.assertEquals(List.of(this.first, this.second), this.ids("/devices/%d/configs?sort=changeDate".formatted(this.router1.id())));
-		JsonNode page = this.reader.get("/devices/%d/configs?limit=1".formatted(this.router1.id())).json();
+		JsonNode page = this.reader.get("/devices/%d/configs?limit=1&count=true".formatted(this.router1.id())).json();
 		Assertions.assertEquals(2, page.get("count").asInt());
 		Assertions.assertFalse(page.get("next").isNull());
 		Assertions.assertEquals(404, this.reader.get("/devices/%d/configs".formatted(TestServer.UNKNOWN_ID)).status());

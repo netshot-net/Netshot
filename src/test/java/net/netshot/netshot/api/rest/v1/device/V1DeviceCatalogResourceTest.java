@@ -104,7 +104,7 @@ public class V1DeviceCatalogResourceTest {
 		Answer answer = this.reader.get("/device-families");
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		JsonNode page = answer.json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(Set.of("driver", "family", "deviceCount"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Cisco ISR=2", "Unknown IOS device=1"), this.list("/device-families", "family", "deviceCount"));
 		Assertions.assertEquals(List.of("Unknown IOS device=1"), this.list("/device-families?deviceCount__lt=2", "family", "deviceCount"));
@@ -117,7 +117,7 @@ public class V1DeviceCatalogResourceTest {
 		Assertions.assertEquals(400, this.reader.get("/device-families?deviceCount=many").status());
 		Assertions.assertEquals(400, this.reader.get("/device-families?family__regex=a").status());
 		Assertions.assertEquals(400, this.reader.get("/device-families?sort=bogus").status());
-		JsonNode paged = this.reader.get("/device-families?limit=1&offset=1").json();
+		JsonNode paged = this.reader.get("/device-families?limit=1&offset=1&count=true").json();
 		Assertions.assertEquals(2, paged.get("count").asInt());
 		Assertions.assertEquals(1, paged.get("results").size());
 		Assertions.assertTrue(paged.get("next").isNull());
@@ -156,7 +156,7 @@ public class V1DeviceCatalogResourceTest {
 		Answer answer = this.reader.get("/device-types?name=CiscoIOS12");
 		Assertions.assertEquals(200, answer.status(), answer.toString());
 		JsonNode page = answer.json();
-		Assertions.assertEquals(1, page.get("count").asInt());
+		Assertions.assertEquals(1, page.get("results").size());
 		JsonNode brief = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("name", "description", "version"), keys(brief));
 		Assertions.assertEquals("CiscoIOS12", brief.get("name").asText());
@@ -188,10 +188,10 @@ public class V1DeviceCatalogResourceTest {
 	@Test
 	@DisplayName("Reload of the device drivers (admin)")
 	void reloadDrivers() throws Exception {
-		int before = this.reader.get("/device-types?limit=1").json().get("count").asInt();
+		int before = this.reader.get("/device-types?limit=1&count=true").json().get("count").asInt();
 		Answer reload = this.admin.post("/device-types/reload", null);
 		Assertions.assertEquals(204, reload.status(), reload.toString());
-		Assertions.assertEquals(before, this.reader.get("/device-types?limit=1").json().get("count").asInt(),
+		Assertions.assertEquals(before, this.reader.get("/device-types?limit=1&count=true").json().get("count").asInt(),
 			"The same drivers are loaded again");
 		Assertions.assertEquals(403, this.reader.post("/device-types/reload", null).status());
 	}

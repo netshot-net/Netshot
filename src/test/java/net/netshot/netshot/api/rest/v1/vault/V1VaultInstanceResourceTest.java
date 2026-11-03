@@ -155,7 +155,7 @@ public class V1VaultInstanceResourceTest {
 			Assertions.assertEquals(400, answer.status(), test + " -> " + answer);
 			Assertions.assertEquals(parts[1], answer.json().get("errors").get(0).get("field").asText(), test + " -> " + answer);
 		}
-		Assertions.assertEquals(0, this.admin.get("/vault-instances").json().get("count").asInt());
+		Assertions.assertEquals(0, this.admin.get("/vault-instances").json().get("results").size());
 
 		Answer jwt = this.admin.post("/vault-instances", ("{\"name\": \"JWT\", \"type\": \"HASHICORP_KV2\", \"baseUrl\": \"https://vault:8200\", "
 			+ "\"authMethod\": \"JWT\", \"jwtIdpTokenEndpoint\": \"https://idp/token\", \"jwtClientId\": \"c\", "
@@ -180,7 +180,7 @@ public class V1VaultInstanceResourceTest {
 		this.assertNoSecret(all);
 		Assertions.assertEquals(List.of("Alpha", "Beta", "Gamma"), values(all.json(), "name"));
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "baseUrl", "authMethod", "httpsCaTrustMode"), names(all.json().get("results").get(0)));
-		Assertions.assertEquals(3, all.json().get("count").asInt());
+		Assertions.assertEquals(3, all.json().get("results").size());
 		Assertions.assertEquals(List.of("Gamma"), values(this.admin.get("/vault-instances?authMethod=JWT").json(), "name"));
 		Assertions.assertEquals(List.of("Alpha", "Beta", "Gamma"), values(this.admin.get("/vault-instances?type=HASHICORP_KV2").json(), "name"));
 		Assertions.assertEquals(List.of("Beta"), values(this.admin.get("/vault-instances?namespace=ns").json(), "name"));
@@ -301,7 +301,7 @@ public class V1VaultInstanceResourceTest {
 		Assertions.assertEquals(200, unsaved.status(), unsaved.toString());
 		Assertions.assertFalse(unsaved.json().get("success").asBoolean());
 		this.assertNoSecret(unsaved);
-		Assertions.assertEquals(1, this.admin.get("/vault-instances").json().get("count").asInt());
+		Assertions.assertEquals(1, this.admin.get("/vault-instances").json().get("results").size());
 
 		// An invalid request is an error, a missing instance is a 404
 		Assertions.assertEquals(400, this.admin.post("/vault-instances/test", "{\"name\": \"x\"}").status());

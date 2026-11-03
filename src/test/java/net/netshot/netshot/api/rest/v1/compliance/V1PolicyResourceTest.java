@@ -103,7 +103,7 @@ public class V1PolicyResourceTest {
 		TestCompliance.rule(TextRule.builder("Other", hygiene.id()).build());
 
 		JsonNode page = this.reader.get("/compliance/policies").json();
-		Assertions.assertEquals(2, page.get("count").asInt());
+		Assertions.assertEquals(2, page.get("results").size());
 		Assertions.assertEquals(List.of("Security", "Hygiene"), values(page, "name"), "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "name"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Security"), values(this.reader.get("/compliance/policies?name__ic=SECUR").json(), "name"));
@@ -119,7 +119,7 @@ public class V1PolicyResourceTest {
 		JsonNode rules = this.reader.get("/compliance/policies/" + security.id() + "/rules?sort=name").json();
 		Assertions.assertEquals(List.of("Banner", "No telnet"), values(rules, "name"));
 		Assertions.assertEquals(1, this.reader.get("/compliance/policies/" + security.id() + "/rules?enabled=true").json()
-			.get("count").asInt());
+			.get("results").size());
 		Assertions.assertEquals(404, this.reader.get("/compliance/policies/" + TestServer.UNKNOWN_ID + "/rules").status());
 		Assertions.assertEquals(400, this.reader.get("/compliance/policies?sort=nothing").status());
 	}

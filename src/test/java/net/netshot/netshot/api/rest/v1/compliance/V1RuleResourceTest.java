@@ -119,7 +119,7 @@ public class V1RuleResourceTest {
 		TestCompliance.rule(PythonRule.of("Python rule", this.other.id()));
 
 		JsonNode page = this.reader.get("/compliance/rules").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals(List.of("Text rule", "JS rule", "Python rule"), values(page, "name"), "without sort: by ID");
 		JsonNode js = page.get("results").get(1);
 		Assertions.assertEquals(Set.of("id", "url", "display", "type", "name", "enabled", "policy"), keys(js));
@@ -218,7 +218,7 @@ public class V1RuleResourceTest {
 	void exemptions() throws Exception {
 		JavaScriptRule rule = TestCompliance.rule(JavaScriptRule.of("JS rule", this.policy.id()));
 		String path = "/compliance/rules/" + rule.id() + "/exemptions";
-		Assertions.assertEquals(0, this.reader.get(path).json().get("count").asInt());
+		Assertions.assertEquals(0, this.reader.get(path).json().get("results").size());
 
 		Instant in2030 = Instant.parse("2030-01-01T00:00:00Z");
 		Instant in2040 = Instant.parse("2040-01-01T00:00:00Z");
@@ -226,13 +226,13 @@ public class V1RuleResourceTest {
 			{"exemptions": [{"device": %d, "expirationDate": "%s"}, {"device": %d, "expirationDate": "%s"}]}"""
 			.formatted(this.router1.id(), in2030, this.router2.id(), in2040));
 		Assertions.assertEquals(200, put.status(), put.toString());
-		Assertions.assertEquals(2, put.json().get("count").asInt());
+		Assertions.assertEquals(2, put.json().get("results").size());
 
 		JsonNode page = this.reader.get(path + "?sort=-expirationDate").json();
 		Assertions.assertEquals(this.router2.id(), page.get("results").get(0).get("device").get("id").asLong());
 		Assertions.assertEquals("router00002", page.get("results").get(0).get("device").get("name").asText());
 		Assertions.assertEquals(Instant.parse("2040-01-01T00:00:00Z"), Instant.parse(page.get("results").get(0).get("expirationDate").asText()));
-		Assertions.assertEquals(1, this.reader.get(path + "?device=" + this.router1.id()).json().get("count").asInt());
+		Assertions.assertEquals(1, this.reader.get(path + "?device=" + this.router1.id()).json().get("results").size());
 		Assertions.assertEquals(1, this.reader.get(path + "?limit=1").json().get("results").size());
 
 		// The set given replaces the whole current one; the listed objects can be sent back
@@ -240,19 +240,19 @@ public class V1RuleResourceTest {
 		Answer back = this.admin.put(path, "{\"exemptions\": " + current.get("results").toString() + "}");
 		Assertions.assertEquals(200, back.status(), back.toString());
 		Assertions.assertEquals(this.router1.id(), back.json().get("results").get(0).get("device").get("id").asLong());
-		Assertions.assertEquals(1, back.json().get("count").asInt());
+		Assertions.assertEquals(1, back.json().get("results").size());
 
 		Assertions.assertEquals(400, this.admin.put(path, "{\"exemptions\": [{\"device\": %d, \"expirationDate\": \"%s\"}]}"
 			.formatted(TestServer.UNKNOWN_ID, in2030)).status());
 		Assertions.assertEquals(400, this.admin.put(path, "{\"exemptions\": [{\"device\": %d, \"expirationDate\": \"%s\"}, {\"device\": %d, \"expirationDate\": \"%s\"}]}"
 			.formatted(this.router1.id(), in2030, this.router1.id(), in2040)).status());
 		Assertions.assertEquals(400, this.admin.put(path, "{\"exemptions\": [{\"device\": %d}]}".formatted(this.router1.id())).status());
-		Assertions.assertEquals(1, this.reader.get(path).json().get("count").asInt());
+		Assertions.assertEquals(1, this.reader.get(path).json().get("results").size());
 		Assertions.assertEquals(403, this.reader.put(path, "{\"exemptions\": []}").status());
 		Assertions.assertEquals(404, this.admin.put("/compliance/rules/" + TestServer.UNKNOWN_ID + "/exemptions", "{\"exemptions\": []}").status());
 		Assertions.assertEquals(404, this.reader.get("/compliance/rules/" + TestServer.UNKNOWN_ID + "/exemptions").status());
 
-		Assertions.assertEquals(0, this.admin.put(path, "{\"exemptions\": []}").json().get("count").asInt());
+		Assertions.assertEquals(0, this.admin.put(path, "{\"exemptions\": []}").json().get("results").size());
 	}
 
 	@Test

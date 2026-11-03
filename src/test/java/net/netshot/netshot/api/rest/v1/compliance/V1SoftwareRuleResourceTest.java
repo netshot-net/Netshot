@@ -109,7 +109,7 @@ public class V1SoftwareRuleResourceTest {
 		Assertions.assertEquals(201, withGroup.status(), withGroup.toString());
 
 		JsonNode page = this.reader.get("/compliance/software-rules").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		JsonNode first = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("id", "url", "display", "priority", "level", "group", "driver", "family", "familyRegExp",
 			"version", "versionRegExp", "partNumber", "partNumberRegExp"), keys(first));
@@ -118,14 +118,14 @@ public class V1SoftwareRuleResourceTest {
 		Assertions.assertEquals(this.core.id(), page.get("results").get(2).get("group").get("id").asLong());
 		Assertions.assertEquals(List.of("1:1", "2:2", "3:3"), this.versions());
 
-		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?level=SILVER").json().get("count").asInt());
-		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?group=" + this.core.id()).json().get("count").asInt());
-		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?driver=CiscoIOS12").json().get("count").asInt());
-		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?priority=2").json().get("count").asInt());
-		Assertions.assertEquals(2, this.reader.get("/compliance/software-rules?priority__gt=1").json().get("count").asInt());
+		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?level=SILVER").json().get("results").size());
+		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?group=" + this.core.id()).json().get("results").size());
+		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?driver=CiscoIOS12").json().get("results").size());
+		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?priority=2").json().get("results").size());
+		Assertions.assertEquals(2, this.reader.get("/compliance/software-rules?priority__gt=1").json().get("results").size());
 		Assertions.assertEquals(3, this.reader.get("/compliance/software-rules?sort=-priority").json().get("results").get(0).get("priority")
 			.asInt());
-		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?q=2").json().get("count").asInt());
+		Assertions.assertEquals(1, this.reader.get("/compliance/software-rules?q=2").json().get("results").size());
 		Assertions.assertEquals(400, this.reader.get("/compliance/software-rules?level=PLATINUM").status());
 	}
 

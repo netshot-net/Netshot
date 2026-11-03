@@ -112,7 +112,7 @@ public class V1DeviceResourceTest {
 	@DisplayName("List: brief view by default, filters on fields, references, tags, groups, compliance")
 	void listFilters() throws Exception {
 		JsonNode page = this.admin.get("/devices").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals(List.of("router00001", "router00002", "router00003"), names(page));
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "mgmtAddress", "status", "family", "driver", "driverDescription",
 			"networkClass", "softwareLevel", "compliant", "endOfLife", "endOfSale"), keys(page.get("results").get(0)));
@@ -243,6 +243,6 @@ public class V1DeviceResourceTest {
 		Assertions.assertEquals(403, new V1Client(server, UiUser.LEVEL_READONLY).delete("/devices/" + this.router3.id()).status());
 		Assertions.assertEquals(204, this.admin.delete("/devices/" + this.router3.id()).status());
 		Assertions.assertEquals(404, this.admin.delete("/devices/" + this.router3.id()).status());
-		Assertions.assertEquals(2, this.admin.get("/devices").json().get("count").asInt());
+		Assertions.assertEquals(2, this.admin.get("/devices").json().get("results").size());
 	}
 }

@@ -127,7 +127,7 @@ public class V1DiagnosticResourceTest {
 			{"name": "Flag", "type": "PYTHON", "resultType": "BINARY", "script": "def diagnose(cli, device, diagnostic_result): pass",
 			"enabled": true}""");
 		JsonNode page = this.reader.get("/diagnostics").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals(List.of("Version", "Counter", "Flag"), values(page, "name"), "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "name", "type", "resultType", "enabled", "targetGroup"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Version", "Flag", "Counter"), values(this.reader.get("/diagnostics?sort=-name").json(), "name"));
@@ -236,7 +236,7 @@ public class V1DiagnosticResourceTest {
 			DiagnosticBinaryResult.of(flag, "Flag", true));
 
 		JsonNode page = this.reader.get("/devices/" + device.id() + "/diagnostic-results?sort=diagnosticName").json();
-		Assertions.assertEquals(3, page.get("count").asInt());
+		Assertions.assertEquals(3, page.get("results").size());
 		Assertions.assertEquals(List.of("Counter", "Flag", "Version"), values(page, "display"));
 		JsonNode counter = page.get("results").get(0);
 		Assertions.assertEquals("NUMERIC", counter.get("type").asText());
@@ -250,7 +250,7 @@ public class V1DiagnosticResourceTest {
 		Assertions.assertFalse(counter.get("diagnostic").has("command"), "the diagnostic is brief");
 
 		JsonNode expanded = this.reader.get("/devices/" + device.id() + "/diagnostic-results?expand=diagnostic&type=TEXT").json();
-		Assertions.assertEquals(1, expanded.get("count").asInt());
+		Assertions.assertEquals(1, expanded.get("results").size());
 		JsonNode diagnostic = expanded.get("results").get(0).get("diagnostic");
 		Assertions.assertEquals("show version", diagnostic.get("command").asText());
 		Assertions.assertEquals(this.core.id(), diagnostic.get("targetGroup").get("id").asLong());
@@ -264,11 +264,11 @@ public class V1DiagnosticResourceTest {
 		Assertions.assertEquals(400, this.reader.get("/devices/" + device.id() + "/diagnostic-results?type=OTHER").status());
 
 		// Another device has no result of this one
-		Assertions.assertEquals(0, this.reader.get("/devices/" + this.router1.id() + "/diagnostic-results").json().get("count").asInt());
+		Assertions.assertEquals(0, this.reader.get("/devices/" + this.router1.id() + "/diagnostic-results").json().get("results").size());
 		Assertions.assertEquals(404, this.reader.get("/devices/" + TestServer.UNKNOWN_ID + "/diagnostic-results").status());
 
 		// Deleting a diagnostic deletes its results
 		Assertions.assertEquals(204, this.admin.delete("/diagnostics/" + count).status());
-		Assertions.assertEquals(2, this.reader.get("/devices/" + device.id() + "/diagnostic-results").json().get("count").asInt());
+		Assertions.assertEquals(2, this.reader.get("/devices/" + device.id() + "/diagnostic-results").json().get("results").size());
 	}
 }

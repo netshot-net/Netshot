@@ -184,12 +184,12 @@ public final class ListParams {
 				"The limit can't be more than %d".formatted(settings.maxPageSize()));
 		}
 		String countText = single(params, COUNT);
-		boolean count = true;
+		boolean count = false;
 		if (countText != null) {
-			if ("false".equalsIgnoreCase(countText.trim())) {
-				count = false;
+			if ("true".equalsIgnoreCase(countText.trim())) {
+				count = true;
 			}
-			else if (!"true".equalsIgnoreCase(countText.trim())) {
+			else if (!"false".equalsIgnoreCase(countText.trim())) {
 				throw NetshotException.invalidParameter(COUNT, "Invalid count parameter: true or false is expected");
 			}
 		}
