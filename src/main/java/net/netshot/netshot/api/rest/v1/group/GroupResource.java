@@ -45,8 +45,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -108,8 +110,9 @@ public class GroupResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the groups", description = "Lists the device groups, in their brief view by default. "
 		+ "The device filter gives the groups a device is a member of.")
+	@ListFilters(ListSchema.GROUPS)
 	public ListResponse<GroupDto> listGroups() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.groupService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.GROUPS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), GroupDto.class, Selection.View.BRIEF),
 			GroupDto.class);
 		return ListResponse.of(this.uriInfo, query, this.groupService.list(query), GroupMapper::toDto);
@@ -144,6 +147,7 @@ public class GroupResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the devices of a group", description = "Lists the devices of a group, "
 		+ "as the device list filtered on the group (same parameters).")
+	@ListFilters(ListSchema.DEVICES)
 	public ListResponse<DeviceDto> listGroupDevices(@PathParam("id") @Parameter(description = "Group ID") long id,
 		@QueryParam("query") @Parameter(description = "Device search query, in the Netshot query language") String query) {
 		this.groupService.get(id);

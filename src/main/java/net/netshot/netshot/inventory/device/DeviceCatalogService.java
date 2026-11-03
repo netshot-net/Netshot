@@ -158,7 +158,7 @@ public class DeviceCatalogService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema interfaceSchema() {
+	public static QuerySchema interfaceSchema() {
 		return DeviceInventoryRepository.INTERFACE_LIST.schema();
 	}
 
@@ -189,7 +189,7 @@ public class DeviceCatalogService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema moduleSchema() {
+	public static QuerySchema moduleSchema() {
 		return DeviceInventoryRepository.MODULE_LIST.schema();
 	}
 
@@ -245,7 +245,7 @@ public class DeviceCatalogService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema familySchema() {
+	public static QuerySchema familySchema() {
 		return FAMILIES.schema();
 	}
 
@@ -265,7 +265,7 @@ public class DeviceCatalogService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema tagSchema() {
+	public static QuerySchema tagSchema() {
 		return TAGS.schema();
 	}
 
@@ -285,7 +285,7 @@ public class DeviceCatalogService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema partNumberSchema() {
+	public static QuerySchema partNumberSchema() {
 		return PART_NUMBERS.schema();
 	}
 
@@ -305,7 +305,7 @@ public class DeviceCatalogService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema softwareVersionSchema() {
+	public static QuerySchema softwareVersionSchema() {
 		return SOFTWARE_VERSIONS.schema();
 	}
 

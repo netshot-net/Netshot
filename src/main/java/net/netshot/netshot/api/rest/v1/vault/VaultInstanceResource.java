@@ -43,8 +43,10 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -94,8 +96,9 @@ public class VaultInstanceResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the Vault instances", description = "Lists the Vault instances, in their brief view by default. "
 		+ "The secrets are never returned.")
+	@ListFilters(ListSchema.VAULT_INSTANCES)
 	public ListResponse<VaultInstanceDto> listVaultInstances() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.vaultInstanceService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.VAULT_INSTANCES.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.BRIEF),
 			VaultInstanceDto.class);
 		return ListResponse.of(this.uriInfo, query, this.vaultInstanceService.list(query), VaultInstanceMapper::toDto);

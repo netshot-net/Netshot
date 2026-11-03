@@ -46,8 +46,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -115,7 +117,7 @@ public class RuleResource {
 	 */
 	static ListResponse<RuleDto> list(RuleService ruleService, ComplianceRefs refs, HttpServletRequest request, UriInfo uriInfo,
 		Criterion fixed) {
-		ListQuery query = ListParams.parse(uriInfo.getQueryParameters(), ruleService.listSchema());
+		ListQuery query = ListParams.parse(uriInfo.getQueryParameters(), ListSchema.RULES.schema());
 		Selection selection = Selection.of(uriInfo.getQueryParameters(), RuleDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, RuleDto.class);
 		ListQuery restricted = fixed == null ? query : query.and(fixed);
@@ -134,6 +136,7 @@ public class RuleResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the compliance rules", description = "Lists the compliance rules of all the policies, in their brief "
 		+ "view by default (the type, TEXT, JAVASCRIPT or PYTHON, tells which other properties a rule has).")
+	@ListFilters(ListSchema.RULES)
 	public ListResponse<RuleDto> listRules() {
 		return list(this.ruleService, this.refs, this.request, this.uriInfo, null);
 	}
@@ -247,8 +250,9 @@ public class RuleResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the exemptions of a rule", description = "Lists the devices exempted from a rule, with the date "
 		+ "their exemption ends. Filters: device, expirationDate.")
+	@ListFilters(ListSchema.EXEMPTIONS)
 	public ListResponse<ExemptionDto> listExemptions(@PathParam("id") @Parameter(description = "Rule ID") long id) {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.ruleService.exemptionSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.EXEMPTIONS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), ExemptionDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, ExemptionDto.class);
 		ListResult<Exemption> exemptions = this.ruleService.listExemptions(id, query);
@@ -270,6 +274,7 @@ public class RuleResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace the exemptions of a rule", description = "Replaces the whole set of devices exempted from a rule "
 		+ "(an empty list removes them all), and answers the new set.")
+	@ListFilters(ListSchema.EXEMPTIONS)
 	public ListResponse<ExemptionDto> replaceExemptions(@PathParam("id") @Parameter(description = "Rule ID") long id,
 		ExemptionsRequest exemptionsRequest) {
 		Map<Long, Instant> expirations = new LinkedHashMap<>();

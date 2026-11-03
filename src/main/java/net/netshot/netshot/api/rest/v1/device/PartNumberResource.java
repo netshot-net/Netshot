@@ -31,8 +31,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -74,9 +76,10 @@ public class PartNumberResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the part numbers", description = "Lists the distinct part numbers of the modules, with their number of modules. An aggregate: items "
 		+ "have no id nor url.")
+	@ListFilters(ListSchema.PART_NUMBERS)
 	public ListResponse<PartNumberDto> listPartNumbers() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, this.catalogService.partNumberSchema());
+		ListQuery query = ListParams.parse(params, ListSchema.PART_NUMBERS.schema());
 		Selection selection = Selection.of(params, PartNumberDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, PartNumberDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listPartNumbers(query), DeviceInventoryMapper::toDto);

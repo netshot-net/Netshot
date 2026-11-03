@@ -83,7 +83,7 @@ public class UserService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return UserRepository.LIST.schema();
 	}
 

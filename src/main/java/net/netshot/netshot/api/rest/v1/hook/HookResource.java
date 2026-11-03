@@ -42,8 +42,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -92,8 +94,9 @@ public class HookResource {
 	@RolesAllowed(User.ROLE_ADMIN)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the hooks", description = "Lists the hooks, in their brief view by default.")
+	@ListFilters(ListSchema.HOOKS)
 	public ListResponse<HookDto> listHooks() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.hookService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.HOOKS.schema());
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), HookDto.class, Selection.View.BRIEF),
 			HookDto.class);
 		return ListResponse.of(this.uriInfo, query, this.hookService.list(query), HookMapper::toDto);

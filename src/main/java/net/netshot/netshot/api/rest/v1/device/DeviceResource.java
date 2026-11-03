@@ -54,6 +54,8 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.export.ExportFormat;
 import net.netshot.netshot.api.rest.v1.export.ListExport;
 import net.netshot.netshot.inventory.device.DeviceSummary;
@@ -173,6 +175,7 @@ public class DeviceResource {
 		+ "on the group membership, the tags and the configuration compliance. Like any list, it can be exported "
 		+ "as CSV (Accept: text/csv) or Excel (Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). "
 		+ "With the Excel format, the include parameter writes a workbook with more sheets for the matching devices.")
+	@ListFilters(ListSchema.DEVICES)
 	public ListResponse<DeviceDto> listDevices(
 		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query,
 		@QueryParam(INCLUDE) @Parameter(description = "Excel export only: the extra sheets of the workbook, among interfaces, inventory, "
@@ -210,7 +213,7 @@ public class DeviceResource {
 				include.add(name);
 			}
 		}
-		ListQuery listQuery = ListParams.parse(this.uriInfo.getQueryParameters(), this.searchService.deviceListSchema(), QUERY, INCLUDE);
+		ListQuery listQuery = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(), QUERY, INCLUDE);
 		ListResult<DeviceSummary> devices = this.searchService.listDeviceSummaries(listQuery, query);
 		if (devices.items().size() > ListParams.exportMaxRows()) {
 			throw NetshotException.invalidParameter(ListParams.LIMIT,
@@ -250,9 +253,10 @@ public class DeviceResource {
 		+ "query), by the values of up to two fields (groupBy: status, mgmtDomain, family, driver, networkClass, softwareVersion, "
 		+ "softwareLevel, location, eolDate, eosDate, group, tag, compliant) and/or by time bucket (interval: hour, day, week "
 		+ "or month, on createdDate, changeDate, eolDate or eosDate, from/to, timeZone).")
+	@ListFilters(ListSchema.DEVICES)
 	public StatsResponse getDeviceStats(
 		@QueryParam(QUERY) @Parameter(description = "Device search query, in the Netshot query language") String query) {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.searchService.deviceListSchema(),
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICES.schema(),
 			"createdDate", QUERY);
 		ListResult<StatsRow> rows = this.searchService.deviceStats(parsed.query(), parsed.stats(), query);
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
@@ -275,7 +279,7 @@ public class DeviceResource {
 	public static ListResponse<DeviceDto> list(SearchService searchService, DriverRegistry driverRegistry,
 		HttpServletRequest request, UriInfo uriInfo, String query, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, searchService.deviceListSchema(), QUERY);
+		ListQuery listQuery = ListParams.parse(params, ListSchema.DEVICES.schema(), QUERY);
 		Selection selection = Selection.of(params, DeviceDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, DeviceDto.class);
 		ListQuery scoped = scope == null ? listQuery : listQuery.and(scope);

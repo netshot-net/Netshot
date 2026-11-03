@@ -32,8 +32,10 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.StatsResponse;
@@ -129,8 +131,9 @@ public class ComplianceResultResource {
 		+ "device and rule (a rule never checked on a device has no result here), with the exemption of the device from the rule. "
 		+ "Filters: device, deviceName, domain and group (of the device), rule, ruleName, policy, policyName, result, checkDate, "
 		+ "exemptionExpirationDate; q searches the device, rule and policy names.")
+	@ListFilters(ListSchema.COMPLIANCE_RESULTS)
 	public ListResponse<DeviceComplianceResultDto> listResults() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.ruleService.allResultsSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema());
 		return respond(this.refs, this.request, this.uriInfo, query, this.ruleService.listResults(query));
 	}
 
@@ -146,8 +149,9 @@ public class ComplianceResultResource {
 	@Operation(summary = "Count the compliance results", description = "Counts the compliance results matching the filters of the "
 		+ "list, by the values of up to two fields (groupBy: result, policy, rule, device, group, domain) and/or by time bucket "
 		+ "(interval: hour, day, week or month, on checkDate, from/to, timeZone). A result is counted once per group of its device.")
+	@ListFilters(ListSchema.COMPLIANCE_RESULTS)
 	public StatsResponse getResultStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.ruleService.allResultsSchema(), "checkDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.COMPLIANCE_RESULTS.schema(), "checkDate");
 		ListResult<StatsRow> rows = this.ruleService.resultStats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
 			"device", DeviceMapper.resolver(this.searchService),
