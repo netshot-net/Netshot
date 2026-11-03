@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -148,6 +149,19 @@ class DeviceInventoryServiceTest {
 	// ------------------------------------------------------------------
 	// search
 	// ------------------------------------------------------------------
+
+	@Test
+	@DisplayName("listDevices() gives the details of the devices but their components, which a single device read has")
+	void listWithoutComponents() {
+		ListQuery query = ListQuery.byIds(List.of(this.router));
+		Device listed = this.searchService.listDevices(query, null).items().get(0);
+		Assertions.assertEquals(Set.of("core", "lab"), listed.tags());
+		Assertions.assertEquals(List.of(), listed.modules());
+		Assertions.assertEquals(List.of(), listed.networkInterfaces());
+		Device read = this.deviceService.get(this.router);
+		Assertions.assertEquals(2, read.modules().size());
+		Assertions.assertEquals(2, read.networkInterfaces().size());
+	}
 
 	@Test
 	@DisplayName("searchDevices() returns the matching devices and the normalized query")
