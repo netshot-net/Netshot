@@ -2410,4 +2410,9 @@
 			<column name="id"/>
 		</createIndex>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_13">
+		<!-- The compliance status of a device (in every device list) looks for a non-conforming result of the device: a
+			partial index finds them without reading all the results. -->
+		<sql>CREATE INDEX ix_check_result_device_nonconforming ON check_result (device) WHERE result = 'NONCONFORMING'</sql>
+	</changeSet>
 </databaseChangeLog>
