@@ -94,7 +94,6 @@ import net.netshot.netshot.platform.net.PhysicalAddress;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
-import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.query.StatsQuery;
 import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -536,7 +535,6 @@ public class DeviceRepository {
 		.grouping("tag", DEVICE_TAGS.TAG, from -> from.leftJoin(DEVICE_TAGS).on(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)))
 		.grouping("compliant", DSL.field(DSL.notExists(DSL.selectOne().from(CHECK_RESULT)
 			.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name())))), null)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

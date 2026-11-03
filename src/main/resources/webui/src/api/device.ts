@@ -43,11 +43,11 @@ async function getOne<R>(path: string, params?: ListParams) {
 }
 
 async function search(payload: { query: string; offset?: number; limit?: number } & ListParams) {
-  return list<Device>("/devices", payload)
+  return list<Device>("/devices", { sort: "name", ...payload })
 }
 
 async function getAll(params: ListParams = {}) {
-  return list<Device>("/devices", params)
+  return list<Device>("/devices", { sort: "name", ...params })
 }
 
 async function getById(id: number) {
@@ -133,11 +133,11 @@ async function createTask(
 }
 
 async function getComplianceResultById(id: number, params: ListParams = {}) {
-  return list<Brief["DeviceComplianceResult"]>(`/devices/${id}/compliance-results`, params)
+  return list<Brief["DeviceComplianceResult"]>(`/devices/${id}/compliance-results`, { sort: "policyName,ruleName", ...params })
 }
 
 async function getDiagnosticResultById(id: number, params: ListParams = {}) {
-  return list<Brief["DiagnosticResult"]>(`/devices/${id}/diagnostic-results`, params)
+  return list<Brief["DiagnosticResult"]>(`/devices/${id}/diagnostic-results`, { sort: "diagnosticName", ...params })
 }
 
 /** The configurations of a device, the latest first, with their attributes. */

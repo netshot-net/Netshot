@@ -29,7 +29,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the device scripts. The {@link DSLContext} is always the first parameter: the
@@ -48,7 +47,6 @@ public class ScriptRepository {
 		.string("folder", DEVICE_JS_SCRIPT.FOLDER, Option.SORTABLE, Option.SEARCHABLE)
 		.string("deviceDriver", DEVICE_JS_SCRIPT.DEVICE_DRIVER, Option.SORTABLE)
 		.string("author", DEVICE_JS_SCRIPT.AUTHOR, Option.SORTABLE, Option.SEARCHABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

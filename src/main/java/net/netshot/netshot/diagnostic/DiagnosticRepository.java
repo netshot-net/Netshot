@@ -37,7 +37,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the diagnostics. The {@link DSLContext} is always the first parameter: the
@@ -80,7 +79,6 @@ public class DiagnosticRepository {
 		.bool("enabled", DIAGNOSTIC.ENABLED, Option.SORTABLE)
 		.integer("targetGroup", DIAGNOSTIC.TARGET_GROUP)
 		.string("deviceDriver", DIAGNOSTIC.DEVICE_DRIVER, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

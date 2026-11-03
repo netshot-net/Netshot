@@ -30,7 +30,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the users. The {@link DSLContext} is always the first parameter: the caller
@@ -50,7 +49,6 @@ public class UserRepository {
 		.string("username", USER.USERNAME, Option.SORTABLE, Option.SEARCHABLE)
 		.bool("local", USER.LOCAL, Option.SORTABLE)
 		.integer("level", USER.LEVEL, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("username"))
 		.build();
 
 	/**

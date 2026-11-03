@@ -63,7 +63,7 @@ export default function DeviceDiagnosticScreen() {
       t,
     ],
     queryFn: async (): Promise<DiagnosticRow[]> =>
-      (await listAll<Schemas["DiagnosticResult"]>(`/devices/${params.id}/diagnostic-results`, { view: "full" })).map((result) => ({
+      (await listAll<Schemas["DiagnosticResult"]>(`/devices/${params.id}/diagnostic-results`, { view: "full", sort: "diagnosticName" })).map((result) => ({
         diagnosticId: result.diagnostic?.id ?? 0,
         diagnosticName: result.diagnostic?.display ?? "",
         type: result.type ?? "",

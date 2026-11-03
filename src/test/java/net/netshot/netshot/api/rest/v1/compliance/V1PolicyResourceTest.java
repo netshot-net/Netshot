@@ -104,7 +104,7 @@ public class V1PolicyResourceTest {
 
 		JsonNode page = this.reader.get("/compliance/policies").json();
 		Assertions.assertEquals(2, page.get("count").asInt());
-		Assertions.assertEquals(List.of("Hygiene", "Security"), values(page, "name"));
+		Assertions.assertEquals(List.of("Security", "Hygiene"), values(page, "name"), "without sort: by ID");
 		Assertions.assertEquals(Set.of("id", "url", "display", "name"), keys(page.get("results").get(0)));
 		Assertions.assertEquals(List.of("Security"), values(this.reader.get("/compliance/policies?name__ic=SECUR").json(), "name"));
 		Assertions.assertEquals(List.of("Hygiene"),

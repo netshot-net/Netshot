@@ -34,7 +34,6 @@ import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on domains. The {@link DSLContext} is always the first parameter: the caller
@@ -78,7 +77,6 @@ public class DomainRepository {
 		.string("description", DOMAIN.DESCRIPTION, Option.SEARCHABLE)
 		.inet("server4Address", DOMAIN.IPV4_ADDRESS)
 		.date("changeDate", DOMAIN.CHANGE_DATE, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

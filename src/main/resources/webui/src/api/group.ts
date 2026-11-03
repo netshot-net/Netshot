@@ -26,7 +26,7 @@ export type GroupListParams = {
 /** All the groups, in their brief view (name, folder and type). */
 async function getAll(params: GroupListParams = {}) {
   const { folder, type, hiddenFromReports, q, sort } = params
-  return listAll<GroupBrief>("/groups", { folder, type, hiddenFromReports, q, sort })
+  return listAll<GroupBrief>("/groups", { folder, type, hiddenFromReports, q, sort: sort ?? "folder,name" })
 }
 
 /** A group in its full view, with the ETag (If-Match value) of its version. */
@@ -41,12 +41,12 @@ async function getById(id: number) {
 
 /** A page of the devices of a group (the parameters of the device list: query, q, sort, fields, offset, limit). */
 async function getDevices(id: number, params: ListParams = {}) {
-  return list<Device>(`/groups/${id}/devices`, params)
+  return list<Device>(`/groups/${id}/devices`, { sort: "name", ...params })
 }
 
 /** Every device of a group. */
 async function getAllDevices(id: number, params: ListParams = {}) {
-  return listAll<Device>(`/groups/${id}/devices`, params)
+  return listAll<Device>(`/groups/${id}/devices`, { sort: "name", ...params })
 }
 
 async function create(payload: CreateGroupPayload) {
