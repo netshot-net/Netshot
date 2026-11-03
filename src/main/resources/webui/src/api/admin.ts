@@ -1,4 +1,4 @@
-import { Brief, client, list, listAll, ListParams, replace, Schemas } from "./client"
+import { Brief, client, list, listAll, replace, Schemas } from "./client"
 
 export type ApiToken = Schemas["ApiToken"]
 export type ApiTokenCreated = Schemas["ApiTokenCreated"]
@@ -43,20 +43,12 @@ function ifMatch(version?: number | null) {
   return version === undefined || version === null ? undefined : { "If-Match": `"${version}"` }
 }
 
-async function getAllApiTokens(params: ListParams = {}) {
-  return list<Brief["ApiToken"]>("/api-tokens", params)
-}
-
 async function createApiToken(payload: ApiTokenRequest) {
   return (await client.post<ApiTokenCreated, ApiTokenRequest>("/api-tokens", payload)) as ApiTokenCreated
 }
 
 async function removeApiToken(id: number) {
   return client.delete(`/api-tokens/${id}`)
-}
-
-async function getAllCredentialSets(params: ListParams = {}) {
-  return list<Brief["CredentialSet"]>("/credential-sets", params)
 }
 
 /** All the global credential sets (the choices of the devices' accesses). */
@@ -81,10 +73,6 @@ async function removeCredentialSet(id: number, version?: number | null) {
   return client.delete(`/credential-sets/${id}`, { headers: ifMatch(version) })
 }
 
-async function getAllDomains(params: ListParams = {}) {
-  return list<Brief["Domain"]>("/domains", params)
-}
-
 /** All the domains (the choices of the domain selectors). */
 async function fetchAllDomains() {
   return listAll<Brief["Domain"]>("/domains", { sort: "name" })
@@ -107,10 +95,6 @@ async function removeDomain(id: number, version?: number | null) {
   return client.delete(`/domains/${id}`, { headers: ifMatch(version) })
 }
 
-async function getAllHooks(params: ListParams = {}) {
-  return list<Brief["WebHook"]>("/hooks", params)
-}
-
 /** A hook in its full view (to edit it). */
 async function getHook(id: number) {
   return (await client.get<Hook>(`/hooks/${id}`)) as Hook
@@ -128,10 +112,6 @@ async function removeHook(id: number) {
   return client.delete(`/hooks/${id}`)
 }
 
-async function getAllUsers(params: ListParams = {}) {
-  return list<Brief["User"]>("/users", params)
-}
-
 async function createUser(payload: UserRequest) {
   return (await client.post<User, UserRequest>("/users", payload)) as User
 }
@@ -144,19 +124,11 @@ async function removeUser(id: number) {
   await client.delete(`/users/${id}`)
 }
 
-async function getAllDrivers(params: ListParams = {}) {
-  return list<Brief["DeviceType"]>("/device-types", params)
-}
-
 /**
  * Reloads the device drivers from their sources (on every cluster member).
  */
 async function reloadDrivers() {
   await client.post<null, null>("/device-types/reload", null)
-}
-
-async function getAllVaultInstances(params: ListParams = {}) {
-  return list<Brief["VaultInstance"]>("/vault-instances", params)
 }
 
 /** All the Vault instances (the choices of the Vault-backed fields). */
@@ -196,33 +168,26 @@ async function getAllClusterMembers() {
 }
 
 export default {
-  getAllApiTokens,
   createApiToken,
   removeApiToken,
-  getAllCredentialSets,
   fetchAllCredentialSets,
   getCredentialSet,
   createCredentialSet,
   updateCredentialSet,
   removeCredentialSet,
-  getAllDomains,
   fetchAllDomains,
   getDomain,
   createDomain,
   updateDomain,
   removeDomain,
-  getAllHooks,
   getHook,
   createHook,
   updateHook,
   removeHook,
-  getAllUsers,
   createUser,
   updateUser,
   removeUser,
-  getAllDrivers,
   reloadDrivers,
-  getAllVaultInstances,
   fetchAllVaultInstances,
   getVaultInstance,
   createVaultInstance,

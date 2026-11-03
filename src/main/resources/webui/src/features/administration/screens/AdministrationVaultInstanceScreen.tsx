@@ -2,7 +2,7 @@ import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { HttpsCaTrustMode, VaultAuthMethod } from "@/types"
 import {
   Button,
@@ -37,16 +37,16 @@ function isConnectionSecured(vaultInstance: Brief["VaultInstance"]): boolean {
 
 export default function AdministrationVaultInstanceScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const vaultAuthMethodOptions = useVaultAuthMethodOptions()
 
   const { rows: data, isPending } = useListAll<Brief["VaultInstance"]>(
     [QUERIES.ADMIN_VAULT_INSTANCES],
     "/vault-instances",
-    { q: pagination.query, sort: "name" }
+    { q: searchBox.query, sort: "name" }
   )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -138,8 +138,8 @@ export default function AdministrationVaultInstanceScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

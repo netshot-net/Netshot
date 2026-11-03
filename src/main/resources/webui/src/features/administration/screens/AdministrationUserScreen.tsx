@@ -4,7 +4,7 @@ import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts"
 import { Level } from "@/types"
-import { usePagination, useUserLevelOptions } from "@/hooks"
+import { useSearchQuery, useUserLevelOptions } from "@/hooks"
 import {
   Badge,
     Button,
@@ -29,17 +29,17 @@ const columnHelper = createColumnHelper<User>()
 
 export default function AdministrationUserScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const { user: currentUser } = useAuth()
   const userLevelOptions = useUserLevelOptions()
 
   const { rows: data, isPending } = useListAll<User>(
     [QUERIES.ADMIN_USERS],
     "/users",
-    { q: pagination.query, sort: "username" }
+    { q: searchBox.query, sort: "username" }
   )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -126,8 +126,8 @@ export default function AdministrationUserScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

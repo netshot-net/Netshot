@@ -8,7 +8,7 @@ import { useParams } from "react-router"
 import { listAll } from "@/api/client"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { DeviceInterface } from "@/types"
 
 import { QUERIES } from "../constants"
@@ -16,26 +16,23 @@ import { LuChevronsLeftRightEllipsis, LuPowerOff } from "react-icons/lu"
 
 const columnHelper = createColumnHelper<DeviceInterface>()
 
-/**
- * @todo: Add pagination (paginator)
- */
 export default function DeviceInterfaceScreen() {
   const params = useParams<{ id: string }>()
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
   const { data = [], isPending } = useQuery({
     queryKey: [
       QUERIES.DEVICE_INTERFACES,
       params.id,
-      pagination.query,
+      searchBox.query,
     ],
     // The server searches the name and description
     queryFn: async () =>
-      listAll<DeviceInterface>(`/devices/${params.id}/interfaces`, { q: pagination.query?.trim(), view: "full" }),
+      listAll<DeviceInterface>(`/devices/${params.id}/interfaces`, { q: searchBox.query?.trim(), view: "full" }),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () =>
@@ -137,8 +134,8 @@ export default function DeviceInterfaceScreen() {
       <Stack direction="row" gap="3">
         <Search
           placeholder={t("device.searchBy")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
       </Stack>

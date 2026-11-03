@@ -2,7 +2,7 @@ import type { Brief } from "@/api/client"
 import { DataTable, EmptyResult, Protected, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { useListAll } from "@/hooks/useListAll"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { Level } from "@/types"
@@ -24,18 +24,18 @@ const columnHelper = createColumnHelper<Brief["HardwareRule"]>()
 export default function HardwareComplianceScreen() {
   const { t } = useTranslation()
   const { formatDate } = useLocalization()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const { getOptionByDriver } = useDeviceTypeOptions()
 
   const {
     rows: rules,
     isPending,
   } = useListAll<Brief["HardwareRule"]>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
-    family__ic: pagination.query?.trim(),
+    family__ic: searchBox.query?.trim(),
     sort: "id",
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -176,8 +176,8 @@ export default function HardwareComplianceScreen() {
       <Stack direction="row" gap="3">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
         <Spacer />

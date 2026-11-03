@@ -1,6 +1,6 @@
 import { Group, GroupBrief } from "@/types"
 import type { Device } from "@/types"
-import { client, list, listAll, ListParams, patch, replace, Schemas } from "./client"
+import { client, listAll, ListParams, patch, replace, Schemas } from "./client"
 import { etagOf } from "./device"
 
 /** The definition of a group, to create one (a static group's devices are the IDs of its members). */
@@ -17,10 +17,6 @@ export type GroupListParams = {
   hiddenFromReports?: boolean
   q?: string
   sort?: string
-  /** Ignored: every page of the list is read (kept so callers can keep passing their pagination). */
-  limit?: number
-  /** Ignored: every page of the list is read. */
-  offset?: number
 }
 
 /** All the groups, in their brief view (name, folder and type). */
@@ -37,11 +33,6 @@ async function getWithETag(id: number) {
 
 async function getById(id: number) {
   return (await client.get<Group>(`/groups/${id}`)) as Group
-}
-
-/** A page of the devices of a group (the parameters of the device list: query, q, sort, fields, offset, limit). */
-async function getDevices(id: number, params: ListParams = {}) {
-  return list<Device>(`/groups/${id}/devices`, { sort: "name", ...params })
 }
 
 /** Every device of a group. */
@@ -73,7 +64,6 @@ export default {
   getAll,
   getById,
   getWithETag,
-  getDevices,
   getAllDevices,
   create,
   replace: replaceGroup,

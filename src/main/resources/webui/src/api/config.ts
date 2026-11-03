@@ -1,10 +1,5 @@
-import { Brief, client, list, ListParams, Schemas } from "./client"
+import { client, ListParams, Schemas } from "./client"
 import { HttpMethod } from "./httpClient"
-
-/** The configurations of all the devices, the latest first (brief view unless `view=full`). */
-async function getAll(params: ListParams = {}) {
-  return list<Brief["Config"]>("/configs", params)
-}
 
 /**
  * Compares a configuration with another one of the same device (by default the previous one).
@@ -24,7 +19,6 @@ async function getItem(id: number, item: string) {
 }
 
 export default {
-  getAll,
   getDiff,
   getItem,
 }

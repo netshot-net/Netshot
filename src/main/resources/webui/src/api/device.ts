@@ -1,5 +1,4 @@
 import type {
-  Config,
   Device,
   DeviceType,
 } from "@/types"
@@ -44,10 +43,6 @@ async function getOne<R>(path: string, params?: ListParams) {
 
 async function search(payload: { query: string; offset?: number; limit?: number } & ListParams) {
   return list<Device>("/devices", { sort: "name", ...payload })
-}
-
-async function getAll(params: ListParams = {}) {
-  return list<Device>("/devices", { sort: "name", ...params })
 }
 
 async function getById(id: number) {
@@ -132,32 +127,6 @@ async function createTask(
   return (await client.post<Task, typeof body>("/tasks", body)) as Task
 }
 
-async function getComplianceResultById(id: number, params: ListParams = {}) {
-  return list<Brief["DeviceComplianceResult"]>(`/devices/${id}/compliance-results`, { sort: "policyName,ruleName", ...params })
-}
-
-async function getDiagnosticResultById(id: number, params: ListParams = {}) {
-  return list<Brief["DiagnosticResult"]>(`/devices/${id}/diagnostic-results`, { sort: "diagnosticName", ...params })
-}
-
-/** The configurations of a device, the latest first, with their attributes. */
-async function getAllConfigsById(id: number, params: ListParams = {}) {
-  return list<Config>(`/devices/${id}/configs`, { view: "full", ...params })
-}
-
-async function getAllInterfacesById(id: number, params: ListParams = {}) {
-  return list<Brief["DeviceInterface"]>(`/devices/${id}/interfaces`, params)
-}
-
-/** The current modules of a device (`removed`: the removed ones too, kept for the history). */
-async function getAllModulesById(id: number, params: ListParams = {}) {
-  return list<Brief["DeviceModule"]>(`/devices/${id}/modules`, params)
-}
-
-async function getAllTasksById(id: number, params: ListParams = {}) {
-  return list<Brief["Task"]>(`/devices/${id}/tasks`, params)
-}
-
 async function getAllFamilies() {
   return listAll<Brief["DeviceFamily"]>("/device-families")
 }
@@ -181,7 +150,6 @@ async function getAllTypes() {
 
 export default {
   search,
-  getAll,
   getById,
   create,
   update,
@@ -190,12 +158,6 @@ export default {
   checkCompliance,
   runDiagnostics,
   runScript,
-  getComplianceResultById,
-  getDiagnosticResultById,
-  getAllConfigsById,
-  getAllInterfacesById,
-  getAllModulesById,
-  getAllTasksById,
   getAllFamilies,
   getAllPartNumbers,
   getAllSoftwareVersions,

@@ -8,7 +8,7 @@ import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
 import { MUTATIONS } from "@/constants"
 import { useAuth } from "@/contexts"
 import { useConfirmDialogWithMutation } from "@/dialog"
-import { usePagination, useSoftwareLevels, useToast } from "@/hooks"
+import { useSearchQuery, useSoftwareLevels, useToast } from "@/hooks"
 import { useListAll } from "@/hooks/useListAll"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { DeviceSoftwareLevel, Level } from "@/types"
@@ -29,7 +29,7 @@ const columnHelper = createColumnHelper<Brief["SoftwareRule"]>()
 
 export default function SoftwareComplianceScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const { user } = useAuth()
   const [data, setData] = useState<SoftwareRule[]>([])
   const [reorderPending, setReorderPending] = useState(false)
@@ -43,7 +43,7 @@ export default function SoftwareComplianceScreen() {
     rows: rules,
     isPending,
   } = useListAll<Brief["SoftwareRule"]>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
-    family__ic: pagination.query?.trim(),
+    family__ic: searchBox.query?.trim(),
     sort: "priority",
   })
   const isSuccess = !isPending
@@ -58,7 +58,7 @@ export default function SoftwareComplianceScreen() {
     }
   }, [isSuccess, rules, reorderPending])
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
   const isDraggable = (user?.level || 0) >= Level.ReadWrite && !isSearching
 
   const columns = [
@@ -253,8 +253,8 @@ export default function SoftwareComplianceScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

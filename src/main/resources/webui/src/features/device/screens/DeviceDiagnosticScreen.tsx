@@ -3,7 +3,7 @@ import { listAll } from "@/api/client"
 import { DataTable, EmptyResult, EntityLink, ExpandableTextCell, Protected } from "@/components"
 import { LuActivity } from "react-icons/lu"
 import Search from "@/components/Search"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { DeviceAttributeType, Level } from "@/types"
 import { useLocalization } from "@/i18n"
 import { search } from "@/utils"
@@ -45,14 +45,13 @@ function getDiagnosticResultValue(result: Schemas["DiagnosticResult"], t: (key: 
 }
 
 /**
- * @todo: Add pagination (paginator)
  * @todo: Verify why there is no results after diagnostic
  */
 export default function DeviceDiagnosticScreen() {
   const params = useParams<{ id: string }>()
   const { t } = useTranslation()
   const { formatDateTime } = useLocalization()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const { device } = useDevice()
   const [showDates, setShowDates] = useState(false)
 
@@ -72,12 +71,12 @@ export default function DeviceDiagnosticScreen() {
         lastCheckDate: result.lastCheckDate,
       })),
     select: useCallback(
-      (res: DiagnosticRow[]) => search(res, "diagnosticName", "type").with(pagination.query),
-      [pagination.query]
+      (res: DiagnosticRow[]) => search(res, "diagnosticName", "type").with(searchBox.query),
+      [searchBox.query]
     ),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(() => {
     const columns = [
@@ -144,8 +143,8 @@ export default function DeviceDiagnosticScreen() {
           <Stack direction="row" alignItems="center">
             <Search
               placeholder={t("common.searchPlaceholder")}
-              onQuery={pagination.onQuery}
-              onClear={pagination.onQueryClear}
+              onQuery={searchBox.onQuery}
+              onClear={searchBox.onQueryClear}
               w="25%"
             />
             <Spacer />

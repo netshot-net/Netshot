@@ -6,7 +6,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { QUERIES as GLOBAL_QUERIES } from "@/constants"
 import { useCustomDialog } from "@/dialog"
 import { DeviceSoftwareLevelBadge } from "@/components/entity"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { GroupSoftwareComplianceStat } from "@/api/report"
 import { DeviceSoftwareLevel, GroupBrief } from "@/types"
 import { createFoldersFromGroups, Folder, isGroup, search } from "@/utils"
@@ -245,7 +245,7 @@ export default function ReportSoftwareComplianceScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filterOpen, setFilterOpen] = useState(false)
   const [filter, setFilter] = useState<FilterForm>(() => {
@@ -278,8 +278,8 @@ export default function ReportSoftwareComplianceScreen() {
     const nonEmptyGroupIds = new Set((stats ?? []).map((stat) => stat.groupId))
     // The groups hidden from the reports are not listed
     const visibleGroups = (groups ?? []).filter((group) => nonEmptyGroupIds.has(group.id))
-    return createFoldersFromGroups(search(visibleGroups, "name").with(pagination.query))
-  }, [groups, stats, pagination.query])
+    return createFoldersFromGroups(search(visibleGroups, "name").with(searchBox.query))
+  }, [groups, stats, searchBox.query])
 
   function applyFilter(values: FilterForm) {
     setFilter(values)
@@ -319,7 +319,7 @@ export default function ReportSoftwareComplianceScreen() {
   )
 
   const rows = useMemo(() => flattenTree(treeItems, 0, isOpen), [treeItems, isOpen])
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   return (
     <Stack gap="8" p="9" flex="1" overflow="auto">
@@ -343,8 +343,8 @@ export default function ReportSoftwareComplianceScreen() {
       <Stack direction="row" gap="3">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
         <Spacer />

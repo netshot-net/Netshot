@@ -2,7 +2,7 @@ import { DeviceType } from "@/api/admin"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { DeviceTypeProtocol } from "@/types"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { Button, Checkbox, Heading, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
 import { LuRefreshCcw } from "react-icons/lu"
 import { CellContext, createColumnHelper } from "@tanstack/react-table"
@@ -15,15 +15,15 @@ const columnHelper = createColumnHelper<DeviceType>()
 
 export default function AdministrationDriverScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
   const { rows: data, isPending } = useListAll<DeviceType>(
     [QUERIES.ADMIN_DRIVERS],
     "/device-types",
-    { q: pagination.query, fields: "name,description,protocols,version,sourceHash,author" }
+    { q: searchBox.query, fields: "name,description,protocols,version,sourceHash,author" }
   )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const getProtocolCheckbox = useCallback(
     (info: CellContext<DeviceType, DeviceTypeProtocol[]>, types: DeviceTypeProtocol | DeviceTypeProtocol[]) => (
@@ -133,8 +133,8 @@ export default function AdministrationDriverScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />
