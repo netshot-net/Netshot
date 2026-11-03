@@ -96,7 +96,7 @@ public class HardwareRuleService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return HardwareRuleRepository.LIST.schema();
 	}
 

@@ -33,8 +33,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -78,9 +80,10 @@ public class DeviceInterfaceResource {
 	@Operation(summary = "List the interfaces of a device", description = "Lists the network interfaces of a device, "
 		+ "in their brief view by default (name, description, enabled; view=full adds the addresses). "
 		+ "Besides the filters on the fields, ipAddress (exact or net lookup) and macAddress filter on the addresses.")
+	@ListFilters(ListSchema.DEVICE_INTERFACES)
 	public ListResponse<DeviceInterfaceDto> listDeviceInterfaces(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, this.catalogService.interfaceSchema());
+		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_INTERFACES.schema());
 		Selection selection = Selection.of(params, DeviceInterfaceDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceInterfaceDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listInterfaces(id, query), DeviceInventoryMapper::toDto);

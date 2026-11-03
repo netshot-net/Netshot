@@ -82,7 +82,7 @@ public class HookService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return HookRepository.LIST.schema();
 	}
 

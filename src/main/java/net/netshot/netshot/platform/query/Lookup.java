@@ -31,41 +31,41 @@ import java.util.Optional;
 public enum Lookup {
 
 	/** Equal to (case-sensitive for the strings). */
-	EXACT("", false),
+	EXACT("", false, "equal to"),
 	/** Not equal to. */
-	N("n", true),
+	N("n", true, "not equal to"),
 	/** Equal to, ignoring the case. */
-	IE("ie", false),
+	IE("ie", false, "equal to, ignoring the case"),
 	/** Not equal to, ignoring the case. */
-	NIE("nie", true),
+	NIE("nie", true, "not equal to, ignoring the case"),
 	/** Contains, ignoring the case. */
-	IC("ic", false),
+	IC("ic", false, "contains, ignoring the case"),
 	/** Doesn't contain, ignoring the case. */
-	NIC("nic", true),
+	NIC("nic", true, "doesn't contain, ignoring the case"),
 	/** Starts with, ignoring the case. */
-	ISW("isw", false),
+	ISW("isw", false, "starts with, ignoring the case"),
 	/** Doesn't start with, ignoring the case. */
-	NISW("nisw", true),
+	NISW("nisw", true, "doesn't start with, ignoring the case"),
 	/** Ends with, ignoring the case. */
-	IEW("iew", false),
+	IEW("iew", false, "ends with, ignoring the case"),
 	/** Doesn't end with, ignoring the case. */
-	NIEW("niew", true),
+	NIEW("niew", true, "doesn't end with, ignoring the case"),
 	/** Matches the (POSIX) regular expression. */
-	REGEX("regex", false),
+	REGEX("regex", false, "matches the (POSIX) regular expression"),
 	/** Matches the (POSIX) regular expression, ignoring the case. */
-	IREGEX("iregex", false),
+	IREGEX("iregex", false, "matches the (POSIX) regular expression, ignoring the case"),
 	/** Lower than. */
-	LT("lt", false),
+	LT("lt", false, "lower than"),
 	/** Lower than or equal to. */
-	LTE("lte", false),
+	LTE("lte", false, "lower than or equal to"),
 	/** Greater than. */
-	GT("gt", false),
+	GT("gt", false, "greater than"),
 	/** Greater than or equal to. */
-	GTE("gte", false),
+	GTE("gte", false, "greater than or equal to"),
 	/** Is empty (null, or an empty string) for {@code true}, isn't for {@code false}. */
-	EMPTY("empty", false),
+	EMPTY("empty", false, "is empty (null, or an empty string) for true, isn't for false"),
 	/** IP address within the given subnet (e.g. {@code 10.0.0.0/8}). */
-	NET("net", false);
+	NET("net", false, "IP address within the given subnet (10.0.0.0/8)");
 
 	/** The suffix of the filter parameter (after {@code __}). */
 	private final String suffix;
@@ -73,9 +73,13 @@ public enum Lookup {
 	/** Whether the lookup is the negation of another one. */
 	private final boolean negated;
 
-	Lookup(String suffix, boolean negated) {
+	/** What the lookup matches, in words (for the API documentation). */
+	private final String description;
+
+	Lookup(String suffix, boolean negated, String description) {
 		this.suffix = suffix;
 		this.negated = negated;
+		this.description = description;
 	}
 
 	/**
@@ -85,6 +89,15 @@ public enum Lookup {
 	 */
 	public String suffix() {
 		return this.suffix;
+	}
+
+	/**
+	 * Tells what the lookup matches, in words.
+	 *
+	 * @return the description ("contains, ignoring the case")
+	 */
+	public String description() {
+		return this.description;
 	}
 
 	/**

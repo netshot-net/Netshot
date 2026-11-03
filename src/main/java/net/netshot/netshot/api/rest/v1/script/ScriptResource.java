@@ -38,8 +38,10 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
@@ -94,8 +96,9 @@ public class ScriptResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the scripts", description = "Lists the command scripts, in their brief view by default "
 		+ "(without the code). The user inputs are only extracted (by evaluating the scripts) when they are asked for.")
+	@ListFilters(ListSchema.SCRIPTS)
 	public ListResponse<ScriptDto> listScripts() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.scriptService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.SCRIPTS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), ScriptDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, ScriptDto.class);
 		boolean inputs = selection.includes("userInputDefinitions");

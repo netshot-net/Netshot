@@ -51,8 +51,10 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
@@ -113,8 +115,9 @@ public class CredentialSetResource {
 	@Operation(summary = "List the credential sets", description = "Lists the global credential sets, in their brief view by "
 		+ "default. The credential sets specific to a device access are left out, unless the deviceSpecific filter is given "
 		+ "(deviceSpecific=true lists only those, deviceSpecific=false only the global ones). The secrets are never returned.")
+	@ListFilters(ListSchema.CREDENTIAL_SETS)
 	public ListResponse<CredentialSetDto> listCredentialSets() {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.credentialSetService.listSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.CREDENTIAL_SETS.schema());
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, CredentialSetDto.class);
 		var result = this.credentialSetService.list(query);

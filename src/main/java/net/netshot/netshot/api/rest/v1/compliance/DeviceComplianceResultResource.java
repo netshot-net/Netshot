@@ -32,8 +32,10 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
@@ -86,8 +88,9 @@ public class DeviceComplianceResultResource {
 	@Operation(summary = "List the compliance results of a device", description = "Lists the rules of the policies applying to a device "
 		+ "(through its groups) with the result of their last check (none if never checked) and the exemption of the device. "
 		+ "(unlike the list across devices, which only has the checked ones). Filters: rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate.")
+	@ListFilters(ListSchema.DEVICE_COMPLIANCE_RESULTS)
 	public ListResponse<DeviceComplianceResultDto> listResults(@PathParam("id") @Parameter(description = "Device ID") long id) {
-		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), this.ruleService.resultSchema());
+		ListQuery query = ListParams.parse(this.uriInfo.getQueryParameters(), ListSchema.DEVICE_COMPLIANCE_RESULTS.schema());
 		return ComplianceResultResource.respond(this.refs, this.request, this.uriInfo, query, this.ruleService.listDeviceResults(id, query));
 	}
 }

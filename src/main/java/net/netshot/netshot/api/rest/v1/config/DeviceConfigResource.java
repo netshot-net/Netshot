@@ -34,7 +34,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -90,6 +92,7 @@ public class DeviceConfigResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the configurations of a device", description = "Lists the configurations of a device, "
 		+ "as the configuration list filtered on the device (same parameters), the latest first.")
+	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listDeviceConfigs(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
 		return ConfigResource.list(this.configService, this.searchService, this.driverRegistry, this.request, this.uriInfo,

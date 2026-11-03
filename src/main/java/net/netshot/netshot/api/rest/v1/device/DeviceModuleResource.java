@@ -35,8 +35,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -86,13 +88,14 @@ public class DeviceModuleResource {
 	@Operation(summary = "List the modules of a device", description = "Lists the hardware modules of a device, "
 		+ "in their brief view by default (slot, part number, serial number): the current ones only, unless removed=true, "
 		+ "which lists the modules removed from the device (kept for the history) too, flagged removed.")
+	@ListFilters(ListSchema.DEVICE_MODULES)
 	public ListResponse<DeviceModuleDto> listDeviceModules(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
 		String removed = params.getFirst(REMOVED);
 		if (removed != null && !"true".equals(removed) && !"false".equals(removed)) {
 			throw NetshotException.invalidParameter(REMOVED, "Invalid removed parameter: true or false is expected");
 		}
-		ListQuery query = ListParams.parse(params, this.catalogService.moduleSchema(), REMOVED);
+		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_MODULES.schema(), REMOVED);
 		if (!"true".equals(removed)) {
 			query = query.and(new Criterion(REMOVED, Lookup.EXACT, List.of(Boolean.FALSE)));
 		}

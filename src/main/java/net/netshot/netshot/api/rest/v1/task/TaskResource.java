@@ -40,7 +40,9 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
@@ -107,6 +109,7 @@ public class TaskResource {
 	@RolesAllowed(User.ROLE_READONLY)
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the tasks", description = "Lists the tasks, in their brief view by default, the latest first.")
+	@ListFilters(ListSchema.TASKS)
 	public ListResponse<TaskDto> listTasks() {
 		return list(this.taskService, this.responses, this.request, this.uriInfo, null);
 	}
@@ -124,7 +127,7 @@ public class TaskResource {
 	public static ListResponse<TaskDto> list(TaskService taskService, TaskResponses responses, HttpServletRequest request,
 		UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-		ListQuery listQuery = ListParams.parse(params, taskService.listSchema());
+		ListQuery listQuery = ListParams.parse(params, ListSchema.TASKS.schema());
 		Selection selection = Selection.of(params, TaskDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, TaskDto.class);
 		ListQuery query = scope == null ? listQuery : listQuery.and(scope);
@@ -223,8 +226,9 @@ public class TaskResource {
 		+ "of up to two fields (groupBy: type, status, author, scheduleType, device, group, runnerId) and/or by time bucket "
 		+ "(interval: hour, day, week or month, on executionDate (default), creationDate, changeDate or scheduleReference, "
 		+ "from/to, timeZone). Without execution date, a task isn't counted by executionDate.")
+	@ListFilters(ListSchema.TASKS)
 	public StatsResponse getTaskStats() {
-		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), this.taskService.listSchema(), "executionDate");
+		StatsParams.Parsed parsed = StatsParams.parse(this.uriInfo.getQueryParameters(), ListSchema.TASKS.schema(), "executionDate");
 		ListResult<StatsRow> rows = this.taskService.stats(parsed.query(), parsed.stats());
 		return StatsResponse.of(parsed.stats(), rows.items(), rows.count(), Map.of(
 			"device", DeviceMapper.resolver(this.searchService),

@@ -143,7 +143,7 @@ public class TaskService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema listSchema() {
+	public static QuerySchema listSchema() {
 		return TaskRepository.LIST.schema();
 	}
 

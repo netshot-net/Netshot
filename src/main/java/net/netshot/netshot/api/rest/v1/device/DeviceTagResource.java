@@ -31,8 +31,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.User;
+import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
+import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
@@ -74,9 +76,10 @@ public class DeviceTagResource {
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "List the device tags", description = "Lists the distinct tags attached to at least one device, with their number of devices. An aggregate:"
 		+ " items have no id nor url.")
+	@ListFilters(ListSchema.DEVICE_TAGS)
 	public ListResponse<DeviceTagDto> listDeviceTags() {
 		MultivaluedMap<String, String> params = this.uriInfo.getQueryParameters();
-		ListQuery query = ListParams.parse(params, this.catalogService.tagSchema());
+		ListQuery query = ListParams.parse(params, ListSchema.DEVICE_TAGS.schema());
 		Selection selection = Selection.of(params, DeviceTagDto.class, Selection.View.BRIEF);
 		V1Response.select(this.request, selection, DeviceTagDto.class);
 		return ListResponse.of(this.uriInfo, query, this.catalogService.listTags(query), DeviceInventoryMapper::toDto);

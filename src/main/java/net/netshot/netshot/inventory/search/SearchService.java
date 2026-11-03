@@ -73,7 +73,7 @@ public class SearchService {
 	 *
 	 * @return the schema of the list queries
 	 */
-	public QuerySchema deviceListSchema() {
+	public static QuerySchema deviceListSchema() {
 		return DeviceRepository.LIST.schema();
 	}
 
