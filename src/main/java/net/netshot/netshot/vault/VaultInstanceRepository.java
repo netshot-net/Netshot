@@ -32,7 +32,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -93,7 +92,6 @@ public class VaultInstanceRepository {
 		.string("namespace", VAULT_INSTANCE.NAMESPACE, Option.SEARCHABLE)
 		.enumeration("authMethod", VAULT_INSTANCE.AUTH_METHOD, AuthMethod.class, Option.SORTABLE)
 		.date("changeDate", VAULT_INSTANCE.CHANGE_DATE, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

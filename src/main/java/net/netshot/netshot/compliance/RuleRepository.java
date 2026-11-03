@@ -38,6 +38,7 @@ import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SelectField;
+import org.jooq.Table;
 
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
@@ -73,7 +74,6 @@ public class RuleRepository {
 		.string("field", RULE.FIELD, Option.SORTABLE)
 		.string("deviceDriver", RULE.DEVICE_DRIVER, Option.SORTABLE)
 		.string("text", RULE.TEXT, Option.SEARCHABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/** The fields the lists of exemptions can be filtered and sorted on (the ID is the one of the device). */
@@ -93,11 +93,10 @@ public class RuleRepository {
 		.enumeration("result", CHECK_RESULT.RESULT, ResultOption.class, Option.SORTABLE)
 		.date("checkDate", CHECK_RESULT.CHECK_DATE, Option.SORTABLE)
 		.date("exemptionExpirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("policy"), SortOrder.asc("id"))
 		.build();
 
 	/** The check results across devices (one per device and rule), with the rule, policy, device and exemption. */
-	private static final org.jooq.Table<?> ALL_RESULTS = CHECK_RESULT
+	private static final Table<?> ALL_RESULTS = CHECK_RESULT
 		.join(RULE).on(RULE.ID.eq(CHECK_RESULT.RULE))
 		.join(POLICY).on(POLICY.ID.eq(RULE.POLICY))
 		.join(DEVICE).on(DEVICE.ID.eq(CHECK_RESULT.DEVICE))
@@ -125,7 +124,7 @@ public class RuleRepository {
 		// A result is counted once per group of its device (no group: null)
 		.grouping("group", DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, from -> from.leftJoin(DEVICE_GROUP_CACHED_DEVICES)
 			.on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(CHECK_RESULT.DEVICE)))
-		.defaultSort(SortOrder.asc("deviceName"), SortOrder.asc("device"), SortOrder.asc("policy"), SortOrder.asc("rule"))
+		.defaultSort(SortOrder.asc("device"), SortOrder.asc("rule"))
 		.build();
 
 	private static Rule toRule(Record r) {

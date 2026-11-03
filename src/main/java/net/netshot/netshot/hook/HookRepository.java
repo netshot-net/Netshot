@@ -39,7 +39,6 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
-import net.netshot.netshot.platform.query.SortOrder;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -79,7 +78,6 @@ public class HookRepository {
 		.string("type", HOOK.TYPE, Option.SORTABLE)
 		.bool("enabled", HOOK.ENABLED, Option.SORTABLE)
 		.string("url", HOOK.URL, Option.SEARCHABLE)
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	/**

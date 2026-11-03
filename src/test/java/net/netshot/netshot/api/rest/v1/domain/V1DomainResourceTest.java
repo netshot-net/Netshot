@@ -206,7 +206,7 @@ public class V1DomainResourceTest {
 		Assertions.assertEquals(List.of("Lyon", "lyon_b"), values(this.admin.get("/domains?name__isw=lyon").json(), "name"));
 		Assertions.assertEquals(List.of("Lyon", "lyon_b"), values(this.admin.get("/domains?name__ic=YON").json(), "name"));
 		Assertions.assertEquals(List.of("Paris-1", "Paris-2"), values(this.admin.get("/domains?name__nic=yon").json(), "name"));
-		Assertions.assertEquals(List.of("Lyon", "Paris-1"), values(this.admin.get("/domains?name=Lyon&name=Paris-1").json(), "name"));
+		Assertions.assertEquals(List.of("Paris-1", "Lyon"), values(this.admin.get("/domains?name=Lyon&name=Paris-1").json(), "name"));
 		Assertions.assertEquals(List.of("Lyon", "lyon_b"),
 			values(this.admin.get("/domains?name__n=Paris-1&name__n=Paris-2").json(), "name"));
 		// LIKE wildcards are literal

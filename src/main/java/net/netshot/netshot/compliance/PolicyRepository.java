@@ -41,7 +41,6 @@ import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
-import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The queries on the compliance policies. The {@link DSLContext} is always the first parameter:
@@ -62,7 +61,6 @@ public class PolicyRepository {
 			DSL.exists(DSL.selectOne().from(POLICY_TARGET_GROUPS)
 				.where(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID))
 				.and(POLICY_TARGET_GROUPS.TARGET_GROUPS.in(values.stream().map(Long.class::cast).toList()))))
-		.defaultSort(SortOrder.asc("name"))
 		.build();
 
 	private static Policy toPolicy(Record r) {

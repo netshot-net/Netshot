@@ -43,7 +43,7 @@ export function useDeviceTypesWithOptions() {
 export function useCredentialSets() {
   return useQuery({
     queryKey: [QUERIES.CREDENTIAL_SET_LIST, "device-accesses"],
-    queryFn: async () => listAll<Brief["CredentialSet"]>("/credential-sets"),
+    queryFn: async () => listAll<Brief["CredentialSet"]>("/credential-sets", { sort: "name" }),
   })
 }
 
@@ -51,7 +51,7 @@ export function useCredentialSets() {
 export function useVaultInstanceChoices() {
   return useQuery({
     queryKey: ["vault-instance-choices"],
-    queryFn: async () => listAll<Schemas["VaultInstance"]>("/vault-instances", { fields: "name" }),
+    queryFn: async () => listAll<Schemas["VaultInstance"]>("/vault-instances", { fields: "name", sort: "name" }),
   })
 }
 

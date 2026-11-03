@@ -64,6 +64,7 @@ export default function DeviceComplianceScreen() {
       (
         await listAll<Schemas["DeviceComplianceResult"]>(`/devices/${params?.id}/compliance-results`, {
           view: "full",
+          sort: "policyName,ruleName",
         })
       ).map((result) => ({
         policyId: result.policy?.id ?? 0,
