@@ -1,7 +1,7 @@
 import api from "@/api"
 import { EmptyResult, Search } from "@/components"
 import { QUERIES } from "@/constants"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { ComplianceResult } from "@/api/report"
 import { GroupBrief } from "@/types"
 import { Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
@@ -21,7 +21,7 @@ export default function ConfigurationComplianceDeviceList(
   const { group } = props
 
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data, isPending } = useQuery({
@@ -29,7 +29,7 @@ export default function ConfigurationComplianceDeviceList(
     queryFn: async () => api.report.getNonCompliantResults(group.id),
     select: useCallback(
       (res: ComplianceResult[]): Map<number, ComplianceResult[]> => {
-        const text = (pagination.query ?? "").trim().toLowerCase()
+        const text = (searchBox.query ?? "").trim().toLowerCase()
         const byDevice = new Map<number, ComplianceResult[]>()
         for (const result of res) {
           if (!result.device || (text && !(result.device.name ?? "").toLowerCase().includes(text))) {
@@ -39,12 +39,12 @@ export default function ConfigurationComplianceDeviceList(
         }
         return byDevice
       },
-      [pagination.query]
+      [searchBox.query]
     ),
   })
 
   const rows = useMemo(() => Array.from(data?.entries() ?? []), [data])
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -59,8 +59,8 @@ export default function ConfigurationComplianceDeviceList(
       <Stack direction="row">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
         <Spacer />

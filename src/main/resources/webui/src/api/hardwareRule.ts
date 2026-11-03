@@ -1,11 +1,7 @@
-import { Brief, client, list, ListParams, replace, Schemas } from "./client"
+import { client, replace, Schemas } from "./client"
 
 export type HardwareRule = Schemas["HardwareRule"] & { id: number }
 export type HardwareRuleRequest = Schemas["HardwareRuleRequest"]
-
-async function getAll(params: ListParams = {}) {
-  return list<Brief["HardwareRule"]>("/compliance/hardware-rules", params)
-}
 
 async function create(payload: HardwareRuleRequest) {
   return (await client.post<HardwareRule, HardwareRuleRequest>("/compliance/hardware-rules", payload)) as HardwareRule
@@ -20,7 +16,6 @@ async function remove(id: number) {
 }
 
 export default {
-  getAll,
   create,
   update,
   remove,

@@ -11,7 +11,7 @@ import { DomainSelect } from "@/features/administration/components"
 import { DeviceBadge } from "@/components/entity"
 import { LuFilter, LuFilterX, LuRefreshCcw } from "react-icons/lu"
 import { FormControlType } from "@/components/FormControl"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { DeviceNetworkClass } from "@/types"
 import { useLocalization } from "@/i18n"
 import {
@@ -48,7 +48,7 @@ const columnHelper = createColumnHelper<DeviceAccessFailure>()
 export default function ReportDeviceAccessFailure() {
   const { t } = useTranslation()
   const { formatDateTime } = useLocalization()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filterOpen, setFilterOpen] = useState(false)
@@ -77,16 +77,16 @@ export default function ReportDeviceAccessFailure() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: [QUERIES.DEVICE_ACCESS_FAILURE, pagination.query, filter.domain, filter.days],
+    queryKey: [QUERIES.DEVICE_ACCESS_FAILURE, searchBox.query, filter.domain, filter.days],
     queryFn: async () =>
       api.report.getDeviceAccessFailures(
         filter.days,
         filter.domain ? +filter.domain : null,
-        pagination.query?.trim()
+        searchBox.query?.trim()
       ),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -197,8 +197,8 @@ export default function ReportDeviceAccessFailure() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

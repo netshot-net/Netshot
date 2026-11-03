@@ -9,7 +9,7 @@ import { listAll } from "@/api/client"
 import { search } from "@/utils"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { DeviceModule } from "@/types"
 import { useLocalization } from "@/i18n"
 
@@ -17,14 +17,11 @@ import { QUERIES } from "../constants"
 
 const columnHelper = createColumnHelper<DeviceModule>()
 
-/**
- * @todo: Add pagination (paginator)
- */
 export default function DeviceModuleScreen() {
   const params = useParams<{ id: string }>()
   const { t } = useTranslation()
   const { formatDateTime } = useLocalization()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const [history, setHistory] = useState(false)
 
   const { data = [], isPending } = useQuery({
@@ -40,12 +37,12 @@ export default function DeviceModuleScreen() {
         view: "full",
       }),
     select: useCallback(
-      (res: DeviceModule[]): DeviceModule[] => search(res, "serialNumber", "partNumber", "slot").with(pagination.query),
-      [pagination.query]
+      (res: DeviceModule[]): DeviceModule[] => search(res, "serialNumber", "partNumber", "slot").with(searchBox.query),
+      [searchBox.query]
     ),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(() => {
     const columns = [
@@ -91,8 +88,8 @@ export default function DeviceModuleScreen() {
       <Stack direction="row" alignItems="center">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="25%"
         />
         <Spacer />

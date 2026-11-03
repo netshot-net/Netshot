@@ -2,7 +2,7 @@ import type { Brief } from "@/api/client"
 import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { HttpsCaTrustMode } from "@/types"
 import {
   Button,
@@ -37,15 +37,15 @@ function isConnectionSecured(webhook: Brief["WebHook"]): boolean {
 
 export default function AdministrationApiTokenScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
   const { rows: data, isPending } = useListAll<Brief["WebHook"]>(
     [QUERIES.ADMIN_WEBHOOKS],
     "/hooks",
-    { q: pagination.query, sort: "name" }
+    { q: searchBox.query, sort: "name" }
   )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -138,8 +138,8 @@ export default function AdministrationApiTokenScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

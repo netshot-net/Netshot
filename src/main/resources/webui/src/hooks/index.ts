@@ -1,4 +1,4 @@
-export * from "./usePagination"
+export * from "./useSearchQuery"
 export * from "./useThrottle"
 export * from "./useTreeOpenKeys"
 export { default as useToast } from "./useToast"
