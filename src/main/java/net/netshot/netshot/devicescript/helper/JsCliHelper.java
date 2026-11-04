@@ -46,8 +46,8 @@ import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.protocol.SshConfig;
 import net.netshot.netshot.driver.protocol.TelnetConfig;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultableSecret;
 
 /**
  * This class is used to pass CLI control to JavaScript.
@@ -123,14 +123,14 @@ public class JsCliHelper {
 		if (accessDef.getProtocol() == DriverProtocol.SSH) {
 			Ssh ssh;
 			if (credentialSet instanceof DeviceSshKeyAccount sshKeyAccount) {
-				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshKeyAccount.usernameSecret()),
-					resolveSecret(sshKeyAccount.privateKeySecret()),
-					resolveSecret(sshKeyAccount.passwordSecret()), this.taskContext);
+				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshKeyAccount.username()),
+					resolveSecret(sshKeyAccount.privateKey()),
+					resolveSecret(sshKeyAccount.password()), this.taskContext);
 			}
 			else {
 				DeviceSshAccount sshAccount = (DeviceSshAccount) credentialSet;
-				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshAccount.usernameSecret()),
-					resolveSecret(sshAccount.passwordSecret()), this.taskContext);
+				ssh = new Ssh(this.accessManager.sshClient(), host, port, resolveSecret(sshAccount.username()),
+					resolveSecret(sshAccount.password()), this.taskContext);
 			}
 			ssh.applySshConfig(accessDef.getSshConfig());
 			if (this.sshConfigOverride != null) {
@@ -154,7 +154,7 @@ public class JsCliHelper {
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private String resolveSecret(VaultableSecret secret) throws IOException {
+	private String resolveSecret(Secret secret) throws IOException {
 		try {
 			return this.accessManager.secrets().resolve(secret);
 		}
@@ -319,7 +319,7 @@ public class JsCliHelper {
 		}
 		try {
 			command = command.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_USERNAME),
-				Matcher.quoteReplacement(resolveSecret(account.usernameSecret())));
+				Matcher.quoteReplacement(resolveSecret(account.username())));
 			if (this.taskContext.isTracing()) {
 				// Log before injecting secrets
 				this.taskContext.trace("About to send the following (secrets not inserted):");
@@ -328,9 +328,9 @@ public class JsCliHelper {
 			}
 			log.debug("Command to be sent (secrets not inserted): '{}'.", command);
 			command = command.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_PASSWORD),
-				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.passwordSecret()))));
+				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.password()))));
 			command = command.replaceAll(Pattern.quote(DeviceDriver.PLACEHOLDER_SUPERPASSWORD),
-				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.superPasswordSecret()))));
+				Matcher.quoteReplacement(StringUtils.defaultString(resolveSecret(account.superPassword()))));
 		}
 		catch (IOException e) {
 			log.error("Unable to resolve a Vault-backed credential.", e);

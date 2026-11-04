@@ -65,9 +65,9 @@ import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultableSecret;
 
 
 /**
@@ -132,13 +132,13 @@ public class Snmp extends Poller implements Client {
 	public Snmp(NetworkAddress address, int port, DeviceSnmpCommunity community, SecretResolver secrets) throws IOException {
 		if (community instanceof DeviceSnmpv1Community) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
-				new OctetString(resolveSecret(secrets, community.communitySecret())));
+				new OctetString(resolveSecret(secrets, community.community())));
 			this.target.setVersion(SnmpConstants.version1);
 			start();
 		}
 		else if (community instanceof DeviceSnmpv2cCommunity) {
 			this.target = new CommunityTarget<>(new UdpAddress(address.getInetAddress(), port),
-				new OctetString(resolveSecret(secrets, community.communitySecret())));
+				new OctetString(resolveSecret(secrets, community.community())));
 			this.target.setVersion(SnmpConstants.version2c);
 			start();
 		}
@@ -164,7 +164,7 @@ public class Snmp extends Poller implements Client {
 			else {
 				this.target.setSecurityLevel(SecurityLevel.AUTH_PRIV);
 			}
-			String v3Username = resolveSecret(secrets, v3Credentials.usernameSecret());
+			String v3Username = resolveSecret(secrets, v3Credentials.username());
 			this.target.setSecurityName(new OctetString(v3Username));
 
 			// Prepare transport
@@ -196,9 +196,9 @@ public class Snmp extends Poller implements Client {
 				new UsmUser(
 					new OctetString(v3Username),
 					hasAuth ? this.authProtocol : null,
-					hasAuth ? new OctetString(resolveSecret(secrets, v3Credentials.authKeySecret())) : null,
+					hasAuth ? new OctetString(resolveSecret(secrets, v3Credentials.authKey())) : null,
 					hasPriv ? this.privProtocol : null,
-					hasPriv ? new OctetString(resolveSecret(secrets, v3Credentials.privKeySecret())) : null));
+					hasPriv ? new OctetString(resolveSecret(secrets, v3Credentials.privKey())) : null));
 			SecurityModels.getInstance().addSecurityModel(usm);
 
 			start();
@@ -213,7 +213,7 @@ public class Snmp extends Poller implements Client {
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private static String resolveSecret(SecretResolver secrets, VaultableSecret secret) throws IOException {
+	private static String resolveSecret(SecretResolver secrets, Secret secret) throws IOException {
 		try {
 			return secrets.resolve(secret);
 		}

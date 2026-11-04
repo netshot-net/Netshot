@@ -1,6 +1,6 @@
 DeviceSnmpv1Community
 changeDate=null
-community=c
+community=null
 communityVaultInstanceId=null
 communityVaultPath=p
 deviceSpecific=false

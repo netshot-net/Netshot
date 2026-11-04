@@ -49,6 +49,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
@@ -91,7 +92,7 @@ class DeviceCreationServiceTest {
 		this.creationService = new DeviceCreationService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry(), dynamicGroups);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
-		this.sshAccountId = TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("secret").superPassword("enable")
+		this.sshAccountId = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))
 			.name("Lab SSH account").build()).id();
 	}
 
@@ -180,7 +181,8 @@ class DeviceCreationServiceTest {
 	@DisplayName("create() stores a device specific credential set and pins a global one")
 	void createWithCredentials() {
 		DeviceAccess ssh = access("ssh").toBuilder().globalCredentialSet(credentialRef(this.sshAccountId)).build();
-		DeviceAccess telnet = access("telnet").toBuilder().specificCredentialSet(DeviceTelnetAccount.builder().username("user").password("pass").superPassword("enable").name("ignored")
+		DeviceAccess telnet = access("telnet").toBuilder().specificCredentialSet(DeviceTelnetAccount.builder().username(Secret.local("user")).password(Secret.local("pass"))
+			.superPassword(Secret.local("enable")).name("ignored")
 			.build())
 			.build();
 		DeviceCreation creation = new DeviceCreation(false, this.nextAddress(), this.domainId, "CiscoIOS12",
@@ -197,7 +199,7 @@ class DeviceCreationServiceTest {
 	@Test
 	@DisplayName("create() with auto discovery submits a discovery task and creates no device")
 	void createAutoDiscover() {
-		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community("public").name("Lab SNMP")
+		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("Lab SNMP")
 			.mgmtDomain(Domain.reference(this.otherDomainId)).build());
 		String address = this.nextAddress();
 		Task task = this.creationService.create(new DeviceCreation(true, address, this.otherDomainId, "",
@@ -274,14 +276,16 @@ class DeviceCreationServiceTest {
 		DeviceAccess badAddress = access("ssh").toBuilder().address("not an address").build();
 		assertError(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(badAddress), null, null, null, AUTHOR)));
-		DeviceAccess unknownAccess = access("carrier-pigeon").toBuilder().specificCredentialSet(DeviceTelnetAccount.builder().username("u").password("p").superPassword("e").name("n")
+		DeviceAccess unknownAccess = access("carrier-pigeon").toBuilder().specificCredentialSet(DeviceTelnetAccount.builder().username(Secret.local("u")).password(Secret.local("p"))
+			.superPassword(Secret.local("e")).name("n")
 			.build()).build();
 		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(unknownAccess), null, null, null, AUTHOR)));
-		DeviceAccess wrongKind = access("ssh").toBuilder().specificCredentialSet(DeviceSnmpv2cCommunity.builder().community("public").name("n").build()).build();
+		DeviceAccess wrongKind = access("ssh").toBuilder().specificCredentialSet(DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("n").build()).build();
 		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(wrongKind), null, null, null, AUTHOR)));
-		DeviceAccess both = access("ssh").toBuilder().specificCredentialSet(DeviceSshAccount.builder().username("u").password("p").superPassword("e").name("n").build())
+		DeviceAccess both = access("ssh").toBuilder().specificCredentialSet(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p"))
+			.superPassword(Secret.local("e")).name("n").build())
 			.globalCredentialSet(credentialRef(this.sshAccountId)).build();
 		assertError(ErrorCode.NETSHOT_INVALID_CREDENTIALS, () -> this.creationService.create(
 			new DeviceCreation(false, address, this.domainId, "CiscoIOS12", List.of(both), null, null, null, AUTHOR)));

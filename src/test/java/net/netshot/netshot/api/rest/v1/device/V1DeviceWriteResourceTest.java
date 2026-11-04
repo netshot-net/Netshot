@@ -38,6 +38,7 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
 import net.netshot.netshot.testing.ApiTest;
@@ -114,8 +115,8 @@ public class V1DeviceWriteResourceTest {
 		Assertions.assertEquals(2222, ssh.port());
 		DeviceSshAccount specific = (DeviceSshAccount) ssh.specificCredentialSet();
 		Assertions.assertTrue(specific.deviceSpecific());
-		Assertions.assertEquals("u", specific.username());
-		Assertions.assertEquals("p", specific.password());
+		Assertions.assertEquals(Secret.local("u"), specific.username());
+		Assertions.assertEquals(Secret.local("p"), specific.password());
 		// The task is stored, and the secrets are never returned
 		Assertions.assertNotNull(TestTasks.find(task.get("id").asLong()));
 		Answer got = this.admin.get("/devices/" + device.id());
@@ -127,7 +128,7 @@ public class V1DeviceWriteResourceTest {
 	@DisplayName("Add with driver options and a global credential set")
 	void addWithOptionsAndGlobalCredentials() throws Exception {
 		DeviceSshAccount global = (DeviceSshAccount) TestDevices.addCredentialSet(DeviceSshAccount.builder().name("Global-" + System.nanoTime())
-			.username("g").password("gp").build());
+			.username(Secret.local("g")).password(Secret.local("gp")).build());
 		Answer answer = this.admin.post("/devices", """
 			{"mgmtAddress": "10.99.0.2", "mgmtDomain": %d, "driver": "CheckpointGaia", "options": {"fullBackup": false},
 			"accesses": [{"accessName": "ssh", "globalCredentialSet": %d}]}""".formatted(this.paris.id(), global.id()));
@@ -151,7 +152,7 @@ public class V1DeviceWriteResourceTest {
 		Answer noCommunity = this.admin.post("/devices", body);
 		Assertions.assertEquals(400, noCommunity.status(), noCommunity.toString());
 		Assertions.assertEquals("NETSHOT_INVALID_CREDENTIALS", noCommunity.json().get("code").asText());
-		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().name("Public-" + System.nanoTime()).community("public").build());
+		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().name("Public-" + System.nanoTime()).community(Secret.local("public")).build());
 		Answer answer = this.admin.post("/devices", body);
 		Assertions.assertEquals(202, answer.status(), answer.toString());
 		JsonNode task = answer.json();
@@ -252,9 +253,9 @@ public class V1DeviceWriteResourceTest {
 		Device stored = TestDevices.find(this.router1.id());
 		Assertions.assertEquals(Set.of("one", "two"), stored.tags());
 		DeviceSshAccount specific = (DeviceSshAccount) stored.getDeviceAccess("ssh").specificCredentialSet();
-		Assertions.assertEquals("user", specific.username());
-		Assertions.assertEquals("pass", specific.password());
-		Assertions.assertEquals("pass", specific.superPassword());
+		Assertions.assertEquals(Secret.local("user"), specific.username());
+		Assertions.assertEquals(Secret.local("pass"), specific.password());
+		Assertions.assertEquals(Secret.local("pass"), specific.superPassword());
 		Assertions.assertEquals(((DeviceSshAccount) this.router1.getDeviceAccess("ssh").specificCredentialSet()).id(), specific.id());
 		// Read only data is kept
 		Assertions.assertEquals("router00001", stored.name());
@@ -272,8 +273,8 @@ public class V1DeviceWriteResourceTest {
 			{"accessName": "ssh", "specificCredentialSet": {"type": "SSH", "username": "other", "password": "newpass", "superPassword": null}}"""));
 		Assertions.assertEquals(200, changed.status(), changed.toString());
 		DeviceSshAccount specific = (DeviceSshAccount) TestDevices.find(this.router1.id()).getDeviceAccess("ssh").specificCredentialSet();
-		Assertions.assertEquals("other", specific.username());
-		Assertions.assertEquals("newpass", specific.password());
+		Assertions.assertEquals(Secret.local("other"), specific.username());
+		Assertions.assertEquals(Secret.local("newpass"), specific.password());
 		Assertions.assertNull(specific.superPassword());
 		// Another type of credentials gives another credential set, the old one is removed
 		Answer telnet = this.admin.put(path, base.formatted("""
@@ -281,7 +282,7 @@ public class V1DeviceWriteResourceTest {
 		Assertions.assertEquals(200, telnet.status(), telnet.toString());
 		Device stored = TestDevices.find(this.router1.id());
 		Assertions.assertNull(stored.getDeviceAccess("ssh"));
-		Assertions.assertEquals("tp", ((DeviceTelnetAccount) stored.getDeviceAccess("telnet")
+		Assertions.assertEquals(Secret.local("tp"), ((DeviceTelnetAccount) stored.getDeviceAccess("telnet")
 			.specificCredentialSet()).password());
 		Assertions.assertNull(TestDevices.findCredentialSet(specific.id()));
 		// A PUT without accesses removes them
@@ -320,7 +321,7 @@ public class V1DeviceWriteResourceTest {
 		Assertions.assertEquals("172.16.0.1", patched.json().get("mgmtAddress").asText());
 		Device stored = TestDevices.find(this.router1.id());
 		Assertions.assertEquals(this.lyon.id(), stored.mgmtDomain().id());
-		Assertions.assertEquals("pass", ((DeviceSshAccount) stored.getDeviceAccess("ssh").specificCredentialSet()).password());
+		Assertions.assertEquals(Secret.local("pass"), ((DeviceSshAccount) stored.getDeviceAccess("ssh").specificCredentialSet()).password());
 		Assertions.assertEquals(Set.of(), stored.tags());
 		// A list is replaced as a whole, a secret not given is kept
 		Answer accesses = this.admin.patch(path, """
@@ -328,8 +329,8 @@ public class V1DeviceWriteResourceTest {
 		Assertions.assertEquals(200, accesses.status(), accesses.toString());
 		DeviceAccess ssh = TestDevices.find(this.router1.id()).getDeviceAccess("ssh");
 		Assertions.assertEquals(2022, ssh.port());
-		Assertions.assertEquals("patched", ((DeviceSshAccount) ssh.specificCredentialSet()).username());
-		Assertions.assertEquals("pass", ((DeviceSshAccount) ssh.specificCredentialSet()).password());
+		Assertions.assertEquals(Secret.local("patched"), ((DeviceSshAccount) ssh.specificCredentialSet()).username());
+		Assertions.assertEquals(Secret.local("pass"), ((DeviceSshAccount) ssh.specificCredentialSet()).password());
 		Assertions.assertEquals(400, this.admin.patch(path, "{\"mgmtAddress\": null}").status());
 		Assertions.assertEquals(400, this.admin.patch(path, "[]").status());
 		Assertions.assertEquals(404, this.admin.patch("/devices/" + TestServer.UNKNOWN_ID, "{}").status());

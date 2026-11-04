@@ -43,6 +43,8 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
 import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 
 /**
@@ -74,6 +76,32 @@ public class CredentialSetRepository {
 	}
 
 	/**
+	 * Reads a field whose local value is stored in clear text (the username).
+	 *
+	 * @param r the record
+	 * @param value the column of the local value
+	 * @param vaultInstanceId the column of the Vault instance
+	 * @param vaultPath the column of the Vault path
+	 * @return the field, or null if it is not set
+	 */
+	private static Secret clear(Record r, Field<String> value, Field<Long> vaultInstanceId, Field<String> vaultPath) {
+		return Secret.of(Secret.local(r.get(value)), r.get(vaultInstanceId), r.get(vaultPath));
+	}
+
+	/**
+	 * Reads a field whose local value is stored encrypted (it is not decrypted).
+	 *
+	 * @param r the record
+	 * @param value the column of the local value
+	 * @param vaultInstanceId the column of the Vault instance
+	 * @param vaultPath the column of the Vault path
+	 * @return the field, or null if it is not set
+	 */
+	private static Secret encrypted(Record r, Field<LocalSecret> value, Field<Long> vaultInstanceId, Field<String> vaultPath) {
+		return Secret.of(r.get(value), r.get(vaultInstanceId), r.get(vaultPath));
+	}
+
+	/**
 	 * Builds a credential set from the columns of (possibly aliased, possibly outer joined) tables.
 	 *
 	 * @param r the record
@@ -96,32 +124,32 @@ public class CredentialSetRepository {
 		boolean deviceSpecific = Boolean.TRUE.equals(r.get(cs.DEVICE_SPECIFIC));
 		return switch (type) {
 			case "DeviceSshAccount" -> new DeviceSshAccount(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.USERNAME), r.get(cs.USERNAME_VAULT_INSTANCE_ID), r.get(cs.USERNAME_VAULT_PATH),
-				r.get(cs.PASSWORD), r.get(cs.PASSWORD_VAULT_INSTANCE_ID), r.get(cs.PASSWORD_VAULT_PATH),
-				r.get(cs.SUPER_PASSWORD), r.get(cs.SUPER_PASSWORD_VAULT_INSTANCE_ID), r.get(cs.SUPER_PASSWORD_VAULT_PATH));
+				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
+				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
+				encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH));
 			case "DeviceSshKeyAccount" -> new DeviceSshKeyAccount(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.USERNAME), r.get(cs.USERNAME_VAULT_INSTANCE_ID), r.get(cs.USERNAME_VAULT_PATH),
-				r.get(cs.PASSWORD), r.get(cs.PASSWORD_VAULT_INSTANCE_ID), r.get(cs.PASSWORD_VAULT_PATH),
-				r.get(cs.SUPER_PASSWORD), r.get(cs.SUPER_PASSWORD_VAULT_INSTANCE_ID), r.get(cs.SUPER_PASSWORD_VAULT_PATH),
-				r.get(cs.PRIVATE_KEY), r.get(cs.PRIVATE_KEY_VAULT_INSTANCE_ID), r.get(cs.PRIVATE_KEY_VAULT_PATH));
+				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
+				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
+				encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH),
+				encrypted(r, cs.PRIVATE_KEY, cs.PRIVATE_KEY_VAULT_INSTANCE_ID, cs.PRIVATE_KEY_VAULT_PATH));
 			case "DeviceTelnetAccount" -> new DeviceTelnetAccount(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.USERNAME), r.get(cs.USERNAME_VAULT_INSTANCE_ID), r.get(cs.USERNAME_VAULT_PATH),
-				r.get(cs.PASSWORD), r.get(cs.PASSWORD_VAULT_INSTANCE_ID), r.get(cs.PASSWORD_VAULT_PATH),
-				r.get(cs.SUPER_PASSWORD), r.get(cs.SUPER_PASSWORD_VAULT_INSTANCE_ID), r.get(cs.SUPER_PASSWORD_VAULT_PATH));
+				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
+				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH),
+				encrypted(r, cs.SUPER_PASSWORD, cs.SUPER_PASSWORD_VAULT_INSTANCE_ID, cs.SUPER_PASSWORD_VAULT_PATH));
 			case "DeviceHttpAccount" -> new DeviceHttpAccount(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.USERNAME), r.get(cs.USERNAME_VAULT_INSTANCE_ID), r.get(cs.USERNAME_VAULT_PATH),
-				r.get(cs.PASSWORD), r.get(cs.PASSWORD_VAULT_INSTANCE_ID), r.get(cs.PASSWORD_VAULT_PATH));
+				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
+				encrypted(r, cs.PASSWORD, cs.PASSWORD_VAULT_INSTANCE_ID, cs.PASSWORD_VAULT_PATH));
 			case "DeviceSnmpv1Community" -> new DeviceSnmpv1Community(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.COMMUNITY), r.get(cs.COMMUNITY_VAULT_INSTANCE_ID), r.get(cs.COMMUNITY_VAULT_PATH));
+				encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH));
 			case "DeviceSnmpv2cCommunity" -> new DeviceSnmpv2cCommunity(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.COMMUNITY), r.get(cs.COMMUNITY_VAULT_INSTANCE_ID), r.get(cs.COMMUNITY_VAULT_PATH));
+				encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH));
 			case "DeviceSnmpv3Community" -> new DeviceSnmpv3Community(id, version, changeDate, name, domain, deviceSpecific,
-				r.get(cs.COMMUNITY), r.get(cs.COMMUNITY_VAULT_INSTANCE_ID), r.get(cs.COMMUNITY_VAULT_PATH),
-				r.get(cs.USERNAME), r.get(cs.USERNAME_VAULT_INSTANCE_ID), r.get(cs.USERNAME_VAULT_PATH),
+				encrypted(r, cs.COMMUNITY, cs.COMMUNITY_VAULT_INSTANCE_ID, cs.COMMUNITY_VAULT_PATH),
+				clear(r, cs.USERNAME, cs.USERNAME_VAULT_INSTANCE_ID, cs.USERNAME_VAULT_PATH),
 				r.get(cs.AUTH_TYPE) == null ? null : AuthProtocol.valueOf(r.get(cs.AUTH_TYPE)),
-				r.get(cs.AUTH_KEY), r.get(cs.AUTH_KEY_VAULT_INSTANCE_ID), r.get(cs.AUTH_KEY_VAULT_PATH),
+				encrypted(r, cs.AUTH_KEY, cs.AUTH_KEY_VAULT_INSTANCE_ID, cs.AUTH_KEY_VAULT_PATH),
 				r.get(cs.PRIV_TYPE) == null ? null : PrivProtocol.valueOf(r.get(cs.PRIV_TYPE)),
-				r.get(cs.PRIV_KEY), r.get(cs.PRIV_KEY_VAULT_INSTANCE_ID), r.get(cs.PRIV_KEY_VAULT_PATH));
+				encrypted(r, cs.PRIV_KEY, cs.PRIV_KEY_VAULT_INSTANCE_ID, cs.PRIV_KEY_VAULT_PATH));
 			default -> throw new IllegalStateException("Unknown type of credential set '%s'".formatted(type));
 		};
 	}
@@ -137,6 +165,39 @@ public class CredentialSetRepository {
 	 */
 	private static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+
+	/**
+	 * Sets the columns of a field whose local value is stored in clear text (the username).
+	 *
+	 * @param values the values of the columns
+	 * @param value the column of the local value
+	 * @param vaultInstanceId the column of the Vault instance
+	 * @param vaultPath the column of the Vault path
+	 * @param secret the field
+	 */
+	private static void putClear(Map<Field<?>, Object> values, Field<String> value, Field<Long> vaultInstanceId, Field<String> vaultPath,
+			Secret secret) {
+		LocalSecret local = Secret.localValue(secret);
+		values.put(value, local == null ? null : local.reveal());
+		values.put(vaultInstanceId, Secret.vaultInstanceId(secret));
+		values.put(vaultPath, Secret.vaultPath(secret));
+	}
+
+	/**
+	 * Sets the columns of a field whose local value is stored encrypted.
+	 *
+	 * @param values the values of the columns
+	 * @param value the column of the local value
+	 * @param vaultInstanceId the column of the Vault instance
+	 * @param vaultPath the column of the Vault path
+	 * @param secret the field
+	 */
+	private static void putEncrypted(Map<Field<?>, Object> values, Field<LocalSecret> value, Field<Long> vaultInstanceId,
+			Field<String> vaultPath, Secret secret) {
+		values.put(value, Secret.localValue(secret));
+		values.put(vaultInstanceId, Secret.vaultInstanceId(secret));
+		values.put(vaultPath, Secret.vaultPath(secret));
 	}
 
 	/**
@@ -159,46 +220,26 @@ public class CredentialSetRepository {
 		values.put(CS.MGMT_DOMAIN, credentialSet.mgmtDomain() == null ? null : credentialSet.mgmtDomain().id());
 		values.put(CS.DEVICE_SPECIFIC, credentialSet.deviceSpecific());
 		if (credentialSet instanceof DeviceCliAccount cli) {
-			values.put(CS.USERNAME, cli.username());
-			values.put(CS.USERNAME_VAULT_INSTANCE_ID, cli.usernameVaultInstanceId());
-			values.put(CS.USERNAME_VAULT_PATH, cli.usernameVaultPath());
-			values.put(CS.PASSWORD, cli.password());
-			values.put(CS.PASSWORD_VAULT_INSTANCE_ID, cli.passwordVaultInstanceId());
-			values.put(CS.PASSWORD_VAULT_PATH, cli.passwordVaultPath());
-			values.put(CS.SUPER_PASSWORD, cli.superPassword());
-			values.put(CS.SUPER_PASSWORD_VAULT_INSTANCE_ID, cli.superPasswordVaultInstanceId());
-			values.put(CS.SUPER_PASSWORD_VAULT_PATH, cli.superPasswordVaultPath());
+			putClear(values, CS.USERNAME, CS.USERNAME_VAULT_INSTANCE_ID, CS.USERNAME_VAULT_PATH, cli.username());
+			putEncrypted(values, CS.PASSWORD, CS.PASSWORD_VAULT_INSTANCE_ID, CS.PASSWORD_VAULT_PATH, cli.password());
+			putEncrypted(values, CS.SUPER_PASSWORD, CS.SUPER_PASSWORD_VAULT_INSTANCE_ID, CS.SUPER_PASSWORD_VAULT_PATH, cli.superPassword());
 		}
 		if (credentialSet instanceof DeviceSshKeyAccount key) {
-			values.put(CS.PRIVATE_KEY, key.privateKey());
-			values.put(CS.PRIVATE_KEY_VAULT_INSTANCE_ID, key.privateKeyVaultInstanceId());
-			values.put(CS.PRIVATE_KEY_VAULT_PATH, key.privateKeyVaultPath());
+			putEncrypted(values, CS.PRIVATE_KEY, CS.PRIVATE_KEY_VAULT_INSTANCE_ID, CS.PRIVATE_KEY_VAULT_PATH, key.privateKey());
 		}
 		if (credentialSet instanceof DeviceHttpAccount http) {
-			values.put(CS.USERNAME, http.username());
-			values.put(CS.USERNAME_VAULT_INSTANCE_ID, http.usernameVaultInstanceId());
-			values.put(CS.USERNAME_VAULT_PATH, http.usernameVaultPath());
-			values.put(CS.PASSWORD, http.password());
-			values.put(CS.PASSWORD_VAULT_INSTANCE_ID, http.passwordVaultInstanceId());
-			values.put(CS.PASSWORD_VAULT_PATH, http.passwordVaultPath());
+			putClear(values, CS.USERNAME, CS.USERNAME_VAULT_INSTANCE_ID, CS.USERNAME_VAULT_PATH, http.username());
+			putEncrypted(values, CS.PASSWORD, CS.PASSWORD_VAULT_INSTANCE_ID, CS.PASSWORD_VAULT_PATH, http.password());
 		}
 		if (credentialSet instanceof DeviceSnmpCommunity snmp) {
-			values.put(CS.COMMUNITY, snmp.community());
-			values.put(CS.COMMUNITY_VAULT_INSTANCE_ID, snmp.communityVaultInstanceId());
-			values.put(CS.COMMUNITY_VAULT_PATH, snmp.communityVaultPath());
+			putEncrypted(values, CS.COMMUNITY, CS.COMMUNITY_VAULT_INSTANCE_ID, CS.COMMUNITY_VAULT_PATH, snmp.community());
 		}
 		if (credentialSet instanceof DeviceSnmpv3Community v3) {
-			values.put(CS.USERNAME, v3.username());
-			values.put(CS.USERNAME_VAULT_INSTANCE_ID, v3.usernameVaultInstanceId());
-			values.put(CS.USERNAME_VAULT_PATH, v3.usernameVaultPath());
+			putClear(values, CS.USERNAME, CS.USERNAME_VAULT_INSTANCE_ID, CS.USERNAME_VAULT_PATH, v3.username());
 			values.put(CS.AUTH_TYPE, v3.authType() == null ? null : v3.authType().name());
-			values.put(CS.AUTH_KEY, v3.authKey());
-			values.put(CS.AUTH_KEY_VAULT_INSTANCE_ID, v3.authKeyVaultInstanceId());
-			values.put(CS.AUTH_KEY_VAULT_PATH, v3.authKeyVaultPath());
+			putEncrypted(values, CS.AUTH_KEY, CS.AUTH_KEY_VAULT_INSTANCE_ID, CS.AUTH_KEY_VAULT_PATH, v3.authKey());
 			values.put(CS.PRIV_TYPE, v3.privType() == null ? null : v3.privType().name());
-			values.put(CS.PRIV_KEY, v3.privKey());
-			values.put(CS.PRIV_KEY_VAULT_INSTANCE_ID, v3.privKeyVaultInstanceId());
-			values.put(CS.PRIV_KEY_VAULT_PATH, v3.privKeyVaultPath());
+			putEncrypted(values, CS.PRIV_KEY, CS.PRIV_KEY_VAULT_INSTANCE_ID, CS.PRIV_KEY_VAULT_PATH, v3.privKey());
 		}
 		return values;
 	}

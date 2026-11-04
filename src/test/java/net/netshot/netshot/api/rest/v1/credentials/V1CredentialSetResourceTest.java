@@ -37,6 +37,8 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.platform.database.schema.Tables;
+import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.platform.secret.VaultSecret;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestServer;
@@ -140,8 +142,8 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertFalse(cs.has("password"));
 		Assertions.assertFalse(cs.has("superPassword"));
 		DeviceSshAccount stored = (DeviceSshAccount) TestDevices.findCredentialSet(id);
-		Assertions.assertEquals(PASSWORD, stored.password());
-		Assertions.assertEquals(ENABLE, stored.superPassword());
+		Assertions.assertEquals(Secret.local(PASSWORD), stored.password());
+		Assertions.assertEquals(Secret.local(ENABLE), stored.superPassword());
 
 		// The domain can also be given as an object, as read
 		Answer asObject = this.admin.post("/credential-sets", ssh("Other", "\"mgmtDomain\": {\"id\": " + domainId + ", \"name\": \"x\"}"));
@@ -212,7 +214,7 @@ public class V1CredentialSetResourceTest {
 		this.create(ssh("Beta SSH", null));
 		this.create("{\"name\": \"Gamma SNMP\", \"type\": \"SNMP_V2C\", \"community\": \"" + COMMUNITY + "\"}");
 		TestDevices.addCredentialSet(DeviceSshAccount.builder().name("DEVICESPECIFIC-1").deviceSpecific(true)
-			.username("specific-user").password("x").build());
+			.username(Secret.local("specific-user")).password(Secret.local("x")).build());
 
 		Answer all = this.admin.get("/credential-sets");
 		Assertions.assertEquals(200, all.status(), all.toString());
@@ -267,15 +269,15 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertEquals(1, renamed.json().get("version").asInt());
 		Assertions.assertEquals("\"1\"", renamed.header("ETag"));
 		DeviceSshKeyAccount stored = (DeviceSshKeyAccount) TestDevices.findCredentialSet(id);
-		Assertions.assertEquals("admin", stored.username());
-		Assertions.assertEquals(KEY, stored.privateKey());
-		Assertions.assertEquals(PASSWORD, stored.password());
-		Assertions.assertEquals(ENABLE, stored.superPassword());
+		Assertions.assertEquals(Secret.local("admin"), stored.username());
+		Assertions.assertEquals(Secret.local(KEY), stored.privateKey());
+		Assertions.assertEquals(Secret.local(PASSWORD), stored.password());
+		Assertions.assertEquals(Secret.local(ENABLE), stored.superPassword());
 
 		// A new value replaces the stored one
 		Assertions.assertEquals(200, this.admin.put("/credential-sets/" + id,
 			"{\"name\": \"Renamed\", \"type\": \"SSH_KEY\", \"superPassword\": \"new-enable\"}").status());
-		Assertions.assertEquals("new-enable", ((DeviceSshKeyAccount) TestDevices.findCredentialSet(id)).superPassword());
+		Assertions.assertEquals(Secret.local("new-enable"), ((DeviceSshKeyAccount) TestDevices.findCredentialSet(id)).superPassword());
 
 		// null clears the optional secrets
 		Answer cleared = this.admin.put("/credential-sets/" + id,
@@ -287,13 +289,13 @@ public class V1CredentialSetResourceTest {
 		stored = (DeviceSshKeyAccount) TestDevices.findCredentialSet(id);
 		Assertions.assertNull(stored.superPassword());
 		Assertions.assertNull(stored.password());
-		Assertions.assertEquals(KEY, stored.privateKey());
+		Assertions.assertEquals(Secret.local(KEY), stored.privateKey());
 
 		// ... but not the required ones
 		Answer required = this.admin.put("/credential-sets/" + id, "{\"name\": \"Renamed\", \"type\": \"SSH_KEY\", \"privateKey\": null}");
 		Assertions.assertEquals(400, required.status(), required.toString());
 		Assertions.assertEquals("privateKey", required.json().get("errors").get(0).get("field").asText());
-		Assertions.assertEquals(KEY, ((DeviceSshKeyAccount) TestDevices.findCredentialSet(id)).privateKey());
+		Assertions.assertEquals(Secret.local(KEY), ((DeviceSshKeyAccount) TestDevices.findCredentialSet(id)).privateKey());
 
 		// The type can't change, nor the type be unknown
 		Answer type = this.admin.put("/credential-sets/" + id, ssh("Renamed", null));
@@ -324,7 +326,7 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertFalse(patched.json().get("hasPrivKey").asBoolean());
 		Assertions.assertTrue(patched.json().get("hasAuthKey").asBoolean());
 		DeviceSnmpv3Community stored = (DeviceSnmpv3Community) TestDevices.findCredentialSet(id);
-		Assertions.assertEquals(AUTH_KEY, stored.authKey());
+		Assertions.assertEquals(Secret.local(AUTH_KEY), stored.authKey());
 		Assertions.assertNull(stored.privKey());
 
 		Answer bad = this.admin.patch("/credential-sets/" + id, "{\"authType\": \"NONE\", \"privType\": \"AES128\", \"privKey\": \"k\"}");
@@ -344,8 +346,8 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertEquals("root", renamed.json().get("username").asText());
 		Assertions.assertEquals(domainId, renamed.json().get("mgmtDomain").get("id").asLong());
 		DeviceSshAccount stored = (DeviceSshAccount) TestDevices.findCredentialSet(id);
-		Assertions.assertEquals(PASSWORD, stored.password());
-		Assertions.assertEquals(ENABLE, stored.superPassword());
+		Assertions.assertEquals(Secret.local(PASSWORD), stored.password());
+		Assertions.assertEquals(Secret.local(ENABLE), stored.superPassword());
 
 		// The domain: another one, then none
 		long otherDomain = TestDevices.addDomain("Lyon", null).id();
@@ -359,7 +361,7 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertFalse(cleared.json().get("hasSuperPassword").asBoolean());
 		Assertions.assertNull(((DeviceSshAccount) TestDevices.findCredentialSet(id)).superPassword());
 		Assertions.assertEquals(400, this.admin.patch("/credential-sets/" + id, "{\"password\": null}").status());
-		Assertions.assertEquals(PASSWORD, ((DeviceSshAccount) TestDevices.findCredentialSet(id)).password());
+		Assertions.assertEquals(Secret.local(PASSWORD), ((DeviceSshAccount) TestDevices.findCredentialSet(id)).password());
 
 		// Vault locations
 		long vaultId = this.createVault("Vault");
@@ -371,22 +373,22 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertEquals("Vault", vaulted.json().get("passwordVault").get("vaultInstance").get("name").asText());
 		Assertions.assertEquals("app/creds/password", vaulted.json().get("passwordVault").get("path").asText());
 		stored = (DeviceSshAccount) TestDevices.findCredentialSet(id);
-		Assertions.assertNull(stored.password());
-		Assertions.assertEquals(vaultId, stored.passwordVaultInstanceId());
+		Assertions.assertInstanceOf(VaultSecret.class, stored.password(), "the local value is dropped");
+		Assertions.assertEquals(vaultId, Secret.vaultInstanceId(stored.password()));
 
 		// Unrelated changes keep the Vault location; a value replaces it
 		Assertions.assertEquals(200, this.admin.patch("/credential-sets/" + id, "{\"name\": \"Still vaulted\"}").status());
-		Assertions.assertEquals(vaultId, ((DeviceSshAccount) TestDevices.findCredentialSet(id)).passwordVaultInstanceId());
+		Assertions.assertEquals(vaultId, Secret.vaultInstanceId(((DeviceSshAccount) TestDevices.findCredentialSet(id)).password()));
 		Assertions.assertEquals(200, this.admin.put("/credential-sets/" + id,
 			"{\"name\": \"Still vaulted\", \"type\": \"SSH\", \"passwordVault\": {\"vaultInstance\": {\"id\": " + vaultId + "}, \"path\": \"a/b\"}}")
 			.status());
-		Assertions.assertEquals("a/b", ((DeviceSshAccount) TestDevices.findCredentialSet(id)).passwordVaultPath());
+		Assertions.assertEquals("a/b", Secret.vaultPath(((DeviceSshAccount) TestDevices.findCredentialSet(id)).password()));
 		Answer local = this.admin.patch("/credential-sets/" + id, "{\"password\": \"" + PASSWORD + "\"}");
 		Assertions.assertEquals(200, local.status(), local.toString());
 		Assertions.assertTrue(local.json().get("passwordVault").isNull());
 		stored = (DeviceSshAccount) TestDevices.findCredentialSet(id);
-		Assertions.assertEquals(PASSWORD, stored.password());
-		Assertions.assertNull(stored.passwordVaultInstanceId());
+		Assertions.assertEquals(Secret.local(PASSWORD), stored.password());
+		Assertions.assertNull(Secret.vaultInstanceId(stored.password()));
 
 		// The Vault instance is referenced: it can't be deleted
 		Assertions.assertEquals(200, this.admin.patch("/credential-sets/" + id,
@@ -415,7 +417,7 @@ public class V1CredentialSetResourceTest {
 		Assertions.assertEquals("NETSHOT_CREDENTIALS_NOT_FOUND", again.json().get("code").asText());
 
 		long specific = TestDevices.addCredentialSet(DeviceSshAccount.builder().name("DEVICESPECIFIC-2").deviceSpecific(true)
-			.username("u").password(PASSWORD).build()).id();
+			.username(Secret.local("u")).password(Secret.local(PASSWORD)).build()).id();
 		Answer read = this.admin.get("/credential-sets/" + specific);
 		Assertions.assertEquals(200, read.status(), read.toString());
 		Assertions.assertTrue(read.json().get("deviceSpecific").asBoolean());
@@ -430,7 +432,7 @@ public class V1CredentialSetResourceTest {
 	@DisplayName("Selection of fields never gives a secret")
 	void selection() throws Exception {
 		DeviceSnmpv2cCommunity community = (DeviceSnmpv2cCommunity) TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder()
-			.name("Existing").community(COMMUNITY).build());
+			.name("Existing").community(Secret.local(COMMUNITY)).build());
 		Answer answer = this.admin.get("/credential-sets/" + community.id() + "?fields=name,hasCommunity");
 		Assertions.assertEquals(Set.of("id", "name", "hasCommunity"), names(answer.json()));
 		this.assertNoSecret(answer);

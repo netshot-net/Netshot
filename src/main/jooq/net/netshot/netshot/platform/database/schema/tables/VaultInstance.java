@@ -9,12 +9,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import net.netshot.netshot.platform.database.EncryptedStringConverter;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet.DeviceCredentialSetPath;
 import net.netshot.netshot.platform.database.schema.tables.records.VaultInstanceRecord;
+import net.netshot.netshot.platform.secret.LocalSecret;
 
 import org.jooq.Check;
 import org.jooq.Condition;
@@ -130,7 +131,7 @@ public class VaultInstance extends TableImpl<VaultInstanceRecord> {
     /**
      * The column <code>vault_instance.app_role_secret_id</code>.
      */
-    public final TableField<VaultInstanceRecord, String> APP_ROLE_SECRET_ID = createField(DSL.name("app_role_secret_id"), SQLDataType.VARCHAR(1000), this, "", new EncryptedStringConverter());
+    public final TableField<VaultInstanceRecord, LocalSecret> APP_ROLE_SECRET_ID = createField(DSL.name("app_role_secret_id"), SQLDataType.VARCHAR(1000), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>vault_instance.jwt_mount_path</code>.
@@ -150,7 +151,7 @@ public class VaultInstance extends TableImpl<VaultInstanceRecord> {
     /**
      * The column <code>vault_instance.jwt_client_secret</code>.
      */
-    public final TableField<VaultInstanceRecord, String> JWT_CLIENT_SECRET = createField(DSL.name("jwt_client_secret"), SQLDataType.VARCHAR(1000), this, "", new EncryptedStringConverter());
+    public final TableField<VaultInstanceRecord, LocalSecret> JWT_CLIENT_SECRET = createField(DSL.name("jwt_client_secret"), SQLDataType.VARCHAR(1000), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>vault_instance.jwt_vault_role</code>.

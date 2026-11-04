@@ -65,6 +65,7 @@ import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
@@ -101,21 +102,21 @@ class DeviceDtoTest {
 		StaticDeviceGroup fixed = StaticDeviceGroup.builder().id(101).name("Static").folder("")
 			.changeDate(Instant.ofEpochMilli(1_600_000_300_000L)).build();
 
-		DeviceSnmpv1Community snmp1 = DeviceSnmpv1Community.builder().id(1).community("public1").name("SNMP v1")
-			.communityVaultInstanceId(5L).communityVaultPath("path/community1").build();
-		DeviceSnmpv2cCommunity snmp2 = DeviceSnmpv2cCommunity.builder().id(2).community("public2").name("SNMP v2").mgmtDomain(domain).build();
+		DeviceSnmpv1Community snmp1 = DeviceSnmpv1Community.builder().id(1).community(Secret.local("public1")).name("SNMP v1")
+			.community(Secret.vault(5L, "path/community1")).build();
+		DeviceSnmpv2cCommunity snmp2 = DeviceSnmpv2cCommunity.builder().id(2).community(Secret.local("public2")).name("SNMP v2").mgmtDomain(domain).build();
 		DeviceSnmpv3Community snmp3 = DeviceSnmpv3Community.builder().id(3).name("SNMP v3").mgmtDomain(domain)
-			.username("user").usernameVaultInstanceId(6L).usernameVaultPath("path/user")
-			.authType(AuthProtocol.HMAC192SHA256).authKey("authkey").authKeyVaultInstanceId(7L).authKeyVaultPath("path/auth")
-			.privType(PrivProtocol.AES256).privKey("privkey").privKeyVaultInstanceId(8L).privKeyVaultPath("path/priv").build();
-		DeviceSshAccount ssh = DeviceSshAccount.builder().id(4).username("sshuser").password("sshpass").superPassword("sshenable").name("SSH")
-			.passwordVaultInstanceId(9L).passwordVaultPath("path/pass").build();
-		DeviceSshKeyAccount sshKey = DeviceSshKeyAccount.builder().id(5).username("keyuser").privateKey("PRIVATE KEY").password("passphrase")
-			.superPassword("keyenable").name("SSH Key").mgmtDomain(domain).privateKeyVaultInstanceId(10L).privateKeyVaultPath("path/key").build();
-		DeviceTelnetAccount telnet = DeviceTelnetAccount.builder().id(6).username("telnetuser").password("telnetpass").superPassword("telnetenable")
+			.username(Secret.local("user")).username(Secret.vault(6L, "path/user"))
+			.authType(AuthProtocol.HMAC192SHA256).authKey(Secret.local("authkey")).authKey(Secret.vault(7L, "path/auth"))
+			.privType(PrivProtocol.AES256).privKey(Secret.local("privkey")).privKey(Secret.vault(8L, "path/priv")).build();
+		DeviceSshAccount ssh = DeviceSshAccount.builder().id(4).username(Secret.local("sshuser")).password(Secret.local("sshpass")).superPassword(Secret.local("sshenable")).name("SSH")
+			.password(Secret.vault(9L, "path/pass")).build();
+		DeviceSshKeyAccount sshKey = DeviceSshKeyAccount.builder().id(5).username(Secret.local("keyuser")).privateKey(Secret.local("PRIVATE KEY")).password(Secret.local("passphrase"))
+			.superPassword(Secret.local("keyenable")).name("SSH Key").mgmtDomain(domain).privateKey(Secret.vault(10L, "path/key")).build();
+		DeviceTelnetAccount telnet = DeviceTelnetAccount.builder().id(6).username(Secret.local("telnetuser")).password(Secret.local("telnetpass")).superPassword(Secret.local("telnetenable"))
 			.name("Telnet").build();
-		DeviceHttpAccount http = DeviceHttpAccount.builder().id(7).username("httpuser").password("httppass").name("HTTP").deviceSpecific(true)
-			.usernameVaultInstanceId(11L).usernameVaultPath("path/http").build();
+		DeviceHttpAccount http = DeviceHttpAccount.builder().id(7).username(Secret.local("httpuser")).password(Secret.local("httppass")).name("HTTP").deviceSpecific(true)
+			.username(Secret.vault(11L, "path/http")).build();
 
 		List<DeviceAccess> accesses = new ArrayList<>(List.of(
 			access("a1", snmp1, true),
@@ -268,9 +269,8 @@ class DeviceDtoTest {
 		for (RecordComponent component : value.getClass().getRecordComponents()) {
 			String name = component.getName();
 			Object item = component.getAccessor().invoke(value);
-			if (name.endsWith("VaultInstanceId")) {
-				description.put("resolved" + Character.toUpperCase(name.charAt(0)) + name.substring(1), item);
-				description.put(name, null);
+			if (Secret.class.isAssignableFrom(component.getType())) {
+				DtoContract.describeSecret(description, name, (Secret) item);
 			}
 			else if (item == null || item instanceof String || item instanceof Number || item instanceof Boolean
 					|| item instanceof Enum) {
@@ -302,12 +302,12 @@ class DeviceDtoTest {
 			DeviceAccess actual = DeviceAccessMapper.toEntity(dtos.get(i));
 			this.contract.checkText("access-" + i, DtoContract.render(actual, describe(actual)));
 		}
-		// Make sure the check is meaningful
-		Assertions.assertEquals("p4", ((DeviceSshAccount) dtos.stream().map(DeviceAccessMapper::toEntity)
+		// Make sure the check is meaningful (a Vault reference wins over a local value given with it)
+		Assertions.assertEquals(Secret.vault(9L, "pp4"), ((DeviceSshAccount) dtos.stream().map(DeviceAccessMapper::toEntity)
 			.filter(a -> "a4".equals(a.accessName())).findFirst().orElseThrow().specificCredentialSet()).password());
 		DeviceSshKeyAccount key = (DeviceSshKeyAccount) DeviceAccessMapper.toEntity(dtos.get(5)).specificCredentialSet();
 		Assertions.assertNull(key.password(), "the = placeholder means unchanged, thus null");
-		Assertions.assertEquals(12L, key.privateKeyVaultInstanceId());
+		Assertions.assertEquals(12L, Secret.vaultInstanceId(key.privateKey()));
 	}
 
 	@Test

@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.vault;
 
+import net.netshot.netshot.platform.secret.Secret;
+
 /**
  * What a client wants done to a secret field when it defines an object: keep it, clear it, give it a (local)
  * value, or make it read from a Vault instance. A field a client doesn't mention is {@link #UNCHANGED}.
@@ -58,15 +60,15 @@ public sealed interface SecretChange {
 	/**
 	 * Applies the change to the current state of a field.
 	 *
-	 * @param current the current state
-	 * @return the new state (the Vault instance is not checked)
+	 * @param current the current state (null if the field is not set)
+	 * @return the new state (null if the field is not set) (the Vault instance is not checked)
 	 */
-	default VaultableSecret applyTo(VaultableSecret current) {
+	default Secret applyTo(Secret current) {
 		return switch (this) {
 			case Unchanged _ -> current;
-			case Cleared _ -> new VaultableSecret(null, null, null);
-			case Local l -> new VaultableSecret(l.value(), null, null);
-			case Referenced r -> new VaultableSecret(null, r.vaultInstanceId(), r.vaultPath());
+			case Cleared _ -> null;
+			case Local l -> Secret.local(l.value());
+			case Referenced r -> Secret.vault(r.vaultInstanceId(), r.vaultPath());
 		};
 	}
 }

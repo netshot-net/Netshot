@@ -41,6 +41,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.DtoContract;
@@ -78,11 +80,11 @@ class VaultInstanceDtoTest {
 			.authMethod(AuthMethod.JWT)
 			.appRoleMountPath("approle-2")
 			.appRoleId("role-1234")
-			.appRoleSecretId(APPROLE_SECRET)
+			.appRoleSecretId(Secret.local(APPROLE_SECRET))
 			.jwtMountPath("jwt-2")
 			.jwtIdpTokenEndpoint("https://idp.example.net/token")
 			.jwtClientId("netshot")
-			.jwtClientSecret(JWT_SECRET)
+			.jwtClientSecret(Secret.local(JWT_SECRET))
 			.jwtVaultRole("netshot-role")
 			.jwtScope("vault")
 			.build();
@@ -148,7 +150,8 @@ class VaultInstanceDtoTest {
 		if (bean instanceof Record record) {
 			// The components of the record are the properties of the former entity
 			for (RecordComponent component : record.getClass().getRecordComponents()) {
-				description.put(component.getName(), component.getAccessor().invoke(record));
+				Object value = component.getAccessor().invoke(record);
+				description.put(component.getName(), value instanceof LocalSecret secret ? secret.reveal() : value);
 			}
 			return description;
 		}
@@ -238,6 +241,6 @@ class VaultInstanceDtoTest {
 		Assertions.assertNull(masked.jwtClientSecret());
 		HashicorpVaultKv2Instance given = (HashicorpVaultKv2Instance) VaultInstanceMapper.toEntity(JSON.readerFor(VaultInstanceRequest.class)
 			.readValue("{" + BASE + ", \"appRoleSecretId\": \"new\"}"));
-		Assertions.assertEquals("new", given.appRoleSecretId());
+		Assertions.assertEquals(Secret.local("new"), given.appRoleSecretId());
 	}
 }

@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.credentials;
 
-import net.netshot.netshot.vault.VaultableSecret;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * SNMP credentials (v1, v2c or v3).
@@ -27,32 +27,9 @@ public sealed interface DeviceSnmpCommunity extends DeviceCredentialSet
 	permits DeviceSnmpv1Community, DeviceSnmpv2cCommunity, DeviceSnmpv3Community {
 
 	/**
-	 * Gets the local community.
+	 * Gets the community.
 	 *
-	 * @return the community
+	 * @return the community, local or in a Vault instance (null if not set)
 	 */
-	String community();
-
-	/**
-	 * Gets the Vault instance the community is read from.
-	 *
-	 * @return the ID of the Vault instance, or null if the community is local
-	 */
-	Long communityVaultInstanceId();
-
-	/**
-	 * Gets the Vault path of the community.
-	 *
-	 * @return the path (and key)
-	 */
-	String communityVaultPath();
-
-	/**
-	 * Gets the community, local or in a Vault instance.
-	 *
-	 * @return the community
-	 */
-	default VaultableSecret communitySecret() {
-		return new VaultableSecret(this.community(), this.communityVaultInstanceId(), this.communityVaultPath());
-	}
+	Secret community();
 }

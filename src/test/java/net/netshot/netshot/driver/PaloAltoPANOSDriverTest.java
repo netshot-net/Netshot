@@ -47,6 +47,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.PhysicalAddress;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestConnectors;
@@ -66,7 +67,8 @@ public class PaloAltoPANOSDriverTest {
 	@DisplayName("Palo Alto PAN-OS Snapshot")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException, ParseException {
-		DeviceSshAccount credentials = DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("admin/admin").build();
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(Secret.local("admin")).name("admin/admin")
+			.build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("PaloAltoPANOS", null, domain, "test").toBuilder();
 		List<DeviceAccess> deviceAccesses = new ArrayList<>();

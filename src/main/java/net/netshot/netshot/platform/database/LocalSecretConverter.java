@@ -20,40 +20,41 @@ package net.netshot.netshot.platform.database;
 
 import org.jooq.impl.AbstractConverter;
 
+import net.netshot.netshot.platform.crypto.PasswordBasedEncryptor;
 import net.netshot.netshot.platform.crypto.Sha2AesPasswordBasedEncryptor;
+import net.netshot.netshot.platform.secret.LocalSecret;
 
 /**
  * jOOQ converter of the encrypted columns (secrets of the credential sets and Vault instances):
  * the database holds the value encrypted with the DB encryption password (the format
  * written by the former Hibernate converter, so the existing values are read).
  *
+ * <p>A value is read without being decrypted: the {@link LocalSecret} decrypts it when it is revealed, at the
+ * moment it is used. A value which was read is written back as it was read (it isn't encrypted again).</p>
+ *
  * <p>The password is read on the first conversion, not when the generated table classes are
  * loaded (which may happen before the configuration is).</p>
  */
-public class EncryptedStringConverter extends AbstractConverter<String, String> {
+public class LocalSecretConverter extends AbstractConverter<String, LocalSecret> {
 
 	private static final long serialVersionUID = 1L;
 
-	public EncryptedStringConverter() {
-		super(String.class, String.class);
+	public LocalSecretConverter() {
+		super(String.class, LocalSecret.class);
 	}
 
-	/** Holder of the encryption password, read once, on first use (lazy, thread-safe class initialization). */
-	private static final class Password {
-		static final String VALUE = Database.getEncryptionPassword();
-	}
-
-	private static Sha2AesPasswordBasedEncryptor encryptor() {
-		return new Sha2AesPasswordBasedEncryptor(Password.VALUE);
+	/** Holder of the encryptor, built once, on first use (lazy, thread-safe class initialization). */
+	private static final class Encryptor {
+		static final PasswordBasedEncryptor VALUE = new Sha2AesPasswordBasedEncryptor(Database.getEncryptionPassword());
 	}
 
 	@Override
-	public String from(String databaseObject) {
-		return databaseObject == null ? null : encryptor().decrypt(databaseObject);
+	public LocalSecret from(String databaseObject) {
+		return databaseObject == null ? null : LocalSecret.encrypted(databaseObject, Encryptor.VALUE);
 	}
 
 	@Override
-	public String to(String userObject) {
-		return userObject == null ? null : encryptor().encrypt(userObject);
+	public String to(LocalSecret userObject) {
+		return userObject == null ? null : userObject.encrypt(Encryptor.VALUE);
 	}
 }

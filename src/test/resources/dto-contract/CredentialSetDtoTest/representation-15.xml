@@ -7,7 +7,7 @@
   <password>=</password>
   <passwordVaultInstanceId/>
   <passwordVaultPath/>
-  <username>httpuser</username>
+  <username/>
   <usernameVaultInstanceId>14</usernameVaultInstanceId>
   <usernameVaultPath>netshot/http/username</usernameVaultPath>
 </DeviceHttpAccount>

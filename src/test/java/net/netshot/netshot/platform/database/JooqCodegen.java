@@ -32,6 +32,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.testing.TestDatabase;
 
 /**
@@ -83,8 +84,8 @@ public final class JooqCodegen {
 							.withConverter(UtcInstantConverter.class.getName())
 							.withIncludeTypes("timestamp(\\(\\d+\\))?( without time zone)?"),
 						new ForcedType()
-							.withUserType("java.lang.String")
-							.withConverter(EncryptedStringConverter.class.getName())
+							.withUserType(LocalSecret.class.getName())
+							.withConverter(LocalSecretConverter.class.getName())
 							.withIncludeExpression("(.*\\.)?(device_credential_set\\.(auth_key|priv_key|private_key|community|password|super_password)"
 								+ "|vault_instance\\.(app_role_secret_id|jwt_client_secret))")))
 				.withGenerate(new Generate()

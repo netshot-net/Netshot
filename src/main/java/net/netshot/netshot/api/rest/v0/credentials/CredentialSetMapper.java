@@ -32,6 +32,8 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * Maps the credential sets between the records and their REST representation, in both directions.
@@ -71,6 +73,40 @@ public final class CredentialSetMapper {
 
 
 	/**
+	 * Gives the local value of a secret to the DTO, which masks it: only whether there is one matters (it is not
+	 * decrypted).
+	 *
+	 * @param secret the secret
+	 * @return the mask, or null if the secret has no local value
+	 */
+	private static String masked(Secret secret) {
+		return Secret.localValue(secret) == null ? null : "=";
+	}
+
+	/**
+	 * Gives the local value of a field which isn't a secret (the username).
+	 *
+	 * @param value the field
+	 * @return the value, or null if the field has no local value
+	 */
+	private static String clear(Secret value) {
+		LocalSecret local = Secret.localValue(value);
+		return local == null ? null : local.reveal();
+	}
+
+	/**
+	 * Reads a field of a DTO.
+	 *
+	 * @param localValue the local value
+	 * @param vaultInstanceId the ID of the Vault instance, or null if the field is local
+	 * @param vaultPath the Vault path (and key)
+	 * @return the field, or null if it is not set
+	 */
+	private static Secret secret(String localValue, Long vaultInstanceId, String vaultPath) {
+		return Secret.of(Secret.local(localValue), vaultInstanceId, vaultPath);
+	}
+
+	/**
 	 * Maps a credential set to its representation, according to its kind.
 	 *
 	 * @param credentialSet the credential set (may be null)
@@ -84,30 +120,30 @@ public final class CredentialSetMapper {
 		DomainDto domain = DomainMapper.toDto(credentialSet.mgmtDomain());
 		return switch (credentialSet) {
 			case DeviceSnmpv3Community c -> new CredentialSetDto.SnmpV3(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.community(), c.communityVaultInstanceId(), c.communityVaultPath(),
-				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
-				c.authType(), c.authKey(), c.authKeyVaultInstanceId(), c.authKeyVaultPath(),
-				c.privType(), c.privKey(), c.privKeyVaultInstanceId(), c.privKeyVaultPath());
+				masked(c.community()), Secret.vaultInstanceId(c.community()), Secret.vaultPath(c.community()),
+				clear(c.username()), Secret.vaultInstanceId(c.username()), Secret.vaultPath(c.username()),
+				c.authType(), masked(c.authKey()), Secret.vaultInstanceId(c.authKey()), Secret.vaultPath(c.authKey()),
+				c.privType(), masked(c.privKey()), Secret.vaultInstanceId(c.privKey()), Secret.vaultPath(c.privKey()));
 			case DeviceSnmpv2cCommunity c -> new CredentialSetDto.SnmpV2c(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.community(), c.communityVaultInstanceId(), c.communityVaultPath());
+				masked(c.community()), Secret.vaultInstanceId(c.community()), Secret.vaultPath(c.community()));
 			case DeviceSnmpv1Community c -> new CredentialSetDto.SnmpV1(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.community(), c.communityVaultInstanceId(), c.communityVaultPath());
+				masked(c.community()), Secret.vaultInstanceId(c.community()), Secret.vaultPath(c.community()));
 			case DeviceSshKeyAccount c -> new CredentialSetDto.SshKey(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
-				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath(),
-				c.superPassword(), c.superPasswordVaultInstanceId(), c.superPasswordVaultPath(),
-				c.privateKey(), c.privateKeyVaultInstanceId(), c.privateKeyVaultPath());
+				clear(c.username()), Secret.vaultInstanceId(c.username()), Secret.vaultPath(c.username()),
+				masked(c.password()), Secret.vaultInstanceId(c.password()), Secret.vaultPath(c.password()),
+				masked(c.superPassword()), Secret.vaultInstanceId(c.superPassword()), Secret.vaultPath(c.superPassword()),
+				masked(c.privateKey()), Secret.vaultInstanceId(c.privateKey()), Secret.vaultPath(c.privateKey()));
 			case DeviceSshAccount c -> new CredentialSetDto.Ssh(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
-				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath(),
-				c.superPassword(), c.superPasswordVaultInstanceId(), c.superPasswordVaultPath());
+				clear(c.username()), Secret.vaultInstanceId(c.username()), Secret.vaultPath(c.username()),
+				masked(c.password()), Secret.vaultInstanceId(c.password()), Secret.vaultPath(c.password()),
+				masked(c.superPassword()), Secret.vaultInstanceId(c.superPassword()), Secret.vaultPath(c.superPassword()));
 			case DeviceTelnetAccount c -> new CredentialSetDto.Telnet(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
-				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath(),
-				c.superPassword(), c.superPasswordVaultInstanceId(), c.superPasswordVaultPath());
+				clear(c.username()), Secret.vaultInstanceId(c.username()), Secret.vaultPath(c.username()),
+				masked(c.password()), Secret.vaultInstanceId(c.password()), Secret.vaultPath(c.password()),
+				masked(c.superPassword()), Secret.vaultInstanceId(c.superPassword()), Secret.vaultPath(c.superPassword()));
 			case DeviceHttpAccount c -> new CredentialSetDto.Http(c.id(), c.name(), domain, c.deviceSpecific(),
-				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
-				c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath());
+				clear(c.username()), Secret.vaultInstanceId(c.username()), Secret.vaultPath(c.username()),
+				masked(c.password()), Secret.vaultInstanceId(c.password()), Secret.vaultPath(c.password()));
 		};
 	}
 
@@ -124,30 +160,30 @@ public final class CredentialSetMapper {
 		Domain domain = toReference(dto.mgmtDomain());
 		return switch (dto) {
 			case CredentialSetDto.SnmpV1 d -> new DeviceSnmpv1Community(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.community(), d.communityVaultInstanceId(), d.communityVaultPath());
+				secret(d.community(), d.communityVaultInstanceId(), d.communityVaultPath()));
 			case CredentialSetDto.SnmpV2c d -> new DeviceSnmpv2cCommunity(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.community(), d.communityVaultInstanceId(), d.communityVaultPath());
+				secret(d.community(), d.communityVaultInstanceId(), d.communityVaultPath()));
 			case CredentialSetDto.SnmpV3 d -> new DeviceSnmpv3Community(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.community(), d.communityVaultInstanceId(), d.communityVaultPath(),
-				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
-				d.authType(), d.authKey(), d.authKeyVaultInstanceId(), d.authKeyVaultPath(),
-				d.privType(), d.privKey(), d.privKeyVaultInstanceId(), d.privKeyVaultPath());
+				secret(d.community(), d.communityVaultInstanceId(), d.communityVaultPath()),
+				secret(d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath()),
+				d.authType(), secret(d.authKey(), d.authKeyVaultInstanceId(), d.authKeyVaultPath()),
+				d.privType(), secret(d.privKey(), d.privKeyVaultInstanceId(), d.privKeyVaultPath()));
 			case CredentialSetDto.Ssh d -> new DeviceSshAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
-				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath(),
-				d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
+				secret(d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath()),
+				secret(d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath()),
+				secret(d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath()));
 			case CredentialSetDto.SshKey d -> new DeviceSshKeyAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
-				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath(),
-				d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath(),
-				d.privateKey(), d.privateKeyVaultInstanceId(), d.privateKeyVaultPath());
+				secret(d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath()),
+				secret(d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath()),
+				secret(d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath()),
+				secret(d.privateKey(), d.privateKeyVaultInstanceId(), d.privateKeyVaultPath()));
 			case CredentialSetDto.Telnet d -> new DeviceTelnetAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
-				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath(),
-				d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath());
+				secret(d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath()),
+				secret(d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath()),
+				secret(d.superPassword(), d.superPasswordVaultInstanceId(), d.superPasswordVaultPath()));
 			case CredentialSetDto.Http d -> new DeviceHttpAccount(d.id(), 0, null, d.name(), domain, d.deviceSpecific(),
-				d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath(),
-				d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath());
+				secret(d.username(), d.usernameVaultInstanceId(), d.usernameVaultPath()),
+				secret(d.password(), d.passwordVaultInstanceId(), d.passwordVaultPath()));
 		};
 	}
 }

@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.domain;
 
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.TestWiring;
 import net.netshot.netshot.testing.TestDevices;
 import java.util.List;
@@ -191,7 +192,7 @@ class DomainServiceTest {
 		Assertions.assertNotNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, withDevice.id())));
 
 		Domain withCredentials = this.service.create(definition(this.nextName(), "10.255.7.2"));
-		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community("public").name("Community of a domain")
+		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("Community of a domain")
 			.mgmtDomain(withCredentials).build());
 		assertError(ErrorCode.NETSHOT_DOMAIN_IN_USE, () -> this.service.delete(withCredentials.id()));
 		Assertions.assertNotNull(this.transactions.read(dsl -> new DomainRepository().find(dsl, withCredentials.id())));

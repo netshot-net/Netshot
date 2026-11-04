@@ -35,6 +35,7 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
@@ -77,7 +78,7 @@ class ScanSubnetsHandlerTest {
 	}
 
 	private void community(String name, Domain mgmtDomain) {
-		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community("public").name(name).mgmtDomain(mgmtDomain).build());
+		TestDevices.addCredentialSet(DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name(name).mgmtDomain(mgmtDomain).build());
 	}
 
 	private static Set<String> addresses(List<Task> children) {
@@ -92,7 +93,7 @@ class ScanSubnetsHandlerTest {
 		this.community("global", null);
 		this.community("same domain", this.domain);
 		this.community("other domain", otherDomain);
-		TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("ssh").build());
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(Secret.local("admin")).name("ssh").build());
 
 		long id = this.runner.run(this.scan("10.20.0.0", 29));
 

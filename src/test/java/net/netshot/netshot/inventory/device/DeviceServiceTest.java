@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskSubmitter;
@@ -86,7 +87,7 @@ class DeviceServiceTest {
 		this.creationService = new DeviceCreationService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry(), dynamicGroups);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
-		TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("secret").superPassword("enable")
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("secret")).superPassword(Secret.local("enable"))
 			.name("Lab SSH account").build());
 	}
 
@@ -214,7 +215,8 @@ class DeviceServiceTest {
 	@DisplayName("get() reports an unknown device, and returns the complete device")
 	void get() throws Exception {
 		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.get(99999999L));
-		DeviceAccess ssh = access("ssh").toBuilder().specificCredentialSet(DeviceSshAccount.builder().username("u").password("p").superPassword("e").name("n").build()).build();
+		DeviceAccess ssh = access("ssh").toBuilder().specificCredentialSet(DeviceSshAccount.builder().username(Secret.local("u")).password(Secret.local("p"))
+			.superPassword(Secret.local("e")).name("n").build()).build();
 		Device created = this.deviceOf(this.creationService.create(new DeviceCreation(false, this.nextAddress(), this.domainId,
 			"CiscoIOS12", List.of(ssh), null, null, List.of("t"), AUTHOR)));
 		Device device = this.service.get(created.id());
@@ -224,7 +226,7 @@ class DeviceServiceTest {
 		Assertions.assertTrue(device.attributes().isEmpty());
 		Assertions.assertTrue(device.ownerGroups().isEmpty());
 		Assertions.assertTrue(device.compliant());
-		Assertions.assertEquals("u", ((DeviceSshAccount) device.getDeviceAccess("ssh").specificCredentialSet()).username());
+		Assertions.assertEquals(Secret.local("u"), ((DeviceSshAccount) device.getDeviceAccess("ssh").specificCredentialSet()).username());
 		Assertions.assertEquals(java.util.Set.of("t"), device.tags());
 		Assertions.assertEquals("Cisco IOS and IOS-XE", TestDrivers.registry().forDevice(device).getDescription());
 	}

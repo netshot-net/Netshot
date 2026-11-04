@@ -11,16 +11,16 @@
     <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
   </mgmtDomain>
   <name>SSH Key</name>
-  <password>=</password>
+  <password/>
   <passwordVaultInstanceId>13</passwordVaultInstanceId>
   <passwordVaultPath>netshot/key/password</passwordVaultPath>
-  <privateKey>=</privateKey>
+  <privateKey/>
   <privateKeyVaultInstanceId>13</privateKeyVaultInstanceId>
   <privateKeyVaultPath>netshot/key/private</privateKeyVaultPath>
-  <superPassword>=</superPassword>
+  <superPassword/>
   <superPasswordVaultInstanceId>13</superPasswordVaultInstanceId>
   <superPasswordVaultPath>netshot/key/super</superPasswordVaultPath>
-  <username>keyuser</username>
+  <username/>
   <usernameVaultInstanceId>13</usernameVaultInstanceId>
   <usernameVaultPath>netshot/key/username</usernameVaultPath>
 </DeviceSshKeyAccount>

@@ -34,6 +34,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.DatabaseTest.Boot;
 import net.netshot.netshot.testing.TestDevices;
@@ -162,13 +164,13 @@ public class VaultTest {
 				.kvMountPath("secret")
 				.authMethod(AuthMethod.APPROLE)
 				.appRoleId(ROLE_ID)
-				.appRoleSecretId(SECRET_ID)
+				.appRoleSecretId(Secret.local(SECRET_ID))
 				.build();
 			vaultInstanceId = TestWiring.get().transactions().write(dsl -> new VaultInstanceRepository().add(dsl, vaultInstance)).id();
 
-			DeviceSshAccount account = DeviceSshAccount.builder().superPassword(LOCAL_SUPER_PASSWORD).name("vault-test-account")
-				.usernameVaultInstanceId(vaultInstanceId).usernameVaultPath(SECRET_PATH + "/username")
-				.passwordVaultInstanceId(vaultInstanceId).passwordVaultPath(SECRET_PATH + "/password")
+			DeviceSshAccount account = DeviceSshAccount.builder().superPassword(Secret.local(LOCAL_SUPER_PASSWORD)).name("vault-test-account")
+				.username(Secret.vault(vaultInstanceId, SECRET_PATH + "/username"))
+				.password(Secret.vault(vaultInstanceId, SECRET_PATH + "/password"))
 				.build();
 			accountId = TestDevices.addCredentialSet(account).id();
 		}
@@ -186,8 +188,8 @@ public class VaultTest {
 		void resolvesVaultBackedFields() throws VaultException {
 			DeviceSshAccount account = this.reloadAccount();
 
-			Assertions.assertEquals("vaultadmin", this.vault.resolve(account.usernameSecret()));
-			Assertions.assertEquals("Sup3rS3cr3tPassword!", this.vault.resolve(account.passwordSecret()));
+			Assertions.assertEquals("vaultadmin", this.vault.resolve(account.username()));
+			Assertions.assertEquals("Sup3rS3cr3tPassword!", this.vault.resolve(account.password()));
 		}
 
 		@Test
@@ -195,14 +197,14 @@ public class VaultTest {
 		void resolvesLocalFieldUnaffected() throws VaultException {
 			DeviceSshAccount account = this.reloadAccount();
 
-			Assertions.assertFalse(account.superPasswordSecret().isVaultBacked());
-			Assertions.assertEquals(LOCAL_SUPER_PASSWORD, this.vault.resolve(account.superPasswordSecret()));
+			Assertions.assertInstanceOf(LocalSecret.class, account.superPassword());
+			Assertions.assertEquals(LOCAL_SUPER_PASSWORD, this.vault.resolve(account.superPassword()));
 		}
 
 		@Test
 		@DisplayName("Resolution fails fast when the key doesn't exist at the Vault path")
 		void resolutionFailsForMissingKey() {
-			VaultableSecret missingKeySecret = new VaultableSecret(null, vaultInstanceId, SECRET_PATH + "/no-such-key");
+			Secret missingKeySecret = Secret.vault(vaultInstanceId, SECRET_PATH + "/no-such-key");
 
 			Assertions.assertThrows(VaultException.class, () -> this.vault.resolve(missingKeySecret));
 		}
@@ -215,11 +217,11 @@ public class VaultTest {
 				.kvMountPath("secret")
 				.authMethod(AuthMethod.APPROLE)
 				.appRoleId(ROLE_ID)
-				.appRoleSecretId("not-the-right-secret-id")
+				.appRoleSecretId(Secret.local("not-the-right-secret-id"))
 				.build();
 			long wrongInstanceId = TestWiring.get().transactions().write(dsl -> new VaultInstanceRepository().add(dsl, wrongInstance)).id();
 
-			VaultableSecret secret = new VaultableSecret(null, wrongInstanceId, SECRET_PATH + "/username");
+			Secret secret = Secret.vault(wrongInstanceId, SECRET_PATH + "/username");
 
 			Assertions.assertThrows(VaultException.class, () -> this.vault.resolve(secret));
 		}

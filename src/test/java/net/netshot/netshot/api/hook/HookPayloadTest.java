@@ -59,6 +59,7 @@ import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ContractTest;
@@ -171,15 +172,16 @@ public class HookPayloadTest {
 		Domain domain = Domain.builder().name("lab").description("The lab").server4Address(new Network4Address("10.0.0.1"))
 			.server6Address(new Network6Address("2001:db8::1")).build();
 		List<DeviceCredentialSet> credentialSets = new ArrayList<>();
-		credentialSets.add(DeviceSnmpv1Community.builder().community("zsecret1").name("v1").build());
-		credentialSets.add(DeviceSnmpv2cCommunity.builder().community("zsecret2").name("v2c").build());
-		credentialSets.add(DeviceSnmpv3Community.builder().community("zsecret3").name("v3").username("user")
-			.authType(DeviceSnmpv3Community.AuthProtocol.SHA).authKey("zauthsecret")
-			.privType(DeviceSnmpv3Community.PrivProtocol.AES128).privKey("zprivsecret").build());
-		credentialSets.add(DeviceSshAccount.builder().username("user").password("zpassword").superPassword("zsuper").name("ssh").build());
-		credentialSets.add(DeviceSshKeyAccount.builder().username("user").privateKey("zkey").password("zpassphrase").superPassword("zsuper").name("sshkey").build());
-		credentialSets.add(DeviceTelnetAccount.builder().username("user").password("zpassword").superPassword("zsuper").name("telnet").build());
-		credentialSets.add(DeviceHttpAccount.builder().username("user").password("zpassword").name("http").build());
+		credentialSets.add(DeviceSnmpv1Community.builder().community(Secret.local("zsecret1")).name("v1").build());
+		credentialSets.add(DeviceSnmpv2cCommunity.builder().community(Secret.local("zsecret2")).name("v2c").build());
+		credentialSets.add(DeviceSnmpv3Community.builder().community(Secret.local("zsecret3")).name("v3").username(Secret.local("user"))
+			.authType(DeviceSnmpv3Community.AuthProtocol.SHA).authKey(Secret.local("zauthsecret"))
+			.privType(DeviceSnmpv3Community.PrivProtocol.AES128).privKey(Secret.local("zprivsecret")).build());
+		credentialSets.add(DeviceSshAccount.builder().username(Secret.local("user")).password(Secret.local("zpassword")).superPassword(Secret.local("zsuper")).name("ssh").build());
+		credentialSets.add(DeviceSshKeyAccount.builder().username(Secret.local("user")).privateKey(Secret.local("zkey")).password(Secret.local("zpassphrase"))
+			.superPassword(Secret.local("zsuper")).name("sshkey").build());
+		credentialSets.add(DeviceTelnetAccount.builder().username(Secret.local("user")).password(Secret.local("zpassword")).superPassword(Secret.local("zsuper")).name("telnet").build());
+		credentialSets.add(DeviceHttpAccount.builder().username(Secret.local("user")).password(Secret.local("zpassword")).name("http").build());
 		List<DeviceAccess> accesses = new ArrayList<>();
 		int index = 0;
 		for (DeviceCredentialSet credentialSet : credentialSets) {

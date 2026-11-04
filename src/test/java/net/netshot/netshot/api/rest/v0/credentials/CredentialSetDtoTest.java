@@ -50,6 +50,7 @@ import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.UnitTest;
 import net.netshot.netshot.testing.contract.DtoContract;
 
@@ -72,10 +73,10 @@ class CredentialSetDtoTest {
 	/** Every secret value used by the credential sets of this test. */
 	private static final List<String> SECRETS = new ArrayList<>();
 
-	private static String secret(String name) {
+	private static Secret secret(String name) {
 		String value = "S3CRET-" + name;
 		SECRETS.add(value);
-		return value;
+		return Secret.local(value);
 	}
 
 	private static Domain domain() throws Exception {
@@ -92,14 +93,14 @@ class CredentialSetDtoTest {
 		List<DeviceCredentialSet> all = List.of(
 			DeviceSnmpv1Community.builder().id(1).community(secret("v1-community")).name("SNMP v1").build(),
 			DeviceSnmpv2cCommunity.builder().id(2).community(secret("v2-community")).name("SNMP v2").mgmtDomain(domain()).build(),
-			DeviceSnmpv3Community.builder().id(3).community(secret("v3-context")).name("SNMP v3").username("snmpuser").authType(AuthProtocol.SHA)
+			DeviceSnmpv3Community.builder().id(3).community(secret("v3-context")).name("SNMP v3").username(Secret.local("snmpuser")).authType(AuthProtocol.SHA)
 				.authKey(secret("v3-auth")).privType(PrivProtocol.AES128).privKey(secret("v3-priv")).build(),
-			DeviceSshAccount.builder().id(4).username("sshuser").password(secret("ssh-password")).superPassword(secret("ssh-super")).name("SSH").build(),
-			DeviceSshKeyAccount.builder().id(5).username("keyuser").privateKey(secret("key-private")).password(secret("key-password"))
+			DeviceSshAccount.builder().id(4).username(Secret.local("sshuser")).password(secret("ssh-password")).superPassword(secret("ssh-super")).name("SSH").build(),
+			DeviceSshKeyAccount.builder().id(5).username(Secret.local("keyuser")).privateKey(secret("key-private")).password(secret("key-password"))
 				.superPassword(secret("key-super")).name("SSH Key").mgmtDomain(domain()).build(),
-			DeviceTelnetAccount.builder().id(6).username("telnetuser").password(secret("telnet-password")).superPassword(secret("telnet-super"))
+			DeviceTelnetAccount.builder().id(6).username(Secret.local("telnetuser")).password(secret("telnet-password")).superPassword(secret("telnet-super"))
 				.name("Telnet").build(),
-			DeviceHttpAccount.builder().id(7).username("httpuser").password(secret("http-password")).name("HTTP").build());
+			DeviceHttpAccount.builder().id(7).username(Secret.local("httpuser")).password(secret("http-password")).name("HTTP").build());
 		return all;
 	}
 
@@ -114,21 +115,21 @@ class CredentialSetDtoTest {
 		DeviceSshKeyAccount key = (DeviceSshKeyAccount) local.get(4);
 		DeviceHttpAccount http = (DeviceHttpAccount) local.get(6);
 		List<DeviceCredentialSet> all = new ArrayList<>(local);
-		all.set(0, v1.toBuilder().communityVaultInstanceId(11L).communityVaultPath("netshot/v1").build());
+		all.set(0, v1.toBuilder().community(Secret.vault(11L, "netshot/v1")).build());
 		all.set(1, local.get(1).withIdentity(local.get(1).id(), local.get(1).name(), true));
 		all.set(2, v3.toBuilder()
-			.communityVaultInstanceId(12L).communityVaultPath("netshot/v3/community")
-			.usernameVaultInstanceId(12L).usernameVaultPath("netshot/v3/username")
-			.authKeyVaultInstanceId(12L).authKeyVaultPath("netshot/v3/auth")
-			.privKeyVaultInstanceId(12L).privKeyVaultPath("netshot/v3/priv")
+			.community(Secret.vault(12L, "netshot/v3/community"))
+			.username(Secret.vault(12L, "netshot/v3/username"))
+			.authKey(Secret.vault(12L, "netshot/v3/auth"))
+			.privKey(Secret.vault(12L, "netshot/v3/priv"))
 			.build());
 		all.set(4, key.toBuilder()
-			.usernameVaultInstanceId(13L).usernameVaultPath("netshot/key/username")
-			.passwordVaultInstanceId(13L).passwordVaultPath("netshot/key/password")
-			.superPasswordVaultInstanceId(13L).superPasswordVaultPath("netshot/key/super")
-			.privateKeyVaultInstanceId(13L).privateKeyVaultPath("netshot/key/private")
+			.username(Secret.vault(13L, "netshot/key/username"))
+			.password(Secret.vault(13L, "netshot/key/password"))
+			.superPassword(Secret.vault(13L, "netshot/key/super"))
+			.privateKey(Secret.vault(13L, "netshot/key/private"))
 			.build());
-		all.set(6, http.toBuilder().usernameVaultInstanceId(14L).usernameVaultPath("netshot/http/username").build());
+		all.set(6, http.toBuilder().username(Secret.vault(14L, "netshot/http/username")).build());
 		return all;
 	}
 
@@ -251,9 +252,8 @@ class CredentialSetDtoTest {
 		for (RecordComponent component : bean.getClass().getRecordComponents()) {
 			String name = component.getName();
 			Object value = component.getAccessor().invoke(bean);
-			if (name.endsWith("VaultInstanceId")) {
-				description.put("resolved" + Character.toUpperCase(name.charAt(0)) + name.substring(1), value);
-				description.put(name, null);
+			if (Secret.class.isAssignableFrom(component.getType())) {
+				DtoContract.describeSecret(description, name, (Secret) value);
 			}
 			else if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean
 					|| value instanceof Enum || value instanceof Date) {
