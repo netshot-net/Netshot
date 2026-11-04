@@ -21,6 +21,7 @@ package net.netshot.netshot.vault;
 import java.time.Instant;
 
 import lombok.Builder;
+import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -49,8 +50,8 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 @Builder(builderMethodName = "defaults", toBuilder = true)
 public record HashicorpVaultKv2Instance(long id, int version, Instant changeDate, String name, String baseUrl, String namespace,
 	HttpsCaTrustMode httpsCaTrustMode, String httpsCustomCaCertificate, String kvMountPath, AuthMethod authMethod,
-	String appRoleMountPath, String appRoleId, String appRoleSecretId, String jwtMountPath, String jwtIdpTokenEndpoint,
-	String jwtClientId, String jwtClientSecret, String jwtVaultRole, String jwtScope) implements VaultInstance {
+	String appRoleMountPath, String appRoleId, LocalSecret appRoleSecretId, String jwtMountPath, String jwtIdpTokenEndpoint,
+	String jwtClientId, LocalSecret jwtClientSecret, String jwtVaultRole, String jwtScope) implements VaultInstance {
 
 	/** The authentication methods of Netshot to Vault. */
 	public enum AuthMethod {

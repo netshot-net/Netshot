@@ -34,6 +34,7 @@ import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
@@ -84,7 +85,7 @@ class DiscoverDeviceTypeHandlerTest {
 	@Test
 	@DisplayName("Fails when the address can't be resolved")
 	void failsOnUnresolvableAddress() throws Exception {
-		long id = this.runner.run(this.discovery("no-such-device.invalid", DeviceSnmpv2cCommunity.builder().community("public").name("community").build()));
+		long id = this.runner.run(this.discovery("no-such-device.invalid", DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("community").build()));
 
 		Task task = TaskRunner.load(id);
 		Assertions.assertEquals(Status.FAILURE, task.status());
@@ -94,7 +95,8 @@ class DiscoverDeviceTypeHandlerTest {
 	@Test
 	@DisplayName("Fails without SNMP credential set")
 	void failsWithoutSnmpCredentials() throws Exception {
-		long id = this.runner.run(this.discovery("127.0.0.1", DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("ssh").build()));
+		long id = this.runner.run(this.discovery("127.0.0.1", DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin"))
+			.superPassword(Secret.local("admin")).name("ssh").build()));
 
 		Task task = TaskRunner.load(id);
 		Assertions.assertEquals(Status.FAILURE, task.status());
@@ -105,7 +107,7 @@ class DiscoverDeviceTypeHandlerTest {
 	@Test
 	@DisplayName("Fails when the device doesn't answer SNMP, without creating a device nor a snapshot task")
 	void failsWithoutAnswer() throws Exception {
-		long id = this.runner.run(this.discovery("127.0.0.1", DeviceSnmpv2cCommunity.builder().community("netshot-test-no-answer").name("community").build()));
+		long id = this.runner.run(this.discovery("127.0.0.1", DeviceSnmpv2cCommunity.builder().community(Secret.local("netshot-test-no-answer")).name("community").build()));
 
 		Task task = TaskRunner.load(id);
 		Assertions.assertEquals(Status.FAILURE, task.status());

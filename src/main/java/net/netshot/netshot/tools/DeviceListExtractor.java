@@ -36,9 +36,9 @@ import net.netshot.netshot.credentials.DeviceSnmpCommunity;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultableSecret;
 
 @Slf4j
 public class DeviceListExtractor extends Netshot {
@@ -52,7 +52,7 @@ public class DeviceListExtractor extends Netshot {
 	 * @param secrets resolves the secrets (local, or from Vault)
 	 * @return the resolved value, or an empty string on failure
 	 */
-	private static String resolveSecret(VaultableSecret secret, Device device, SecretResolver secrets) {
+	private static String resolveSecret(Secret secret, Device device, SecretResolver secrets) {
 		try {
 			String value = secrets.resolve(secret);
 			return value == null ? "" : value;
@@ -155,7 +155,7 @@ public class DeviceListExtractor extends Netshot {
 				fields.add("");							// Col. 6 = SysObjectID
 				fields.add("");							// Col. 7 = DCR Device Type
 				fields.add("");							// Col. 8 = MDF Type
-				fields.add(community == null ? "" : resolveSecret(community.communitySecret(), device, wiring.vaultManager()));			// Col. 9 = SNMP RO <<<
+				fields.add(community == null ? "" : resolveSecret(community.community(), device, wiring.vaultManager()));			// Col. 9 = SNMP RO <<<
 				fields.add("");							// Col. 10 = SNMP RW
 				fields.add("");							// Col. 11 = SNMPv3 User Name
 				fields.add("");							// Col. 12 = SNMPv3 Auth Pass 
@@ -163,9 +163,9 @@ public class DeviceListExtractor extends Netshot {
 				fields.add("");							// Col. 14 = SNMPv3 Auth Algorithm
 				fields.add("");							// Col. 15 = RX Boot Mode User
 				fields.add("");							// Col. 16 = RX Boot Mode Pass
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.usernameSecret(), device, wiring.vaultManager()));			// Col. 17 = Primary User <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.passwordSecret(), device, wiring.vaultManager()));			// Col. 18 = Primary Pass <<<
-				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPasswordSecret(), device, wiring.vaultManager()));	// Col. 19 = Primary Enable Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.username(), device, wiring.vaultManager()));			// Col. 17 = Primary User <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.password(), device, wiring.vaultManager()));			// Col. 18 = Primary Pass <<<
+				fields.add(cliAccount == null ? "" : resolveSecret(cliAccount.superPassword(), device, wiring.vaultManager()));	// Col. 19 = Primary Enable Pass <<<
 				fields.add("");							// Col. 20 = HTTP User
 				fields.add("");							// Col. 21 = HTTP Pass
 				fields.add("");							// Col. 22 = HTTP Mode

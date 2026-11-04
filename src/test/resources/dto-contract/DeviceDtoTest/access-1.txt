@@ -6,7 +6,7 @@ globalCredentialSet=null
 httpsCaTrustMode=SYSTEM_TRUSTSTORE
 httpsCustomCaCertificate=null
 port=null
-specificCredentialSet={changeDate=null, community=c1, communityVaultInstanceId=null, communityVaultPath=p1, deviceSpecific=true, id=1, mgmtDomain=null, name=n1, resolvedCommunityVaultInstanceId=5, version=0}
+specificCredentialSet={changeDate=null, community=null, communityVaultInstanceId=null, communityVaultPath=p1, deviceSpecific=true, id=1, mgmtDomain=null, name=n1, resolvedCommunityVaultInstanceId=5, version=0}
 sshHostKeyVerification=TRUST_ANY
 sshTrustedHostKeys=null
 sshTrustedHostKeysSince=null

@@ -41,8 +41,8 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.credentials.DeviceSshKeyAccount;
 import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.vault.SecretChange;
-import net.netshot.netshot.vault.VaultableSecret;
 
 /**
  * Maps the credential sets between the domain records and their v1 representation. The representation never
@@ -89,9 +89,10 @@ public final class CredentialSetMapper {
 	 */
 	public static List<Long> vaultInstanceIds(DeviceCredentialSet credentialSet) {
 		List<Long> ids = new ArrayList<>();
-		for (VaultableSecret secret : secrets(credentialSet)) {
-			if (secret != null && secret.vaultInstanceId() != null) {
-				ids.add(secret.vaultInstanceId());
+		for (net.netshot.netshot.platform.secret.Secret secret : secrets(credentialSet)) {
+			Long id = net.netshot.netshot.platform.secret.Secret.vaultInstanceId(secret);
+			if (id != null) {
+				ids.add(id);
 			}
 		}
 		return ids;
@@ -99,36 +100,35 @@ public final class CredentialSetMapper {
 
 	/**
 	 * Lists the vaultable fields of a credential set: username, password, super password, private key,
-	 * community, authentication key, privacy key (null when they don't apply to the type).
+	 * community, authentication key, privacy key (null when they don't apply to the type, or are not set). The
+	 * domain secrets clash with the v1 {@link Secret} (the value of a request) by name.
 	 *
 	 * @param cs the credential set
 	 * @return the 7 fields, in that order
 	 */
-	private static List<VaultableSecret> secrets(DeviceCredentialSet cs) {
+	private static List<net.netshot.netshot.platform.secret.Secret> secrets(DeviceCredentialSet cs) {
 		return switch (cs) {
-			case DeviceSshKeyAccount c -> Arrays.asList(c.usernameSecret(), c.passwordSecret(), c.superPasswordSecret(),
-				c.privateKeySecret(), null, null, null);
-			case DeviceSshAccount c -> Arrays.asList(c.usernameSecret(), c.passwordSecret(), c.superPasswordSecret(),
+			case DeviceSshKeyAccount c -> Arrays.asList(c.username(), c.password(), c.superPassword(),
+				c.privateKey(), null, null, null);
+			case DeviceSshAccount c -> Arrays.asList(c.username(), c.password(), c.superPassword(),
 				null, null, null, null);
-			case DeviceTelnetAccount c -> Arrays.asList(c.usernameSecret(), c.passwordSecret(), c.superPasswordSecret(),
+			case DeviceTelnetAccount c -> Arrays.asList(c.username(), c.password(), c.superPassword(),
 				null, null, null, null);
-			case DeviceHttpAccount c -> Arrays.asList(
-				new VaultableSecret(c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath()),
-				new VaultableSecret(c.password(), c.passwordVaultInstanceId(), c.passwordVaultPath()), null, null, null, null, null);
-			case DeviceSnmpv1Community c -> Arrays.asList(null, null, null, null, c.communitySecret(), null, null);
-			case DeviceSnmpv2cCommunity c -> Arrays.asList(null, null, null, null, c.communitySecret(), null, null);
-			case DeviceSnmpv3Community c -> Arrays.asList(c.usernameSecret(), null, null, null, null, c.authKeySecret(),
-				c.privKeySecret());
+			case DeviceHttpAccount c -> Arrays.asList(c.username(), c.password(), null, null, null, null, null);
+			case DeviceSnmpv1Community c -> Arrays.asList(null, null, null, null, c.community(), null, null);
+			case DeviceSnmpv2cCommunity c -> Arrays.asList(null, null, null, null, c.community(), null, null);
+			case DeviceSnmpv3Community c -> Arrays.asList(c.username(), null, null, null, null, c.authKey(),
+				c.privKey());
 		};
 	}
 
-	private static Boolean has(VaultableSecret secret) {
-		return secret == null ? null : secret.localValue() != null || secret.vaultInstanceId() != null;
+	private static Boolean has(Kind kind, String property, net.netshot.netshot.platform.secret.Secret secret) {
+		return applicable(kind).contains(property) ? secret != null : null;
 	}
 
-	private static VaultSecretDto vault(VaultableSecret secret, LongFunction<VaultInstanceDto> vaults) {
-		return secret == null || secret.vaultInstanceId() == null ? null
-			: new VaultSecretDto(vaults.apply(secret.vaultInstanceId()), secret.vaultPath());
+	private static VaultSecretDto vault(net.netshot.netshot.platform.secret.Secret secret, LongFunction<VaultInstanceDto> vaults) {
+		return secret instanceof net.netshot.netshot.platform.secret.VaultSecret v
+			? new VaultSecretDto(vaults.apply(v.vaultInstanceId()), v.vaultPath()) : null;
 	}
 
 	/**
@@ -152,20 +152,20 @@ public final class CredentialSetMapper {
 		if (credentialSet == null) {
 			return null;
 		}
-		List<VaultableSecret> s = secrets(credentialSet);
-		VaultableSecret username = s.get(0);
+		List<net.netshot.netshot.platform.secret.Secret> s = secrets(credentialSet);
+		Kind kind = Kind.of(credentialSet);
 		DeviceSnmpv3Community v3 = credentialSet instanceof DeviceSnmpv3Community c ? c : null;
 		return new CredentialSetDto(credentialSet.id(),
 			credentialSet.deviceSpecific() ? null : V1Links.of(PATH, credentialSet.id()),
 			credentialSet.name(), credentialSet.version(), credentialSet.changeDate(), credentialSet.name(),
 			typeOf(credentialSet), DomainMapper.toDto(credentialSet.mgmtDomain()), credentialSet.deviceSpecific(),
-			username == null ? null : username.localValue(), vault(username, vaults),
-			has(s.get(1)), vault(s.get(1), vaults),
-			has(s.get(2)), vault(s.get(2), vaults),
-			has(s.get(3)), vault(s.get(3), vaults),
-			has(s.get(4)), vault(s.get(4), vaults),
-			v3 == null ? null : v3.authType(), has(s.get(5)), vault(s.get(5), vaults),
-			v3 == null ? null : v3.privType(), has(s.get(6)), vault(s.get(6), vaults));
+			s.get(0) instanceof LocalSecret username ? username.reveal() : null, vault(s.get(0), vaults),
+			has(kind, "password", s.get(1)), vault(s.get(1), vaults),
+			has(kind, "superPassword", s.get(2)), vault(s.get(2), vaults),
+			has(kind, "privateKey", s.get(3)), vault(s.get(3), vaults),
+			has(kind, "community", s.get(4)), vault(s.get(4), vaults),
+			v3 == null ? null : v3.authType(), has(kind, "authKey", s.get(5)), vault(s.get(5), vaults),
+			v3 == null ? null : v3.privType(), has(kind, "privKey", s.get(6)), vault(s.get(6), vaults));
 	}
 
 	/**

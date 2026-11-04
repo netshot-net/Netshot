@@ -42,6 +42,7 @@ import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDevices;
@@ -103,7 +104,7 @@ public class AccessManagerTest {
 	@DisplayName("Resolution is lazy: no connect() attempt happens before first use")
 	void resolutionIsLazy() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet cred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("cred1").build();
+		DeviceCredentialSet cred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("cred1").build();
 		DeviceAccess sshAccess = DeviceAccess.of("ssh");
 		sshAccess = sshAccess.toBuilder().globalCredentialSet(cred).build();
 		device.putDeviceAccess(sshAccess);
@@ -124,8 +125,8 @@ public class AccessManagerTest {
 	@DisplayName("Auto-try cycles through the supplied credentials in order until one succeeds")
 	void autoTryCyclesScopedCredentials() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("credA").build();
-		DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("credB").build();
+		DeviceCredentialSet credA = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("wrong")).superPassword(null).name("credA").build();
+		DeviceCredentialSet credB = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("right")).superPassword(null).name("credB").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(),
@@ -147,8 +148,8 @@ public class AccessManagerTest {
 	@DisplayName("A non-auth IOException aborts remaining candidates of that access, but a different access is still tried")
 	void connectFailureAbortsOnlyThatAccess() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet sshCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("sshCred").build();
-		DeviceCredentialSet telnetCred = DeviceTelnetAccount.builder().username("admin").password("admin").superPassword(null).name("telnetCred").build();
+		DeviceCredentialSet sshCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("sshCred").build();
+		DeviceCredentialSet telnetCred = DeviceTelnetAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("telnetCred").build();
 		DeviceAccess sshAccess = DeviceAccess.of("ssh");
 		sshAccess = sshAccess.toBuilder().globalCredentialSet(sshCred).build();
 		device.putDeviceAccess(sshAccess);
@@ -177,8 +178,8 @@ public class AccessManagerTest {
 	@DisplayName("Manual mode (autoTryCredentials=false) surfaces an AccessAuthenticationException instead of auto-cycling")
 	void manualModeSurfacesAuthFailure() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("credA").build();
-		DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("credB").build();
+		DeviceCredentialSet credA = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("wrong")).superPassword(null).name("credA").build();
+		DeviceCredentialSet credB = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("right")).superPassword(null).name("credB").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(),
@@ -216,7 +217,7 @@ public class AccessManagerTest {
 	@DisplayName("A per-access global credential pin is used exclusively")
 	void globalCredentialPinResolution() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username("admin").password("pinned").superPassword(null).name("pinnedCred").build();
+		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("pinned")).superPassword(null).name("pinnedCred").build();
 
 		DeviceAccess access = DeviceAccess.of("ssh");
 		access = access.toBuilder().globalCredentialSet(pinnedCred).build();
@@ -238,7 +239,8 @@ public class AccessManagerTest {
 	@DisplayName("A per-access owned specific credential pin is used exclusively")
 	void specificCredentialPinResolution() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet specificCred = DeviceSshAccount.builder().username("admin").password("specific").superPassword(null).name("DEVICESPECIFIC-test").build();
+		DeviceCredentialSet specificCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("specific")).superPassword(null).name("DEVICESPECIFIC-test")
+			.build();
 
 		DeviceAccess access = DeviceAccess.of("ssh");
 		access = access.toBuilder().specificCredentialSet(specificCred).build();
@@ -260,7 +262,7 @@ public class AccessManagerTest {
 	@DisplayName("A pinned credential that fails auth does NOT fall back to auto-try")
 	void pinnedCredentialFailureDoesNotFallBackToAutoTry() {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("pinnedCred").build();
+		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("wrong")).superPassword(null).name("pinnedCred").build();
 
 		DeviceAccess access = DeviceAccess.of("ssh");
 		access = access.toBuilder().globalCredentialSet(pinnedCred).build();
@@ -286,8 +288,8 @@ public class AccessManagerTest {
 		try {
 			Domain domain = TestDevices.addDomain("Auto pool test domain", "");
 			DeviceDraft device = new DeviceDraft(TestDevices.add(Device.create("CiscoIOS12", null, domain, "test").toBuilder().accesses(List.of(DeviceAccess.of("ssh"))).build()));
-			DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("autoPoolCredA").build();
-			DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("autoPoolCredB").build();
+			DeviceCredentialSet credA = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("wrong")).superPassword(null).name("autoPoolCredA").build();
+			DeviceCredentialSet credB = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("right")).superPassword(null).name("autoPoolCredB").build();
 			TestDevices.addCredentialSet(credA);
 			TestDevices.addCredentialSet(credB);
 
@@ -317,8 +319,8 @@ public class AccessManagerTest {
 		try {
 			Domain domain = TestDevices.addDomain("Auto pin test domain", "");
 			DeviceDraft device = new DeviceDraft(TestDevices.add(Device.create("CiscoIOS12", null, domain, "test").toBuilder().accesses(List.of(DeviceAccess.of("ssh"))).build()));
-			DeviceCredentialSet credA = DeviceSshAccount.builder().username("admin").password("wrong").superPassword(null).name("autoPinCredA").build();
-			DeviceCredentialSet credB = DeviceSshAccount.builder().username("admin").password("right").superPassword(null).name("autoPinCredB").build();
+			DeviceCredentialSet credA = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("wrong")).superPassword(null).name("autoPinCredA").build();
+			DeviceCredentialSet credB = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("right")).superPassword(null).name("autoPinCredB").build();
 			TestDevices.addCredentialSet(credA);
 			TestDevices.addCredentialSet(credB);
 
@@ -356,7 +358,7 @@ public class AccessManagerTest {
 	@DisplayName("confirmCredentialWorks() does not pin an already-pinned (global) credential")
 	void confirmCredentialWorksDoesNotRePinAlreadyPinnedAccess() throws IOException {
 		DeviceDraft device = fakeDevice();
-		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username("admin").password("pinned").superPassword(null).name("pinnedCred").build();
+		DeviceCredentialSet pinnedCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("pinned")).superPassword(null).name("pinnedCred").build();
 		DeviceAccess access = DeviceAccess.of("ssh");
 		access = access.toBuilder().globalCredentialSet(pinnedCred).build();
 		device.putDeviceAccess(access);
@@ -380,7 +382,7 @@ public class AccessManagerTest {
 			Domain domain = TestDevices.addDomain("No-row test domain", "");
 			// Deliberately no DeviceAccess row for "ssh" at all.
 			DeviceDraft device = new DeviceDraft(TestDevices.add(Device.create("CiscoIOS12", null, domain, "test")));
-			DeviceCredentialSet cred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("noRowCred").build();
+			DeviceCredentialSet cred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("noRowCred").build();
 			TestDevices.addCredentialSet(cred);
 
 			AtomicInteger connectCount = new AtomicInteger(0);
@@ -402,7 +404,7 @@ public class AccessManagerTest {
 	void oneTimeCredentialSetBypassesEnabledCheck() throws IOException {
 		DeviceDraft device = fakeDevice();
 		// Deliberately no DeviceAccess row for "ssh" at all.
-		DeviceCredentialSet oneTimeCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("oneTimeCred").build();
+		DeviceCredentialSet oneTimeCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("oneTimeCred").build();
 
 		AtomicInteger connectCount = new AtomicInteger(0);
 		AccessManager manager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, new FakeTaskContext(),
@@ -420,10 +422,12 @@ public class AccessManagerTest {
 	void confirmCredentialWorksRemovesSiblingAccessesInSameGroup() throws IOException {
 		DeviceDraft device = fakeDevice();
 		DeviceAccess sshRow = DeviceAccess.of("ssh");
-		sshRow = sshRow.toBuilder().globalCredentialSet(DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("sshCred").build()).build();
+		sshRow = sshRow.toBuilder().globalCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("sshCred")
+			.build()).build();
 		device.putDeviceAccess(sshRow);
 		DeviceAccess telnetRow = DeviceAccess.of("telnet");
-		telnetRow = telnetRow.toBuilder().globalCredentialSet(DeviceTelnetAccount.builder().username("admin").password("admin").superPassword(null).name("telnetCred").build()).build();
+		telnetRow = telnetRow.toBuilder().globalCredentialSet(DeviceTelnetAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null)
+			.name("telnetCred").build()).build();
 		device.putDeviceAccess(telnetRow);
 
 		AtomicInteger connectCount = new AtomicInteger(0);

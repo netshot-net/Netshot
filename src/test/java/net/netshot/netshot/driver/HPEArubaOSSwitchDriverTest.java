@@ -43,6 +43,7 @@ import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.platform.log.TaskContext;
 import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestConnectors;
@@ -63,7 +64,8 @@ public class HPEArubaOSSwitchDriverTest {
 	 */
 	private static DeviceDraft snapshot(TaskContext taskContext, GenericContainer<?> container)
 		throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		DeviceSshAccount credentials = DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin").name("admin/admin").build();
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(Secret.local("admin")).name("admin/admin")
+			.build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create(DRIVER, null, domain, "test").toBuilder();
 		List<DeviceAccess> deviceAccesses = new ArrayList<>();

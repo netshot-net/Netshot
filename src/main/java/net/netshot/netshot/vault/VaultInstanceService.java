@@ -33,6 +33,8 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -165,11 +167,11 @@ public class VaultInstanceService {
 			.authMethod(definition.authMethod())
 			.appRoleMountPath(definition.appRoleMountPath() == null ? "approle" : definition.appRoleMountPath())
 			.appRoleId(definition.appRoleId())
-			.appRoleSecretId(definition.appRoleSecretId().applyTo(new VaultableSecret(base.appRoleSecretId(), null, null)).localValue())
+			.appRoleSecretId(Secret.localValue(definition.appRoleSecretId().applyTo(base.appRoleSecretId())))
 			.jwtMountPath(definition.jwtMountPath() == null ? "jwt" : definition.jwtMountPath())
 			.jwtIdpTokenEndpoint(definition.jwtIdpTokenEndpoint())
 			.jwtClientId(definition.jwtClientId())
-			.jwtClientSecret(definition.jwtClientSecret().applyTo(new VaultableSecret(base.jwtClientSecret(), null, null)).localValue())
+			.jwtClientSecret(Secret.localValue(definition.jwtClientSecret().applyTo(base.jwtClientSecret())))
 			.jwtVaultRole(definition.jwtVaultRole())
 			.jwtScope(definition.jwtScope())
 			.build();
@@ -200,6 +202,10 @@ public class VaultInstanceService {
 		if (value == null || value.isEmpty()) {
 			throw NetshotException.invalidParameter(property, "The property '%s' is required with this authentication method.".formatted(property));
 		}
+	}
+
+	private static void requireValue(String property, LocalSecret value) {
+		requireValue(property, value == null ? null : value.reveal());
 	}
 
 	/**
