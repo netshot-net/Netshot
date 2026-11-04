@@ -10,17 +10,17 @@
     "server6Address": "2001:db8:0:0:0:0:0:1"
   },
   "name": "SSH Key",
-  "password": "=",
+  "password": null,
   "passwordVaultInstanceId": 13,
   "passwordVaultPath": "netshot/key/password",
-  "privateKey": "=",
+  "privateKey": null,
   "privateKeyVaultInstanceId": 13,
   "privateKeyVaultPath": "netshot/key/private",
-  "superPassword": "=",
+  "superPassword": null,
   "superPasswordVaultInstanceId": 13,
   "superPasswordVaultPath": "netshot/key/super",
   "type": "SSH Key",
-  "username": "keyuser",
+  "username": null,
   "usernameVaultInstanceId": 13,
   "usernameVaultPath": "netshot/key/username"
 }

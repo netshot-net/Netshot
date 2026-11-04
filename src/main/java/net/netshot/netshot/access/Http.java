@@ -58,11 +58,11 @@ import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.protocol.AuthScheme;
 import net.netshot.netshot.driver.protocol.HttpConfig;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.platform.tls.HttpsTrustPolicy;
 import net.netshot.netshot.vault.SecretResolver;
 import net.netshot.netshot.vault.VaultException;
-import net.netshot.netshot.vault.VaultableSecret;
 
 /**
  * An HTTP(S) client to access a device REST/HTTP API.
@@ -225,10 +225,10 @@ public class Http implements Client {
 		if (auth == null || account == null || auth.getType() == null) {
 			return;
 		}
-		// Resolved once here (local/Vault, per VaultableSecret) rather than read
+		// Resolved once here (local/Vault) rather than read
 		// piecemeal below, so a Vault-backed username/password is only fetched once per request.
-		String username = resolveSecret(account.usernameSecret());
-		String password = resolveSecret(account.passwordSecret());
+		String username = resolveSecret(account.username());
+		String password = resolveSecret(account.password());
 		if ("http".equals(auth.getType())) {
 			if ("bearer".equals(auth.getScheme())) {
 				if (password != null) {
@@ -276,7 +276,7 @@ public class Http implements Client {
 	 * @param secret the vaultable secret to resolve
 	 * @return the resolved value
 	 */
-	private String resolveSecret(VaultableSecret secret) throws IOException {
+	private String resolveSecret(Secret secret) throws IOException {
 		try {
 			return this.secrets.resolve(secret);
 		}

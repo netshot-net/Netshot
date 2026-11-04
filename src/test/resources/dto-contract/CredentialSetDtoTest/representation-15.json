@@ -7,7 +7,7 @@
   "passwordVaultInstanceId": null,
   "passwordVaultPath": null,
   "type": "HTTP",
-  "username": "httpuser",
+  "username": null,
   "usernameVaultInstanceId": 14,
   "usernameVaultPath": "netshot/http/username"
 }

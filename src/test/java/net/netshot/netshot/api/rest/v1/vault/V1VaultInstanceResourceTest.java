@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.platform.database.schema.Tables;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestServer;
 import net.netshot.netshot.testing.TestWiring;
@@ -121,7 +122,7 @@ public class V1VaultInstanceResourceTest {
 		Assertions.assertFalse(vault.get("hasJwtClientSecret").asBoolean());
 		Assertions.assertFalse(vault.has("appRoleSecretId"));
 		Assertions.assertFalse(vault.has("jwtClientSecret"));
-		Assertions.assertEquals(SECRET_ID, stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local(SECRET_ID), stored(id).appRoleSecretId());
 
 		Answer duplicate = this.admin.post("/vault-instances", appRole("Vault 1", null));
 		Assertions.assertEquals(409, duplicate.status(), duplicate.toString());
@@ -218,18 +219,18 @@ public class V1VaultInstanceResourceTest {
 		Assertions.assertEquals(1, replaced.json().get("version").asInt());
 		Assertions.assertEquals("\"1\"", replaced.header("ETag"));
 		Assertions.assertEquals("role2", stored(id).appRoleId());
-		Assertions.assertEquals(SECRET_ID, stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local(SECRET_ID), stored(id).appRoleSecretId());
 
 		// A new value replaces the stored one
 		Assertions.assertEquals(200, this.admin.put("/vault-instances/" + id, withoutSecret.replace("\"appRoleId\"",
 			"\"appRoleSecretId\": \"new-id\", \"appRoleId\"")).status());
-		Assertions.assertEquals("new-id", stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local("new-id"), stored(id).appRoleSecretId());
 
 		// null clears, which APPROLE refuses
 		Answer cleared = this.admin.put("/vault-instances/" + id, withoutSecret.replace("\"appRoleId\"", "\"appRoleSecretId\": null, \"appRoleId\""));
 		Assertions.assertEquals(400, cleared.status(), cleared.toString());
 		Assertions.assertEquals("appRoleSecretId", cleared.json().get("errors").get(0).get("field").asText());
-		Assertions.assertEquals("new-id", stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local("new-id"), stored(id).appRoleSecretId());
 
 		// Switching to JWT: the AppRole secret is cleared with null, the JWT ones are required
 		String jwt = "{\"name\": \"Renamed\", \"type\": \"HASHICORP_KV2\", \"baseUrl\": \"http://127.0.0.1:1\", \"authMethod\": \"JWT\", "
@@ -241,7 +242,7 @@ public class V1VaultInstanceResourceTest {
 		Assertions.assertTrue(switched.json().get("hasJwtClientSecret").asBoolean());
 		Assertions.assertFalse(switched.json().get("hasAppRoleSecretId").asBoolean());
 		Assertions.assertNull(stored(id).appRoleSecretId());
-		Assertions.assertEquals(CLIENT_SECRET, stored(id).jwtClientSecret());
+		Assertions.assertEquals(Secret.local(CLIENT_SECRET), stored(id).jwtClientSecret());
 
 		Answer stale = this.admin.put("/vault-instances/" + id, withoutSecret, "If-Match", "\"0\"");
 		Assertions.assertEquals(412, stale.status(), stale.toString());
@@ -259,13 +260,13 @@ public class V1VaultInstanceResourceTest {
 		Assertions.assertEquals("ns", patched.json().get("namespace").asText());
 		Assertions.assertEquals("kv", patched.json().get("kvMountPath").asText());
 		Assertions.assertEquals("role", patched.json().get("appRoleId").asText());
-		Assertions.assertEquals(SECRET_ID, stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local(SECRET_ID), stored(id).appRoleSecretId());
 
 		Answer secret = this.admin.patch("/vault-instances/" + id, "{\"appRoleSecretId\": \"patched-id\"}");
 		Assertions.assertEquals(200, secret.status(), secret.toString());
-		Assertions.assertEquals("patched-id", stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local("patched-id"), stored(id).appRoleSecretId());
 		Assertions.assertEquals(400, this.admin.patch("/vault-instances/" + id, "{\"appRoleSecretId\": null}").status());
-		Assertions.assertEquals("patched-id", stored(id).appRoleSecretId());
+		Assertions.assertEquals(Secret.local("patched-id"), stored(id).appRoleSecretId());
 		Assertions.assertEquals(200, this.admin.patch("/vault-instances/" + id, "{\"namespace\": null}").status());
 		Assertions.assertNull(stored(id).namespace());
 

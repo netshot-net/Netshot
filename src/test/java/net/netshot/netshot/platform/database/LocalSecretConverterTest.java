@@ -26,11 +26,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import net.netshot.netshot.TestConfig;
+import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
 @DisplayName("Encrypted columns (jOOQ converter)")
-public class EncryptedStringConverterTest {
+public class LocalSecretConverterTest {
 
 	@BeforeAll
 	static void config() {
@@ -42,22 +43,40 @@ public class EncryptedStringConverterTest {
 	void readsHibernateValue() {
 		// Written by StringEncryptorConverter (Hibernate) with the default password, before it was removed
 		String stored = "gNLFia/O/0LTQDS0Xc1BOzqqRR1lfRgLNhqdWofbXagDZkrlNCQM2XC+JG2MmwBSIX8kXKyugKc=";
-		Assertions.assertEquals("S3cr3t-ẞ-value", new EncryptedStringConverter().from(stored));
+		Assertions.assertEquals("S3cr3t-ẞ-value", new LocalSecretConverter().from(stored).reveal());
 	}
 
 	@Test
 	@DisplayName("A value is encrypted, and read back")
 	void roundTrip() {
-		EncryptedStringConverter jooq = new EncryptedStringConverter();
+		LocalSecretConverter jooq = new LocalSecretConverter();
 		String secret = "S3cr3t-ẞ-value";
-		Assertions.assertEquals(secret, jooq.from(jooq.to(secret)));
-		Assertions.assertNotEquals(secret, jooq.to(secret), "the stored value is encrypted");
+		String stored = jooq.to(LocalSecret.of(secret));
+		Assertions.assertNotEquals(secret, stored, "the stored value is encrypted");
+		Assertions.assertEquals(secret, jooq.from(stored).reveal());
+	}
+
+	@Test
+	@DisplayName("A value read is written back as it was read, not encrypted again")
+	void writtenBackAsRead() {
+		LocalSecretConverter jooq = new LocalSecretConverter();
+		String stored = jooq.to(LocalSecret.of("S3cr3t"));
+		Assertions.assertEquals(stored, jooq.to(jooq.from(stored)));
+	}
+
+	@Test
+	@DisplayName("A value is read without being decrypted")
+	void readWithoutDecrypting() {
+		// Not a valid encrypted value: reading it works, revealing it fails
+		LocalSecret secret = new LocalSecretConverter().from("not-encrypted");
+		Assertions.assertEquals("LocalSecret[***]", secret.toString());
+		Assertions.assertThrows(RuntimeException.class, secret::reveal);
 	}
 
 	@Test
 	@DisplayName("Null stays null")
 	void nullValue() {
-		EncryptedStringConverter jooq = new EncryptedStringConverter();
+		LocalSecretConverter jooq = new LocalSecretConverter();
 		Assertions.assertNull(jooq.from(null));
 		Assertions.assertNull(jooq.to(null));
 	}

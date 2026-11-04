@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <List>
   <item type="SNMP v1">
-    <community>=</community>
+    <community/>
     <communityVaultInstanceId>11</communityVaultInstanceId>
     <communityVaultPath>netshot/v1</communityVaultPath>
     <deviceSpecific>false</deviceSpecific>
@@ -26,22 +26,22 @@
     <name>SNMP v2</name>
   </item>
   <item type="SNMP v3">
-    <authKey>=</authKey>
+    <authKey/>
     <authKeyVaultInstanceId>12</authKeyVaultInstanceId>
     <authKeyVaultPath>netshot/v3/auth</authKeyVaultPath>
     <authType>SHA</authType>
-    <community>=</community>
+    <community/>
     <communityVaultInstanceId>12</communityVaultInstanceId>
     <communityVaultPath>netshot/v3/community</communityVaultPath>
     <deviceSpecific>false</deviceSpecific>
     <id>3</id>
     <mgmtDomain/>
     <name>SNMP v3</name>
-    <privKey>=</privKey>
+    <privKey/>
     <privKeyVaultInstanceId>12</privKeyVaultInstanceId>
     <privKeyVaultPath>netshot/v3/priv</privKeyVaultPath>
     <privType>AES128</privType>
-    <username>snmpuser</username>
+    <username/>
     <usernameVaultInstanceId>12</usernameVaultInstanceId>
     <usernameVaultPath>netshot/v3/username</usernameVaultPath>
   </item>
@@ -72,16 +72,16 @@
       <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
     </mgmtDomain>
     <name>SSH Key</name>
-    <password>=</password>
+    <password/>
     <passwordVaultInstanceId>13</passwordVaultInstanceId>
     <passwordVaultPath>netshot/key/password</passwordVaultPath>
-    <privateKey>=</privateKey>
+    <privateKey/>
     <privateKeyVaultInstanceId>13</privateKeyVaultInstanceId>
     <privateKeyVaultPath>netshot/key/private</privateKeyVaultPath>
-    <superPassword>=</superPassword>
+    <superPassword/>
     <superPasswordVaultInstanceId>13</superPasswordVaultInstanceId>
     <superPasswordVaultPath>netshot/key/super</superPasswordVaultPath>
-    <username>keyuser</username>
+    <username/>
     <usernameVaultInstanceId>13</usernameVaultInstanceId>
     <usernameVaultPath>netshot/key/username</usernameVaultPath>
   </item>
@@ -108,7 +108,7 @@
     <password>=</password>
     <passwordVaultInstanceId/>
     <passwordVaultPath/>
-    <username>httpuser</username>
+    <username/>
     <usernameVaultInstanceId>14</usernameVaultInstanceId>
     <usernameVaultPath>netshot/http/username</usernameVaultPath>
   </item>

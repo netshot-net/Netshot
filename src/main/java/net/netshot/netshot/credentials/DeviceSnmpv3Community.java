@@ -22,7 +22,7 @@ import java.time.Instant;
 
 import lombok.Builder;
 import net.netshot.netshot.domain.Domain;
-import net.netshot.netshot.vault.VaultableSecret;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * SNMPv3 credentials (the community isn't used by SNMPv3, it is kept as it is stored).
@@ -33,20 +33,12 @@ import net.netshot.netshot.vault.VaultableSecret;
  * @param name the name, unique
  * @param mgmtDomain the domain the credential set is restricted to, or null for all the domains
  * @param deviceSpecific whether the credential set belongs to one access of one device (rather than being global)
- * @param community the community
- * @param communityVaultInstanceId the ID of the Vault instance the community is read from, or null if it is local
- * @param communityVaultPath the Vault path (and key) of the community
- * @param username the username
- * @param usernameVaultInstanceId the ID of the Vault instance the username is read from, or null if it is local
- * @param usernameVaultPath the Vault path (and key) of the username
+ * @param community the community, local or in a Vault instance (null if not set)
+ * @param username the username, local or in a Vault instance (null if not set)
  * @param authType the authentication protocol
- * @param authKey the authentication key
- * @param authKeyVaultInstanceId the ID of the Vault instance the authentication key is read from, or null if it is local
- * @param authKeyVaultPath the Vault path (and key) of the authentication key
+ * @param authKey the authentication key, local or in a Vault instance (null if not set)
  * @param privType the privacy protocol
- * @param privKey the privacy key
- * @param privKeyVaultInstanceId the ID of the Vault instance the privacy key is read from, or null if it is local
- * @param privKeyVaultPath the Vault path (and key) of the privacy key
+ * @param privKey the privacy key, local or in a Vault instance (null if not set)
  */
 @Builder(toBuilder = true)
 public record DeviceSnmpv3Community(
@@ -56,20 +48,12 @@ public record DeviceSnmpv3Community(
 	String name,
 	Domain mgmtDomain,
 	boolean deviceSpecific,
-	String community,
-	Long communityVaultInstanceId,
-	String communityVaultPath,
-	String username,
-	Long usernameVaultInstanceId,
-	String usernameVaultPath,
+	Secret community,
+	Secret username,
 	AuthProtocol authType,
-	String authKey,
-	Long authKeyVaultInstanceId,
-	String authKeyVaultPath,
+	Secret authKey,
 	PrivProtocol privType,
-	String privKey,
-	Long privKeyVaultInstanceId,
-	String privKeyVaultPath) implements DeviceSnmpCommunity {
+	Secret privKey) implements DeviceSnmpCommunity {
 
 	/**
 	 * SNMPv3 authentication protocol. {@link #NONE} means noAuth (and,
@@ -107,33 +91,6 @@ public record DeviceSnmpv3Community(
 	@Override
 	public DeviceSnmpv3Community withMgmtDomain(Domain newMgmtDomain) {
 		return this.toBuilder().mgmtDomain(newMgmtDomain).build();
-	}
-
-	/**
-	 * Gets the username, local or in a Vault instance.
-	 *
-	 * @return the username
-	 */
-	public VaultableSecret usernameSecret() {
-		return new VaultableSecret(this.username, this.usernameVaultInstanceId, this.usernameVaultPath);
-	}
-
-	/**
-	 * Gets the authentication key, local or in a Vault instance.
-	 *
-	 * @return the authentication key
-	 */
-	public VaultableSecret authKeySecret() {
-		return new VaultableSecret(this.authKey, this.authKeyVaultInstanceId, this.authKeyVaultPath);
-	}
-
-	/**
-	 * Gets the privacy key, local or in a Vault instance.
-	 *
-	 * @return the privacy key
-	 */
-	public VaultableSecret privKeySecret() {
-		return new VaultableSecret(this.privKey, this.privKeyVaultInstanceId, this.privKeyVaultPath);
 	}
 
 	@Override
