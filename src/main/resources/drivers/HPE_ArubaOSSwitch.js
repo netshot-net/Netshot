@@ -21,7 +21,7 @@ var Info = {
 	name: "HPEArubaOSSwitch",
 	description: "HPE ArubaOS-Switch",
 	author: "Netshot Team",
-	version: "1.7"
+	version: "1.8"
 };
 
 var Config = {
@@ -237,7 +237,7 @@ function snapshot(cli, device, config) {
 	const secondaryMatch = showFlash.match(/^Secondary Image *: *(\d+) *([\d\/]+) *([A-Z0-9\.]+) *$/m);
 	device.set("secondaryVersion", secondaryMatch ? secondaryMatch[3] : "");
 
-	device.set("family", "Avaya switch");
+	device.set("family", "Aruba switch");
 
 	const chassis = {
 		partNumber: null,
@@ -253,7 +253,7 @@ function snapshot(cli, device, config) {
 		if (chassisMatch) {
 			const model = chassisMatch[1].trim();
 			const platform = model.replace(/-.*/, "");
-			chassis.family = `Avaya ${platform}`;
+			chassis.family = `Aruba ${platform}`;
 			chassis.partNumber = chassisMatch[2].trim();
 			chassis.serialNumber = chassisMatch[3].trim();
 			chassis.model = model;
@@ -340,7 +340,7 @@ function snapshot(cli, device, config) {
 				chassis.partNumber = classMatch[2];
 				const model = classMatch[3];
 				const platform = model.replace(/-.*/, "");
-				chassis.family = `Avaya ${platform}`;
+				chassis.family = `Aruba ${platform}`;
 			}
 		}
 		catch (err) {
@@ -348,7 +348,7 @@ function snapshot(cli, device, config) {
 		}
 	}
 
-	device.set("family", chassis.family || "Unknown Avaya switch");
+	device.set("family", chassis.family || "Unknown Aruba switch");
 
 	if (chassis.serialNumber) {
 		device.set("serialNumber", chassis.serialNumber);
@@ -387,7 +387,7 @@ function snapshot(cli, device, config) {
 			if (!stackFoundSerial) {
 				stackFoundSerial = true;
 				device.set("serialNumber", serialNumber);
-				device.set("family", `Avaya ${platform}`);
+				device.set("family", `Aruba ${platform}`);
 			}
 			device.add("module", {
 				slot: `Switch ${id}`,
@@ -467,7 +467,7 @@ function snapshot(cli, device, config) {
 	}
 
 	const showIntfConfig = cli.command("show interfaces config");
-	const portPattern = /^ *([A-Za-z0-9\/]+?)(-.+?)? +.* | (Yes|No) .*/mg;
+	const portPattern = /^ *([A-Za-z0-9\/]+?)(-.+?)? +.* \| (Yes|No) .*/mg;
 	while (true) {
 		const portMatch = portPattern.exec(showIntfConfig);
 		if (!portMatch) break;
@@ -476,7 +476,7 @@ function snapshot(cli, device, config) {
 		const networkInterface = {
 			name: ifName,
 			level3: false,
-			disabled: portMatch[2] !== "Yes",
+			enabled: portMatch[3] === "Yes",
 		};
 		if (interfaceDescriptions[ifName]) {
 			networkInterface.description = interfaceDescriptions[ifName];
