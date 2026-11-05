@@ -222,7 +222,7 @@ public class ConfigService {
 					config1 = this.repository.find(dsl, id1, true);
 				}
 				if (config1 == null || config2 == null) {
-					log.error("Non existing config, {} or {}.", id1, id2);
+					log.warn("Non existing config, {} or {}.", id1, id2);
 					throw new NetshotException(ErrorCode.NETSHOT_CONFIG_NOT_FOUND, "Config not found");
 				}
 				DeviceDriver driver1;
@@ -238,7 +238,7 @@ public class ConfigService {
 					throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Missing driver");
 				}
 				if (!driver1.equals(driver2)) {
-					log.error("Incompatible configurations, {} and {} (different drivers).", id1, id2);
+					log.warn("Incompatible configurations, {} and {} (different drivers).", id1, id2);
 					throw new NetshotException(ErrorCode.NETSHOT_INCOMPATIBLE_CONFIGS, "Incompatible configurations");
 				}
 
