@@ -347,7 +347,7 @@ class DeviceDtoTest {
 	void updateRequestMapping() throws Exception {
 		UpdateDeviceRequest empty = JSON.readerFor(UpdateDeviceRequest.class).readValue("{}");
 		DeviceUpdate update = DeviceMapper.toUpdate(empty);
-		Assertions.assertEquals(new DeviceUpdate(null, null, null, null, null, null, null), update);
+		Assertions.assertEquals(new DeviceUpdate(null, null, null, null, null, null, null, null), update);
 
 		UpdateDeviceRequest request = JSON.readerFor(UpdateDeviceRequest.class).readValue("""
 			{"id": 5, "enabled": false, "comments": "c", "ipAddress": "10.0.0.2", "mgmtDomain": 6,

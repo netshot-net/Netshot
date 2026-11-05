@@ -176,7 +176,7 @@ public final class DeviceMapper {
 				.build());
 			if (request.specificCredentialSet() != null) {
 				DeviceCredentialSetRequest cs = request.specificCredentialSet();
-				specifics.add(new AccessSpecificCredential(request.accessName(), CredentialSetMapper.toDefinition(
+				specifics.add(new AccessSpecificCredential.Definition(request.accessName(), CredentialSetMapper.toDefinition(
 					new CredentialSetRequest("specific", cs.type(), null, cs.username(), cs.usernameVault(), cs.password(),
 						cs.passwordVault(), cs.superPassword(), cs.superPasswordVault(), cs.privateKey(), cs.privateKeyVault(),
 						cs.community(), cs.communityVault(), cs.authType(), cs.authKey(), cs.authKeyVault(), cs.privType(),

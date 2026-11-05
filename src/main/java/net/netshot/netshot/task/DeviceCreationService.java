@@ -201,12 +201,10 @@ public class DeviceCreationService {
 		CreatedDevice created;
 		try {
 			created = this.transactions.write(dsl -> {
-				List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, creation.accesses());
+				List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, creation.accesses(),
+					creation.specificCredentials());
 				Map<String, Object> options = DeviceValidation.validateOptions(driver, creation.options());
 				Device.DeviceBuilder newDevice = Device.create(driver.getName(), creation.ipAddress(), domain, creation.author()).toBuilder();
-				if (accesses != null) {
-					accesses = this.repository.saveSpecificCredentialSets(dsl, List.of(), accesses);
-				}
 				accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, List.of(), accesses,
 					creation.specificCredentials());
 				if (accesses != null) {

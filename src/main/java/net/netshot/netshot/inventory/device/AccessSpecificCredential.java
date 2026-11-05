@@ -19,13 +19,39 @@
 package net.netshot.netshot.inventory.device;
 
 import net.netshot.netshot.credentials.CredentialSetDefinition;
+import net.netshot.netshot.credentials.DeviceCredentialSet;
 
 /**
- * The definition of the credential set specific to a device access, as a command: the secrets it leaves out are
- * kept, and it is stored by the device service together with the device.
- *
- * @param accessName the name of the access the credential set is specific to
- * @param definition the definition (its name is not used: the credential set of an access is named by the server)
+ * The credential set specific to a device access, as a command: the device service stores it together with the
+ * device, the accesses of the command never carrying one themselves.
  */
-public record AccessSpecificCredential(String accessName, CredentialSetDefinition definition) {
+public sealed interface AccessSpecificCredential {
+
+	/**
+	 * Gets the name of the access the credential set is specific to.
+	 *
+	 * @return the access name
+	 */
+	String accessName();
+
+	/**
+	 * A definition of the credential set (REST API v1): the secrets it leaves out are kept, and the result must be
+	 * complete.
+	 *
+	 * @param accessName the name of the access the credential set is specific to
+	 * @param definition the definition (its name is not used: the credential set of an access is named by the server)
+	 */
+	record Definition(String accessName, CredentialSetDefinition definition) implements AccessSpecificCredential {
+	}
+
+	/**
+	 * A credential set as the legacy REST API (v0) gives it, merged into the current one with the rules of that API
+	 * (see {@link net.netshot.netshot.credentials.CredentialSets#applySpecificCredentialSet}): to remove with the
+	 * legacy API.
+	 *
+	 * @param accessName the name of the access the credential set is specific to
+	 * @param credentialSet the credential set (its identity is not used)
+	 */
+	record Legacy(String accessName, DeviceCredentialSet credentialSet) implements AccessSpecificCredential {
+	}
 }
