@@ -723,6 +723,8 @@ public class DeviceRepository {
 			.set(DEVICE.CREATED_DATE, device.createdDate())
 			.set(DEVICE.CREATOR, device.creator())
 			.set(DEVICE.DRIVER, device.driver())
+			.set(DEVICE.LAST_SNAPSHOT_SUCCESS_DATE, device.lastSnapshotSuccessDate())
+			.set(DEVICE.LAST_SNAPSHOT_FAILURE_DATE, device.lastSnapshotFailureDate())
 			.returning(DEVICE.ID)
 			.fetchOne(DEVICE.ID);
 		insertTags(dsl, id, device.tags());
