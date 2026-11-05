@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * The command to replace the editable properties of a device. Every property is replaced by the value
  * of the command (a null collection being an empty one), except the secrets of the specific credential
- * sets, which are kept when the definitions leave them out.
+ * sets, which are kept when their definitions leave them out.
  *
  * @param status the status (null for in production)
  * @param comments the comments (null for none)
@@ -33,8 +33,8 @@ import java.util.Map;
  * @param mgmtDomainId the ID of the management domain
  * @param accesses the per-access settings, not yet validated: transient {@link DeviceAccess} objects without specific
  *        credential set (an access which is not listed is removed)
- * @param specificCredentials the definitions of the specific credential sets of the accesses (an access which has
- *        none loses its current one)
+ * @param specificCredentials the specific credential sets of the accesses (an access which has none loses its
+ *        current one)
  * @param options the values of the driver options (null for none)
  * @param tags the tags (null for none)
  */

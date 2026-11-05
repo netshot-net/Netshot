@@ -280,8 +280,7 @@ public class DeviceService {
 		}
 		DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
 		List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver,
-			change.accesses() == null ? List.of() : change.accesses());
-		accesses = this.repository.saveSpecificCredentialSets(dsl, device.accesses(), accesses);
+			change.accesses() == null ? List.of() : change.accesses(), change.specificCredentials());
 		accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, device.accesses(), accesses,
 			change.specificCredentials());
 		Map<String, Object> options = DeviceValidation.validateOptions(driver, change.options());
@@ -311,8 +310,11 @@ public class DeviceService {
 		}
 		if (update.accesses() != null) {
 			DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());
-			List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, update.accesses());
-			edited.accesses(Device.mergeAccesses(device.accesses(), this.repository.saveSpecificCredentialSets(dsl, device.accesses(), accesses)));
+			List<DeviceAccess> accesses = DeviceValidation.validateAccesses(this.credentialSetRepository, dsl, driver, update.accesses(),
+				update.specificCredentials());
+			accesses = DeviceValidation.applySpecificCredentials(this.credentialSetRepository, dsl, driver, device.accesses(), accesses,
+				update.specificCredentials());
+			edited.accesses(Device.mergeAccesses(device.accesses(), accesses));
 		}
 		if (update.options() != null) {
 			DeviceDriver driver = this.driverRegistry.getDriverByName(device.driver());

@@ -29,6 +29,7 @@ import net.netshot.netshot.api.rest.v0.group.DeviceGroupDto;
 import net.netshot.netshot.api.rest.v0.group.GroupMapper;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
+import net.netshot.netshot.inventory.device.AccessSpecificCredential;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceCreation;
@@ -159,16 +160,18 @@ public final class DeviceMapper {
 	 * @return the command
 	 */
 	public static DeviceCreation toCreation(NewDeviceRequest request, String author) {
+		Accesses accesses = toAccesses(request.accesses());
 		return new DeviceCreation(
 			request.autoDiscover(),
 			request.ipAddress(),
 			request.domainId(),
 			request.deviceType(),
-			toAccesses(request.accesses()),
+			accesses.accesses(),
 			request.options(),
 			request.comments(),
 			request.tags(),
-			author);
+			author,
+			accesses.specificCredentials());
 	}
 
 	/**
@@ -178,23 +181,42 @@ public final class DeviceMapper {
 	 * @return the command
 	 */
 	public static DeviceUpdate toUpdate(UpdateDeviceRequest request) {
+		Accesses accesses = toAccesses(request.accesses());
 		return new DeviceUpdate(
 			request.enabled(),
 			request.comments(),
 			request.ipAddress(),
 			request.mgmtDomain(),
-			toAccesses(request.accesses()),
+			accesses.accesses(),
+			accesses.specificCredentials(),
 			request.options(),
 			request.tags());
 	}
 
-	private static List<DeviceAccess> toAccesses(List<DeviceAccessDto> dtos) {
+	/**
+	 * The accesses of a request, and the specific credential sets they carried.
+	 *
+	 * @param accesses the transient accesses, without specific credential set (null if none was given)
+	 * @param specificCredentials the specific credential sets of the accesses
+	 */
+	private record Accesses(List<DeviceAccess> accesses, List<AccessSpecificCredential> specificCredentials) {
+	}
+
+	private static Accesses toAccesses(List<DeviceAccessDto> dtos) {
 		if (dtos == null) {
-			return null;
+			return new Accesses(null, null);
 		}
 		List<DeviceAccess> accesses = new ArrayList<>(dtos.size());
-		dtos.forEach(dto -> accesses.add(DeviceAccessMapper.toEntity(dto)));
-		return accesses;
+		List<AccessSpecificCredential> specifics = new ArrayList<>();
+		for (DeviceAccessDto dto : dtos) {
+			DeviceAccess access = DeviceAccessMapper.toEntity(dto);
+			if (access.specificCredentialSet() != null) {
+				specifics.add(new AccessSpecificCredential.Legacy(access.accessName(), access.specificCredentialSet()));
+				access = access.toBuilder().specificCredentialSet(null).build();
+			}
+			accesses.add(access);
+		}
+		return new Accesses(accesses, specifics);
 	}
 
 	private static DeviceAttributeDto toDto(DeviceAttribute attribute) {

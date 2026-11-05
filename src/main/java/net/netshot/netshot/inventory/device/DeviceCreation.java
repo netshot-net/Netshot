@@ -32,12 +32,13 @@ import java.util.Map;
  * @param domainId the ID of the management domain
  * @param deviceType the name of the device driver (not used when auto discovering)
  * @param accesses the per-access settings, not yet validated (may be null); transient
- *        {@link DeviceAccess} objects, which the service validates and completes
+ *        {@link DeviceAccess} objects without specific credential set, which the service
+ *        validates and completes
  * @param options the values of the driver options (may be null)
  * @param comments the comments (may be null)
  * @param tags the tags (may be null)
  * @param author the name of the user adding the device
- * @param specificCredentials the definitions of the specific credential sets of the accesses (may be null)
+ * @param specificCredentials the specific credential sets of the accesses (may be null)
  */
 public record DeviceCreation(
 	boolean autoDiscover,
@@ -52,7 +53,7 @@ public record DeviceCreation(
 	List<AccessSpecificCredential> specificCredentials) {
 
 	/**
-	 * Builds a command without definitions of specific credential sets (the accesses carry them).
+	 * Builds a command without specific credential sets.
 	 *
 	 * @param autoDiscover whether to discover the type of the device
 	 * @param ipAddress the management address
