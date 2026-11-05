@@ -20,6 +20,7 @@ package net.netshot.netshot.inventory.device;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -238,6 +239,18 @@ class DeviceServiceTest {
 	// ------------------------------------------------------------------
 	// get, list
 	// ------------------------------------------------------------------
+
+	@Test
+	@DisplayName("The repository stores the snapshot dates of a new device (copy or import)")
+	void addKeepsSnapshotDates() {
+		Instant success = Instant.parse("2026-03-10T10:00:00Z");
+		Instant failure = Instant.parse("2026-04-10T10:00:00Z");
+		Device copy = this.createDevice(this.nextAddress()).toBuilder().mgmtAddress(this.nextAddress())
+			.lastSnapshotSuccessDate(success).lastSnapshotFailureDate(failure).build();
+		Device added = this.service.get(TestDevices.add(copy).id());
+		Assertions.assertEquals(success, added.lastSnapshotSuccessDate());
+		Assertions.assertEquals(failure, added.lastSnapshotFailureDate());
+	}
 
 	@Test
 	@DisplayName("get() reports an unknown device, and returns the complete device")
