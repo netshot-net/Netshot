@@ -21,9 +21,11 @@ package net.netshot.netshot.inventory.device;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.sshd.common.config.keys.PublicKeyEntry;
@@ -131,25 +133,32 @@ public final class DeviceValidation {
 	 * Validates a list of per-(device, access) configurations submitted by a
 	 * device create/update request: address must be a valid address/hostname
 	 * if set, port must be in the 1-65535 range if set, access name must be
-	 * present. If a credential is pinned (at most one of globalCredentialSet/
-	 * specificCredentialSet may be set - both is rejected), the access name
-	 * must be a real access declared by the driver and the credential's
-	 * type must match that access's declared credential family. A submitted
+	 * present. If a global credential set is pinned, the access name must be
+	 * a real access declared by the driver and the credential's type must match
+	 * that access's declared credential family. A submitted
 	 * {@code globalCredentialSet} is resolved here (by id, through the
-	 * repository) to the stored credential set.
+	 * repository) to the stored credential set. The specific credential sets
+	 * are given apart (stored by {@link #applySpecificCredentials}): an access
+	 * can't have both a global and a specific one.
 	 * @param credentialSetRepository the repository used to resolve a submitted globalCredentialSet id
 	 * @param dsl the jOOQ context of the repository lookups
 	 * @param driver the device's driver, or null if not known yet (e.g. an
 	 *        autodiscovering device) - credential pins are rejected in that case
 	 * @param accesses the accesses to validate (may be null)
+	 * @param specifics the specific credential sets of the accesses (may be null)
 	 * @return the accesses, normalized (default modes, normalized SSH host keys, resolved global
 	 *         credential sets), or null if none was given
 	 * @throws NetshotException if any entry is invalid
+	 * @throws IllegalArgumentException if an access carries a specific credential set
 	 */
 	public static List<DeviceAccess> validateAccesses(CredentialSetRepository credentialSetRepository, DSLContext dsl,
-			DeviceDriver driver, List<DeviceAccess> accesses) {
+			DeviceDriver driver, List<DeviceAccess> accesses, List<AccessSpecificCredential> specifics) {
 		if (accesses == null) {
 			return null;
+		}
+		Set<String> specificNames = new HashSet<>();
+		if (specifics != null) {
+			specifics.forEach(specific -> specificNames.add(specific.accessName()));
 		}
 		List<DeviceAccess> validated = new ArrayList<>(accesses.size());
 		for (DeviceAccess input : accesses) {
@@ -179,11 +188,14 @@ public final class DeviceValidation {
 				CaCertificates.validateCustomCa(access.httpsCustomCaCertificate(),
 					"access '" + access.accessName() + "'");
 			}
-			if (access.globalCredentialSet() == null && access.specificCredentialSet() == null) {
+			if (access.specificCredentialSet() != null) {
+				throw new IllegalArgumentException("The specific credential set of access '" + access.accessName() + "' must be given apart.");
+			}
+			if (access.globalCredentialSet() == null) {
 				validated.add(access);
 				continue;
 			}
-			if (access.globalCredentialSet() != null && access.specificCredentialSet() != null) {
+			if (specificNames.contains(access.accessName())) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
 					"Cannot set both a global and a specific credential set for access '" + access.accessName() + "'.");
 			}
@@ -196,49 +208,42 @@ public final class DeviceValidation {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
 					"Unknown access '" + access.accessName() + "' for this device type.");
 			}
-			Class<? extends DeviceCredentialSet> credentialClass = accessDef.getCredentialClass();
-			if (access.globalCredentialSet() != null) {
-				DeviceCredentialSet global = credentialSetRepository.find(dsl, access.globalCredentialSet().id());
-				if (global == null || global.deviceSpecific()) {
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
-						"Invalid global credential set for access '" + access.accessName() + "'.");
-				}
-				if (!credentialClass.isInstance(global)) {
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
-						"The selected credential set is not compatible with access '" + access.accessName() + "'.");
-				}
-				access = access.toBuilder().globalCredentialSet(global).build();
+			DeviceCredentialSet global = credentialSetRepository.find(dsl, access.globalCredentialSet().id());
+			if (global == null || global.deviceSpecific()) {
+				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS,
+					"Invalid global credential set for access '" + access.accessName() + "'.");
 			}
-			else if (!credentialClass.isInstance(access.specificCredentialSet())) {
+			if (!accessDef.getCredentialClass().isInstance(global)) {
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
-					"The specific credential set is not compatible with access '" + access.accessName() + "'.");
+					"The selected credential set is not compatible with access '" + access.accessName() + "'.");
 			}
-			validated.add(access);
+			validated.add(access.toBuilder().globalCredentialSet(global).build());
 		}
 		return validated;
 	}
 
 	/**
-	 * Stores the specific credential sets of accesses given as definitions: each one is created, or merged into the
-	 * current specific credential set of the access of the same name when they are of the same type (the secrets the
-	 * definition leaves out are kept). To call once the accesses are validated.
+	 * Stores the specific credential sets of the accesses: each one is created, or merged into the current specific
+	 * credential set of the access of the same name when they are of the same type (a definition then keeps the
+	 * secrets it leaves out, a legacy credential set follows the rules of the legacy API). To call once the accesses
+	 * are validated: an access which gets no specific credential set here has none.
 	 *
 	 * @param credentialSetRepository the credential set repository
 	 * @param dsl the jOOQ context
 	 * @param driver the device's driver
 	 * @param current the current accesses of the device (none for a new device)
 	 * @param accesses the validated accesses of the device after the change (may be null)
-	 * @param definitions the definitions of the specific credential sets (may be null)
+	 * @param specifics the specific credential sets (may be null)
 	 * @return the accesses, with their stored specific credential sets
-	 * @throws NetshotException if a definition is invalid, doesn't match an access, or doesn't fit its access
+	 * @throws NetshotException if a credential set is invalid, doesn't match an access, or doesn't fit its access
 	 */
 	public static List<DeviceAccess> applySpecificCredentials(CredentialSetRepository credentialSetRepository, DSLContext dsl,
-			DeviceDriver driver, List<DeviceAccess> current, List<DeviceAccess> accesses, List<AccessSpecificCredential> definitions) {
-		if (definitions == null || definitions.isEmpty()) {
+			DeviceDriver driver, List<DeviceAccess> current, List<DeviceAccess> accesses, List<AccessSpecificCredential> specifics) {
+		if (specifics == null || specifics.isEmpty()) {
 			return accesses;
 		}
 		List<DeviceAccess> result = accesses == null ? new ArrayList<>() : new ArrayList<>(accesses);
-		for (AccessSpecificCredential specific : definitions) {
+		for (AccessSpecificCredential specific : specifics) {
 			int index = -1;
 			for (int i = 0; i < result.size(); i++) {
 				if (specific.accessName().equals(result.get(i).accessName())) {
@@ -268,8 +273,17 @@ public final class DeviceValidation {
 				.reduce((_, second) -> second)
 				.map(DeviceAccess::specificCredentialSet)
 				.orElse(null);
-			DeviceCredentialSet stored = CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, existing,
-				specific.definition(), accessDef.getCredentialClass());
+			DeviceCredentialSet stored = switch (specific) {
+				case AccessSpecificCredential.Definition d -> CredentialSets.applySpecificDefinition(dsl, credentialSetRepository, existing,
+					d.definition(), accessDef.getCredentialClass());
+				case AccessSpecificCredential.Legacy l -> {
+					if (!accessDef.getCredentialClass().isInstance(l.credentialSet())) {
+						throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
+							"The specific credential set is not compatible with access '" + access.accessName() + "'.");
+					}
+					yield CredentialSets.applySpecificCredentialSet(dsl, credentialSetRepository, existing, l.credentialSet());
+				}
+			};
 			result.set(index, access.toBuilder().specificCredentialSet(stored).build());
 		}
 		return result;
