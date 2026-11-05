@@ -848,7 +848,7 @@ public class DeviceRepository {
 			// The specific credential set of the current access of the same name (the last one if several)
 			var existingSpecific = current.stream()
 				.filter(access -> access.accessName().equals(input.accessName()))
-				.reduce((first, second) -> second)
+				.reduce((_, second) -> second)
 				.map(DeviceAccess::specificCredentialSet)
 				.orElse(null);
 			var stored = CredentialSets.applySpecificCredentialSet(dsl, credentialSetRepository,

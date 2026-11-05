@@ -70,7 +70,6 @@ class DeviceServiceTest {
 	private Transactions transactions;
 	private long domainId;
 	private long otherDomainId;
-	private long sshAccountId;
 
 	@BeforeAll
 	void initDb() throws Exception {
@@ -87,8 +86,8 @@ class DeviceServiceTest {
 		this.creationService = new DeviceCreationService(this.transactions, new DeviceRepository(), submitter, TestDrivers.registry(), dynamicGroups);
 		this.domainId = TestDevices.addDomain("Lab", "Test domain").id();
 		this.otherDomainId = TestDevices.addDomain("Other lab", "Other test domain").id();
-		this.sshAccountId = TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("secret").superPassword("enable")
-			.name("Lab SSH account").build()).id();
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("secret").superPassword("enable")
+			.name("Lab SSH account").build());
 	}
 
 	@BeforeEach
