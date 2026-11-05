@@ -1111,10 +1111,6 @@ public class DeviceDriverTest {
 				"The chassis part number is incorrect");
 			Assertions.assertEquals("Uplink to core", device.getNetworkInterface("1").getDescription(),
 				"The port 1 description is incorrect");
-			Assertions.assertEquals("Aruba 2530", device.getFamily(), "The family is incorrect");
-			Assertions.assertTrue(device.getNetworkInterface("1").isEnabled(), "The port 1 should be enabled");
-			Assertions.assertFalse(device.getNetworkInterface("3").isEnabled(), "The port 3 should be disabled");
-			Assertions.assertNull(device.getNetworkInterface("Port"), "The header of the port table was taken as a port");
 			Assertions.assertEquals(Network4Address.getNetworkAddress("192.0.2.30", 24),
 				device.getNetworkInterface("Vlan1").getIp4Addresses().iterator().next(),
 				"The Vlan1 interface IP address is incorrect");

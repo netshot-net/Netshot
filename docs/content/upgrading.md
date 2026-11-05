@@ -53,8 +53,6 @@
 
 **Tasks**: the upgrade indexes the device columns of the task table, which lost their indexes in 0.25.0: listing the tasks of a device (device page) and deleting a device scanned the whole table, which got slower as the task history grew. Building the indexes may take a little while on a large task table.
 
-**HPE ArubaOS-Switch driver**: the family of these switches is now `Aruba <platform>` (e.g. `Aruba 2530`) instead of `Avaya <platform>`, and the disabled ports are now shown as disabled (all the ports were shown as enabled). The family changes at the next snapshot of each device: update the dynamic groups, compliance rules and reports which select these switches by an `Avaya` family.
-
 **REST API**: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty. Updating a hook with `"triggers": null` (`PUT /hooks/{id}`) now removes all its triggers, as on creation, instead of failing with a 500 error.
 
 ### Any version to 0.20+
