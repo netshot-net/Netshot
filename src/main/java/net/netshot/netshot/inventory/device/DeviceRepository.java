@@ -43,10 +43,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -239,16 +240,26 @@ public class DeviceRepository {
 
 	private static final List<SelectField<?>> FIELDS;
 
-	/** The fields of a device without its components (modules and network interfaces), for the lists. */
+	/** The fields of a device without its collections, for the lists (which add the collections they need). */
 	private static final List<SelectField<?>> LIST_FIELDS;
+
+	/** The field of each collection a list can load. */
+	private static final Map<Device.Part, Field<?>> PART_FIELDS = new EnumMap<>(Map.of(
+		Device.Part.TAGS, TAGS,
+		Device.Part.VIRTUAL_DEVICES, VIRTUAL_DEVICES,
+		Device.Part.VRF_INSTANCES, VRF_INSTANCES,
+		Device.Part.ATTRIBUTES, ATTRIBUTES,
+		Device.Part.ACCESSES, ACCESSES,
+		Device.Part.OWNER_GROUPS, GROUPS));
 
 	static {
 		List<SelectField<?>> fields = new ArrayList<>(List.of(DEVICE.fields()));
 		fields.addAll(List.of(DOMAIN.fields()));
 		fields.addAll(List.of(EOL.fields()));
 		fields.addAll(List.of(EOS.fields()));
-		fields.addAll(List.of(COMPLIANT, TAGS, VIRTUAL_DEVICES, VRF_INSTANCES, ATTRIBUTES, ACCESSES, GROUPS));
+		fields.add(COMPLIANT);
 		LIST_FIELDS = List.copyOf(fields);
+		fields.addAll(PART_FIELDS.values());
 		fields.addAll(List.of(MODULES, INTERFACES));
 		FIELDS = List.copyOf(fields);
 	}
@@ -383,14 +394,26 @@ public class DeviceRepository {
 			r.get(DEVICE.LAST_SNAPSHOT_FAILURE_DATE),
 			Boolean.TRUE.equals(r.get(COMPLIANT)),
 			readOptions(r.get(DEVICE.OPTIONS)),
-			r.get(TAGS),
-			r.get(VIRTUAL_DEVICES),
-			r.get(VRF_INSTANCES),
-			r.get(ATTRIBUTES),
-			r.get(ACCESSES),
-			r.field(MODULES) == null ? null : r.get(MODULES),
-			r.field(INTERFACES) == null ? null : r.get(INTERFACES),
-			r.get(GROUPS));
+			optional(r, TAGS),
+			optional(r, VIRTUAL_DEVICES),
+			optional(r, VRF_INSTANCES),
+			optional(r, ATTRIBUTES),
+			optional(r, ACCESSES),
+			optional(r, MODULES),
+			optional(r, INTERFACES),
+			optional(r, GROUPS));
+	}
+
+	/**
+	 * Reads a field the query may not have selected.
+	 *
+	 * @param <T> the type of the value
+	 * @param r the record
+	 * @param field the field
+	 * @return the value, or null if the query didn't select the field
+	 */
+	private static <T> T optional(Record r, Field<T> field) {
+		return r.field(field) == null ? null : r.get(field);
 	}
 
 	private List<Device> findWhere(DSLContext dsl, Condition condition) {
@@ -558,16 +581,19 @@ public class DeviceRepository {
 	}
 
 	/**
-	 * Lists the devices matching a query and a condition, with all their details but their components: their
-	 * modules and network interfaces aren't loaded (empty), they have their own lists.
+	 * Lists the devices matching a query and a condition, with all their details but their components (their
+	 * modules and network interfaces aren't loaded, they have their own lists) and the collections not asked for.
 	 *
 	 * @param dsl the jOOQ context
 	 * @param query the list query
 	 * @param condition another condition (such as the one of a device search query)
+	 * @param parts the collections to load (the others are empty)
 	 * @return the devices of the window of the query, without their modules and network interfaces
 	 */
-	public List<Device> findAll(DSLContext dsl, ListQuery query, Condition condition) {
-		return query.page().apply(dsl.select(LIST_FIELDS)
+	public List<Device> findAll(DSLContext dsl, ListQuery query, Condition condition, Set<Device.Part> parts) {
+		List<SelectField<?>> fields = new ArrayList<>(LIST_FIELDS);
+		parts.forEach(part -> fields.add(PART_FIELDS.get(part)));
+		return query.page().apply(dsl.select(fields)
 				.from(DEVICE)
 				.leftJoin(DOMAIN).on(DOMAIN.ID.eq(DEVICE.MGMT_DOMAIN))
 				.leftJoin(EOL).on(EOL.ID.eq(DEVICE.EOL_MODULE))
