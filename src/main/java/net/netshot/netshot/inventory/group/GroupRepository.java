@@ -38,6 +38,7 @@ import org.jooq.impl.DSL;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
@@ -200,6 +201,17 @@ public class GroupRepository {
 	}
 
 	/**
+	 * Locks the row of a group until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the group ID
+	 * @return the version of the group, or null if there is no such group
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DEVICE_GROUP, DEVICE_GROUP.ID, DEVICE_GROUP.VERSION, id);
+	}
+
+	/**
 	 * Saves an existing group (its version is incremented, its change date set), not its members.
 	 *
 	 * @param dsl the jOOQ context
@@ -207,19 +219,6 @@ public class GroupRepository {
 	 * @return the saved group, or null if there is no such group
 	 */
 	public DeviceGroup save(DSLContext dsl, DeviceGroup group) {
-		return this.save(dsl, group, null);
-	}
-
-	/**
-	 * Saves an existing group if it is still at a given version (its version is incremented, its change date
-	 * set), not its members.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param group the group
-	 * @param expectedVersion the version the group must be at, or null for any
-	 * @return the saved group, or null if there is no such group (at that version)
-	 */
-	public DeviceGroup save(DSLContext dsl, DeviceGroup group, Long expectedVersion) {
 		int updated = dsl.update(DEVICE_GROUP)
 			.set(DEVICE_GROUP.VERSION, DEVICE_GROUP.VERSION.plus(1))
 			.set(DEVICE_GROUP.CHANGE_DATE, now())
@@ -228,7 +227,6 @@ public class GroupRepository {
 			.set(DEVICE_GROUP.HIDDEN_FROM_REPORTS, group.hiddenFromReports())
 			.set(DEVICE_GROUP.QUERY, group instanceof DynamicDeviceGroup dynamic ? dynamic.query() : null)
 			.where(DEVICE_GROUP.ID.eq(group.id()))
-			.and(expectedVersion == null ? DSL.trueCondition() : DEVICE_GROUP.VERSION.cast(Long.class).eq(expectedVersion))
 			.execute();
 		return updated == 0 ? null : this.find(dsl, group.id());
 	}
@@ -241,21 +239,7 @@ public class GroupRepository {
 	 * @return true if the group was found and removed
 	 */
 	public boolean remove(DSLContext dsl, long id) {
-		return this.remove(dsl, id, null);
-	}
-
-	/**
-	 * Removes a group if it is at a given version, with its memberships (the devices are kept).
-	 *
-	 * @param dsl the jOOQ context
-	 * @param id the group ID
-	 * @param expectedVersion the version the group must be at, or null for any
-	 * @return true if the group was found (at that version) and removed
-	 */
-	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
-		return dsl.deleteFrom(DEVICE_GROUP).where(DEVICE_GROUP.ID.eq(id))
-			.and(expectedVersion == null ? DSL.trueCondition() : DEVICE_GROUP.VERSION.cast(Long.class).eq(expectedVersion))
-			.execute() > 0;
+		return dsl.deleteFrom(DEVICE_GROUP).where(DEVICE_GROUP.ID.eq(id)).execute() > 0;
 	}
 
 	/**

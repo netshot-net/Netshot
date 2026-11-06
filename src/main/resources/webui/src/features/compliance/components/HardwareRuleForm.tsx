@@ -5,7 +5,7 @@ import { LuCircleArrowDown, LuRegex, LuType } from "react-icons/lu"
 import { FormControlType } from "@/components/FormControl"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { useDeviceFamilies, useDevicePartNumbers } from "@/features/device/api"
-import type { HardwareRule } from "@/api/hardwareRule"
+import type { Brief } from "@/api/client"
 import { HStack, Icon, IconButton, Stack } from "@chakra-ui/react"
 import { useCallback, useEffect } from "react"
 import { useFormContext, useWatch } from "react-hook-form"
@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next"
 import { HardwareRuleFormValues } from "../types"
 
 export type HardwareRuleFormProps = {
-  rule?: HardwareRule
+  rule?: Brief["HardwareRule"]
 }
 
 export default function HardwareRuleForm(props: HardwareRuleFormProps) {

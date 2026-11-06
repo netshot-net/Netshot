@@ -23,8 +23,8 @@ export type SoftwareRuleFormValues = {
   level: DeviceSoftwareLevel
   partNumber: string
   partNumberRegExp: boolean
-  version: string
-  versionRegExp: boolean
+  softwareVersion: string
+  softwareVersionRegExp: boolean
 }
 
 export type HardwareRuleFormValues = {

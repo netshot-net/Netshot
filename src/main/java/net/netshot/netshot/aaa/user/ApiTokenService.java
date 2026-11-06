@@ -174,13 +174,13 @@ public class ApiTokenService {
 
 		ApiToken apiToken;
 		try {
-			apiToken = valid.withId(this.transactions.write(dsl -> {
+			apiToken = this.transactions.write(dsl -> {
 				if (this.repository.existsByHash(dsl, valid.hashedToken())) {
 					log.warn("The passed token is already registered");
 					throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, "This token is already registered.");
 				}
-				return this.repository.add(dsl, valid);
-			}));
+				return this.repository.find(dsl, this.repository.add(dsl, valid));
+			});
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new API token.", e);

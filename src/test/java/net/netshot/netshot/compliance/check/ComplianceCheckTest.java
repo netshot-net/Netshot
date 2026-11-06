@@ -103,7 +103,7 @@ public class ComplianceCheckTest {
 	@Test
 	@DisplayName("The checker evaluates all the rules of the policy, one result per rule")
 	void checkerLoopsOverRules() {
-		Policy policy = new Policy(0, "Fake policy", null);
+		Policy policy = new Policy(0, 0, null, "Fake policy", null);
 		TextRule conforming = TextRule.builder("Conforming", 0)
 			.id(1)
 			.enabled(true)
@@ -140,7 +140,7 @@ public class ComplianceCheckTest {
 	@Test
 	@DisplayName("A running exemption of the device gives an exempted result, an expired one doesn't")
 	void checkerExemptions() {
-		Policy policy = new Policy(0, "Fake policy", null);
+		Policy policy = new Policy(0, 0, null, "Fake policy", null);
 		TextRule rule = TextRule.builder("Conforming", 0)
 			.id(1)
 			.enabled(true)

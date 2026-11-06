@@ -38,6 +38,7 @@ import org.jooq.impl.DSL;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.Lookup;
@@ -64,11 +65,11 @@ public class PolicyRepository {
 		.build();
 
 	private static Policy toPolicy(Record r) {
-		return new Policy(r.get(POLICY.ID), r.get(POLICY.NAME), r.get(TARGET_GROUPS));
+		return new Policy(r.get(POLICY.ID), r.get(POLICY.VERSION), r.get(POLICY.CHANGE_DATE), r.get(POLICY.NAME), r.get(TARGET_GROUPS));
 	}
 
 	private static List<Policy> query(DSLContext dsl, Condition condition, Page page) {
-		return page.apply(dsl.select(POLICY.ID, POLICY.NAME, TARGET_GROUPS).from(POLICY).where(condition).orderBy(POLICY.ID))
+		return page.apply(dsl.select(POLICY.ID, POLICY.VERSION, POLICY.CHANGE_DATE, POLICY.NAME, TARGET_GROUPS).from(POLICY).where(condition).orderBy(POLICY.ID))
 			.fetch(PolicyRepository::toPolicy);
 	}
 
@@ -91,7 +92,7 @@ public class PolicyRepository {
 	 * @return the policies of the window of the query
 	 */
 	public List<Policy> findAll(DSLContext dsl, ListQuery query) {
-		return query.page().apply(dsl.select(POLICY.ID, POLICY.NAME, TARGET_GROUPS).from(POLICY)
+		return query.page().apply(dsl.select(POLICY.ID, POLICY.VERSION, POLICY.CHANGE_DATE, POLICY.NAME, TARGET_GROUPS).from(POLICY)
 			.where(LIST.condition(query))
 			.orderBy(LIST.orderBy(query)))
 			.fetch(PolicyRepository::toPolicy);
@@ -162,20 +163,33 @@ public class PolicyRepository {
 	 * @return the ID of the new policy
 	 */
 	public long add(DSLContext dsl, Policy policy) {
-		long id = dsl.insertInto(POLICY).set(POLICY.NAME, policy.name()).returning(POLICY.ID).fetchOne(POLICY.ID);
+		long id = dsl.insertInto(POLICY).set(POLICY.VERSION, 0).set(POLICY.CHANGE_DATE, Versions.now()).set(POLICY.NAME, policy.name())
+			.returning(POLICY.ID).fetchOne(POLICY.ID);
 		insertTargetGroups(dsl, id, policy.targetGroupIds());
 		return id;
 	}
 
 	/**
-	 * Saves an existing policy and replaces its target groups.
+	 * Locks the row of a policy until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the policy ID
+	 * @return the version of the policy, or null if there is no such policy
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, POLICY, POLICY.ID, POLICY.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing policy and replaces its target groups (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param policy the policy
 	 * @return true if the policy was found and saved
 	 */
 	public boolean save(DSLContext dsl, Policy policy) {
-		if (dsl.update(POLICY).set(POLICY.NAME, policy.name()).where(POLICY.ID.eq(policy.id())).execute() == 0) {
+		if (dsl.update(POLICY).set(POLICY.VERSION, POLICY.VERSION.plus(1)).set(POLICY.CHANGE_DATE, Versions.now())
+			.set(POLICY.NAME, policy.name()).where(POLICY.ID.eq(policy.id())).execute() == 0) {
 			return false;
 		}
 		dsl.deleteFrom(POLICY_TARGET_GROUPS).where(POLICY_TARGET_GROUPS.POLICY.eq(policy.id())).execute();

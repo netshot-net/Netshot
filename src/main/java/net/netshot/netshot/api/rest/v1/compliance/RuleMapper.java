@@ -53,12 +53,12 @@ public final class RuleMapper {
 	public static RuleDto toDto(Rule rule, LongFunction<PolicyDto> policies) {
 		return switch (rule) {
 			case null -> null;
-			case TextRule r -> new TextRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), "TEXT", r.name(), r.enabled(),
+			case TextRule r -> new TextRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "TEXT", r.name(), r.enabled(),
 				policies.apply(r.policyId()), r.field(), r.context(), r.text(), r.regExp(), r.invert(), r.anyBlock(), r.matchAll(),
 				r.normalize(), r.deviceDriver());
-			case JavaScriptRule r -> new JavaScriptRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), "JAVASCRIPT", r.name(), r.enabled(),
+			case JavaScriptRule r -> new JavaScriptRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "JAVASCRIPT", r.name(), r.enabled(),
 				policies.apply(r.policyId()), r.script());
-			case PythonRule r -> new PythonRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), "PYTHON", r.name(), r.enabled(),
+			case PythonRule r -> new PythonRuleDto(r.id(), V1Links.of(PATH, r.id()), r.name(), r.version(), r.changeDate(), "PYTHON", r.name(), r.enabled(),
 				policies.apply(r.policyId()), r.script());
 		};
 	}
@@ -111,9 +111,9 @@ public final class RuleMapper {
 				.normalize(r.normalize())
 				.deviceDriver(r.deviceDriver() == null || r.deviceDriver().isEmpty() ? null : r.deviceDriver())
 				.build();
-			case JavaScriptRuleRequest r -> new JavaScriptRule(0, name, enabled, policyId,
+			case JavaScriptRuleRequest r -> new JavaScriptRule(0, 0, null, name, enabled, policyId,
 				r.script() == null ? JavaScriptRule.TEMPLATE : r.script().trim());
-			case PythonRuleRequest r -> new PythonRule(0, name, enabled, policyId,
+			case PythonRuleRequest r -> new PythonRule(0, 0, null, name, enabled, policyId,
 				r.script() == null ? PythonRule.TEMPLATE : r.script().trim());
 		};
 	}

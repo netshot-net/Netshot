@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.compliance;
 
+import java.time.Instant;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,6 +32,8 @@ import net.netshot.netshot.api.rest.v1.group.GroupDto;
  * @param id the ID
  * @param url the path of the policy
  * @param display the display name
+ * @param version the version, incremented on each change (the ETag)
+ * @param changeDate the date of the last change
  * @param name the name
  * @param targetGroups the groups whose devices the policy applies to
  */
@@ -39,6 +42,8 @@ public record PolicyDto(
 	long id,
 	String url,
 	String display,
+	long version,
+	Instant changeDate,
 	@Brief String name,
 	@Ref List<GroupDto> targetGroups) {
 }

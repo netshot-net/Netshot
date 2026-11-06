@@ -231,6 +231,7 @@ public class LoginService {
 	private void changePassword(long userId, String newPassword) {
 		try {
 			this.transactions.run(dsl -> {
+				this.repository.lock(dsl, userId);
 				UiUser user = this.repository.find(dsl, userId);
 				try {
 					this.repository.save(dsl, user.withPassword(newPassword, PasswordPolicy.getMainPolicy()));

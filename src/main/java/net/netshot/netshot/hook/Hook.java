@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.hook;
 
+import java.time.Instant;
 import java.util.Set;
 
 /**
@@ -31,6 +32,20 @@ public sealed interface Hook permits WebHook {
 	 * @return the ID
 	 */
 	long id();
+
+	/**
+	 * Gets the version of the hook, incremented on each change.
+	 *
+	 * @return the version
+	 */
+	int version();
+
+	/**
+	 * Gets the date of the last change of the hook.
+	 *
+	 * @return the date
+	 */
+	Instant changeDate();
 
 	/**
 	 * Gets the name of the hook (unique).

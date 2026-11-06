@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.function.LongFunction;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -62,6 +61,7 @@ import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.diagnostic.DiagnosticView;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -72,8 +72,7 @@ import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.ListResult;
 
 /**
- * The diagnostics (v1): list, read, create, replace, update and delete. A diagnostic has no version: there is no
- * {@code ETag} and {@code If-Match} isn't supported.
+ * The diagnostics (v1): list, read, create, replace, update and delete.
  */
 @Path("/" + DiagnosticMapper.PATH)
 @Tag(name = "Diagnostics", description = "Diagnostics (data collected from devices by commands or scripts)")
@@ -191,12 +190,13 @@ public class DiagnosticResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace a diagnostic", description = "Replaces the definition of a diagnostic (its type can't change). "
-		+ "The results of the diagnostic are deleted when its target group changes.")
+		+ "The results of the diagnostic are deleted when its target group changes. With If-Match, the diagnostic must still be "
+		+ "at the given version (ETag).")
 	public DiagnosticDto replaceDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") long id,
 		DiagnosticRequest diagnosticRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		this.diagnosticService.get(id);
-		return this.respond(this.diagnosticService.update(id, DiagnosticMapper.toDefinition(diagnosticRequest)));
+		DiagnosticDefinition definition = DiagnosticMapper.toDefinition(diagnosticRequest);
+		return this.respond(this.diagnosticService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -205,22 +205,19 @@ public class DiagnosticResource {
 	 * @param id the diagnostic ID
 	 * @param patch the merge patch
 	 * @return the diagnostic
-	 * @throws JsonProcessingException if the patched diagnostic isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
-	@Operation(summary = "Update a diagnostic", description = "Changes some properties of a diagnostic (JSON merge patch, RFC 7396).")
+	@Operation(summary = "Update a diagnostic", description = "Changes some properties of a diagnostic (JSON merge patch, RFC 7396). "
+		+ "With If-Match, the diagnostic must still be at the given version (ETag).")
 	public DiagnosticDto updateDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		DiagnosticView current = this.diagnosticService.get(id);
-		DiagnosticRequest patched = MergePatch.apply(DiagnosticMapper.toRequest(current.diagnostic()), patch,
-			this.headers.getMediaType(), DiagnosticRequest.class);
-		return this.respond(this.diagnosticService.update(id, DiagnosticMapper.toDefinition(patched)));
+		return this.respond(this.diagnosticService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DiagnosticRequest.class,
+			DiagnosticMapper::toRequest, DiagnosticMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -231,10 +228,11 @@ public class DiagnosticResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
-	@Operation(summary = "Delete a diagnostic", description = "Deletes a diagnostic, with its results.")
+	@Operation(summary = "Delete a diagnostic", description = "Deletes a diagnostic, with its results. With If-Match, the "
+		+ "diagnostic must still be at the given version (ETag).")
 	public void deleteDiagnostic(@PathParam("id") @Parameter(description = "Diagnostic ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.diagnosticService.delete(id)) {
+		if (!this.diagnosticService.delete(id, V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "The diagnostic doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -243,6 +241,7 @@ public class DiagnosticResource {
 	private DiagnosticDto respond(DiagnosticView view) {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), DiagnosticDto.class, Selection.View.FULL),
 			DiagnosticDto.class);
+		V1Response.etag(this.request, view.diagnostic().version());
 		return DiagnosticMapper.toDto(this.driverRegistry, view.diagnostic(),
 			_ -> GroupMapper.toDto(view.targetGroup()));
 	}

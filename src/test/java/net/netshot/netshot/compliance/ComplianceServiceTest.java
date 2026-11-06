@@ -439,8 +439,8 @@ class ComplianceServiceTest {
 		Assertions.assertNull(updated.driver());
 		Assertions.assertEquals("fam", updated.family());
 		Assertions.assertTrue(updated.familyRegExp());
-		Assertions.assertEquals("2.0", updated.version());
-		Assertions.assertTrue(updated.versionRegExp());
+		Assertions.assertEquals("2.0", updated.softwareVersion());
+		Assertions.assertTrue(updated.softwareVersionRegExp());
 		Assertions.assertEquals("pn", updated.partNumber());
 		Assertions.assertTrue(updated.partNumberRegExp());
 		Assertions.assertEquals(ConformanceLevel.BRONZE, updated.level());

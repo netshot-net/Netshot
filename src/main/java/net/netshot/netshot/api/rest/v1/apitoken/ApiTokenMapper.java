@@ -42,7 +42,7 @@ public final class ApiTokenMapper {
 			return null;
 		}
 		return new ApiTokenDto(token.id(), V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()), ApiTokenNames.display(token),
-			token.description(), token.level(), AuthMapper.roleOf(token.level()));
+			token.changeDate(), token.description(), token.level(), AuthMapper.roleOf(token.level()));
 	}
 
 	/**
@@ -54,6 +54,6 @@ public final class ApiTokenMapper {
 	 */
 	public static ApiTokenCreatedDto toCreatedDto(ApiToken token, String value) {
 		return new ApiTokenCreatedDto(token.id(), V1Links.of(AuthMapper.API_TOKENS_PATH, token.id()), ApiTokenNames.display(token),
-			token.description(), token.level(), AuthMapper.roleOf(token.level()), value);
+			token.changeDate(), token.description(), token.level(), AuthMapper.roleOf(token.level()), value);
 	}
 }

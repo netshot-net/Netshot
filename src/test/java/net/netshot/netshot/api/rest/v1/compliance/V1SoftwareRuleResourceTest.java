@@ -80,7 +80,7 @@ public class V1SoftwareRuleResourceTest {
 
 	private long create(String level, String version, Integer priority) throws Exception {
 		Answer answer = this.admin.post("/compliance/software-rules", """
-			{"level": "%s", "version": "%s"%s}""".formatted(level, version, priority == null ? "" : ", \"priority\": " + priority));
+			{"level": "%s", "softwareVersion": "%s"%s}""".formatted(level, version, priority == null ? "" : ", \"priority\": " + priority));
 		Assertions.assertEquals(201, answer.status(), answer.toString());
 		return answer.json().get("id").asLong();
 	}
@@ -89,7 +89,7 @@ public class V1SoftwareRuleResourceTest {
 	private List<String> versions() throws Exception {
 		List<String> versions = new ArrayList<>();
 		this.reader.get("/compliance/software-rules?view=full").json().get("results")
-			.forEach(rule -> versions.add(rule.get("version").asText() + ":" + rule.get("priority").asInt()));
+			.forEach(rule -> versions.add(rule.get("softwareVersion").asText() + ":" + rule.get("priority").asInt()));
 		return versions;
 	}
 
@@ -105,14 +105,14 @@ public class V1SoftwareRuleResourceTest {
 		this.create("GOLD", "1", null);
 		this.create("SILVER", "2", null);
 		Answer withGroup = this.admin.post("/compliance/software-rules", """
-			{"level": "BRONZE", "version": "3", "group": %d, "driver": "CiscoIOS12", "familyRegExp": true}""".formatted(this.core.id()));
+			{"level": "BRONZE", "softwareVersion": "3", "group": %d, "driver": "CiscoIOS12", "familyRegExp": true}""".formatted(this.core.id()));
 		Assertions.assertEquals(201, withGroup.status(), withGroup.toString());
 
 		JsonNode page = this.reader.get("/compliance/software-rules").json();
 		Assertions.assertEquals(3, page.get("results").size());
 		JsonNode first = page.get("results").get(0);
 		Assertions.assertEquals(Set.of("id", "url", "display", "priority", "level", "group", "driver", "family", "familyRegExp",
-			"version", "versionRegExp", "partNumber", "partNumberRegExp"), keys(first));
+			"softwareVersion", "softwareVersionRegExp", "partNumber", "partNumberRegExp"), keys(first));
 		Assertions.assertEquals(1, first.get("priority").asInt());
 		Assertions.assertEquals(3, page.get("results").get(2).get("priority").asInt());
 		Assertions.assertEquals(this.core.id(), page.get("results").get(2).get("group").get("id").asLong());
@@ -149,16 +149,16 @@ public class V1SoftwareRuleResourceTest {
 
 		JsonNode read = this.admin.get("/compliance/software-rules/" + a).json();
 		((ObjectNode) read).put("priority", 4);
-		((ObjectNode) read).put("version", "a2");
+		((ObjectNode) read).put("softwareVersion", "a2");
 		Answer replaced = this.admin.put("/compliance/software-rules/" + a, read.toString());
 		Assertions.assertEquals(200, replaced.status(), replaced.toString());
 		Assertions.assertEquals(List.of("c:1", "d:2", "b:3", "a2:4", "e:5"), this.versions());
 
 		// Without priority, a rule keeps its position
-		Answer kept = this.admin.put("/compliance/software-rules/" + b, "{\"level\": \"SILVER\", \"version\": \"b2\"}");
+		Answer kept = this.admin.put("/compliance/software-rules/" + b, "{\"level\": \"SILVER\", \"softwareVersion\": \"b2\"}");
 		Assertions.assertEquals(3, kept.json().get("priority").asInt());
 		Assertions.assertEquals("SILVER", kept.json().get("level").asText());
-		Assertions.assertEquals(3, this.admin.patch("/compliance/software-rules/" + b, "{\"version\": \"b3\"}").json().get("priority").asInt());
+		Assertions.assertEquals(3, this.admin.patch("/compliance/software-rules/" + b, "{\"softwareVersion\": \"b3\"}").json().get("priority").asInt());
 
 		// A deleted rule leaves no gap
 		Assertions.assertEquals(204, this.admin.delete("/compliance/software-rules/" + c).status());
@@ -176,14 +176,14 @@ public class V1SoftwareRuleResourceTest {
 		Assertions.assertEquals(200, one.status());
 		Assertions.assertTrue(one.json().get("group").isNull() || !one.json().has("group"));
 		Assertions.assertEquals("", one.json().get("family").asText());
-		Assertions.assertEquals(400, this.admin.post("/compliance/software-rules", "{\"version\": \"1\"}").status());
+		Assertions.assertEquals(400, this.admin.post("/compliance/software-rules", "{\"softwareVersion\": \"1\"}").status());
 		Assertions.assertEquals(400, this.admin.post("/compliance/software-rules", "{\"level\": \"GOLD\", \"group\": %d}".formatted(TestServer.UNKNOWN_ID))
 			.status());
 		Assertions.assertEquals(400, this.admin.post("/compliance/software-rules", "{\"level\": \"GOLD\", \"driver\": \"NoSuchDriver\"}").status());
 		Assertions.assertEquals(400, this.admin.post("/compliance/software-rules", "{\"level\": \"NOPE\"}").status());
 		Assertions.assertEquals(404, this.reader.get("/compliance/software-rules/" + TestServer.UNKNOWN_ID).status());
 		Assertions.assertEquals(404, this.admin.put("/compliance/software-rules/" + TestServer.UNKNOWN_ID, "{\"level\": \"GOLD\"}").status());
-		Assertions.assertEquals(404, this.admin.patch("/compliance/software-rules/" + TestServer.UNKNOWN_ID, "{\"version\": \"1\"}").status());
+		Assertions.assertEquals(404, this.admin.patch("/compliance/software-rules/" + TestServer.UNKNOWN_ID, "{\"softwareVersion\": \"1\"}").status());
 		Assertions.assertEquals(404, this.admin.delete("/compliance/software-rules/" + TestServer.UNKNOWN_ID).status());
 		Assertions.assertEquals(403, this.reader.post("/compliance/software-rules", "{\"level\": \"GOLD\"}").status());
 		Assertions.assertEquals(403, this.reader.put("/compliance/software-rules/" + id, "{\"level\": \"GOLD\"}").status());

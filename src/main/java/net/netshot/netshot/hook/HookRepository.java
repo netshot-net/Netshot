@@ -38,6 +38,7 @@ import org.jooq.impl.DSL;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
@@ -63,7 +64,7 @@ public class HookRepository {
 	private static Hook toHook(Record r) {
 		String type = r.get(HOOK.TYPE);
 		if (WEB.equals(type)) {
-			return new WebHook(r.get(HOOK.ID), r.get(HOOK.NAME), r.get(HOOK.ENABLED), r.get(TRIGGERS),
+			return new WebHook(r.get(HOOK.ID), r.get(HOOK.VERSION), r.get(HOOK.CHANGE_DATE), r.get(HOOK.NAME), r.get(HOOK.ENABLED), r.get(TRIGGERS),
 				r.get(HOOK.ACTION) == null ? null : WebHook.Action.valueOf(r.get(HOOK.ACTION)),
 				r.get(HOOK.URL),
 				HttpsCaTrustMode.valueOf(r.get(HOOK.HTTPS_CA_TRUST_MODE)),
@@ -157,6 +158,8 @@ public class HookRepository {
 	public long add(DSLContext dsl, Hook hook) {
 		long id = switch (hook) {
 			case WebHook web -> dsl.insertInto(HOOK)
+				.set(HOOK.VERSION, 0)
+				.set(HOOK.CHANGE_DATE, Versions.now())
 				.set(HOOK.TYPE, WEB)
 				.set(HOOK.NAME, web.name())
 				.set(HOOK.ENABLED, web.enabled())
@@ -172,7 +175,18 @@ public class HookRepository {
 	}
 
 	/**
-	 * Saves an existing hook and replaces its triggers.
+	 * Locks the row of a hook until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the hook ID
+	 * @return the version of the hook, or null if there is no such hook
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, HOOK, HOOK.ID, HOOK.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing hook and replaces its triggers (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param hook the hook
@@ -181,6 +195,8 @@ public class HookRepository {
 	public boolean save(DSLContext dsl, Hook hook) {
 		int updated = switch (hook) {
 			case WebHook web -> dsl.update(HOOK)
+				.set(HOOK.VERSION, HOOK.VERSION.plus(1))
+				.set(HOOK.CHANGE_DATE, Versions.now())
 				.set(HOOK.NAME, web.name())
 				.set(HOOK.ENABLED, web.enabled())
 				.set(HOOK.ACTION, web.action() == null ? null : web.action().name())

@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
+
 import org.graalvm.polyglot.HostAccess.Export;
 
 import lombok.Getter;
@@ -29,6 +31,8 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
  * a regular expression.
  *
  * @param id the ID (0 for a diagnostic not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param enabled true if the diagnostic is run
  * @param targetGroupId the ID of the group of devices the diagnostic is run on
@@ -39,7 +43,7 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
  * @param modifierPattern the regular expression to apply to the output
  * @param modifierReplacement the replacement of the regular expression
  */
-public record SimpleDiagnostic(long id, String name, boolean enabled, Long targetGroupId, AttributeType resultType,
+public record SimpleDiagnostic(long id, int version, Instant changeDate, String name, boolean enabled, Long targetGroupId, AttributeType resultType,
 	String deviceDriver, String cliMode, String command, String modifierPattern, String modifierReplacement) implements Diagnostic {
 
 	/**
@@ -66,7 +70,7 @@ public record SimpleDiagnostic(long id, String name, boolean enabled, Long targe
 
 	@Override
 	public SimpleDiagnostic withId(long newId) {
-		return new SimpleDiagnostic(newId, this.name, this.enabled, this.targetGroupId, this.resultType, this.deviceDriver,
+		return new SimpleDiagnostic(newId, this.version, this.changeDate, this.name, this.enabled, this.targetGroupId, this.resultType, this.deviceDriver,
 			this.cliMode, this.command, this.modifierPattern, this.modifierReplacement);
 	}
 

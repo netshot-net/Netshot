@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -34,6 +35,7 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -176,18 +178,24 @@ public class HardwareRuleService {
 	}
 
 	/**
-	 * Replaces a hardware rule.
+	 * Replaces a hardware rule, if it is at a given version: the new definition is computed from the rule as it is,
+	 * which can't change meanwhile (to apply a patch).
 	 *
 	 * @param id the rule ID
-	 * @param newRule the new definition of the rule (its ID is ignored)
+	 * @param change gives the new definition of the rule (its ID is ignored) from the current one
+	 * @param expectedVersion the version the rule must be at, or null for any
 	 * @return the rule
-	 * @throws NetshotException if the rule, the group or the driver doesn't exist, or the rule can't be stored
+	 * @throws NetshotException if the rule, the group or the driver doesn't exist, the rule isn't at the expected
+	 *         version, or the rule can't be stored
 	 */
-	public HardwareRule replace(long id, HardwareRule newRule) {
+	public HardwareRule replace(long id, Function<HardwareRule, HardwareRule> change, Long expectedVersion) {
 		HardwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
-				this.require(dsl, id);
+				Integer version = this.repository.lock(dsl, id);
+				HardwareRule existing = this.require(dsl, id);
+				Versions.check("hardware rule", version, expectedVersion);
+				HardwareRule newRule = change.apply(existing);
 				this.check(dsl, newRule);
 				this.repository.save(dsl, newRule.withId(id));
 				return this.require(dsl, id);
@@ -206,7 +214,7 @@ public class HardwareRuleService {
 	}
 
 	private HardwareRule fromDefinition(long id, HardwareRuleDefinition definition) {
-		return new HardwareRule(id, knownDriver(definition.driver()), definition.groupId(),
+		return new HardwareRule(id, 0, null, knownDriver(definition.driver()), definition.groupId(),
 			definition.family(), definition.familyRegExp(), definition.partNumber(),
 			definition.partNumberRegExp(), toInstant(definition.endOfSale()), toInstant(definition.endOfLife()));
 	}
@@ -224,7 +232,7 @@ public class HardwareRuleService {
 			rule = this.transactions.write(dsl -> {
 				DeviceGroup group = this.findGroup(dsl, definition.groupId());
 				HardwareRule newRule = this.fromDefinition(0, definition);
-				return new HardwareRuleView(newRule.withId(this.repository.add(dsl, newRule)), group);
+				return new HardwareRuleView(this.repository.find(dsl, this.repository.add(dsl, newRule)), group);
 			});
 		}
 		catch (DataAccessException e) {
@@ -247,14 +255,14 @@ public class HardwareRuleService {
 		HardwareRuleView rule;
 		try {
 			rule = this.transactions.write(dsl -> {
-				if (this.repository.find(dsl, id) == null) {
+				if (this.repository.lock(dsl, id) == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Unable to find this rule.");
 				}
 				DeviceGroup group = this.findGroup(dsl, definition.groupId());
 				HardwareRule edited = this.fromDefinition(id, definition);
 				this.repository.save(dsl, edited);
-				return new HardwareRuleView(edited, group);
+				return new HardwareRuleView(this.repository.find(dsl, id), group);
 			});
 		}
 		catch (DataAccessException e) {
@@ -273,13 +281,27 @@ public class HardwareRuleService {
 	 * @throws NetshotException if the rule can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a hardware rule, if it is at a given version.
+	 *
+	 * @param id the rule ID
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @return true if the rule has been deleted, false if there was no such rule
+	 * @throws NetshotException if the rule isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such hardware rule of ID {}", id);
 					return false;
 				}
-				return true;
+				Versions.check("hardware rule", version, expectedVersion);
+				return this.repository.remove(dsl, id);
 			});
 			if (deleted) {
 				AAA_LOG.info("Hardware rule of ID {} has been deleted", id);

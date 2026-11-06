@@ -226,7 +226,7 @@ public final class FakeDeviceFactory {
 	 * @return the diagnostic
 	 */
 	public static Diagnostic getReloadReasonIosSimpleDiagnostic() {
-		Diagnostic diagnostic = new SimpleDiagnostic(0, "Reload reason", true, null, AttributeType.TEXT, "CiscoIOS12",
+		Diagnostic diagnostic = new SimpleDiagnostic(0, 0, null, "Reload reason", true, null, AttributeType.TEXT, "CiscoIOS12",
 			"enable",
 			"show version | include reason",
 			"(?s).*Last reload reason: (.+?)[\r\n]+",

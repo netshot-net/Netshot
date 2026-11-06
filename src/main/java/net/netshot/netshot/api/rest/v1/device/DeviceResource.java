@@ -26,7 +26,6 @@ import java.util.Set;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -357,7 +356,6 @@ public class DeviceResource {
 	 * @param id the device ID
 	 * @param patch the merge patch
 	 * @return the device
-	 * @throws JsonProcessingException if the patched device isn't a valid request
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -368,14 +366,10 @@ public class DeviceResource {
 		+ "RFC 7396; a list such as the accesses is replaced as a whole). "
 		+ "With If-Match, the device must still be at the given version (ETag).")
 	public DeviceDto updateDevice(@PathParam("id") @Parameter(description = "Device ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Long expectedVersion = V1Response.ifMatch(this.headers);
-		Device current = this.deviceService.get(id);
-		DeviceRequest patched = MergePatch.apply(DeviceMapper.toRequest(current), patch, this.headers.getMediaType(), DeviceRequest.class);
-		Device device = this.deviceService.update(id, DeviceMapper.toChange(patched),
-			expectedVersion == null ? Long.valueOf(current.version()) : expectedVersion);
+		Device device = this.deviceService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DeviceRequest.class,
+			DeviceMapper::toRequest, DeviceMapper::toChange), V1Response.ifMatch(this.headers));
 		return this.respond(device, Selection.of(this.uriInfo.getQueryParameters(), DeviceDto.class, Selection.View.FULL));
 	}
 

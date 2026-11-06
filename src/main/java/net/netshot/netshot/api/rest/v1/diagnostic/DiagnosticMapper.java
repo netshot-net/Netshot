@@ -85,12 +85,12 @@ public final class DiagnosticMapper {
 		String resultType = diagnostic.resultType() == null ? null : diagnostic.resultType().name();
 		String url = V1Links.of(PATH, diagnostic.id());
 		return switch (diagnostic) {
-			case SimpleDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.name(), "SIMPLE", resultType, d.enabled(), group,
+			case SimpleDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.version(), d.changeDate(), d.name(), "SIMPLE", resultType, d.enabled(), group,
 				null, d.deviceDriver(), driverDescription(driverRegistry, d.deviceDriver()), d.cliMode(), d.command(),
 				d.modifierPattern(), d.modifierReplacement());
-			case JavaScriptDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.name(), "JAVASCRIPT", resultType, d.enabled(),
+			case JavaScriptDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.version(), d.changeDate(), d.name(), "JAVASCRIPT", resultType, d.enabled(),
 				group, d.script(), null, null, null, null, null, null);
-			case PythonDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.name(), "PYTHON", resultType, d.enabled(),
+			case PythonDiagnostic d -> new DiagnosticDto(d.id(), url, d.name(), d.version(), d.changeDate(), d.name(), "PYTHON", resultType, d.enabled(),
 				group, d.script(), null, null, null, null, null, null);
 		};
 	}

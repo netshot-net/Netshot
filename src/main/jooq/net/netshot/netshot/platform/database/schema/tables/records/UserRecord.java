@@ -118,6 +118,34 @@ public class UserRecord extends UpdatableRecordImpl<UserRecord> {
         return (String[]) get(6);
     }
 
+    /**
+     * Setter for <code>user.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>user.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(7);
+    }
+
+    /**
+     * Setter for <code>user.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>user.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(8);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -141,7 +169,7 @@ public class UserRecord extends UpdatableRecordImpl<UserRecord> {
     /**
      * Create a detached, initialised UserRecord
      */
-    public UserRecord(Long id, String hashedPassword, Integer level, Boolean local, String username, Instant lastPasswordChangeDate, String[] oldHashedPasswords) {
+    public UserRecord(Long id, String hashedPassword, Integer level, Boolean local, String username, Instant lastPasswordChangeDate, String[] oldHashedPasswords, Integer version, Instant changeDate) {
         super(User.USER);
 
         setId(id);
@@ -151,6 +179,8 @@ public class UserRecord extends UpdatableRecordImpl<UserRecord> {
         setUsername(username);
         setLastPasswordChangeDate(lastPasswordChangeDate);
         setOldHashedPasswords(oldHashedPasswords);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

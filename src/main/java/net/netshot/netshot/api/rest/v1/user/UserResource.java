@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v1.user;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,6 +44,7 @@ import jakarta.ws.rs.core.UriInfo;
 import net.netshot.netshot.aaa.user.UiUser;
 import net.netshot.netshot.aaa.user.User;
 import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.aaa.user.UserUpdate;
 import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
@@ -156,12 +156,12 @@ public class UserResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace a user", description = "Replaces the definition of a user. An absent password is "
-		+ "unchanged (it is required to make a remote user a local one). A user can't edit itself (403). Users have no "
-		+ "version: there is no ETag.")
+		+ "unchanged (it is required to make a remote user a local one). A user can't edit itself (403). With If-Match, "
+		+ "the user must still be at the given version (ETag).")
 	public UserDto replaceUser(@PathParam("id") @Parameter(description = "User ID") long id, UserRequest userRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		this.userService.get(id);
-		return this.respond(this.userService.update(id, this.currentUsername(), UserMapper.toUpdate(userRequest)));
+		UserUpdate update = UserMapper.toUpdate(userRequest);
+		return this.respond(this.userService.update(id, this.currentUsername(), _ -> update, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -170,7 +170,6 @@ public class UserResource {
 	 * @param id the user ID
 	 * @param patch the merge patch
 	 * @return the user
-	 * @throws JsonProcessingException if the patched user isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -178,14 +177,13 @@ public class UserResource {
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Update a user", description = "Changes some properties of a user (JSON merge patch, RFC 7396). "
-		+ "The password is changed by giving one. A user can't edit itself (403).")
+		+ "The password is changed by giving one. A user can't edit itself (403). With If-Match, the user must still be at the "
+		+ "given version (ETag).")
 	public UserDto updateUser(@PathParam("id") @Parameter(description = "User ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		UserRequest patched = MergePatch.apply(UserMapper.toRequest(this.userService.get(id)), patch, this.headers.getMediaType(),
-			UserRequest.class);
-		return this.respond(this.userService.update(id, this.currentUsername(), UserMapper.toUpdate(patched)));
+		return this.respond(this.userService.update(id, this.currentUsername(), MergePatch.of(patch, this.headers.getMediaType(),
+			UserRequest.class, UserMapper::toRequest, UserMapper::toUpdate), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -196,10 +194,11 @@ public class UserResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
-	@Operation(summary = "Delete a user", description = "Deletes a user. A user can't delete itself (403).")
+	@Operation(summary = "Delete a user", description = "Deletes a user. A user can't delete itself (403). With If-Match, the "
+		+ "user must still be at the given version (ETag).")
 	public void deleteUser(@PathParam("id") @Parameter(description = "User ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.userService.delete(id, this.currentUsername())) {
+		if (!this.userService.delete(id, this.currentUsername(), V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -212,6 +211,7 @@ public class UserResource {
 	private UserDto respond(UiUser user) {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), UserDto.class, Selection.View.FULL),
 			UserDto.class);
+		V1Response.etag(this.request, user.version());
 		return UserMapper.toDto(user);
 	}
 }

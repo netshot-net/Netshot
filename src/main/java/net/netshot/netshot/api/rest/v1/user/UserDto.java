@@ -30,6 +30,8 @@ import net.netshot.netshot.api.rest.v1.Brief;
  * @param id the ID
  * @param url the path of the user
  * @param display the user name
+ * @param version the version, incremented on each change (the ETag)
+ * @param changeDate the date of the last change
  * @param username the user name
  * @param local whether the user is a local one
  * @param level the permission level (10 read-only, 50 operator, 100 read-write, 500 execute-read-write, 1000 admin)
@@ -42,6 +44,8 @@ public record UserDto(
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) long id,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) String url,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) String display,
+	@Schema(accessMode = Schema.AccessMode.READ_ONLY) long version,
+	@Schema(accessMode = Schema.AccessMode.READ_ONLY) Instant changeDate,
 	@Brief String username,
 	@Brief boolean local,
 	@Brief int level,

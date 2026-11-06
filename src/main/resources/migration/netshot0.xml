@@ -2415,4 +2415,61 @@
 			partial index finds them without reading all the results. -->
 		<sql>CREATE INDEX ix_check_result_device_nonconforming ON check_result (device) WHERE result = 'NONCONFORMING'</sql>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_14">
+		<!-- Every object the v1 API can change has a version (its ETag, for If-Match) and a change date; the API
+			tokens can't change, they only get the date. -->
+		<addColumn tableName="diagnostic">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="policy">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="rule">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<!-- The version of a software rule was the software version it matches -->
+		<renameColumn tableName="software_rule" oldColumnName="version" newColumnName="software_version" columnDataType="VARCHAR(255)"/>
+		<addColumn tableName="software_rule">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="hardware_rule">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="hook">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="user">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="device_js_script">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="api_token">
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+	</changeSet>
 </databaseChangeLog>

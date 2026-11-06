@@ -28,6 +28,7 @@ import org.jooq.Record;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -37,7 +38,8 @@ import net.netshot.netshot.platform.query.ListQuery;
 public class ApiTokenRepository {
 
 	private static ApiToken toApiToken(Record r) {
-		return new ApiToken(r.get(API_TOKEN.ID), r.get(API_TOKEN.DESCRIPTION), r.get(API_TOKEN.HASHED_TOKEN), r.get(API_TOKEN.LEVEL));
+		return new ApiToken(r.get(API_TOKEN.ID), r.get(API_TOKEN.DESCRIPTION), r.get(API_TOKEN.HASHED_TOKEN), r.get(API_TOKEN.LEVEL),
+			r.get(API_TOKEN.CHANGE_DATE));
 	}
 
 	/** The fields the API token lists can be filtered and sorted on. */
@@ -127,6 +129,7 @@ public class ApiTokenRepository {
 			.set(API_TOKEN.DESCRIPTION, apiToken.description())
 			.set(API_TOKEN.HASHED_TOKEN, apiToken.hashedToken())
 			.set(API_TOKEN.LEVEL, apiToken.level())
+			.set(API_TOKEN.CHANGE_DATE, Versions.now())
 			.returning(API_TOKEN.ID)
 			.fetchOne(API_TOKEN.ID);
 	}

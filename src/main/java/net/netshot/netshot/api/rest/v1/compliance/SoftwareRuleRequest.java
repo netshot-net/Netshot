@@ -37,8 +37,8 @@ import net.netshot.netshot.inventory.compliance.ConformanceLevel;
  * @param driver the name of the driver of the devices (any if absent)
  * @param family the family of the devices (any if absent)
  * @param familyRegExp whether the family is a regular expression (false if absent)
- * @param version the software version of the devices (any if absent)
- * @param versionRegExp whether the version is a regular expression (false if absent)
+ * @param softwareVersion the software version of the devices (any if absent)
+ * @param softwareVersionRegExp whether the software version is a regular expression (false if absent)
  * @param partNumber the part number of a module of the devices (any if absent)
  * @param partNumberRegExp whether the part number is a regular expression (false if absent)
  */
@@ -51,8 +51,8 @@ public record SoftwareRuleRequest(
 	String driver,
 	String family,
 	boolean familyRegExp,
-	String version,
-	boolean versionRegExp,
+	String softwareVersion,
+	boolean softwareVersionRegExp,
 	String partNumber,
 	boolean partNumberRegExp) {
 }

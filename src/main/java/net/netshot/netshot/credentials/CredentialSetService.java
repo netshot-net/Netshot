@@ -19,6 +19,7 @@
 package net.netshot.netshot.credentials;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -31,6 +32,7 @@ import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -135,6 +137,7 @@ public class CredentialSetService {
 		DeviceCredentialSet credentialSet;
 		try {
 			credentialSet = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				DeviceCredentialSet existing = this.repository.find(dsl, id);
 				if (existing instanceof DeviceSshKeyAccount && incoming instanceof DeviceSshAccount) {
 					// (The SSH key accounts used to be a kind of SSH accounts, found by the query by type)
@@ -275,31 +278,42 @@ public class CredentialSetService {
 	 *         type, isn't at the expected version, the definition is invalid or incomplete, or it can't be stored
 	 */
 	public DeviceCredentialSet update(long id, CredentialSetDefinition definition, Long expectedVersion) {
+		return this.update(id, _ -> definition, expectedVersion);
+	}
+
+	/**
+	 * Replaces the definition of a global credential set, if it is still at a given version: the new definition is
+	 * computed from the credential set as it is, which can't change meanwhile (to apply a patch). The secrets the
+	 * definition leaves unchanged are kept.
+	 *
+	 * @param id the credential set ID
+	 * @param change gives the new definition from the current credential set
+	 * @param expectedVersion the version the credential set must be at, or null for any
+	 * @return the edited credential set
+	 * @throws NetshotException if the credential set doesn't exist, is specific to a device access, is of another
+	 *         type, isn't at the expected version, the definition is invalid or incomplete, or it can't be stored
+	 */
+	public DeviceCredentialSet update(long id, Function<DeviceCredentialSet, CredentialSetDefinition> change, Long expectedVersion) {
 		DeviceCredentialSet credentialSet;
 		try {
 			credentialSet = this.transactions.write(dsl -> {
-				DeviceCredentialSet existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND, "The credential set doesn't exist.");
 				}
+				DeviceCredentialSet existing = this.repository.find(dsl, id);
 				if (existing.deviceSpecific()) {
 					throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_IN_USE,
 						"A device-specific credential set can only be changed with its device access.");
 				}
+				CredentialSetDefinition definition = change.apply(existing);
 				if (CredentialSetDefinition.Kind.of(existing) != definition.kind()) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_CREDENTIALS_TYPE,
 						"The type of a credential set can't change.");
 				}
-				if (expectedVersion != null && existing.version() != expectedVersion) {
-					throw NetshotException.versionMismatch("credential set", expectedVersion);
-				}
+				Versions.check("credential set", version, expectedVersion);
 				Domain domain = this.findDomain(dsl, definition.mgmtDomainId());
-				DeviceCredentialSet saved = this.repository.save(dsl, CredentialSetAssembler.assemble(dsl, existing, definition, domain),
-					expectedVersion);
-				if (saved == null) {
-					throw NetshotException.versionMismatch("credential set", expectedVersion == null ? existing.version() : expectedVersion);
-				}
-				return saved;
+				return this.repository.save(dsl, CredentialSetAssembler.assemble(dsl, existing, definition, domain));
 			});
 		}
 		catch (DataAccessException e) {
@@ -321,19 +335,15 @@ public class CredentialSetService {
 	public void delete(long id, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				DeviceCredentialSet existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_NOT_FOUND, "The credential set doesn't exist.");
 				}
-				if (existing.deviceSpecific()) {
+				if (this.repository.find(dsl, id).deviceSpecific()) {
 					throw new NetshotException(ErrorCode.NETSHOT_CREDENTIALS_IN_USE, "Can't delete a device-specific credential set.");
 				}
-				if (expectedVersion != null && existing.version() != expectedVersion) {
-					throw NetshotException.versionMismatch("credential set", expectedVersion);
-				}
-				if (!this.repository.remove(dsl, id, expectedVersion)) {
-					throw NetshotException.versionMismatch("credential set", expectedVersion == null ? existing.version() : expectedVersion);
-				}
+				Versions.check("credential set", version, expectedVersion);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -369,6 +379,7 @@ public class CredentialSetService {
 		boolean deleted;
 		try {
 			deleted = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				DeviceCredentialSet credentialSet = this.repository.find(dsl, id);
 				if (credentialSet == null) {
 					log.info("No such credential set of ID {}", id);

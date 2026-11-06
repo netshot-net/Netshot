@@ -23,6 +23,7 @@ import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC;
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;
 import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,7 @@ import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -52,16 +54,18 @@ public class DiagnosticRepository {
 	private static Diagnostic toDiagnostic(Record r) {
 		String type = r.get(DIAGNOSTIC.TYPE);
 		long id = r.get(DIAGNOSTIC.ID);
+		int version = r.get(DIAGNOSTIC.VERSION);
+		Instant changeDate = r.get(DIAGNOSTIC.CHANGE_DATE);
 		String name = r.get(DIAGNOSTIC.NAME);
 		boolean enabled = r.get(DIAGNOSTIC.ENABLED);
 		Long targetGroupId = r.get(DIAGNOSTIC.TARGET_GROUP);
 		AttributeType resultType = r.get(DIAGNOSTIC.RESULT_TYPE) == null ? null : AttributeType.valueOf(r.get(DIAGNOSTIC.RESULT_TYPE));
 		return switch (type) {
-			case SIMPLE -> new SimpleDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.DEVICE_DRIVER),
+			case SIMPLE -> new SimpleDiagnostic(id, version, changeDate, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.DEVICE_DRIVER),
 				r.get(DIAGNOSTIC.CLI_MODE), r.get(DIAGNOSTIC.COMMAND), r.get(DIAGNOSTIC.MODIFIER_PATTERN),
 				r.get(DIAGNOSTIC.MODIFIER_REPLACEMENT));
-			case JAVASCRIPT -> new JavaScriptDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
-			case PYTHON -> new PythonDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
+			case JAVASCRIPT -> new JavaScriptDiagnostic(id, version, changeDate, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
+			case PYTHON -> new PythonDiagnostic(id, version, changeDate, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
 			default -> throw new IllegalStateException("Unknown type of diagnostic '%s'".formatted(type));
 		};
 	}
@@ -173,6 +177,8 @@ public class DiagnosticRepository {
 	 */
 	public long add(DSLContext dsl, Diagnostic diagnostic) {
 		var insert = dsl.insertInto(DIAGNOSTIC)
+			.set(DIAGNOSTIC.VERSION, 0)
+			.set(DIAGNOSTIC.CHANGE_DATE, Versions.now())
 			.set(DIAGNOSTIC.NAME, diagnostic.name())
 			.set(DIAGNOSTIC.ENABLED, diagnostic.enabled())
 			.set(DIAGNOSTIC.TARGET_GROUP, diagnostic.targetGroupId())
@@ -191,7 +197,18 @@ public class DiagnosticRepository {
 	}
 
 	/**
-	 * Saves an existing diagnostic (its type is not changed).
+	 * Locks the row of a diagnostic until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the diagnostic ID
+	 * @return the version of the diagnostic, or null if there is no such diagnostic
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DIAGNOSTIC, DIAGNOSTIC.ID, DIAGNOSTIC.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing diagnostic (its type is not changed; its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param diagnostic the diagnostic
@@ -199,6 +216,8 @@ public class DiagnosticRepository {
 	 */
 	public boolean save(DSLContext dsl, Diagnostic diagnostic) {
 		var update = dsl.update(DIAGNOSTIC)
+			.set(DIAGNOSTIC.VERSION, DIAGNOSTIC.VERSION.plus(1))
+			.set(DIAGNOSTIC.CHANGE_DATE, Versions.now())
 			.set(DIAGNOSTIC.NAME, diagnostic.name())
 			.set(DIAGNOSTIC.ENABLED, diagnostic.enabled())
 			.set(DIAGNOSTIC.TARGET_GROUP, diagnostic.targetGroupId())

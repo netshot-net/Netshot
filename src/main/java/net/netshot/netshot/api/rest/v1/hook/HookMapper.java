@@ -52,8 +52,8 @@ public final class HookMapper {
 			return null;
 		}
 		return switch (hook) {
-			case WebHook web -> new WebHookDto(web.id(), V1Links.of(PATH, web.id()), web.name(), "WEB", web.name(), web.enabled(),
-				triggers(web), web.action(), web.url(), web.httpsCaTrustMode(), web.httpsCustomCaCertificate());
+			case WebHook web -> new WebHookDto(web.id(), V1Links.of(PATH, web.id()), web.name(), web.version(), web.changeDate(), "WEB",
+				web.name(), web.enabled(), triggers(web), web.action(), web.url(), web.httpsCaTrustMode(), web.httpsCustomCaCertificate());
 		};
 	}
 
@@ -79,7 +79,7 @@ public final class HookMapper {
 	 */
 	public static Hook toHook(HookRequest request) {
 		return switch (request) {
-			case WebHookRequest web -> new WebHook(0, web.name(), web.enabled() == null || web.enabled(), triggers(web.triggers()),
+			case WebHookRequest web -> new WebHook(0, 0, null, web.name(), web.enabled() == null || web.enabled(), triggers(web.triggers()),
 				web.action(), web.targetUrl(),
 				web.httpsCaTrustMode() == null ? HttpsCaTrustMode.SYSTEM_TRUSTSTORE : web.httpsCaTrustMode(),
 				web.httpsCustomCaCertificate());

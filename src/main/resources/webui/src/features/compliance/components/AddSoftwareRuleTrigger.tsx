@@ -32,8 +32,8 @@ export default function AddSoftwareRuleTrigger({ children, ...rest }: AddSoftwar
       level: getDefaultLevel(),
       partNumber: "",
       partNumberRegExp: false,
-      version: "",
-      versionRegExp: false,
+      softwareVersion: "",
+      softwareVersionRegExp: false,
     },
   })
 
@@ -60,8 +60,8 @@ export default function AddSoftwareRuleTrigger({ children, ...rest }: AddSoftwar
           level: values.level as SoftwareRuleRequest["level"],
           partNumber: values.partNumber,
           partNumberRegExp: values.partNumberRegExp,
-          version: values.version,
-          versionRegExp: values.versionRegExp,
+          softwareVersion: values.softwareVersion,
+          softwareVersionRegExp: values.softwareVersionRegExp,
         })
 
         dialogRef.close()

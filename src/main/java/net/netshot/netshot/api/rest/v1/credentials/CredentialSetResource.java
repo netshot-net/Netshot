@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.LongFunction;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -192,7 +191,6 @@ public class CredentialSetResource {
 	 * @param id the credential set ID
 	 * @param patch the merge patch
 	 * @return the credential set
-	 * @throws JsonProcessingException if the patched credential set isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -203,15 +201,10 @@ public class CredentialSetResource {
 		+ "(JSON merge patch, RFC 7396). The usernames and secrets are unchanged unless the patch gives them (or a Vault "
 		+ "location replacing them). With If-Match, the credential set must still be at the given version (ETag).")
 	public CredentialSetDto updateCredentialSet(@PathParam("id") @Parameter(description = "Credential set ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Long expectedVersion = V1Response.ifMatch(this.headers);
-		DeviceCredentialSet current = this.credentialSetService.get(id);
-		CredentialSetRequest patched = MergePatch.apply(CredentialSetMapper.toRequest(current), patch, this.headers.getMediaType(),
-			CredentialSetRequest.class);
-		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, CredentialSetMapper.toDefinition(patched),
-			expectedVersion == null ? Long.valueOf(current.version()) : expectedVersion);
+		DeviceCredentialSet credentialSet = this.credentialSetService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
+			CredentialSetRequest.class, CredentialSetMapper::toRequest, CredentialSetMapper::toDefinition), V1Response.ifMatch(this.headers));
 		return this.respond(credentialSet, Selection.of(this.uriInfo.getQueryParameters(), CredentialSetDto.class, Selection.View.FULL));
 	}
 

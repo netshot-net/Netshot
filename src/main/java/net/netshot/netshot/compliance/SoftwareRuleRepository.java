@@ -31,6 +31,7 @@ import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.SortOrder;
 
@@ -58,8 +59,8 @@ public class SoftwareRuleRepository {
 		.string("driver", SOFTWARE_RULE.DRIVER, Option.SORTABLE)
 		.string("family", SOFTWARE_RULE.FAMILY, Option.SORTABLE, Option.SEARCHABLE)
 		.bool("familyRegExp", SOFTWARE_RULE.FAMILY_REG_EXP)
-		.string("version", SOFTWARE_RULE.VERSION, Option.SORTABLE, Option.SEARCHABLE)
-		.bool("versionRegExp", SOFTWARE_RULE.VERSION_REG_EXP)
+		.string("softwareVersion", SOFTWARE_RULE.SOFTWARE_VERSION, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("softwareVersionRegExp", SOFTWARE_RULE.VERSION_REG_EXP)
 		.string("partNumber", SOFTWARE_RULE.PART_NUMBER, Option.SORTABLE, Option.SEARCHABLE)
 		.bool("partNumberRegExp", SOFTWARE_RULE.PART_NUMBER_REG_EXP)
 		.enumeration("level", SOFTWARE_RULE.LEVEL, ConformanceLevel.class, Option.SORTABLE)
@@ -130,9 +131,9 @@ public class SoftwareRuleRepository {
 	}
 
 	private static SoftwareRule toRule(Record r) {
-		return new SoftwareRule(r.get(SOFTWARE_RULE.ID), r.get(SOFTWARE_RULE.PRIORITY), r.get(SOFTWARE_RULE.TARGET_GROUP),
+		return new SoftwareRule(r.get(SOFTWARE_RULE.ID), r.get(SOFTWARE_RULE.VERSION), r.get(SOFTWARE_RULE.CHANGE_DATE), r.get(SOFTWARE_RULE.PRIORITY), r.get(SOFTWARE_RULE.TARGET_GROUP),
 			r.get(SOFTWARE_RULE.DRIVER), r.get(SOFTWARE_RULE.FAMILY), r.get(SOFTWARE_RULE.FAMILY_REG_EXP),
-			r.get(SOFTWARE_RULE.VERSION), r.get(SOFTWARE_RULE.VERSION_REG_EXP), r.get(SOFTWARE_RULE.PART_NUMBER),
+			r.get(SOFTWARE_RULE.SOFTWARE_VERSION), r.get(SOFTWARE_RULE.VERSION_REG_EXP), r.get(SOFTWARE_RULE.PART_NUMBER),
 			r.get(SOFTWARE_RULE.PART_NUMBER_REG_EXP),
 			r.get(SOFTWARE_RULE.LEVEL) == null ? null : ConformanceLevel.valueOf(r.get(SOFTWARE_RULE.LEVEL)));
 	}
@@ -169,13 +170,15 @@ public class SoftwareRuleRepository {
 	 */
 	public long add(DSLContext dsl, SoftwareRule rule) {
 		return dsl.insertInto(SOFTWARE_RULE)
+			.set(SOFTWARE_RULE.VERSION, 0)
+			.set(SOFTWARE_RULE.CHANGE_DATE, Versions.now())
 			.set(SOFTWARE_RULE.PRIORITY, rule.priority())
 			.set(SOFTWARE_RULE.TARGET_GROUP, rule.targetGroupId())
 			.set(SOFTWARE_RULE.DRIVER, rule.driver())
 			.set(SOFTWARE_RULE.FAMILY, rule.family())
 			.set(SOFTWARE_RULE.FAMILY_REG_EXP, rule.familyRegExp())
-			.set(SOFTWARE_RULE.VERSION, rule.version())
-			.set(SOFTWARE_RULE.VERSION_REG_EXP, rule.versionRegExp())
+			.set(SOFTWARE_RULE.SOFTWARE_VERSION, rule.softwareVersion())
+			.set(SOFTWARE_RULE.VERSION_REG_EXP, rule.softwareVersionRegExp())
 			.set(SOFTWARE_RULE.PART_NUMBER, rule.partNumber())
 			.set(SOFTWARE_RULE.PART_NUMBER_REG_EXP, rule.partNumberRegExp())
 			.set(SOFTWARE_RULE.LEVEL, rule.level() == null ? null : rule.level().name())
@@ -184,7 +187,18 @@ public class SoftwareRuleRepository {
 	}
 
 	/**
-	 * Saves an existing rule.
+	 * Locks the row of a rule until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the version of the rule, or null if there is no such rule
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, SOFTWARE_RULE, SOFTWARE_RULE.ID, SOFTWARE_RULE.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing rule (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param rule the rule
@@ -192,13 +206,15 @@ public class SoftwareRuleRepository {
 	 */
 	public boolean save(DSLContext dsl, SoftwareRule rule) {
 		return dsl.update(SOFTWARE_RULE)
+			.set(SOFTWARE_RULE.VERSION, SOFTWARE_RULE.VERSION.plus(1))
+			.set(SOFTWARE_RULE.CHANGE_DATE, Versions.now())
 			.set(SOFTWARE_RULE.PRIORITY, rule.priority())
 			.set(SOFTWARE_RULE.TARGET_GROUP, rule.targetGroupId())
 			.set(SOFTWARE_RULE.DRIVER, rule.driver())
 			.set(SOFTWARE_RULE.FAMILY, rule.family())
 			.set(SOFTWARE_RULE.FAMILY_REG_EXP, rule.familyRegExp())
-			.set(SOFTWARE_RULE.VERSION, rule.version())
-			.set(SOFTWARE_RULE.VERSION_REG_EXP, rule.versionRegExp())
+			.set(SOFTWARE_RULE.SOFTWARE_VERSION, rule.softwareVersion())
+			.set(SOFTWARE_RULE.VERSION_REG_EXP, rule.softwareVersionRegExp())
 			.set(SOFTWARE_RULE.PART_NUMBER, rule.partNumber())
 			.set(SOFTWARE_RULE.PART_NUMBER_REG_EXP, rule.partNumberRegExp())
 			.set(SOFTWARE_RULE.LEVEL, rule.level() == null ? null : rule.level().name())

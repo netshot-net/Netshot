@@ -18,19 +18,23 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
+
 import lombok.Builder;
 
 /**
  * A rule checking the devices with a Python script.
  *
  * @param id the ID (0 for a rule not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param enabled true if the rule is checked
  * @param policyId the ID of the policy
  * @param script the script
  */
 @Builder(toBuilder = true)
-public record PythonRule(long id, String name, boolean enabled, long policyId, String script) implements Rule {
+public record PythonRule(long id, int version, Instant changeDate, String name, boolean enabled, long policyId, String script) implements Rule {
 
 	/** The script of a new rule. */
 	public static final String TEMPLATE = ""
@@ -53,12 +57,12 @@ public record PythonRule(long id, String name, boolean enabled, long policyId, S
 	 * @return the rule
 	 */
 	public static PythonRule of(String name, long policyId) {
-		return new PythonRule(0, name, false, policyId, TEMPLATE);
+		return new PythonRule(0, 0, null, name, false, policyId, TEMPLATE);
 	}
 
 	@Override
 	public PythonRule withId(long newId) {
-		return new PythonRule(newId, this.name, this.enabled, this.policyId, this.script);
+		return new PythonRule(newId, this.version, this.changeDate, this.name, this.enabled, this.policyId, this.script);
 	}
 
 	@Override

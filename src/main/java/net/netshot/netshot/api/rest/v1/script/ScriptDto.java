@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.script;
 
+import java.time.Instant;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,6 +31,8 @@ import net.netshot.netshot.api.rest.v1.Brief;
  * @param id the ID (0 for a script validated but not saved)
  * @param url the path of the script (null for a script validated but not saved)
  * @param display the display name
+ * @param version the version, incremented on each change (the ETag; 0 for a script validated but not saved)
+ * @param changeDate the date of the last change (null for a script validated but not saved)
  * @param name the name
  * @param folder the folder
  * @param deviceDriver the name of the device driver the script is written for
@@ -43,6 +46,8 @@ public record ScriptDto(
 	long id,
 	String url,
 	String display,
+	long version,
+	Instant changeDate,
 	@Brief String name,
 	@Brief String folder,
 	@Brief String deviceDriver,

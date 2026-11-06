@@ -77,11 +77,11 @@ class HookServiceTest {
 		for (String item : triggerItems) {
 			triggers.add(trigger(item));
 		}
-		return new WebHook(0, name, true, triggers, action, url, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null);
+		return new WebHook(0, 0, null, name, true, triggers, action, url, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null);
 	}
 
 	private static WebHook withCa(WebHook hook, HttpsCaTrustMode mode, String certificate) {
-		return new WebHook(hook.id(), hook.name(), hook.enabled(), hook.triggers(), hook.action(), hook.url(), mode, certificate);
+		return new WebHook(hook.id(), hook.version(), hook.changeDate(), hook.name(), hook.enabled(), hook.triggers(), hook.action(), hook.url(), mode, certificate);
 	}
 
 	private WebHook valid(String... triggerItems) {
@@ -174,10 +174,13 @@ class HookServiceTest {
 		WebHook created = (WebHook) this.service.create(this.valid("A", "B"));
 		WebHook renamed = withCa(webHook("Renamed " + created.name(), "http://example.net/new", Action.POST_YAML, "B", "C"),
 			HttpsCaTrustMode.TRUST_ANY, null);
-		WebHook incoming = new WebHook(0, renamed.name(), false, renamed.triggers(), renamed.action(), renamed.url(),
+		WebHook incoming = new WebHook(0, 0, null, renamed.name(), false, renamed.triggers(), renamed.action(), renamed.url(),
 			renamed.httpsCaTrustMode(), null);
 		Hook updated = this.service.update(created.id(), incoming);
-		Assertions.assertEquals(incoming.withId(created.id()), updated, "the new definition is what is returned");
+		Assertions.assertEquals(new WebHook(created.id(), updated.version(), updated.changeDate(), incoming.name(), incoming.enabled(),
+			incoming.triggers(), incoming.action(), incoming.url(), incoming.httpsCaTrustMode(), incoming.httpsCustomCaCertificate()),
+			updated, "the new definition is what is returned");
+		Assertions.assertEquals(created.version() + 1, updated.version());
 		Assertions.assertEquals(created.id(), updated.id());
 		WebHook reloaded = this.stored(created.id());
 		Assertions.assertEquals(incoming.name(), reloaded.name());

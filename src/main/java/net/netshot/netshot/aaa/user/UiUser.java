@@ -39,6 +39,8 @@ import net.netshot.netshot.platform.crypto.Hash;
  * by RADIUS, TACACS+ or OIDC, possibly with a local entry to override its level).
  *
  * @param id the ID (0 for a user not stored, such as a remote user without local entry)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param username the user name
  * @param local true for a local user
  * @param level the authorization level
@@ -47,7 +49,7 @@ import net.netshot.netshot.platform.crypto.Hash;
  * @param lastPasswordChangeDate when the password was last changed (null if unknown)
  */
 @Slf4j
-public record UiUser(long id, String username, boolean local, int level, String hashedPassword,
+public record UiUser(long id, int version, Instant changeDate, String username, boolean local, int level, String hashedPassword,
 	List<String> oldHashedPasswords, Instant lastPasswordChangeDate) implements User {
 
 	/**
@@ -114,7 +116,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public static UiUser withPassword(String username, boolean local, int level, String password) {
-		return new UiUser(0, username, local, level, null, List.of(), null).withPassword(password);
+		return new UiUser(0, 0, null, username, local, level, null, List.of(), null).withPassword(password);
 	}
 
 	/**
@@ -125,7 +127,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public static UiUser remote(String username, int level) {
-		return new UiUser(0, username, false, level, null, List.of(), null);
+		return new UiUser(0, 0, null, username, false, level, null, List.of(), null);
 	}
 
 	/**
@@ -142,7 +144,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public UiUser withId(long newId) {
-		return new UiUser(newId, this.username, this.local, this.level, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+		return new UiUser(newId, this.version, this.changeDate, this.username, this.local, this.level, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
 	}
 
 	/**
@@ -152,7 +154,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public UiUser withLevel(int newLevel) {
-		return new UiUser(this.id, this.username, this.local, newLevel, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+		return new UiUser(this.id, this.version, this.changeDate, this.username, this.local, newLevel, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
 	}
 
 	/**
@@ -164,7 +166,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public UiUser withSettings(String newUsername, boolean newLocal, int newLevel) {
-		return new UiUser(this.id, newUsername, newLocal, newLevel, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+		return new UiUser(this.id, this.version, this.changeDate, newUsername, newLocal, newLevel, this.hashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
 	}
 
 	/**
@@ -174,7 +176,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public UiUser withHashedPassword(String newHashedPassword) {
-		return new UiUser(this.id, this.username, this.local, this.level, newHashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
+		return new UiUser(this.id, this.version, this.changeDate, this.username, this.local, this.level, newHashedPassword, this.oldHashedPasswords, this.lastPasswordChangeDate);
 	}
 
 	/**
@@ -184,7 +186,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public UiUser withLastPasswordChangeDate(Instant date) {
-		return new UiUser(this.id, this.username, this.local, this.level, this.hashedPassword, this.oldHashedPasswords, date);
+		return new UiUser(this.id, this.version, this.changeDate, this.username, this.local, this.level, this.hashedPassword, this.oldHashedPasswords, date);
 	}
 
 	/**
@@ -194,7 +196,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 	 * @return the user
 	 */
 	public UiUser withPassword(String password) {
-		return new UiUser(this.id, this.username, this.local, this.level, UiUser.hash(password), this.oldHashedPasswords, Instant.now());
+		return new UiUser(this.id, this.version, this.changeDate, this.username, this.local, this.level, UiUser.hash(password), this.oldHashedPasswords, Instant.now());
 	}
 
 	/**
@@ -235,7 +237,7 @@ public record UiUser(long id, String username, boolean local, int level, String 
 		while (history.size() > policy.getMaxHistory()) {
 			history.removeLast();
 		}
-		return new UiUser(this.id, this.username, this.local, this.level, UiUser.hash(password), history, Instant.now());
+		return new UiUser(this.id, this.version, this.changeDate, this.username, this.local, this.level, UiUser.hash(password), history, Instant.now());
 	}
 
 	/**

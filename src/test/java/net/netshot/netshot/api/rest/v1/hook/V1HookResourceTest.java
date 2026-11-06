@@ -98,8 +98,8 @@ public class V1HookResourceTest {
 		JsonNode hook = answer.json();
 		long id = hook.get("id").asLong();
 		Assertions.assertEquals("/api/v1/hooks/" + id, answer.header("Location"));
-		Assertions.assertNull(answer.header("ETag"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "type", "name", "enabled", "triggers", "action", "targetUrl",
+		Assertions.assertEquals("\"" + hook.get("version").asLong() + "\"", answer.header("ETag"));
+		Assertions.assertEquals(Set.of("id", "url", "display", "version", "changeDate", "type", "name", "enabled", "triggers", "action", "targetUrl",
 			"httpsCaTrustMode", "httpsCustomCaCertificate"), names(hook));
 		Assertions.assertEquals("/api/v1/hooks/" + id, hook.get("url").asText());
 		Assertions.assertEquals("Notify", hook.get("display").asText());
