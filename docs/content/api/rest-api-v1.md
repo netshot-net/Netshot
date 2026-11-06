@@ -103,6 +103,7 @@ The lists which can be counted have a `stats` sub-resource (`/api/v1/devices/sta
 
 - `groupBy=status,mgmtDomain`: counts by the values of up to two fields (the fields which can be grouped by are given by each resource). A reference field gives a reference (`{"id", "url", "display"}`); an object can be counted once per value of a multivalued field (the groups or the tags of a device), with `null` for none.
 - `interval=hour|day|week|month`: counts by time bucket, on a date field (`on`, default given by each resource), over a range: `from` (included) and `to` (excluded), ISO-8601 dates or days (the start of the day in the time zone); by default, the current bucket and the previous ones: 24 hours, 7 days (today included), 12 weeks or 12 months. The buckets are aligned in `timeZone` (an IANA name, `UTC` by default: days at midnight, weeks on Monday, months on the first day), and every bucket of the range is given, with a count of 0 if empty. A request with more than 1000 buckets is refused.
+- Only the combinations of values which have objects are given: a value without any (a task status no task has, for instance) has no row, and no series with `interval`, rather than a count of 0. Within a series, every bucket of the range is given.
 
 ```json
 GET /api/v1/devices/stats?groupBy=softwareLevel&group=12
