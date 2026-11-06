@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,8 @@ import net.netshot.netshot.platform.query.StatsRow;
  * }</pre>
  *
  * <p>The ID is always a field ({@code id}, filterable and sortable), and always ends the order, so that the
- * pages are defined.</p>
+ * pages are defined. A list of items without ID (a compliance result: a device and a rule) is keyed by several
+ * columns instead ({@link #keyedBy}): it has no {@code id} field, and its order ends with its key.</p>
  */
 public final class QueryMapping {
 
@@ -126,8 +128,8 @@ public final class QueryMapping {
 	private record Mapped(FieldSpec spec, Field<?> column, CustomFilter custom, Field<?> groupExpression, Join join) {
 	}
 
-	/** The ID column. */
-	private final Field<Long> idColumn;
+	/** The columns which identify an item (the ID column, or the columns of a composite key). */
+	private final List<Field<?>> keyColumns;
 
 	/** The fields, by name. */
 	private final Map<String, Mapped> fields;
@@ -135,8 +137,8 @@ public final class QueryMapping {
 	/** The neutral schema. */
 	private final QuerySchema schema;
 
-	private QueryMapping(Field<Long> idColumn, Map<String, Mapped> fields, List<SortOrder> defaultSort) {
-		this.idColumn = idColumn;
+	private QueryMapping(List<Field<?>> keyColumns, Map<String, Mapped> fields, List<SortOrder> defaultSort) {
+		this.keyColumns = List.copyOf(keyColumns);
 		this.fields = Map.copyOf(fields);
 		Map<String, FieldSpec> specs = new LinkedHashMap<>();
 		fields.forEach((name, mapped) -> specs.put(name, mapped.spec()));
@@ -150,7 +152,18 @@ public final class QueryMapping {
 	 * @return the builder
 	 */
 	public static Builder builder(Field<Long> idColumn) {
-		return new Builder(idColumn);
+		return new Builder(List.of(idColumn)).column("id", FieldType.INTEGER, idColumn, List.of(), Option.SORTABLE);
+	}
+
+	/**
+	 * Starts a mapping of items without ID, identified by several columns: there is no {@code id} field, and the
+	 * order ends with these columns.
+	 *
+	 * @param keyColumns the columns which identify an item, in the order which ends the sort
+	 * @return the builder
+	 */
+	public static Builder keyedBy(Field<?>... keyColumns) {
+		return new Builder(List.of(keyColumns));
 	}
 
 	/**
@@ -186,7 +199,8 @@ public final class QueryMapping {
 	}
 
 	/**
-	 * Builds the order of a query: the order of the query (or the default one), ended by the ID. The empty values
+	 * Builds the order of a query: the order of the query (or the default one), ended by the ID (or by the columns of
+	 * the key which are not sorted on yet), so that the pages are defined. The empty values
 	 * (null) come last in both directions (PostgreSQL puts them first in a descending order).
 	 *
 	 * @param query the query
@@ -195,7 +209,7 @@ public final class QueryMapping {
 	public List<SortField<?>> orderBy(ListQuery query) {
 		List<SortOrder> orders = query.sort().isEmpty() ? this.schema.defaultSort() : query.sort();
 		List<SortField<?>> sortFields = new ArrayList<>();
-		boolean hasId = false;
+		Set<Field<?>> sorted = new HashSet<>();
 		for (SortOrder order : orders) {
 			Mapped mapped = this.fields.get(order.field());
 			if (mapped == null || mapped.column() == null || !mapped.spec().sortable()) {
@@ -211,10 +225,12 @@ public final class QueryMapping {
 				// A non null column keeps the plain order (which its index gives)
 				sortFields.add(mapped.column().desc());
 			}
-			hasId |= mapped.column().equals(this.idColumn);
+			sorted.add(mapped.column());
 		}
-		if (!hasId) {
-			sortFields.add(this.idColumn.asc());
+		for (Field<?> key : this.keyColumns) {
+			if (!sorted.contains(key)) {
+				sortFields.add(key.asc());
+			}
 		}
 		return sortFields;
 	}
@@ -431,13 +447,12 @@ public final class QueryMapping {
 	 */
 	public static final class Builder {
 
-		private final Field<Long> idColumn;
+		private final List<Field<?>> keyColumns;
 		private final Map<String, Mapped> fields = new LinkedHashMap<>();
 		private List<SortOrder> defaultSort = List.of();
 
-		private Builder(Field<Long> idColumn) {
-			this.idColumn = idColumn;
-			this.column("id", FieldType.INTEGER, idColumn, List.of(), Option.SORTABLE);
+		private Builder(List<Field<?>> keyColumns) {
+			this.keyColumns = keyColumns;
 		}
 
 		private Builder column(String name, FieldType type, Field<?> column, List<String> enumValues, Option... options) {
@@ -603,7 +618,7 @@ public final class QueryMapping {
 					throw new IllegalArgumentException("The default sort field isn't sortable: " + order.field());
 				}
 			}
-			return new QueryMapping(this.idColumn, this.fields, this.defaultSort);
+			return new QueryMapping(this.keyColumns, this.fields, this.defaultSort);
 		}
 	}
 }

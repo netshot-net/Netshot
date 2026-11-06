@@ -80,16 +80,15 @@ public class RuleRepository {
 		.string("text", RULE.TEXT, Option.SEARCHABLE)
 		.build();
 
-	/** The fields the lists of exemptions can be filtered and sorted on (the ID is the one of the device). */
-	static final QueryMapping EXEMPTION_LIST = QueryMapping.builder(EXEMPTION.DEVICE)
+	/** The fields the lists of exemptions of a rule can be filtered and sorted on (an exemption is keyed by its device). */
+	static final QueryMapping EXEMPTION_LIST = QueryMapping.keyedBy(EXEMPTION.DEVICE)
 		.integer("rule", EXEMPTION.RULE)
 		.integer("device", EXEMPTION.DEVICE)
 		.date("expirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
-		.defaultSort(SortOrder.asc("id"))
 		.build();
 
-	/** The fields the lists of check results of a device can be filtered and sorted on (the ID is the one of the rule). */
-	static final QueryMapping RESULT_LIST = QueryMapping.builder(RULE.ID)
+	/** The fields the lists of check results of a device can be filtered and sorted on (a result is keyed by its rule). */
+	static final QueryMapping RESULT_LIST = QueryMapping.keyedBy(RULE.ID)
 		.integer("rule", RULE.ID)
 		.string("ruleName", RULE.NAME, Option.SORTABLE, Option.SEARCHABLE)
 		.integer("policy", POLICY.ID, Option.SORTABLE)
@@ -110,7 +109,7 @@ public class RuleRepository {
 	 * The fields the lists of check results across devices can be filtered, sorted and counted on (the ID is the one
 	 * of the rule: a result is identified by its device and rule).
 	 */
-	static final QueryMapping ALL_RESULT_LIST = QueryMapping.builder(RULE.ID)
+	static final QueryMapping ALL_RESULT_LIST = QueryMapping.keyedBy(CHECK_RESULT.DEVICE, RULE.ID)
 		.integer("device", CHECK_RESULT.DEVICE, Option.SORTABLE, Option.GROUPABLE)
 		.string("deviceName", DEVICE.NAME, Option.SORTABLE, Option.SEARCHABLE)
 		.integer("domain", DEVICE.MGMT_DOMAIN, Option.GROUPABLE)

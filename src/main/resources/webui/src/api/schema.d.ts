@@ -3990,20 +3990,6 @@ export interface operations {
                 to?: Date;
                 /** @description Time zone of the buckets (IANA name, UTC by default) */
                 timeZone?: string;
-                /** @description Filter: id equal to */
-                id?: number[];
-                /** @description Filter: id not equal to */
-                id__n?: number[];
-                /** @description Filter: id lower than */
-                id__lt?: number[];
-                /** @description Filter: id lower than or equal to */
-                id__lte?: number[];
-                /** @description Filter: id greater than */
-                id__gt?: number[];
-                /** @description Filter: id greater than or equal to */
-                id__gte?: number[];
-                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
-                id__empty?: boolean;
                 /** @description Filter: device equal to */
                 device?: number[];
                 /** @description Filter: device not equal to */
@@ -4203,7 +4189,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, device, deviceName, rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: device, deviceName, rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate */
                 sort?: string;
                 /** @description Free text search; fields: deviceName, ruleName, policyName */
                 q?: string;
@@ -4217,20 +4203,6 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
-                /** @description Filter: id equal to */
-                id?: number[];
-                /** @description Filter: id not equal to */
-                id__n?: number[];
-                /** @description Filter: id lower than */
-                id__lt?: number[];
-                /** @description Filter: id lower than or equal to */
-                id__lte?: number[];
-                /** @description Filter: id greater than */
-                id__gt?: number[];
-                /** @description Filter: id greater than or equal to */
-                id__gte?: number[];
-                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
-                id__empty?: boolean;
                 /** @description Filter: device equal to */
                 device?: number[];
                 /** @description Filter: device not equal to */
@@ -4430,7 +4402,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: ruleName, policy, policyName, result, checkDate, exemptionExpirationDate */
                 sort?: string;
                 /** @description Free text search; fields: ruleName, policyName */
                 q?: string;
@@ -4444,18 +4416,6 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
-                /** @description Filter: id not equal to */
-                id__n?: number[];
-                /** @description Filter: id lower than */
-                id__lt?: number[];
-                /** @description Filter: id lower than or equal to */
-                id__lte?: number[];
-                /** @description Filter: id greater than */
-                id__gt?: number[];
-                /** @description Filter: id greater than or equal to */
-                id__gte?: number[];
-                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
-                id__empty?: boolean;
                 /** @description Filter: rule equal to */
                 rule?: number[];
                 /** @description Filter: rule not equal to */
@@ -5755,7 +5715,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, expirationDate */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: expirationDate */
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
@@ -5769,18 +5729,6 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
-                /** @description Filter: id not equal to */
-                id__n?: number[];
-                /** @description Filter: id lower than */
-                id__lt?: number[];
-                /** @description Filter: id lower than or equal to */
-                id__lte?: number[];
-                /** @description Filter: id greater than */
-                id__gt?: number[];
-                /** @description Filter: id greater than or equal to */
-                id__gte?: number[];
-                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
-                id__empty?: boolean;
                 /** @description Filter: rule equal to */
                 rule?: number[];
                 /** @description Filter: rule not equal to */
@@ -5853,7 +5801,7 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, expirationDate */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: expirationDate */
                 sort?: string;
                 /** @description Free text search */
                 q?: string;
@@ -5867,18 +5815,6 @@ export interface operations {
                 omit?: string;
                 /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
                 expand?: string;
-                /** @description Filter: id not equal to */
-                id__n?: number[];
-                /** @description Filter: id lower than */
-                id__lt?: number[];
-                /** @description Filter: id lower than or equal to */
-                id__lte?: number[];
-                /** @description Filter: id greater than */
-                id__gt?: number[];
-                /** @description Filter: id greater than or equal to */
-                id__gte?: number[];
-                /** @description Filter: id is empty (null, or an empty string) for true, isn't for false */
-                id__empty?: boolean;
                 /** @description Filter: rule equal to */
                 rule?: number[];
                 /** @description Filter: rule not equal to */

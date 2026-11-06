@@ -291,4 +291,33 @@ public class V1ComplianceResultResourceTest {
 		this.assertBadRequest("/compliance-results/stats?result=NOPE");
 		this.assertBadRequest("/compliance-results/stats?limit=3");
 	}
+
+	@Test
+	@DisplayName("Paging: every result once whatever the sort, as results are ordered by their key (device, rule) last; no id field")
+	void pagingByKey() throws Exception {
+		// Many results with the same values, of the same rules on several devices
+		List<CheckResult> results = new ArrayList<>();
+		for (int shift = 10; shift < 30; shift++) {
+			Device device = TestDevices.addFakeCiscoIos(this.paris, shift);
+			for (long rule : List.of(this.telnet.id(), this.banner.id())) {
+				results.add(new CheckResult(rule, device.id(), Instant.parse("2026-10-05T10:00:00Z"), "same", ResultOption.CONFORMING));
+			}
+		}
+		TestCompliance.checkResults(results.toArray(CheckResult[]::new));
+		int total = this.get("/compliance-results?count=true").get("count").asInt();
+		for (String sort : List.of("result", "-checkDate", "rule", "-policyName")) {
+			Set<String> seen = new java.util.HashSet<>();
+			for (int offset = 0; offset < total; offset += 3) {
+				for (JsonNode result : this.get("/compliance-results?sort=%s&offset=%d&limit=3".formatted(sort, offset)).get("results")) {
+					String key = result.get("device").get("id").asText() + "/" + result.get("rule").get("id").asText();
+					Assertions.assertTrue(seen.add(key), "sort=" + sort + ": " + key + " listed twice");
+				}
+			}
+			Assertions.assertEquals(total, seen.size(), "sort=" + sort + ": every result is listed");
+		}
+		this.assertBadRequest("/compliance-results?id=" + this.telnet.id());
+		this.assertBadRequest("/compliance-results?sort=id");
+		this.assertBadRequest("/devices/" + this.router1.id() + "/compliance-results?id=" + this.telnet.id());
+		Assertions.assertEquals(400, this.reader.get("/compliance/rules/" + this.banner.id() + "/exemptions?id=" + this.router1.id()).status());
+	}
 }
