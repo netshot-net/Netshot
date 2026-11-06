@@ -83,6 +83,8 @@ class DeviceInventoryServiceTest {
 		}
 		Device routerDevice = TestDevices.add(device("router-a", "10.50.0.1", "Cisco 2900", "16.1", domain)
 			.tags(Device.normalizeTags(List.of("core", "lab")))
+			.virtualDevices(Set.of("vdc1"))
+			.vrfInstances(Set.of("VRF1"))
 			.modules(List.of(module("chassis", "PN-1", "SN-1"), module("slot 1", "PN-2", "SN-2"),
 				module("slot 2", "PN-3", "SN-3").toBuilder().removed(true).build()))
 			.networkInterfaces(List.of(
@@ -161,6 +163,26 @@ class DeviceInventoryServiceTest {
 		Device read = this.deviceService.get(this.router);
 		Assertions.assertEquals(2, read.modules().size());
 		Assertions.assertEquals(2, read.networkInterfaces().size());
+	}
+
+	@Test
+	@DisplayName("listDevices() loads only the collections asked for, the others are empty")
+	void listParts() {
+		ListQuery query = ListQuery.byIds(List.of(this.router));
+		Device all = this.searchService.listDevices(query, null, Device.Part.ALL).items().get(0);
+		Assertions.assertEquals(Set.of("core", "lab"), all.tags());
+		Assertions.assertEquals(Set.of("vdc1"), all.virtualDevices());
+		Assertions.assertEquals(Set.of("VRF1"), all.vrfInstances());
+		Device none = this.searchService.listDevices(query, null, Set.of()).items().get(0);
+		Assertions.assertEquals("router-a", none.name());
+		Assertions.assertEquals("Lab", none.mgmtDomain().name());
+		Assertions.assertEquals(Set.of(), none.tags());
+		Assertions.assertEquals(Set.of(), none.virtualDevices());
+		Assertions.assertEquals(Set.of(), none.vrfInstances());
+		Device vrfs = this.searchService.listDevices(query, null, Set.of(Device.Part.VRF_INSTANCES)).items().get(0);
+		Assertions.assertEquals(Set.of(), vrfs.tags());
+		Assertions.assertEquals(Set.of(), vrfs.virtualDevices());
+		Assertions.assertEquals(Set.of("VRF1"), vrfs.vrfInstances());
 	}
 
 	@Test

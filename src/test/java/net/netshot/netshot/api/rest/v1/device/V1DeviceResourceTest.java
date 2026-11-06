@@ -195,6 +195,16 @@ public class V1DeviceResourceTest {
 		Assertions.assertEquals(Set.of("id", "description"), keys(located.get("mgmtDomain")));
 		Assertions.assertEquals("Lyon DC", located.get("mgmtDomain").get("description").asText());
 
+		// The collections of a device are loaded when selected
+		JsonNode parts = this.admin.get("/devices?fields=name,tags,attributes,ownerGroups&name=router00001").json()
+			.get("results").get(0);
+		Assertions.assertEquals(Set.of("id", "name", "tags", "attributes", "ownerGroups"), keys(parts));
+		Assertions.assertEquals(2, parts.get("tags").size());
+		Assertions.assertEquals(3, parts.get("attributes").size());
+		Assertions.assertEquals(this.core.id(), parts.get("ownerGroups").get(0).get("id").asLong());
+		JsonNode accesses = this.admin.get("/devices?fields=accesses&name=router00001").json().get("results").get(0);
+		Assertions.assertEquals("SSH", accesses.get("accesses").get(0).get("specificCredentialSet").get("type").asText());
+
 		// An expanded reference is written even when the view or the fields don't include it
 		JsonNode brief = this.admin.get("/devices?expand=mgmtDomain&name=router00001").json().get("results").get(0);
 		Assertions.assertEquals("Paris DC", brief.get("mgmtDomain").get("description").asText());

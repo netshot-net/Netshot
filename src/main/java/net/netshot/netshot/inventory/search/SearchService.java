@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.inventory.search;
 
+import java.util.Set;
+
 import org.jooq.Condition;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -127,9 +129,23 @@ public class SearchService {
 	 * @throws NetshotException if a filter or the search query is invalid, or the devices can't be read
 	 */
 	public ListResult<Device> listDevices(ListQuery listQuery, String searchQuery) {
+		return this.listDevices(listQuery, searchQuery, Device.Part.ALL);
+	}
+
+	/**
+	 * Lists the devices matching a list query and a search query, with their details but their modules, network
+	 * interfaces and the collections not asked for (not loaded: empty).
+	 *
+	 * @param listQuery the list query (filters, order, window)
+	 * @param searchQuery the string-based search query (see {@link Finder}), or null
+	 * @param parts the collections to load
+	 * @return the devices of the window, with the total number if the list query asks for it
+	 * @throws NetshotException if a filter or the search query is invalid, or the devices can't be read
+	 */
+	public ListResult<Device> listDevices(ListQuery listQuery, String searchQuery, Set<Device.Part> parts) {
 		Condition condition = this.searchCondition(searchQuery);
 		try {
-			return this.transactions.read(dsl -> new ListResult<>(this.deviceRepository.findAll(dsl, listQuery, condition),
+			return this.transactions.read(dsl -> new ListResult<>(this.deviceRepository.findAll(dsl, listQuery, condition, parts),
 				listQuery.count() ? this.deviceRepository.count(dsl, listQuery, condition) : null));
 		}
 		catch (DataAccessException e) {

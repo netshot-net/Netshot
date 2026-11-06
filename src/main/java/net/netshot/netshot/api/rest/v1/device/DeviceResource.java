@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.api.rest.v1.device;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -107,6 +108,15 @@ public class DeviceResource {
 	/** The sheets of the Excel workbook export which can be included. */
 	private static final List<String> WORKBOOK_SHEETS = List.of("interfaces", "inventory", "inventoryHistory", "locations",
 		"compliance", "groups", "driverAttributes");
+
+	/** The property of each device collection a list loads only if it is selected. */
+	private static final Map<Device.Part, String> PART_PROPERTIES = Map.of(
+		Device.Part.TAGS, "tags",
+		Device.Part.VIRTUAL_DEVICES, "virtualDevices",
+		Device.Part.VRF_INSTANCES, "vrfInstances",
+		Device.Part.ATTRIBUTES, "attributes",
+		Device.Part.ACCESSES, "accesses",
+		Device.Part.OWNER_GROUPS, "ownerGroups");
 
 	private final DeviceService deviceService;
 	private final DeviceCreationService deviceCreationService;
@@ -286,7 +296,13 @@ public class DeviceResource {
 			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query),
 				d -> DeviceMapper.toDto(driverRegistry, d));
 		}
-		return ListResponse.of(uriInfo, listQuery, searchService.listDevices(scoped, query),
+		Set<Device.Part> parts = EnumSet.noneOf(Device.Part.class);
+		PART_PROPERTIES.forEach((part, property) -> {
+			if (selection.includes(property)) {
+				parts.add(part);
+			}
+		});
+		return ListResponse.of(uriInfo, listQuery, searchService.listDevices(scoped, query, parts),
 			d -> DeviceMapper.toDto(driverRegistry, d));
 	}
 
