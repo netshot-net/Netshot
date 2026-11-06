@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -40,6 +41,7 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.log.TaskContext;
@@ -189,21 +191,21 @@ public class RuleService {
 				else if (JAVASCRIPT_RULE.equals(definition.type())) {
 					JavaScriptRule jsRule = JavaScriptRule.of(name, policy.id());
 					if (definition.script() != null) {
-						jsRule = new JavaScriptRule(0, name, false, policy.id(), definition.script().trim());
+						jsRule = new JavaScriptRule(0, 0, null, name, false, policy.id(), definition.script().trim());
 					}
 					newRule = jsRule;
 				}
 				else if (PYTHON_RULE.equals(definition.type())) {
 					PythonRule pyRule = PythonRule.of(name, policy.id());
 					if (definition.script() != null) {
-						pyRule = new PythonRule(0, name, false, policy.id(), definition.script().trim());
+						pyRule = new PythonRule(0, 0, null, name, false, policy.id(), definition.script().trim());
 					}
 					newRule = pyRule;
 				}
 				else {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
 				}
-				return newRule.withId(this.repository.add(dsl, newRule));
+				return this.repository.find(dsl, this.repository.add(dsl, newRule));
 			});
 		}
 		catch (DataAccessException e) {
@@ -235,6 +237,7 @@ public class RuleService {
 		Rule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				Rule existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
@@ -260,16 +263,16 @@ public class RuleService {
 				}
 				final String newName = name;
 				Rule edited = switch (existing) {
-					case JavaScriptRule jsRule -> new JavaScriptRule(id, newName, definition.enabled(), jsRule.policyId(),
+					case JavaScriptRule jsRule -> new JavaScriptRule(id, 0, null, newName, definition.enabled(), jsRule.policyId(),
 						definition.script() != null ? definition.script().trim() : jsRule.script());
-					case PythonRule pyRule -> new PythonRule(id, newName, definition.enabled(), pyRule.policyId(),
+					case PythonRule pyRule -> new PythonRule(id, 0, null, newName, definition.enabled(), pyRule.policyId(),
 						definition.script() != null ? definition.script().trim() : pyRule.script());
 					case TextRule textRule -> applyTextRule(textRule.toBuilder().name(newName).enabled(definition.enabled()),
 						definition).build();
 				};
 				this.repository.save(dsl, edited);
 				this.repository.replaceExemptions(dsl, id, exemptions);
-				return edited;
+				return this.repository.find(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -291,13 +294,27 @@ public class RuleService {
 	 * @throws NetshotException if the rule can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a rule, if it is at a given version.
+	 *
+	 * @param id the rule ID
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @return true if the rule has been deleted, false if there was no such rule
+	 * @throws NetshotException if the rule isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such rule of ID {}", id);
 					return false;
 				}
-				return true;
+				Versions.check("rule", version, expectedVersion);
+				return this.repository.remove(dsl, id);
 			});
 			if (deleted) {
 				AAA_LOG.info("Rule of ID {} has been deleted.", id);
@@ -355,10 +372,10 @@ public class RuleService {
 				rule = txRule.enabled(true).build();
 			}
 			else if (JAVASCRIPT_RULE.equals(definition.type())) {
-				rule = new JavaScriptRule(0, "TEST", true, 0, definition.script());
+				rule = new JavaScriptRule(0, 0, null, "TEST", true, 0, definition.script());
 			}
 			else if (PYTHON_RULE.equals(definition.type())) {
-				rule = new PythonRule(0, "TEST", true, 0, definition.script());
+				rule = new PythonRule(0, 0, null, "TEST", true, 0, definition.script());
 			}
 			else {
 				log.warn("Invalid rule type {}.", definition.type());
@@ -511,22 +528,32 @@ public class RuleService {
 	}
 
 	/**
-	 * Replaces the definition of a rule (its policy and its kind can't change; the exemptions are unchanged).
+	 * Replaces the definition of a rule, if it is at a given version (its policy and its kind can't change; the
+	 * exemptions are unchanged). The new definition is computed from the rule as it is, which can't change meanwhile
+	 * (to apply a patch).
 	 *
 	 * @param id the rule ID
-	 * @param newRule the new definition of the rule (its ID is ignored; its policy, if not 0, must be the current one)
+	 * @param change gives the new definition of the rule from the current one (its ID is ignored; its policy, if not 0,
+	 *        must be the current one)
+	 * @param expectedVersion the version the rule must be at, or null for any
 	 * @return the rule
-	 * @throws NetshotException if the rule doesn't exist, is of another kind or policy, the name is blank or already used in
-	 *         the policy, or the rule can't be stored
+	 * @throws NetshotException if the rule doesn't exist, isn't at the expected version, is of another kind or policy, the
+	 *         name is blank or already used in the policy, or the rule can't be stored
 	 */
-	public Rule replace(long id, Rule newRule) {
-		if (newRule.name() == null || newRule.name().isBlank()) {
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
-		}
+	public Rule replace(long id, Function<Rule, Rule> change, Long expectedVersion) {
 		Rule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the rule");
+				}
+				Versions.check("rule", version, expectedVersion);
 				Rule existing = this.require(dsl, id);
+				Rule newRule = change.apply(existing);
+				if (newRule.name() == null || newRule.name().isBlank()) {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+				}
 				if (existing.getClass() != newRule.getClass()) {
 					throw NetshotException.invalidParameter("type", "The type of a rule can't change.");
 				}
@@ -581,22 +608,29 @@ public class RuleService {
 	}
 
 	/**
-	 * Replaces all the exemptions of a rule.
+	 * Replaces all the exemptions of a rule, if it is at a given version (the version of the rule is incremented).
 	 *
 	 * @param ruleId the rule ID
 	 * @param expirations the expiration dates, by device ID
-	 * @throws NetshotException if the rule or a device doesn't exist, or the exemptions can't be stored
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @throws NetshotException if the rule or a device doesn't exist, the rule isn't at the expected version, or the
+	 *         exemptions can't be stored
 	 */
-	public void replaceExemptions(long ruleId, Map<Long, Instant> expirations) {
+	public void replaceExemptions(long ruleId, Map<Long, Instant> expirations, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				this.require(dsl, ruleId);
+				Integer version = this.repository.lock(dsl, ruleId);
+				if (version == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the rule");
+				}
+				Versions.check("rule", version, expectedVersion);
 				for (Long deviceId : expirations.keySet()) {
 					if (!this.repository.deviceExists(dsl, deviceId)) {
 						throw NetshotException.invalidParameter("exemptions", "Unknown device of ID %d.".formatted(deviceId));
 					}
 				}
 				this.repository.replaceExemptions(dsl, ruleId, expirations);
+				this.repository.touch(dsl, ruleId);
 			});
 		}
 		catch (DataAccessException e) {

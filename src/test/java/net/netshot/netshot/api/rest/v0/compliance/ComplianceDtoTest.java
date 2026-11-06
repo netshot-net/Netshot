@@ -134,7 +134,7 @@ class ComplianceDtoTest {
 	@Test
 	@DisplayName("A JavaScript rule has the same JSON and XML representation as the entity")
 	void javaScriptRuleRepresentation() throws Exception {
-		JavaScriptRule rule = new JavaScriptRule(8, "JS rule", true, 0, "function check(device) {\n  return CONFORMING;\n}");
+		JavaScriptRule rule = new JavaScriptRule(8, 0, null, "JS rule", true, 0, "function check(device) {\n  return CONFORMING;\n}");
 		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), rule));
 		JavaScriptRule template = JavaScriptRule.of("JS template", 0);
 		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), template));
@@ -146,7 +146,7 @@ class ComplianceDtoTest {
 	@Test
 	@DisplayName("A Python rule has the same JSON and XML representation as the entity")
 	void pythonRuleRepresentation() throws Exception {
-		PythonRule rule = new PythonRule(9, "Python rule", false, 0, "def check(device):\n  return {'result': result_option.CONFORMING}");
+		PythonRule rule = new PythonRule(9, 0, null, "Python rule", false, 0, "def check(device):\n  return {'result': result_option.CONFORMING}");
 		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), rule));
 		PythonRule template = PythonRule.of("Python template", 0);
 		this.assertRepresentation(RuleMapper.toDto(TestDrivers.registry(), template));
@@ -173,9 +173,9 @@ class ComplianceDtoTest {
 	void policyRepresentation() throws Exception {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
-		PolicyView policy = new PolicyView(new Policy(3, "Policy", Set.of(dynamic.id(), fixed.id())), List.of(dynamic, fixed));
+		PolicyView policy = new PolicyView(new Policy(3, 0, null, "Policy", Set.of(dynamic.id(), fixed.id())), List.of(dynamic, fixed));
 		this.assertRepresentation(PolicyMapper.toDto(policy));
-		PolicyView empty = new PolicyView(new Policy(4, "Empty", Set.of()), List.of());
+		PolicyView empty = new PolicyView(new Policy(4, 0, null, "Empty", Set.of()), List.of());
 		this.assertRepresentation(PolicyMapper.toDto(empty));
 		this.assertRepresentation(PolicyMapper.toDtos(List.of(policy, empty)));
 		String json = new String(json(PolicyMapper.toDto(policy)));
@@ -189,13 +189,13 @@ class ComplianceDtoTest {
 	void softwareRuleRepresentation() throws Exception {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
-		SoftwareRuleView rule = new SoftwareRuleView(new SoftwareRule(5, 10, dynamic.id(), "CiscoIOS12", "Cisco 2900", true,
+		SoftwareRuleView rule = new SoftwareRuleView(new SoftwareRule(5, 0, null, 10, dynamic.id(), "CiscoIOS12", "Cisco 2900", true,
 			"15\\..*", true, "CISCO.*", true, ConformanceLevel.SILVER), dynamic);
 		this.assertRepresentation(SoftwareRuleMapper.toDto(TestDrivers.registry(), rule));
-		SoftwareRuleView anything = new SoftwareRuleView(new SoftwareRule(6, 20, null, null, "", false, "1", false, "", false,
+		SoftwareRuleView anything = new SoftwareRuleView(new SoftwareRule(6, 0, null, 20, null, null, "", false, "1", false, "", false,
 			ConformanceLevel.BRONZE), null);
 		this.assertRepresentation(SoftwareRuleMapper.toDto(TestDrivers.registry(), anything));
-		SoftwareRuleView staticTarget = new SoftwareRuleView(new SoftwareRule(7, 30, fixed.id(), "NoSuchDriver", "", false, "1",
+		SoftwareRuleView staticTarget = new SoftwareRuleView(new SoftwareRule(7, 0, null, 30, fixed.id(), "NoSuchDriver", "", false, "1",
 			false, null, false, ConformanceLevel.GOLD), fixed);
 		this.assertRepresentation(SoftwareRuleMapper.toDtos(TestDrivers.registry(), List.of(rule, anything, staticTarget)));
 		Assertions.assertTrue(new String(xml(SoftwareRuleMapper.toDto(TestDrivers.registry(), rule))).startsWith("<SoftwareRule>"));
@@ -207,12 +207,12 @@ class ComplianceDtoTest {
 	void hardwareRuleRepresentation() throws Exception {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
-		HardwareRuleView rule = new HardwareRuleView(new HardwareRule(5, "CiscoIOS12", fixed.id(), "Cisco 2900", false, "CISCO29.*",
+		HardwareRuleView rule = new HardwareRuleView(new HardwareRule(5, 0, null, "CiscoIOS12", fixed.id(), "Cisco 2900", false, "CISCO29.*",
 			true, Instant.ofEpochMilli(1_600_000_000_000L), Instant.ofEpochMilli(1_700_000_000_000L)), fixed);
 		this.assertRepresentation(HardwareRuleMapper.toDto(TestDrivers.registry(), rule));
-		HardwareRuleView anything = new HardwareRuleView(new HardwareRule(6, null, null, "", true, "", false, null, null), null);
+		HardwareRuleView anything = new HardwareRuleView(new HardwareRule(6, 0, null, null, null, "", true, "", false, null, null), null);
 		this.assertRepresentation(HardwareRuleMapper.toDto(TestDrivers.registry(), anything));
-		HardwareRuleView dynamicTarget = new HardwareRuleView(new HardwareRule(7, "NoSuchDriver", dynamic.id(), null, false, null,
+		HardwareRuleView dynamicTarget = new HardwareRuleView(new HardwareRule(7, 0, null, "NoSuchDriver", dynamic.id(), null, false, null,
 			false, null, Instant.ofEpochMilli(1_700_000_000_000L)), dynamic);
 		this.assertRepresentation(HardwareRuleMapper.toDtos(TestDrivers.registry(), List.of(rule, anything, dynamicTarget)));
 		Assertions.assertTrue(new String(xml(HardwareRuleMapper.toDto(TestDrivers.registry(), rule))).startsWith("<HardwareRule>"));

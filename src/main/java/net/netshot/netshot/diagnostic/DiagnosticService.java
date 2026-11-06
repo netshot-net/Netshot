@@ -20,6 +20,7 @@ package net.netshot.netshot.diagnostic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -35,6 +36,7 @@ import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -197,7 +199,7 @@ public class DiagnosticService {
 					group = this.requireGroup(dsl, definition.targetGroup());
 				}
 				Diagnostic newDiagnostic = build(definition, 0, name, group == null ? null : group.id(), resultType);
-				return new DiagnosticView(newDiagnostic.withId(this.repository.add(dsl, newDiagnostic)), group);
+				return new DiagnosticView(this.repository.find(dsl, this.repository.add(dsl, newDiagnostic)), group);
 			});
 		}
 		catch (DataAccessException e) {
@@ -222,14 +224,39 @@ public class DiagnosticService {
 	 *         another kind of diagnostic, the name is already used, or the diagnostic can't be stored
 	 */
 	public DiagnosticView update(long id, DiagnosticDefinition definition) {
+		return this.update(id, _ -> definition, null,
+			new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "Unable to find this diagnostic."));
+	}
+
+	/**
+	 * Edits a diagnostic, if it is at a given version: the new properties are computed from the diagnostic as it is,
+	 * which can't change meanwhile (to apply a patch). See {@link #update(long, DiagnosticDefinition)}.
+	 *
+	 * @param id the diagnostic ID
+	 * @param change gives the new properties from the current diagnostic
+	 * @param expectedVersion the version the diagnostic must be at, or null for any
+	 * @return the diagnostic, with its target group
+	 * @throws NetshotException if the diagnostic doesn't exist or isn't at the expected version, the properties are
+	 *         invalid or of another kind of diagnostic, the name is already used, or the diagnostic can't be stored
+	 */
+	public DiagnosticView update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion) {
+		return this.update(id, change, expectedVersion,
+			new NetshotException(ErrorCode.NETSHOT_DIAGNOSTIC_NOT_FOUND, "Unable to find the diagnostic"));
+	}
+
+	private DiagnosticView update(long id, Function<Diagnostic, DiagnosticDefinition> change, Long expectedVersion,
+		NetshotException notFound) {
 		DiagnosticView diagnostic;
 		try {
 			diagnostic = this.transactions.write(dsl -> {
-				Diagnostic existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("Unable to find the diagnostic {} to be edited.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC, "Unable to find this diagnostic.");
+					throw notFound;
 				}
+				Versions.check("diagnostic", version, expectedVersion);
+				Diagnostic existing = this.repository.find(dsl, id);
+				DiagnosticDefinition definition = change.apply(existing);
 				String name = checkName(definition);
 				AttributeType resultType = parseResultType(definition);
 				if (existing.targetGroupId() != null && existing.targetGroupId() != definition.targetGroup()) {
@@ -244,22 +271,22 @@ public class DiagnosticService {
 					case JavaScriptDiagnostic _ -> {
 						checkSameType("JavaScriptDiagnostic", definition);
 						checkScript(definition);
-						yield new JavaScriptDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
+						yield new JavaScriptDiagnostic(id, 0, null, name, definition.enabled(), groupId, resultType, definition.script());
 					}
 					case PythonDiagnostic _ -> {
 						checkSameType("PythonDiagnostic", definition);
 						checkScript(definition);
-						yield new PythonDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
+						yield new PythonDiagnostic(id, 0, null, name, definition.enabled(), groupId, resultType, definition.script());
 					}
 					case SimpleDiagnostic _ -> {
 						checkSameType("SimpleDiagnostic", definition);
 						checkCommand(definition);
-						yield new SimpleDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),
+						yield new SimpleDiagnostic(id, 0, null, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),
 							definition.cliMode(), definition.command(), definition.modifierPattern(), definition.modifierReplacement());
 					}
 				};
 				this.repository.save(dsl, edited);
-				return new DiagnosticView(edited, group);
+				return new DiagnosticView(this.repository.find(dsl, id), group);
 			});
 		}
 		catch (DataAccessException e) {
@@ -281,13 +308,27 @@ public class DiagnosticService {
 	 * @throws NetshotException if the diagnostic can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a diagnostic, with its results, if it is at a given version.
+	 *
+	 * @param id the diagnostic ID
+	 * @param expectedVersion the version the diagnostic must be at, or null for any
+	 * @return true if the diagnostic has been deleted, false if there was no such diagnostic
+	 * @throws NetshotException if the diagnostic isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			Diagnostic deleted = this.transactions.write(dsl -> {
-				Diagnostic diagnostic = this.repository.find(dsl, id);
-				if (diagnostic == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such diagnostic of ID {}", id);
 					return null;
 				}
+				Versions.check("diagnostic", version, expectedVersion);
+				Diagnostic diagnostic = this.repository.find(dsl, id);
 				this.repository.deleteResults(dsl, diagnostic.id());
 				this.repository.remove(dsl, id);
 				return diagnostic;
@@ -369,15 +410,15 @@ public class DiagnosticService {
 	private static Diagnostic build(DiagnosticDefinition definition, long id, String name, Long groupId, AttributeType resultType) {
 		if ("JavaScriptDiagnostic".equals(definition.type())) {
 			checkScript(definition);
-			return new JavaScriptDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
+			return new JavaScriptDiagnostic(id, 0, null, name, definition.enabled(), groupId, resultType, definition.script());
 		}
 		else if ("PythonDiagnostic".equals(definition.type())) {
 			checkScript(definition);
-			return new PythonDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.script());
+			return new PythonDiagnostic(id, 0, null, name, definition.enabled(), groupId, resultType, definition.script());
 		}
 		else if ("SimpleDiagnostic".equals(definition.type())) {
 			checkCommand(definition);
-			return new SimpleDiagnostic(id, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),
+			return new SimpleDiagnostic(id, 0, null, name, definition.enabled(), groupId, resultType, definition.deviceDriver(),
 				definition.cliMode(), definition.command(), definition.modifierPattern(), definition.modifierReplacement());
 		}
 		throw new NetshotException(ErrorCode.NETSHOT_INVALID_DIAGNOSTIC_TYPE, "Invalid diagnostic type.");

@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v1.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -166,11 +165,13 @@ public class HardwareRuleResource {
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
-	@Operation(summary = "Replace a hardware rule", description = "Replaces the definition of a hardware rule.")
+	@Operation(summary = "Replace a hardware rule", description = "Replaces the definition of a hardware rule. With If-Match, the "
+		+ "rule must still be at the given version (ETag).")
 	public HardwareRuleDto replaceHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") long id,
 		HardwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.hardwareRuleService.replace(id, HardwareRuleMapper.toRule(ruleRequest)));
+		HardwareRule rule = HardwareRuleMapper.toRule(ruleRequest);
+		return this.respond(this.hardwareRuleService.replace(id, _ -> rule, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -179,21 +180,19 @@ public class HardwareRuleResource {
 	 * @param id the rule ID
 	 * @param patch the merge patch
 	 * @return the rule
-	 * @throws JsonProcessingException if the patched rule isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
-	@Operation(summary = "Update a hardware rule", description = "Changes some properties of a hardware rule (JSON merge patch, RFC 7396).")
+	@Operation(summary = "Update a hardware rule", description = "Changes some properties of a hardware rule (JSON merge patch, "
+		+ "RFC 7396). With If-Match, the rule must still be at the given version (ETag).")
 	public HardwareRuleDto updateHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		HardwareRuleRequest patched = MergePatch.apply(HardwareRuleMapper.toRequest(this.hardwareRuleService.get(id)), patch,
-			this.headers.getMediaType(), HardwareRuleRequest.class);
-		return this.respond(this.hardwareRuleService.replace(id, HardwareRuleMapper.toRule(patched)));
+		return this.respond(this.hardwareRuleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(),
+			HardwareRuleRequest.class, HardwareRuleMapper::toRequest, HardwareRuleMapper::toRule), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -204,10 +203,11 @@ public class HardwareRuleResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
-	@Operation(summary = "Delete a hardware rule")
+	@Operation(summary = "Delete a hardware rule", description = "Deletes a hardware rule. With If-Match, the rule must still be "
+		+ "at the given version (ETag).")
 	public void deleteHardwareRule(@PathParam("id") @Parameter(description = "Hardware rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.hardwareRuleService.delete(id)) {
+		if (!this.hardwareRuleService.delete(id, V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The hardware rule doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -216,6 +216,7 @@ public class HardwareRuleResource {
 	private HardwareRuleDto respond(HardwareRule rule) {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), HardwareRuleDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, HardwareRuleDto.class);
+		V1Response.etag(this.request, rule.version());
 		return HardwareRuleMapper.toDto(rule, this.refs.groups(selection, "group",
 			rule.targetGroupId() == null ? List.of() : List.of(rule.targetGroupId())));
 	}

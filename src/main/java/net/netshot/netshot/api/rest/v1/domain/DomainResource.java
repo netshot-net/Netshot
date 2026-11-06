@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v1.domain;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -163,7 +162,6 @@ public class DomainResource {
 	 * @param id the domain ID
 	 * @param patch the merge patch
 	 * @return the domain
-	 * @throws JsonProcessingException if the patched domain isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -173,14 +171,10 @@ public class DomainResource {
 	@Operation(summary = "Update a domain", description = "Changes some properties of a domain (JSON merge patch, RFC 7396). "
 		+ "With If-Match, the domain must still be at the given version (ETag).")
 	public DomainDto updateDomain(@PathParam("id") @Parameter(description = "Domain ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Long expectedVersion = V1Response.ifMatch(this.headers);
-		Domain current = this.domainService.get(id);
-		DomainRequest patched = MergePatch.apply(DomainMapper.toRequest(current), patch, this.headers.getMediaType(), DomainRequest.class);
-		Domain domain = this.domainService.update(id, DomainMapper.toDefinition(patched),
-			expectedVersion == null ? Long.valueOf(current.version()) : expectedVersion);
+		Domain domain = this.domainService.update(id, MergePatch.of(patch, this.headers.getMediaType(), DomainRequest.class,
+			DomainMapper::toRequest, DomainMapper::toDefinition), V1Response.ifMatch(this.headers));
 		return this.respond(domain, Selection.of(this.uriInfo.getQueryParameters(), DomainDto.class, Selection.View.FULL));
 	}
 

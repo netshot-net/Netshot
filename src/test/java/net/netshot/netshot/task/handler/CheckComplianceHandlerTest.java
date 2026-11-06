@@ -135,9 +135,9 @@ class CheckComplianceHandlerTest {
 	@DisplayName("Sets the software level from the first matching software rule, by priority")
 	void setsTheSoftwareLevel() throws Exception {
 		TestCompliance.softwareRules(
-			new SoftwareRule(0, 20, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.SILVER),
-			new SoftwareRule(0, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE),
-			new SoftwareRule(0, 5, null, "CiscoIOS12", "", false, "15.0", false, "", false, ConformanceLevel.GOLD));
+			new SoftwareRule(0, 0, null, 20, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.SILVER),
+			new SoftwareRule(0, 0, null, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE),
+			new SoftwareRule(0, 0, null, 5, null, "CiscoIOS12", "", false, "15.0", false, "", false, ConformanceLevel.GOLD));
 
 		this.runner.run(CheckComplianceTask.of(this.device, "Test", "tester"));
 
@@ -147,7 +147,7 @@ class CheckComplianceHandlerTest {
 	@Test
 	@DisplayName("Without matching software rule, the software level is unknown")
 	void unknownSoftwareLevel() throws Exception {
-		TestCompliance.softwareRules(new SoftwareRule(0, 10, null, "CiscoIOS12", "", false, "15.0", false, "", false, ConformanceLevel.GOLD));
+		TestCompliance.softwareRules(new SoftwareRule(0, 0, null, 10, null, "CiscoIOS12", "", false, "15.0", false, "", false, ConformanceLevel.GOLD));
 
 		this.runner.run(CheckComplianceTask.of(this.device, "Test", "tester"));
 
@@ -157,7 +157,7 @@ class CheckComplianceHandlerTest {
 	@Test
 	@DisplayName("Sets the end of sale and end of life from the hardware rules")
 	void setsTheHardwareStatus() throws Exception {
-		TestCompliance.hardwareRules(new HardwareRule(0, "CiscoIOS12", null, "", false, "TESTCHASSIS", false, daysFromNow(-10), daysFromNow(100)));
+		TestCompliance.hardwareRules(new HardwareRule(0, 0, null, "CiscoIOS12", null, "", false, "TESTCHASSIS", false, daysFromNow(-10), daysFromNow(100)));
 
 		this.runner.run(CheckComplianceTask.of(this.device, "Test", "tester"));
 
@@ -170,7 +170,7 @@ class CheckComplianceHandlerTest {
 	@DisplayName("Refreshes the dynamic groups of the device afterwards")
 	void refreshesTheDynamicGroups() throws Exception {
 		DynamicDeviceGroup bronze = TestDevices.addDynamicGroup("Bronze", "[Software Level] is BRONZE");
-		TestCompliance.softwareRules(new SoftwareRule(0, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE));
+		TestCompliance.softwareRules(new SoftwareRule(0, 0, null, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE));
 
 		this.runner.run(CheckComplianceTask.of(this.device, "Test", "tester"));
 

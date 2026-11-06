@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v1.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,6 +56,7 @@ import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RankedSoftwareRule;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
+import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
 import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -169,11 +169,13 @@ public class SoftwareRuleResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace a software rule", description = "Replaces the definition of a software rule. A priority moves "
-		+ "the rule to that position (the other rules shift); without priority the rule keeps its position.")
+		+ "the rule to that position (the other rules shift); without priority the rule keeps its position. With If-Match, the rule "
+		+ "must still be at the given version (ETag).")
 	public SoftwareRuleDto replaceSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") long id,
 		SoftwareRuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.softwareRuleService.replace(id, SoftwareRuleMapper.toRule(ruleRequest), position(ruleRequest)));
+		Replacement replacement = replacement(ruleRequest);
+		return this.respond(this.softwareRuleService.replace(id, _ -> replacement, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -182,7 +184,6 @@ public class SoftwareRuleResource {
 	 * @param id the rule ID
 	 * @param patch the merge patch
 	 * @return the rule
-	 * @throws JsonProcessingException if the patched rule isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -190,14 +191,12 @@ public class SoftwareRuleResource {
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Update a software rule", description = "Changes some properties of a software rule (JSON merge patch, "
-		+ "RFC 7396), possibly its priority (position).")
+		+ "RFC 7396), possibly its priority (position). With If-Match, the rule must still be at the given version (ETag).")
 	public SoftwareRuleDto updateSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		SoftwareRuleRequest patched = MergePatch.apply(SoftwareRuleMapper.toRequest(this.softwareRuleService.get(id)), patch,
-			this.headers.getMediaType(), SoftwareRuleRequest.class);
-		return this.respond(this.softwareRuleService.replace(id, SoftwareRuleMapper.toRule(patched), position(patched)));
+		return this.respond(this.softwareRuleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(),
+			SoftwareRuleRequest.class, SoftwareRuleMapper::toRequest, SoftwareRuleResource::replacement), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -208,10 +207,11 @@ public class SoftwareRuleResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
-	@Operation(summary = "Delete a software rule", description = "Deletes a software rule (the rules after it move up).")
+	@Operation(summary = "Delete a software rule", description = "Deletes a software rule (the rules after it move up). With "
+		+ "If-Match, the rule must still be at the given version (ETag).")
 	public void deleteSoftwareRule(@PathParam("id") @Parameter(description = "Software rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.softwareRuleService.delete(id)) {
+		if (!this.softwareRuleService.delete(id, V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The software rule doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -224,9 +224,14 @@ public class SoftwareRuleResource {
 		return ruleRequest.priority();
 	}
 
+	private static Replacement replacement(SoftwareRuleRequest ruleRequest) {
+		return new Replacement(SoftwareRuleMapper.toRule(ruleRequest), position(ruleRequest));
+	}
+
 	private SoftwareRuleDto respond(RankedSoftwareRule rule) {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), SoftwareRuleDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, SoftwareRuleDto.class);
+		V1Response.etag(this.request, rule.rule().version());
 		return SoftwareRuleMapper.toDto(rule, this.refs.groups(selection, "group",
 			rule.rule().targetGroupId() == null ? List.of() : List.of(rule.rule().targetGroupId())));
 	}

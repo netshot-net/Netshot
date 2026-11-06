@@ -77,7 +77,8 @@ public class V1ExceptionMapper implements ExceptionMapper<Throwable> {
 	}
 
 	@Override
-	public Response toResponse(Throwable t) {
+	public Response toResponse(Throwable thrown) {
+		Throwable t = thrown instanceof MergePatch.InvalidResultException ire ? ire.getCause() : thrown;
 		if (t instanceof JacksonException je && isUnreadableBody(je)) {
 			log.info("Invalid request body: {}.", je.getMessage());
 			return this.problem(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, describe(je), fieldErrors(je), null);

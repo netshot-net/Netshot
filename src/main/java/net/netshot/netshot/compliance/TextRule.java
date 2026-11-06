@@ -18,12 +18,16 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
+
 import lombok.Builder;
 
 /**
  * A rule matching a text in a field of the devices (configuration or device attribute).
  *
  * @param id the ID (0 for a rule not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param enabled true if the rule is checked
  * @param policyId the ID of the policy
@@ -38,7 +42,7 @@ import lombok.Builder;
  * @param deviceDriver the name of the driver the rule applies to (null for any)
  */
 @Builder(builderMethodName = "defaults", toBuilder = true)
-public record TextRule(long id, String name, boolean enabled, long policyId, String field, String context, String text,
+public record TextRule(long id, int version, Instant changeDate, String name, boolean enabled, long policyId, String field, String context, String text,
 	boolean regExp, boolean invert, boolean anyBlock, boolean matchAll, boolean normalize, String deviceDriver) implements Rule {
 
 	/**

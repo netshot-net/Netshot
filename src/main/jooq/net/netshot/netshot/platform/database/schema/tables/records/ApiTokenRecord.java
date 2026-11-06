@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.ApiToken;
 
 import org.jooq.Record1;
@@ -74,6 +76,20 @@ public class ApiTokenRecord extends UpdatableRecordImpl<ApiTokenRecord> {
         return (String) get(3);
     }
 
+    /**
+     * Setter for <code>api_token.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(4, value);
+    }
+
+    /**
+     * Getter for <code>api_token.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(4);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -97,13 +113,14 @@ public class ApiTokenRecord extends UpdatableRecordImpl<ApiTokenRecord> {
     /**
      * Create a detached, initialised ApiTokenRecord
      */
-    public ApiTokenRecord(Long id, String hashedToken, Integer level, String description) {
+    public ApiTokenRecord(Long id, String hashedToken, Integer level, String description, Instant changeDate) {
         super(ApiToken.API_TOKEN);
 
         setId(id);
         setHashedToken(hashedToken);
         setLevel(level);
         setDescription(description);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

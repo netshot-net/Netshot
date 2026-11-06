@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v1.group;
 
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -200,7 +199,6 @@ public class GroupResource {
 	 * @param id the group ID
 	 * @param patch the merge patch
 	 * @return the group
-	 * @throws JsonProcessingException if the patched group isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -210,14 +208,10 @@ public class GroupResource {
 	@Operation(summary = "Update a group", description = "Changes some properties of a group (JSON merge patch, RFC 7396). "
 		+ "With If-Match, the group must still be at the given version (ETag).")
 	public GroupDto updateGroup(@PathParam("id") @Parameter(description = "Group ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Long expectedVersion = V1Response.ifMatch(this.headers);
-		DeviceGroup current = this.groupService.get(id);
-		GroupRequest patched = MergePatch.apply(GroupMapper.toRequest(current), patch, this.headers.getMediaType(), GroupRequest.class);
-		return this.respond(this.groupService.update(id, GroupMapper.toDefinition(patched),
-			expectedVersion == null ? Long.valueOf(current.version()) : expectedVersion));
+		return this.respond(this.groupService.update(id, MergePatch.of(patch, this.headers.getMediaType(), GroupRequest.class,
+			GroupMapper::toRequest, GroupMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**

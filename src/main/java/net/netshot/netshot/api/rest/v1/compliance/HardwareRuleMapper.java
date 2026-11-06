@@ -53,7 +53,8 @@ public final class HardwareRuleMapper {
 				display.append(' ').append(part);
 			}
 		}
-		return new HardwareRuleDto(rule.id(), V1Links.of(PATH, rule.id()), display.toString(), rule.partNumber(), rule.endOfSale(),
+		return new HardwareRuleDto(rule.id(), V1Links.of(PATH, rule.id()), display.toString(), rule.version(), rule.changeDate(),
+			rule.partNumber(), rule.endOfSale(),
 			rule.endOfLife(), rule.targetGroupId() == null ? null : groups.apply(rule.targetGroupId()), rule.driver(), rule.family(),
 			rule.familyRegExp(), rule.partNumberRegExp());
 	}

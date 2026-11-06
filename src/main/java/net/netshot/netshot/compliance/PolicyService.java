@@ -20,6 +20,7 @@ package net.netshot.netshot.compliance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -32,6 +33,7 @@ import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -149,18 +151,20 @@ public class PolicyService {
 	}
 
 	/**
-	 * Replaces a policy: its name and the full set of its target groups (the compliance results of the devices of a
-	 * group removed from the policy are deleted).
+	 * Replaces a policy, if it is at a given version: its name and the full set of its target groups (the compliance
+	 * results of the devices of a group removed from the policy are deleted). The new properties are computed from the
+	 * policy as it is, which can't change meanwhile (to apply a patch).
 	 *
 	 * @param id the policy ID
-	 * @param definition the new properties
+	 * @param change gives the new properties from the current policy
+	 * @param expectedVersion the version the policy must be at, or null for any
 	 * @return the policy
-	 * @throws NetshotException if the policy or a group doesn't exist, the name is blank or already used,
-	 *         or if the policy can't be stored
+	 * @throws NetshotException if the policy or a group doesn't exist, the policy isn't at the expected version, the
+	 *         name is blank or already used, or if the policy can't be stored
 	 */
-	public Policy replace(long id, PolicyDefinition definition) {
-		this.get(id);
-		return this.update(id, definition).policy();
+	public Policy replace(long id, Function<Policy, PolicyDefinition> change, Long expectedVersion) {
+		return this.update(id, change, expectedVersion,
+			new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "Unable to find the policy")).policy();
 	}
 
 	/**
@@ -194,10 +198,9 @@ public class PolicyService {
 		PolicyView policy;
 		try {
 			policy = this.transactions.write(dsl -> {
-				Policy newPolicy = new Policy(0, name, definition.targetGroupIds());
+				Policy newPolicy = new Policy(0, 0, null, name, definition.targetGroupIds());
 				PolicyView view = this.view(dsl, newPolicy);
-				newPolicy = newPolicy.withId(this.repository.add(dsl, newPolicy));
-				return new PolicyView(newPolicy, view.targetGroups());
+				return new PolicyView(this.repository.find(dsl, this.repository.add(dsl, newPolicy)), view.targetGroups());
 			});
 		}
 		catch (DataAccessException e) {
@@ -222,14 +225,21 @@ public class PolicyService {
 	 *         or if the policy can't be stored
 	 */
 	public PolicyView update(long id, PolicyDefinition definition) {
+		return this.update(id, _ -> definition, null, new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Unable to find this policy."));
+	}
+
+	private PolicyView update(long id, Function<Policy, PolicyDefinition> change, Long expectedVersion, NetshotException notFound) {
 		PolicyView policy;
 		try {
 			policy = this.transactions.write(dsl -> {
-				Policy existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("Unable to find the policy {} to be edited.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_POLICY, "Unable to find this policy.");
+					throw notFound;
 				}
+				Versions.check("policy", version, expectedVersion);
+				Policy existing = this.repository.find(dsl, id);
+				PolicyDefinition definition = change.apply(existing);
 				String name = definition.name().trim();
 				if (name.isEmpty()) {
 					log.warn("User posted an empty policy name.");
@@ -241,10 +251,10 @@ public class PolicyService {
 						this.repository.deleteCheckResults(dsl, existing.id(), groupId);
 					}
 				}
-				Policy edited = new Policy(id, name, definition.targetGroupIds());
+				Policy edited = new Policy(id, 0, null, name, definition.targetGroupIds());
 				PolicyView view = this.view(dsl, edited);
 				this.repository.save(dsl, edited);
-				return view;
+				return new PolicyView(this.repository.find(dsl, id), view.targetGroups());
 			});
 		}
 		catch (DataAccessException e) {
@@ -266,13 +276,27 @@ public class PolicyService {
 	 * @throws NetshotException if the policy can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a policy, with its rules, if it is at a given version.
+	 *
+	 * @param id the policy ID
+	 * @param expectedVersion the version the policy must be at, or null for any
+	 * @return true if the policy has been deleted, false if there was no such policy
+	 * @throws NetshotException if the policy isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such policy of ID {}", id);
 					return false;
 				}
-				return true;
+				Versions.check("policy", version, expectedVersion);
+				return this.repository.remove(dsl, id);
 			});
 			if (deleted) {
 				AAA_LOG.info("Policy of ID {} has been deleted.", id);

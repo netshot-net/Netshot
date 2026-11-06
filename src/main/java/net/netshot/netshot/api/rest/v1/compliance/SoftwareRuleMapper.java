@@ -50,14 +50,14 @@ public final class SoftwareRuleMapper {
 		}
 		SoftwareRule r = ranked.rule();
 		StringBuilder display = new StringBuilder(String.valueOf(r.level()));
-		for (String part : new String[] {r.driver(), r.family(), r.version(), r.partNumber()}) {
+		for (String part : new String[] {r.driver(), r.family(), r.softwareVersion(), r.partNumber()}) {
 			if (part != null && !part.isEmpty()) {
 				display.append(' ').append(part);
 			}
 		}
-		return new SoftwareRuleDto(r.id(), V1Links.of(PATH, r.id()), display.toString(), ranked.rank(), r.level(),
-			r.targetGroupId() == null ? null : groups.apply(r.targetGroupId()), r.driver(), r.family(), r.familyRegExp(), r.version(),
-			r.versionRegExp(), r.partNumber(), r.partNumberRegExp());
+		return new SoftwareRuleDto(r.id(), V1Links.of(PATH, r.id()), display.toString(), r.version(), r.changeDate(), ranked.rank(), r.level(),
+			r.targetGroupId() == null ? null : groups.apply(r.targetGroupId()), r.driver(), r.family(), r.familyRegExp(), r.softwareVersion(),
+			r.softwareVersionRegExp(), r.partNumber(), r.partNumberRegExp());
 	}
 
 	/**
@@ -68,8 +68,8 @@ public final class SoftwareRuleMapper {
 	 */
 	public static SoftwareRuleRequest toRequest(RankedSoftwareRule ranked) {
 		SoftwareRule r = ranked.rule();
-		return new SoftwareRuleRequest(ranked.rank(), r.level(), r.targetGroupId() == null ? null : new RefId(r.targetGroupId()), r.driver(), r.family(), r.familyRegExp(), r.version(),
-			r.versionRegExp(), r.partNumber(), r.partNumberRegExp());
+		return new SoftwareRuleRequest(ranked.rank(), r.level(), r.targetGroupId() == null ? null : new RefId(r.targetGroupId()), r.driver(), r.family(), r.familyRegExp(), r.softwareVersion(),
+			r.softwareVersionRegExp(), r.partNumber(), r.partNumberRegExp());
 	}
 
 	private static String orEmpty(String value) {
@@ -88,8 +88,8 @@ public final class SoftwareRuleMapper {
 			.driver(request.driver() == null || request.driver().isEmpty() ? null : request.driver())
 			.family(orEmpty(request.family()))
 			.familyRegExp(request.familyRegExp())
-			.version(orEmpty(request.version()))
-			.versionRegExp(request.versionRegExp())
+			.softwareVersion(orEmpty(request.softwareVersion()))
+			.softwareVersionRegExp(request.softwareVersionRegExp())
 			.partNumber(orEmpty(request.partNumber()))
 			.partNumberRegExp(request.partNumberRegExp())
 			.level(request.level())

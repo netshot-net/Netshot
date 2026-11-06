@@ -124,8 +124,8 @@ public class V1UserResourceTest {
 		JsonNode user = answer.json();
 		long id = user.get("id").asLong();
 		Assertions.assertEquals("/api/v1/users/" + id, answer.header("Location"));
-		Assertions.assertNull(answer.header("ETag"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "username", "local", "level", "role", "hasPassword",
+		Assertions.assertEquals("\"" + user.get("version").asLong() + "\"", answer.header("ETag"));
+		Assertions.assertEquals(Set.of("id", "url", "display", "version", "changeDate", "username", "local", "level", "role", "hasPassword",
 			"lastPasswordChangeDate"), names(user));
 		Assertions.assertEquals("alice", user.get("display").asText());
 		Assertions.assertTrue(user.get("local").asBoolean());

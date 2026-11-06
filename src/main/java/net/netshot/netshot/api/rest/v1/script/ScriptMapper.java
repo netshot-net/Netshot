@@ -61,16 +61,27 @@ public final class ScriptMapper {
 					d.getChoices(), d.getDefaultValue()));
 			}
 		}
-		return new ScriptDto(script.id(), script.id() == 0 ? null : V1Links.of(PATH, script.id()), script.name(), script.name(),
+		return new ScriptDto(script.id(), script.id() == 0 ? null : V1Links.of(PATH, script.id()), script.name(),
+			script.version(), script.changeDate(), script.name(),
 			script.folder(), script.deviceDriver(), driverDescription(driverRegistry, script.deviceDriver()), script.author(),
 			script.script(), definitions);
+	}
+
+	/**
+	 * Maps a script to the request which would define it as it is (the base of a merge patch).
+	 *
+	 * @param script the script
+	 * @return the request
+	 */
+	public static ScriptRequest toRequest(DeviceJsScript script) {
+		return new ScriptRequest(script.name(), script.folder(), script.deviceDriver(), script.script());
 	}
 
 	/**
 	 * Maps a request to the command of the service.
 	 *
 	 * @param request the request
-	 * @param author the user creating the script
+	 * @param author the user creating the script (ignored on a change: the author is kept)
 	 * @return the command
 	 */
 	public static ScriptCreation toCreation(ScriptRequest request, String author) {

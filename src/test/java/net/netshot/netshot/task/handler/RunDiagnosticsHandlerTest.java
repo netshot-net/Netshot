@@ -96,7 +96,7 @@ class RunDiagnosticsHandlerTest {
 		Device device = SimulatedRouter.persist(CONTAINER, port);
 		StaticDeviceGroup group = TestDevices.addStaticGroup("Routers");
 		TestDevices.addMembers(group, device);
-		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, name, enabled, group.id(), AttributeType.TEXT, "CiscoIOS12",
+		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, 0, null, name, enabled, group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(?s).*, Version ([^,]+), RELEASE.*", "$1");
 		TestWiring.get().transactions().run(dsl -> new DiagnosticRepository().add(dsl, diagnostic));
 		return device;

@@ -1,6 +1,5 @@
 import type { Brief } from "@/api/client"
 import api from "@/api"
-import type { SoftwareRule } from "@/api/softwareRule"
 import { NetshotError } from "@/api/httpClient"
 import { DataTable, EmptyResult, Protected, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
@@ -31,7 +30,7 @@ export default function SoftwareComplianceScreen() {
   const { t } = useTranslation()
   const searchBox = useSearchQuery()
   const { user } = useAuth()
-  const [data, setData] = useState<SoftwareRule[]>([])
+  const [data, setData] = useState<Brief["SoftwareRule"][]>([])
   const [reorderPending, setReorderPending] = useState(false)
   const dialog = useConfirmDialogWithMutation()
   const toast = useToast()
@@ -126,7 +125,7 @@ export default function SoftwareComplianceScreen() {
       header: t("device.module.partNumber"),
       size: 10000,
     }),
-    columnHelper.accessor("version", {
+    columnHelper.accessor("softwareVersion", {
       cell: (info) => {
         const value = info.getValue()
         if (!value) {
@@ -137,7 +136,7 @@ export default function SoftwareComplianceScreen() {
             </Badge>
           )
         }
-        return <RuleFieldValue value={value} isRegExp={info.row.original.versionRegExp} />
+        return <RuleFieldValue value={value} isRegExp={info.row.original.softwareVersionRegExp} />
       },
       header: t("common.version"),
       size: 10000,
@@ -214,7 +213,7 @@ export default function SoftwareComplianceScreen() {
     },
   })
 
-  function onDrop(row: Row<SoftwareRule>, reorderedData: SoftwareRule[]) {
+  function onDrop(row: Row<Brief["SoftwareRule"]>, reorderedData: Brief["SoftwareRule"][]) {
     const id = row.original.id!
     // The priority of a rule is its position in the list, from 1
     const priority = reorderedData.findIndex((rule) => rule.id === id) + 1

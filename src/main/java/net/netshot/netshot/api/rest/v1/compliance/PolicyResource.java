@@ -20,7 +20,6 @@ package net.netshot.netshot.api.rest.v1.compliance;
 
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,6 +53,7 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.PolicyDefinition;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -187,10 +187,12 @@ public class PolicyResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace a compliance policy", description = "Replaces the name and the target groups of a policy. "
-		+ "The compliance results of the devices of a group removed from the policy are deleted.")
+		+ "The compliance results of the devices of a group removed from the policy are deleted. With If-Match, the policy must "
+		+ "still be at the given version (ETag).")
 	public PolicyDto replacePolicy(@PathParam("id") @Parameter(description = "Policy ID") long id, PolicyRequest policyRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.policyService.replace(id, PolicyMapper.toDefinition(policyRequest)));
+		PolicyDefinition definition = PolicyMapper.toDefinition(policyRequest);
+		return this.respond(this.policyService.replace(id, _ -> definition, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -199,21 +201,19 @@ public class PolicyResource {
 	 * @param id the policy ID
 	 * @param patch the merge patch
 	 * @return the policy
-	 * @throws JsonProcessingException if the patched policy isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
-	@Operation(summary = "Update a compliance policy", description = "Changes some properties of a policy (JSON merge patch, RFC 7396).")
+	@Operation(summary = "Update a compliance policy", description = "Changes some properties of a policy (JSON merge patch, RFC 7396). "
+		+ "With If-Match, the policy must still be at the given version (ETag).")
 	public PolicyDto updatePolicy(@PathParam("id") @Parameter(description = "Policy ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		PolicyRequest patched = MergePatch.apply(PolicyMapper.toRequest(this.policyService.get(id)), patch, this.headers.getMediaType(),
-			PolicyRequest.class);
-		return this.respond(this.policyService.replace(id, PolicyMapper.toDefinition(patched)));
+		return this.respond(this.policyService.replace(id, MergePatch.of(patch, this.headers.getMediaType(), PolicyRequest.class,
+			PolicyMapper::toRequest, PolicyMapper::toDefinition), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -224,10 +224,11 @@ public class PolicyResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
-	@Operation(summary = "Delete a compliance policy", description = "Deletes a policy, with its rules, their exemptions and results.")
+	@Operation(summary = "Delete a compliance policy", description = "Deletes a policy, with its rules, their exemptions and results. "
+		+ "With If-Match, the policy must still be at the given version (ETag).")
 	public void deletePolicy(@PathParam("id") @Parameter(description = "Policy ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.policyService.delete(id)) {
+		if (!this.policyService.delete(id, V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_POLICY_NOT_FOUND, "The policy doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -236,6 +237,7 @@ public class PolicyResource {
 	private PolicyDto respond(Policy policy) {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), PolicyDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, PolicyDto.class);
+		V1Response.etag(this.request, policy.version());
 		return PolicyMapper.toDto(policy, this.refs.groups(selection, "targetGroups", policy.targetGroupIds()));
 	}
 }

@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.SoftwareRule;
 
 import org.jooq.Record1;
@@ -103,16 +105,16 @@ public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> 
     }
 
     /**
-     * Setter for <code>software_rule.version</code>.
+     * Setter for <code>software_rule.software_version</code>.
      */
-    public void setVersion(String value) {
+    public void setSoftwareVersion(String value) {
         set(6, value);
     }
 
     /**
-     * Getter for <code>software_rule.version</code>.
+     * Getter for <code>software_rule.software_version</code>.
      */
-    public String getVersion() {
+    public String getSoftwareVersion() {
         return (String) get(6);
     }
 
@@ -172,6 +174,34 @@ public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> 
         return (Boolean) get(10);
     }
 
+    /**
+     * Setter for <code>software_rule.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(11, value);
+    }
+
+    /**
+     * Getter for <code>software_rule.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(11);
+    }
+
+    /**
+     * Setter for <code>software_rule.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(12, value);
+    }
+
+    /**
+     * Getter for <code>software_rule.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(12);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -195,7 +225,7 @@ public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> 
     /**
      * Create a detached, initialised SoftwareRuleRecord
      */
-    public SoftwareRuleRecord(Long id, String driver, String family, Boolean familyRegExp, String level, Double priority, String version, Boolean versionRegExp, Long targetGroup, String partNumber, Boolean partNumberRegExp) {
+    public SoftwareRuleRecord(Long id, String driver, String family, Boolean familyRegExp, String level, Double priority, String softwareVersion, Boolean versionRegExp, Long targetGroup, String partNumber, Boolean partNumberRegExp, Integer version, Instant changeDate) {
         super(SoftwareRule.SOFTWARE_RULE);
 
         setId(id);
@@ -204,11 +234,13 @@ public class SoftwareRuleRecord extends UpdatableRecordImpl<SoftwareRuleRecord> 
         setFamilyRegExp(familyRegExp);
         setLevel(level);
         setPriority(priority);
-        setVersion(version);
+        setSoftwareVersion(softwareVersion);
         setVersionRegExp(versionRegExp);
         setTargetGroup(targetGroup);
         setPartNumber(partNumber);
         setPartNumberRegExp(partNumberRegExp);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

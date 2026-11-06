@@ -1,5 +1,6 @@
+import type { Brief } from "@/api/client"
 import api from "@/api"
-import type { HardwareRule, HardwareRuleRequest } from "@/api/hardwareRule"
+import type { HardwareRuleRequest } from "@/api/hardwareRule"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
@@ -14,7 +15,7 @@ import { QUERIES } from "../constants"
 import { HardwareRuleFormValues } from "../types"
 import HardwareRuleForm from "./HardwareRuleForm"
 
-export type EditHardwareRuleTriggerProps = { rule: HardwareRule; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type EditHardwareRuleTriggerProps = { rule: Brief["HardwareRule"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function EditHardwareRuleTrigger({ rule, children, ...rest }: EditHardwareRuleTriggerProps) {
   const { t } = useTranslation()

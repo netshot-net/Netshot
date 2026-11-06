@@ -19,6 +19,7 @@
 package net.netshot.netshot.vault;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -231,21 +233,31 @@ public class VaultInstanceService {
 	 *         invalid, the name is already used, or the instance can't be stored
 	 */
 	public VaultInstance update(long id, VaultInstanceDefinition definition, Long expectedVersion) {
+		return this.update(id, _ -> definition, expectedVersion);
+	}
+
+	/**
+	 * Replaces the definition of a Vault instance, if it is still at a given version: the new definition is
+	 * computed from the instance as it is, which can't change meanwhile (to apply a patch). The secrets the
+	 * definition leaves unchanged are kept.
+	 *
+	 * @param id the Vault instance ID
+	 * @param change gives the new definition from the current instance
+	 * @param expectedVersion the version the instance must be at, or null for any
+	 * @return the edited Vault instance
+	 * @throws NetshotException if the instance doesn't exist or isn't at the expected version, the definition is
+	 *         invalid, the name is already used, or the instance can't be stored
+	 */
+	public VaultInstance update(long id, Function<VaultInstance, VaultInstanceDefinition> change, Long expectedVersion) {
 		VaultInstance vaultInstance;
 		try {
 			vaultInstance = this.transactions.write(dsl -> {
-				VaultInstance existing = this.repository.find(dsl, id);
-				if (!(existing instanceof HashicorpVaultKv2Instance hcInstance)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null || !(this.repository.find(dsl, id) instanceof HashicorpVaultKv2Instance hcInstance)) {
 					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "The Vault instance doesn't exist.");
 				}
-				if (expectedVersion != null && hcInstance.version() != expectedVersion) {
-					throw NetshotException.versionMismatch("Vault instance", expectedVersion);
-				}
-				VaultInstance saved = this.repository.save(dsl, assemble(hcInstance, definition));
-				if (saved == null) {
-					throw NetshotException.versionMismatch("Vault instance", expectedVersion == null ? hcInstance.version() : expectedVersion);
-				}
-				return saved;
+				Versions.check("Vault instance", version, expectedVersion);
+				return this.repository.save(dsl, assemble(hcInstance, change.apply(hcInstance)));
 			});
 		}
 		catch (DataAccessException e) {
@@ -268,12 +280,12 @@ public class VaultInstanceService {
 	public void delete(long id, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				if (!this.repository.remove(dsl, id, expectedVersion)) {
-					if (expectedVersion != null && this.repository.find(dsl, id) != null) {
-						throw NetshotException.versionMismatch("Vault instance", expectedVersion);
-					}
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					throw new NetshotException(ErrorCode.NETSHOT_VAULT_INSTANCE_NOT_FOUND, "The Vault instance doesn't exist.");
 				}
+				Versions.check("Vault instance", version, expectedVersion);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -362,6 +374,7 @@ public class VaultInstanceService {
 		VaultInstance vaultInstance;
 		try {
 			vaultInstance = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				VaultInstance existing = this.repository.find(dsl, id);
 				if (existing == null || !existing.getClass().equals(incoming.getClass())) {
 					// A Vault instance of another type is not found, as with the former query by type
