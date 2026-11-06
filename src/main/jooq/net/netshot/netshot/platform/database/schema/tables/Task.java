@@ -324,7 +324,7 @@ public class Task extends TableImpl<TaskRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.CHANGEDATEINDEX_TASK, Indexes.CREATIONDATEINDEX, Indexes.DTYPEINDEX, Indexes.EXECUTIONDATEINDEX, Indexes.IX_TASK_DEBUG_LOG, Indexes.IX_TASK_DEVICE, Indexes.IX_TASK_DISCOVER_RESULT_DEVICE, Indexes.IX_TASK_RUNNER_ID, Indexes.PARENTTASKINDEX, Indexes.STATUSINDEX);
+        return Arrays.asList(Indexes.DTYPEINDEX, Indexes.IX_TASK_CHANGE_DATE, Indexes.IX_TASK_CREATION_DATE, Indexes.IX_TASK_DEBUG_LOG, Indexes.IX_TASK_DEVICE, Indexes.IX_TASK_DISCOVER_RESULT_DEVICE, Indexes.IX_TASK_EXECUTION_DATE, Indexes.IX_TASK_RUNNER_ID, Indexes.PARENTTASKINDEX, Indexes.STATUSINDEX);
     }
 
     @Override

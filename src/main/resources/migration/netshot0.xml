@@ -2472,4 +2472,16 @@
 			<column name="change_date" type="datetime"/>
 		</addColumn>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_15">
+		<!-- The lists put the empty values last in both directions (a descending sort is DESC NULLS LAST): the indexes of
+			the dates sorted most recent first are in that order, so that such a sort still reads them in order. -->
+		<sql>DROP INDEX IF EXISTS "changeDateIndex_config"</sql>
+		<sql>DROP INDEX IF EXISTS "changeDateIndex_task"</sql>
+		<sql>DROP INDEX IF EXISTS "creationDateIndex"</sql>
+		<sql>DROP INDEX IF EXISTS "executionDateIndex"</sql>
+		<sql>CREATE INDEX ix_config_change_date ON config (change_date DESC NULLS LAST)</sql>
+		<sql>CREATE INDEX ix_task_change_date ON task (change_date DESC NULLS LAST)</sql>
+		<sql>CREATE INDEX ix_task_creation_date ON task (creation_date DESC NULLS LAST)</sql>
+		<sql>CREATE INDEX ix_task_execution_date ON task (execution_date DESC NULLS LAST)</sql>
+	</changeSet>
 </databaseChangeLog>

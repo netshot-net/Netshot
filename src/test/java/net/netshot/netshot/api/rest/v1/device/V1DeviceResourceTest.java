@@ -137,7 +137,7 @@ public class V1DeviceResourceTest {
 	}
 
 	@Test
-	@DisplayName("Snapshot dates: exposed, filterable (including never) and sortable, not changed by a device update")
+	@DisplayName("Snapshot dates: exposed, filterable (including never) and sortable (never last), not changed by a device update")
 	void snapshotDates() throws Exception {
 		TestDevices.setSnapshotDate(this.router1.id(), true, Instant.parse("2026-01-10T10:00:00Z"));
 		TestDevices.setSnapshotDate(this.router2.id(), true, Instant.parse("2026-03-10T10:00:00Z"));
@@ -153,6 +153,8 @@ public class V1DeviceResourceTest {
 		Assertions.assertEquals(List.of("router00002"), this.list("?lastSnapshotFailureDate__gt=2026-04-01T00:00:00Z"));
 		Assertions.assertEquals(List.of("router00001", "router00002", "router00003"), this.list("?sort=lastSnapshotSuccessDate"));
 		Assertions.assertEquals(List.of("router00002", "router00001"), this.list("?status=INPRODUCTION&sort=-lastSnapshotSuccessDate"));
+		// The devices never snapshotted come last, in both directions
+		Assertions.assertEquals(List.of("router00002", "router00001", "router00003"), this.list("?sort=-lastSnapshotSuccessDate"));
 		Assertions.assertEquals(List.of("router00001", "router00002"),
 			this.list("?lastSnapshotSuccessDate__empty=false&sort=lastSnapshotSuccessDate"));
 

@@ -196,7 +196,8 @@ public final class InMemoryList<T> {
 		};
 	}
 
-	// The order: the keys of the query (or the default ones), then every field, so that the pages are defined
+	// The order: the keys of the query (or the default ones), then every field, so that the pages are defined; the
+	// empty values come last in both directions, as in the database lists
 	private Comparator<T> comparator(ListQuery query) {
 		List<SortOrder> orders = query.sort().isEmpty() ? this.schema.defaultSort() : query.sort();
 		List<String> names = new ArrayList<>(orders.stream().map(SortOrder::field).toList());
@@ -213,7 +214,7 @@ public final class InMemoryList<T> {
 				? (a, b) -> String.CASE_INSENSITIVE_ORDER.compare((String) a, (String) b)
 				: (a, b) -> Long.compare(((Number) a).longValue(), ((Number) b).longValue());
 			Comparator<T> next = Comparator.comparing(v -> column.getter().apply(v),
-				descending ? Comparator.nullsLast(natural.reversed()) : Comparator.nullsFirst(natural));
+				Comparator.nullsLast(descending ? natural.reversed() : natural));
 			comparator = comparator.thenComparing(next);
 		}
 		return comparator;

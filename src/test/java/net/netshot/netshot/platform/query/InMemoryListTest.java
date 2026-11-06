@@ -71,11 +71,11 @@ public class InMemoryListTest {
 	}
 
 	@Test
-	@DisplayName("Sort: descending, nulls last when descending, ties broken by the other fields")
+	@DisplayName("Sort: descending, nulls last in both directions, ties broken by the other fields")
 	void sort() {
 		Assertions.assertEquals(List.of("Alpha", "beta", "gamma", "delta"),
 			names(LIST.apply(ITEMS, query(List.of(), null, List.of(SortOrder.desc("count")), Page.ALL))));
-		Assertions.assertEquals(List.of("delta", "beta", "gamma", "Alpha"),
+		Assertions.assertEquals(List.of("beta", "gamma", "Alpha", "delta"),
 			names(LIST.apply(ITEMS, query(List.of(), null, List.of(SortOrder.asc("count")), Page.ALL))));
 		Assertions.assertEquals(List.of("gamma", "delta", "beta", "Alpha"),
 			names(LIST.apply(ITEMS, query(List.of(), null, List.of(SortOrder.desc("name")), Page.ALL))));

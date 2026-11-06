@@ -186,7 +186,8 @@ public final class QueryMapping {
 	}
 
 	/**
-	 * Builds the order of a query: the order of the query (or the default one), ended by the ID.
+	 * Builds the order of a query: the order of the query (or the default one), ended by the ID. The empty values
+	 * (null) come last in both directions (PostgreSQL puts them first in a descending order).
 	 *
 	 * @param query the query
 	 * @return the sort fields
@@ -200,7 +201,16 @@ public final class QueryMapping {
 			if (mapped == null || mapped.column() == null || !mapped.spec().sortable()) {
 				throw new IllegalArgumentException("Can't sort by " + order.field());
 			}
-			sortFields.add(order.descending() ? mapped.column().desc() : mapped.column().asc());
+			if (!order.descending()) {
+				sortFields.add(mapped.column().asc());
+			}
+			else if (mapped.column().getDataType().nullable()) {
+				sortFields.add(mapped.column().desc().nullsLast());
+			}
+			else {
+				// A non null column keeps the plain order (which its index gives)
+				sortFields.add(mapped.column().desc());
+			}
 			hasId |= mapped.column().equals(this.idColumn);
 		}
 		if (!hasId) {
