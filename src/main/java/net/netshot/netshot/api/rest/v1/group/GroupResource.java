@@ -54,8 +54,8 @@ import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.device.DeviceResource;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -74,7 +74,7 @@ public class GroupResource {
 
 	private final GroupService groupService;
 	private final SearchService searchService;
-	private final DriverRegistry driverRegistry;
+	private final DeviceRefs deviceRefs;
 
 	@Context
 	private HttpServletRequest request;
@@ -90,13 +90,13 @@ public class GroupResource {
 	 *
 	 * @param groupService the group use cases
 	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
-	public GroupResource(GroupService groupService, SearchService searchService, DriverRegistry driverRegistry) {
+	public GroupResource(GroupService groupService, SearchService searchService, DeviceRefs deviceRefs) {
 		this.groupService = groupService;
 		this.searchService = searchService;
-		this.driverRegistry = driverRegistry;
+		this.deviceRefs = deviceRefs;
 	}
 
 	/**
@@ -150,7 +150,7 @@ public class GroupResource {
 	public ListResponse<DeviceDto> listGroupDevices(@PathParam("id") @Parameter(description = "Group ID") long id,
 		@QueryParam("query") @Parameter(description = "Device search query, in the Netshot query language") String query) {
 		this.groupService.get(id);
-		return DeviceResource.list(this.searchService, this.driverRegistry, this.request, this.uriInfo, query,
+		return DeviceResource.list(this.searchService, this.deviceRefs, this.request, this.uriInfo, query,
 			new Criterion("group", Lookup.EXACT, List.of(id)));
 	}
 

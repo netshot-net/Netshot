@@ -29,7 +29,6 @@ import net.netshot.netshot.api.rest.v1.Secret;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v1.vault.VaultInstanceDto;
-import net.netshot.netshot.api.rest.v1.vault.VaultInstanceMapper;
 import net.netshot.netshot.credentials.CredentialSetDefinition;
 import net.netshot.netshot.credentials.CredentialSetDefinition.Kind;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
@@ -53,22 +52,7 @@ public final class CredentialSetMapper {
 	/** The path of the credential sets. */
 	public static final String PATH = "credential-sets";
 
-	/** The references to Vault instances by ID only (no instance loaded). */
-	private static final LongFunction<VaultInstanceDto> IDS_ONLY = id ->
-		new VaultInstanceDto(id, V1Links.of(VaultInstanceMapper.PATH, id), null, 0, null, null, null, null, null, null, null, null,
-			null, null, null, false, null, null, null, false, null, null);
-
 	private CredentialSetMapper() {
-	}
-
-	/**
-	 * Gives the representation of a Vault instance by its ID only (not loaded).
-	 *
-	 * @param id the ID of the Vault instance
-	 * @return the representation
-	 */
-	public static VaultInstanceDto vaultById(long id) {
-		return IDS_ONLY.apply(id);
 	}
 
 	/**
@@ -129,16 +113,6 @@ public final class CredentialSetMapper {
 	private static VaultSecretDto vault(net.netshot.netshot.platform.secret.Secret secret, LongFunction<VaultInstanceDto> vaults) {
 		return secret instanceof net.netshot.netshot.platform.secret.VaultSecret v
 			? new VaultSecretDto(vaults.apply(v.vaultInstanceId()), v.vaultPath()) : null;
-	}
-
-	/**
-	 * Maps a credential set (without its secrets), the Vault instances being given by ID only.
-	 *
-	 * @param credentialSet the credential set (null gives null)
-	 * @return the representation
-	 */
-	public static CredentialSetDto toDto(DeviceCredentialSet credentialSet) {
-		return toDto(credentialSet, IDS_ONLY);
 	}
 
 	/**
