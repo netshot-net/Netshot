@@ -47,13 +47,13 @@ import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.StatsParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.Criterion;
@@ -90,14 +90,14 @@ public class TaskResource {
 	 * @param taskService the task use cases
 	 * @param searchService the device search use cases
 	 * @param groupService the group use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
-	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, DriverRegistry driverRegistry) {
+	public TaskResource(TaskService taskService, SearchService searchService, GroupService groupService, DeviceRefs deviceRefs) {
 		this.taskService = taskService;
 		this.searchService = searchService;
 		this.groupService = groupService;
-		this.responses = new TaskResponses(taskService, searchService, groupService, driverRegistry);
+		this.responses = new TaskResponses(taskService, groupService, deviceRefs);
 	}
 
 	/**

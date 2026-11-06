@@ -37,12 +37,10 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
-import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskService;
@@ -56,23 +54,20 @@ import net.netshot.netshot.task.type.GroupBasedTask;
 public final class TaskResponses {
 
 	private final TaskService taskService;
-	private final SearchService searchService;
 	private final GroupService groupService;
-	private final DriverRegistry driverRegistry;
+	private final DeviceRefs deviceRefs;
 
 	/**
 	 * Instantiates the helper.
 	 *
 	 * @param taskService the task use cases
-	 * @param searchService the device search use cases
 	 * @param groupService the group use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
-	public TaskResponses(TaskService taskService, SearchService searchService, GroupService groupService, DriverRegistry driverRegistry) {
+	public TaskResponses(TaskService taskService, GroupService groupService, DeviceRefs deviceRefs) {
 		this.taskService = taskService;
-		this.searchService = searchService;
 		this.groupService = groupService;
-		this.driverRegistry = driverRegistry;
+		this.deviceRefs = deviceRefs;
 	}
 
 	/**
@@ -159,21 +154,9 @@ public final class TaskResponses {
 	 * @return the references
 	 */
 	public TaskMapper.Refs refs(Selection selection, Collection<Long> deviceIds, Collection<Long> groupIds, Collection<Long> parentIds) {
-		Map<Long, DeviceDto> devices = new HashMap<>();
-		Set<Long> ids = nonNull(deviceIds);
-		if (!ids.isEmpty() && selection.includes("device")) {
-			ListQuery query = ListQuery.byIds(ids);
-			if (selection.expands("device")) {
-				this.searchService.listDevices(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(this.driverRegistry, d)));
-			}
-			else {
-				this.searchService.listDeviceSummaries(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(this.driverRegistry, d)));
-			}
-		}
+		LongFunction<DeviceDto> devices = this.deviceRefs.byIds(selection, "device", deviceIds);
 		Map<Long, GroupDto> groups = new HashMap<>();
-		ids = nonNull(groupIds);
+		Set<Long> ids = nonNull(groupIds);
 		if (!ids.isEmpty() && selection.includes("group")) {
 			this.groupService.list(ListQuery.byIds(ids)).items().forEach(g -> groups.put(g.id(), GroupMapper.toDto(g)));
 		}
@@ -183,7 +166,7 @@ public final class TaskResponses {
 			this.taskService.listSummaries(ListQuery.byIds(ids)).items()
 				.forEach(t -> parents.put(t.id(), TaskMapper.toDto(t, TaskMapper.Refs.IDS_ONLY)));
 		}
-		return new TaskMapper.Refs(orIds(devices, TaskMapper.Refs.IDS_ONLY.devices()::apply),
+		return new TaskMapper.Refs(devices,
 			orIds(groups, TaskMapper.Refs.IDS_ONLY.groups()::apply), orIds(parents, TaskMapper.Refs.IDS_ONLY.tasks()::apply));
 	}
 

@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v1.config;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -56,8 +55,7 @@ import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
-import net.netshot.netshot.api.rest.v1.task.TaskMapper;
-import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigDiff;
 import net.netshot.netshot.inventory.config.ConfigItem;
@@ -82,7 +80,7 @@ public class ConfigResource {
 
 	private final ConfigService configService;
 	private final SearchService searchService;
-	private final DriverRegistry driverRegistry;
+	private final DeviceRefs deviceRefs;
 
 	@Context
 	private HttpServletRequest request;
@@ -95,13 +93,13 @@ public class ConfigResource {
 	 *
 	 * @param configService the configuration use cases
 	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
-	public ConfigResource(ConfigService configService, SearchService searchService, DriverRegistry driverRegistry) {
+	public ConfigResource(ConfigService configService, SearchService searchService, DeviceRefs deviceRefs) {
 		this.configService = configService;
 		this.searchService = searchService;
-		this.driverRegistry = driverRegistry;
+		this.deviceRefs = deviceRefs;
 	}
 
 	/**
@@ -137,30 +135,29 @@ public class ConfigResource {
 		+ "from their url. The filters on domain and group apply to the device of the configuration.")
 	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listConfigs() {
-		return list(this.configService, this.searchService, this.driverRegistry, this.request, this.uriInfo, null);
+		return list(this.configService, this.deviceRefs, this.request, this.uriInfo, null);
 	}
 
 	/**
 	 * Answers a page of configurations (of the configuration list, or of a list of configurations of another object).
 	 *
 	 * @param configService the configuration use cases
-	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices (the device of each configuration)
 	 * @param request the current request
 	 * @param uriInfo the URI of the request (its query parameters are the list parameters)
 	 * @param scope a criterion the configurations must also match (the configurations of a device...), or null
 	 * @return the page of configurations
 	 * @throws NetshotException if a parameter is invalid
 	 */
-	public static ListResponse<ConfigDto> list(ConfigService configService, SearchService searchService,
-		DriverRegistry driverRegistry, HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
+	public static ListResponse<ConfigDto> list(ConfigService configService, DeviceRefs deviceRefs,
+		HttpServletRequest request, UriInfo uriInfo, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
 		ListQuery listQuery = ListParams.parse(params, ListSchema.CONFIGS.schema());
 		Selection selection = Selection.of(params, ConfigDto.class, Selection.View.BRIEF);
 		V1Response.select(request, selection, ConfigDto.class);
 		boolean withAttributes = selection.includes("attributes");
 		ListResult<Config> configs = configService.list(scope == null ? listQuery : listQuery.and(scope), withAttributes);
-		LongFunction<DeviceDto> devices = devices(searchService, driverRegistry, selection,
+		LongFunction<DeviceDto> devices = deviceRefs.byIds(selection, "device",
 			configs.items().stream().map(Config::deviceId).toList());
 		return ListResponse.of(uriInfo, listQuery, configs, c -> ConfigMapper.toDto(c, devices, withAttributes));
 	}
@@ -183,7 +180,7 @@ public class ConfigResource {
 		V1Response.select(this.request, selection, ConfigDto.class);
 		Config config = this.configService.get(id);
 		V1Response.etag(this.request, config.version());
-		return ConfigMapper.toDto(config, devices(this.searchService, this.driverRegistry, selection, List.of(config.deviceId())), true);
+		return ConfigMapper.toDto(config, this.deviceRefs.byIds(selection, "device", List.of(config.deviceId())), true);
 	}
 
 	/**
@@ -264,42 +261,11 @@ public class ConfigResource {
 		ids.add(diff.revisedConfigId());
 		Map<Long, Config> configs = new HashMap<>();
 		this.configService.list(ListQuery.byIds(ids), false).items().forEach(c -> configs.put(c.id(), c));
-		LongFunction<DeviceDto> devices = devices(this.searchService, this.driverRegistry, selection,
+		LongFunction<DeviceDto> devices = this.deviceRefs.byIds(selection, "device",
 			configs.values().stream().map(Config::deviceId).toList());
 		Config original = configs.get(diff.originalConfigId());
 		Config revised = configs.get(diff.revisedConfigId());
 		return ConfigMapper.toDto(diff, original == null ? null : ConfigMapper.toDto(original, devices, false),
 			revised == null ? null : ConfigMapper.toDto(revised, devices, false));
-	}
-
-	/**
-	 * Loads the devices the configurations refer to, in one query (a device which isn't found, deleted meanwhile,
-	 * is given by its ID only).
-	 *
-	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
-	 * @param selection the selection of the response
-	 * @param deviceIds the IDs of the devices
-	 * @return resolves a device by its ID
-	 */
-	private static LongFunction<DeviceDto> devices(SearchService searchService, DriverRegistry driverRegistry, Selection selection,
-		Collection<Long> deviceIds) {
-		LongFunction<DeviceDto> idsOnly = TaskMapper.Refs.IDS_ONLY.devices();
-		Map<Long, DeviceDto> devices = new HashMap<>();
-		Set<Long> ids = new LinkedHashSet<>(deviceIds);
-		if (!ids.isEmpty() && selection.includes("device")) {
-			ListQuery query = ListQuery.byIds(ids);
-			if (selection.expands("device")) {
-				searchService.listDevices(query, null).items().forEach(d -> devices.put(d.id(), DeviceMapper.toDto(driverRegistry, d)));
-			}
-			else {
-				searchService.listDeviceSummaries(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(driverRegistry, d)));
-			}
-		}
-		return id -> {
-			DeviceDto found = devices.get(id);
-			return found != null ? found : idsOnly.apply(id);
-		};
 	}
 }

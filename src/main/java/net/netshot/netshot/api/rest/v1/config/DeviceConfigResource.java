@@ -39,10 +39,9 @@ import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
-import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.inventory.config.ConfigService;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
-import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.Lookup;
 
@@ -55,8 +54,7 @@ public class DeviceConfigResource {
 
 	private final DeviceCatalogService deviceCatalogService;
 	private final ConfigService configService;
-	private final SearchService searchService;
-	private final DriverRegistry driverRegistry;
+	private final DeviceRefs deviceRefs;
 
 	@Context
 	private HttpServletRequest request;
@@ -69,16 +67,13 @@ public class DeviceConfigResource {
 	 *
 	 * @param deviceCatalogService the device sub-resource use cases (to check that the device exists)
 	 * @param configService the configuration use cases
-	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
-	public DeviceConfigResource(DeviceCatalogService deviceCatalogService, ConfigService configService, SearchService searchService,
-		DriverRegistry driverRegistry) {
+	public DeviceConfigResource(DeviceCatalogService deviceCatalogService, ConfigService configService, DeviceRefs deviceRefs) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.configService = configService;
-		this.searchService = searchService;
-		this.driverRegistry = driverRegistry;
+		this.deviceRefs = deviceRefs;
 	}
 
 	/**
@@ -95,7 +90,7 @@ public class DeviceConfigResource {
 	@ListFilters(ListSchema.CONFIGS)
 	public ListResponse<ConfigDto> listDeviceConfigs(@PathParam("id") @Parameter(description = "Device ID") long id) {
 		this.deviceCatalogService.checkDevice(id);
-		return ConfigResource.list(this.configService, this.searchService, this.driverRegistry, this.request, this.uriInfo,
+		return ConfigResource.list(this.configService, this.deviceRefs, this.request, this.uriInfo,
 			new Criterion("device", Lookup.EXACT, List.of(id)));
 	}
 }

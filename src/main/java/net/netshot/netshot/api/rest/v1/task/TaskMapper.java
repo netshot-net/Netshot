@@ -24,6 +24,7 @@ import java.util.function.LongFunction;
 
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
+import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskSummary;
@@ -62,9 +63,7 @@ public final class TaskMapper {
 
 		/** No reference resolved: the references are given by ID only. */
 		public static final Refs IDS_ONLY = new Refs(
-			id -> new DeviceDto(id, V1Links.of("devices", id), null, null, null, null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null),
+			DeviceMapper::byId,
 			id -> new GroupDto(id, V1Links.of("groups", id), null, 0, null, null, null, null, false, null),
 			id -> brief(id, null, null, null));
 	}

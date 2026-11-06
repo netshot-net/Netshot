@@ -80,7 +80,6 @@ import net.netshot.netshot.api.rest.v1.task.TaskDto;
 import net.netshot.netshot.api.rest.v1.task.TaskRequest;
 import net.netshot.netshot.api.rest.v1.task.TaskResponses;
 import net.netshot.netshot.api.rest.v1.task.TaskScheduling;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceService;
 import net.netshot.netshot.inventory.group.GroupService;
@@ -123,7 +122,7 @@ public class DeviceResource {
 	private final SearchService searchService;
 	private final GroupService groupService;
 	private final DomainService domainService;
-	private final DriverRegistry driverRegistry;
+	private final DeviceRefs deviceRefs;
 	private final ScriptService scriptService;
 	private final ReportService reportService;
 	private final TaskResponses taskResponses;
@@ -146,7 +145,7 @@ public class DeviceResource {
 	 * @param deviceService the device use cases
 	 * @param deviceCreationService the use case which adds a device
 	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 * @param taskService the task use cases
 	 * @param groupService the group use cases
 	 * @param scriptService the saved script use cases
@@ -155,7 +154,7 @@ public class DeviceResource {
 	 */
 	@Inject
 	public DeviceResource(DeviceService deviceService, DeviceCreationService deviceCreationService, SearchService searchService,
-		DriverRegistry driverRegistry, TaskService taskService, GroupService groupService, ScriptService scriptService,
+		DeviceRefs deviceRefs, TaskService taskService, GroupService groupService, ScriptService scriptService,
 		DomainService domainService, ReportService reportService) {
 		this.deviceService = deviceService;
 		this.reportService = reportService;
@@ -163,9 +162,9 @@ public class DeviceResource {
 		this.domainService = domainService;
 		this.deviceCreationService = deviceCreationService;
 		this.searchService = searchService;
-		this.driverRegistry = driverRegistry;
+		this.deviceRefs = deviceRefs;
 		this.scriptService = scriptService;
-		this.taskResponses = new TaskResponses(taskService, searchService, groupService, driverRegistry);
+		this.taskResponses = new TaskResponses(taskService, groupService, deviceRefs);
 	}
 
 	/**
@@ -192,7 +191,7 @@ public class DeviceResource {
 		if (this.uriInfo.getQueryParameters().containsKey(INCLUDE)) {
 			return this.exportWorkbook(query);
 		}
-		return list(this.searchService, this.driverRegistry, this.request, this.uriInfo, query, null);
+		return list(this.searchService, this.deviceRefs, this.request, this.uriInfo, query, null);
 	}
 
 	/**
@@ -277,7 +276,7 @@ public class DeviceResource {
 	 * Answers a page of devices (of the device list, or of a list of devices of another object).
 	 *
 	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 * @param request the current request
 	 * @param uriInfo the URI of the request (its query parameters are the list parameters)
 	 * @param query the device search query, or null
@@ -285,7 +284,7 @@ public class DeviceResource {
 	 * @return the page of devices
 	 * @throws NetshotException if a parameter is invalid
 	 */
-	public static ListResponse<DeviceDto> list(SearchService searchService, DriverRegistry driverRegistry,
+	public static ListResponse<DeviceDto> list(SearchService searchService, DeviceRefs deviceRefs,
 		HttpServletRequest request, UriInfo uriInfo, String query, Criterion scope) {
 		MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
 		ListQuery listQuery = ListParams.parse(params, ListSchema.DEVICES.schema(), QUERY);
@@ -293,8 +292,7 @@ public class DeviceResource {
 		V1Response.select(request, selection, DeviceDto.class);
 		ListQuery scoped = scope == null ? listQuery : listQuery.and(scope);
 		if (selection.onlyIncludes(DeviceDto.SUMMARY_PROPERTIES)) {
-			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query),
-				d -> DeviceMapper.toDto(driverRegistry, d));
+			return ListResponse.of(uriInfo, listQuery, searchService.listDeviceSummaries(scoped, query), deviceRefs::toDto);
 		}
 		Set<Device.Part> parts = EnumSet.noneOf(Device.Part.class);
 		PART_PROPERTIES.forEach((part, property) -> {
@@ -302,8 +300,8 @@ public class DeviceResource {
 				parts.add(part);
 			}
 		});
-		return ListResponse.of(uriInfo, listQuery, searchService.listDevices(scoped, query, parts),
-			d -> DeviceMapper.toDto(driverRegistry, d));
+		ListResult<Device> devices = searchService.listDevices(scoped, query, parts);
+		return ListResponse.of(uriInfo, listQuery, devices, deviceRefs.mapper(devices.items()));
 	}
 
 	/**
@@ -534,6 +532,6 @@ public class DeviceResource {
 	private DeviceDto respond(Device device, Selection selection) {
 		V1Response.select(this.request, selection, DeviceDto.class);
 		V1Response.etag(this.request, device.version());
-		return DeviceMapper.toDto(this.driverRegistry, device);
+		return this.deviceRefs.toDto(device);
 	}
 }

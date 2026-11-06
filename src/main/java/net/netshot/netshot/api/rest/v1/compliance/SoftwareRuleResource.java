@@ -52,14 +52,13 @@ import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RankedSoftwareRule;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.compliance.SoftwareRuleService.Replacement;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -91,14 +90,13 @@ public class SoftwareRuleResource {
 	 * @param groupService the group use cases
 	 * @param policyService the policy use cases
 	 * @param ruleService the rule use cases
-	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
 	public SoftwareRuleResource(SoftwareRuleService softwareRuleService, GroupService groupService, PolicyService policyService,
-		RuleService ruleService, SearchService searchService, DriverRegistry driverRegistry) {
+		RuleService ruleService, DeviceRefs deviceRefs) {
 		this.softwareRuleService = softwareRuleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, searchService, driverRegistry);
+		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
 	}
 
 	/**

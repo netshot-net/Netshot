@@ -37,11 +37,10 @@ import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -66,14 +65,13 @@ public class DeviceComplianceResultResource {
 	 * @param ruleService the rule use cases
 	 * @param policyService the policy use cases
 	 * @param groupService the group use cases
-	 * @param searchService the device search use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
 	public DeviceComplianceResultResource(RuleService ruleService, PolicyService policyService, GroupService groupService,
-		SearchService searchService, DriverRegistry driverRegistry) {
+		DeviceRefs deviceRefs) {
 		this.ruleService = ruleService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, searchService, driverRegistry);
+		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
 	}
 
 	/**
