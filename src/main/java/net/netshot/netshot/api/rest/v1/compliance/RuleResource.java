@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -192,10 +191,11 @@ public class RuleResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace a compliance rule", description = "Replaces the definition of a rule (its type and its policy "
-		+ "can't change; its exemptions are unchanged).")
+		+ "can't change; its exemptions are unchanged). With If-Match, the rule must still be at the given version (ETag).")
 	public RuleDto replaceRule(@PathParam("id") @Parameter(description = "Rule ID") long id, RuleRequest ruleRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		return this.respond(this.ruleService.replace(id, RuleMapper.toRule(ruleRequest)));
+		Rule rule = RuleMapper.toRule(ruleRequest);
+		return this.respond(this.ruleService.replace(id, _ -> rule, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -204,21 +204,19 @@ public class RuleResource {
 	 * @param id the rule ID
 	 * @param patch the merge patch
 	 * @return the rule
-	 * @throws JsonProcessingException if the patched rule isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
-	@Operation(summary = "Update a compliance rule", description = "Changes some properties of a rule (JSON merge patch, RFC 7396).")
+	@Operation(summary = "Update a compliance rule", description = "Changes some properties of a rule (JSON merge patch, RFC 7396). "
+		+ "With If-Match, the rule must still be at the given version (ETag).")
 	public RuleDto updateRule(@PathParam("id") @Parameter(description = "Rule ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		RuleRequest patched = MergePatch.apply(RuleMapper.toRequest(this.ruleService.get(id)), patch, this.headers.getMediaType(),
-			RuleRequest.class);
-		return this.respond(this.ruleService.replace(id, RuleMapper.toRule(patched)));
+		return this.respond(this.ruleService.replace(id, MergePatch.of(patch, this.headers.getMediaType(), RuleRequest.class,
+			RuleMapper::toRequest, RuleMapper::toRule), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -229,10 +227,11 @@ public class RuleResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_READWRITE)
-	@Operation(summary = "Delete a compliance rule", description = "Deletes a rule, with its exemptions and results.")
+	@Operation(summary = "Delete a compliance rule", description = "Deletes a rule, with its exemptions and results. With If-Match, "
+		+ "the rule must still be at the given version (ETag).")
 	public void deleteRule(@PathParam("id") @Parameter(description = "Rule ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.ruleService.delete(id)) {
+		if (!this.ruleService.delete(id, V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "The rule doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -273,7 +272,8 @@ public class RuleResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace the exemptions of a rule", description = "Replaces the whole set of devices exempted from a rule "
-		+ "(an empty list removes them all), and answers the new set.")
+		+ "(an empty list removes them all), and answers the new set. The exemptions are part of the rule: the version of the rule "
+		+ "is incremented; with If-Match, the rule must still be at the given version (ETag).")
 	@ListFilters(ListSchema.EXEMPTIONS)
 	public ListResponse<ExemptionDto> replaceExemptions(@PathParam("id") @Parameter(description = "Rule ID") long id,
 		ExemptionsRequest exemptionsRequest) {
@@ -283,7 +283,7 @@ public class RuleResource {
 				throw NetshotException.invalidParameter("exemptions", "The device %d is given twice.".formatted(exemption.device().id()));
 			}
 		}
-		this.ruleService.replaceExemptions(id, expirations);
+		this.ruleService.replaceExemptions(id, expirations, V1Response.ifMatch(this.headers));
 		return this.listExemptions(id);
 	}
 
@@ -310,6 +310,7 @@ public class RuleResource {
 	private RuleDto respond(Rule rule) {
 		Selection selection = Selection.of(this.uriInfo.getQueryParameters(), RuleDto.class, Selection.View.FULL);
 		V1Response.select(this.request, selection, RuleDto.class);
+		V1Response.etag(this.request, rule.version());
 		return RuleMapper.toDto(rule, this.refs.policies(selection, "policy", java.util.List.of(rule.policyId())));
 	}
 }

@@ -82,7 +82,7 @@ public class V1ApiTokenResourceTest {
 		JsonNode created = answer.json();
 		long id = created.get("id").asLong();
 		Assertions.assertEquals("/api/v1/api-tokens/" + id, answer.header("Location"));
-		Assertions.assertEquals(Set.of("id", "url", "display", "description", "level", "role", "token"), names(created));
+		Assertions.assertEquals(Set.of("id", "url", "display", "changeDate", "description", "level", "role", "token"), names(created));
 		Assertions.assertEquals("CI robot", created.get("display").asText());
 		Assertions.assertEquals("read-write", created.get("role").asText());
 		String value = created.get("token").asText();
@@ -99,7 +99,7 @@ public class V1ApiTokenResourceTest {
 		// ... but its value is never given again
 		Answer get = this.admin.get("/api-tokens/" + id);
 		Assertions.assertEquals(200, get.status(), get.toString());
-		Assertions.assertEquals(Set.of("id", "url", "display", "description", "level", "role"), names(get.json()));
+		Assertions.assertEquals(Set.of("id", "url", "display", "changeDate", "description", "level", "role"), names(get.json()));
 		Assertions.assertFalse(get.body().contains(value));
 		Answer list = this.admin.get("/api-tokens?view=full&limit=100");
 		Assertions.assertFalse(list.body().contains(value));

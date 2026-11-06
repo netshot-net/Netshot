@@ -1,9 +1,9 @@
+import type { Brief } from "@/api/client"
 import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import type { HardwareRule } from "@/api/hardwareRule"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent } from "react"
@@ -12,7 +12,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 
-export type RemoveHardwareRuleTriggerProps = { rule: HardwareRule; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveHardwareRuleTriggerProps = { rule: Brief["HardwareRule"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveHardwareRuleTrigger({ rule, children, ...rest }: RemoveHardwareRuleTriggerProps) {
   const { t } = useTranslation()

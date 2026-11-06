@@ -27,6 +27,7 @@ import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.query.SortOrder;
 
@@ -75,7 +76,7 @@ public class HardwareRuleRepository {
 	}
 
 	private static HardwareRule toRule(Record r) {
-		return new HardwareRule(r.get(HARDWARE_RULE.ID), r.get(HARDWARE_RULE.DRIVER), r.get(HARDWARE_RULE.TARGET_GROUP),
+		return new HardwareRule(r.get(HARDWARE_RULE.ID), r.get(HARDWARE_RULE.VERSION), r.get(HARDWARE_RULE.CHANGE_DATE), r.get(HARDWARE_RULE.DRIVER), r.get(HARDWARE_RULE.TARGET_GROUP),
 			r.get(HARDWARE_RULE.FAMILY), r.get(HARDWARE_RULE.FAMILY_REG_EXP), r.get(HARDWARE_RULE.PART_NUMBER),
 			r.get(HARDWARE_RULE.PART_NUMBER_REG_EXP), r.get(HARDWARE_RULE.END_OF_SALE), r.get(HARDWARE_RULE.END_OF_LIFE));
 	}
@@ -110,6 +111,8 @@ public class HardwareRuleRepository {
 	 */
 	public long add(DSLContext dsl, HardwareRule rule) {
 		return dsl.insertInto(HARDWARE_RULE)
+			.set(HARDWARE_RULE.VERSION, 0)
+			.set(HARDWARE_RULE.CHANGE_DATE, Versions.now())
 			.set(HARDWARE_RULE.DRIVER, rule.driver())
 			.set(HARDWARE_RULE.TARGET_GROUP, rule.targetGroupId())
 			.set(HARDWARE_RULE.FAMILY, rule.family())
@@ -123,7 +126,18 @@ public class HardwareRuleRepository {
 	}
 
 	/**
-	 * Saves an existing rule.
+	 * Locks the row of a rule until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the version of the rule, or null if there is no such rule
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, HARDWARE_RULE, HARDWARE_RULE.ID, HARDWARE_RULE.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing rule (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param rule the rule
@@ -131,6 +145,8 @@ public class HardwareRuleRepository {
 	 */
 	public boolean save(DSLContext dsl, HardwareRule rule) {
 		return dsl.update(HARDWARE_RULE)
+			.set(HARDWARE_RULE.VERSION, HARDWARE_RULE.VERSION.plus(1))
+			.set(HARDWARE_RULE.CHANGE_DATE, Versions.now())
 			.set(HARDWARE_RULE.DRIVER, rule.driver())
 			.set(HARDWARE_RULE.TARGET_GROUP, rule.targetGroupId())
 			.set(HARDWARE_RULE.FAMILY, rule.family())

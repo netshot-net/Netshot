@@ -20,6 +20,7 @@ package net.netshot.netshot.hook;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -170,7 +172,7 @@ public class HookService {
 		Hook valid = validate(hook);
 		Hook created;
 		try {
-			created = valid.withId(this.transactions.write(dsl -> this.repository.add(dsl, valid)));
+			created = this.transactions.write(dsl -> this.repository.find(dsl, this.repository.add(dsl, valid)));
 		}
 		catch (DataAccessException e) {
 			log.error("Can't add the hook.", e);
@@ -204,8 +206,10 @@ public class HookService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
 		}
 		Hook valid = validate(hook);
+		Hook saved;
 		try {
-			this.transactions.run(dsl -> {
+			saved = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				Hook stored = this.repository.find(dsl, id);
 				// A hook of another type is not found, as with the former query by type
 				if (stored == null || !stored.getClass().equals(valid.getClass())) {
@@ -214,14 +218,60 @@ public class HookService {
 				}
 				refuseNullTrigger(valid);
 				this.repository.save(dsl, valid);
+				return this.repository.find(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to save the hook {}.", id, e);
 			throw saveFailure(e);
 		}
-		AAA_LOG.info("{} has been edited", valid);
-		return valid;
+		AAA_LOG.info("{} has been edited", saved);
+		return saved;
+	}
+
+	/**
+	 * Edits a hook, if it is at a given version: its properties and triggers are replaced by the ones the change
+	 * gives from the hook as it is, which can't change meanwhile (to apply a patch).
+	 *
+	 * @param id the ID of the hook
+	 * @param change gives the new values (null triggers meaning none) from the current hook
+	 * @param expectedVersion the version the hook must be at, or null for any
+	 * @return the hook as saved
+	 * @throws NetshotException if the hook doesn't exist or isn't at the expected version, the type would change,
+	 *         the new values are invalid, or the hook can't be stored
+	 */
+	public Hook update(long id, Function<Hook, Hook> change, Long expectedVersion) {
+		Hook saved;
+		try {
+			saved = this.transactions.write(dsl -> {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_HOOK_NOT_FOUND, "The hook doesn't exist.");
+				}
+				Versions.check("hook", version, expectedVersion);
+				Hook stored = this.repository.find(dsl, id);
+				Hook hook = change.apply(stored).withId(id);
+				if (hook.triggers() == null) {
+					hook = hook.withTriggers(new HashSet<>());
+				}
+				if (hook.name() == null || "".equals(hook.name().trim())) {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK_NAME, "Invalid name for the hook");
+				}
+				if (!stored.getClass().equals(hook.getClass())) {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_HOOK, "The type of a hook can't change.");
+				}
+				Hook valid = validate(hook);
+				refuseNullTrigger(valid);
+				this.repository.save(dsl, valid);
+				return this.repository.find(dsl, id);
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to save the hook {}.", id, e);
+			throw saveFailure(e);
+		}
+		AAA_LOG.info("{} has been edited", saved);
+		return saved;
 	}
 
 	private static NetshotException saveFailure(DataAccessException e) {
@@ -238,9 +288,31 @@ public class HookService {
 	 * @return false if there is no such hook
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a hook, if it is at a given version.
+	 *
+	 * @param id the ID of the hook
+	 * @param expectedVersion the version the hook must be at, or null for any
+	 * @return false if there is no such hook
+	 * @throws NetshotException if the hook isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		boolean deleted;
 		try {
-			deleted = this.transactions.write(dsl -> this.repository.remove(dsl, id));
+			deleted = this.transactions.write(dsl -> {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
+					return false;
+				}
+				Versions.check("hook", version, expectedVersion);
+				return this.repository.remove(dsl, id);
+			});
+		}
+		catch (NetshotException e) {
+			throw e;
 		}
 		catch (RuntimeException e) {
 			log.error("Unable to delete the hook {}", id, e);

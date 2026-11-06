@@ -83,6 +83,7 @@ import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp4addressesRecord;
@@ -807,11 +808,22 @@ public class DeviceRepository {
 	}
 
 	/**
+	 * Locks the row of a device until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the device ID
+	 * @return the version of the device, or null if there is no such device
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DEVICE, DEVICE.ID, DEVICE.VERSION, id);
+	}
+
+	/**
 	 * Saves the changes of a device: what differs between the device as it was loaded and the
-	 * edited one is written. When the row of the device (or its tags, virtual devices or VRFs)
-	 * changes, it is checked not to have been changed meanwhile, its version is incremented
-	 * and its change date set. The attributes, modules (by ID: the new ones have the ID 0, the
-	 * missing ones are deleted), interfaces and accesses are written when they differ. A specific credential set which
+	 * edited one is written. When anything changes, the device is checked not to have been changed
+	 * meanwhile, its version is incremented and its change date set. The row, tags, virtual devices,
+	 * VRFs, attributes, modules (by ID: the new ones have the ID 0, the missing ones are deleted),
+	 * interfaces and accesses are written when they differ. A specific credential set which
 	 * no access uses anymore is removed (the new ones must be stored already).
 	 *
 	 * @param dsl the jOOQ context
@@ -821,16 +833,22 @@ public class DeviceRepository {
 	 */
 	public void save(DSLContext dsl, Device original, Device edited) {
 		long id = original.id();
-		if (rowChanged(original, edited)) {
-			int updated = dsl.update(DEVICE)
-				.set(rowValues(edited))
-				.set(DEVICE.VERSION, DEVICE.VERSION.plus(1))
-				.set(DEVICE.CHANGE_DATE, now())
-				.where(DEVICE.ID.eq(id), DEVICE.VERSION.eq(original.version()))
-				.execute();
-			if (updated == 0) {
-				throw new DataChangedException("The device %d has been changed or removed meanwhile".formatted(id));
-			}
+		boolean rowChanged = rowChanged(original, edited);
+		if (!rowChanged && original.attributes().equals(edited.attributes())
+			&& original.networkInterfaces().equals(edited.networkInterfaces())
+			&& original.modules().equals(edited.modules()) && original.accesses().equals(edited.accesses())) {
+			return;
+		}
+		int updated = dsl.update(DEVICE)
+			.set(rowChanged ? rowValues(edited) : Map.of())
+			.set(DEVICE.VERSION, DEVICE.VERSION.plus(1))
+			.set(DEVICE.CHANGE_DATE, now())
+			.where(DEVICE.ID.eq(id), DEVICE.VERSION.eq(original.version()))
+			.execute();
+		if (updated == 0) {
+			throw new DataChangedException("The device %d has been changed or removed meanwhile".formatted(id));
+		}
+		if (rowChanged) {
 			if (!original.tags().equals(edited.tags())) {
 				dsl.deleteFrom(DEVICE_TAGS).where(DEVICE_TAGS.DEVICE.eq(id)).execute();
 				insertTags(dsl, id, edited.tags());
@@ -982,18 +1000,6 @@ public class DeviceRepository {
 	 * @return true if the device was found and removed
 	 */
 	public boolean remove(DSLContext dsl, long id) {
-		return this.remove(dsl, id, null);
-	}
-
-	/**
-	 * Removes a device if it is at a given version, with everything attached to it (see {@link #remove(DSLContext, long)}).
-	 *
-	 * @param dsl the jOOQ context
-	 * @param id the device ID
-	 * @param expectedVersion the version the device must be at, or null for any
-	 * @return true if the device was found (at that version) and removed
-	 */
-	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
 		List<Long> specificIds = dsl.select(DEVICE_ACCESS.SPECIFIC_CREDENTIAL_SET).from(DEVICE_ACCESS)
 			.where(DEVICE_ACCESS.DEVICE.eq(id), DEVICE_ACCESS.SPECIFIC_CREDENTIAL_SET.isNotNull())
 			.fetch(DEVICE_ACCESS.SPECIFIC_CREDENTIAL_SET);
@@ -1006,8 +1012,7 @@ public class DeviceRepository {
 			.where(CONFIG.DEVICE.eq(id), CONFIG_ATTRIBUTE.LONG_TEXT.isNotNull()).fetch(CONFIG_ATTRIBUTE.LONG_TEXT));
 		longTextIds.addAll(dsl.select(DIAGNOSTIC_RESULT.LONG_TEXT).from(DIAGNOSTIC_RESULT)
 			.where(DIAGNOSTIC_RESULT.DEVICE.eq(id), DIAGNOSTIC_RESULT.LONG_TEXT.isNotNull()).fetch(DIAGNOSTIC_RESULT.LONG_TEXT));
-		if (dsl.deleteFrom(DEVICE).where(DEVICE.ID.eq(id))
-			.and(expectedVersion == null ? DSL.trueCondition() : DEVICE.VERSION.cast(Long.class).eq(expectedVersion)).execute() == 0) {
+		if (dsl.deleteFrom(DEVICE).where(DEVICE.ID.eq(id)).execute() == 0) {
 			return false;
 		}
 		deleteLongTexts(dsl, longTextIds);

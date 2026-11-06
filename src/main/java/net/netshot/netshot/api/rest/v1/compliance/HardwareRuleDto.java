@@ -31,6 +31,8 @@ import net.netshot.netshot.api.rest.v1.group.GroupDto;
  * @param id the ID
  * @param url the path of the rule
  * @param display the display name
+ * @param version the version, incremented on each change (the ETag)
+ * @param changeDate the date of the last change
  * @param partNumber the part number of the modules
  * @param endOfSale the end-of-sale date of the matching modules
  * @param endOfLife the end-of-life date of the matching modules
@@ -45,6 +47,8 @@ public record HardwareRuleDto(
 	long id,
 	String url,
 	String display,
+	long version,
+	Instant changeDate,
 	@Brief String partNumber,
 	@Brief Instant endOfSale,
 	@Brief Instant endOfLife,

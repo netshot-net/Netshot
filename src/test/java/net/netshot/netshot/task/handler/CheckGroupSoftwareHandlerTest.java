@@ -73,9 +73,9 @@ class CheckGroupSoftwareHandlerTest {
 		this.group = TestDevices.addStaticGroup("Routers");
 		TestDevices.addMembers(this.group, this.inGroup);
 		TestCompliance.softwareRules(
-			new SoftwareRule(0, 20, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.SILVER),
-			new SoftwareRule(0, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE));
-		TestCompliance.hardwareRules(new HardwareRule(0, "CiscoIOS12", null, "", false, "TESTCHASSIS", false, daysFromNow(-10), daysFromNow(-5)));
+			new SoftwareRule(0, 0, null, 20, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.SILVER),
+			new SoftwareRule(0, 0, null, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE));
+		TestCompliance.hardwareRules(new HardwareRule(0, 0, null, "CiscoIOS12", null, "", false, "TESTCHASSIS", false, daysFromNow(-10), daysFromNow(-5)));
 	}
 
 	@AfterEach

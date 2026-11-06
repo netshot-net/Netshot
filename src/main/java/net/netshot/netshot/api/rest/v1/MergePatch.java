@@ -19,6 +19,7 @@
 package net.netshot.netshot.api.rest.v1;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,11 +36,52 @@ import net.netshot.netshot.platform.error.NetshotException;
  * (an absent element is unchanged, {@code xsi:nil="true"} clears) or YAML.
  *
  * <p>A resource applies a patch to the request representation of the current object (the body a {@code PUT}
- * would take), then reads the result as that request: {@code PATCH} is {@code GET}, merge, {@code PUT}.</p>
+ * would take), then reads the result as that request: {@code PATCH} is {@code GET}, merge, {@code PUT}. The
+ * service does it ({@link #of}) while the object is locked, so the patch applies to its latest version.</p>
  */
 public final class MergePatch {
 
+	/**
+	 * A patch whose result isn't a valid request, thrown from {@link #of} (unchecked, to cross the service): the
+	 * exception mapper reports its cause, as for an invalid body.
+	 */
+	public static final class InvalidResultException extends RuntimeException {
+
+		private static final long serialVersionUID = 3268511801302264237L;
+
+		InvalidResultException(JsonProcessingException cause) {
+			super(cause);
+		}
+	}
+
 	private MergePatch() {
+	}
+
+	/**
+	 * Gives the change a patch makes to an object: the definition of the object once patched, computed from the
+	 * object as it is (by the service, which locks it first).
+	 *
+	 * @param <T> the type of the object
+	 * @param <R> the type of the request
+	 * @param <D> the type of the definition the service takes
+	 * @param patch the patch
+	 * @param mediaType the media type of the patch (the format it was read from)
+	 * @param requestType the class of the request
+	 * @param toRequest gives the request representation of an object
+	 * @param toDefinition gives the definition of a request
+	 * @return the change, which throws a {@link NetshotException} if the patch isn't an object, or an
+	 *         {@link InvalidResultException} if the patched representation isn't a valid request
+	 */
+	public static <T, R, D> Function<T, D> of(JsonNode patch, MediaType mediaType, Class<R> requestType,
+		Function<T, R> toRequest, Function<R, D> toDefinition) {
+		return current -> {
+			try {
+				return toDefinition.apply(apply(toRequest.apply(current), patch, mediaType, requestType));
+			}
+			catch (JsonProcessingException e) {
+				throw new InvalidResultException(e);
+			}
+		};
 	}
 
 	/**

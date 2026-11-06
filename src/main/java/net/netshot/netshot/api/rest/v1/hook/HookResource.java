@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v1.hook;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -150,11 +149,11 @@ public class HookResource {
 	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Replace a hook", description = "Replaces the definition of a hook (its type can't change). "
-		+ "Hooks have no version: there is no ETag.")
+		+ "With If-Match, the hook must still be at the given version (ETag).")
 	public HookDto replaceHook(@PathParam("id") @Parameter(description = "Hook ID") long id, HookRequest hookRequest) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		this.hookService.get(id);
-		return this.respond(this.hookService.update(id, HookMapper.toHook(hookRequest)));
+		Hook hook = HookMapper.toHook(hookRequest);
+		return this.respond(this.hookService.update(id, _ -> hook, V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -163,7 +162,6 @@ public class HookResource {
 	 * @param id the hook ID
 	 * @param patch the merge patch
 	 * @return the hook
-	 * @throws JsonProcessingException if the patched hook isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -171,14 +169,12 @@ public class HookResource {
 	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
 	@Operation(summary = "Update a hook", description = "Changes some properties of a hook (JSON merge patch, RFC 7396; "
-		+ "the triggers are replaced as a whole).")
+		+ "the triggers are replaced as a whole). With If-Match, the hook must still be at the given version (ETag).")
 	public HookDto updateHook(@PathParam("id") @Parameter(description = "Hook ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		HookRequest patched = MergePatch.apply(HookMapper.toRequest(this.hookService.get(id)), patch, this.headers.getMediaType(),
-			HookRequest.class);
-		return this.respond(this.hookService.update(id, HookMapper.toHook(patched)));
+		return this.respond(this.hookService.update(id, MergePatch.of(patch, this.headers.getMediaType(), HookRequest.class,
+			HookMapper::toRequest, HookMapper::toHook), V1Response.ifMatch(this.headers)));
 	}
 
 	/**
@@ -189,10 +185,11 @@ public class HookResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_ADMIN)
-	@Operation(summary = "Delete a hook")
+	@Operation(summary = "Delete a hook", description = "Deletes a hook. With If-Match, the hook must still be at the given "
+		+ "version (ETag).")
 	public void deleteHook(@PathParam("id") @Parameter(description = "Hook ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		if (!this.hookService.delete(id)) {
+		if (!this.hookService.delete(id, V1Response.ifMatch(this.headers))) {
 			throw new NetshotException(ErrorCode.NETSHOT_HOOK_NOT_FOUND, "The hook doesn't exist.");
 		}
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
@@ -201,6 +198,7 @@ public class HookResource {
 	private HookDto respond(Hook hook) {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), HookDto.class, Selection.View.FULL),
 			HookDto.class);
+		V1Response.etag(this.request, hook.version());
 		return HookMapper.toDto(hook);
 	}
 }

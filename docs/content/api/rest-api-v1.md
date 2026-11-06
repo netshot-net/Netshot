@@ -14,7 +14,7 @@ Requests and responses are JSON (default), XML or YAML, chosen with the `Content
 
 ## Objects
 
-Every object has an `id`, a `url` (the path of the object, e.g. `/api/v1/domains/3`) and a `display` name. The versioned objects have a `version`, which is also their `ETag`.
+Every object has an `id`, a `url` (the path of the object, e.g. `/api/v1/domains/3`) and a `display` name. Every object which can be changed also has a `version`, which is also its `ETag`, and a `changeDate`. The version changes with every change of the object as `GET` reads it: of its own properties and of the lists it holds (the accesses, interfaces, modules and attributes of a device, the target groups of a policy, the exemptions of a rule, the triggers of a hook...). Two exceptions: the dates of the last snapshot of a device, and the values computed from other objects (the compliance of a device, the members of a dynamic group, the position of a software rule when another one moves). The API tokens can't be changed: they only have a `changeDate`, the date they were created.
 
 A reference to another object (the domain of a device, its groups...) is always an object, never a bare ID: by default its brief view (`id`, `url`, `display` and a few identifying properties), its full view with `expand`. In requests, a reference is given by its ID (`"mgmtDomain": 3`) or by an object with its ID (`"mgmtDomain": {"id": 3}`, so the object read can be sent back).
 
@@ -31,7 +31,7 @@ Secrets (passwords, keys, communities...) are write-only: they are never returne
 | `PATCH /things/{id}` | Update the given properties only ([JSON merge patch](https://www.rfc-editor.org/rfc/rfc7396), `Content-Type: application/merge-patch+json`; `null` clears a property; a list is replaced as a whole) | 200, with the object |
 | `DELETE /things/{id}` | Delete | 204 |
 
-An unknown object is always a 404. `PUT`, `PATCH` and `DELETE` accept an `If-Match` header holding the ETag (version) the object must still be at: if it was changed meanwhile, the request is refused with a 412.
+An unknown object is always a 404. `PUT`, `PATCH` and `DELETE` accept an `If-Match` header holding the ETag (version) the object must still be at: if it was changed meanwhile, the request is refused with a 412. Without `If-Match`, a change can't fail because of a concurrent one: the object is locked while it is changed, and a `PATCH` applies to its latest version.
 
 The read-only properties of an object (`id`, `url`, `version`, dates...) are ignored in a request body, so an object read with `GET` can be modified and sent back with `PUT`. An unknown property is refused.
 
@@ -164,7 +164,7 @@ curl -H "X-Netshot-API-Token: <token>" \
 
 **Adding a device** is asynchronous: `POST /api/v1/devices` answers `202 Accepted` with the task and its `Location: /api/v1/tasks/{id}`. Without `driver`, a discovery task finds the type of the device (an SNMP community must exist for the domain), and the device is only created if the discovery succeeds (`accesses` and `options` are then refused). With `driver`, the device is created at once, with a snapshot task. Properties: `mgmtAddress` and `mgmtDomain` (required), `driver`, `comments`, `tags`, `options`, `accesses`. A device with the same address in the domain is a 409.
 
-**Replacing a device** (`PUT`) takes its editable properties: `mgmtAddress`, `mgmtDomain`, `status`, `comments`, `tags`, `options`, `accesses`. The rest (family, serial number, software...) is read-only and ignored when sent back, so a device read can be modified and sent back. As any `PUT`, it is a full replacement: absent `accesses`, `tags` or `options` are emptied. `PATCH` changes the given properties only (`accesses` is replaced as a whole). The version of a device only changes when its own properties change, not its accesses alone.
+**Replacing a device** (`PUT`) takes its editable properties: `mgmtAddress`, `mgmtDomain`, `status`, `comments`, `tags`, `options`, `accesses`. The rest (family, serial number, software...) is read-only and ignored when sent back, so a device read can be modified and sent back. As any `PUT`, it is a full replacement: absent `accesses`, `tags` or `options` are emptied. `PATCH` changes the given properties only (`accesses` is replaced as a whole).
 
 **Accesses**: each access has `accessName` (as declared by the driver: `ssh`, `telnet`, `snmp`...), `address`, `port`, `sshHostKeyVerification`, `sshTrustedHostKeys`, `httpsCaTrustMode`, `httpsCustomCaCertificate`, and at most one of `globalCredentialSet` (a reference to a global credential set) and `specificCredentialSet` (credentials of this device only: a `type` and the properties of a credential set, without name nor domain; secrets write-only, as for the credential sets). An access which isn't listed anymore is removed, with its specific credentials.
 
@@ -228,7 +228,7 @@ Filters: `id`, `type`, `status`, `author`, `target`, `comments`, `priority`, `sc
 
 ### Diagnostics
 
-`/api/v1/diagnostics`: list and get (read-only level); create, replace (`PUT`), update (`PATCH`) and delete (execute-read-write level). A diagnostic collects a piece of data from the devices of a group, and has a `type`: `SIMPLE` (a CLI command, with `deviceDriver`, `cliMode`, `command` and an optional `modifierPattern`/`modifierReplacement` applied to the output), `JAVASCRIPT` or `PYTHON` (a `script`). The properties of the other types are null. `resultType` is `TEXT`, `LONGTEXT`, `NUMERIC` or `BINARY`. The target group is the `targetGroup` reference; in requests it is given by its ID (`"targetGroup": 3`, or an object with an `id`, such as the one read), and cleared with `null`. The type of a diagnostic can't change. Changing the target group deletes the results of the diagnostic; deleting a diagnostic deletes its results. Diagnostics have no version: there is no `ETag`, and `If-Match` isn't supported.
+`/api/v1/diagnostics`: list and get (read-only level); create, replace (`PUT`), update (`PATCH`) and delete (execute-read-write level). A diagnostic collects a piece of data from the devices of a group, and has a `type`: `SIMPLE` (a CLI command, with `deviceDriver`, `cliMode`, `command` and an optional `modifierPattern`/`modifierReplacement` applied to the output), `JAVASCRIPT` or `PYTHON` (a `script`). The properties of the other types are null. `resultType` is `TEXT`, `LONGTEXT`, `NUMERIC` or `BINARY`. The target group is the `targetGroup` reference; in requests it is given by its ID (`"targetGroup": 3`, or an object with an `id`, such as the one read), and cleared with `null`. The type of a diagnostic can't change. Changing the target group deletes the results of the diagnostic; deleting a diagnostic deletes its results. With `If-Match`.
 
 Filters: `id`, `name`, `type`, `resultType`, `enabled`, `targetGroup`, `deviceDriver`; `q` searches the name. Sort: `name`, `type`, `resultType`, `enabled`, `deviceDriver` (default `name`).
 
@@ -240,7 +240,7 @@ Filters: `diagnostic`, `diagnosticName`, `type`, `creationDate`, `lastCheckDate`
 
 ### Scripts
 
-`/api/v1/scripts`: list, get, create, delete and validation (execute-read-write level). A script is a JavaScript command script written for a device driver (`deviceDriver`), kept in a `folder`; its `author` is the user who created it. Scripts can't be edited (as in v0): create a new one. The list is in its brief view by default (`name`, `folder`, `deviceDriver`, `deviceDriverDescription`, `author`, without the code). `userInputDefinitions` (the user inputs the script asks for, extracted by evaluating it) are written when a script is read, created or validated, and in a list only when asked for.
+`/api/v1/scripts`: list, get, create, replace (`PUT`), update (`PATCH`), delete and validation (execute-read-write level), with `If-Match`. A script is a JavaScript command script written for a device driver (`deviceDriver`), kept in a `folder`; its `author` is the user who created it (a change keeps it). A new or changed script is validated (driver, name, code). The list is in its brief view by default (`name`, `folder`, `deviceDriver`, `deviceDriverDescription`, `author`, without the code). `userInputDefinitions` (the user inputs the script asks for, extracted by evaluating it) are written when a script is read, created or validated, and in a list only when asked for.
 
 `POST /api/v1/scripts/validation` checks a script definition (driver, name, code) without saving it: 200 with the script as it would be created (`id` 0, no `url`) and its user inputs, or 400 with the problem.
 
@@ -271,17 +271,17 @@ Filters: `id`, `name`, `type`, `baseUrl`, `namespace`, `authMethod`, `changeDate
 
 ### Compliance
 
-The compliance resources have no version: there is no `ETag`, and `If-Match` doesn't apply. They are read with the read-only level, changed with the read-write level.
+The compliance resources are read with the read-only level, changed with the read-write level, with `If-Match`.
 
 **Policies** (`/api/v1/compliance/policies`): list, get, create, replace, update, delete. A policy has a `name` and `targetGroups` (references to groups). Removing a group from a policy deletes the compliance results of the devices of that group. `GET /api/v1/compliance/policies/{id}/rules` lists the rules of the policy, with the parameters of the rule list. Filters: `id`, `name`, `targetGroup`; `q` searches the name.
 
 **Rules** (`/api/v1/compliance/rules`): list, get, create, replace, update, delete. A rule has a `type`: `TEXT` (`field`, `context`, `text`, `regExp`, `invert`, `anyBlock`, `matchAll`, `normalize`, `deviceDriver`), `JAVASCRIPT` or `PYTHON` (`script`, the template script if absent), and in every case a `name`, `enabled` (false if absent) and its `policy` (required at creation). The type and the policy of a rule can't change. Filters: `id`, `name`, `type`, `enabled`, `policy`, `field`, `deviceDriver`, `text`; `q` searches the name and text.
 
 - `GET /api/v1/compliance/rules/{id}/exemptions`: the devices exempted from the rule (`device` reference, `expirationDate`); filters `device`, `expirationDate`.
-- `PUT /api/v1/compliance/rules/{id}/exemptions` with `{"exemptions": [{"device": 12, "expirationDate": "2030-01-01T00:00:00.000Z"}]}` replaces the whole set (an empty list removes it) and answers the new list.
+- `PUT /api/v1/compliance/rules/{id}/exemptions` with `{"exemptions": [{"device": 12, "expirationDate": "2030-01-01T00:00:00.000Z"}]}` replaces the whole set (an empty list removes it) and answers the new list. The exemptions belong to the rule: the change increments the version of the rule, and `If-Match` takes the version of the rule.
 - `POST /api/v1/compliance/rules/test` with `{"rule": {<rule definition>}, "device": 12}` checks a rule definition (not stored) against a device, and answers `{"result": ..., "log": ..., "comment": ...}` (`CONFORMING`, `NONCONFORMING`, `NOTAPPLICABLE`, `INVALIDRULE`...). A device without configuration gives `NOTAPPLICABLE`; an unknown device is a 404.
 
-**Software rules** (`/api/v1/compliance/software-rules`): list, get, create, replace, update, delete. Properties: `priority`, `level` (`GOLD`, `SILVER`, `BRONZE`), `group`, `driver`, `family`, `familyRegExp`, `version`, `versionRegExp`, `partNumber`, `partNumberRegExp`. The rules are checked in order and the first match wins: `priority` is the position of the rule, from 1. A new rule is the last one unless `priority` is given; writing `priority` moves the rule to that position and shifts the others; without it, a rule keeps its position. Filters on all the properties; default order: the priority.
+**Software rules** (`/api/v1/compliance/software-rules`): list, get, create, replace, update, delete. Properties: `priority`, `level` (`GOLD`, `SILVER`, `BRONZE`), `group`, `driver`, `family`, `familyRegExp`, `softwareVersion`, `softwareVersionRegExp`, `partNumber`, `partNumberRegExp`. The rules are checked in order and the first match wins: `priority` is the position of the rule, from 1. A new rule is the last one unless `priority` is given; writing `priority` moves the rule to that position and shifts the others; without it, a rule keeps its position. Filters on all the properties; default order: the priority.
 
 **Hardware rules** (`/api/v1/compliance/hardware-rules`): list, get, create, replace, update, delete. Properties: `partNumber`, `partNumberRegExp`, `endOfSale`, `endOfLife`, `group`, `driver`, `family`, `familyRegExp`; filters on all of them. An unknown group or driver is a 400.
 
@@ -321,7 +321,7 @@ The v1 API has no report endpoints: the reports of the legacy API are queries on
 
 ### Users
 
-`/api/v1/users`: list, get, create, replace, update and delete (admin level). A user is local (`local: true`, authenticated by its password) or remote (RADIUS, TACACS+ or OIDC: Netshot only gives it its `level`). `username`, `local` and `level` are required; `password` is write-only (required to create a local user, absent to keep the current one, ignored for a remote user), `hasPassword` tells whether there is one. Users have no version (no `ETag`). A user can't edit nor delete itself (403). Filters: `id`, `username`, `local`, `level`; `q` searches the username.
+`/api/v1/users`: list, get, create, replace, update and delete (admin level). A user is local (`local: true`, authenticated by its password) or remote (RADIUS, TACACS+ or OIDC: Netshot only gives it its `level`). `username`, `local` and `level` are required; `password` is write-only (required to create a local user, absent to keep the current one, ignored for a remote user), `hasPassword` tells whether there is one. With `If-Match`. A user can't edit nor delete itself (403). Filters: `id`, `username`, `local`, `level`; `q` searches the username.
 
 ### API tokens
 
@@ -329,7 +329,7 @@ The v1 API has no report endpoints: the reports of the legacy API are queries on
 
 ### Hooks
 
-`/api/v1/hooks`: list, get, create, replace, update and delete (admin level). A hook has a `type` (`WEB`: posts the event to a URL), a `name`, `enabled` (true if absent), its `triggers` (`[{"type": "POST_TASK", "item": "TakeSnapshotTask"}]`, replaced as a whole) and, for a `WEB` hook, `action` (`POST_JSON`, `POST_XML` or `POST_YAML`), `targetUrl`, `httpsCaTrustMode` and `httpsCustomCaCertificate`. The `targetUrl` is returned: it shouldn't carry credentials. The type of a hook can't change. No `ETag`. Filters: `id`, `name`, `type`, `enabled`, `url`.
+`/api/v1/hooks`: list, get, create, replace, update and delete (admin level). A hook has a `type` (`WEB`: posts the event to a URL), a `name`, `enabled` (true if absent), its `triggers` (`[{"type": "POST_TASK", "item": "TakeSnapshotTask"}]`, replaced as a whole) and, for a `WEB` hook, `action` (`POST_JSON`, `POST_XML` or `POST_YAML`), `targetUrl`, `httpsCaTrustMode` and `httpsCustomCaCertificate`. The `targetUrl` is returned: it shouldn't carry credentials. The type of a hook can't change. With `If-Match`. Filters: `id`, `name`, `type`, `enabled`, `url`.
 
 ### System
 

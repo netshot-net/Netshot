@@ -57,7 +57,7 @@ public final class PolicyMapper {
 		if (policy == null) {
 			return null;
 		}
-		return new PolicyDto(policy.id(), V1Links.of(PATH, policy.id()), policy.name(), policy.name(),
+		return new PolicyDto(policy.id(), V1Links.of(PATH, policy.id()), policy.name(), policy.version(), policy.changeDate(), policy.name(),
 			policy.targetGroupIds().stream().sorted().map(groups::apply).toList());
 	}
 

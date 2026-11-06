@@ -5,7 +5,7 @@ import { LuCircleArrowDown, LuRegex, LuTrophy, LuType } from "react-icons/lu"
 import { useSoftwareLevels } from "@/hooks"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
 import { useDeviceFamilies, useDevicePartNumbers, useDeviceSoftwareVersions } from "@/features/device/api"
-import type { SoftwareRule } from "@/api/softwareRule"
+import type { Brief } from "@/api/client"
 import { DeviceSoftwareLevel } from "@/types"
 import { Field, HStack, Icon, IconButton, RadioCard, Stack, Text } from "@chakra-ui/react"
 import { useCallback, useEffect } from "react"
@@ -15,7 +15,7 @@ import { SoftwareRuleFormValues } from "../types"
 
 
 export type SoftwareRuleFormProps = {
-  rule?: SoftwareRule
+  rule?: Brief["SoftwareRule"]
 }
 
 export default function SoftwareRuleForm(props: SoftwareRuleFormProps) {
@@ -57,7 +57,7 @@ export default function SoftwareRuleForm(props: SoftwareRuleFormProps) {
 
   const versionRegExp = useWatch({
     control: form.control,
-    name: "versionRegExp",
+    name: "softwareVersionRegExp",
   })
 
   const toggleFamilyRegExp = useCallback(() => {
@@ -69,7 +69,7 @@ export default function SoftwareRuleForm(props: SoftwareRuleFormProps) {
   }, [form, partNumberRegExp])
 
   const toggleVersionRegExp = useCallback(() => {
-    form.setValue("versionRegExp", !versionRegExp)
+    form.setValue("softwareVersionRegExp", !versionRegExp)
   }, [form, versionRegExp])
   return (
     <Stack gap="5">
@@ -119,7 +119,7 @@ export default function SoftwareRuleForm(props: SoftwareRuleFormProps) {
       />
       <FormControl
         control={form.control}
-        name="version"
+        name="softwareVersion"
         label={t("common.version")}
         placeholder={t("common.eG", { example: "26.2.2" })}
         suggestions={versionSuggestions ?? []}

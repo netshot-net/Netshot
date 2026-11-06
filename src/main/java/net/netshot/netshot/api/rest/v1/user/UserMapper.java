@@ -45,8 +45,8 @@ public final class UserMapper {
 			return null;
 		}
 		boolean hasPassword = user.local() && user.hashedPassword() != null && !user.hashedPassword().isEmpty();
-		return new UserDto(user.id(), V1Links.of(AuthMapper.USERS_PATH, user.id()), user.username(), user.username(),
-			user.local(), user.level(), AuthMapper.roleOf(user.level()), hasPassword,
+		return new UserDto(user.id(), V1Links.of(AuthMapper.USERS_PATH, user.id()), user.username(), user.version(),
+			user.changeDate(), user.username(), user.local(), user.level(), AuthMapper.roleOf(user.level()), hasPassword,
 			hasPassword ? user.lastPasswordChangeDate() : null);
 	}
 

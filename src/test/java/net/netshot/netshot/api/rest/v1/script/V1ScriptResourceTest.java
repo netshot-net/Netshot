@@ -49,6 +49,8 @@ import net.netshot.netshot.testing.api.V1Endpoints;
 	"GET /scripts/{id}",
 	"POST /scripts",
 	"POST /scripts/validation",
+	"PUT /scripts/{id}",
+	"PATCH /scripts/{id}",
 	"DELETE /scripts/{id}",
 })
 @DisplayName("v1 scripts")
@@ -127,6 +129,37 @@ public class V1ScriptResourceTest {
 		Assertions.assertEquals(404, this.admin.delete("/scripts/" + TestServer.UNKNOWN_ID).status());
 		Assertions.assertEquals(204, this.admin.delete("/scripts/" + id).status());
 		Assertions.assertEquals(404, this.admin.get("/scripts/" + id).status());
+	}
+
+	@Test
+	@DisplayName("Replace and update: validated, the author kept, the version incremented, If-Match, 404, 409")
+	void change() throws Exception {
+		JsonNode created = this.admin.post("/scripts", body("Clock", "Basics", CODE)).json();
+		long id = created.get("id").asLong();
+		long version = created.get("version").asLong();
+		this.admin.post("/scripts", body("Other", "", CODE));
+
+		Answer replaced = this.admin.put("/scripts/" + id, body("Clock 2", "Advanced", CODE.replace("show clock", "show version")));
+		Assertions.assertEquals(200, replaced.status(), replaced.toString());
+		JsonNode script = replaced.json();
+		Assertions.assertEquals("Clock 2", script.get("name").asText());
+		Assertions.assertEquals("Advanced", script.get("folder").asText());
+		Assertions.assertTrue(script.get("script").asText().contains("show version"));
+		Assertions.assertEquals(created.get("author"), script.get("author"));
+		Assertions.assertTrue(script.get("userInputDefinitions").isObject());
+		Assertions.assertEquals(version + 1, script.get("version").asLong());
+		Assertions.assertEquals("\"" + (version + 1) + "\"", replaced.header("ETag"));
+
+		Answer patched = this.admin.patch("/scripts/" + id, "{\"folder\": \"Basics\"}", "If-Match", replaced.header("ETag"));
+		Assertions.assertEquals(200, patched.status(), patched.toString());
+		Assertions.assertEquals("Clock 2", patched.json().get("name").asText());
+		Assertions.assertEquals("Basics", patched.json().get("folder").asText());
+		Assertions.assertEquals(412, this.admin.patch("/scripts/" + id, "{\"folder\": \"X\"}", "If-Match", replaced.header("ETag")).status());
+
+		Assertions.assertEquals(400, this.admin.patch("/scripts/" + id, "{\"script\": \"function run( {\"}").status());
+		Assertions.assertEquals(409, this.admin.patch("/scripts/" + id, "{\"name\": \"Other\", \"folder\": \"\"}").status());
+		Assertions.assertEquals(404, this.admin.put("/scripts/" + TestServer.UNKNOWN_ID, body("X", "", CODE)).status());
+		Assertions.assertEquals("Basics", this.admin.get("/scripts/" + id).json().get("folder").asText());
 	}
 
 	@Test

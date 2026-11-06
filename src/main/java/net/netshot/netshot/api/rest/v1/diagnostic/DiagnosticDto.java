@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1.diagnostic;
 
+import java.time.Instant;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import net.netshot.netshot.api.rest.v1.Brief;
 import net.netshot.netshot.api.rest.v1.Ref;
@@ -30,6 +32,8 @@ import net.netshot.netshot.api.rest.v1.group.GroupDto;
  * @param id the ID
  * @param url the path of the diagnostic
  * @param display the display name
+ * @param version the version, incremented on each change (the ETag)
+ * @param changeDate the date of the last change
  * @param name the name
  * @param type SIMPLE (CLI command), JAVASCRIPT or PYTHON
  * @param resultType the type of the result: TEXT, LONGTEXT, NUMERIC or BINARY
@@ -48,6 +52,8 @@ public record DiagnosticDto(
 	long id,
 	String url,
 	String display,
+	long version,
+	Instant changeDate,
 	@Brief String name,
 	@Brief String type,
 	@Brief String resultType,

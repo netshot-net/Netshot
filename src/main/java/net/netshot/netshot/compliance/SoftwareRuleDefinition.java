@@ -28,8 +28,8 @@ import net.netshot.netshot.inventory.compliance.ConformanceLevel;
  * @param driver the name of the device driver the rule applies to (an unknown driver is taken for "all the drivers")
  * @param family the device family (or the regular expression it has to match)
  * @param familyRegExp whether the family is a regular expression
- * @param version the software version (or the regular expression it has to match)
- * @param versionRegExp whether the version is a regular expression
+ * @param softwareVersion the software version (or the regular expression it has to match)
+ * @param softwareVersionRegExp whether the software version is a regular expression
  * @param partNumber the part number (or the regular expression it has to match)
  * @param partNumberRegExp whether the part number is a regular expression
  * @param level the conformance level granted to the devices matching the rule
@@ -39,8 +39,8 @@ public record SoftwareRuleDefinition(
 	String driver,
 	String family,
 	boolean familyRegExp,
-	String version,
-	boolean versionRegExp,
+	String softwareVersion,
+	boolean softwareVersionRegExp,
 	String partNumber,
 	boolean partNumberRegExp,
 	ConformanceLevel level) {

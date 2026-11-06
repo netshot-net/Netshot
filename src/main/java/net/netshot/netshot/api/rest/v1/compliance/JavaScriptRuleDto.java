@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1.compliance;
 
+import java.time.Instant;
+
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,6 +32,8 @@ import net.netshot.netshot.api.rest.v1.Ref;
  * @param id the ID
  * @param url the path of the rule
  * @param display the display name
+ * @param version the version, incremented on each change (the ETag)
+ * @param changeDate the date of the last change
  * @param type the kind of rule
  * @param name the name
  * @param enabled whether the rule is checked
@@ -42,6 +46,8 @@ public record JavaScriptRuleDto(
 	long id,
 	String url,
 	String display,
+	long version,
+	Instant changeDate,
 	@Brief String type,
 	@Brief String name,
 	@Brief boolean enabled,

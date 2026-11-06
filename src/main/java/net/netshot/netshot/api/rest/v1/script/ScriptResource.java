@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1.script;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,11 +29,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
@@ -42,6 +47,7 @@ import net.netshot.netshot.api.rest.v1.ListFilters;
 import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
+import net.netshot.netshot.api.rest.v1.MergePatch;
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
@@ -51,6 +57,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.userscript.DeviceJsScript;
+import net.netshot.netshot.userscript.ScriptCreation;
 import net.netshot.netshot.userscript.ScriptService;
 
 /**
@@ -73,6 +80,9 @@ public class ScriptResource {
 
 	@Context
 	private SecurityContext securityContext;
+
+	@Context
+	private HttpHeaders headers;
 
 	/**
 	 * Instantiates the resource.
@@ -163,6 +173,48 @@ public class ScriptResource {
 	}
 
 	/**
+	 * Replaces a script.
+	 *
+	 * @param id the script ID
+	 * @param scriptRequest the new definition of the script
+	 * @return the script
+	 */
+	@PUT
+	@Path("/{id}")
+	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
+	@Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Operation(summary = "Replace a script", description = "Validates and replaces the definition of a command script (the "
+		+ "author is kept). With If-Match, the script must still be at the given version (ETag).")
+	public ScriptDto replaceScript(@PathParam("id") @Parameter(description = "Script ID") long id, ScriptRequest scriptRequest) {
+		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
+		ScriptCreation definition = ScriptMapper.toCreation(scriptRequest, null);
+		return this.respond(this.scriptService.update(id, _ -> definition, V1Response.ifMatch(this.headers)));
+	}
+
+	/**
+	 * Updates a script with a merge patch.
+	 *
+	 * @param id the script ID
+	 * @param patch the merge patch
+	 * @return the script
+	 */
+	@PATCH
+	@Path("/{id}")
+	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
+	@Consumes({V1Mappers.APPLICATION_MERGE_PATCH_JSON, MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, V1Mappers.APPLICATION_YAML})
+	@Operation(summary = "Update a script", description = "Changes some properties of a command script (JSON merge patch, "
+		+ "RFC 7396), validated as on creation (the author is kept). With If-Match, the script must still be at the given "
+		+ "version (ETag).")
+	public ScriptDto updateScript(@PathParam("id") @Parameter(description = "Script ID") long id,
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
+		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
+		return this.respond(this.scriptService.update(id, MergePatch.of(patch, this.headers.getMediaType(), ScriptRequest.class,
+			ScriptMapper::toRequest, r -> ScriptMapper.toCreation(r, null)), V1Response.ifMatch(this.headers)));
+	}
+
+	/**
 	 * Deletes a script.
 	 *
 	 * @param id the script ID
@@ -170,10 +222,11 @@ public class ScriptResource {
 	@DELETE
 	@Path("/{id}")
 	@RolesAllowed(User.ROLE_EXECUTEREADWRITE)
-	@Operation(summary = "Delete a script")
+	@Operation(summary = "Delete a script", description = "Deletes a command script. With If-Match, the script must still be "
+		+ "at the given version (ETag).")
 	public void deleteScript(@PathParam("id") @Parameter(description = "Script ID") long id) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		this.scriptService.delete(id);
+		this.scriptService.delete(id, V1Response.ifMatch(this.headers));
 		V1Response.status(this.request, Response.Status.NO_CONTENT);
 	}
 
@@ -195,6 +248,9 @@ public class ScriptResource {
 	private ScriptDto respond(DeviceJsScript script) {
 		V1Response.select(this.request, Selection.of(this.uriInfo.getQueryParameters(), ScriptDto.class, Selection.View.FULL),
 			ScriptDto.class);
+		if (script.id() != 0) {
+			V1Response.etag(this.request, script.version());
+		}
 		return ScriptMapper.toDto(this.driverRegistry, script);
 	}
 }

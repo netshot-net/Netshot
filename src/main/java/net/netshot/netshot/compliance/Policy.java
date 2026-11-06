@@ -18,16 +18,19 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
 import java.util.Set;
 
 /**
  * A compliance policy: a set of rules, checked on the devices of the target groups.
  *
  * @param id the ID (0 for a policy not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param targetGroupIds the IDs of the groups the policy applies to
  */
-public record Policy(long id, String name, Set<Long> targetGroupIds) {
+public record Policy(long id, int version, Instant changeDate, String name, Set<Long> targetGroupIds) {
 
 	/**
 	 * Canonical constructor: the target groups are copied (none means an empty set).
@@ -43,7 +46,7 @@ public record Policy(long id, String name, Set<Long> targetGroupIds) {
 	 * @return the policy
 	 */
 	public Policy withId(long newId) {
-		return new Policy(newId, this.name, this.targetGroupIds);
+		return new Policy(newId, this.version, this.changeDate, this.name, this.targetGroupIds);
 	}
 
 	@Override

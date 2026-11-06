@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1.apitoken;
 
+import java.time.Instant;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -27,6 +29,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param id the ID
  * @param url the path of the API token
  * @param display the description (or a name made of the ID if there is none)
+ * @param changeDate the date of the creation of the token (it can't change)
  * @param description the description
  * @param level the permission level
  * @param role the name of the highest role the level gives
@@ -37,6 +40,7 @@ public record ApiTokenCreatedDto(
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) long id,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) String url,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY) String display,
+	@Schema(accessMode = Schema.AccessMode.READ_ONLY) Instant changeDate,
 	String description,
 	int level,
 	@Schema(accessMode = Schema.AccessMode.READ_ONLY, nullable = true) String role,

@@ -1,5 +1,6 @@
+import type { Brief } from "@/api/client"
 import api from "@/api"
-import type { SoftwareRule, SoftwareRuleRequest } from "@/api/softwareRule"
+import type { SoftwareRuleRequest } from "@/api/softwareRule"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
@@ -15,7 +16,7 @@ import { DeviceSoftwareLevel } from "@/types"
 import { SoftwareRuleFormValues } from "../types"
 import SoftwareRuleForm from "./SoftwareRuleForm"
 
-export type EditSoftwareRuleTriggerProps = { rule: SoftwareRule; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type EditSoftwareRuleTriggerProps = { rule: Brief["SoftwareRule"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function EditSoftwareRuleTrigger({ rule, children, ...rest }: EditSoftwareRuleTriggerProps) {
   const { t } = useTranslation()
@@ -32,8 +33,8 @@ export default function EditSoftwareRuleTrigger({ rule, children, ...rest }: Edi
       level: rule?.level as DeviceSoftwareLevel,
       partNumber: rule?.partNumber ?? "",
       partNumberRegExp: rule?.partNumberRegExp ?? false,
-      version: rule?.version ?? "",
-      versionRegExp: rule?.versionRegExp ?? false,
+      softwareVersion: rule?.softwareVersion ?? "",
+      softwareVersionRegExp: rule?.softwareVersionRegExp ?? false,
     }
   }, [rule])
 
@@ -70,8 +71,8 @@ export default function EditSoftwareRuleTrigger({ rule, children, ...rest }: Edi
           level: values.level as SoftwareRuleRequest["level"],
           partNumber: values.partNumber,
           partNumberRegExp: values.partNumberRegExp,
-          version: values.version,
-          versionRegExp: values.versionRegExp,
+          softwareVersion: values.softwareVersion,
+          softwareVersionRegExp: values.softwareVersionRegExp,
         })
 
         dialogRef.close()

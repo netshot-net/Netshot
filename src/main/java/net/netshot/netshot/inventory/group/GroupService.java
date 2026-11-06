@@ -20,6 +20,7 @@ package net.netshot.netshot.inventory.group;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -31,6 +32,7 @@ import net.netshot.netshot.inventory.search.Finder.FinderParseException;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -208,7 +210,7 @@ public class GroupService {
 			? new GroupDefinition(definition.type(), definition.name(), List.of(), definition.query(), definition.folder(),
 				definition.hiddenFromReports())
 			: definition;
-		return this.update(id, replacing, null, false);
+		return this.update(id, _ -> replacing, null, false);
 	}
 
 	/**
@@ -225,21 +227,37 @@ public class GroupService {
 	 *         or already used, or the group can't be stored
 	 */
 	public DeviceGroup update(long id, GroupDefinition definition, Long expectedVersion) {
-		return this.update(id, definition, expectedVersion, true);
+		return this.update(id, _ -> definition, expectedVersion, true);
 	}
 
-	private DeviceGroup update(long id, GroupDefinition definition, Long expectedVersion, boolean checkType) {
+	/**
+	 * Replaces the definition of a group, if it is at a given version: the new definition is computed from the
+	 * group as it is, which can't change meanwhile (to apply a patch). See {@link #update(long, GroupDefinition, Long)}.
+	 *
+	 * @param id the group ID
+	 * @param change gives the new definition from the current group
+	 * @param expectedVersion the version the group must be at, or null for any
+	 * @return the edited group
+	 * @throws NetshotException if the group doesn't exist, isn't at the expected version, is of another type, a
+	 *         device of a static group doesn't exist, the query of a dynamic group is invalid, the name is invalid
+	 *         or already used, or the group can't be stored
+	 */
+	public DeviceGroup update(long id, Function<DeviceGroup, GroupDefinition> change, Long expectedVersion) {
+		return this.update(id, change, expectedVersion, true);
+	}
+
+	private DeviceGroup update(long id, Function<DeviceGroup, GroupDefinition> change, Long expectedVersion, boolean checkType) {
 		DeviceGroup group;
 		try {
 			group = this.transactions.write(dsl -> {
-				DeviceGroup existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("Unable to find the group {} to be edited.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_GROUP_NOT_FOUND, "Unable to find this group.");
 				}
-				if (expectedVersion != null && existing.version() != expectedVersion) {
-					throw NetshotException.versionMismatch("group", expectedVersion);
-				}
+				Versions.check("group", version, expectedVersion);
+				DeviceGroup existing = this.repository.find(dsl, id);
+				GroupDefinition definition = change.apply(existing);
 				if (checkType && definition.type() != null && !definition.type().equals(typeName(existing))) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_GROUP, "The type of a group can't change.");
 				}
@@ -269,11 +287,7 @@ public class GroupService {
 						.query(query)
 						.build();
 				};
-				DeviceGroup saved = this.repository.save(dsl, edited, expectedVersion);
-				if (saved == null) {
-					// Changed between the read and the update
-					throw NetshotException.versionMismatch("group", expectedVersion);
-				}
+				DeviceGroup saved = this.repository.save(dsl, edited);
 				if (saved instanceof DynamicDeviceGroup dynamicGroup) {
 					refreshMembers(dsl, dynamicGroup);
 				}
@@ -321,14 +335,13 @@ public class GroupService {
 	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id, expectedVersion)) {
-					if (expectedVersion != null && this.repository.find(dsl, id) != null) {
-						throw NetshotException.versionMismatch("group", expectedVersion);
-					}
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such device group of ID {}", id);
 					return false;
 				}
-				return true;
+				Versions.check("group", version, expectedVersion);
+				return this.repository.remove(dsl, id);
 			});
 			if (deleted) {
 				AAA_LOG.info("Device group of ID {} has been deleted.", id);

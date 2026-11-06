@@ -87,7 +87,7 @@ public final class HookMapper {
 	 */
 	public static Hook toEntity(HookRequest request) {
 		if (request instanceof HookRequest.Web web) {
-			return new WebHook(web.getId(), web.getName(), web.isEnabled(), toTriggers(web.getTriggers()), web.getAction(),
+			return new WebHook(web.getId(), 0, null, web.getName(), web.isEnabled(), toTriggers(web.getTriggers()), web.getAction(),
 				web.getUrl(), web.getHttpsCaTrustMode(), web.getHttpsCustomCaCertificate());
 		}
 		throw new IllegalArgumentException("Unknown kind of hook request: " + request.getClass().getName());

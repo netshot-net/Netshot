@@ -68,8 +68,8 @@ public final class SoftwareRuleMapper {
 			rule.partNumber(),
 			rule.partNumberRegExp(),
 			view.targetGroup() == null ? null : GroupMapper.toDto(view.targetGroup()),
-			rule.version(),
-			rule.versionRegExp());
+			rule.softwareVersion(),
+			rule.softwareVersionRegExp());
 	}
 
 	/**

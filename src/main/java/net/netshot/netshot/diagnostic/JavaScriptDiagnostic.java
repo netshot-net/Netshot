@@ -18,24 +18,28 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
+
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 
 /**
  * A diagnostic running a JavaScript script on the devices.
  *
  * @param id the ID (0 for a diagnostic not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param enabled true if the diagnostic is run
  * @param targetGroupId the ID of the group of devices the diagnostic is run on
  * @param resultType the type of result
  * @param script the script
  */
-public record JavaScriptDiagnostic(long id, String name, boolean enabled, Long targetGroupId, AttributeType resultType,
+public record JavaScriptDiagnostic(long id, int version, Instant changeDate, String name, boolean enabled, Long targetGroupId, AttributeType resultType,
 	String script) implements Diagnostic {
 
 	@Override
 	public JavaScriptDiagnostic withId(long newId) {
-		return new JavaScriptDiagnostic(newId, this.name, this.enabled, this.targetGroupId, this.resultType, this.script);
+		return new JavaScriptDiagnostic(newId, this.version, this.changeDate, this.name, this.enabled, this.targetGroupId, this.resultType, this.script);
 	}
 
 	@Override

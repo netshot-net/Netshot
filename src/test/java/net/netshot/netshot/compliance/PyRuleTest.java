@@ -53,7 +53,7 @@ public class PyRuleTest {
 		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), pyRuntime, TestDrivers.registry(), null);
 	}
 
-	Policy policy = new Policy(0, "Fake policy", null);
+	Policy policy = new Policy(0, 0, null, "Fake policy", null);
 	DeviceDraft device = FakeDeviceFactory.getFakeCiscoIosDraft();
 	FakeTaskContext taskContext = new FakeTaskContext();
 	PythonRule rule;

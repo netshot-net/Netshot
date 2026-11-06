@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.api.rest.v1.compliance;
 
+import java.time.Instant;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import net.netshot.netshot.api.rest.v1.Brief;
 import net.netshot.netshot.api.rest.v1.Ref;
@@ -31,14 +33,16 @@ import net.netshot.netshot.inventory.compliance.ConformanceLevel;
  * @param id the ID
  * @param url the path of the rule
  * @param display the display name
+ * @param version the version, incremented on each change (the ETag)
+ * @param changeDate the date of the last change
  * @param priority the position of the rule among the software rules, from 1 (checked first)
  * @param level the conformance level of the matching devices
  * @param group the group the rule applies to (null for all the devices)
  * @param driver the name of the driver of the devices (null for any)
  * @param family the family of the devices (empty for any)
  * @param familyRegExp whether the family is a regular expression
- * @param version the software version of the devices (empty for any)
- * @param versionRegExp whether the version is a regular expression
+ * @param softwareVersion the software version of the devices (empty for any)
+ * @param softwareVersionRegExp whether the software version is a regular expression
  * @param partNumber the part number of a module of the devices (empty for any)
  * @param partNumberRegExp whether the part number is a regular expression
  */
@@ -47,14 +51,16 @@ public record SoftwareRuleDto(
 	long id,
 	String url,
 	String display,
+	long version,
+	Instant changeDate,
 	@Brief int priority,
 	@Brief ConformanceLevel level,
 	@Brief @Ref GroupDto group,
 	@Brief String driver,
 	@Brief String family,
 	@Brief boolean familyRegExp,
-	@Brief String version,
-	@Brief boolean versionRegExp,
+	@Brief String softwareVersion,
+	@Brief boolean softwareVersionRegExp,
 	@Brief String partNumber,
 	@Brief boolean partNumberRegExp) {
 }

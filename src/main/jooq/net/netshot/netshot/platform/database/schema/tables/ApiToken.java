@@ -4,10 +4,12 @@
 package net.netshot.netshot.platform.database.schema.tables;
 
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Indexes;
 import net.netshot.netshot.platform.database.schema.Keys;
@@ -74,6 +76,11 @@ public class ApiToken extends TableImpl<ApiTokenRecord> {
      * The column <code>api_token.description</code>.
      */
     public final TableField<ApiTokenRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>api_token.change_date</code>.
+     */
+    public final TableField<ApiTokenRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
     private ApiToken(Name alias, Table<ApiTokenRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

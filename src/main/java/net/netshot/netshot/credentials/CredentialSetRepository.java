@@ -42,6 +42,7 @@ import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.secret.LocalSecret;
 import net.netshot.netshot.platform.secret.Secret;
@@ -395,6 +396,17 @@ public class CredentialSetRepository {
 	}
 
 	/**
+	 * Locks the row of a credential set until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the credential set ID
+	 * @return the version of the credential set, or null if there is no such credential set
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, CS, CS.ID, CS.VERSION, id);
+	}
+
+	/**
 	 * Saves an existing credential set (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
@@ -402,25 +414,11 @@ public class CredentialSetRepository {
 	 * @return the saved credential set, or null if there is no credential set of this ID and type
 	 */
 	public DeviceCredentialSet save(DSLContext dsl, DeviceCredentialSet credentialSet) {
-		return this.save(dsl, credentialSet, null);
-	}
-
-	/**
-	 * Saves an existing credential set if it is still at a given version (its version is incremented, its
-	 * change date set).
-	 *
-	 * @param dsl the jOOQ context
-	 * @param credentialSet the credential set
-	 * @param expectedVersion the version the credential set must be at, or null for any
-	 * @return the saved credential set, or null if there is no credential set of this ID and type (at that version)
-	 */
-	public DeviceCredentialSet save(DSLContext dsl, DeviceCredentialSet credentialSet, Long expectedVersion) {
 		int updated = dsl.update(CS)
 			.set(values(credentialSet))
 			.set(CS.VERSION, CS.VERSION.plus(1))
 			.set(CS.CHANGE_DATE, now())
 			.where(CS.ID.eq(credentialSet.id()), CS.DTYPE.eq(credentialSet.typeName()))
-			.and(expectedVersion == null ? DSL.trueCondition() : CS.VERSION.cast(Long.class).eq(expectedVersion))
 			.execute();
 		return updated == 0 ? null : this.find(dsl, credentialSet.id());
 	}
@@ -434,20 +432,6 @@ public class CredentialSetRepository {
 	 */
 	public boolean remove(DSLContext dsl, long id) {
 		return dsl.deleteFrom(CS).where(CS.ID.eq(id)).execute() > 0;
-	}
-
-	/**
-	 * Removes a credential set if it is at a given version.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param id the credential set ID
-	 * @param expectedVersion the version the credential set must be at, or null for any
-	 * @return true if the credential set was found (at that version) and removed
-	 */
-	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
-		return dsl.deleteFrom(CS).where(CS.ID.eq(id))
-			.and(expectedVersion == null ? DSL.trueCondition() : CS.VERSION.cast(Long.class).eq(expectedVersion))
-			.execute() > 0;
 	}
 
 	/**

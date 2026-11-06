@@ -4,10 +4,12 @@
 package net.netshot.netshot.platform.database.schema.tables;
 
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.records.DeviceJsScriptRecord;
@@ -82,6 +84,16 @@ public class DeviceJsScript extends TableImpl<DeviceJsScriptRecord> {
      * The column <code>device_js_script.folder</code>.
      */
     public final TableField<DeviceJsScriptRecord, String> FOLDER = createField(DSL.name("folder"), SQLDataType.VARCHAR(1000), this, "");
+
+    /**
+     * The column <code>device_js_script.version</code>.
+     */
+    public final TableField<DeviceJsScriptRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>device_js_script.change_date</code>.
+     */
+    public final TableField<DeviceJsScriptRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
     private DeviceJsScript(Name alias, Table<DeviceJsScriptRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

@@ -21,6 +21,7 @@ package net.netshot.netshot.compliance;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -34,6 +35,7 @@ import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -183,20 +185,37 @@ public class SoftwareRuleService {
 	}
 
 	/**
-	 * Replaces a software rule and, if a position is given, moves it there (the priorities of the rules are renumbered).
+	 * The new definition of a software rule, and where to move it.
 	 *
-	 * @param id the rule ID
-	 * @param newRule the new definition of the rule (its ID and priority are ignored)
+	 * @param rule the new definition of the rule (its ID and priority are ignored)
 	 * @param position the new position of the rule among the rules, from 1 (clamped to the number of rules), or null
 	 *        to keep it where it is
-	 * @return the rule, with its position
-	 * @throws NetshotException if the rule, the group or the driver doesn't exist, or the rule can't be stored
 	 */
-	public RankedSoftwareRule replace(long id, SoftwareRule newRule, Integer position) {
+	public record Replacement(SoftwareRule rule, Integer position) {
+	}
+
+	/**
+	 * Replaces a software rule, if it is at a given version, and, if a position is given, moves it there (the
+	 * priorities of the rules are renumbered). The new definition is computed from the rule as it is, which can't
+	 * change meanwhile (to apply a patch).
+	 *
+	 * @param id the rule ID
+	 * @param change gives the new definition of the rule and its position from the current rule
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @return the rule, with its position
+	 * @throws NetshotException if the rule, the group or the driver doesn't exist, the rule isn't at the expected
+	 *         version, or the rule can't be stored
+	 */
+	public RankedSoftwareRule replace(long id, Function<RankedSoftwareRule, Replacement> change, Long expectedVersion) {
 		RankedSoftwareRule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
+				Integer version = this.repository.lock(dsl, id);
 				RankedSoftwareRule existing = this.require(dsl, id);
+				Versions.check("software rule", version, expectedVersion);
+				Replacement replacement = change.apply(existing);
+				SoftwareRule newRule = replacement.rule();
+				Integer position = replacement.position();
 				this.check(dsl, newRule);
 				this.repository.save(dsl, newRule.withId(id).withPriority(existing.rule().priority()));
 				if (position != null && position != existing.rank()) {
@@ -229,9 +248,9 @@ public class SoftwareRuleService {
 	}
 
 	private SoftwareRule fromDefinition(long id, double priority, SoftwareRuleDefinition definition) {
-		return new SoftwareRule(id, priority, definition.groupId(), knownDriver(definition.driver()),
-			definition.family(), definition.familyRegExp(), definition.version(),
-			definition.versionRegExp(), definition.partNumber(), definition.partNumberRegExp(),
+		return new SoftwareRule(id, 0, null, priority, definition.groupId(), knownDriver(definition.driver()),
+			definition.family(), definition.familyRegExp(), definition.softwareVersion(),
+			definition.softwareVersionRegExp(), definition.partNumber(), definition.partNumberRegExp(),
 			definition.level());
 	}
 
@@ -248,7 +267,7 @@ public class SoftwareRuleService {
 			rule = this.transactions.write(dsl -> {
 				DeviceGroup group = this.findGroup(dsl, definition.groupId());
 				SoftwareRule newRule = this.fromDefinition(0, Double.MAX_VALUE, definition);
-				return new SoftwareRuleView(newRule.withId(this.repository.add(dsl, newRule)), group);
+				return new SoftwareRuleView(this.repository.find(dsl, this.repository.add(dsl, newRule)), group);
 			});
 		}
 		catch (DataAccessException e) {
@@ -271,6 +290,7 @@ public class SoftwareRuleService {
 		SoftwareRuleView rule;
 		try {
 			rule = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				SoftwareRule existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
@@ -279,7 +299,7 @@ public class SoftwareRuleService {
 				DeviceGroup group = this.findGroup(dsl, definition.groupId());
 				SoftwareRule edited = this.fromDefinition(id, existing.priority(), definition);
 				this.repository.save(dsl, edited);
-				return new SoftwareRuleView(edited, group);
+				return new SoftwareRuleView(this.repository.find(dsl, id), group);
 			});
 		}
 		catch (DataAccessException e) {
@@ -298,13 +318,27 @@ public class SoftwareRuleService {
 	 * @throws NetshotException if the rule can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a software rule, if it is at a given version.
+	 *
+	 * @param id the rule ID
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @return true if the rule has been deleted, false if there was no such rule
+	 * @throws NetshotException if the rule isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such software rule of ID {}", id);
 					return false;
 				}
-				return true;
+				Versions.check("software rule", version, expectedVersion);
+				return this.repository.remove(dsl, id);
 			});
 			if (deleted) {
 				AAA_LOG.info("Software rule of ID {} has been deleted", id);

@@ -193,17 +193,20 @@ export interface paths {
         get: operations["getHardwareRule"];
         /**
          * Replace a hardware rule
-         * @description Replaces the definition of a hardware rule.
+         * @description Replaces the definition of a hardware rule. With If-Match, the rule must still be at the given version (ETag).
          */
         put: operations["replaceHardwareRule"];
         post?: never;
-        /** Delete a hardware rule */
+        /**
+         * Delete a hardware rule
+         * @description Deletes a hardware rule. With If-Match, the rule must still be at the given version (ETag).
+         */
         delete: operations["deleteHardwareRule"];
         options?: never;
         head?: never;
         /**
          * Update a hardware rule
-         * @description Changes some properties of a hardware rule (JSON merge patch, RFC 7396).
+         * @description Changes some properties of a hardware rule (JSON merge patch, RFC 7396). With If-Match, the rule must still be at the given version (ETag).
          */
         patch: operations["updateHardwareRule"];
         trace?: never;
@@ -243,20 +246,20 @@ export interface paths {
         get: operations["getPolicy"];
         /**
          * Replace a compliance policy
-         * @description Replaces the name and the target groups of a policy. The compliance results of the devices of a group removed from the policy are deleted.
+         * @description Replaces the name and the target groups of a policy. The compliance results of the devices of a group removed from the policy are deleted. With If-Match, the policy must still be at the given version (ETag).
          */
         put: operations["replacePolicy"];
         post?: never;
         /**
          * Delete a compliance policy
-         * @description Deletes a policy, with its rules, their exemptions and results.
+         * @description Deletes a policy, with its rules, their exemptions and results. With If-Match, the policy must still be at the given version (ETag).
          */
         delete: operations["deletePolicy"];
         options?: never;
         head?: never;
         /**
          * Update a compliance policy
-         * @description Changes some properties of a policy (JSON merge patch, RFC 7396).
+         * @description Changes some properties of a policy (JSON merge patch, RFC 7396). With If-Match, the policy must still be at the given version (ETag).
          */
         patch: operations["updatePolicy"];
         trace?: never;
@@ -316,20 +319,20 @@ export interface paths {
         get: operations["getRule"];
         /**
          * Replace a compliance rule
-         * @description Replaces the definition of a rule (its type and its policy can't change; its exemptions are unchanged).
+         * @description Replaces the definition of a rule (its type and its policy can't change; its exemptions are unchanged). With If-Match, the rule must still be at the given version (ETag).
          */
         put: operations["replaceRule"];
         post?: never;
         /**
          * Delete a compliance rule
-         * @description Deletes a rule, with its exemptions and results.
+         * @description Deletes a rule, with its exemptions and results. With If-Match, the rule must still be at the given version (ETag).
          */
         delete: operations["deleteRule"];
         options?: never;
         head?: never;
         /**
          * Update a compliance rule
-         * @description Changes some properties of a rule (JSON merge patch, RFC 7396).
+         * @description Changes some properties of a rule (JSON merge patch, RFC 7396). With If-Match, the rule must still be at the given version (ETag).
          */
         patch: operations["updateRule"];
         trace?: never;
@@ -348,7 +351,7 @@ export interface paths {
         get: operations["listExemptions"];
         /**
          * Replace the exemptions of a rule
-         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set.
+         * @description Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set. The exemptions are part of the rule: the version of the rule is incremented; with If-Match, the rule must still be at the given version (ETag).
          */
         put: operations["replaceExemptions"];
         post?: never;
@@ -413,20 +416,20 @@ export interface paths {
         get: operations["getSoftwareRule"];
         /**
          * Replace a software rule
-         * @description Replaces the definition of a software rule. A priority moves the rule to that position (the other rules shift); without priority the rule keeps its position.
+         * @description Replaces the definition of a software rule. A priority moves the rule to that position (the other rules shift); without priority the rule keeps its position. With If-Match, the rule must still be at the given version (ETag).
          */
         put: operations["replaceSoftwareRule"];
         post?: never;
         /**
          * Delete a software rule
-         * @description Deletes a software rule (the rules after it move up).
+         * @description Deletes a software rule (the rules after it move up). With If-Match, the rule must still be at the given version (ETag).
          */
         delete: operations["deleteSoftwareRule"];
         options?: never;
         head?: never;
         /**
          * Update a software rule
-         * @description Changes some properties of a software rule (JSON merge patch, RFC 7396), possibly its priority (position).
+         * @description Changes some properties of a software rule (JSON merge patch, RFC 7396), possibly its priority (position). With If-Match, the rule must still be at the given version (ETag).
          */
         patch: operations["updateSoftwareRule"];
         trace?: never;
@@ -955,20 +958,20 @@ export interface paths {
         get: operations["getDiagnostic"];
         /**
          * Replace a diagnostic
-         * @description Replaces the definition of a diagnostic (its type can't change). The results of the diagnostic are deleted when its target group changes.
+         * @description Replaces the definition of a diagnostic (its type can't change). The results of the diagnostic are deleted when its target group changes. With If-Match, the diagnostic must still be at the given version (ETag).
          */
         put: operations["replaceDiagnostic"];
         post?: never;
         /**
          * Delete a diagnostic
-         * @description Deletes a diagnostic, with its results.
+         * @description Deletes a diagnostic, with its results. With If-Match, the diagnostic must still be at the given version (ETag).
          */
         delete: operations["deleteDiagnostic"];
         options?: never;
         head?: never;
         /**
          * Update a diagnostic
-         * @description Changes some properties of a diagnostic (JSON merge patch, RFC 7396).
+         * @description Changes some properties of a diagnostic (JSON merge patch, RFC 7396). With If-Match, the diagnostic must still be at the given version (ETag).
          */
         patch: operations["updateDiagnostic"];
         trace?: never;
@@ -1151,17 +1154,20 @@ export interface paths {
         get: operations["getHook"];
         /**
          * Replace a hook
-         * @description Replaces the definition of a hook (its type can't change). Hooks have no version: there is no ETag.
+         * @description Replaces the definition of a hook (its type can't change). With If-Match, the hook must still be at the given version (ETag).
          */
         put: operations["replaceHook"];
         post?: never;
-        /** Delete a hook */
+        /**
+         * Delete a hook
+         * @description Deletes a hook. With If-Match, the hook must still be at the given version (ETag).
+         */
         delete: operations["deleteHook"];
         options?: never;
         head?: never;
         /**
          * Update a hook
-         * @description Changes some properties of a hook (JSON merge patch, RFC 7396; the triggers are replaced as a whole).
+         * @description Changes some properties of a hook (JSON merge patch, RFC 7396; the triggers are replaced as a whole). With If-Match, the hook must still be at the given version (ETag).
          */
         patch: operations["updateHook"];
         trace?: never;
@@ -1199,13 +1205,24 @@ export interface paths {
         };
         /** Get a script */
         get: operations["getScript"];
-        put?: never;
+        /**
+         * Replace a script
+         * @description Validates and replaces the definition of a command script (the author is kept). With If-Match, the script must still be at the given version (ETag).
+         */
+        put: operations["replaceScript"];
         post?: never;
-        /** Delete a script */
+        /**
+         * Delete a script
+         * @description Deletes a command script. With If-Match, the script must still be at the given version (ETag).
+         */
         delete: operations["deleteScript"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update a script
+         * @description Changes some properties of a command script (JSON merge patch, RFC 7396), validated as on creation (the author is kept). With If-Match, the script must still be at the given version (ETag).
+         */
+        patch: operations["updateScript"];
         trace?: never;
     };
     "/scripts/validation": {
@@ -1504,20 +1521,20 @@ export interface paths {
         get: operations["getUser"];
         /**
          * Replace a user
-         * @description Replaces the definition of a user. An absent password is unchanged (it is required to make a remote user a local one). A user can't edit itself (403). Users have no version: there is no ETag.
+         * @description Replaces the definition of a user. An absent password is unchanged (it is required to make a remote user a local one). A user can't edit itself (403). With If-Match, the user must still be at the given version (ETag).
          */
         put: operations["replaceUser"];
         post?: never;
         /**
          * Delete a user
-         * @description Deletes a user. A user can't delete itself (403).
+         * @description Deletes a user. A user can't delete itself (403). With If-Match, the user must still be at the given version (ETag).
          */
         delete: operations["deleteUser"];
         options?: never;
         head?: never;
         /**
          * Update a user
-         * @description Changes some properties of a user (JSON merge patch, RFC 7396). The password is changed by giving one. A user can't edit itself (403).
+         * @description Changes some properties of a user (JSON merge patch, RFC 7396). The password is changed by giving one. A user can't edit itself (403). With If-Match, the user must still be at the given version (ETag).
          */
         patch: operations["updateUser"];
         trace?: never;
@@ -1628,6 +1645,8 @@ export interface components {
             readonly id: number;
             readonly url: string | null;
             readonly display: string | null;
+            /** Format: date-time */
+            readonly changeDate: Date | null;
             description: string | null;
             /** Format: int32 */
             level: number;
@@ -1652,6 +1671,8 @@ export interface components {
             readonly id: number;
             readonly url: string | null;
             readonly display: string | null;
+            /** Format: date-time */
+            readonly changeDate: Date | null;
             description: string | null;
             /** Format: int32 */
             level: number;
@@ -1898,6 +1919,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -1950,6 +1975,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             name: string | null;
             targetGroups: components["schemas"]["Group"][] | null;
         };
@@ -1959,6 +1988,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -1979,6 +2012,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2039,6 +2076,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             partNumber: string | null;
             /** Format: date-time */
             endOfSale: Date | null;
@@ -2249,6 +2290,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             /** Format: int32 */
             priority: number;
             /** @enum {string|null} */
@@ -2257,8 +2302,8 @@ export interface components {
             driver: string | null;
             family: string | null;
             familyRegExp: boolean;
-            version: string | null;
-            versionRegExp: boolean;
+            softwareVersion: string | null;
+            softwareVersionRegExp: boolean;
             partNumber: string | null;
             partNumberRegExp: boolean;
         };
@@ -2273,8 +2318,8 @@ export interface components {
             driver?: string | null;
             family?: string | null;
             familyRegExp?: boolean | null;
-            version?: string | null;
-            versionRegExp?: boolean | null;
+            softwareVersion?: string | null;
+            softwareVersionRegExp?: boolean | null;
             partNumber?: string | null;
             partNumberRegExp?: boolean | null;
         };
@@ -3010,6 +3055,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             name: string | null;
             type: string | null;
             resultType: string | null;
@@ -3179,6 +3228,10 @@ export interface components {
             readonly id: number;
             readonly url: string | null;
             readonly display: string | null;
+            /** Format: int64 */
+            readonly version: number;
+            /** Format: date-time */
+            readonly changeDate: Date | null;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3244,6 +3297,10 @@ export interface components {
             id: number;
             url: string | null;
             display: string | null;
+            /** Format: int64 */
+            version: number;
+            /** Format: date-time */
+            changeDate: Date | null;
             name: string | null;
             folder: string | null;
             deviceDriver: string | null;
@@ -3455,6 +3512,10 @@ export interface components {
             readonly id: number;
             readonly url: string | null;
             readonly display: string | null;
+            /** Format: int64 */
+            readonly version: number;
+            /** Format: date-time */
+            readonly changeDate: Date | null;
             username: string | null;
             local: boolean;
             /** Format: int32 */
@@ -5933,9 +5994,9 @@ export interface operations {
                 offset?: number;
                 /** @description Number of items of the page (0: all the items, unless a maximum page size is set) */
                 limit?: number;
-                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, priority, driver, family, version, partNumber, level */
+                /** @description Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, priority, driver, family, softwareVersion, partNumber, level */
                 sort?: string;
-                /** @description Free text search; fields: family, version, partNumber */
+                /** @description Free text search; fields: family, softwareVersion, partNumber */
                 q?: string;
                 /** @description true to count the matching items (in count; not counted by default) */
                 count?: boolean;
@@ -6043,34 +6104,34 @@ export interface operations {
                 family__empty?: boolean;
                 /** @description Filter: familyRegExp equal to */
                 familyRegExp?: boolean[];
-                /** @description Filter: version equal to */
-                version?: string[];
-                /** @description Filter: version not equal to */
-                version__n?: string[];
-                /** @description Filter: version equal to, ignoring the case */
-                version__ie?: string[];
-                /** @description Filter: version not equal to, ignoring the case */
-                version__nie?: string[];
-                /** @description Filter: version contains, ignoring the case */
-                version__ic?: string[];
-                /** @description Filter: version doesn't contain, ignoring the case */
-                version__nic?: string[];
-                /** @description Filter: version starts with, ignoring the case */
-                version__isw?: string[];
-                /** @description Filter: version doesn't start with, ignoring the case */
-                version__nisw?: string[];
-                /** @description Filter: version ends with, ignoring the case */
-                version__iew?: string[];
-                /** @description Filter: version doesn't end with, ignoring the case */
-                version__niew?: string[];
-                /** @description Filter: version matches the (POSIX) regular expression */
-                version__regex?: string[];
-                /** @description Filter: version matches the (POSIX) regular expression, ignoring the case */
-                version__iregex?: string[];
-                /** @description Filter: version is empty (null, or an empty string) for true, isn't for false */
-                version__empty?: boolean;
-                /** @description Filter: versionRegExp equal to */
-                versionRegExp?: boolean[];
+                /** @description Filter: softwareVersion equal to */
+                softwareVersion?: string[];
+                /** @description Filter: softwareVersion not equal to */
+                softwareVersion__n?: string[];
+                /** @description Filter: softwareVersion equal to, ignoring the case */
+                softwareVersion__ie?: string[];
+                /** @description Filter: softwareVersion not equal to, ignoring the case */
+                softwareVersion__nie?: string[];
+                /** @description Filter: softwareVersion contains, ignoring the case */
+                softwareVersion__ic?: string[];
+                /** @description Filter: softwareVersion doesn't contain, ignoring the case */
+                softwareVersion__nic?: string[];
+                /** @description Filter: softwareVersion starts with, ignoring the case */
+                softwareVersion__isw?: string[];
+                /** @description Filter: softwareVersion doesn't start with, ignoring the case */
+                softwareVersion__nisw?: string[];
+                /** @description Filter: softwareVersion ends with, ignoring the case */
+                softwareVersion__iew?: string[];
+                /** @description Filter: softwareVersion doesn't end with, ignoring the case */
+                softwareVersion__niew?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression */
+                softwareVersion__regex?: string[];
+                /** @description Filter: softwareVersion matches the (POSIX) regular expression, ignoring the case */
+                softwareVersion__iregex?: string[];
+                /** @description Filter: softwareVersion is empty (null, or an empty string) for true, isn't for false */
+                softwareVersion__empty?: boolean;
+                /** @description Filter: softwareVersionRegExp equal to */
+                softwareVersionRegExp?: boolean[];
                 /** @description Filter: partNumber equal to */
                 partNumber?: string[];
                 /** @description Filter: partNumber not equal to */
@@ -11233,6 +11294,46 @@ export interface operations {
             };
         };
     };
+    replaceScript: {
+        parameters: {
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Script ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ScriptRequest"];
+                "application/xml": components["schemas"]["ScriptRequest"];
+                "application/yaml": components["schemas"]["ScriptRequest"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Script"];
+                    "application/xml": components["schemas"]["Script"];
+                    "application/yaml": components["schemas"]["Script"];
+                };
+            };
+        };
+    };
     deleteScript: {
         parameters: {
             query?: never;
@@ -11252,6 +11353,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": unknown;
+                };
+            };
+        };
+    };
+    updateScript: {
+        parameters: {
+            query?: {
+                /** @description View of the items: brief or full */
+                view?: "brief" | "full";
+                /** @description Properties to write, comma-separated (dotted paths for nested ones) */
+                fields?: string;
+                /** @description Properties not to write, comma-separated */
+                omit?: string;
+                /** @description References to write in their full view (written even when the view or the fields don't include them), comma-separated */
+                expand?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Script ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** @description The properties to change */
+        requestBody?: {
+            content: {
+                "application/merge-patch+json": components["schemas"]["JsonNode"];
+                "application/json": components["schemas"]["JsonNode"];
+                "application/xml": components["schemas"]["JsonNode"];
+                "application/yaml": components["schemas"]["JsonNode"];
+            };
+        };
+        responses: {
+            /** @description default response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Script"];
+                    "application/xml": components["schemas"]["Script"];
+                    "application/yaml": components["schemas"]["Script"];
                 };
             };
         };
@@ -13221,7 +13364,7 @@ export interface briefs {
     VaultInstance: Pick<components["schemas"]["VaultInstance"], "id" | "url" | "display" | "name" | "type" | "baseUrl" | "httpsCaTrustMode" | "authMethod">;
     HardwareRule: Pick<components["schemas"]["HardwareRule"], "id" | "url" | "display" | "partNumber" | "endOfSale" | "endOfLife" | "group" | "driver" | "family" | "familyRegExp" | "partNumberRegExp">;
     Exemption: Pick<components["schemas"]["Exemption"], "device" | "expirationDate">;
-    SoftwareRule: Pick<components["schemas"]["SoftwareRule"], "id" | "url" | "display" | "priority" | "level" | "group" | "driver" | "family" | "familyRegExp" | "version" | "versionRegExp" | "partNumber" | "partNumberRegExp">;
+    SoftwareRule: Pick<components["schemas"]["SoftwareRule"], "id" | "url" | "display" | "priority" | "level" | "group" | "driver" | "family" | "familyRegExp" | "softwareVersion" | "softwareVersionRegExp" | "partNumber" | "partNumberRegExp">;
     BinaryFile: Pick<components["schemas"]["BinaryFile"], "url">;
     Config: Pick<components["schemas"]["Config"], "id" | "url" | "display" | "device" | "changeDate" | "author">;
     LongText: Pick<components["schemas"]["LongText"], "url">;

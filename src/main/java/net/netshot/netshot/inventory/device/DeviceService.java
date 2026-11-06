@@ -22,10 +22,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
-import org.jooq.exception.DataChangedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +40,7 @@ import net.netshot.netshot.inventory.group.DynamicGroups;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 
@@ -178,11 +179,11 @@ public class DeviceService {
 		Device device;
 		try {
 			device = this.transactions.write(dsl -> {
-				Device existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				if (this.repository.lock(dsl, id) == null) {
 					log.error("The device of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
 				}
+				Device existing = this.repository.find(dsl, id);
 				Device edited = this.applyUpdate(dsl, existing, update);
 				if (!Device.Status.DISABLED.equals(edited.status())) {
 					log.debug("Looking for an active device with this IP address.");
@@ -228,17 +229,31 @@ public class DeviceService {
 	 *         the management address is already used by an active device, or the device can't be stored
 	 */
 	public Device update(long id, DeviceChange change, Long expectedVersion) {
+		return this.update(id, _ -> change, expectedVersion);
+	}
+
+	/**
+	 * Replaces the editable properties of a device, if it is at a given version: the new properties are computed
+	 * from the device as it is, which can't change meanwhile (to apply a patch).
+	 *
+	 * @param id the device ID
+	 * @param change gives the new properties from the current device
+	 * @param expectedVersion the version the device must be at, or null for any
+	 * @return the device as it is once edited, as {@link #get(long)} returns it
+	 * @throws NetshotException if the device doesn't exist or isn't at the expected version, a property is invalid,
+	 *         the management address is already used by an active device, or the device can't be stored
+	 */
+	public Device update(long id, Function<Device, DeviceChange> change, Long expectedVersion) {
 		Device device;
 		try {
 			device = this.transactions.write(dsl -> {
-				Device existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "The device doesn't exist.");
 				}
-				if (expectedVersion != null && existing.version() != expectedVersion) {
-					throw NetshotException.versionMismatch("device", expectedVersion);
-				}
-				Device edited = this.applyChange(dsl, existing, change);
+				Versions.check("device", version, expectedVersion);
+				Device existing = this.repository.find(dsl, id);
+				Device edited = this.applyChange(dsl, existing, change.apply(existing));
 				if (!Device.Status.DISABLED.equals(edited.status())) {
 					DeviceSummary duplicate = this.repository.findActiveByMgmtAddress(dsl, edited.mgmtAddress(), edited.id());
 					if (duplicate != null) {
@@ -251,9 +266,6 @@ public class DeviceService {
 				return edited;
 			});
 			AAA_LOG.info("{} has been edited.", device);
-		}
-		catch (DataChangedException e) {
-			throw NetshotException.versionMismatch("device", expectedVersion == null ? 0 : expectedVersion);
 		}
 		catch (DataAccessException e) {
 			log.error("Cannot edit the device.", e);
@@ -360,14 +372,14 @@ public class DeviceService {
 		List<Path> filesToDelete;
 		try {
 			filesToDelete = this.transactions.write(dsl -> {
-				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
-				if (!this.repository.remove(dsl, id, expectedVersion)) {
-					if (expectedVersion != null && this.repository.find(dsl, id) != null) {
-						throw NetshotException.versionMismatch("device", expectedVersion);
-					}
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such device of ID {}", id);
 					return null;
 				}
+				Versions.check("device", version, expectedVersion);
+				List<Path> paths = this.repository.findConfigBinaryFilePaths(dsl, id);
+				this.repository.remove(dsl, id);
 				return paths;
 			});
 		}

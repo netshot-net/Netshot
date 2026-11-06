@@ -637,7 +637,7 @@ public class DemoDataCreator {
 	}
 
 	private Diagnostic getReloadReasonIosSimpleDiagnostic(DeviceGroup group) {
-		Diagnostic diagnostic = new SimpleDiagnostic(0, "Reload reason", true,
+		Diagnostic diagnostic = new SimpleDiagnostic(0, 0, null, "Reload reason", true,
 			group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable",
 			"show version | include reason",

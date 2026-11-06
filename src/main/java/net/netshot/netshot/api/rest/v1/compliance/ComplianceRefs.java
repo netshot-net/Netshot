@@ -127,7 +127,7 @@ final class ComplianceRefs {
 	 * @return the policies by ID
 	 */
 	static LongFunction<PolicyDto> policies(Map<Long, PolicyDto> loaded) {
-		return orIds(loaded, id -> new PolicyDto(id, V1Links.of(PolicyMapper.PATH, id), null, null, null));
+		return orIds(loaded, id -> new PolicyDto(id, V1Links.of(PolicyMapper.PATH, id), null, 0, null, null, null));
 	}
 
 	private Map<Long, PolicyDto> loadPolicies(Collection<Long> ids, boolean expand) {

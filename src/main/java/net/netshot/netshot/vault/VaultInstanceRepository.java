@@ -31,6 +31,7 @@ import org.jooq.impl.DSL;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
@@ -200,6 +201,17 @@ public class VaultInstanceRepository {
 	}
 
 	/**
+	 * Locks the row of a Vault instance until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the version of the instance, or null if there is no such instance
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, VAULT_INSTANCE, VAULT_INSTANCE.ID, VAULT_INSTANCE.VERSION, id);
+	}
+
+	/**
 	 * Removes a Vault instance.
 	 *
 	 * @param dsl the jOOQ context
@@ -208,19 +220,5 @@ public class VaultInstanceRepository {
 	 */
 	public boolean remove(DSLContext dsl, long id) {
 		return dsl.deleteFrom(VAULT_INSTANCE).where(VAULT_INSTANCE.ID.eq(id)).execute() > 0;
-	}
-
-	/**
-	 * Removes a Vault instance if it is at a given version.
-	 *
-	 * @param dsl the jOOQ context
-	 * @param id the ID
-	 * @param expectedVersion the version the instance must be at, or null for any
-	 * @return true if the instance was found (at that version) and removed
-	 */
-	public boolean remove(DSLContext dsl, long id, Long expectedVersion) {
-		return dsl.deleteFrom(VAULT_INSTANCE).where(VAULT_INSTANCE.ID.eq(id))
-			.and(expectedVersion == null ? DSL.trueCondition() : VAULT_INSTANCE.VERSION.cast(Long.class).eq(expectedVersion))
-			.execute() > 0;
 	}
 }

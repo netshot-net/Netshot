@@ -19,6 +19,7 @@
 package net.netshot.netshot.userscript;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -172,7 +174,10 @@ public class ScriptService {
 		DeviceJsScript valid = this.validate(creation);
 		DeviceJsScript script;
 		try {
-			script = valid.withId(this.transactions.write(dsl -> this.repository.add(dsl, valid)));
+			script = this.transactions.write(dsl -> {
+				DeviceJsScript stored = this.repository.find(dsl, this.repository.add(dsl, valid));
+				return valid.withId(stored.id()).withVersion(stored.version(), stored.changeDate());
+			});
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new rule.", e);
@@ -186,18 +191,73 @@ public class ScriptService {
 	}
 
 	/**
+	 * Changes a script, if it is at a given version: the new definition is computed from the script as it is, which
+	 * can't change meanwhile (to apply a patch). The definition is validated as on creation (see {@link #validate});
+	 * the author of the script is kept.
+	 *
+	 * @param id the script ID
+	 * @param change gives the new definition from the current script
+	 * @param expectedVersion the version the script must be at, or null for any
+	 * @return the script, with its user input definitions
+	 * @throws NetshotException if the script doesn't exist or isn't at the expected version, the new definition is
+	 *         invalid, the name is already used, or the script can't be stored
+	 */
+	public DeviceJsScript update(long id, Function<DeviceJsScript, ScriptCreation> change, Long expectedVersion) {
+		DeviceJsScript script;
+		try {
+			script = this.transactions.write(dsl -> {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
+				}
+				Versions.check("script", version, expectedVersion);
+				DeviceJsScript existing = this.repository.find(dsl, id);
+				ScriptCreation creation = change.apply(existing);
+				DeviceJsScript valid = this.validate(new ScriptCreation(creation.name(), creation.deviceDriver(), creation.script(),
+					existing.author(), creation.folder())).withId(id);
+				this.repository.save(dsl, valid);
+				DeviceJsScript stored = this.repository.find(dsl, id);
+				return valid.withVersion(stored.version(), stored.changeDate());
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to save the script {}.", id, e);
+			if (DatabaseErrors.isUniqueViolation(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_SCRIPT, "A script with this name already exists.");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the script.");
+		}
+		AAA_LOG.info("{} has been edited", script);
+		return script;
+	}
+
+	/**
 	 * Deletes a script.
 	 *
 	 * @param id the script ID
 	 * @throws NetshotException if the script doesn't exist or can't be deleted
 	 */
 	public void delete(long id) {
+		this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a script, if it is at a given version.
+	 *
+	 * @param id the script ID
+	 * @param expectedVersion the version the script must be at, or null for any
+	 * @throws NetshotException if the script doesn't exist, isn't at the expected version, or can't be deleted
+	 */
+	public void delete(long id, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.warn("No such script of ID {}", id);
 					throw new NetshotException(ErrorCode.NETSHOT_SCRIPT_NOT_FOUND, "The script doesn't exist.");
 				}
+				Versions.check("script", version, expectedVersion);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (NetshotException e) {

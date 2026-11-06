@@ -18,7 +18,6 @@
  */
 package net.netshot.netshot.api.rest.v1.vault;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -170,7 +169,6 @@ public class VaultInstanceResource {
 	 * @param id the Vault instance ID
 	 * @param patch the merge patch
 	 * @return the Vault instance
-	 * @throws JsonProcessingException if the patched Vault instance isn't a valid definition
 	 */
 	@PATCH
 	@Path("/{id}")
@@ -181,15 +179,10 @@ public class VaultInstanceResource {
 		+ "(JSON merge patch, RFC 7396). The secrets are unchanged unless the patch gives them. "
 		+ "With If-Match, the Vault instance must still be at the given version (ETag).")
 	public VaultInstanceDto updateVaultInstance(@PathParam("id") @Parameter(description = "Vault instance ID") long id,
-		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch)
-		throws JsonProcessingException {
+		@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The properties to change") JsonNode patch) {
 		ListParams.checkSelectionOnly(this.uriInfo.getQueryParameters());
-		Long expectedVersion = V1Response.ifMatch(this.headers);
-		VaultInstance current = this.vaultInstanceService.get(id);
-		VaultInstanceRequest patched = MergePatch.apply(VaultInstanceMapper.toRequest(current), patch, this.headers.getMediaType(),
-			VaultInstanceRequest.class);
-		VaultInstance vaultInstance = this.vaultInstanceService.update(id, VaultInstanceMapper.toDefinition(patched),
-			expectedVersion == null ? Long.valueOf(current.version()) : expectedVersion);
+		VaultInstance vaultInstance = this.vaultInstanceService.update(id, MergePatch.of(patch, this.headers.getMediaType(),
+			VaultInstanceRequest.class, VaultInstanceMapper::toRequest, VaultInstanceMapper::toDefinition), V1Response.ifMatch(this.headers));
 		return this.respond(vaultInstance, Selection.of(this.uriInfo.getQueryParameters(), VaultInstanceDto.class, Selection.View.FULL));
 	}
 

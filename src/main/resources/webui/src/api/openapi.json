@@ -5689,7 +5689,7 @@
       "put" : {
         "tags" : [ "Hardware rules" ],
         "summary" : "Replace a hardware rule",
-        "description" : "Replaces the definition of a hardware rule.",
+        "description" : "Replaces the definition of a hardware rule. With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "replaceHardwareRule",
         "parameters" : [ {
           "name" : "id",
@@ -5779,6 +5779,7 @@
       "delete" : {
         "tags" : [ "Hardware rules" ],
         "summary" : "Delete a hardware rule",
+        "description" : "Deletes a hardware rule. With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "deleteHardwareRule",
         "parameters" : [ {
           "name" : "id",
@@ -5802,7 +5803,7 @@
       "patch" : {
         "tags" : [ "Hardware rules" ],
         "summary" : "Update a hardware rule",
-        "description" : "Changes some properties of a hardware rule (JSON merge patch, RFC 7396).",
+        "description" : "Changes some properties of a hardware rule (JSON merge patch, RFC 7396). With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "updateHardwareRule",
         "parameters" : [ {
           "name" : "id",
@@ -6441,7 +6442,7 @@
       "put" : {
         "tags" : [ "Compliance policies" ],
         "summary" : "Replace a compliance policy",
-        "description" : "Replaces the name and the target groups of a policy. The compliance results of the devices of a group removed from the policy are deleted.",
+        "description" : "Replaces the name and the target groups of a policy. The compliance results of the devices of a group removed from the policy are deleted. With If-Match, the policy must still be at the given version (ETag).",
         "operationId" : "replacePolicy",
         "parameters" : [ {
           "name" : "id",
@@ -6531,7 +6532,7 @@
       "delete" : {
         "tags" : [ "Compliance policies" ],
         "summary" : "Delete a compliance policy",
-        "description" : "Deletes a policy, with its rules, their exemptions and results.",
+        "description" : "Deletes a policy, with its rules, their exemptions and results. With If-Match, the policy must still be at the given version (ETag).",
         "operationId" : "deletePolicy",
         "parameters" : [ {
           "name" : "id",
@@ -6555,7 +6556,7 @@
       "patch" : {
         "tags" : [ "Compliance policies" ],
         "summary" : "Update a compliance policy",
-        "description" : "Changes some properties of a policy (JSON merge patch, RFC 7396).",
+        "description" : "Changes some properties of a policy (JSON merge patch, RFC 7396). With If-Match, the policy must still be at the given version (ETag).",
         "operationId" : "updatePolicy",
         "parameters" : [ {
           "name" : "id",
@@ -8791,7 +8792,7 @@
       "put" : {
         "tags" : [ "Compliance rules" ],
         "summary" : "Replace a compliance rule",
-        "description" : "Replaces the definition of a rule (its type and its policy can't change; its exemptions are unchanged).",
+        "description" : "Replaces the definition of a rule (its type and its policy can't change; its exemptions are unchanged). With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "replaceRule",
         "parameters" : [ {
           "name" : "id",
@@ -8881,7 +8882,7 @@
       "delete" : {
         "tags" : [ "Compliance rules" ],
         "summary" : "Delete a compliance rule",
-        "description" : "Deletes a rule, with its exemptions and results.",
+        "description" : "Deletes a rule, with its exemptions and results. With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "deleteRule",
         "parameters" : [ {
           "name" : "id",
@@ -8905,7 +8906,7 @@
       "patch" : {
         "tags" : [ "Compliance rules" ],
         "summary" : "Update a compliance rule",
-        "description" : "Changes some properties of a rule (JSON merge patch, RFC 7396).",
+        "description" : "Changes some properties of a rule (JSON merge patch, RFC 7396). With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "updateRule",
         "parameters" : [ {
           "name" : "id",
@@ -9472,7 +9473,7 @@
       "put" : {
         "tags" : [ "Compliance rules" ],
         "summary" : "Replace the exemptions of a rule",
-        "description" : "Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set.",
+        "description" : "Replaces the whole set of devices exempted from a rule (an empty list removes them all), and answers the new set. The exemptions are part of the rule: the version of the rule is incremented; with If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "replaceExemptions",
         "parameters" : [ {
           "name" : "id",
@@ -10068,7 +10069,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, priority, driver, family, version, partNumber, level",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, priority, driver, family, softwareVersion, partNumber, level",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -10076,7 +10077,7 @@
         }, {
           "name" : "q",
           "in" : "query",
-          "description" : "Free text search; fields: family, version, partNumber",
+          "description" : "Free text search; fields: family, softwareVersion, partNumber",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -10740,9 +10741,9 @@
             }
           }
         }, {
-          "name" : "version",
+          "name" : "softwareVersion",
           "in" : "query",
-          "description" : "Filter: version equal to",
+          "description" : "Filter: softwareVersion equal to",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10753,9 +10754,9 @@
             }
           }
         }, {
-          "name" : "version__n",
+          "name" : "softwareVersion__n",
           "in" : "query",
-          "description" : "Filter: version not equal to",
+          "description" : "Filter: softwareVersion not equal to",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10766,9 +10767,9 @@
             }
           }
         }, {
-          "name" : "version__ie",
+          "name" : "softwareVersion__ie",
           "in" : "query",
-          "description" : "Filter: version equal to, ignoring the case",
+          "description" : "Filter: softwareVersion equal to, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10779,9 +10780,9 @@
             }
           }
         }, {
-          "name" : "version__nie",
+          "name" : "softwareVersion__nie",
           "in" : "query",
-          "description" : "Filter: version not equal to, ignoring the case",
+          "description" : "Filter: softwareVersion not equal to, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10792,9 +10793,9 @@
             }
           }
         }, {
-          "name" : "version__ic",
+          "name" : "softwareVersion__ic",
           "in" : "query",
-          "description" : "Filter: version contains, ignoring the case",
+          "description" : "Filter: softwareVersion contains, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10805,9 +10806,9 @@
             }
           }
         }, {
-          "name" : "version__nic",
+          "name" : "softwareVersion__nic",
           "in" : "query",
-          "description" : "Filter: version doesn't contain, ignoring the case",
+          "description" : "Filter: softwareVersion doesn't contain, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10818,9 +10819,9 @@
             }
           }
         }, {
-          "name" : "version__isw",
+          "name" : "softwareVersion__isw",
           "in" : "query",
-          "description" : "Filter: version starts with, ignoring the case",
+          "description" : "Filter: softwareVersion starts with, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10831,9 +10832,9 @@
             }
           }
         }, {
-          "name" : "version__nisw",
+          "name" : "softwareVersion__nisw",
           "in" : "query",
-          "description" : "Filter: version doesn't start with, ignoring the case",
+          "description" : "Filter: softwareVersion doesn't start with, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10844,9 +10845,9 @@
             }
           }
         }, {
-          "name" : "version__iew",
+          "name" : "softwareVersion__iew",
           "in" : "query",
-          "description" : "Filter: version ends with, ignoring the case",
+          "description" : "Filter: softwareVersion ends with, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10857,9 +10858,9 @@
             }
           }
         }, {
-          "name" : "version__niew",
+          "name" : "softwareVersion__niew",
           "in" : "query",
-          "description" : "Filter: version doesn't end with, ignoring the case",
+          "description" : "Filter: softwareVersion doesn't end with, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10870,9 +10871,9 @@
             }
           }
         }, {
-          "name" : "version__regex",
+          "name" : "softwareVersion__regex",
           "in" : "query",
-          "description" : "Filter: version matches the (POSIX) regular expression",
+          "description" : "Filter: softwareVersion matches the (POSIX) regular expression",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10883,9 +10884,9 @@
             }
           }
         }, {
-          "name" : "version__iregex",
+          "name" : "softwareVersion__iregex",
           "in" : "query",
-          "description" : "Filter: version matches the (POSIX) regular expression, ignoring the case",
+          "description" : "Filter: softwareVersion matches the (POSIX) regular expression, ignoring the case",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -10896,17 +10897,17 @@
             }
           }
         }, {
-          "name" : "version__empty",
+          "name" : "softwareVersion__empty",
           "in" : "query",
-          "description" : "Filter: version is empty (null, or an empty string) for true, isn't for false",
+          "description" : "Filter: softwareVersion is empty (null, or an empty string) for true, isn't for false",
           "required" : false,
           "schema" : {
             "type" : "boolean"
           }
         }, {
-          "name" : "versionRegExp",
+          "name" : "softwareVersionRegExp",
           "in" : "query",
-          "description" : "Filter: versionRegExp equal to",
+          "description" : "Filter: softwareVersionRegExp equal to",
           "required" : false,
           "style" : "form",
           "explode" : true,
@@ -11309,7 +11310,7 @@
       "put" : {
         "tags" : [ "Software rules" ],
         "summary" : "Replace a software rule",
-        "description" : "Replaces the definition of a software rule. A priority moves the rule to that position (the other rules shift); without priority the rule keeps its position.",
+        "description" : "Replaces the definition of a software rule. A priority moves the rule to that position (the other rules shift); without priority the rule keeps its position. With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "replaceSoftwareRule",
         "parameters" : [ {
           "name" : "id",
@@ -11399,7 +11400,7 @@
       "delete" : {
         "tags" : [ "Software rules" ],
         "summary" : "Delete a software rule",
-        "description" : "Deletes a software rule (the rules after it move up).",
+        "description" : "Deletes a software rule (the rules after it move up). With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "deleteSoftwareRule",
         "parameters" : [ {
           "name" : "id",
@@ -11423,7 +11424,7 @@
       "patch" : {
         "tags" : [ "Software rules" ],
         "summary" : "Update a software rule",
-        "description" : "Changes some properties of a software rule (JSON merge patch, RFC 7396), possibly its priority (position).",
+        "description" : "Changes some properties of a software rule (JSON merge patch, RFC 7396), possibly its priority (position). With If-Match, the rule must still be at the given version (ETag).",
         "operationId" : "updateSoftwareRule",
         "parameters" : [ {
           "name" : "id",
@@ -25760,7 +25761,7 @@
       "put" : {
         "tags" : [ "Diagnostics" ],
         "summary" : "Replace a diagnostic",
-        "description" : "Replaces the definition of a diagnostic (its type can't change). The results of the diagnostic are deleted when its target group changes.",
+        "description" : "Replaces the definition of a diagnostic (its type can't change). The results of the diagnostic are deleted when its target group changes. With If-Match, the diagnostic must still be at the given version (ETag).",
         "operationId" : "replaceDiagnostic",
         "parameters" : [ {
           "name" : "id",
@@ -25850,7 +25851,7 @@
       "delete" : {
         "tags" : [ "Diagnostics" ],
         "summary" : "Delete a diagnostic",
-        "description" : "Deletes a diagnostic, with its results.",
+        "description" : "Deletes a diagnostic, with its results. With If-Match, the diagnostic must still be at the given version (ETag).",
         "operationId" : "deleteDiagnostic",
         "parameters" : [ {
           "name" : "id",
@@ -25874,7 +25875,7 @@
       "patch" : {
         "tags" : [ "Diagnostics" ],
         "summary" : "Update a diagnostic",
-        "description" : "Changes some properties of a diagnostic (JSON merge patch, RFC 7396).",
+        "description" : "Changes some properties of a diagnostic (JSON merge patch, RFC 7396). With If-Match, the diagnostic must still be at the given version (ETag).",
         "operationId" : "updateDiagnostic",
         "parameters" : [ {
           "name" : "id",
@@ -32638,7 +32639,7 @@
       "put" : {
         "tags" : [ "Hooks" ],
         "summary" : "Replace a hook",
-        "description" : "Replaces the definition of a hook (its type can't change). Hooks have no version: there is no ETag.",
+        "description" : "Replaces the definition of a hook (its type can't change). With If-Match, the hook must still be at the given version (ETag).",
         "operationId" : "replaceHook",
         "parameters" : [ {
           "name" : "id",
@@ -32728,6 +32729,7 @@
       "delete" : {
         "tags" : [ "Hooks" ],
         "summary" : "Delete a hook",
+        "description" : "Deletes a hook. With If-Match, the hook must still be at the given version (ETag).",
         "operationId" : "deleteHook",
         "parameters" : [ {
           "name" : "id",
@@ -32751,7 +32753,7 @@
       "patch" : {
         "tags" : [ "Hooks" ],
         "summary" : "Update a hook",
-        "description" : "Changes some properties of a hook (JSON merge patch, RFC 7396; the triggers are replaced as a whole).",
+        "description" : "Changes some properties of a hook (JSON merge patch, RFC 7396; the triggers are replaced as a whole). With If-Match, the hook must still be at the given version (ETag).",
         "operationId" : "updateHook",
         "parameters" : [ {
           "name" : "id",
@@ -33851,9 +33853,100 @@
           }
         }
       },
+      "put" : {
+        "tags" : [ "Scripts" ],
+        "summary" : "Replace a script",
+        "description" : "Validates and replaces the definition of a command script (the author is kept). With If-Match, the script must still be at the given version (ETag).",
+        "operationId" : "replaceScript",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Script ID",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptRequest"
+              }
+            },
+            "application/xml" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptRequest"
+              }
+            },
+            "application/yaml" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScriptRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Script"
+                }
+              },
+              "application/xml" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Script"
+                }
+              },
+              "application/yaml" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Script"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete" : {
         "tags" : [ "Scripts" ],
         "summary" : "Delete a script",
+        "description" : "Deletes a command script. With If-Match, the script must still be at the given version (ETag).",
         "operationId" : "deleteScript",
         "parameters" : [ {
           "name" : "id",
@@ -33870,6 +33963,102 @@
             "description" : "default response",
             "content" : {
               "*/*" : { }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Scripts" ],
+        "summary" : "Update a script",
+        "description" : "Changes some properties of a command script (JSON merge patch, RFC 7396), validated as on creation (the author is kept). With If-Match, the script must still be at the given version (ETag).",
+        "operationId" : "updateScript",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Script ID",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "view",
+          "in" : "query",
+          "description" : "View of the items: brief or full",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "brief", "full" ]
+          }
+        }, {
+          "name" : "fields",
+          "in" : "query",
+          "description" : "Properties to write, comma-separated (dotted paths for nested ones)",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "omit",
+          "in" : "query",
+          "description" : "Properties not to write, comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "expand",
+          "in" : "query",
+          "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "The properties to change",
+          "content" : {
+            "application/merge-patch+json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JsonNode"
+              }
+            },
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JsonNode"
+              }
+            },
+            "application/xml" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JsonNode"
+              }
+            },
+            "application/yaml" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JsonNode"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Script"
+                }
+              },
+              "application/xml" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Script"
+                }
+              },
+              "application/yaml" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Script"
+                }
+              }
             }
           }
         }
@@ -40617,7 +40806,7 @@
       "put" : {
         "tags" : [ "Users" ],
         "summary" : "Replace a user",
-        "description" : "Replaces the definition of a user. An absent password is unchanged (it is required to make a remote user a local one). A user can't edit itself (403). Users have no version: there is no ETag.",
+        "description" : "Replaces the definition of a user. An absent password is unchanged (it is required to make a remote user a local one). A user can't edit itself (403). With If-Match, the user must still be at the given version (ETag).",
         "operationId" : "replaceUser",
         "parameters" : [ {
           "name" : "id",
@@ -40707,7 +40896,7 @@
       "delete" : {
         "tags" : [ "Users" ],
         "summary" : "Delete a user",
-        "description" : "Deletes a user. A user can't delete itself (403).",
+        "description" : "Deletes a user. A user can't delete itself (403). With If-Match, the user must still be at the given version (ETag).",
         "operationId" : "deleteUser",
         "parameters" : [ {
           "name" : "id",
@@ -40731,7 +40920,7 @@
       "patch" : {
         "tags" : [ "Users" ],
         "summary" : "Update a user",
-        "description" : "Changes some properties of a user (JSON merge patch, RFC 7396). The password is changed by giving one. A user can't edit itself (403).",
+        "description" : "Changes some properties of a user (JSON merge patch, RFC 7396). The password is changed by giving one. A user can't edit itself (403). With If-Match, the user must still be at the given version (ETag).",
         "operationId" : "updateUser",
         "parameters" : [ {
           "name" : "id",
@@ -42203,7 +42392,7 @@
   "components" : {
     "schemas" : {
       "ApiTokenCreated" : {
-        "required" : [ "description", "display", "id", "level", "role", "token", "url" ],
+        "required" : [ "changeDate", "description", "display", "id", "level", "role", "token", "url" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -42218,6 +42407,12 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true,
+            "readOnly" : true
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true,
             "readOnly" : true
           },
@@ -42266,7 +42461,7 @@
         "description" : "Definition of an API token"
       },
       "ApiToken" : {
-        "required" : [ "description", "display", "id", "level", "role", "url" ],
+        "required" : [ "changeDate", "description", "display", "id", "level", "role", "url" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -42281,6 +42476,12 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true,
+            "readOnly" : true
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true,
             "readOnly" : true
           },
@@ -43076,7 +43277,7 @@
         "x-netshot-brief" : [ "id", "url", "display", "name", "folder", "type" ]
       },
       "JavaScriptRule" : {
-        "required" : [ "display", "enabled", "id", "name", "policy", "script", "type", "url" ],
+        "required" : [ "changeDate", "display", "enabled", "id", "name", "policy", "script", "type", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -43089,6 +43290,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "type" : {
@@ -43194,7 +43404,7 @@
         "x-netshot-brief" : [ "id" ]
       },
       "Policy" : {
-        "required" : [ "display", "id", "name", "targetGroups", "url" ],
+        "required" : [ "changeDate", "display", "id", "name", "targetGroups", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -43207,6 +43417,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "name" : {
@@ -43225,7 +43444,7 @@
         "x-netshot-brief" : [ "id", "url", "display", "name" ]
       },
       "PythonRule" : {
-        "required" : [ "display", "enabled", "id", "name", "policy", "script", "type", "url" ],
+        "required" : [ "changeDate", "display", "enabled", "id", "name", "policy", "script", "type", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -43238,6 +43457,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "type" : {
@@ -43291,7 +43519,7 @@
         } ]
       },
       "TextRule" : {
-        "required" : [ "anyBlock", "context", "deviceDriver", "display", "enabled", "field", "id", "invert", "matchAll", "name", "normalize", "policy", "regExp", "text", "type", "url" ],
+        "required" : [ "anyBlock", "changeDate", "context", "deviceDriver", "display", "enabled", "field", "id", "invert", "matchAll", "name", "normalize", "policy", "regExp", "text", "type", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -43304,6 +43532,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "type" : {
@@ -43482,7 +43719,7 @@
         "x-netshot-brief" : [ ]
       },
       "HardwareRule" : {
-        "required" : [ "display", "driver", "endOfLife", "endOfSale", "family", "familyRegExp", "group", "id", "partNumber", "partNumberRegExp", "url" ],
+        "required" : [ "changeDate", "display", "driver", "endOfLife", "endOfSale", "family", "familyRegExp", "group", "id", "partNumber", "partNumberRegExp", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -43495,6 +43732,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "partNumber" : {
@@ -43981,7 +44227,7 @@
         "description" : "Test of a compliance rule definition against a device"
       },
       "SoftwareRule" : {
-        "required" : [ "display", "driver", "family", "familyRegExp", "group", "id", "level", "partNumber", "partNumberRegExp", "priority", "url", "version", "versionRegExp" ],
+        "required" : [ "changeDate", "display", "driver", "family", "familyRegExp", "group", "id", "level", "partNumber", "partNumberRegExp", "priority", "softwareVersion", "softwareVersionRegExp", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -43994,6 +44240,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "priority" : {
@@ -44022,11 +44277,11 @@
           "familyRegExp" : {
             "type" : "boolean"
           },
-          "version" : {
+          "softwareVersion" : {
             "type" : "string",
             "nullable" : true
           },
-          "versionRegExp" : {
+          "softwareVersionRegExp" : {
             "type" : "boolean"
           },
           "partNumber" : {
@@ -44038,7 +44293,7 @@
           }
         },
         "description" : "Software compliance rule",
-        "x-netshot-brief" : [ "id", "url", "display", "priority", "level", "group", "driver", "family", "familyRegExp", "version", "versionRegExp", "partNumber", "partNumberRegExp" ]
+        "x-netshot-brief" : [ "id", "url", "display", "priority", "level", "group", "driver", "family", "familyRegExp", "softwareVersion", "softwareVersionRegExp", "partNumber", "partNumberRegExp" ]
       },
       "SoftwareRuleRequest" : {
         "required" : [ "level" ],
@@ -44071,11 +44326,11 @@
             "type" : "boolean",
             "nullable" : true
           },
-          "version" : {
+          "softwareVersion" : {
             "type" : "string",
             "nullable" : true
           },
-          "versionRegExp" : {
+          "softwareVersionRegExp" : {
             "type" : "boolean",
             "nullable" : true
           },
@@ -45889,7 +46144,7 @@
         "x-netshot-brief" : [ "version", "deviceCount" ]
       },
       "Diagnostic" : {
-        "required" : [ "cliMode", "command", "deviceDriver", "deviceDriverDescription", "display", "enabled", "id", "modifierPattern", "modifierReplacement", "name", "resultType", "script", "targetGroup", "type", "url" ],
+        "required" : [ "changeDate", "cliMode", "command", "deviceDriver", "deviceDriverDescription", "display", "enabled", "id", "modifierPattern", "modifierReplacement", "name", "resultType", "script", "targetGroup", "type", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -45902,6 +46157,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "name" : {
@@ -46294,7 +46558,7 @@
         "x-netshot-brief" : [ ]
       },
       "WebHook" : {
-        "required" : [ "action", "display", "enabled", "httpsCaTrustMode", "httpsCustomCaCertificate", "id", "name", "targetUrl", "triggers", "type", "url" ],
+        "required" : [ "action", "changeDate", "display", "enabled", "httpsCaTrustMode", "httpsCustomCaCertificate", "id", "name", "targetUrl", "triggers", "type", "url", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -46309,6 +46573,17 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true,
+            "readOnly" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64",
+            "readOnly" : true
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true,
             "readOnly" : true
           },
@@ -46456,7 +46731,7 @@
         }
       },
       "Script" : {
-        "required" : [ "author", "deviceDriver", "deviceDriverDescription", "display", "folder", "id", "name", "script", "url", "userInputDefinitions" ],
+        "required" : [ "author", "changeDate", "deviceDriver", "deviceDriverDescription", "display", "folder", "id", "name", "script", "url", "userInputDefinitions", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -46469,6 +46744,15 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true
           },
           "name" : {
@@ -46968,7 +47252,7 @@
         "x-netshot-brief" : [ ]
       },
       "User" : {
-        "required" : [ "display", "hasPassword", "id", "lastPasswordChangeDate", "level", "local", "role", "url", "username" ],
+        "required" : [ "changeDate", "display", "hasPassword", "id", "lastPasswordChangeDate", "level", "local", "role", "url", "username", "version" ],
         "type" : "object",
         "properties" : {
           "id" : {
@@ -46983,6 +47267,17 @@
           },
           "display" : {
             "type" : "string",
+            "nullable" : true,
+            "readOnly" : true
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64",
+            "readOnly" : true
+          },
+          "changeDate" : {
+            "type" : "string",
+            "format" : "date-time",
             "nullable" : true,
             "readOnly" : true
           },

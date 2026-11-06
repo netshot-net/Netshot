@@ -4,10 +4,12 @@
 package net.netshot.netshot.platform.database.schema.tables;
 
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.DeviceGroup.DeviceGroupPath;
@@ -69,6 +71,16 @@ public class Policy extends TableImpl<PolicyRecord> {
      * The column <code>policy.name</code>.
      */
     public final TableField<PolicyRecord, String> NAME = createField(DSL.name("name"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>policy.version</code>.
+     */
+    public final TableField<PolicyRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>policy.change_date</code>.
+     */
+    public final TableField<PolicyRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
     private Policy(Name alias, Table<PolicyRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

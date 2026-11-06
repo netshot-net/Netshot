@@ -48,6 +48,7 @@ import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.QueryMapping;
 import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.FieldType;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -133,15 +134,17 @@ public class RuleRepository {
 	private static Rule toRule(Record r) {
 		String type = r.get(RULE.TYPE);
 		long id = r.get(RULE.ID);
+		int version = r.get(RULE.VERSION);
+		Instant changeDate = r.get(RULE.CHANGE_DATE);
 		String name = r.get(RULE.NAME);
 		boolean enabled = r.get(RULE.ENABLED);
 		long policyId = r.get(RULE.POLICY);
 		return switch (type) {
-			case TEXT -> new TextRule(id, name, enabled, policyId, r.get(RULE.FIELD), r.get(RULE.CONTEXT), r.get(RULE.TEXT),
+			case TEXT -> new TextRule(id, version, changeDate, name, enabled, policyId, r.get(RULE.FIELD), r.get(RULE.CONTEXT), r.get(RULE.TEXT),
 				r.get(RULE.REG_EXP), r.get(RULE.INVERT), r.get(RULE.ANY_BLOCK), r.get(RULE.MATCH_ALL), r.get(RULE.NORMALIZE),
 				r.get(RULE.DEVICE_DRIVER));
-			case JAVASCRIPT -> new JavaScriptRule(id, name, enabled, policyId, r.get(RULE.SCRIPT));
-			case PYTHON -> new PythonRule(id, name, enabled, policyId, r.get(RULE.SCRIPT));
+			case JAVASCRIPT -> new JavaScriptRule(id, version, changeDate, name, enabled, policyId, r.get(RULE.SCRIPT));
+			case PYTHON -> new PythonRule(id, version, changeDate, name, enabled, policyId, r.get(RULE.SCRIPT));
 			default -> throw new IllegalStateException("Unknown type of rule '%s'".formatted(type));
 		};
 	}
@@ -386,6 +389,8 @@ public class RuleRepository {
 	 */
 	public long add(DSLContext dsl, Rule rule) {
 		var insert = dsl.insertInto(RULE)
+			.set(RULE.VERSION, 0)
+			.set(RULE.CHANGE_DATE, Versions.now())
 			.set(RULE.NAME, rule.name())
 			.set(RULE.ENABLED, rule.enabled())
 			.set(RULE.POLICY, rule.policyId());
@@ -407,7 +412,28 @@ public class RuleRepository {
 	}
 
 	/**
-	 * Saves an existing rule (its type and policy are not changed).
+	 * Locks the row of a rule until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the rule ID
+	 * @return the version of the rule, or null if there is no such rule
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, RULE, RULE.ID, RULE.VERSION, id);
+	}
+
+	/**
+	 * Marks a rule as changed (its version is incremented, its change date set), when its exemptions change.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the rule ID
+	 */
+	public void touch(DSLContext dsl, long id) {
+		dsl.update(RULE).set(RULE.VERSION, RULE.VERSION.plus(1)).set(RULE.CHANGE_DATE, Versions.now()).where(RULE.ID.eq(id)).execute();
+	}
+
+	/**
+	 * Saves an existing rule (its type and policy are not changed; its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param rule the rule
@@ -415,6 +441,8 @@ public class RuleRepository {
 	 */
 	public boolean save(DSLContext dsl, Rule rule) {
 		var update = dsl.update(RULE)
+			.set(RULE.VERSION, RULE.VERSION.plus(1))
+			.set(RULE.CHANGE_DATE, Versions.now())
 			.set(RULE.NAME, rule.name())
 			.set(RULE.ENABLED, rule.enabled());
 		var full = switch (rule) {
@@ -476,7 +504,7 @@ public class RuleRepository {
 	}
 
 	/**
-	 * Replaces the exemptions of a rule.
+	 * Replaces the exemptions of a rule (see {@link #touch} for the version of the rule).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param ruleId the ID of the rule

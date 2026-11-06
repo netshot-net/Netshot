@@ -20,6 +20,7 @@ package net.netshot.netshot.domain;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
@@ -192,39 +194,43 @@ public class DomainService {
 	 *         expected version, the name is already used, or the domain can't be stored
 	 */
 	public Domain update(long id, DomainDefinition definition, Long expectedVersion) {
-		String name = definition.name() == null ? "" : definition.name().trim();
-		if (name.isEmpty()) {
-			log.warn("User posted an invalid domain name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
-		}
-		String description = definition.description() == null ? "" : definition.description().trim();
-		Network4Address v4Address;
-		try {
-			v4Address = parseServerAddress(definition.server4Address());
-		}
-		catch (UnknownHostException e) {
-			log.warn("User posted an invalid IP address.");
-			throw new NetshotException(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, "Malformed IP address");
-		}
+		Domain valid = validate(definition);
+		return this.update(id, _ -> definition, expectedVersion, valid);
+	}
+
+	/**
+	 * Edits a domain, if it is still at a given version: the new definition is computed from the domain as it is,
+	 * which can't change meanwhile (to apply a patch).
+	 *
+	 * @param id the domain ID
+	 * @param change gives the new definition from the current domain
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @return the edited domain
+	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist, isn't at the
+	 *         expected version, the name is already used, or the domain can't be stored
+	 */
+	public Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion) {
+		return this.update(id, change, expectedVersion, null);
+	}
+
+	// With the definition already validated (as a domain), if it is known
+	private Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion, Domain validated) {
 		Domain domain;
 		try {
 			domain = this.transactions.write(dsl -> {
-				Domain existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
-				checkVersion(existing, expectedVersion);
-				Domain saved = this.repository.save(dsl, existing.toBuilder()
-					.name(name)
-					.description(description)
-					.server4Address(v4Address)
-					.build(), expectedVersion);
-				if (saved == null) {
-					// Changed between the read and the update
-					throw versionMismatch(expectedVersion);
-				}
-				return saved;
+				Domain existing = this.repository.find(dsl, id);
+				Domain valid = validated == null ? validate(change.apply(existing)) : validated;
+				Versions.check("domain", version, expectedVersion);
+				return this.repository.save(dsl, existing.toBuilder()
+					.name(valid.name())
+					.description(valid.description())
+					.server4Address(valid.server4Address())
+					.build());
 			});
 		}
 		catch (NetshotException e) {
@@ -264,14 +270,13 @@ public class DomainService {
 	public void delete(long id, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				if (!this.repository.remove(dsl, id, expectedVersion)) {
-					Domain existing = expectedVersion == null ? null : this.repository.find(dsl, id);
-					if (existing != null) {
-						throw versionMismatch(expectedVersion);
-					}
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
+				Versions.check("domain", version, expectedVersion);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -283,16 +288,6 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to delete the domain");
 		}
 		AAA_LOG.info("Domain of ID {} has been deleted.", id);
-	}
-
-	private static void checkVersion(Domain domain, Long expectedVersion) {
-		if (expectedVersion != null && domain.version() != expectedVersion) {
-			throw versionMismatch(expectedVersion);
-		}
-	}
-
-	private static NetshotException versionMismatch(Long expectedVersion) {
-		return NetshotException.versionMismatch("domain", expectedVersion);
 	}
 
 	/**
@@ -314,5 +309,28 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, "Invalid IP address");
 		}
 		return v4Address;
+	}
+
+	/**
+	 * Checks the definition of a domain, for an edition.
+	 *
+	 * @param definition the definition
+	 * @return the name, description and IPv4 server address it gives (trimmed), as a domain
+	 * @throws NetshotException if the name is empty or the address is invalid
+	 */
+	private static Domain validate(DomainDefinition definition) {
+		String name = definition.name() == null ? "" : definition.name().trim();
+		if (name.isEmpty()) {
+			log.warn("User posted an invalid domain name.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
+		}
+		String description = definition.description() == null ? "" : definition.description().trim();
+		try {
+			return Domain.builder().name(name).description(description).server4Address(parseServerAddress(definition.server4Address())).build();
+		}
+		catch (UnknownHostException e) {
+			log.warn("User posted an invalid IP address.");
+			throw new NetshotException(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, "Malformed IP address");
+		}
 	}
 }
