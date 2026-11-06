@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.LongFunction;
 
 import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.inventory.search.SearchService;
@@ -36,6 +37,7 @@ import net.netshot.netshot.api.rest.v1.credentials.CredentialSetMapper;
 import net.netshot.netshot.api.rest.v1.credentials.CredentialSetRequest;
 import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
+import net.netshot.netshot.api.rest.v1.vault.VaultInstanceDto;
 import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.driver.DeviceDriver;
 import net.netshot.netshot.driver.DriverRegistry;
@@ -74,13 +76,46 @@ public final class DeviceMapper {
 	}
 
 	/**
+	 * Gives the representation of a device by its ID only (not loaded: a device deleted meanwhile, or a reference
+	 * not written).
+	 *
+	 * @param id the device ID
+	 * @return the representation
+	 */
+	public static DeviceDto byId(long id) {
+		return new DeviceDto(id, V1Links.of(PATH, id), null, null, null, null, null, null, null, null, null, null, null,
+			null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+			null, null, null, null, null, null);
+	}
+
+	/**
+	 * Gets the IDs of the Vault instances the credential sets of the accesses of a device read values from.
+	 *
+	 * @param device the device
+	 * @return the IDs (possibly repeated)
+	 */
+	public static List<Long> vaultInstanceIds(Device device) {
+		List<Long> ids = new ArrayList<>();
+		for (DeviceAccess access : device.accesses()) {
+			if (access.globalCredentialSet() != null) {
+				ids.addAll(CredentialSetMapper.vaultInstanceIds(access.globalCredentialSet()));
+			}
+			if (access.specificCredentialSet() != null) {
+				ids.addAll(CredentialSetMapper.vaultInstanceIds(access.specificCredentialSet()));
+			}
+		}
+		return ids;
+	}
+
+	/**
 	 * Maps a device.
 	 *
 	 * @param driverRegistry the loaded drivers (for the description of the driver)
 	 * @param device the device
+	 * @param vaults gives the representation of a Vault instance the credentials of the accesses read from, by ID
 	 * @return the representation
 	 */
-	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device) {
+	public static DeviceDto toDto(DriverRegistry driverRegistry, Device device, LongFunction<VaultInstanceDto> vaults) {
 		return new DeviceDto(device.id(), V1Links.of(PATH, device.id()), device.name(), (long) device.version(),
 			device.changeDate(), device.createdDate(), device.creator(), device.name(), device.mgmtAddress(), device.status(),
 			DomainMapper.toDto(device.mgmtDomain()), device.family(), device.driver(),
@@ -92,7 +127,7 @@ public final class DeviceMapper {
 			device.lastSnapshotSuccessDate(), device.lastSnapshotFailureDate(),
 			device.tags(), device.virtualDevices(), device.vrfInstances(), device.options(),
 			device.attributes() == null ? null : device.attributes().stream().map(DeviceMapper::toDto).toList(),
-			device.accesses() == null ? null : device.accesses().stream().map(DeviceMapper::toDto).toList(),
+			device.accesses() == null ? null : device.accesses().stream().map(a -> toDto(a, vaults)).toList(),
 			device.ownerGroups() == null ? null : device.ownerGroups().stream().map(GroupMapper::toDto).toList());
 	}
 
@@ -135,9 +170,9 @@ public final class DeviceMapper {
 		};
 	}
 
-	private static DeviceAccessDto toDto(DeviceAccess access) {
+	private static DeviceAccessDto toDto(DeviceAccess access, LongFunction<VaultInstanceDto> vaults) {
 		return new DeviceAccessDto(access.accessName(), access.address(), access.port(),
-			CredentialSetMapper.toDto(access.globalCredentialSet()), CredentialSetMapper.toDto(access.specificCredentialSet()),
+			CredentialSetMapper.toDto(access.globalCredentialSet(), vaults), CredentialSetMapper.toDto(access.specificCredentialSet(), vaults),
 			access.sshHostKeyVerification(), access.sshTrustedHostKeys(), access.sshTrustedHostKeysSince(),
 			access.httpsCaTrustMode(), access.httpsCustomCaCertificate());
 	}

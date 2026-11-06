@@ -42,13 +42,13 @@ import net.netshot.netshot.api.rest.v1.StatsResponse;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.V1Response;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.domain.DomainMapper;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.compliance.DeviceCheckResult;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.RuleService;
 import net.netshot.netshot.domain.DomainService;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.ListQuery;
@@ -83,17 +83,17 @@ public class ComplianceResultResource {
 	 * @param groupService the group use cases
 	 * @param searchService the device search use cases
 	 * @param domainService the domain use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
 	public ComplianceResultResource(RuleService ruleService, PolicyService policyService, GroupService groupService,
-		SearchService searchService, DomainService domainService, DriverRegistry driverRegistry) {
+		SearchService searchService, DomainService domainService, DeviceRefs deviceRefs) {
 		this.ruleService = ruleService;
 		this.policyService = policyService;
 		this.groupService = groupService;
 		this.searchService = searchService;
 		this.domainService = domainService;
-		this.refs = new ComplianceRefs(groupService, policyService, ruleService, searchService, driverRegistry);
+		this.refs = new ComplianceRefs(groupService, policyService, ruleService, deviceRefs);
 	}
 
 	/**

@@ -39,10 +39,9 @@ import net.netshot.netshot.api.rest.v1.ListResponse;
 import net.netshot.netshot.api.rest.v1.ListSchema;
 import net.netshot.netshot.api.rest.v1.V1Mappers;
 import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
-import net.netshot.netshot.driver.DriverRegistry;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.inventory.device.DeviceCatalogService;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.Criterion;
 import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.task.TaskService;
@@ -69,16 +68,15 @@ public class DeviceTaskResource {
 	 *
 	 * @param deviceCatalogService the device sub-resource use cases (to check that the device exists)
 	 * @param taskService the task use cases
-	 * @param searchService the device search use cases
 	 * @param groupService the group use cases
-	 * @param driverRegistry the loaded device drivers
+	 * @param deviceRefs writes the devices
 	 */
 	@Inject
-	public DeviceTaskResource(DeviceCatalogService deviceCatalogService, TaskService taskService, SearchService searchService,
-		GroupService groupService, DriverRegistry driverRegistry) {
+	public DeviceTaskResource(DeviceCatalogService deviceCatalogService, TaskService taskService, GroupService groupService,
+		DeviceRefs deviceRefs) {
 		this.deviceCatalogService = deviceCatalogService;
 		this.taskService = taskService;
-		this.responses = new TaskResponses(taskService, searchService, groupService, driverRegistry);
+		this.responses = new TaskResponses(taskService, groupService, deviceRefs);
 	}
 
 	/**

@@ -29,18 +29,15 @@ import java.util.function.LongFunction;
 
 import net.netshot.netshot.api.rest.v1.Selection;
 import net.netshot.netshot.api.rest.v1.V1Links;
-import net.netshot.netshot.api.rest.v1.task.TaskMapper;
 import net.netshot.netshot.api.rest.v1.device.DeviceDto;
-import net.netshot.netshot.api.rest.v1.device.DeviceMapper;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.group.GroupDto;
 import net.netshot.netshot.api.rest.v1.group.GroupMapper;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PolicyService;
 import net.netshot.netshot.compliance.Rule;
 import net.netshot.netshot.compliance.RuleService;
-import net.netshot.netshot.driver.DriverRegistry;
 import net.netshot.netshot.inventory.group.GroupService;
-import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.query.ListQuery;
 
 /**
@@ -53,16 +50,13 @@ final class ComplianceRefs {
 	private final GroupService groupService;
 	private final PolicyService policyService;
 	private final RuleService ruleService;
-	private final SearchService searchService;
-	private final DriverRegistry driverRegistry;
+	private final DeviceRefs deviceRefs;
 
-	ComplianceRefs(GroupService groupService, PolicyService policyService, RuleService ruleService, SearchService searchService,
-		DriverRegistry driverRegistry) {
+	ComplianceRefs(GroupService groupService, PolicyService policyService, RuleService ruleService, DeviceRefs deviceRefs) {
 		this.groupService = groupService;
 		this.policyService = policyService;
 		this.ruleService = ruleService;
-		this.searchService = searchService;
-		this.driverRegistry = driverRegistry;
+		this.deviceRefs = deviceRefs;
 	}
 
 	private static Set<Long> nonNull(Collection<Long> ids) {
@@ -175,19 +169,6 @@ final class ComplianceRefs {
 	 * @return the devices by ID
 	 */
 	LongFunction<DeviceDto> devices(Selection selection, String property, Collection<Long> ids) {
-		Map<Long, DeviceDto> devices = new HashMap<>();
-		Set<Long> wanted = nonNull(ids);
-		if (!wanted.isEmpty() && selection.includes(property)) {
-			ListQuery query = ListQuery.byIds(wanted);
-			if (selection.expands(property)) {
-				this.searchService.listDevices(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(this.driverRegistry, d)));
-			}
-			else {
-				this.searchService.listDeviceSummaries(query, null).items()
-					.forEach(d -> devices.put(d.id(), DeviceMapper.toDto(this.driverRegistry, d)));
-			}
-		}
-		return orIds(devices, TaskMapper.Refs.IDS_ONLY.devices());
+		return this.deviceRefs.byIds(selection, property, ids);
 	}
 }

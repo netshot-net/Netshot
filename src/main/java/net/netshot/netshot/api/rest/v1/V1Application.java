@@ -22,9 +22,11 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
+import jakarta.inject.Singleton;
 
 import net.netshot.netshot.api.rest.AuthenticationFilter;
 import net.netshot.netshot.api.rest.LoggerFilter;
+import net.netshot.netshot.api.rest.v1.device.DeviceRefs;
 import net.netshot.netshot.api.rest.v1.export.CsvListWriter;
 import net.netshot.netshot.api.rest.v1.export.ExportFilter;
 import net.netshot.netshot.api.rest.v1.export.ExportNegotiation;
@@ -66,5 +68,11 @@ public class V1Application extends ResourceConfig {
 		property(ServerProperties.JSON_PROCESSING_FEATURE_DISABLE, true);
 		property(ServerProperties.MOXY_JSON_FEATURE_DISABLE, true);
 		register(binder);
+		register(new AbstractBinder() {
+			@Override
+			protected void configure() {
+				bindAsContract(DeviceRefs.class).in(Singleton.class);
+			}
+		});
 	}
 }

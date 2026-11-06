@@ -18,14 +18,23 @@
  */
 package net.netshot.netshot.api.rest.v1.vault;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.LongFunction;
+
 import net.netshot.netshot.api.rest.v1.Secret;
 import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.SecretChange;
 import net.netshot.netshot.vault.VaultConnectionTestResult;
 import net.netshot.netshot.vault.VaultInstance;
 import net.netshot.netshot.vault.VaultInstanceDefinition;
+import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
  * Maps the Vault instances between the domain records and their v1 representation. The representation never
@@ -40,6 +49,36 @@ public final class VaultInstanceMapper {
 	public static final String TYPE_HASHICORP_KV2 = "HASHICORP_KV2";
 
 	private VaultInstanceMapper() {
+	}
+
+	/**
+	 * Gives the representation of a Vault instance by its ID only (not loaded: an instance deleted meanwhile).
+	 *
+	 * @param id the ID of the Vault instance
+	 * @return the representation
+	 */
+	public static VaultInstanceDto byId(long id) {
+		return new VaultInstanceDto(id, V1Links.of(PATH, id), null, 0, null, null, null, null, null, null, null, null,
+			null, null, null, false, null, null, null, false, null, null);
+	}
+
+	/**
+	 * Loads Vault instances in one query, to write the references to them.
+	 *
+	 * @param vaultInstanceService the Vault instance use cases
+	 * @param ids the IDs of the Vault instances (possibly repeated; none, no query)
+	 * @return the Vault instances by ID (the ones not found, by ID only)
+	 */
+	public static LongFunction<VaultInstanceDto> resolver(VaultInstanceService vaultInstanceService, Collection<Long> ids) {
+		Set<Long> wanted = new HashSet<>(ids);
+		Map<Long, VaultInstanceDto> loaded = new HashMap<>();
+		if (!wanted.isEmpty()) {
+			vaultInstanceService.list(ListQuery.byIds(wanted)).items().forEach(v -> loaded.put(v.id(), toDto(v)));
+		}
+		return id -> {
+			VaultInstanceDto found = loaded.get(id);
+			return found != null ? found : byId(id);
+		};
 	}
 
 	/**

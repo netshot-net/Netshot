@@ -18,11 +18,9 @@
  */
 package net.netshot.netshot.api.rest.v1.credentials;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.LongFunction;
 
@@ -239,18 +237,10 @@ public class CredentialSetResource {
 	 * @return the Vault instances by ID (the ones not found, by ID only)
 	 */
 	private LongFunction<VaultInstanceDto> vaults(Selection selection, Collection<DeviceCredentialSet> credentialSets) {
-		Set<Long> ids = new HashSet<>();
+		List<Long> ids = new ArrayList<>();
 		if (VAULT_PROPERTIES.stream().anyMatch(selection::includes)) {
 			credentialSets.forEach(c -> ids.addAll(CredentialSetMapper.vaultInstanceIds(c)));
 		}
-		Map<Long, VaultInstanceDto> loaded = new HashMap<>();
-		if (!ids.isEmpty()) {
-			this.vaultInstanceService.list(ListQuery.byIds(ids)).items()
-				.forEach(v -> loaded.put(v.id(), VaultInstanceMapper.toDto(v)));
-		}
-		return id -> {
-			VaultInstanceDto found = loaded.get(id);
-			return found != null ? found : CredentialSetMapper.vaultById(id);
-		};
+		return VaultInstanceMapper.resolver(this.vaultInstanceService, ids);
 	}
 }

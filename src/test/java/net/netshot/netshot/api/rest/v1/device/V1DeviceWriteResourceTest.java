@@ -41,6 +41,7 @@ import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.DiscoverDeviceTypeTask;
+import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -122,6 +123,41 @@ public class V1DeviceWriteResourceTest {
 		Answer got = this.admin.get("/devices/" + device.id());
 		Assertions.assertFalse(got.body().contains("\"p\""), got.body());
 		Assertions.assertTrue(got.json().get("accesses").get(0).get("specificCredentialSet").get("hasPassword").asBoolean());
+	}
+
+	@Test
+	@DisplayName("The Vault instances the credentials of the accesses read from are references with their name")
+	void vaultReferences() throws Exception {
+		String vaultName = "Vault-" + System.nanoTime();
+		Answer vault = this.admin.post("/vault-instances", """
+			{"name": "%s", "type": "HASHICORP_KV2", "baseUrl": "http://127.0.0.1:1", "authMethod": "APPROLE",
+			"appRoleId": "role", "appRoleSecretId": "s"}""".formatted(vaultName));
+		Assertions.assertEquals(201, vault.status(), vault.toString());
+		long vaultId = vault.json().get("id").asLong();
+		Answer global = this.admin.post("/credential-sets", """
+			{"name": "Global-%d", "type": "TELNET", "username": "g", "passwordVault": {"vaultInstance": %d, "path": "app/global"}}"""
+			.formatted(System.nanoTime(), vaultId));
+		Assertions.assertEquals(201, global.status(), global.toString());
+		Answer patched = this.admin.patch("/devices/" + this.router1.id(), """
+			{"accesses": [
+			{"accessName": "ssh", "specificCredentialSet": {"type": "SSH", "username": "u", "passwordVault": {"vaultInstance": %d, "path": "app/s"}}},
+			{"accessName": "telnet", "globalCredentialSet": %d}]}""".formatted(vaultId, global.json().get("id").asLong()));
+		Assertions.assertEquals(200, patched.status(), patched.toString());
+
+		JsonNode read = this.admin.get("/devices/" + this.router1.id()).json();
+		JsonNode instance = read.get("accesses").get(0).get("specificCredentialSet").get("passwordVault").get("vaultInstance");
+		Assertions.assertEquals(vaultId, instance.get("id").asLong());
+		Assertions.assertEquals(vaultName, instance.get("display").asText(), instance.toString());
+		JsonNode listed = this.admin.get("/devices?fields=accesses&expand=accesses.globalCredentialSet&id=" + this.router1.id()).json()
+			.get("results").get(0);
+		Assertions.assertEquals(vaultName, listed.get("accesses").get(0).get("specificCredentialSet").get("passwordVault")
+			.get("vaultInstance").get("display").asText(), listed.toString());
+		Assertions.assertEquals(vaultName, listed.get("accesses").get(1).get("globalCredentialSet").get("passwordVault")
+			.get("vaultInstance").get("display").asText(), listed.toString());
+		Task task = TestTasks.add(TakeSnapshotTask.of(this.router1, "Vault", "alice", false, false, false), Task.Status.SUCCESS);
+		JsonNode expanded = this.admin.get("/tasks/%d?expand=device&fields=device".formatted(task.id())).json();
+		Assertions.assertEquals(vaultName, expanded.get("device").get("accesses").get(0).get("specificCredentialSet").get("passwordVault")
+			.get("vaultInstance").get("display").asText(), expanded.toString());
 	}
 
 	@Test
