@@ -52,7 +52,7 @@ A list answers one page, in an envelope (here with `count=true`):
 
 - `offset` and `limit` select the page. Without `limit`, a page holds `netshot.http.api.pagesize.default` items (100); there is no maximum unless `netshot.http.api.pagesize.max` is set, a `limit` above it is then refused (see the [configuration reference](../configuration-reference.md#embedded-http-server)). `limit=0` gives all the matching items in one answer (`limit` is then `0` in the answer, and `next` is `null`), unless a maximum is set (400).
 - `count` is the total number of matching items, given with `count=true` only (`null` otherwise): counting costs more than reading a page on a large list. Without it, `next` is given as long as a page is full (the last page can then be empty).
-- `sort=name,-changeDate` sorts the list (`-` for a descending order); the ID always ends the order, so that the pages are stable. Without `sort`, a list is in the order of its IDs (the cheapest, indexed order), except where its resource tells otherwise (tasks: newest first; configurations: by decreasing change date; software rules: by priority; compliance results: by device, then rule).
+- `sort=name,-changeDate` sorts the list (`-` for a descending order); the empty values come last in both directions (with `sort=-lastSnapshotSuccessDate`, the devices never snapshotted are at the end); the ID always ends the order, so that the pages are stable. Without `sort`, a list is in the order of its IDs (the cheapest, indexed order), except where its resource tells otherwise (tasks: newest first; configurations: by decreasing change date; software rules: by priority; compliance results: by device, then rule).
 - `q=<text>` searches the text in the main text properties (case-insensitive).
 
 ### Filters
