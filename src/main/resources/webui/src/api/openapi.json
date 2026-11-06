@@ -1086,98 +1086,6 @@
             "type" : "string"
           }
         }, {
-          "name" : "id",
-          "in" : "query",
-          "description" : "Filter: id equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__n",
-          "in" : "query",
-          "description" : "Filter: id not equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lt",
-          "in" : "query",
-          "description" : "Filter: id lower than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lte",
-          "in" : "query",
-          "description" : "Filter: id lower than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gt",
-          "in" : "query",
-          "description" : "Filter: id greater than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gte",
-          "in" : "query",
-          "description" : "Filter: id greater than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__empty",
-          "in" : "query",
-          "description" : "Filter: id is empty (null, or an empty string) for true, isn't for false",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
-          }
-        }, {
           "name" : "device",
           "in" : "query",
           "description" : "Filter: device equal to",
@@ -2337,7 +2245,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, device, deviceName, rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: device, deviceName, rule, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2390,98 +2298,6 @@
           "required" : false,
           "schema" : {
             "type" : "string"
-          }
-        }, {
-          "name" : "id",
-          "in" : "query",
-          "description" : "Filter: id equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__n",
-          "in" : "query",
-          "description" : "Filter: id not equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lt",
-          "in" : "query",
-          "description" : "Filter: id lower than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lte",
-          "in" : "query",
-          "description" : "Filter: id lower than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gt",
-          "in" : "query",
-          "description" : "Filter: id greater than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gte",
-          "in" : "query",
-          "description" : "Filter: id greater than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__empty",
-          "in" : "query",
-          "description" : "Filter: id is empty (null, or an empty string) for true, isn't for false",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
           }
         }, {
           "name" : "device",
@@ -3652,7 +3468,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, ruleName, policy, policyName, result, checkDate, exemptionExpirationDate",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: ruleName, policy, policyName, result, checkDate, exemptionExpirationDate",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -3703,88 +3519,8 @@
           "in" : "query",
           "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
-          "style" : "form",
-          "explode" : true,
           "schema" : {
             "type" : "string"
-          }
-        }, {
-          "name" : "id__n",
-          "in" : "query",
-          "description" : "Filter: id not equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lt",
-          "in" : "query",
-          "description" : "Filter: id lower than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lte",
-          "in" : "query",
-          "description" : "Filter: id lower than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gt",
-          "in" : "query",
-          "description" : "Filter: id greater than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gte",
-          "in" : "query",
-          "description" : "Filter: id greater than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__empty",
-          "in" : "query",
-          "description" : "Filter: id is empty (null, or an empty string) for true, isn't for false",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
           }
         }, {
           "name" : "rule",
@@ -9036,7 +8772,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, expirationDate",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: expirationDate",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -9087,88 +8823,8 @@
           "in" : "query",
           "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
-          "style" : "form",
-          "explode" : true,
           "schema" : {
             "type" : "string"
-          }
-        }, {
-          "name" : "id__n",
-          "in" : "query",
-          "description" : "Filter: id not equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lt",
-          "in" : "query",
-          "description" : "Filter: id lower than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lte",
-          "in" : "query",
-          "description" : "Filter: id lower than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gt",
-          "in" : "query",
-          "description" : "Filter: id greater than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gte",
-          "in" : "query",
-          "description" : "Filter: id greater than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__empty",
-          "in" : "query",
-          "description" : "Filter: id is empty (null, or an empty string) for true, isn't for false",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
           }
         }, {
           "name" : "rule",
@@ -9505,7 +9161,7 @@
         }, {
           "name" : "sort",
           "in" : "query",
-          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: id, expirationDate",
+          "description" : "Sort fields, comma-separated, - for a descending order (name,-changeDate); fields: expirationDate",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -9556,88 +9212,8 @@
           "in" : "query",
           "description" : "References to write in their full view (written even when the view or the fields don't include them), comma-separated",
           "required" : false,
-          "style" : "form",
-          "explode" : true,
           "schema" : {
             "type" : "string"
-          }
-        }, {
-          "name" : "id__n",
-          "in" : "query",
-          "description" : "Filter: id not equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lt",
-          "in" : "query",
-          "description" : "Filter: id lower than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__lte",
-          "in" : "query",
-          "description" : "Filter: id lower than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gt",
-          "in" : "query",
-          "description" : "Filter: id greater than",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__gte",
-          "in" : "query",
-          "description" : "Filter: id greater than or equal to",
-          "required" : false,
-          "style" : "form",
-          "explode" : true,
-          "schema" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          }
-        }, {
-          "name" : "id__empty",
-          "in" : "query",
-          "description" : "Filter: id is empty (null, or an empty string) for true, isn't for false",
-          "required" : false,
-          "schema" : {
-            "type" : "boolean"
           }
         }, {
           "name" : "rule",
