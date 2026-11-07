@@ -24,7 +24,7 @@ import net.netshot.netshot.inventory.compliance.ConformanceLevel;
  * The properties of a software rule to create, or to replace on an existing rule.
  *
  * @param groupId the ID of the device group the rule applies to, or null for all the devices.
- *        A group which doesn't exist is silently taken for "all the devices".
+ *        A group which doesn't exist is refused (NETSHOT_INVALID_GROUP).
  * @param driver the name of the device driver the rule applies to (an unknown driver is taken for "all the drivers")
  * @param family the device family (or the regular expression it has to match)
  * @param familyRegExp whether the family is a regular expression
