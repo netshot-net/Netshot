@@ -18,8 +18,13 @@
  */
 package net.netshot.netshot.inventory.group;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP;
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
+
+import java.util.ArrayList;
 import java.util.List;
 
+import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -278,5 +283,76 @@ class GroupServiceTest {
 		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.id()));
 		Assertions.assertEquals(List.of(this.routerA), this.members(matching.id()));
 		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.id()));
+	}
+
+	// ------------------------------------------------------------------
+	// refresh of all the groups
+	// ------------------------------------------------------------------
+
+	/**
+	 * Gets the transaction ID which wrote each membership row of a group (changes when the row is rewritten).
+	 *
+	 * @param groupId the group ID
+	 * @return the transaction IDs, by device ID
+	 */
+	private List<String> rowVersions(long groupId) {
+		return this.transactions.read(dsl -> dsl.select(DSL.field("xmin::text", String.class)).from(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))
+			.orderBy(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).fetch(0, String.class));
+	}
+
+	private static DynamicGroups dynamicGroups() {
+		return new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry());
+	}
+
+	@Test
+	@DisplayName("Refreshing all the groups writes only the differences, and keeps the static memberships")
+	void refreshAllGroupsWritesDifferences() {
+		DeviceGroup fixed = this.service.create(staticGroup(this.nextName(), this.routerA, this.routerB));
+		DeviceGroup unchanged = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
+		DeviceGroup stale = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-a\""));
+		// A membership to remove, and a missing one
+		TestDevices.addMembers(stale, TestDevices.find(this.switchC));
+		this.transactions.run(dsl -> dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(stale.id()))
+			.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(this.routerA)).execute());
+		List<String> before = this.rowVersions(unchanged.id());
+
+		dynamicGroups().refreshAllGroups();
+
+		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(fixed.id()));
+		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(unchanged.id()));
+		Assertions.assertEquals(before, this.rowVersions(unchanged.id()), "the rows which don't change are not rewritten");
+		Assertions.assertEquals(List.of(this.routerA), this.members(stale.id()));
+	}
+
+	@Test
+	@DisplayName("Refreshing all the groups keeps the members of a group whose query doesn't parse")
+	void refreshAllGroupsKeepsInvalidGroup() {
+		DeviceGroup group = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
+		this.transactions.run(dsl -> dsl.update(DEVICE_GROUP).set(DEVICE_GROUP.QUERY, "[Name] is").where(DEVICE_GROUP.ID.eq(group.id())).execute());
+
+		dynamicGroups().refreshAllGroups();
+
+		Assertions.assertEquals(List.of(this.routerB), this.members(group.id()));
+	}
+
+	@Test
+	@DisplayName("Refreshing all the groups handles more groups than one statement does")
+	void refreshAllGroupsInBatches() {
+		List<DeviceGroup> groups = new ArrayList<>();
+		for (int i = 0; i < DynamicGroups.BATCH_SIZE + 2; i++) {
+			String query = i % 2 == 0 ? "[Name] is \"switch-c\"" : "[Name] startswith \"router\"";
+			groups.add(this.service.create(dynamicGroup(this.nextName(), query)));
+		}
+		List<Long> ids = groups.stream().map(DeviceGroup::id).toList();
+		this.transactions.run(dsl -> dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES).where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(ids)).execute());
+
+		dynamicGroups().refreshAllGroups();
+
+		for (int i = 0; i < groups.size(); i++) {
+			List<Long> expected = i % 2 == 0 ? List.of(this.switchC) : List.of(this.routerA, this.routerB);
+			Assertions.assertEquals(expected, this.members(groups.get(i).id()), "members of group " + i);
+		}
 	}
 }

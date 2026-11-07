@@ -24,9 +24,17 @@ import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_C
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.jooq.CommonTableExpression;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Record2;
+import org.jooq.Select;
 import org.jooq.impl.DSL;
 
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +50,12 @@ import net.netshot.netshot.platform.database.Transactions;
 public final class DynamicGroups {
 
 	private static final GroupRepository REPOSITORY = new GroupRepository();
+
+	/**
+	 * How many groups are refreshed by one statement: the statement grows with the queries of its groups
+	 * (planning time, bound values), so many groups take several statements.
+	 */
+	static final int BATCH_SIZE = 100;
 
 	/** The loaded device drivers, to parse the queries against. */
 	private final DriverRegistry driverRegistry;
@@ -82,9 +96,48 @@ public final class DynamicGroups {
 	 * @throws FinderParseException if the query of the group is invalid
 	 */
 	public void refresh(DSLContext dsl, DynamicDeviceGroup group) throws FinderParseException {
-		Finder finder = this.finder(group);
-		List<Long> deviceIds = dsl.select(DEVICE.ID).from(DEVICE).where(finder.getCondition()).fetch(DEVICE.ID);
-		REPOSITORY.setMembers(dsl, group.id(), deviceIds);
+		refreshMembers(dsl, Map.of(group.id(), this.finder(group).getCondition()));
+	}
+
+	/**
+	 * Refreshes the members of dynamic groups in one statement, writing only the differences: the
+	 * memberships the query no longer finds are deleted, the new ones are inserted, the others are left
+	 * untouched (no rewrite of rows, so no dead rows nor foreign key checks for them).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param conditions the condition of each group to refresh, by group ID
+	 */
+	private static void refreshMembers(DSLContext dsl, Map<Long, Condition> conditions) {
+		if (conditions.isEmpty()) {
+			return;
+		}
+		// The statement is costly enough for PostgreSQL to compile it (JIT), which takes longer than running it
+		// (5 s for 100 groups); until the end of the transaction
+		dsl.execute("set local jit = off");
+		Select<Record2<Long, Long>> union = null;
+		for (Map.Entry<Long, Condition> entry : conditions.entrySet()) {
+			Select<Record2<Long, Long>> members = DSL.select(DEVICE.ID, DSL.val(entry.getKey()))
+				.from(DEVICE).where(entry.getValue());
+			union = union == null ? members : union.unionAll(members);
+		}
+		CommonTableExpression<Record2<Long, Long>> wanted = DSL.name("wanted").fields("device", "grp").as(union);
+		Field<Long> wantedDevice = wanted.field("device", Long.class);
+		Field<Long> wantedGroup = wanted.field("grp", Long.class);
+		CommonTableExpression<?> removed = DSL.name("removed").as(DSL.deleteFrom(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(conditions.keySet()))
+			.andNotExists(DSL.selectOne().from(wanted)
+				.where(wantedDevice.eq(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES))
+				.and(wantedGroup.eq(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS)))
+			.returning(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS));
+		dsl.with(wanted).with(removed)
+			.insertInto(DEVICE_GROUP_CACHED_DEVICES, DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES,
+				DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION)
+			.select(DSL.select(wantedDevice, wantedGroup, DSL.val(0)).from(wanted)
+				.whereNotExists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
+					.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(wantedDevice))
+					.and(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(wantedGroup))))
+			.onConflictDoNothing()
+			.execute();
 	}
 
 	/**
@@ -167,15 +220,23 @@ public final class DynamicGroups {
 		Instant before = Instant.now();
 		try {
 			this.transactions.run(dsl -> {
+				// A group whose query doesn't parse keeps its members
+				Map<Long, Condition> conditions = new LinkedHashMap<>();
 				for (DynamicDeviceGroup group : REPOSITORY.findDynamic(dsl)) {
 					try {
-						log.trace("Refreshing group {} ({})", group.id(), group.name());
-						dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES).where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(group.id())).execute();
-						this.insertMemberships(dsl, group, this.finder(group));
+						conditions.put(group.id(), this.finder(group).getCondition());
 					}
 					catch (FinderParseException e) {
 						log.error("Parse error while updating the group {}.", group.id(), e);
 					}
+				}
+				List<Long> groupIds = new ArrayList<>(conditions.keySet());
+				for (int start = 0; start < groupIds.size(); start += BATCH_SIZE) {
+					Map<Long, Condition> batch = new LinkedHashMap<>();
+					for (Long groupId : groupIds.subList(start, Math.min(start + BATCH_SIZE, groupIds.size()))) {
+						batch.put(groupId, conditions.get(groupId));
+					}
+					refreshMembers(dsl, batch);
 				}
 			});
 		}
