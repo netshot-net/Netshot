@@ -30,7 +30,7 @@ import net.netshot.netshot.api.rest.v0.device.DeviceSummaryDto;
  * as the expiration date).
  *
  * @param device the device
- * @param expirationDate when the exemption expires, or null if it doesn't
+ * @param expirationDate when the exemption expires (an exemption without date is not active, as an expired one)
  */
 @JacksonXmlRootElement(localName = "RsLightExemptedDevice")
 public record ExemptedDeviceDto(@JsonUnwrapped DeviceSummaryDto device, Date expirationDate) {
