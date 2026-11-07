@@ -285,6 +285,50 @@ class GroupServiceTest {
 		Assertions.assertEquals(List.of(this.routerB), this.members(notMatching.id()));
 	}
 
+	@Test
+	@DisplayName("Refreshing the groups of one device writes only its differences")
+	void refreshGroupsOfOneDeviceWritesDifferences() {
+		DeviceGroup routers = this.service.create(dynamicGroup(this.nextName(), "[Name] contains \"router\""));
+		DeviceGroup onlyA = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-a\""));
+		// The missing membership of the device, and a stale one of another device (left as is)
+		this.transactions.run(dsl -> dsl.deleteFrom(DEVICE_GROUP_CACHED_DEVICES)
+			.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(routers.id()))
+			.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(this.routerA)).execute());
+		TestDevices.addMembers(routers, TestDevices.find(this.switchC));
+		List<String> routersBefore = this.rowVersions(routers.id());
+		List<String> onlyABefore = this.rowVersions(onlyA.id());
+
+		dynamicGroups().refreshAllGroupsOfOneDevice(this.routerA);
+
+		Assertions.assertEquals(List.of(this.routerA, this.routerB, this.switchC), this.members(routers.id()));
+		Assertions.assertEquals(routersBefore, this.rowVersions(routers.id()).subList(1, 3), "the rows of the other devices are not rewritten");
+		Assertions.assertEquals(onlyABefore, this.rowVersions(onlyA.id()), "the rows which don't change are not rewritten");
+	}
+
+	@Test
+	@DisplayName("Refreshing the groups of one device keeps its membership of a group whose query doesn't parse")
+	void refreshGroupsOfOneDeviceKeepsInvalidGroup() {
+		DeviceGroup group = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
+		this.transactions.run(dsl -> dsl.update(DEVICE_GROUP).set(DEVICE_GROUP.QUERY, "[Name] is").where(DEVICE_GROUP.ID.eq(group.id())).execute());
+
+		dynamicGroups().refreshAllGroupsOfOneDevice(this.routerB);
+
+		Assertions.assertEquals(List.of(this.routerB), this.members(group.id()));
+	}
+
+	@Test
+	@DisplayName("A dynamic group without query has all the devices")
+	void refreshGroupWithoutQuery() {
+		DeviceGroup group = this.service.create(dynamicGroup(this.nextName(), "[Name] is \"router-b\""));
+		this.transactions.run(dsl -> dsl.update(DEVICE_GROUP).setNull(DEVICE_GROUP.QUERY).where(DEVICE_GROUP.ID.eq(group.id())).execute());
+
+		dynamicGroups().refreshAllGroupsOfOneDevice(this.routerA);
+		Assertions.assertEquals(List.of(this.routerA, this.routerB), this.members(group.id()));
+
+		dynamicGroups().refreshAllGroups();
+		Assertions.assertEquals(List.of(this.routerA, this.routerB, this.switchC), this.members(group.id()));
+	}
+
 	// ------------------------------------------------------------------
 	// refresh of all the groups
 	// ------------------------------------------------------------------
