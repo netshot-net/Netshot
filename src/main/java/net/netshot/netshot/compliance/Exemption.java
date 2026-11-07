@@ -25,7 +25,7 @@ import java.time.Instant;
  *
  * @param ruleId the ID of the rule
  * @param deviceId the ID of the device
- * @param expirationDate when the exemption ends
+ * @param expirationDate when the exemption ends (without date, the exemption is not active, as an expired one)
  */
 public record Exemption(long ruleId, long deviceId, Instant expirationDate) {
 
