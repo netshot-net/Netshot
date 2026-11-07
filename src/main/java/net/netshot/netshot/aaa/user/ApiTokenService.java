@@ -25,10 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The use cases on the API tokens: list, create and delete them. Only the hash of a token is
@@ -70,28 +74,80 @@ public class ApiTokenService {
 	}
 
 	/**
-	 * Authenticates a request: looks for the API token matching a token value.
+	 * Gets what the API token lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema listSchema() {
+		return ApiTokenRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the API tokens matching a query.
+	 *
+	 * @param query the query
+	 * @return the API tokens of the window, with the total number of matching tokens if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the API tokens can't be read
+	 */
+	public ListResult<ApiToken> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the API tokens.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to retrieve the API tokens.");
+		}
+	}
+
+	/**
+	 * Gets an API token.
+	 *
+	 * @param id the API token ID
+	 * @return the API token
+	 * @throws NetshotException if there is no such API token, or it can't be read
+	 */
+	public ApiToken get(long id) {
+		ApiToken apiToken;
+		try {
+			apiToken = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the API token {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the API token.");
+		}
+		if (apiToken == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_API_TOKEN_NOT_FOUND, "The API token doesn't exist.");
+		}
+		return apiToken;
+	}
+
+	/**
+	 * Authenticates the bearer of an API token: looks for the API token matching a token value.
 	 *
 	 * @param token the clear token value, as received
-	 * @return the API token, or null if the value is unknown or the database is not reachable
+	 * @param remoteAddress the address of the client (for the audit log)
+	 * @return the API token, or null if the value is unknown
+	 * @throws NetshotException if the database can't be accessed
 	 */
-	public ApiToken authenticate(String token) {
+	public ApiToken authenticate(String token, String remoteAddress) {
 		String hash = ApiToken.hashToken(token.trim());
+		ApiToken apiToken;
 		try {
 			// Read-write pool, as before: a token just created must work even with a lagging read database
-			ApiToken apiToken = this.transactions.write(dsl -> this.repository.findByHash(dsl, hash));
-			if (apiToken == null) {
-				AAA_LOG.warn("Invalid API token received.");
-			}
-			else {
-				AAA_LOG.info("Successful API token usage {}.", apiToken);
-			}
-			return apiToken;
+			apiToken = this.transactions.write(dsl -> this.repository.findByHash(dsl, hash));
 		}
 		catch (DataAccessException e) {
 			log.error("Database error while looking for API token", e);
-			return null;
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to check the API token.");
 		}
+		if (apiToken == null) {
+			AAA_LOG.warn("API token authentication failure from {}.", remoteAddress);
+		}
+		else {
+			AAA_LOG.info("Successful API token usage {} from {}.", apiToken, remoteAddress);
+		}
+		return apiToken;
 	}
 
 	/**
@@ -118,13 +174,13 @@ public class ApiTokenService {
 
 		ApiToken apiToken;
 		try {
-			apiToken = valid.withId(this.transactions.write(dsl -> {
+			apiToken = this.transactions.write(dsl -> {
 				if (this.repository.existsByHash(dsl, valid.hashedToken())) {
 					log.warn("The passed token is already registered");
 					throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_API_TOKEN, "This token is already registered.");
 				}
-				return this.repository.add(dsl, valid);
-			}));
+				return this.repository.find(dsl, this.repository.add(dsl, valid));
+			});
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new API token.", e);

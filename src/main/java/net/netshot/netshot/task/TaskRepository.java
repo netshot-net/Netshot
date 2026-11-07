@@ -50,6 +50,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.database.schema.tables.records.TaskRecord;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.NetworkAddress.AddressUsage;
@@ -733,13 +739,13 @@ public class TaskRepository {
 	// Summaries and counts
 	// ------------------------------------------------------------------
 
-	private static final List<SelectField<?>> SUMMARY_FIELDS = List.of(TASK.ID, TASK.DTYPE, TASK.STATUS, TASK.AUTHOR, TASK.TARGET,
+	private static final List<SelectField<?>> SUMMARY_FIELDS = List.of(TASK.ID, TASK.VERSION, TASK.DTYPE, TASK.STATUS, TASK.AUTHOR, TASK.TARGET,
 		TASK.COMMENTS, TASK.CREATION_DATE, TASK.CHANGE_DATE, TASK.EXECUTION_DATE, TASK.SCHEDULE_REFERENCE, TASK.SCHEDULE_TYPE,
 		TASK.SCHEDULE_FACTOR, TASK.PRIORITY, TASK.RUNNER_ID, TASK.DEBUG_ENABLED, TASK.DEVICE, TASK.DEVICE_GROUP,
 		TASK.PARENT_TASK_ID, TASK.CHILD_ORDER, TASK.SCHEDULE_MODE, TASK.STOP_ON_FAILURE);
 
 	private static TaskSummary toSummary(Record r) {
-		return new TaskSummary(r.get(TASK.ID), r.get(TASK.DTYPE),
+		return new TaskSummary(r.get(TASK.ID), r.get(TASK.VERSION), r.get(TASK.DTYPE),
 			r.get(TASK.STATUS) == null ? null : Task.Status.valueOf(r.get(TASK.STATUS)),
 			r.get(TASK.AUTHOR), r.get(TASK.TARGET), r.get(TASK.COMMENTS), r.get(TASK.CREATION_DATE), r.get(TASK.CHANGE_DATE),
 			r.get(TASK.EXECUTION_DATE), r.get(TASK.SCHEDULE_REFERENCE),
@@ -762,6 +768,75 @@ public class TaskRepository {
 			notExecuted = notExecuted.and(TASK.CHANGE_DATE.lt(to));
 		}
 		return executed.or(notExecuted);
+	}
+
+	/** The fields the task lists can be filtered and sorted on. */
+	public static final QueryMapping LIST = QueryMapping.builder(TASK.ID)
+		.enumeration("type", TASK.DTYPE, TYPE_NAMES, Option.SORTABLE, Option.GROUPABLE)
+		.enumeration("status", TASK.STATUS, Task.Status.class, Option.SORTABLE, Option.GROUPABLE)
+		.string("author", TASK.AUTHOR, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
+		.string("target", TASK.TARGET, Option.SORTABLE, Option.SEARCHABLE)
+		.string("comments", TASK.COMMENTS, Option.SEARCHABLE)
+		.integer("priority", TASK.PRIORITY, Option.SORTABLE)
+		.enumeration("scheduleType", TASK.SCHEDULE_TYPE, Task.ScheduleType.class, Option.SORTABLE, Option.GROUPABLE)
+		.date("scheduleReference", TASK.SCHEDULE_REFERENCE, Option.SORTABLE)
+		.date("creationDate", TASK.CREATION_DATE, Option.SORTABLE)
+		.date("changeDate", TASK.CHANGE_DATE, Option.SORTABLE)
+		.date("executionDate", TASK.EXECUTION_DATE, Option.SORTABLE)
+		.integer("device", TASK.DEVICE, Option.GROUPABLE)
+		.integer("group", TASK.DEVICE_GROUP, Option.GROUPABLE)
+		.integer("parentTask", TASK.PARENT_TASK_ID)
+		.integer("childOrder", TASK.CHILD_ORDER, Option.SORTABLE)
+		.string("runnerId", TASK.RUNNER_ID, Option.GROUPABLE)
+		.bool("debugEnabled", TASK.DEBUG_ENABLED)
+		.defaultSort(SortOrder.desc("id"))
+		.build();
+
+	/**
+	 * Lists the summaries of the tasks matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the summaries of the window of the query
+	 */
+	public List<TaskSummary> findSummaries(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(SUMMARY_FIELDS).from(TASK).where(LIST.condition(query)).orderBy(LIST.orderBy(query)))
+			.fetch(TaskRepository::toSummary);
+	}
+
+	/**
+	 * Lists the tasks matching a query (see {@link #find} for what is loaded).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the tasks of the window of the query
+	 */
+	public List<Task> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(FIELDS).from(TASK).where(LIST.condition(query)).orderBy(LIST.orderBy(query)))
+			.fetch(TaskRepository::toTask);
+	}
+
+	/**
+	 * Counts the tasks matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of tasks
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(TASK, LIST.condition(query));
+	}
+
+	/**
+	 * Counts the tasks matching a query, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows
+	 */
+	public List<StatsRow> stats(DSLContext dsl, ListQuery query, StatsQuery stats) {
+		return LIST.stats(dsl, TASK, query, stats, null);
 	}
 
 	/**

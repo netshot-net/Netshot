@@ -39,7 +39,7 @@ export default function NavbarUser() {
 
 
   const logoutMutation = useMutation({
-    mutationFn: api.auth.signout,
+    mutationFn: () => api.auth.signout(),
     onError() {
       // @note: The request doesn't return JSON
       toast.error({
@@ -58,7 +58,7 @@ export default function NavbarUser() {
 
   const logout = () => {
     if (!user) return
-    logoutMutation.mutate(user.id)
+    logoutMutation.mutate()
   }
 
   if (!user) {
@@ -134,7 +134,7 @@ export default function NavbarUser() {
               </a>
             </Menu.Item>
             <Menu.Item value="api-doc" asChild>
-              <Link to="/app/api-browser" target="_blank" rel="noreferrer">
+              <Link to="/app/api-browser/v1" target="_blank" rel="noreferrer">
                 <LuBookMarked />
                 {t("api.documentation")}
               </Link>

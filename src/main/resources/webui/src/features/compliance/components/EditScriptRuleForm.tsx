@@ -9,7 +9,7 @@ import { RuleForm } from "../types"
 import TestRuleOnDeviceButton from "./TestRuleOnDeviceButton"
 
 export type EditScriptRuleFormProps = {
-  type: RuleType
+  type?: string
 }
 
 export default function EditScriptRuleForm(props: EditScriptRuleFormProps) {

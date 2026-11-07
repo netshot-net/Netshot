@@ -107,6 +107,16 @@ public class HardwareRule extends TableImpl<HardwareRuleRecord> {
      */
     public final TableField<HardwareRuleRecord, Long> TARGET_GROUP = createField(DSL.name("target_group"), SQLDataType.BIGINT, this, "");
 
+    /**
+     * The column <code>hardware_rule.version</code>.
+     */
+    public final TableField<HardwareRuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>hardware_rule.change_date</code>.
+     */
+    public final TableField<HardwareRuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+
     private HardwareRule(Name alias, Table<HardwareRuleRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

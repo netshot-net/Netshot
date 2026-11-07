@@ -5,29 +5,37 @@ import { useTranslation } from "react-i18next"
 import { useMatch, useNavigate, useParams } from "react-router"
 
 import { useArrowKeyNavigation } from "@/hooks"
-import { LightDevice } from "@/types"
+import { Device } from "@/types"
 import { useShallow } from "zustand/react/shallow"
 import { useDevices } from "../../api"
+import { deviceListParams } from "../../api/queries"
 import { useDeviceSidebarStore } from "../../stores"
 import DeviceBox from "./DeviceBox"
 
-export default function DeviceSidebarList() {
+export type DeviceSidebarListProps = {
+  /** A search query (Netshot query language); the group is ignored when there is one. */
+  query?: string
+}
+
+export default function DeviceSidebarList({ query = "" }: DeviceSidebarListProps) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const params = useParams<{ id: string }>()
   const sectionMatch = useMatch("/app/devices/:id/:section")
   const currentSection = sectionMatch?.params.section ?? "general"
-  const { setTotal, setDevices, group, select } = useDeviceSidebarStore(
+  const { setTotal, setDevices, setListParams, group, select } = useDeviceSidebarStore(
     useShallow((state) => ({
       setTotal: state.setTotal,
       setDevices: state.setDevices,
+      setListParams: state.setListParams,
       group: state.group,
       select: state.select,
     }))
   )
 
-  const { data, isPending, isSuccess } = useDevices(group?.id ?? 0)
+  const { rows: data, isPending } = useDevices(query ? 0 : (group?.id ?? 0), query)
+  const isSuccess = !isPending
 
   useEffect(() => {
     if (isSuccess) {
@@ -35,6 +43,11 @@ export default function DeviceSidebarList() {
       setDevices(data)
     }
   }, [isSuccess, data, setTotal, setDevices])
+
+  useEffect(() => {
+    setListParams(deviceListParams(query ? 0 : (group?.id ?? 0), query))
+    return () => setListParams(null)
+  }, [query, group?.id, setListParams])
 
   const virtualizer = useVirtualizer({
     count: data?.length ?? 0,
@@ -44,10 +57,12 @@ export default function DeviceSidebarList() {
     overscan: 10,
   })
 
+  const virtualItems = virtualizer.getVirtualItems()
+
   const activeIndex = data?.findIndex((device) => device.id === +(params?.id ?? 0)) ?? -1
 
   const onNavigate = useCallback(
-    (device: LightDevice, index: number) => {
+    (device: Device, index: number) => {
       navigate(`./${device.id}/${currentSection}`)
       select([device])
       virtualizer.scrollToIndex(index, { align: "auto" })
@@ -73,7 +88,7 @@ export default function DeviceSidebarList() {
     return (
       <Center flex="1">
         <Text>
-          {group ? t("device.noDeviceInGroup", { group: group?.name }) : t("device.noDeviceFound")}
+          {group && !query ? t("device.noDeviceInGroup", { group: group?.name }) : t("device.noDeviceFound")}
         </Text>
       </Center>
     )
@@ -90,7 +105,7 @@ export default function DeviceSidebarList() {
         }}
       >
         {isSuccess &&
-          virtualizer.getVirtualItems().map((virtualItem) => {
+          virtualItems.map((virtualItem) => {
             const device = data?.[virtualItem.index]
 
             return (

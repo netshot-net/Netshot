@@ -221,6 +221,30 @@ public class FakeOidcIdpServer {
 		return token;
 	}
 
+	/**
+	 * Issues a JWT access token signed with the key of the IdP (as for the client credentials grant).
+	 *
+	 * @param username the preferred_username claim
+	 * @param role the role claim (null for none)
+	 * @param audience the aud claim
+	 * @param issuer the iss claim (null for the IdP itself)
+	 * @param validity the validity (negative for an expired token)
+	 * @return the signed token
+	 * @throws GeneralSecurityException if the token can't be signed
+	 */
+	public String issueAccessToken(String username, String role, String audience, String issuer, java.time.Duration validity)
+		throws GeneralSecurityException {
+		ObjectNode token = JsonNodeFactory.instance.objectNode()
+			.put("exp", Instant.now().plus(validity).getEpochSecond()).put("iat", Instant.now().getEpochSecond())
+			.put("jti", java.util.UUID.randomUUID().toString()).put("iss", issuer == null ? this.baseUri.toString() : issuer)
+			.put("aud", audience).put("azp", this.clientId).put("sub", "service-account-" + username)
+			.put("preferred_username", username);
+		if (role != null) {
+			token.put("role", role);
+		}
+		return this.signEncodeToken(token);
+	}
+
 	private ObjectNode generateAccessToken(User user) {
 		ObjectNode token = JsonNodeFactory.instance.objectNode()
 			.put("exp", Instant.now().plus(1, ChronoUnit.HOURS).getEpochSecond()).put("iat", Instant.now().getEpochSecond())

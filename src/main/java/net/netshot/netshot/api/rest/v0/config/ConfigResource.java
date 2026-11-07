@@ -40,7 +40,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.aaa.user.User;
-import net.netshot.netshot.api.rest.PaginationParams;
+import net.netshot.netshot.api.rest.v0.PaginationParams;
 import net.netshot.netshot.inventory.config.ConfigItem;
 import net.netshot.netshot.inventory.config.ConfigItemException;
 import net.netshot.netshot.inventory.config.ConfigService;

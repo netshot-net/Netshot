@@ -4,10 +4,12 @@
 package net.netshot.netshot.platform.database.schema.tables;
 
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.CheckResult.CheckResultPath;
@@ -136,6 +138,16 @@ public class Rule extends TableImpl<RuleRecord> {
      * The column <code>rule.text</code>.
      */
     public final TableField<RuleRecord, String> TEXT = createField(DSL.name("text"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>rule.version</code>.
+     */
+    public final TableField<RuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>rule.change_date</code>.
+     */
+    public final TableField<RuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
     private Rule(Name alias, Table<RuleRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

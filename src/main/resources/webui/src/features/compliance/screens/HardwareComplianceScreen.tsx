@@ -1,15 +1,15 @@
-import api from "@/api"
+import type { Brief } from "@/api/client"
 import { DataTable, EmptyResult, Protected, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
-import { usePagination } from "@/hooks"
-import { HardwareRule, Level } from "@/types"
-import { search } from "@/utils"
+import { useSearchQuery } from "@/hooks"
+import { useListAll } from "@/hooks/useListAll"
+import { useDeviceTypeOptions } from "@/features/device/hooks"
+import { Level } from "@/types"
 import { useLocalization } from "@/i18n/useLocalization"
 import { Badge, Button, Heading, Icon, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuSquarePen, LuPlus, LuTrash, LuAsterisk, LuMoveRight } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddHardwareRuleTrigger from "../components/AddHardwareRuleTrigger"
@@ -19,29 +19,27 @@ import RuleFieldValue from "../components/RuleFieldValue"
 import { QUERIES } from "../constants"
 import TableButtonStack from "@/features/administration/components/TableButtonStack"
 
-const columnHelper = createColumnHelper<HardwareRule>()
+const columnHelper = createColumnHelper<Brief["HardwareRule"]>()
 
 export default function HardwareComplianceScreen() {
   const { t } = useTranslation()
   const { formatDate } = useLocalization()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
+  const { getOptionByDriver } = useDeviceTypeOptions()
 
-  const { data: rules, isPending } = useQuery({
-    queryKey: [QUERIES.HARDWARE_RULE_LIST, pagination.query],
-    queryFn: api.hardwareRule.getAll,
-    select: useCallback(
-      (res: HardwareRule[]): HardwareRule[] => {
-        return search(res, "deviceType", "family").with(pagination.query)
-      },
-      [pagination.query]
-    ),
+  const {
+    rows: rules,
+    isPending,
+  } = useListAll<Brief["HardwareRule"]>([QUERIES.HARDWARE_RULE_LIST], "/compliance/hardware-rules", {
+    family__ic: searchBox.query?.trim(),
+    sort: "id",
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor("targetGroup", {
+      columnHelper.accessor("group", {
         cell: (info) => {
           const value = info.getValue()
           if (!value) {
@@ -52,12 +50,12 @@ export default function HardwareComplianceScreen() {
               </Badge>
             )
           }
-          return <DeviceGroupBadge id={value.id} name={value.name} />
+          return <DeviceGroupBadge id={value.id!} name={value.name ?? value.display ?? ""} />
         },
         header: t("group.label"),
         size: 20000,
       }),
-      columnHelper.accessor("deviceType", {
+      columnHelper.accessor("driver", {
         cell: (info) => {
           const value = info.getValue()
           if (!value) {
@@ -68,7 +66,7 @@ export default function HardwareComplianceScreen() {
               </Badge>
             )
           }
-          return <Text>{value}</Text>
+          return <Text>{getOptionByDriver(value)?.value.description ?? value}</Text>
         },
         header: t("device.type"),
         size: 20000,
@@ -166,7 +164,7 @@ export default function HardwareComplianceScreen() {
         size: 200,
       }),
     ],
-    [t, formatDate]
+    [t, formatDate, getOptionByDriver]
   )
 
   return (
@@ -178,8 +176,8 @@ export default function HardwareComplianceScreen() {
       <Stack direction="row" gap="3">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
         <Spacer />
@@ -203,8 +201,8 @@ export default function HardwareComplianceScreen() {
         </Stack>
       ) : (
         <>
-          {(rules?.length ?? 0) > 0 ? (
-            <DataTable columns={columns} data={rules ?? []} loading={isPending} />
+          {rules.length > 0 ? (
+            <DataTable columns={columns} data={rules} loading={isPending} />
           ) : isSearching ? (
             <Text>{t("common.noResults")}</Text>
           ) : (

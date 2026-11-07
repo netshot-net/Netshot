@@ -54,6 +54,7 @@ import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestConnectors;
 import net.netshot.netshot.testing.TestDrivers;
@@ -232,7 +233,7 @@ public class HttpDownloadTest {
 
 		TaskContext taskContext = new FakeTaskContext();
 		Http fakeHttp = new Http("127.0.0.1", this.port, false, taskContext, SecretResolver.LOCAL);
-		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username("user").password("pass").name("test-http-account").build();
+		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).name("test-http-account").build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpDownloadTestDriver", null, domain, "test").toBuilder();
 		DeviceDraft device = new DeviceDraft(deviceBuilder.build());
@@ -302,7 +303,7 @@ public class HttpDownloadTest {
 
 		TaskContext taskContext = new FakeTaskContext();
 		// The apiKey value sent is the credential set's password ("pass") - see Http.applyAuth().
-		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username("user").password("pass").name("test-http-account").build();
+		DeviceHttpAccount credentials = DeviceHttpAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).name("test-http-account").build();
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("HttpAuthOverrideTestDriver", null, domain, "test").toBuilder();
 		DeviceAccess httpAccess = DeviceAccess.of("http").toBuilder().address("127.0.0.1").port(this.port).build();

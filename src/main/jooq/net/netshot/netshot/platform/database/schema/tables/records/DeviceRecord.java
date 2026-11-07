@@ -372,6 +372,34 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
         return (JSONB) get(24);
     }
 
+    /**
+     * Setter for <code>device.last_snapshot_success_date</code>.
+     */
+    public void setLastSnapshotSuccessDate(Instant value) {
+        set(25, value);
+    }
+
+    /**
+     * Getter for <code>device.last_snapshot_success_date</code>.
+     */
+    public Instant getLastSnapshotSuccessDate() {
+        return (Instant) get(25);
+    }
+
+    /**
+     * Setter for <code>device.last_snapshot_failure_date</code>.
+     */
+    public void setLastSnapshotFailureDate(Instant value) {
+        set(26, value);
+    }
+
+    /**
+     * Getter for <code>device.last_snapshot_failure_date</code>.
+     */
+    public Instant getLastSnapshotFailureDate() {
+        return (Instant) get(26);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -395,7 +423,7 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
     /**
      * Create a detached, initialised DeviceRecord
      */
-    public DeviceRecord(Long id, Instant changeDate, String comments, String contact, Instant createdDate, String creator, String driver, Instant eolDate, Instant eosDate, String family, String location, String name, String networkClass, String serialNumber, String softwareLevel, String softwareVersion, String status, Integer version, Long eolModule, Long eosModule, Long lastConfig, Long mgmtDomain, String mgmtAddress, InetAddress cachedIpAddress, JSONB options) {
+    public DeviceRecord(Long id, Instant changeDate, String comments, String contact, Instant createdDate, String creator, String driver, Instant eolDate, Instant eosDate, String family, String location, String name, String networkClass, String serialNumber, String softwareLevel, String softwareVersion, String status, Integer version, Long eolModule, Long eosModule, Long lastConfig, Long mgmtDomain, String mgmtAddress, InetAddress cachedIpAddress, JSONB options, Instant lastSnapshotSuccessDate, Instant lastSnapshotFailureDate) {
         super(Device.DEVICE);
 
         setId(id);
@@ -423,6 +451,8 @@ public class DeviceRecord extends UpdatableRecordImpl<DeviceRecord> {
         setMgmtAddress(mgmtAddress);
         setCachedIpAddress(cachedIpAddress);
         setOptions(options);
+        setLastSnapshotSuccessDate(lastSnapshotSuccessDate);
+        setLastSnapshotFailureDate(lastSnapshotFailureDate);
         resetTouchedOnNotNull();
     }
 }

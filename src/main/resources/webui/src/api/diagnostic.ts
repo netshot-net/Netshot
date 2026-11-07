@@ -1,69 +1,53 @@
-import { Diagnostic } from "@/types"
-import httpClient from "./httpClient"
-import {
-  CreateOrUpdateDiagnosticPayload,
-  CreateOrUpdateDiagnosticScriptPayload,
-  DiagnosticResult,
-  PaginationQueryParams,
-} from "./types"
+import { Brief, client, listAll, ListParams, patch, replace, Schemas } from "./client"
 
-async function getAll(queryParams: PaginationQueryParams = {}) {
-  return httpClient.get<Diagnostic[]>("/diagnostics", {
-    queryParams,
-  })
+/** A diagnostic: every property of the diagnostic types in one type, only those of its type are set. */
+export type Diagnostic = Schemas["Diagnostic"] & {
+  // (the generated type is loose about these properties, which are always set)
+  name: string
+  type: DiagnosticRequest["type"]
+  resultType: DiagnosticRequest["resultType"]
 }
 
-async function getAllResults(id: number, queryParams: PaginationQueryParams) {
-  return httpClient.get<DiagnosticResult[]>(`/diagnostics/${id}/diagnosticresults`, {
-    queryParams,
-  })
+/** A diagnostic in its brief view (the diagnostic lists and choices). */
+export type DiagnosticBrief = Brief["Diagnostic"] & Pick<Diagnostic, "name" | "type" | "resultType">
+
+/** The definition of a diagnostic, to create or replace one (its type can't change afterwards). */
+export type DiagnosticRequest = Schemas["DiagnosticRequest"]
+
+async function getAll(params: ListParams = {}) {
+  return listAll<DiagnosticBrief>("/diagnostics", { sort: "name", ...params })
 }
 
 async function getById(id: number) {
-  return httpClient.get<Diagnostic>(`/diagnostics/${id}`)
+  return (await client.get<Diagnostic>(`/diagnostics/${id}`)) as Diagnostic
 }
 
-async function create(
-  payload: CreateOrUpdateDiagnosticPayload | CreateOrUpdateDiagnosticScriptPayload
-) {
-  return httpClient.post<
-    Diagnostic,
-    CreateOrUpdateDiagnosticPayload | CreateOrUpdateDiagnosticScriptPayload
-  >("/diagnostics", payload)
+async function create(payload: DiagnosticRequest) {
+  return (await client.post<Diagnostic, DiagnosticRequest>("/diagnostics", payload)) as Diagnostic
 }
 
-async function update(id: number, payload: Partial<CreateOrUpdateDiagnosticPayload>) {
-  return httpClient.put<Diagnostic, Partial<CreateOrUpdateDiagnosticPayload>>(
-    `/diagnostics/${id}`,
-    payload
-  )
+async function update(id: number, payload: DiagnosticRequest) {
+  return replace<Diagnostic, DiagnosticRequest>(`/diagnostics/${id}`, payload)
 }
 
-async function enable(payload: Diagnostic) {
-  return httpClient.put<Diagnostic, Diagnostic>(`/diagnostics/${payload.id}`, {
-    ...payload,
-    // @ts-expect-error targetGroup is string on backend
-    targetGroup: payload?.targetGroup?.id?.toString(),
-    enabled: true,
-  })
+async function setEnabled(id: number, enabled: boolean) {
+  return patch<Diagnostic, { enabled: boolean }>(`/diagnostics/${id}`, { enabled })
 }
 
-async function disable(payload: Diagnostic) {
-  return httpClient.put<Diagnostic, Diagnostic>(`/diagnostics/${payload.id}`, {
-    ...payload,
-    // @ts-expect-error targetGroup is string on backend
-    targetGroup: payload?.targetGroup?.id?.toString(),
-    enabled: false,
-  })
+async function enable(diagnostic: Pick<Diagnostic, "id">) {
+  return setEnabled(diagnostic.id, true)
+}
+
+async function disable(diagnostic: Pick<Diagnostic, "id">) {
+  return setEnabled(diagnostic.id, false)
 }
 
 async function remove(id: number) {
-  return httpClient.delete(`/diagnostics/${id}`)
+  return client.delete(`/diagnostics/${id}`)
 }
 
 export default {
   getAll,
-  getAllResults,
   getById,
   create,
   update,

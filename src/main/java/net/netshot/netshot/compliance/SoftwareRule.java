@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
+
 import java.util.Set;
 import java.util.regex.PatternSyntaxException;
 
@@ -31,20 +33,22 @@ import net.netshot.netshot.inventory.device.Module;
  * module) get its conformance level. The rules are checked by priority, the first match wins.
  *
  * @param id the ID (0 for a rule not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param priority the priority (lowest first)
  * @param targetGroupId the ID of the group the rule applies to (null for all the devices)
  * @param driver the name of the driver of the devices (null for any)
  * @param family the family of the devices (empty for any)
  * @param familyRegExp true if the family is a regular expression
- * @param version the software version of the devices (empty for any)
- * @param versionRegExp true if the version is a regular expression
+ * @param softwareVersion the software version of the devices (empty for any)
+ * @param softwareVersionRegExp true if the software version is a regular expression
  * @param partNumber the part number of a module of the devices (null or empty for any)
  * @param partNumberRegExp true if the part number is a regular expression
  * @param level the conformance level of the matching devices
  */
 @Builder(toBuilder = true)
-public record SoftwareRule(long id, double priority, Long targetGroupId, String driver, String family, boolean familyRegExp,
-	String version, boolean versionRegExp, String partNumber, boolean partNumberRegExp, ConformanceLevel level) {
+public record SoftwareRule(long id, int version, Instant changeDate, double priority, Long targetGroupId, String driver, String family, boolean familyRegExp,
+	String softwareVersion, boolean softwareVersionRegExp, String partNumber, boolean partNumberRegExp, ConformanceLevel level) {
 
 	/**
 	 * Gets a copy of the rule with another ID.
@@ -96,9 +100,9 @@ public record SoftwareRule(long id, double priority, Long targetGroupId, String 
 				return ConformanceLevel.UNKNOWN;
 			}
 		}
-		if (versionRegExp) {
+		if (softwareVersionRegExp) {
 			try {
-				if (!device.softwareVersion().matches(version)) {
+				if (!device.softwareVersion().matches(softwareVersion)) {
 					return ConformanceLevel.UNKNOWN;
 				}
 			}
@@ -107,7 +111,7 @@ public record SoftwareRule(long id, double priority, Long targetGroupId, String 
 			}
 		}
 		else {
-			if (!"".equals(version) && !device.softwareVersion().equals(version)) {
+			if (!"".equals(softwareVersion) && !device.softwareVersion().equals(softwareVersion)) {
 				return ConformanceLevel.UNKNOWN;
 			}
 		}

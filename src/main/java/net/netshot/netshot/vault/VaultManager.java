@@ -36,6 +36,9 @@ import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.ConfigStore;
 import net.netshot.netshot.platform.config.Setting;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.platform.secret.VaultSecret;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
 /**
@@ -205,20 +208,27 @@ public final class VaultManager implements SecretResolver {
 	}
 
 	/**
-	 * Resolves a field's actual value: the local value if it isn't
+	 * Resolves a field's actual value: the local value (decrypted) if it isn't
 	 * Vault-backed, or the value read (possibly from cache) from Vault.
-	 * @param secret the field to resolve
-	 * @return the resolved value
+	 * @param secret the field to resolve (may be null)
+	 * @return the resolved value, null if the field is not set
 	 * @throws VaultException if the field is Vault-backed and the value
 	 *         couldn't be resolved (unreachable/auth failure/missing key) -
 	 *         callers must treat this as a hard failure, there is no fallback
 	 */
 	@Override
-	public String resolve(VaultableSecret secret) throws VaultException {
-		if (!secret.isVaultBacked()) {
-			log.trace("Resolving a non-Vault-backed field, returning its local value.");
-			return secret.localValue();
-		}
+	public String resolve(Secret secret) throws VaultException {
+		return switch (secret) {
+			case null -> null;
+			case LocalSecret local -> {
+				log.trace("Resolving a non-Vault-backed field, returning its local value.");
+				yield local.reveal();
+			}
+			case VaultSecret vault -> this.resolve(vault);
+		};
+	}
+
+	private String resolve(VaultSecret secret) throws VaultException {
 		VaultInstance instance = instance(secret.vaultInstanceId());
 		if (!(instance instanceof HashicorpVaultKv2Instance hcInstance)) {
 			throw new VaultException(

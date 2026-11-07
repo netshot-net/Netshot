@@ -1,9 +1,9 @@
-import api from "@/api"
+import type { Brief } from "@/api/client"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
-import { usePagination } from "@/hooks"
-import { HttpsCaTrustMode, VaultInstance } from "@/types"
-import { search } from "@/utils"
+import { useSearchQuery } from "@/hooks"
+import { HttpsCaTrustMode, VaultAuthMethod } from "@/types"
 import {
   Button,
   Heading,
@@ -14,9 +14,8 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuSquarePen, LuPlus, LuShieldOff, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddVaultInstanceTrigger from "../components/AddVaultInstanceTrigger"
@@ -26,10 +25,10 @@ import { QUERIES } from "../constants"
 import { useVaultAuthMethodOptions } from "../hooks"
 import TableButtonStack from "../components/TableButtonStack"
 
-const columnHelper = createColumnHelper<VaultInstance>()
+const columnHelper = createColumnHelper<Brief["VaultInstance"]>()
 
 /** HTTPS with the certificate (and hostname) actually verified - anything else (plain HTTP, or TRUST_ANY) is "not secured". */
-function isConnectionSecured(vaultInstance: VaultInstance): boolean {
+function isConnectionSecured(vaultInstance: Brief["VaultInstance"]): boolean {
   return (
     vaultInstance.baseUrl?.toLowerCase().startsWith("https://") === true &&
     vaultInstance.httpsCaTrustMode !== HttpsCaTrustMode.TrustAny
@@ -38,26 +37,16 @@ function isConnectionSecured(vaultInstance: VaultInstance): boolean {
 
 export default function AdministrationVaultInstanceScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const vaultAuthMethodOptions = useVaultAuthMethodOptions()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [
-      QUERIES.ADMIN_VAULT_INSTANCES,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
-    ],
-    queryFn: async () => api.admin.getAllVaultInstances(pagination),
-    select: useCallback(
-      (res: VaultInstance[]): VaultInstance[] => {
-        return search(res, "name").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending } = useListAll<Brief["VaultInstance"]>(
+    [QUERIES.ADMIN_VAULT_INSTANCES],
+    "/vault-instances",
+    { q: searchBox.query, sort: "name" }
+  )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -94,7 +83,7 @@ export default function AdministrationVaultInstanceScreen() {
         size: 20000,
       }),
       columnHelper.accessor("authMethod", {
-        cell: (info) => <Text>{vaultAuthMethodOptions.getLabelByValue(info.getValue())}</Text>,
+        cell: (info) => <Text>{vaultAuthMethodOptions.getLabelByValue(info.getValue() as VaultAuthMethod)}</Text>,
         header: t("vault.authMethod"),
         enableSorting: true,
         size: 10000,
@@ -149,8 +138,8 @@ export default function AdministrationVaultInstanceScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

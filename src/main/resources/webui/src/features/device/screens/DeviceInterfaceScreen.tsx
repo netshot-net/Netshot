@@ -1,64 +1,38 @@
 import { Badge, Icon, List, Skeleton, Span, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import api from "@/api"
+import { listAll } from "@/api/client"
 import { DataTable, EmptyResult } from "@/components"
 import Search from "@/components/Search"
-import { usePagination } from "@/hooks"
+import { useSearchQuery } from "@/hooks"
 import { DeviceInterface } from "@/types"
-import { merge, search } from "@/utils"
 
 import { QUERIES } from "../constants"
 import { LuChevronsLeftRightEllipsis, LuPowerOff } from "react-icons/lu"
 
 const columnHelper = createColumnHelper<DeviceInterface>()
 
-/**
- * @todo: Add pagination (paginator)
- */
 export default function DeviceInterfaceScreen() {
   const params = useParams<{ id: string }>()
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
   const { data = [], isPending } = useQuery({
     queryKey: [
       QUERIES.DEVICE_INTERFACES,
       params.id,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
+      searchBox.query,
     ],
-    queryFn: async () => api.device.getAllInterfacesById(+(params.id ?? 0), pagination),
-    select: useCallback(
-      (res: DeviceInterface[]): DeviceInterface[] => {
-        // Search on IP addresses
-        const passA = res.filter((item) => {
-          return item.ip4Addresses.some((address) => {
-            return (
-              address.ip.toLocaleLowerCase().startsWith(pagination.query ?? "") ||
-              address.ip.toLocaleLowerCase().includes(pagination.query ?? "")
-            )
-          })
-        })
-
-        // Search on other props
-        const passB = search(res, "description", "interfaceName", "macAddress", "vrfInstance").with(
-          pagination.query
-        )
-
-        // Merge two results in one
-        return merge(passA, passB, "id")
-      },
-      [pagination.query]
-    ),
+    // The server searches the name and description
+    queryFn: async () =>
+      listAll<DeviceInterface>(`/devices/${params.id}/interfaces`, { q: searchBox.query?.trim(), view: "full" }),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () =>
@@ -70,7 +44,7 @@ export default function DeviceInterfaceScreen() {
             enableSorting: true,
             size: 15000,
           }),
-        columnHelper.accessor("interfaceName", {
+        columnHelper.accessor("name", {
           cell: (info) => <Text>{info.getValue()}</Text>,
           header: t("common.name"),
           enableSorting: true,
@@ -121,17 +95,17 @@ export default function DeviceInterfaceScreen() {
           enableSorting: true,
           size: 12000,
         }),
-        data.find((i) => !!i.vrfInstance) &&
-          columnHelper.accessor("vrfInstance", {
+        data.find((i) => !!i.vrf) &&
+          columnHelper.accessor("vrf", {
             cell: (info) => <Text>{info.getValue()}</Text>,
             header: t("common.vrf"),
             enableSorting: true,
             size: 15000,
           }),
-        columnHelper.accessor("ip4Addresses", {
+        columnHelper.accessor("ipAddresses", {
           cell: (info) => {
             const value = info.getValue()
-            if (value?.length > 0) {
+            if (value && value.length > 0) {
               return (
                 <List.Root as="ul" listStyleType="''" lineHeight="1.5em">
                   {value.map((i) => (
@@ -160,8 +134,8 @@ export default function DeviceInterfaceScreen() {
       <Stack direction="row" gap="3">
         <Search
           placeholder={t("device.searchBy")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
       </Stack>

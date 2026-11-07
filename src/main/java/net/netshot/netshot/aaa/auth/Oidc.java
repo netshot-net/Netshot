@@ -18,11 +18,13 @@
  */
 package net.netshot.netshot.aaa.auth;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.text.ParseException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,6 +32,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import com.nimbusds.oauth2.sdk.AccessTokenResponse;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
@@ -90,9 +104,18 @@ public final class Oidc {
 	 * @param clientSecret the client secret
 	 * @param retryInterval the interval (ms) before retrying to fetch the IdP metadata after a failure
 	 * @param refreshInterval the interval (ms) between two fetches of the IdP metadata
+	 * @param jwtEnabled whether the JWT access tokens issued by the IdP are accepted by the API
+	 * @param jwtAudience the audience the JWT access tokens must be issued for (the client ID if null)
 	 */
 	record Settings(String roleClaim, Map<String, Integer> roles, int defaultLevel, String usernameClaim,
-		String endpoint, String clientId, String clientSecret, int retryInterval, int refreshInterval) {
+		String endpoint, String clientId, String clientSecret, int retryInterval, int refreshInterval,
+		boolean jwtEnabled, String jwtAudience) {
+
+		/** Whether the API accepts the JWT access tokens issued by the IdP (Authorization: Bearer). */
+		static final Setting<Boolean> JWT_ENABLED = Setting.bool("netshot.aaa.oidc.jwt.enabled").defaultValue(false).live();
+
+		/** The audience the JWT access tokens must be issued for (default: the client ID). */
+		static final Setting<String> JWT_AUDIENCE = Setting.text("netshot.aaa.oidc.jwt.audience").live();
 
 		/** Name of the claim carrying the role. */
 		static final Setting<String> ROLE_CLAIM = Setting.text("netshot.aaa.oidc.role.claimname").defaultValue("role").live();
@@ -161,12 +184,16 @@ public final class Oidc {
 			}
 			return new Settings(config.get(ROLE_CLAIM), Map.copyOf(roles), config.get(DEFAULT_LEVEL),
 				config.get(USERNAME_CLAIM), config.get(IDP_URL), config.get(CLIENT_ID), config.get(CLIENT_SECRET),
-				config.get(IDP_RETRY_INTERVAL), config.get(IDP_REFRESH_INTERVAL));
+				config.get(IDP_RETRY_INTERVAL), config.get(IDP_REFRESH_INTERVAL),
+				config.get(JWT_ENABLED), config.get(JWT_AUDIENCE));
 		}
 	}
 
 	/** The settings, from the configuration. */
 	private final ConfigStore.Binding<Settings> settings;
+
+	/** The validation of the JWT access tokens (null until the IdP metadata is fetched). */
+	private DefaultJWTProcessor<SecurityContext> jwtProcessor;
 
 	/**
 	 * Gets the settings of the OIDC authentication.
@@ -190,21 +217,66 @@ public final class Oidc {
 	}
 
 	/**
-	 * Uses the metadata of the IdP, and prepares the validation of the ID tokens: enables the OIDC authentication.
+	 * Uses the metadata of the IdP: prepares the validation of the ID tokens (if a client is set: enables the
+	 * OIDC login) and of the JWT access tokens.
 	 * @param metadata the metadata of the IdP
 	 * @throws GeneralException if the ID token validation can't be prepared
 	 */
 	synchronized void setIdpMetadata(OIDCProviderMetadata metadata) throws GeneralException {
-		this.idTokenValidator = IDTokenValidator.create(metadata, this.clientInfo);
+		this.idTokenValidator = this.clientInfo == null ? null : IDTokenValidator.create(metadata, this.clientInfo);
+		this.jwtProcessor = createJwtProcessor(metadata);
 		this.idpMetadata = metadata;
 	}
 
 	/**
+	 * Prepares the validation of the JWT access tokens: signature with the keys published by the IdP (JWKS,
+	 * fetched and cached by the processor), with the asymmetric algorithms the IdP supports.
+	 *
+	 * @param metadata the metadata of the IdP
+	 * @return the processor, or null if the IdP publishes no key set
+	 */
+	private static DefaultJWTProcessor<SecurityContext> createJwtProcessor(OIDCProviderMetadata metadata) {
+		if (metadata.getJWKSetURI() == null) {
+			log.warn("The OIDC IdP publishes no JWK set, the JWT access tokens can't be validated.");
+			return null;
+		}
+		JWKSource<SecurityContext> keys;
+		try {
+			keys = JWKSourceBuilder.create(metadata.getJWKSetURI().toURL()).retrying(true).build();
+		}
+		catch (MalformedURLException e) {
+			log.warn("Invalid JWK set URI of the OIDC IdP: {}.", metadata.getJWKSetURI());
+			return null;
+		}
+		Set<JWSAlgorithm> algorithms = new HashSet<>();
+		if (metadata.getIDTokenJWSAlgs() != null) {
+			metadata.getIDTokenJWSAlgs().stream()
+				.filter(a -> !JWSAlgorithm.Family.HMAC_SHA.contains(a))
+				.forEach(algorithms::add);
+		}
+		if (algorithms.isEmpty()) {
+			algorithms.add(JWSAlgorithm.RS256);
+		}
+		DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
+		processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT, new JOSEObjectType("at+jwt"), null));
+		processor.setJWSKeySelector(new JWSVerificationKeySelector<>(algorithms, keys));
+		// The claims are checked by authenticateWithBearerToken, with the current settings
+		processor.setJWTClaimsSetVerifier((_, _) -> {
+		});
+		return processor;
+	}
+
+	/**
 	 * Sets the client information (before the IdP metadata is fetched).
-	 * @param clientId the client ID
+	 * @param clientId the client ID, null if no client is configured (the IdP is then only used to validate
+	 *        the JWT access tokens, there is no OIDC login)
 	 * @param clientSecret the client secret
 	 */
 	synchronized void setClient(String clientId, String clientSecret) {
+		if (clientId == null) {
+			this.clientInfo = null;
+			return;
+		}
 		OIDCClientMetadata clientMetadata = new OIDCClientMetadata();
 		clientMetadata.applyDefaults();
 		this.clientInfo = new OIDCClientInformation(new ClientID(clientId), null, clientMetadata, new Secret(clientSecret));
@@ -216,9 +288,23 @@ public final class Oidc {
 	synchronized void disable() {
 		this.idpMetadata = null;
 		this.idTokenValidator = null;
+		this.jwtProcessor = null;
 	}
 
+	/**
+	 * Tells whether the OIDC login (web UI SSO) is available: the IdP metadata is fetched and a client is
+	 * configured.
+	 * @return true if the users can log in with OIDC
+	 */
 	public synchronized boolean isAvailable() {
+		return this.idpMetadata != null && this.clientInfo != null;
+	}
+
+	/**
+	 * Tells whether the IdP metadata is fetched (for the OIDC login and/or the JWT access tokens).
+	 * @return true if the metadata is fetched
+	 */
+	synchronized boolean hasIdpMetadata() {
 		return this.idpMetadata != null;
 	}
 
@@ -308,30 +394,7 @@ public final class Oidc {
 			if (username == null) {
 				throw new RuntimeException("The ID token is missing the expected claim %s".formatted(usernameClaim));
 			}
-			Integer level = null;
-			final Set<String> passedRoles = new HashSet<>();
-			final String roleName = tokenClaims.getStringClaim(roleClaim);
-			// Try the claim as simple string
-			if (roleName != null) {
-				passedRoles.add(roleName);
-			}
-			// Also try an array of strings
-			List<String> allRoleNames = tokenClaims.getStringListClaim(roleClaim);
-			if (allRoleNames != null) {
-				passedRoles.addAll(allRoleNames);
-			}
-			// Select the highest role level among passed roles
-			for (String passedRole : passedRoles) {
-				Integer roleLevel = current.roles().get(passedRole);
-				if (roleLevel != null) {
-					if (level == null || roleLevel > level) {
-						level = roleLevel;
-					}
-				}
-			}
-			if (level == null) {
-				level = current.defaultLevel();
-			}
+			int level = levelOf(current, tokenClaims.getClaim(roleClaim));
 			UiUser user = UiUser.remote(username, level);
 			AAA_LOG.info("User {} successfully authenticated via OIDC (level {})", username, level);
 			return user;
@@ -339,6 +402,87 @@ public final class Oidc {
 		catch (Exception e) {
 			log.warn("Error while authenticating user based on OIDC authorization code", e);
 			AAA_LOG.warn("Error while authenticating user based on OIDC authorization code", e);
+			return null;
+		}
+	}
+
+	/**
+	 * Computes the level of a user from the value of the role claim: the highest level of the known roles,
+	 * or the default level.
+	 *
+	 * @param current the settings
+	 * @param roleClaimValue the value of the role claim (a string, a list of strings, or null)
+	 * @return the level
+	 */
+	private static int levelOf(Settings current, Object roleClaimValue) {
+		Set<String> passedRoles = new HashSet<>();
+		if (roleClaimValue instanceof String roleName) {
+			passedRoles.add(roleName);
+		}
+		else if (roleClaimValue instanceof Collection<?> roleNames) {
+			roleNames.stream().filter(String.class::isInstance).map(String.class::cast).forEach(passedRoles::add);
+		}
+		Integer level = null;
+		for (String passedRole : passedRoles) {
+			Integer roleLevel = current.roles().get(passedRole);
+			if (roleLevel != null && (level == null || roleLevel > level)) {
+				level = roleLevel;
+			}
+		}
+		return level == null ? current.defaultLevel() : level;
+	}
+
+	/**
+	 * Authenticates the bearer of a JWT access token issued by the IdP: the signature (keys of the IdP), the
+	 * type ({@code JWT} or {@code at+jwt}), the issuer, the audience ({@code netshot.aaa.oidc.jwt.audience}, or
+	 * the client ID; tokens are refused if there is neither), the expiration and the not-before dates are checked; the user name and level are read as
+	 * for an OIDC login (username claim, falling back to {@code sub}; role claim).
+	 *
+	 * @param token the token
+	 * @return the authenticated user, or null if the token is invalid, or the JWT authentication is disabled
+	 *         or not available (IdP metadata not fetched)
+	 */
+	public UiUser authenticateWithBearerToken(String token) {
+		Settings current = this.settings.get();
+		if (!current.jwtEnabled()) {
+			return null;
+		}
+		DefaultJWTProcessor<SecurityContext> processor;
+		String issuer;
+		String clientId;
+		synchronized (this) {
+			processor = this.jwtProcessor;
+			issuer = this.idpMetadata == null ? null : this.idpMetadata.getIssuer().getValue();
+			clientId = this.clientInfo == null ? null : this.clientInfo.getID().getValue();
+		}
+		if (processor == null || issuer == null) {
+			AAA_LOG.warn("JWT bearer token received while the OIDC IdP metadata isn't available.");
+			return null;
+		}
+		String audience = current.jwtAudience() != null ? current.jwtAudience() : clientId;
+		if (audience == null) {
+			AAA_LOG.warn("JWT bearer token refused: no audience to check (set netshot.aaa.oidc.jwt.audience).");
+			return null;
+		}
+		try {
+			// Signature and type (the processor fetches and caches the keys, out of the lock)
+			JWTClaimsSet claims = processor.process(token, null);
+			new DefaultJWTClaimsVerifier<SecurityContext>(audience,
+				new JWTClaimsSet.Builder().issuer(issuer).build(), Set.of("exp")).verify(claims, null);
+			Object username = claims.getClaim(current.usernameClaim());
+			if (!(username instanceof String)) {
+				username = claims.getSubject();
+			}
+			if (username == null) {
+				AAA_LOG.warn("JWT bearer token without username ({} or sub claim).", current.usernameClaim());
+				return null;
+			}
+			int level = levelOf(current, claims.getClaim(current.roleClaim()));
+			AAA_LOG.debug("User {} authenticated by a JWT bearer token (level {}).", username, level);
+			return UiUser.remote((String) username, level);
+		}
+		catch (ParseException | BadJOSEException | JOSEException e) {
+			AAA_LOG.warn("Invalid JWT bearer token: {}", e.getMessage());
 			return null;
 		}
 	}

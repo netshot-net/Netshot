@@ -21,7 +21,7 @@ export default function ReloadDeviceDriversTrigger({ children, ...rest }: Reload
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_DRIVER_RELOAD,
-    mutationFn: async () => api.admin.getAllDrivers({}, true),
+    mutationFn: async () => api.admin.reloadDrivers(),
     onError(err: NetshotError) {
       toast.error(err)
     },

@@ -1,42 +1,46 @@
-import { Policy } from "@/types"
-import httpClient from "./httpClient"
-import rule from "./rule"
-import { CreateOrUpdatePolicy } from "./types"
+import { client, listAll, replace, Schemas } from "./client"
+import rule, { Rule } from "./rule"
+
+/** A compliance policy, as the list gives it (fields name and targetGroups). */
+export type Policy = Pick<Schemas["Policy"], "id" | "name" | "targetGroups">
+
+/** A policy with the (brief) rules it contains. */
+export type PolicyWithRules = Policy & { rules: Rule[] }
 
 async function getAll() {
-  return (await httpClient.get<Policy[]>("/policies")) ?? []
+  return listAll<Policy>("/compliance/policies", { fields: "name,targetGroups", sort: "name" })
 }
 
-// The backend has no search filtering: `query` is applied client-side (see
-// `usePoliciesWithSearch` in features/compliance/api/queries.ts) against this
-// same fetch, so callers share one cache entry instead of one per search term.
-async function getAllWithRules() {
+async function getById(id: number) {
+  return (await client.get<Policy>(`/compliance/policies/${id}`)) as Policy
+}
+
+// The policies and their rules are all loaded once (and shared by the hooks of the compliance feature through the
+// same cache entry), then filtered in the browser to show the matching rules inside their policy.
+async function getAllWithRules(): Promise<PolicyWithRules[]> {
   const [policies, rules] = await Promise.all([getAll(), rule.getAllLight()])
 
-  for (const policy of policies) {
-    policy.rules = rules.filter((r) => r.policyId === policy.id)
-  }
-
-  return policies
+  return policies.map((policy) => ({
+    ...policy,
+    rules: rules.filter((r) => r.policy?.id === policy.id),
+  }))
 }
 
-async function create(payload: CreateOrUpdatePolicy) {
-  return httpClient.post<Policy, CreateOrUpdatePolicy>("/policies", payload)
+async function create(payload: Schemas["PolicyRequest"]) {
+  return (await client.post<Policy, Schemas["PolicyRequest"]>("/compliance/policies", payload)) as Policy
 }
 
-async function update(id: number, payload: Partial<CreateOrUpdatePolicy>) {
-  return httpClient.put<Policy, Partial<CreateOrUpdatePolicy>>(
-    `/policies/${id}`,
-    payload
-  )
+async function update(id: number, payload: Schemas["PolicyRequest"]) {
+  return replace<Policy, Schemas["PolicyRequest"]>(`/compliance/policies/${id}`, payload)
 }
 
 async function remove(id: number) {
-  return httpClient.delete(`/policies/${id}`)
+  return client.delete(`/compliance/policies/${id}`)
 }
 
 export default {
   getAll,
+  getById,
   getAllWithRules,
   create,
   update,

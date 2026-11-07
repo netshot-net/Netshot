@@ -1,7 +1,7 @@
 import api from "@/api"
 import { QUERIES } from "@/constants"
 import { useFormDialog } from "@/dialog"
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 import { createFoldersFromGroups, findNodeWithPath, Folder } from "@/utils"
 import { Badge, Box, Field, Icon, Stack, Tag, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
@@ -30,7 +30,7 @@ function SelectGroupDialog({
   items,
   initialExpandedKeys,
 }: {
-  items: (Group | Folder)[]
+  items: (GroupBrief | Folder)[]
   initialExpandedKeys: string[]
 }) {
   const form = useFormContext<SelectGroupForm>()
@@ -46,14 +46,14 @@ function SelectGroupDialog({
   })
 
   const isSelected = useCallback(
-    (group: Group) => {
+    (group: GroupBrief) => {
       return fields.some((field) => field.id === group.id)
     },
     [fields]
   )
 
   const onGroupSelect = useCallback(
-    (group: Group) => {
+    (group: GroupBrief) => {
       if (!isMulti) {
         form.setValue("groups", [{ id: group.id }])
         return

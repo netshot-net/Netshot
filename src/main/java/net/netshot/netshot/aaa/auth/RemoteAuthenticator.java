@@ -40,6 +40,14 @@ public interface RemoteAuthenticator {
 	UiUser authenticateWithCode(String authorizationCode, URL redirectUrl);
 
 	/**
+	 * Authenticates the bearer of a JWT access token issued by the OpenID Connect IdP.
+	 *
+	 * @param token the token
+	 * @return the authenticated user, or null if the token is invalid or the JWT authentication is not enabled
+	 */
+	UiUser authenticateWithBearerToken(String token);
+
+	/**
 	 * Authenticates a user against the RADIUS servers.
 	 *
 	 * @param username the user name

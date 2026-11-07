@@ -1,67 +1,51 @@
-import { LightTask, Task } from "@/types";
-import httpClient, { HttpMethod } from "./httpClient";
-import {
-  CreateOrUpdateTaskPayload,
-  TaskQueryParams,
-  TaskStatsQueryParams,
-  TaskStatsResponse,
-  TaskSummaryResponse,
-} from "./types";
+import { client, list, ListParams, Schemas } from "./client"
+import { getStats } from "./stats"
 
-async function getAll(queryParams: TaskQueryParams) {
-  return httpClient.get<LightTask[]>("/tasks", {
-    queryParams,
-    // The backend's `status`/`type` params are repeated (?status=A&status=B), not
-    // indexed (?status[0]=A&status[1]=B), which is `qs`'s (and so with-query's) default.
-    queryParamsOptions: {
-      stringifyOpt: {
-        arrayFormat: "repeat",
-      },
-    },
-  });
+export type Task = Schemas["Task"]
+export type TaskRequest = Schemas["TaskRequest"]
+export type TaskStatusCounts = Schemas["TaskStatusCounts"]
+
+/**
+ * The properties a task list needs. The brief view only has the type and the status; these ones keep the answer to the
+ * light summary of the tasks (without the log, the parameters and the next execution).
+ */
+export const TASK_LIST_FIELDS =
+  "type,status,target,author,comments,device,group,parentTask,childOrder,priority,scheduleType,scheduleFactor,scheduleReference,executionDate,changeDate"
+
+async function getAll(params: ListParams = {}) {
+  return list<Task>("/tasks", { fields: TASK_LIST_FIELDS, ...params })
 }
 
 async function getById(id: number) {
-  return httpClient.get<Task>(`/tasks/${id}`);
+  return (await client.get<Task>(`/tasks/${id}`)) as Task
 }
 
-async function create(payload: CreateOrUpdateTaskPayload) {
-  return httpClient.post<Task, CreateOrUpdateTaskPayload>("/tasks", payload);
+async function createTask(request: TaskRequest) {
+  return (await client.post<Task, TaskRequest>("/tasks", request)) as Task
 }
 
-async function update(id: number, payload: CreateOrUpdateTaskPayload) {
-  return httpClient.put<Task, CreateOrUpdateTaskPayload>(
-    `/tasks/${id}`,
-    payload
-  );
+/** Cancels a scheduled task, or requests the cancellation of a running one (409 if it can't be cancelled). */
+async function cancel(id: number) {
+  return (await client.post<Task, undefined>(`/tasks/${id}/cancel`, undefined)) as Task
 }
 
-async function getDebugById(id: number) {
-  const req = await httpClient.request(
-    HttpMethod.GET,
-    `/tasks/${id}/debuglog`
-  );
-  return req;
+/** The number of tasks by status, and the size of the task thread pool (for the children of a task if given). */
+async function getStatusCounts(parentTask?: number) {
+  return (await client.get<TaskStatusCounts>("/tasks/status-counts", {
+    queryParams: parentTask != null ? { parentTask } : undefined,
+  })) as TaskStatusCounts
 }
 
-async function getSummary(parentTaskId?: number) {
-  return httpClient.get<TaskSummaryResponse>(`/tasks/summary`, {
-    queryParams: parentTaskId != null ? { parentTaskId } : undefined,
-  });
-}
-
-async function getStats(queryParams: TaskStatsQueryParams) {
-  return httpClient.get<TaskStatsResponse>("/tasks/stats", {
-    queryParams,
-  });
+/** Counts the tasks (see getStats), with the filters of the task list. */
+async function getTaskStats<R extends Record<string, unknown> = Record<string, unknown>>(params: ListParams = {}) {
+  return getStats<R & { count: number; start?: Date }>("/tasks/stats", params)
 }
 
 export default {
   getAll,
   getById,
-  create,
-  update,
-  getDebugById,
-  getSummary,
-  getStats,
-};
+  createTask,
+  cancel,
+  getStatusCounts,
+  getStats: getTaskStats,
+}

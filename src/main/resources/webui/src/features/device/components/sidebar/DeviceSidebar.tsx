@@ -12,7 +12,6 @@ import DeviceScanSubnetTrigger from "../DeviceScanSubnetTrigger"
 import DeviceSidebarList from "./DeviceSidebarList"
 import DeviceSidebarListToolbar from "./DeviceSidebarListToolbar"
 import DeviceSidebarSearch from "./DeviceSidebarSearch"
-import DeviceSidebarSearchList from "./DeviceSidebarSearchList"
 
 export default function DeviceSidebar() {
   const { t } = useTranslation()
@@ -22,6 +21,7 @@ export default function DeviceSidebar() {
   // the add-device button must be Group's direct child rather than hidden
   // behind a <Protected> wrapper - otherwise it never receives the
   // data-first/data-last attributes that remove its adjoining rounded corner.
+  // Read-write users get the add button and the menu of the other actions.
   const isReadWrite = (user?.level || 0) >= Level.ReadWrite
 
   return (
@@ -30,54 +30,60 @@ export default function DeviceSidebar() {
       <Separator />
       <DeviceSidebarListToolbar />
       <Separator />
-      {query ? <DeviceSidebarSearchList /> : <DeviceSidebarList />}
+      <DeviceSidebarList query={query} />
 
       <Protected minLevel={Level.Operator}>
         <Separator />
         <Stack p="6">
-          <Menu.Root positioning={{ placement: "top" }}>
-            <Group attached w="full">
-              {isReadWrite && (
+          {isReadWrite ? (
+            <Menu.Root positioning={{ placement: "top" }}>
+              <Group attached w="full">
                 <CreateDeviceTrigger>
                   <Button flex="1">
                     <LuPlus />
                     {t("device.add")}
                   </Button>
                 </CreateDeviceTrigger>
-              )}
-              <Menu.Trigger asChild>
-                <IconButton aria-label={t("common.actions")}>
-                  <LuChevronUp />
-                </IconButton>
-              </Menu.Trigger>
-            </Group>
-            <Portal>
-              <Menu.Positioner>
-                <Menu.Content>
-                  <DeviceScanSubnetTrigger>
-                    <Menu.Item value="scan-subnets-for-device">
-                      <LuCrosshair />
-                      {t("task.scanSubnets")}
-                    </Menu.Item>
-                  </DeviceScanSubnetTrigger>
-                  <AddTaskTrigger>
-                    <Menu.Item value="run-new-group-task">
-                      <LuWorkflow />
-                      {t("task.runNewGroupTask")}
-                    </Menu.Item>
-                  </AddTaskTrigger>
-                  <Protected minLevel={Level.ReadWrite}>
+                <Menu.Trigger asChild>
+                  <IconButton aria-label={t("common.actions")}>
+                    <LuChevronUp />
+                  </IconButton>
+                </Menu.Trigger>
+              </Group>
+              <Portal>
+                <Menu.Positioner>
+                  <Menu.Content>
+                    <DeviceScanSubnetTrigger>
+                      <Menu.Item value="scan-subnets-for-device">
+                        <LuCrosshair />
+                        {t("task.scanSubnets")}
+                      </Menu.Item>
+                    </DeviceScanSubnetTrigger>
+                    <AddTaskTrigger>
+                      <Menu.Item value="run-new-group-task">
+                        <LuWorkflow />
+                        {t("task.runNewGroupTask")}
+                      </Menu.Item>
+                    </AddTaskTrigger>
                     <AddGroupTrigger>
                       <Menu.Item value="add-group">
                         <LuGrid2X2Plus />
                         {t("group.add")}
                       </Menu.Item>
                     </AddGroupTrigger>
-                  </Protected>
-                </Menu.Content>
-              </Menu.Positioner>
-            </Portal>
-          </Menu.Root>
+                  </Menu.Content>
+                </Menu.Positioner>
+              </Portal>
+            </Menu.Root>
+          ) : (
+            // An operator can't add devices, scan subnets or add groups: the group task is the only action
+            <AddTaskTrigger>
+              <Button w="full">
+                <LuWorkflow />
+                {t("task.add")}
+              </Button>
+            </AddTaskTrigger>
+          )}
         </Stack>
       </Protected>
     </Stack>

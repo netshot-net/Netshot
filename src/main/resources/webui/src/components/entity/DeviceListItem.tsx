@@ -1,9 +1,9 @@
-import { Device, LightDevice, DeviceStatus } from "@/types"
+import { Device, DeviceStatus } from "@/types"
 import { Stack, Text } from "@chakra-ui/react"
 import DeviceNetworkClassIcon from "@/components/entity/DeviceNetworkClassIcon"
 
 type DeviceListItemProps = {
-  device: LightDevice | Device
+  device: Device
 }
 
 export default function DeviceListItem({ device }: DeviceListItemProps) {

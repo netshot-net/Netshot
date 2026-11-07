@@ -18,7 +18,7 @@
  */
 package net.netshot.netshot.credentials;
 
-import net.netshot.netshot.vault.VaultableSecret;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * An account to log into the CLI of devices (SSH or Telnet).
@@ -26,92 +26,23 @@ import net.netshot.netshot.vault.VaultableSecret;
 public sealed interface DeviceCliAccount extends DeviceCredentialSet permits SshAccount, DeviceTelnetAccount {
 
 	/**
-	 * Gets the local username.
+	 * Gets the username.
 	 *
-	 * @return the username
+	 * @return the username, local or in a Vault instance (null if not set)
 	 */
-	String username();
+	Secret username();
 
 	/**
-	 * Gets the Vault instance the username is read from.
+	 * Gets the password.
 	 *
-	 * @return the ID of the Vault instance, or null if the username is local
+	 * @return the password, local or in a Vault instance (null if not set)
 	 */
-	Long usernameVaultInstanceId();
+	Secret password();
 
 	/**
-	 * Gets the Vault path of the username.
+	 * Gets the super (enable) password.
 	 *
-	 * @return the path (and key)
+	 * @return the super password, local or in a Vault instance (null if not set)
 	 */
-	String usernameVaultPath();
-
-	/**
-	 * Gets the local password.
-	 *
-	 * @return the password
-	 */
-	String password();
-
-	/**
-	 * Gets the Vault instance the password is read from.
-	 *
-	 * @return the ID of the Vault instance, or null if the password is local
-	 */
-	Long passwordVaultInstanceId();
-
-	/**
-	 * Gets the Vault path of the password.
-	 *
-	 * @return the path (and key)
-	 */
-	String passwordVaultPath();
-
-	/**
-	 * Gets the local super (enable) password.
-	 *
-	 * @return the super password
-	 */
-	String superPassword();
-
-	/**
-	 * Gets the Vault instance the super password is read from.
-	 *
-	 * @return the ID of the Vault instance, or null if the super password is local
-	 */
-	Long superPasswordVaultInstanceId();
-
-	/**
-	 * Gets the Vault path of the super password.
-	 *
-	 * @return the path (and key)
-	 */
-	String superPasswordVaultPath();
-
-	/**
-	 * Gets the username, local or in a Vault instance.
-	 *
-	 * @return the username
-	 */
-	default VaultableSecret usernameSecret() {
-		return new VaultableSecret(this.username(), this.usernameVaultInstanceId(), this.usernameVaultPath());
-	}
-
-	/**
-	 * Gets the password, local or in a Vault instance.
-	 *
-	 * @return the password
-	 */
-	default VaultableSecret passwordSecret() {
-		return new VaultableSecret(this.password(), this.passwordVaultInstanceId(), this.passwordVaultPath());
-	}
-
-	/**
-	 * Gets the super password, local or in a Vault instance.
-	 *
-	 * @return the super password
-	 */
-	default VaultableSecret superPasswordSecret() {
-		return new VaultableSecret(this.superPassword(), this.superPasswordVaultInstanceId(), this.superPasswordVaultPath());
-	}
+	Secret superPassword();
 }

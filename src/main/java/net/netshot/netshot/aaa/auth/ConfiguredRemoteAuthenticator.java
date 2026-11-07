@@ -51,6 +51,11 @@ public class ConfiguredRemoteAuthenticator implements RemoteAuthenticator {
 	}
 
 	@Override
+	public UiUser authenticateWithBearerToken(String token) {
+		return this.oidc.authenticateWithBearerToken(token);
+	}
+
+	@Override
 	public UiUser authenticateWithRadius(String username, String password, String remoteAddress) {
 		return this.radius.authenticate(username, password, remoteAddress);
 	}

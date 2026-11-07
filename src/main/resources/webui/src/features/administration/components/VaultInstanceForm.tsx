@@ -1,5 +1,5 @@
 import api from "@/api"
-import { VaultInstancePayload } from "@/api/types"
+import { VaultInstanceRequest } from "@/api/admin"
 import { NetshotError } from "@/api/httpClient"
 import { FormControl } from "@/components"
 import { FormControlType, PASSWORD_UNCHANGED } from "@/components/FormControl"
@@ -58,8 +58,8 @@ const HTTPS_CA_TRUST_MODE_OPTIONS = [
   },
 ] as const
 
-export function buildVaultInstancePayload(values: VaultInstanceForm): Partial<VaultInstancePayload> {
-  let payload: Partial<VaultInstancePayload> = {
+export function buildVaultInstancePayload(values: VaultInstanceForm): VaultInstanceRequest {
+  let payload = {
     name: values.name,
     type: values.type,
     baseUrl: values.baseUrl,
@@ -71,7 +71,7 @@ export function buildVaultInstancePayload(values: VaultInstanceForm): Partial<Va
         : undefined,
     kvMountPath: values.kvMountPath,
     authMethod: values.authMethod,
-  }
+  } as VaultInstanceRequest
 
   if (values.authMethod === VaultAuthMethod.AppRole) {
     payload = {
@@ -294,13 +294,29 @@ export function VaultInstanceTestConnectionButton({
 
   const testMutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_VAULT_INSTANCE_TEST,
-    mutationFn: async () =>
-      api.admin.testVaultInstance(buildVaultInstancePayload(form.getValues()), id),
-    onSuccess() {
-      toast.success({
-        title: t("common.success"),
-        description: t("vault.testConnectionSuccess"),
-      })
+    mutationFn: async () => {
+      const values = form.getValues()
+      const secretUnchanged =
+        values.authMethod === VaultAuthMethod.AppRole
+          ? values.appRoleSecretId === PASSWORD_UNCHANGED
+          : values.jwtClientSecret === PASSWORD_UNCHANGED
+      // A secret which is left unchanged is only known by the server: test the saved instance
+      return id !== undefined && secretUnchanged
+        ? api.admin.testSavedVaultInstance(id)
+        : api.admin.testVaultInstance(buildVaultInstancePayload(values))
+    },
+    onSuccess(result) {
+      if (result.success) {
+        toast.success({
+          title: t("common.success"),
+          description: t("vault.testConnectionSuccess"),
+        })
+      } else {
+        toast.error({
+          title: t("common.error"),
+          description: result.message ?? t("common.netshotServerError"),
+        })
+      }
     },
     onError(err: NetshotError) {
       toast.error(err)

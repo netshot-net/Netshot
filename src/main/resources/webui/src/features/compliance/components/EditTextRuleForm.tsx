@@ -3,7 +3,6 @@ import FormControl, { FormControlType } from "@/components/FormControl"
 import { Select } from "@/components/Select"
 import { useDiagnostics } from "@/features/diagnostic/api"
 import { useDeviceTypeOptions } from "@/features/device/hooks"
-import { Rule } from "@/types"
 import { Icon, Separator, Spacer, Stack, Tabs, Text } from "@chakra-ui/react"
 import { LuAsterisk } from "react-icons/lu"
 import { useEffect, useMemo, useState } from "react"
@@ -19,7 +18,7 @@ enum FieldSource {
 }
 
 export type EditTextRuleFormProps = {
-  type: Rule["type"]
+  type: string
 }
 
 export function EditTextRuleForm(props: EditTextRuleFormProps) {

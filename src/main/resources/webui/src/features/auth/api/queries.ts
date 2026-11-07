@@ -29,10 +29,7 @@ export function useSigninMutation() {
           title: t("auth.failed"),
           description: t("auth.incorrectCredentials"),
         })
-      } else if (
-        err.response?.status === HttpStatus.PreconditionFailed &&
-        err.code === NetshotErrorCode.ExpiredPassword
-      ) {
+      } else if (err.code === NetshotErrorCode.ExpiredPassword) {
         toast.error({
           title: t("auth.passwordExpired"),
           description: t("auth.needToChangePassword"),

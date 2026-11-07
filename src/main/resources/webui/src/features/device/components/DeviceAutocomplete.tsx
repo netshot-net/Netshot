@@ -1,7 +1,8 @@
-import api, { DeviceSearchResult } from "@/api"
+import api from "@/api"
+import { ListResponse } from "@/api/client"
 import DeviceBadge from "@/components/entity/DeviceBadge"
 import DeviceListItem from "@/components/entity/DeviceListItem"
-import { LightDevice } from "@/types"
+import { Device } from "@/types"
 import {
   Box,
   BoxProps,
@@ -20,7 +21,7 @@ import { useAutocomplete, WithFilterBy } from "@/components/autocomplete"
 
 function DeviceComboboxInput({ placeholder }: { placeholder?: string }) {
   const combobox = useComboboxContext()
-  const items = combobox.selectedItems as LightDevice[]
+  const items = combobox.selectedItems as Device[]
   const device = items[0]
 
   if (!device) {
@@ -49,11 +50,11 @@ function DeviceComboboxInput({ placeholder }: { placeholder?: string }) {
 
 export type DeviceAutocompleteProps = Omit<ComboboxRootProps, "collection"> & {
   placeholder?: string
-  onSelectItem?(item: LightDevice | null): void
+  onSelectItem?(item: Device | null): void
   // Rendered attached to the end of the combobox (e.g. a "run" button). Group attaches
   // it internally so the radius reset can target the actual bordered input part.
   endAddon?: ReactElement<{ h?: BoxProps["h"]; w?: BoxProps["w"] }>
-} & WithFilterBy<LightDevice>
+} & WithFilterBy<Device>
 
 export default function DeviceAutocomplete(props: DeviceAutocompleteProps) {
   const {
@@ -75,20 +76,19 @@ export default function DeviceAutocomplete(props: DeviceAutocompleteProps) {
     collection,
     onInputValueChange,
     inputValue,
-  } = useAutocomplete<LightDevice, DeviceSearchResult>({
+  } = useAutocomplete<Device, ListResponse<Device>>({
     initialItems: [],
     itemToString: (item) => item.name,
     itemToValue: (item) => item.id.toString(),
     queryKey: ["autocomplete:device"],
     async queryFn(query) {
-      const result = await api.device.search({
-        query: `[Name] containsnocase "${query}"`,
+      return api.device.search({
+        query: `[Name] containsnocase "${query.replace(/"/g, '\\"')}"`,
         limit: 20,
       })
-      return result ?? { query, devices: [] }
     },
     select(data) {
-      return data.devices
+      return data.results
     },
     filterBy,
   })

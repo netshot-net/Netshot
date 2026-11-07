@@ -1,10 +1,10 @@
-import api from "@/api"
+import { User } from "@/api/admin"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
 import { Tooltip } from "@/components/ui/tooltip"
 import { useAuth } from "@/contexts"
-import { usePagination, useUserLevelOptions } from "@/hooks"
-import { User } from "@/types"
-import { search } from "@/utils"
+import { Level } from "@/types"
+import { useSearchQuery, useUserLevelOptions } from "@/hooks"
 import {
   Badge,
     Button,
@@ -15,9 +15,8 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo } from "react"
+import { useMemo } from "react"
 import { LuCloud, LuDatabase, LuSquarePen, LuPlus, LuTrash } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddUserTrigger from "../components/AddUserTrigger"
@@ -30,22 +29,17 @@ const columnHelper = createColumnHelper<User>()
 
 export default function AdministrationUserScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const { user: currentUser } = useAuth()
   const userLevelOptions = useUserLevelOptions()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [QUERIES.ADMIN_USERS, pagination.query, pagination.offset, pagination.limit],
-    queryFn: async () => api.admin.getAllUsers(pagination),
-    select: useCallback(
-      (res: User[]): User[] => {
-        return search(res, "username").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending } = useListAll<User>(
+    [QUERIES.ADMIN_USERS],
+    "/users",
+    { q: searchBox.query, sort: "username" }
+  )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
@@ -72,7 +66,7 @@ export default function AdministrationUserScreen() {
       columnHelper.accessor("level", {
         cell: (info) => {
           const value = info.getValue()
-          const label = userLevelOptions.getLabelByValue(value)
+          const label = userLevelOptions.getLabelByValue(value as Level)
 
           return <Text>{label ? label : t("common.unknownLabel")}</Text>
         },
@@ -132,8 +126,8 @@ export default function AdministrationUserScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

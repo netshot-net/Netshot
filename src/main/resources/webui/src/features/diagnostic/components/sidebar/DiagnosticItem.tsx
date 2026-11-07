@@ -2,14 +2,15 @@ import { Icon, Stack, Text } from "@chakra-ui/react"
 import { useEffect, useRef, useMemo } from "react"
 import { NavLink, useParams } from "react-router"
 
-import { Diagnostic, DiagnosticType } from "@/types"
+import type { DiagnosticBrief } from "@/api/diagnostic"
+import { DiagnosticType } from "@/types"
 import { Tooltip } from "@/components/ui/tooltip"
 
 import { LuCircleX, LuRegex } from "react-icons/lu"
 import { SiJavascript, SiPython } from "react-icons/si"
 
 type DiagnosticBoxProps = {
-  diagnostic: Diagnostic
+  diagnostic: DiagnosticBrief
 }
 
 function DiagnosticItem(props: DiagnosticBoxProps) {

@@ -1,9 +1,10 @@
-import api, { CreateOrUpdateHardwareRule } from "@/api"
+import type { Brief } from "@/api/client"
+import api from "@/api"
+import type { HardwareRuleRequest } from "@/api/hardwareRule"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { HardwareRule } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -14,7 +15,7 @@ import { QUERIES } from "../constants"
 import { HardwareRuleFormValues } from "../types"
 import HardwareRuleForm from "./HardwareRuleForm"
 
-export type EditHardwareRuleTriggerProps = { rule: HardwareRule; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type EditHardwareRuleTriggerProps = { rule: Brief["HardwareRule"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function EditHardwareRuleTrigger({ rule, children, ...rest }: EditHardwareRuleTriggerProps) {
   const { t } = useTranslation()
@@ -24,14 +25,14 @@ export default function EditHardwareRuleTrigger({ rule, children, ...rest }: Edi
 
   const defaultValues = useMemo(() => {
     return {
-      driver: rule.driver,
-      family: rule?.family,
-      familyRegExp: rule?.familyRegExp,
-      group: rule.targetGroup?.id,
-      partNumber: rule?.partNumber,
-      partNumberRegExp: rule?.partNumberRegExp,
-      endOfLife: rule?.endOfLife,
-      endOfSale: rule?.endOfSale,
+      driver: rule.driver ?? null,
+      family: rule?.family ?? "",
+      familyRegExp: rule?.familyRegExp ?? false,
+      group: rule.group?.id ?? null,
+      partNumber: rule?.partNumber ?? "",
+      partNumberRegExp: rule?.partNumberRegExp ?? false,
+      endOfLife: rule?.endOfLife?.getTime(),
+      endOfSale: rule?.endOfSale?.getTime(),
     }
   }, [rule])
 
@@ -42,7 +43,7 @@ export default function EditHardwareRuleTrigger({ rule, children, ...rest }: Edi
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.HARDWARE_RULE_UPDATE,
-    mutationFn: async (payload: CreateOrUpdateHardwareRule) =>
+    mutationFn: async (payload: HardwareRuleRequest) =>
       api.hardwareRule.update(rule.id, payload),
     onError(err: NetshotError) {
       toast.error(err)
@@ -58,15 +59,14 @@ export default function EditHardwareRuleTrigger({ rule, children, ...rest }: Edi
       size: "lg",
       async onSubmit(values: HardwareRuleFormValues) {
         await mutation.mutateAsync({
-          id: rule.id,
-          driver: values.driver!,
+          driver: values.driver ?? undefined,
           family: values.family,
           familyRegExp: values.familyRegExp,
-          group: values.group!,
+          group: values.group ?? undefined,
           partNumber: values.partNumber,
           partNumberRegExp: values.partNumberRegExp,
-          endOfLife: values.endOfLife,
-          endOfSale: values.endOfSale,
+          endOfLife: values.endOfLife ? new Date(values.endOfLife) : undefined,
+          endOfSale: values.endOfSale ? new Date(values.endOfSale) : undefined,
         })
 
         dialogRef.close()

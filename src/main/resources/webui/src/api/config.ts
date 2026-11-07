@@ -1,41 +1,24 @@
-import { ConfigDiff, LightConfig } from "@/types"
+import { client, ListParams, Schemas } from "./client"
+import { HttpMethod } from "./httpClient"
 
-import httpClient, { HttpMethod } from "./httpClient"
-import { ConfigQueryParams } from "./types"
-
-async function getAll(queryParams: ConfigQueryParams = {}) {
-  return httpClient.get<LightConfig[]>("/configs", {
-    queryParams,
-    queryParamsOptions: {
-      stringifyOpt: {
-        arrayFormat: "repeat",
-      },
-    },
-  })
+/**
+ * Compares a configuration with another one of the same device (by default the previous one).
+ */
+async function getDiff(revisedId: number, originalId?: number, params: ListParams = {}) {
+  return (await client.get<Schemas["ConfigDiff"]>(`/configs/${revisedId}/diff`, {
+    queryParams: { ...params, with: originalId },
+  })) as Schemas["ConfigDiff"]
 }
 
-async function getDiff(
-  sourceId: number,
-  targetId: number,
-  queryParams: { deltas?: boolean; fullconfigs?: boolean } = {}
-) {
-  return httpClient.get<ConfigDiff>(`/configs/${sourceId}/vs/${targetId}`, {
-    queryParams,
-  })
-}
-
+/** The text of a long text item of a configuration. */
 async function getItem(id: number, item: string) {
-  const req = await httpClient.request(
-    HttpMethod.GET,
-    `/configs/${id}/${item}`,
-    { headers: { Accept: "*/*" } }
-  )
-  const res = await req.text()
-  return res
+  const response = await client.request(HttpMethod.GET, `/configs/${id}/items/${encodeURIComponent(item)}`, {
+    headers: { Accept: "*/*" },
+  })
+  return response.text()
 }
 
 export default {
-  getAll,
   getDiff,
   getItem,
 }

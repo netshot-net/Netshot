@@ -1,5 +1,6 @@
 import api from "@/api"
-import httpClient, { HttpEventType } from "@/api/httpClient"
+import { HttpEventType } from "@/api/httpClient"
+import { client } from "@/api/client"
 import { QUERIES } from "@/constants"
 import { useToast } from "@/hooks"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
@@ -35,9 +36,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
     }
 
-    httpClient.on(HttpEventType.GatewayError, onGatewayError)
+    client.on(HttpEventType.GatewayError, onGatewayError)
     return () => {
-      httpClient.off(HttpEventType.GatewayError)
+      client.off(HttpEventType.GatewayError)
     }
   }, [t, toast])
 

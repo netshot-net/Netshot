@@ -27,6 +27,10 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * The queries on the users. The {@link DSLContext} is always the first parameter: the caller
@@ -36,9 +40,41 @@ public class UserRepository {
 
 	private static UiUser toUser(Record r) {
 		String[] oldHashes = r.get(USER.OLD_HASHED_PASSWORDS);
-		return new UiUser(r.get(USER.ID), r.get(USER.USERNAME), r.get(USER.LOCAL), r.get(USER.LEVEL),
+		return new UiUser(r.get(USER.ID), r.get(USER.VERSION), r.get(USER.CHANGE_DATE), r.get(USER.USERNAME), r.get(USER.LOCAL), r.get(USER.LEVEL),
 			r.get(USER.HASHED_PASSWORD), oldHashes == null ? List.of() : Arrays.asList(oldHashes),
 			r.get(USER.LAST_PASSWORD_CHANGE_DATE));
+	}
+
+	/** The fields the user lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(USER.ID)
+		.string("username", USER.USERNAME, Option.SORTABLE, Option.SEARCHABLE)
+		.bool("local", USER.LOCAL, Option.SORTABLE)
+		.integer("level", USER.LEVEL, Option.SORTABLE)
+		.build();
+
+	/**
+	 * Lists the users matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the users of the window of the query
+	 */
+	public List<UiUser> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(USER.fields()).from(USER)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(UserRepository::toUser);
+	}
+
+	/**
+	 * Counts the users matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of users
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(USER, LIST.condition(query));
 	}
 
 	/**
@@ -83,6 +119,8 @@ public class UserRepository {
 	 */
 	public long add(DSLContext dsl, UiUser user) {
 		return dsl.insertInto(USER)
+			.set(USER.VERSION, 0)
+			.set(USER.CHANGE_DATE, Versions.now())
 			.set(USER.USERNAME, user.username())
 			.set(USER.LOCAL, user.local())
 			.set(USER.LEVEL, user.level())
@@ -94,7 +132,18 @@ public class UserRepository {
 	}
 
 	/**
-	 * Saves an existing user.
+	 * Locks the row of a user until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID of the user
+	 * @return the version of the user, or null if there is no such user
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, USER, USER.ID, USER.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing user (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param user the user
@@ -102,6 +151,8 @@ public class UserRepository {
 	 */
 	public boolean save(DSLContext dsl, UiUser user) {
 		return dsl.update(USER)
+			.set(USER.VERSION, USER.VERSION.plus(1))
+			.set(USER.CHANGE_DATE, Versions.now())
 			.set(USER.USERNAME, user.username())
 			.set(USER.LOCAL, user.local())
 			.set(USER.LEVEL, user.level())

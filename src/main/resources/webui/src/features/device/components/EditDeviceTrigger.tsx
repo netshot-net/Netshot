@@ -1,5 +1,6 @@
-import api, { UpdateDevicePayload } from "@/api"
-import { NetshotError } from "@/api/httpClient"
+import api from "@/api"
+import { Schemas } from "@/api/client"
+import { HttpStatus, NetshotError } from "@/api/httpClient"
 import { DomainSelect } from "@/features/administration/components"
 import DeviceTypeSelect from "./DeviceTypeSelect"
 import DeviceAccessFields, { buildAccessesPayload, DeviceAccessFormValue, TRY_ALL_CREDENTIALS_VALUE } from "./DeviceAccessFields"
@@ -9,7 +10,7 @@ import FormControl, { FormControlType, PASSWORD_UNCHANGED } from "@/components/F
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { CredentialSetType, Device, DriverOptionType, HttpsCaTrustMode, SshHostKeyVerification } from "@/types"
+import { Device, DriverOptionType, HashingAlgorithm, HttpsCaTrustMode, SshHostKeyVerification } from "@/types"
 import validators from "@/utils/validators"
 import { Alert, Separator, Stack } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
@@ -43,8 +44,8 @@ function DeviceEditForm() {
 
   const selectedDeviceType = getOptionByDriver(deviceType)?.value
   const isDriverMissing = !isPending && Boolean(deviceType) && !selectedDeviceType
-  const hasAccesses = Boolean(selectedDeviceType && Object.keys(selectedDeviceType.accessDefinitions ?? {}).length > 0)
-  const hasOptions = Boolean(selectedDeviceType && Object.keys(selectedDeviceType.options ?? {}).length > 0)
+  const hasAccesses = Boolean(selectedDeviceType && (selectedDeviceType.accesses?.length ?? 0) > 0)
+  const hasOptions = Boolean(selectedDeviceType && (selectedDeviceType.options?.length ?? 0) > 0)
 
   return (
     <Stack direction="row" overflow="auto" flex="1" gap="7">
@@ -68,7 +69,7 @@ function DeviceEditForm() {
       <Separator orientation="vertical" />
       <Stack flex="1" overflow="auto" gap="6" p="1">
         {hasAccesses && (
-          <DeviceAccessFields control={form.control} setValue={form.setValue} accessDefinitions={selectedDeviceType!.accessDefinitions} />
+          <DeviceAccessFields control={form.control} setValue={form.setValue} accessDefinitions={selectedDeviceType!.accesses} />
         )}
         {hasAccesses && hasOptions && <Separator />}
         {hasOptions && (
@@ -93,10 +94,12 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
     // `AccessManager` - correctly defaults to "none" instead of being
     // silently re-enabled as "global"/auto-try just because the edit form
     // was reopened.
-    const accessDefinitions = getOptionByDriver(device?.driver ?? null)?.value?.accessDefinitions ?? {}
+    const accessDefinitions = getOptionByDriver(device?.driver ?? null)?.value?.accesses ?? []
     const existingByName = new Map((device?.accesses ?? []).map((access) => [access.accessName, access]))
-    const accesses = Object.entries(accessDefinitions).map(([accessName, def]) => {
+    const accesses = accessDefinitions.map((def) => {
+      const accessName = def.name
       const access = existingByName.get(accessName)
+      const specific = access?.specificCredentialSet
       return {
         accessName,
         protocol: def.protocol,
@@ -110,34 +113,34 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
             ? "specific"
             : "global",
         globalCredentialSetId: access?.globalCredentialSet?.id?.toString() ?? TRY_ALL_CREDENTIALS_VALUE,
-        sshAuthMethod: access?.specificCredentialSet?.type === CredentialSetType.SSHKey ? "key" : "password",
-        username: access?.specificCredentialSet?.username ?? "",
+        sshAuthMethod: specific?.type === "SSH_KEY" ? "key" : "password",
+        username: specific?.username ?? "",
         password: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
         superPassword: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
-        privateKey: access?.specificCredentialSet?.type === CredentialSetType.SSHKey ? PASSWORD_UNCHANGED : "",
+        privateKey: specific?.type === "SSH_KEY" ? PASSWORD_UNCHANGED : "",
         community: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
-        authType: access?.specificCredentialSet?.authType,
+        authType: specific?.authType as HashingAlgorithm | undefined,
         authKey: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
-        privType: access?.specificCredentialSet?.privType,
+        privType: specific?.privType as HashingAlgorithm | undefined,
         privKey: access?.specificCredentialSet ? PASSWORD_UNCHANGED : "",
         sshHostKeyVerification: access?.sshHostKeyVerification ?? SshHostKeyVerification.TrustKnown,
         sshTrustedHostKeys: access?.sshTrustedHostKeys ?? "",
         httpsCaTrustMode: access?.httpsCaTrustMode ?? HttpsCaTrustMode.SystemTruststore,
         httpsCustomCaCertificate: access?.httpsCustomCaCertificate ?? "",
-        usernameVaultInstanceId: access?.specificCredentialSet?.usernameVaultInstanceId ?? null,
-        usernameVaultPath: access?.specificCredentialSet?.usernameVaultPath ?? "",
-        passwordVaultInstanceId: access?.specificCredentialSet?.passwordVaultInstanceId ?? null,
-        passwordVaultPath: access?.specificCredentialSet?.passwordVaultPath ?? "",
-        superPasswordVaultInstanceId: access?.specificCredentialSet?.superPasswordVaultInstanceId ?? null,
-        superPasswordVaultPath: access?.specificCredentialSet?.superPasswordVaultPath ?? "",
-        privateKeyVaultInstanceId: access?.specificCredentialSet?.privateKeyVaultInstanceId ?? null,
-        privateKeyVaultPath: access?.specificCredentialSet?.privateKeyVaultPath ?? "",
-        communityVaultInstanceId: access?.specificCredentialSet?.communityVaultInstanceId ?? null,
-        communityVaultPath: access?.specificCredentialSet?.communityVaultPath ?? "",
-        authKeyVaultInstanceId: access?.specificCredentialSet?.authKeyVaultInstanceId ?? null,
-        authKeyVaultPath: access?.specificCredentialSet?.authKeyVaultPath ?? "",
-        privKeyVaultInstanceId: access?.specificCredentialSet?.privKeyVaultInstanceId ?? null,
-        privKeyVaultPath: access?.specificCredentialSet?.privKeyVaultPath ?? "",
+        usernameVaultInstanceId: specific?.usernameVault?.vaultInstance?.id ?? null,
+        usernameVaultPath: specific?.usernameVault?.path ?? "",
+        passwordVaultInstanceId: specific?.passwordVault?.vaultInstance?.id ?? null,
+        passwordVaultPath: specific?.passwordVault?.path ?? "",
+        superPasswordVaultInstanceId: specific?.superPasswordVault?.vaultInstance?.id ?? null,
+        superPasswordVaultPath: specific?.superPasswordVault?.path ?? "",
+        privateKeyVaultInstanceId: specific?.privateKeyVault?.vaultInstance?.id ?? null,
+        privateKeyVaultPath: specific?.privateKeyVault?.path ?? "",
+        communityVaultInstanceId: specific?.communityVault?.vaultInstance?.id ?? null,
+        communityVaultPath: specific?.communityVault?.path ?? "",
+        authKeyVaultInstanceId: specific?.authKeyVault?.vaultInstance?.id ?? null,
+        authKeyVaultPath: specific?.authKeyVault?.path ?? "",
+        privKeyVaultInstanceId: specific?.privKeyVault?.vaultInstance?.id ?? null,
+        privKeyVaultPath: specific?.privKeyVault?.path ?? "",
       }
     }) as DeviceAccessFormValue[]
 
@@ -145,11 +148,11 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
     // falling back to the option's declared default when the device has no
     // stored value - both are already correctly typed (real booleans for
     // BOOLEAN options, see `DriverValueField`/`Switch`), no string parsing needed.
-    const optionDefinitions = getOptionByDriver(device?.driver ?? null)?.value?.options ?? {}
-    const storedOptions = device?.options ?? {}
+    const optionDefinitions = getOptionByDriver(device?.driver ?? null)?.value?.options ?? []
+    const storedOptions = (device?.options ?? {}) as unknown as Record<string, DeviceOptionFormValue>
     const options: Record<string, DeviceOptionFormValue> = {}
-    Object.values(optionDefinitions).forEach((def) => {
-      const stored = storedOptions[def.name] ?? def.defaultValue
+    optionDefinitions.forEach((def) => {
+      const stored = storedOptions[def.name] ?? (def.defaultValue as DeviceOptionFormValue | undefined)
       options[def.name] = stored ?? (def.type === DriverOptionType.Boolean ? false : "")
     })
 
@@ -171,8 +174,16 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.DEVICE_UPDATE,
-    mutationFn: async (payload: Partial<UpdateDevicePayload>) => api.device.update(device?.id, payload),
-    onError(err: NetshotError) { toast.error(err) },
+    mutationFn: async (payload: Partial<Schemas["DeviceRequest"]>) => api.device.update(device.id, payload, device.version),
+    onError(err: NetshotError) {
+      if (err.response?.status === HttpStatus.PreconditionFailed) {
+        // Changed by someone else since it was read: show the current version
+        toast.error({ ...err, description: t("device.changedMeanwhile") })
+        queryClient.invalidateQueries({ queryKey: [QUERIES.DEVICE_DETAIL, +device.id] })
+        return
+      }
+      toast.error(err)
+    },
   })
 
   const open = () => {
@@ -182,17 +193,17 @@ export default function EditDeviceTrigger({ device, children, ...rest }: EditDev
       form,
       size: "4xl",
       async onSubmit(values: Form) {
-        const updatedDevice: Partial<UpdateDevicePayload> = {
+        const updatedDevice: Partial<Schemas["DeviceRequest"]> = {
           comments: values?.comments,
           tags: values?.tags ?? [],
-          ipAddress: values?.ipAddress,
+          mgmtAddress: values?.ipAddress,
           mgmtDomain: +values?.mgmtDomain,
         }
 
         updatedDevice.accesses = buildAccessesPayload(values.accesses, credentialSets)
 
         const optionDefinitions = getOptionByDriver(values?.deviceType ?? null)?.value?.options
-        updatedDevice.options = buildOptionsPayload(values.options, optionDefinitions)
+        updatedDevice.options = buildOptionsPayload(values.options, optionDefinitions) as unknown as Schemas["DeviceRequest"]["options"]
 
         await mutation.mutateAsync(updatedDevice)
         dialogRef.close()

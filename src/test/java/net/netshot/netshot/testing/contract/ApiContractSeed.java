@@ -89,6 +89,7 @@ import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.CheckComplianceTask;
@@ -379,7 +380,7 @@ public final class ApiContractSeed {
 
 			// Device 1: complete device
 			DeviceCredentialSet specific = credentialSetRepository.add(dsl, DeviceSshAccount.builder()
-				.username("specific-user").password("specific-pass").superPassword("specific-enable")
+				.username(Secret.local("specific-user")).password(Secret.local("specific-pass")).superPassword(Secret.local("specific-enable"))
 				.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build());
 			Device router1 = deviceRepository.add(dsl, device("router-paris-1", "CiscoIOS12", "10.1.1.1", paris, D2020)
 				.family("Cisco 2900")

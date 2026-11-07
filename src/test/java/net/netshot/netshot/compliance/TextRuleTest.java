@@ -46,7 +46,7 @@ public class TextRuleTest {
 		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), new PyRuleRuntime(Netshot.config()), TestDrivers.registry(), null);
 	}
 
-	Policy policy = new Policy(0, "Fake policy", null);
+	Policy policy = new Policy(0, 0, null, "Fake policy", null);
 	DeviceDraft device = FakeDeviceFactory.getFakeCiscoIosDraft();
 	TaskContext taskContext = new FakeTaskContext();
 	TextRule rule;

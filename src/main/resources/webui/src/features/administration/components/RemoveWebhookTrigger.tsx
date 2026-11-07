@@ -3,7 +3,8 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Hook } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import type { Brief } from "@/api/client"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent, useCallback } from "react"
@@ -12,19 +13,20 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 
-export type RemoveWebhookTriggerProps = { webhook: Hook; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveWebhookTriggerProps = { webhook: Brief["WebHook"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveWebhookTrigger({ webhook, children, ...rest }: RemoveWebhookTriggerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_WEBHOOKS)
   const dialog = useConfirmDialogWithMutation()
 
   const { mutateAsync } = useMutation({
     mutationKey: MUTATIONS.ADMIN_HOOK_REMOVE,
-    mutationFn: async () => api.admin.removeHook(webhook.id),
+    mutationFn: async () => api.admin.removeHook(webhook.id!),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err)
     },
   })
 

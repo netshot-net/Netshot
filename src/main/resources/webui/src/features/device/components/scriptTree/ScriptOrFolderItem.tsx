@@ -1,4 +1,4 @@
-import { Script } from "@/types"
+import { ScriptBrief } from "@/types"
 import { isScript, ScriptFolder } from "@/utils"
 import { BoxProps } from "@chakra-ui/react"
 import { PropsWithChildren } from "react"
@@ -6,7 +6,7 @@ import ScriptFolderItem from "./ScriptFolderItem"
 import ScriptItem from "./ScriptItem"
 
 export type ScriptOrFolderItemProps = {
-  item: Script | ScriptFolder
+  item: ScriptBrief | ScriptFolder
 } & BoxProps
 
 export default function ScriptOrFolderItem(

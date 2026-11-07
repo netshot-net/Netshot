@@ -30,18 +30,33 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SelectField;
+import org.jooq.Table;
 
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.DeviceSummary;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.SortOrder;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
+import org.jooq.impl.DSL;
 
 /**
  * The queries on the compliance rules, their exemptions and their check results. The
@@ -54,18 +69,81 @@ public class RuleRepository {
 	static final String JAVASCRIPT = "JAVASCRIPT";
 	static final String PYTHON = "PYTHON";
 
+	/** The fields the rule lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(RULE.ID)
+		.string("name", RULE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", RULE.TYPE, List.of(TEXT, JAVASCRIPT, PYTHON), Option.SORTABLE)
+		.bool("enabled", RULE.ENABLED, Option.SORTABLE)
+		.integer("policy", RULE.POLICY)
+		.string("field", RULE.FIELD, Option.SORTABLE)
+		.string("deviceDriver", RULE.DEVICE_DRIVER, Option.SORTABLE)
+		.string("text", RULE.TEXT, Option.SEARCHABLE)
+		.build();
+
+	/** The fields the lists of exemptions of a rule can be filtered and sorted on (an exemption is keyed by its device). */
+	static final QueryMapping EXEMPTION_LIST = QueryMapping.keyedBy(EXEMPTION.DEVICE)
+		.integer("rule", EXEMPTION.RULE)
+		.integer("device", EXEMPTION.DEVICE)
+		.date("expirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
+		.build();
+
+	/** The fields the lists of check results of a device can be filtered and sorted on (a result is keyed by its rule). */
+	static final QueryMapping RESULT_LIST = QueryMapping.keyedBy(RULE.ID)
+		.integer("rule", RULE.ID)
+		.string("ruleName", RULE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.integer("policy", POLICY.ID, Option.SORTABLE)
+		.string("policyName", POLICY.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("result", CHECK_RESULT.RESULT, ResultOption.class, Option.SORTABLE)
+		.date("checkDate", CHECK_RESULT.CHECK_DATE, Option.SORTABLE)
+		.date("exemptionExpirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
+		.build();
+
+	/** The check results across devices (one per device and rule), with the rule, policy, device and exemption. */
+	private static final Table<?> ALL_RESULTS = CHECK_RESULT
+		.join(RULE).on(RULE.ID.eq(CHECK_RESULT.RULE))
+		.join(POLICY).on(POLICY.ID.eq(RULE.POLICY))
+		.join(DEVICE).on(DEVICE.ID.eq(CHECK_RESULT.DEVICE))
+		.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(CHECK_RESULT.RULE).and(EXEMPTION.DEVICE.eq(CHECK_RESULT.DEVICE)));
+
+	/**
+	 * The fields the lists of check results across devices can be filtered, sorted and counted on (the ID is the one
+	 * of the rule: a result is identified by its device and rule).
+	 */
+	static final QueryMapping ALL_RESULT_LIST = QueryMapping.keyedBy(CHECK_RESULT.DEVICE, RULE.ID)
+		.integer("device", CHECK_RESULT.DEVICE, Option.SORTABLE, Option.GROUPABLE)
+		.string("deviceName", DEVICE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.integer("domain", DEVICE.MGMT_DOMAIN, Option.GROUPABLE)
+		.custom("group", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
+			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(CHECK_RESULT.DEVICE))
+				.and(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(values.stream().map(Long.class::cast).toList()))))
+		.integer("rule", RULE.ID, Option.SORTABLE, Option.GROUPABLE)
+		.string("ruleName", RULE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.integer("policy", POLICY.ID, Option.SORTABLE, Option.GROUPABLE)
+		.string("policyName", POLICY.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("result", CHECK_RESULT.RESULT, ResultOption.class, Option.SORTABLE, Option.GROUPABLE)
+		.date("checkDate", CHECK_RESULT.CHECK_DATE, Option.SORTABLE)
+		.date("exemptionExpirationDate", EXEMPTION.EXPIRATION_DATE, Option.SORTABLE)
+		// A result is counted once per group of its device (no group: null)
+		.grouping("group", DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, from -> from.leftJoin(DEVICE_GROUP_CACHED_DEVICES)
+			.on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(CHECK_RESULT.DEVICE)))
+		.defaultSort(SortOrder.asc("device"), SortOrder.asc("rule"))
+		.build();
+
 	private static Rule toRule(Record r) {
 		String type = r.get(RULE.TYPE);
 		long id = r.get(RULE.ID);
+		int version = r.get(RULE.VERSION);
+		Instant changeDate = r.get(RULE.CHANGE_DATE);
 		String name = r.get(RULE.NAME);
 		boolean enabled = r.get(RULE.ENABLED);
 		long policyId = r.get(RULE.POLICY);
 		return switch (type) {
-			case TEXT -> new TextRule(id, name, enabled, policyId, r.get(RULE.FIELD), r.get(RULE.CONTEXT), r.get(RULE.TEXT),
+			case TEXT -> new TextRule(id, version, changeDate, name, enabled, policyId, r.get(RULE.FIELD), r.get(RULE.CONTEXT), r.get(RULE.TEXT),
 				r.get(RULE.REG_EXP), r.get(RULE.INVERT), r.get(RULE.ANY_BLOCK), r.get(RULE.MATCH_ALL), r.get(RULE.NORMALIZE),
 				r.get(RULE.DEVICE_DRIVER));
-			case JAVASCRIPT -> new JavaScriptRule(id, name, enabled, policyId, r.get(RULE.SCRIPT));
-			case PYTHON -> new PythonRule(id, name, enabled, policyId, r.get(RULE.SCRIPT));
+			case JAVASCRIPT -> new JavaScriptRule(id, version, changeDate, name, enabled, policyId, r.get(RULE.SCRIPT));
+			case PYTHON -> new PythonRule(id, version, changeDate, name, enabled, policyId, r.get(RULE.SCRIPT));
 			default -> throw new IllegalStateException("Unknown type of rule '%s'".formatted(type));
 		};
 	}
@@ -99,6 +177,156 @@ public class RuleRepository {
 	public List<RuleSummary> findSummaries(DSLContext dsl, Page page) {
 		return page.apply(dsl.select(RULE.ID, RULE.NAME, RULE.TYPE, RULE.ENABLED, RULE.POLICY).from(RULE).orderBy(RULE.ID))
 			.fetch(r -> new RuleSummary(r.value1(), r.value2(), typeName(r.value3()), r.value4(), r.value5()));
+	}
+
+	/**
+	 * Lists the rules matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the rules of the window of the query
+	 */
+	public List<Rule> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(RULE.fields()).from(RULE)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(RuleRepository::toRule);
+	}
+
+	/**
+	 * Counts the rules matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of rules
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(RULE, LIST.condition(query));
+	}
+
+	/**
+	 * Lists the exemptions matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (it must be restricted to a rule)
+	 * @return the exemptions of the window of the query
+	 */
+	public List<Exemption> findExemptions(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(EXEMPTION.fields()).from(EXEMPTION)
+			.where(EXEMPTION_LIST.condition(query))
+			.orderBy(EXEMPTION_LIST.orderBy(query)))
+			.fetch(RuleRepository::toExemption);
+	}
+
+	/**
+	 * Counts the exemptions matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of exemptions
+	 */
+	public long countExemptions(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(EXEMPTION, EXEMPTION_LIST.condition(query));
+	}
+
+	private static Condition appliesTo(long deviceId) {
+		return DSL.exists(DSL.selectOne().from(POLICY_TARGET_GROUPS)
+			.join(DEVICE_GROUP_CACHED_DEVICES).on(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(POLICY_TARGET_GROUPS.TARGET_GROUPS))
+			.where(POLICY_TARGET_GROUPS.POLICY.eq(POLICY.ID))
+			.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(deviceId)));
+	}
+
+	private static org.jooq.Table<?> resultsOf(long deviceId) {
+		return RULE
+			.join(POLICY).on(POLICY.ID.eq(RULE.POLICY))
+			.leftJoin(CHECK_RESULT).on(CHECK_RESULT.RULE.eq(RULE.ID).and(CHECK_RESULT.DEVICE.eq(deviceId)))
+			.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(RULE.ID).and(EXEMPTION.DEVICE.eq(deviceId)));
+	}
+
+	/**
+	 * Lists the compliance state of a device matching a query: the rules of the policies applying to it (through
+	 * its groups), with their last result and exemption.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @param query the query
+	 * @return the results of the window of the query
+	 */
+	public List<DeviceCheckResult> findDeviceResults(DSLContext dsl, long deviceId, ListQuery query) {
+		return query.page().apply(dsl.select(RULE.ID, POLICY.ID, CHECK_RESULT.RESULT, CHECK_RESULT.COMMENT, CHECK_RESULT.CHECK_DATE,
+					EXEMPTION.EXPIRATION_DATE)
+				.from(resultsOf(deviceId))
+				.where(appliesTo(deviceId)).and(RESULT_LIST.condition(query))
+				.orderBy(RESULT_LIST.orderBy(query)))
+			.fetch(r -> new DeviceCheckResult(deviceId, r.value1(), r.value2(), r.value3() == null ? null : ResultOption.valueOf(r.value3()),
+				r.value4(), r.value5(), r.value6()));
+	}
+
+	/**
+	 * Counts the compliance state of a device matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the ID of the device
+	 * @param query the query (its window is ignored)
+	 * @return the number of results
+	 */
+	public long countDeviceResults(DSLContext dsl, long deviceId, ListQuery query) {
+		return dsl.fetchCount(dsl.selectOne().from(resultsOf(deviceId)).where(appliesTo(deviceId)).and(RESULT_LIST.condition(query)));
+	}
+
+	/**
+	 * Lists the check results across all the devices matching a query (one per device and rule).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the results of the window of the query
+	 */
+	public List<DeviceCheckResult> findResults(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(CHECK_RESULT.DEVICE, CHECK_RESULT.RULE, POLICY.ID, CHECK_RESULT.RESULT, CHECK_RESULT.COMMENT,
+					CHECK_RESULT.CHECK_DATE, EXEMPTION.EXPIRATION_DATE)
+				.from(ALL_RESULTS)
+				.where(ALL_RESULT_LIST.condition(query))
+				.orderBy(ALL_RESULT_LIST.orderBy(query)))
+			.fetch(r -> new DeviceCheckResult(r.value1(), r.value2(), r.value3(), r.value4() == null ? null : ResultOption.valueOf(r.value4()),
+				r.value5(), r.value6(), r.value7()));
+	}
+
+	/**
+	 * Counts the check results across all the devices matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of results
+	 */
+	public long countResults(DSLContext dsl, ListQuery query) {
+		// Only the tables the filters use are joined: a result always has its device (foreign key) and at most one
+		// exemption; the rule is joined to keep the results of the rules with a policy only, as the list
+		Set<String> used = query.criteria().stream().map(Criterion::field).collect(Collectors.toSet());
+		boolean search = query.search() != null;
+		Table<?> from = CHECK_RESULT.join(RULE).on(RULE.ID.eq(CHECK_RESULT.RULE));
+		Condition condition = RULE.POLICY.isNotNull();
+		if (search || used.contains("policy") || used.contains("policyName")) {
+			from = from.join(POLICY).on(POLICY.ID.eq(RULE.POLICY));
+		}
+		if (search || used.contains("deviceName") || used.contains("domain")) {
+			from = from.join(DEVICE).on(DEVICE.ID.eq(CHECK_RESULT.DEVICE));
+		}
+		if (used.contains("exemptionExpirationDate")) {
+			from = from.leftJoin(EXEMPTION).on(EXEMPTION.RULE.eq(CHECK_RESULT.RULE).and(EXEMPTION.DEVICE.eq(CHECK_RESULT.DEVICE)));
+		}
+		return dsl.fetchCount(dsl.selectOne().from(from).where(condition).and(ALL_RESULT_LIST.condition(query)));
+	}
+
+	/**
+	 * Counts the check results across all the devices matching a query, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows
+	 */
+	public List<StatsRow> resultStats(DSLContext dsl, ListQuery query, StatsQuery stats) {
+		return ALL_RESULT_LIST.stats(dsl, ALL_RESULTS, query, stats, null);
 	}
 
 	/**
@@ -160,6 +388,8 @@ public class RuleRepository {
 	 */
 	public long add(DSLContext dsl, Rule rule) {
 		var insert = dsl.insertInto(RULE)
+			.set(RULE.VERSION, 0)
+			.set(RULE.CHANGE_DATE, Versions.now())
 			.set(RULE.NAME, rule.name())
 			.set(RULE.ENABLED, rule.enabled())
 			.set(RULE.POLICY, rule.policyId());
@@ -181,7 +411,28 @@ public class RuleRepository {
 	}
 
 	/**
-	 * Saves an existing rule (its type and policy are not changed).
+	 * Locks the row of a rule until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the rule ID
+	 * @return the version of the rule, or null if there is no such rule
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, RULE, RULE.ID, RULE.VERSION, id);
+	}
+
+	/**
+	 * Marks a rule as changed (its version is incremented, its change date set), when its exemptions change.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the rule ID
+	 */
+	public void touch(DSLContext dsl, long id) {
+		dsl.update(RULE).set(RULE.VERSION, RULE.VERSION.plus(1)).set(RULE.CHANGE_DATE, Versions.now()).where(RULE.ID.eq(id)).execute();
+	}
+
+	/**
+	 * Saves an existing rule (its type and policy are not changed; its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param rule the rule
@@ -189,6 +440,8 @@ public class RuleRepository {
 	 */
 	public boolean save(DSLContext dsl, Rule rule) {
 		var update = dsl.update(RULE)
+			.set(RULE.VERSION, RULE.VERSION.plus(1))
+			.set(RULE.CHANGE_DATE, Versions.now())
 			.set(RULE.NAME, rule.name())
 			.set(RULE.ENABLED, rule.enabled());
 		var full = switch (rule) {
@@ -250,7 +503,7 @@ public class RuleRepository {
 	}
 
 	/**
-	 * Replaces the exemptions of a rule.
+	 * Replaces the exemptions of a rule (see {@link #touch} for the version of the rule).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param ruleId the ID of the rule
