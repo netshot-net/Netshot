@@ -64,13 +64,12 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 			return;
 		}
 		TestWiring.get().taskManager().start();
-		if (Kinds.isContract(testClass)) {
-			// Tasks must be stored but never run: keep the schedulers in standby, and drop
-			// any job left by another test class sharing the JVM.
-			for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
-				scheduler.standby();
-				scheduler.clear();
-			}
+		// Tasks must be stored but never run (they would reach no device, and could hold locks
+		// the cleanup of the next test needs): keep the schedulers in standby, and drop any job
+		// left by another test class sharing the JVM.
+		for (Scheduler scheduler : SchedulerRepository.getInstance().lookupAll()) {
+			scheduler.standby();
+			scheduler.clear();
 		}
 		RestServer restServer = new RestServer(TestWiring.get().binder());
 		restServer.start();
