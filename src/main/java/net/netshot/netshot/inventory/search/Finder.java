@@ -57,6 +57,8 @@ import org.jooq.CaseValueStep;
 import org.jooq.CaseWhenStep;
 import org.jooq.Condition;
 import org.jooq.Field;
+import org.jooq.Record1;
+import org.jooq.Select;
 import org.jooq.Table;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -657,6 +659,21 @@ public class Finder {
 		 */
 		protected static net.netshot.netshot.platform.database.schema.tables.Device subDevice(String itemPrefix) {
 			return DEVICE.as(itemPrefix + "_d");
+		}
+
+		/**
+		 * Gets the devices an IP condition finds: the ones with a matching interface address, plus the ones with a matching
+		 * management address. Not an OR across the joins of the interfaces, which PostgreSQL can't split (it joins all the
+		 * interfaces then). The devices are never NULL, so that the NOT of the IN is true or false.
+		 *
+		 * @param d the device table of the subquery
+		 * @param onDevice the condition on the management address, null if the condition is only on the interfaces
+		 * @param onInterfaces the devices with a matching interface address
+		 * @return the devices
+		 */
+		protected static Select<Record1<Long>> ipDevices(net.netshot.netshot.platform.database.schema.tables.Device d,
+				Condition onDevice, Select<Record1<Long>> onInterfaces) {
+			return onDevice == null ? onInterfaces : DSL.select(d.ID).from(d).where(onDevice).unionAll(onInterfaces);
 		}
 
 		/** The escape character of the LIKE patterns. */
@@ -1444,11 +1461,12 @@ public class Finder {
 			var d = subDevice(itemPrefix);
 			var ni = NETWORK_INTERFACE.as(itemPrefix + "_ni");
 			var ip4 = NETWORK_INTERFACE_IP4ADDRESSES.as(itemPrefix + "_ip4");
+			Condition onDevice = null;
 			Condition where;
 			if (this.sign == TokenType.IN) {
 				String cidr = this.target.getPrefix();
-				where = DSL.condition("{0} <<= cast({1} as inet)", d.CACHED_IP_ADDRESS, DSL.val(cidr))
-					.or(DSL.condition("{0} <<= cast({1} as inet)", ip4.ADDRESS, DSL.val(cidr)));
+				onDevice = DSL.condition("{0} <<= cast({1} as inet)", d.CACHED_IP_ADDRESS, DSL.val(cidr));
+				where = DSL.condition("{0} <<= cast({1} as inet)", ip4.ADDRESS, DSL.val(cidr));
 			}
 			else if (this.withMask) {
 				where = ip4.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType()))
@@ -1459,11 +1477,11 @@ public class Finder {
 					DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType()), ip4.ADDRESS, ip4.PREFIX_LENGTH);
 			}
 			else {
-				where = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()))
-					.or(ip4.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType())));
+				onDevice = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()));
+				where = ip4.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip4.ADDRESS.getDataType()));
 			}
-			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
-				.leftJoin(ip4).on(ip4.NETWORK_INTERFACE.eq(ni.ID)).where(where));
+			return DEVICE.ID.in(ipDevices(d, onDevice, DSL.select(ni.DEVICE).from(ip4).join(ni).on(ni.ID.eq(ip4.NETWORK_INTERFACE))
+				.where(where).and(ni.DEVICE.isNotNull())));
 		}
 	}
 
@@ -1549,11 +1567,12 @@ public class Finder {
 			var d = subDevice(itemPrefix);
 			var ni = NETWORK_INTERFACE.as(itemPrefix + "_ni");
 			var ip6 = NETWORK_INTERFACE_IP6ADDRESSES.as(itemPrefix + "_ip6");
+			Condition onDevice = null;
 			Condition where;
 			if (this.sign == TokenType.IN) {
 				String cidr = this.target.getPrefix();
-				where = DSL.condition("{0} <<= cast({1} as inet)", d.CACHED_IP_ADDRESS, DSL.val(cidr))
-					.or(DSL.condition("{0} <<= cast({1} as inet)", ip6.ADDRESS, DSL.val(cidr)));
+				onDevice = DSL.condition("{0} <<= cast({1} as inet)", d.CACHED_IP_ADDRESS, DSL.val(cidr));
+				where = DSL.condition("{0} <<= cast({1} as inet)", ip6.ADDRESS, DSL.val(cidr));
 			}
 			else if (this.withMask) {
 				where = ip6.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType()))
@@ -1564,11 +1583,11 @@ public class Finder {
 					DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType()), ip6.ADDRESS, ip6.PREFIX_LENGTH);
 			}
 			else {
-				where = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()))
-					.or(ip6.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType())));
+				onDevice = d.CACHED_IP_ADDRESS.eq(DSL.val(this.target.getInetAddress(), d.CACHED_IP_ADDRESS.getDataType()));
+				where = ip6.ADDRESS.eq(DSL.val(this.target.getInetAddress(), ip6.ADDRESS.getDataType()));
 			}
-			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(ni).on(ni.DEVICE.eq(d.ID))
-				.leftJoin(ip6).on(ip6.NETWORK_INTERFACE.eq(ni.ID)).where(where));
+			return DEVICE.ID.in(ipDevices(d, onDevice, DSL.select(ni.DEVICE).from(ip6).join(ni).on(ni.ID.eq(ip6.NETWORK_INTERFACE))
+				.where(where).and(ni.DEVICE.isNotNull())));
 		}
 	}
 
@@ -3076,8 +3095,9 @@ public class Finder {
 		public Condition toCondition(String itemPrefix) {
 			var d = subDevice(itemPrefix);
 			var v = DEVICE_VIRTUAL_DEVICES.as(itemPrefix + "_v");
-			return DEVICE.ID.in(DSL.select(d.ID).from(d).leftJoin(v).on(v.DEVICE.eq(d.ID))
-				.where(textCondition(sign, v.VIRTUAL_DEVICES, value).or(textCondition(sign, d.NAME, value))));
+			// The devices whose name matches, plus the ones with a matching virtual name (see ipDevices)
+			return DEVICE.ID.in(DSL.select(d.ID).from(d).where(textCondition(sign, d.NAME, value))
+				.unionAll(DSL.select(v.DEVICE).from(v).where(textCondition(sign, v.VIRTUAL_DEVICES, value))));
 		}
 	}
 

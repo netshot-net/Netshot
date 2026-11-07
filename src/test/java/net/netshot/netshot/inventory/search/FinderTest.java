@@ -776,6 +776,41 @@ public class FinderTest {
 			List.of("router00031"));
 	}
 
+	private int count(String query) throws Exception {
+		return findDeviceNames(new Finder(query, TestDrivers.registry(), TestWiring.get().transactions())).size();
+	}
+
+	@Test
+	@DisplayName("The NOT of an IP condition keeps a device without management address, and ignores an interface without device")
+	void notIpWithNulls() throws Exception {
+		Assertions.assertEquals(0, this.count("not ([IP] in 172.16.0.0/24)"));
+		long[] orphan = new long[1];
+		TestWiring.get().transactions().run(dsl -> {
+			dsl.execute("update device set cached_ip_address = null where name = 'router00050'");
+			orphan[0] = dsl.fetchOne("insert into network_interface (enabled, level3) values (true, true) returning id").get(0, Long.class);
+			dsl.execute("insert into network_interface_ip4addresses (network_interface, address, prefix_length) values (?, '10.99.0.1', 24)", orphan[0]);
+			dsl.execute("insert into network_interface_ip6addresses (network_interface, address, prefix_length) values (?, '2016:99::1', 64)", orphan[0]);
+		});
+		try {
+			Assertions.assertEquals(1, this.count("not ([IP] in 172.16.0.0/24)"));
+			Assertions.assertEquals(100, this.count("not ([IP] is 172.16.0.50)"));
+			Assertions.assertEquals(100, this.count("not ([IP] is 10.99.0.1)"));
+			Assertions.assertEquals(100, this.count("not ([IP] in 10.99.0.0/24)"));
+			Assertions.assertEquals(100, this.count("not ([IP] is 10.99.0.1/24)"));
+			Assertions.assertEquals(100, this.count("not ([IP] contains 10.99.0.2)"));
+			Assertions.assertEquals(100, this.count("not ([IP] is 2016:99::1)"));
+			Assertions.assertEquals(100, this.count("not ([IP] in 2016:99::/48)"));
+		}
+		finally {
+			TestWiring.get().transactions().run(dsl -> {
+				dsl.execute("delete from network_interface_ip4addresses where network_interface = ?", orphan[0]);
+				dsl.execute("delete from network_interface_ip6addresses where network_interface = ?", orphan[0]);
+				dsl.execute("delete from network_interface where id = ?", orphan[0]);
+				dsl.execute("update device set cached_ip_address = '172.16.0.50' where name = 'router00050'");
+			});
+		}
+	}
+
 	@Test
 	@DisplayName("Query device by compliance rule - IS NONCONFORMING")
 	void queryByComplianceRuleNonconforming() throws Exception {
@@ -876,6 +911,9 @@ public class FinderTest {
 			Map.entry("[Virtual Name] is \"router00004\"", 1),
 			Map.entry("[Virtual Name] containsnocase \"ROUTER0001\"", 10),
 			Map.entry("[Virtual Name] matches \"^router0000[1-3]$\"", 3),
+			Map.entry("not ([Virtual Name] is \"router00004\")", 99),
+			Map.entry("not ([IP] is 10.0.5.1/25)", 99),
+			Map.entry("not ([IP] contains 10.0.5.100)", 99),
 			Map.entry("[Module] containsnocase \"testslot\"", 100),
 			Map.entry("[Module] matches \"^16161616\"", 100),
 			Map.entry("[Module] endswith \"POSD203\"", 100),
