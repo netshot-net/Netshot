@@ -34,6 +34,7 @@ import net.netshot.netshot.access.collector.SshServer;
 import net.netshot.netshot.access.collector.SyslogServer;
 import net.netshot.netshot.api.rest.LoggerFilter;
 import net.netshot.netshot.api.rest.RestServer;
+import net.netshot.netshot.api.rest.v1.ListParams;
 import net.netshot.netshot.cluster.ClusterManager;
 import net.netshot.netshot.compliance.check.JsRuleRuntime;
 import net.netshot.netshot.compliance.check.PyRuleRuntime;
@@ -84,6 +85,7 @@ public final class NetshotSettings {
 			SyslogServer.class,
 			LoggerFilter.class,
 			RestServer.class,
+			ListParams.class,
 			LoggingSetup.class,
 			ClusterManager.class,
 			JsRuleRuntime.class,

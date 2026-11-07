@@ -1,35 +1,22 @@
-import { HardwareRule } from "@/types";
-import httpClient from "./httpClient";
-import { CreateOrUpdateHardwareRule } from "./types";
+import { client, replace, Schemas } from "./client"
 
-async function getAll() {
-  return httpClient.get<HardwareRule[]>("/hardwarerules");
+export type HardwareRule = Schemas["HardwareRule"] & { id: number }
+export type HardwareRuleRequest = Schemas["HardwareRuleRequest"]
+
+async function create(payload: HardwareRuleRequest) {
+  return (await client.post<HardwareRule, HardwareRuleRequest>("/compliance/hardware-rules", payload)) as HardwareRule
 }
 
-async function create(payload: CreateOrUpdateHardwareRule) {
-  return httpClient.post<HardwareRule, CreateOrUpdateHardwareRule>(
-    "/hardwarerules",
-    payload
-  );
-}
-
-async function update(
-  id: number,
-  payload: Partial<CreateOrUpdateHardwareRule>
-) {
-  return httpClient.put<HardwareRule, Partial<CreateOrUpdateHardwareRule>>(
-    `/hardwarerules/${id}`,
-    payload
-  );
+async function update(id: number, payload: HardwareRuleRequest) {
+  return replace<HardwareRule, HardwareRuleRequest>(`/compliance/hardware-rules/${id}`, payload)
 }
 
 async function remove(id: number) {
-  await httpClient.delete(`/hardwarerules/${id}`);
+  await client.delete(`/compliance/hardware-rules/${id}`)
 }
 
 export default {
-  getAll,
   create,
   update,
   remove,
-};
+}

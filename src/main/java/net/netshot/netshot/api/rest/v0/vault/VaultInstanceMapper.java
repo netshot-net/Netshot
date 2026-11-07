@@ -21,6 +21,8 @@ package net.netshot.netshot.api.rest.v0.vault;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
 import net.netshot.netshot.vault.VaultInstance;
 
@@ -45,9 +47,14 @@ public final class VaultInstanceMapper {
 		return switch (vaultInstance) {
 			case HashicorpVaultKv2Instance hc -> new VaultInstanceDto.HashicorpVaultKv2(hc.id(), hc.name(), hc.baseUrl(), hc.namespace(),
 				hc.httpsCaTrustMode(), hc.httpsCustomCaCertificate(), hc.kvMountPath(), hc.authMethod(),
-				hc.appRoleMountPath(), hc.appRoleId(), hc.appRoleSecretId(), hc.jwtMountPath(),
-				hc.jwtIdpTokenEndpoint(), hc.jwtClientId(), hc.jwtClientSecret(), hc.jwtVaultRole(), hc.jwtScope());
+				hc.appRoleMountPath(), hc.appRoleId(), masked(hc.appRoleSecretId()), hc.jwtMountPath(),
+				hc.jwtIdpTokenEndpoint(), hc.jwtClientId(), masked(hc.jwtClientSecret()), hc.jwtVaultRole(), hc.jwtScope());
 		};
+	}
+
+	// The DTO masks the secrets: only whether there is one matters (it is not decrypted)
+	private static String masked(LocalSecret secret) {
+		return secret == null ? null : "=";
 	}
 
 	/**
@@ -80,11 +87,11 @@ public final class VaultInstanceMapper {
 				.authMethod(hc.getAuthMethod())
 				.appRoleMountPath(hc.getAppRoleMountPath())
 				.appRoleId(hc.getAppRoleId())
-				.appRoleSecretId(hc.getAppRoleSecretId())
+				.appRoleSecretId(Secret.local(hc.getAppRoleSecretId()))
 				.jwtMountPath(hc.getJwtMountPath())
 				.jwtIdpTokenEndpoint(hc.getJwtIdpTokenEndpoint())
 				.jwtClientId(hc.getJwtClientId())
-				.jwtClientSecret(hc.getJwtClientSecret())
+				.jwtClientSecret(Secret.local(hc.getJwtClientSecret()))
 				.jwtVaultRole(hc.getJwtVaultRole())
 				.jwtScope(hc.getJwtScope())
 				.build();

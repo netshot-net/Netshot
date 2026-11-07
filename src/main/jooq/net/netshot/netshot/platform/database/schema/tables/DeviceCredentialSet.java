@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import net.netshot.netshot.platform.database.EncryptedStringConverter;
+import net.netshot.netshot.platform.database.LocalSecretConverter;
 import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Indexes;
@@ -20,6 +20,7 @@ import net.netshot.netshot.platform.database.schema.tables.Domain.DomainPath;
 import net.netshot.netshot.platform.database.schema.tables.Task.TaskPath;
 import net.netshot.netshot.platform.database.schema.tables.VaultInstance.VaultInstancePath;
 import net.netshot.netshot.platform.database.schema.tables.records.DeviceCredentialSetRecord;
+import net.netshot.netshot.platform.secret.LocalSecret;
 
 import org.jooq.Condition;
 import org.jooq.Field;
@@ -95,17 +96,17 @@ public class DeviceCredentialSet extends TableImpl<DeviceCredentialSetRecord> {
     /**
      * The column <code>device_credential_set.community</code>.
      */
-    public final TableField<DeviceCredentialSetRecord, String> COMMUNITY = createField(DSL.name("community"), SQLDataType.VARCHAR(255), this, "", new EncryptedStringConverter());
+    public final TableField<DeviceCredentialSetRecord, LocalSecret> COMMUNITY = createField(DSL.name("community"), SQLDataType.VARCHAR(255), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>device_credential_set.password</code>.
      */
-    public final TableField<DeviceCredentialSetRecord, String> PASSWORD = createField(DSL.name("password"), SQLDataType.VARCHAR(255), this, "", new EncryptedStringConverter());
+    public final TableField<DeviceCredentialSetRecord, LocalSecret> PASSWORD = createField(DSL.name("password"), SQLDataType.VARCHAR(255), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>device_credential_set.super_password</code>.
      */
-    public final TableField<DeviceCredentialSetRecord, String> SUPER_PASSWORD = createField(DSL.name("super_password"), SQLDataType.VARCHAR(255), this, "", new EncryptedStringConverter());
+    public final TableField<DeviceCredentialSetRecord, LocalSecret> SUPER_PASSWORD = createField(DSL.name("super_password"), SQLDataType.VARCHAR(255), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>device_credential_set.username</code>.
@@ -115,7 +116,7 @@ public class DeviceCredentialSet extends TableImpl<DeviceCredentialSetRecord> {
     /**
      * The column <code>device_credential_set.private_key</code>.
      */
-    public final TableField<DeviceCredentialSetRecord, String> PRIVATE_KEY = createField(DSL.name("private_key"), SQLDataType.VARCHAR(5000), this, "", new EncryptedStringConverter());
+    public final TableField<DeviceCredentialSetRecord, LocalSecret> PRIVATE_KEY = createField(DSL.name("private_key"), SQLDataType.VARCHAR(5000), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>device_credential_set.mgmt_domain</code>.
@@ -130,7 +131,7 @@ public class DeviceCredentialSet extends TableImpl<DeviceCredentialSetRecord> {
     /**
      * The column <code>device_credential_set.auth_key</code>.
      */
-    public final TableField<DeviceCredentialSetRecord, String> AUTH_KEY = createField(DSL.name("auth_key"), SQLDataType.VARCHAR(255), this, "", new EncryptedStringConverter());
+    public final TableField<DeviceCredentialSetRecord, LocalSecret> AUTH_KEY = createField(DSL.name("auth_key"), SQLDataType.VARCHAR(255), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>device_credential_set.auth_type</code>.
@@ -140,7 +141,7 @@ public class DeviceCredentialSet extends TableImpl<DeviceCredentialSetRecord> {
     /**
      * The column <code>device_credential_set.priv_key</code>.
      */
-    public final TableField<DeviceCredentialSetRecord, String> PRIV_KEY = createField(DSL.name("priv_key"), SQLDataType.VARCHAR(255), this, "", new EncryptedStringConverter());
+    public final TableField<DeviceCredentialSetRecord, LocalSecret> PRIV_KEY = createField(DSL.name("priv_key"), SQLDataType.VARCHAR(255), this, "", new LocalSecretConverter());
 
     /**
      * The column <code>device_credential_set.priv_type</code>.

@@ -1,9 +1,9 @@
-import api, { UpdateDevicePayload } from "@/api"
+import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
 import { QUERIES as GLOBAL_QUERIES, MUTATIONS } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, LightDevice } from "@/types"
+import { Device } from "@/types"
 import { Stack, Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
@@ -13,7 +13,7 @@ import Slot from "@/components/Slot"
 import { QUERIES as DEVICE_QUERIES } from "../constants"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type DisableDeviceTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type DisableDeviceTriggerProps = { devices: Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function DisableDeviceTrigger({ devices, children, ...rest }: DisableDeviceTriggerProps) {
   const { t } = useTranslation()
@@ -23,12 +23,13 @@ export default function DisableDeviceTrigger({ devices, children, ...rest }: Dis
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.DEVICE_UPDATE,
-    mutationFn: async (payload: Partial<UpdateDevicePayload>) => api.device.update(payload.id!, payload),
+    mutationFn: async (payload: { id: number; status: "INPRODUCTION" | "DISABLED" }) =>
+      api.device.update(payload.id, { status: payload.status }),
     onError(err: NetshotError) { toast.error(err) },
   })
 
   const isMultiple = devices.length > 1
-  const orderedDevicesRef = useRef<(LightDevice | Device)[]>(devices)
+  const orderedDevicesRef = useRef<Device[]>(devices)
 
   const open = () => {
     orderedDevicesRef.current = devices
@@ -53,7 +54,7 @@ export default function DisableDeviceTrigger({ devices, children, ...rest }: Dis
       async onConfirm() {
         try {
           for await (const device of orderedDevicesRef.current) {
-            await mutation.mutateAsync({ id: device?.id, enabled: false })
+            await mutation.mutateAsync({ id: device?.id, status: "DISABLED" })
           }
         } finally {
           queryClient.invalidateQueries({ queryKey: [GLOBAL_QUERIES.DEVICE_LIST], refetchType: "all" })

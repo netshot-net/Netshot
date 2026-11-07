@@ -1,10 +1,10 @@
-import api from "@/api"
+import { Schemas } from "@/api/client"
+import { useListAll } from "@/hooks/useListAll"
 import { EmptyResult, VirtualizedDataTable } from "@/components"
 import { useDialogConfig } from "@/dialog"
 import { DeviceBadge, DeviceGroupBadge, DeviceSoftwareLevelBadge } from "@/components/entity"
-import { DeviceSoftwareLevel, GroupDeviceBySoftwareLevel } from "@/types"
+import { DeviceNetworkClass, DeviceSoftwareLevel } from "@/types"
 import { CloseButton, Dialog, Heading, Portal, Skeleton, Stack, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -17,7 +17,7 @@ export type SoftwareComplianceDialogProps = {
   level: DeviceSoftwareLevel
 }
 
-const columnHelper = createColumnHelper<GroupDeviceBySoftwareLevel>()
+const columnHelper = createColumnHelper<Schemas["Device"]>()
 
 export default function SoftwareComplianceDialog(props: SoftwareComplianceDialogProps) {
   const { groupId, groupName, level } = props
@@ -25,12 +25,19 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
   const dialogConfig = useDialogConfig()
   const navigate = useNavigate()
 
-  const { data, isPending } = useQuery({
-    queryKey: [QUERIES.SOFTWARE_COMPLIANCE_DEVICES, groupId, level],
-    queryFn: async () => (await api.report.getAllGroupDevicesBySoftwareLevel(groupId, level)) ?? [],
-  })
+  const { rows: data, isPending } = useListAll<Schemas["Device"]>(
+    [QUERIES.SOFTWARE_COMPLIANCE_DEVICES, groupId, level],
+    "/devices",
+    {
+      group: groupId,
+      // The "non compliant" devices are those the software rules give no level to
+      softwareLevel: level === DeviceSoftwareLevel.GOLD || level === DeviceSoftwareLevel.SILVER || level === DeviceSoftwareLevel.BRONZE ? level : "UNKNOWN",
+      fields: "name,networkClass,family,softwareVersion",
+      sort: "name",
+    }
+  )
 
-  function goToDevice(device: GroupDeviceBySoftwareLevel) {
+  function goToDevice(device: Schemas["Device"]) {
     dialogConfig.close()
     navigate(`/app/devices/${device.id}/compliance?open=software&group=${groupId}`)
   }
@@ -39,7 +46,7 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
     () => [
       columnHelper.accessor("name", {
         cell: (info) => (
-          <DeviceBadge networkClass={info.row.original.networkClass}>
+          <DeviceBadge networkClass={info.row.original.networkClass as DeviceNetworkClass | undefined}>
             <Link
               to={`/app/devices/${info.row.original.id}/compliance?open=software&group=${groupId}`}
               onClick={(evt) => {
@@ -103,9 +110,9 @@ export default function SoftwareComplianceDialog(props: SoftwareComplianceDialog
                 </Stack>
               ) : (
                 <>
-                  {(data?.length ?? 0) > 0 ? (
+                  {data.length > 0 ? (
                     <VirtualizedDataTable
-                      data={data ?? []}
+                      data={data}
                       columns={columns}
                       onClickRow={goToDevice}
                       primaryKey="id"

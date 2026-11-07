@@ -1,9 +1,9 @@
 import api from "@/api"
 import { EmptyResult, Search } from "@/components"
 import { QUERIES } from "@/constants"
-import { usePagination } from "@/hooks"
-import { ConfigComplianceDeviceStatus, Group } from "@/types"
-import { groupItemsByProperty, search } from "@/utils"
+import { useSearchQuery } from "@/hooks"
+import { ComplianceResult } from "@/api/report"
+import { GroupBrief } from "@/types"
 import { Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next"
 import DeviceConfigurationCompliancePanel from "./DeviceConfigurationCompliancePanel"
 
 export type ConfigurationComplianceDeviceListProps = {
-  group: Group
+  group: GroupBrief
 }
 
 export default function ConfigurationComplianceDeviceList(
@@ -21,28 +21,30 @@ export default function ConfigurationComplianceDeviceList(
   const { group } = props
 
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data, isPending } = useQuery({
-    queryKey: [
-      QUERIES.DEVICE_REPORT_GROUP_LIST,
-      group.id,
-      group.folder,
-      group.name,
-      pagination.query,
-    ],
-    queryFn: async () => api.report.getAllGroupConfigNonCompliantDevices(group.id),
+    queryKey: [QUERIES.DEVICE_REPORT_GROUP_LIST, group.id, group.folder, group.name],
+    queryFn: async () => api.report.getNonCompliantResults(group.id),
     select: useCallback(
-      (res: ConfigComplianceDeviceStatus[]): Map<string, ConfigComplianceDeviceStatus[]> => {
-        return groupItemsByProperty(search(res, "name").with(pagination.query), "name")
+      (res: ComplianceResult[]): Map<number, ComplianceResult[]> => {
+        const text = (searchBox.query ?? "").trim().toLowerCase()
+        const byDevice = new Map<number, ComplianceResult[]>()
+        for (const result of res) {
+          if (!result.device || (text && !(result.device.name ?? "").toLowerCase().includes(text))) {
+            continue
+          }
+          byDevice.set(result.device.id, [...(byDevice.get(result.device.id) ?? []), result])
+        }
+        return byDevice
       },
-      [pagination.query]
+      [searchBox.query]
     ),
   })
 
   const rows = useMemo(() => Array.from(data?.entries() ?? []), [data])
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -57,8 +59,8 @@ export default function ConfigurationComplianceDeviceList(
       <Stack direction="row">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
         <Spacer />
@@ -83,11 +85,11 @@ export default function ConfigurationComplianceDeviceList(
                 }}
               >
                 {virtualizer.getVirtualItems().map((virtualItem) => {
-                  const [name, configs] = rows[virtualItem.index]
+                  const [deviceId, results] = rows[virtualItem.index]
 
                   return (
                     <div
-                      key={name}
+                      key={deviceId}
                       ref={virtualizer.measureElement}
                       data-index={virtualItem.index}
                       style={{
@@ -99,7 +101,7 @@ export default function ConfigurationComplianceDeviceList(
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <DeviceConfigurationCompliancePanel configs={configs} name={name} />
+                      <DeviceConfigurationCompliancePanel results={results} />
                     </div>
                   )
                 })}

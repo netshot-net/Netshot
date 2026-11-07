@@ -53,7 +53,7 @@ public class RestServerTest {
 			Assertions.assertTrue(server.isHealthy());
 			HttpClient client = HttpClient.newHttpClient();
 			HttpResponse<String> response = client.send(
-				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/user".formatted(port))).build(),
+				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/v1/auth/me".formatted(port))).build(),
 				HttpResponse.BodyHandlers.ofString());
 			Assertions.assertEquals(401, response.statusCode());
 			client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/nothing".formatted(port))).build(),
@@ -74,6 +74,43 @@ public class RestServerTest {
 		Assertions.assertFalse(server.isHealthy());
 		try (ServerSocket socket = new ServerSocket(port)) {
 			Assertions.assertTrue(socket.isBound(), "The port wasn't released");
+		}
+	}
+
+	@Test
+	@DisplayName("Serves only the v1 API when the legacy API is disabled")
+	void legacyApiDisabled() throws Exception {
+		int port = TestNetwork.freePort();
+		Properties original = TestConfig.properties();
+		Properties config = TestConfig.properties();
+		config.setProperty("netshot.http.ssl.enabled", "false");
+		config.setProperty("netshot.http.baseurl", "http://127.0.0.1:%d".formatted(port));
+		config.setProperty("netshot.http.api.v0.enabled", "false");
+		TestConfig.init(config);
+		RestServer server = new RestServer(TestWiring.get().binder());
+		server.start();
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+			HttpResponse<String> legacy = client.send(
+				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/user".formatted(port))).build(),
+				HttpResponse.BodyHandlers.ofString());
+			Assertions.assertEquals(404, legacy.statusCode(), "The legacy API is served");
+			HttpResponse<String> legacyDoc = client.send(
+				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/openapi.json".formatted(port))).build(),
+				HttpResponse.BodyHandlers.ofString());
+			Assertions.assertEquals(404, legacyDoc.statusCode(), "The legacy OpenAPI document is served");
+			HttpResponse<String> v1 = client.send(
+				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/v1/domains".formatted(port))).build(),
+				HttpResponse.BodyHandlers.ofString());
+			Assertions.assertEquals(401, v1.statusCode(), "The v1 API isn't served");
+			HttpResponse<String> v1Doc = client.send(
+				HttpRequest.newBuilder(URI.create("http://127.0.0.1:%d/api/v1/openapi.json".formatted(port))).build(),
+				HttpResponse.BodyHandlers.ofString());
+			Assertions.assertEquals(200, v1Doc.statusCode());
+		}
+		finally {
+			server.stop();
+			TestConfig.init(original);
 		}
 	}
 }

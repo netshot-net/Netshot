@@ -25,6 +25,7 @@ import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_C
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,8 +33,15 @@ import java.util.Set;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep3;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
 import net.netshot.netshot.platform.database.schema.tables.records.DeviceGroupCachedDevicesRecord;
 
 /**
@@ -81,6 +89,45 @@ public class GroupRepository {
 	 */
 	private static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+
+	/** The fields the group lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DEVICE_GROUP.ID)
+		.string("name", DEVICE_GROUP.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("folder", DEVICE_GROUP.FOLDER, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", DEVICE_GROUP.TYPE, DeviceGroup.Type.class, Option.SORTABLE)
+		.bool("hiddenFromReports", DEVICE_GROUP.HIDDEN_FROM_REPORTS)
+		.string("query", DEVICE_GROUP.QUERY, Option.SEARCHABLE)
+		.date("changeDate", DEVICE_GROUP.CHANGE_DATE, Option.SORTABLE)
+		.custom("device", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
+			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(DEVICE_GROUP.ID))
+				.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.in(values.stream().map(Long.class::cast).toList()))))
+		.build();
+
+	/**
+	 * Lists the groups matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the groups of the window of the query
+	 */
+	public List<DeviceGroup> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DEVICE_GROUP.fields()).from(DEVICE_GROUP)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(GroupRepository::toGroup);
+	}
+
+	/**
+	 * Counts the groups matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of groups
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DEVICE_GROUP, LIST.condition(query));
 	}
 
 	/**
@@ -151,6 +198,17 @@ public class GroupRepository {
 			.returning(DEVICE_GROUP.ID)
 			.fetchOne(DEVICE_GROUP.ID);
 		return this.find(dsl, id);
+	}
+
+	/**
+	 * Locks the row of a group until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the group ID
+	 * @return the version of the group, or null if there is no such group
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DEVICE_GROUP, DEVICE_GROUP.ID, DEVICE_GROUP.VERSION, id);
 	}
 
 	/**

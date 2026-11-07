@@ -1,4 +1,5 @@
-import api, { CreateOrUpdateHardwareRule } from "@/api"
+import api from "@/api"
+import type { HardwareRuleRequest } from "@/api/hardwareRule"
 import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
@@ -36,7 +37,7 @@ export default function AddHardwareRuleTrigger({ children, ...rest }: AddHardwar
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.HARDWARE_RULE_CREATE,
-    mutationFn: async (payload: CreateOrUpdateHardwareRule) => api.hardwareRule.create(payload),
+    mutationFn: async (payload: HardwareRuleRequest) => api.hardwareRule.create(payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -50,14 +51,14 @@ export default function AddHardwareRuleTrigger({ children, ...rest }: AddHardwar
       size: "lg",
       async onSubmit(values: HardwareRuleFormValues) {
         await mutation.mutateAsync({
-          driver: values.driver!,
+          driver: values.driver ?? undefined,
           family: values.family,
           familyRegExp: values.familyRegExp,
-          group: values.group!,
+          group: values.group ?? undefined,
           partNumber: values.partNumber,
           partNumberRegExp: values.partNumberRegExp,
-          endOfLife: values.endOfLife,
-          endOfSale: values.endOfSale,
+          endOfLife: values.endOfLife ? new Date(values.endOfLife) : undefined,
+          endOfSale: values.endOfSale ? new Date(values.endOfSale) : undefined,
         })
 
         dialogRef.close()

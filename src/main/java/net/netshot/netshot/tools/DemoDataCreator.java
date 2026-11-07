@@ -70,6 +70,7 @@ import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.secret.Secret;
 
 @Slf4j
 public class DemoDataCreator {
@@ -223,7 +224,7 @@ public class DemoDataCreator {
 		device.softwareVersion("16.1.6");
 		device.softwareLevel(ConformanceLevel.GOLD);
 		device.creator("tester");
-		DeviceCredentialSet cs = DeviceSshAccount.builder().username("user").password("pass").superPassword("pass")
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).superPassword(Secret.local("pass"))
 			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
 		device.accesses(List.of(DeviceAccess.of("ssh").toBuilder().specificCredentialSet(cs).build()));
 		String serial = "1616TEST%05d".formatted(shift);
@@ -431,7 +432,7 @@ public class DemoDataCreator {
 		device.softwareVersion("23.4R1.10");
 		device.softwareLevel(ConformanceLevel.GOLD);
 		device.creator("tester");
-		DeviceCredentialSet cs = DeviceSshAccount.builder().username("user").password("pass").superPassword("pass")
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).superPassword(Secret.local("pass"))
 			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
 		device.accesses(List.of(DeviceAccess.of("ssh").toBuilder().specificCredentialSet(cs).build()));
 		String serial = "JN23040TEST";
@@ -578,7 +579,7 @@ public class DemoDataCreator {
 		device.softwareVersion("7.4.4");
 		device.softwareLevel(ConformanceLevel.GOLD);
 		device.creator("tester");
-		DeviceCredentialSet cs = DeviceSshAccount.builder().username("admin").password("pass").superPassword("pass")
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("pass")).superPassword(Secret.local("pass"))
 			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
 		device.accesses(List.of(DeviceAccess.of("ssh").toBuilder().specificCredentialSet(cs).build()));
 		String serial = "FGT60E7440TEST";
@@ -636,7 +637,7 @@ public class DemoDataCreator {
 	}
 
 	private Diagnostic getReloadReasonIosSimpleDiagnostic(DeviceGroup group) {
-		Diagnostic diagnostic = new SimpleDiagnostic(0, "Reload reason", true,
+		Diagnostic diagnostic = new SimpleDiagnostic(0, 0, null, "Reload reason", true,
 			group.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable",
 			"show version | include reason",

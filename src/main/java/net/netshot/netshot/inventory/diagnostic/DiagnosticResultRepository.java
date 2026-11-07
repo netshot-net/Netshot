@@ -26,10 +26,15 @@ import java.util.Collection;
 import java.util.List;
 
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * The queries on the diagnostic results (one per device and diagnostic). The {@link DSLContext}
@@ -58,6 +63,52 @@ public class DiagnosticResultRepository {
 				r.get(DIAGNOSTIC_RESULT.LAST_CHECK_DATE), r.get(LONG_TEXT_CONFIGURATION.TEXT));
 			default -> throw new IllegalStateException("Unknown type of diagnostic result '%s'".formatted(type));
 		};
+	}
+
+	/** The type of the result, by name (the discriminator is a letter). */
+	private static final Field<String> TYPE_NAME = DSL.case_(DIAGNOSTIC_RESULT.TYPE)
+		.when(TEXT, "TEXT").when(NUMERIC, "NUMERIC").when(BINARY, "BINARY").when(LONG_TEXT, "LONGTEXT").else_("TEXT");
+
+	/** The fields the lists of results can be filtered and sorted on. */
+	public static final QueryMapping LIST = QueryMapping.builder(DIAGNOSTIC_RESULT.ID)
+		.integer("device", DIAGNOSTIC_RESULT.DEVICE)
+		.integer("diagnostic", DIAGNOSTIC_RESULT.DIAGNOSTIC)
+		.string("diagnosticName", DIAGNOSTIC.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", TYPE_NAME, List.of("TEXT", "LONGTEXT", "NUMERIC", "BINARY"), Option.SORTABLE)
+		.date("creationDate", DIAGNOSTIC_RESULT.CREATION_DATE, Option.SORTABLE)
+		.date("lastCheckDate", DIAGNOSTIC_RESULT.LAST_CHECK_DATE, Option.SORTABLE)
+		.build();
+
+	/**
+	 * Lists the diagnostic results matching a query (with their long texts).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the results of the window of the query
+	 */
+	public List<DiagnosticResult> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DIAGNOSTIC_RESULT.TYPE, DIAGNOSTIC_RESULT.DIAGNOSTIC, DIAGNOSTIC.NAME,
+					DIAGNOSTIC_RESULT.CREATION_DATE, DIAGNOSTIC_RESULT.LAST_CHECK_DATE, DIAGNOSTIC_RESULT.TEXT, DIAGNOSTIC_RESULT.NUMBER,
+					DIAGNOSTIC_RESULT.ASSUMPTION, LONG_TEXT_CONFIGURATION.TEXT)
+				.from(DIAGNOSTIC_RESULT)
+				.leftJoin(DIAGNOSTIC).on(DIAGNOSTIC.ID.eq(DIAGNOSTIC_RESULT.DIAGNOSTIC))
+				.leftJoin(LONG_TEXT_CONFIGURATION).on(LONG_TEXT_CONFIGURATION.ID.eq(DIAGNOSTIC_RESULT.LONG_TEXT))
+				.where(LIST.condition(query))
+				.orderBy(LIST.orderBy(query)))
+			.fetch(DiagnosticResultRepository::toResult);
+	}
+
+	/**
+	 * Counts the diagnostic results matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of results
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(dsl.select(DIAGNOSTIC_RESULT.ID).from(DIAGNOSTIC_RESULT)
+			.leftJoin(DIAGNOSTIC).on(DIAGNOSTIC.ID.eq(DIAGNOSTIC_RESULT.DIAGNOSTIC))
+			.where(LIST.condition(query)));
 	}
 
 	/**

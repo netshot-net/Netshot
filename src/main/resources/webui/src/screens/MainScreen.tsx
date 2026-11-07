@@ -1,5 +1,6 @@
 import api from "@/api"
-import httpClient, { HttpEventType } from "@/api/httpClient"
+import { HttpEventType } from "@/api/httpClient"
+import { client } from "@/api/client"
 import { MeResult } from "@/api/user"
 import { Navbar } from "@/components"
 import { QUERIES, REDIRECT_SEARCH_PARAM } from "@/constants"
@@ -81,9 +82,9 @@ export function MainScreen() {
 
   useEffect(() => {
     // Register callback on forbidden (401/403) responses
-    httpClient.on(HttpEventType.Forbidden, requireReauth)
+    client.on(HttpEventType.Forbidden, requireReauth)
     return () => {
-      httpClient.off(HttpEventType.Forbidden)
+      client.off(HttpEventType.Forbidden)
     }
   }, [requireReauth])
 
@@ -102,11 +103,11 @@ export function MainScreen() {
     }
 
     // Any request to the backend counts as activity: reschedule the warning from there
-    httpClient.on(HttpEventType.Activity, scheduleIdleWarning)
+    client.on(HttpEventType.Activity, scheduleIdleWarning)
     scheduleIdleWarning()
 
     return () => {
-      httpClient.off(HttpEventType.Activity)
+      client.off(HttpEventType.Activity)
       clearTimeout(idleTimeoutRef.current)
     }
   }, [requireReauth, serverInfo?.maxIdleTimeout])

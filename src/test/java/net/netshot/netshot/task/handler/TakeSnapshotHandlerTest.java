@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -93,6 +94,20 @@ class TakeSnapshotHandlerTest {
 	}
 
 	@Test
+	@DisplayName("Sets the last snapshot success date, and only that one")
+	void setsTheSuccessDate() throws Exception {
+		Device device = SimulatedRouter.persist(CONTAINER);
+		Instant before = Instant.now().minusSeconds(1);
+
+		this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, true, true));
+
+		Device snapshot = reload(device);
+		Assertions.assertNotNull(snapshot.lastSnapshotSuccessDate());
+		Assertions.assertTrue(snapshot.lastSnapshotSuccessDate().isAfter(before));
+		Assertions.assertNull(snapshot.lastSnapshotFailureDate());
+	}
+
+	@Test
 	@DisplayName("Submits the diagnostics afterwards, passing the compliance option")
 	void submitsTheDiagnostics() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
@@ -165,6 +180,23 @@ class TakeSnapshotHandlerTest {
 	}
 
 	@Test
+	@DisplayName("Sets the last snapshot failure date without changing the device version nor the success date")
+	void setsTheFailureDate() throws Exception {
+		Device device = SimulatedRouter.persist(CONTAINER, 1);
+		Instant success = Instant.parse("2026-01-01T10:00:00Z");
+		TestDevices.setSnapshotDate(device.id(), true, success);
+		Device before = reload(device);
+
+		this.runner.run(TakeSnapshotTask.of(device, "Test", "tester", false, false, false));
+
+		Device failed = reload(device);
+		Assertions.assertNotNull(failed.lastSnapshotFailureDate());
+		Assertions.assertEquals(success, failed.lastSnapshotSuccessDate());
+		Assertions.assertEquals(before.version(), failed.version(), "The device version is not bumped");
+		Assertions.assertEquals(before.changeDate(), failed.changeDate());
+	}
+
+	@Test
 	@DisplayName("Is cancelled for a disabled device")
 	void cancelledForDisabledDevice() throws Exception {
 		Device device = SimulatedRouter.persist(CONTAINER);
@@ -176,5 +208,8 @@ class TakeSnapshotHandlerTest {
 		Assertions.assertEquals(Status.CANCELLED, task.status());
 		Assertions.assertTrue(task.log().contains("The device is not enabled (not in production)."), task.log());
 		Assertions.assertEquals(List.of(), this.runner.submitted(), "No follow-up task for a cancelled snapshot");
+		Device reloaded = reload(device);
+		Assertions.assertNull(reloaded.lastSnapshotSuccessDate());
+		Assertions.assertNull(reloaded.lastSnapshotFailureDate());
 	}
 }

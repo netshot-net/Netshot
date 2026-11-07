@@ -136,6 +136,7 @@
       "latestTasks": "Latest tasks on this device",
       "lastChange": "Last change",
       "lastChangeDate": "Last change date",
+      "lastSnapshotSuccess": "Last successful snapshot",
       "lastConnectionDate": "Last connection date",
       "lastFailedSnapshot": "Last failed snapshot",
       "lastSeen": "Last seen",
@@ -193,6 +194,10 @@
         "preproduction": "PreProduction",
         "production": "Production"
       },
+      "exportList": "Export the device list",
+      "exportCsv": "CSV file",
+      "exportExcel": "Excel file",
+      "changedMeanwhile": "The device was changed meanwhile: it has been reloaded, please retry.",
       "refreshList": "Refresh device list",
       "remove": "Remove device",
       "removeSelected": "Remove selected devices",
@@ -239,6 +244,7 @@
       "createWithJavascript": "Create a diagnostic using JavaScript",
       "createWithPython": "Create a diagnostic using Python",
       "createWithStringAndRegex": "Create a diagnostic using String and RegEx",
+      "longText": "Long text",
       "label": "Diagnostic",
       "successfullyCreated": "Diagnostic {{diagnosticName}} has been successfully created",
       "successfullyDisabled": "Diagnostic {{diagnosticName}} has been successfully disabled",
@@ -641,6 +647,7 @@
       "aboutToRemove": "You are about to remove the policy {{policyName}}"
     },
     "group": {
+      "changedMeanwhile": "The group was changed meanwhile: it has been reloaded, please retry.",
       "add": "Add group",
       "members": "Group members",
       "chooseType": "Choose group type",
@@ -800,6 +807,7 @@
       "scheduledFuture": "Scheduled (future)",
       "scheduledWillTrigger": "Will trigger at their set time",
       "childTasks": "Child tasks",
+      "rowLimitNotice": "Only the first {{count}} tasks are shown",
       "childTaskProgress": "Progress",
       "parentTask": "Parent task",
       "viewChildTasks": "View child tasks",
@@ -874,6 +882,7 @@
     },
     "admin": {
       "title": "Administration",
+      "changedMeanwhile": "The object was changed meanwhile: the list was refreshed, please try again",
       "clustering": {
         "label": "Clustering",
         "manage": "Manage server clustering",
@@ -969,7 +978,7 @@
       "privKeySecret": "Privacy key"
     },
     "api": {
-      "documentation": "API Documentation",
+      "documentation": "API Documentation (v1)",
       "successfullyCreated": "API token has been successfully created",
       "successfullyRemoved": "API token has been successfully removed",
       "tokens": "API tokens",

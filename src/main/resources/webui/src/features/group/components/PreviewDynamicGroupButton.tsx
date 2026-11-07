@@ -1,4 +1,6 @@
-import api, { DeviceSearchResult } from "@/api"
+import api from "@/api"
+import { ListResponse } from "@/api/client"
+import { Device } from "@/types"
 import { NetshotError } from "@/api/httpClient"
 import { DeviceListItem } from "@/components/entity"
 import { Button, Popover, Separator, Stack, Stat, Text } from "@chakra-ui/react"
@@ -39,8 +41,8 @@ export default function PreviewDynamicGroupButton(props: PreviewDynamicGroupButt
   const { query } = props
   const { t } = useTranslation()
 
-  const mutation = useMutation<DeviceSearchResult, NetshotError>({
-    mutationFn: async () => (await api.device.search({ query })) ?? { query, devices: [] },
+  const mutation = useMutation<ListResponse<Device>, NetshotError>({
+    mutationFn: async () => api.device.search({ query, limit: PREVIEW_LIMIT, count: true }),
   })
 
   // Query changed since the last preview: drop the stale result rather than show it as current.
@@ -53,8 +55,8 @@ export default function PreviewDynamicGroupButton(props: PreviewDynamicGroupButt
   }, [query, mutation.reset])
 
   const error = mutation.error
-  const devices = mutation.data?.devices ?? []
-  const count = devices.length
+  const devices = mutation.data?.results ?? []
+  const count = mutation.data?.count ?? devices.length
   const preview = devices.slice(0, PREVIEW_LIMIT)
   const remaining = count - preview.length
 

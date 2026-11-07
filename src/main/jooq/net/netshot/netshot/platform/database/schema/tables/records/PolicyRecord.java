@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.Policy;
 
 import org.jooq.Record1;
@@ -46,6 +48,34 @@ public class PolicyRecord extends UpdatableRecordImpl<PolicyRecord> {
         return (String) get(1);
     }
 
+    /**
+     * Setter for <code>policy.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(2, value);
+    }
+
+    /**
+     * Getter for <code>policy.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(2);
+    }
+
+    /**
+     * Setter for <code>policy.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(3, value);
+    }
+
+    /**
+     * Getter for <code>policy.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(3);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -69,11 +99,13 @@ public class PolicyRecord extends UpdatableRecordImpl<PolicyRecord> {
     /**
      * Create a detached, initialised PolicyRecord
      */
-    public PolicyRecord(Long id, String name) {
+    public PolicyRecord(Long id, String name, Integer version, Instant changeDate) {
         super(Policy.POLICY);
 
         setId(id);
         setName(name);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

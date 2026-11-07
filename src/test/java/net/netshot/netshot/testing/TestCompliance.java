@@ -60,7 +60,7 @@ public final class TestCompliance {
 	 * @return the stored policy
 	 */
 	public static Policy policy(String name, Long... groupIds) {
-		Policy policy = new Policy(0, name, Set.of(groupIds));
+		Policy policy = new Policy(0, 0, null, name, Set.of(groupIds));
 		return policy.withId(transactions().write(dsl -> new PolicyRepository().add(dsl, policy)));
 	}
 

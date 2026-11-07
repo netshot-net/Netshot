@@ -1,21 +1,24 @@
-import { DriverOptionType } from "./device";
+import type { Brief, Schemas } from "@/api/client"
+import type { DriverOptionType } from "./device"
 
-export type ScriptUserInputDefinition = {
-  name: string;
-  type: DriverOptionType;
-  label: string;
-  description: string;
-  choices?: string[];
-  defaultValue?: string;
-};
+/** A user input a script asks for (the enum of the UI has the values of the API). */
+export type ScriptUserInputDefinition = Omit<Schemas["UserInputDefinition"], "type" | "name" | "label"> & {
+  name: string
+  label: string
+  type: DriverOptionType
+}
 
-export type Script = {
-  id: number;
-  name: string;
-  script: string;
-  deviceDriver: string;
-  author: string;
-  folder: string;
-  userInputDefinitions: Record<string, ScriptUserInputDefinition>;
-  realDeviceType: string;
-};
+/** A saved script in its brief view (the script lists): no code and no user inputs. */
+export type ScriptBrief = Brief["Script"] & {
+  id: number
+  name: string
+  deviceDriver: string
+}
+
+/** A saved script (the brief view has no code and no user inputs). */
+export type Script = Omit<Schemas["Script"], "userInputDefinitions"> & {
+  id: number
+  name: string
+  deviceDriver: string
+  userInputDefinitions?: Record<string, ScriptUserInputDefinition>
+}

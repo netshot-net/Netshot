@@ -25,7 +25,7 @@ import java.util.List;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * A {@link net.netshot.netshot.vault.VaultableSecret#vaultPath()} value,
+ * A {@link net.netshot.netshot.platform.secret.VaultSecret#vaultPath()} value,
  * split into the KV v2 secret path (everything up to the last {@code /}) and
  * the key within that secret's JSON data (everything after it).
  * <p>

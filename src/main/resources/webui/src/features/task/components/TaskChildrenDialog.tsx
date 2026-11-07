@@ -5,11 +5,14 @@ import { QUERIES } from "@/constants"
 import { useDialogConfig } from "@/dialog"
 import TaskTable from "./TaskTable"
 import { TaskStatus } from "@/types"
-import { Badge, Button, CloseButton, Dialog, Icon, IconButton, Portal, Stack } from "@chakra-ui/react"
+import { Badge, Button, CloseButton, Dialog, Icon, IconButton, Portal, Stack, Text } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { LuRefreshCcw, LuX } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
+
+/** The maximum number of child tasks shown (a note tells when there are more). */
+const CHILDREN_LIMIT = 500
 
 export type TaskChildrenDialogProps = {
   parentTaskId: number
@@ -26,15 +29,13 @@ export default function TaskChildrenDialog(props: TaskChildrenDialogProps) {
   const dialogConfig = useDialogConfig()
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter)
 
-  const {
-    data: children,
-    isPending,
-    isFetching,
-    refetch,
-  } = useQuery({
+  const { data, isPending, isFetching, refetch } = useQuery({
     queryKey: [QUERIES.TASK, "children", parentTaskId, statusFilter],
-    queryFn: async () => api.task.getAll({ parentTaskId, status: statusFilter, limit: 500 }),
+    queryFn: async () =>
+      api.task.getAll({ parentTask: parentTaskId, status: statusFilter, sort: "childOrder", limit: CHILDREN_LIMIT }),
   })
+  const children = data?.results
+  const truncated = data?.next != null
 
   return (
     <Dialog.Root
@@ -108,6 +109,11 @@ export default function TaskChildrenDialog(props: TaskChildrenDialogProps) {
                   await onBeforeOpenChild?.()
                 }}
               />
+              {truncated && (
+                <Text textStyle="xs" color="fg.muted" mt="3">
+                  {t("task.rowLimitNotice", { count: CHILDREN_LIMIT })}
+                </Text>
+              )}
             </Dialog.Body>
             <Dialog.Footer>
               <Button variant="outline" onClick={() => dialogConfig.close()}>

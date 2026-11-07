@@ -1,5 +1,5 @@
 import { useCustomDialog } from "@/dialog"
-import { Policy } from "@/types"
+import type { Policy } from "@/api/policy"
 import { MouseEvent } from "react"
 import React from "react"
 import Slot from "@/components/Slot"

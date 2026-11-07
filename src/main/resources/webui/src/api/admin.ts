@@ -1,198 +1,199 @@
-import {
-  ApiToken,
-  ClusterMasterStatus,
-  ClusterMember,
-  CredentialSet,
-  DeviceType,
-  Domain,
-  Hook,
-  User,
-  VaultInstance,
-} from "@/types";
-import httpClient from "./httpClient";
-import { DeviceCredentialPayload, PaginationQueryParams, VaultInstancePayload } from "./types";
+import { Brief, client, list, listAll, replace, Schemas } from "./client"
 
-async function getAllApiTokens(queryParams: PaginationQueryParams)  {
-  return httpClient.get<ApiToken[]>("/apitokens", {
-    queryParams,
-  });
+export type ApiToken = Schemas["ApiToken"]
+export type ApiTokenCreated = Schemas["ApiTokenCreated"]
+export type ApiTokenRequest = Schemas["ApiTokenRequest"]
+export type ClusterMember = Schemas["ClusterMember"]
+export type CredentialSet = Schemas["CredentialSet"]
+export type CredentialSetRequest = Schemas["CredentialSetRequest"]
+export type DeviceType = Schemas["DeviceType"]
+export type Domain = Schemas["Domain"]
+export type User = Schemas["User"]
+export type UserRequest = Schemas["UserRequest"]
+export type VaultConnectionTest = Schemas["VaultConnectionTest"]
+export type VaultInstance = Schemas["VaultInstance"]
+export type VaultInstanceRequest = Schemas["VaultInstanceRequest"]
+
+// The generated types of the hooks are not usable as they are (the hook type is polymorphic): the web hook, the
+// only kind of hook for now, is described here.
+export type HookTrigger = Schemas["HookTrigger"]
+
+export type Hook = {
+  id?: number
+  url?: string
+  display?: string
+  type: "WEB"
+  name: string
+  enabled: boolean
+  triggers: HookTrigger[]
+  action: "POST_JSON" | "POST_XML" | "POST_YAML"
+  targetUrl: string
+  httpsCaTrustMode: "TRUST_ANY" | "SYSTEM_TRUSTSTORE" | "CUSTOM_CA"
+  httpsCustomCaCertificate?: string | null
 }
 
-async function createApiToken(payload: Partial<ApiToken>) {
-  return httpClient.post<ApiToken, Partial<ApiToken>>("/apitokens", payload);
+export type HookRequest = Omit<Hook, "id" | "url" | "display">
+
+/** The ETag (If-Match) of a versioned object. */
+export function etagOf(object: { version?: number } | null | undefined) {
+  return object?.version === undefined || object.version === null ? null : `"${object.version}"`
 }
 
-async function updateApiToken(id: number, payload: Partial<ApiToken>) {
-  return httpClient.put<ApiToken, Partial<ApiToken>>(
-    `/apitokens/${id}`,
-    payload
-  );
+function ifMatch(version?: number | null) {
+  return version === undefined || version === null ? undefined : { "If-Match": `"${version}"` }
+}
+
+async function createApiToken(payload: ApiTokenRequest) {
+  return (await client.post<ApiTokenCreated, ApiTokenRequest>("/api-tokens", payload)) as ApiTokenCreated
 }
 
 async function removeApiToken(id: number) {
-  return httpClient.delete(`/apitokens/${id}`);
+  return client.delete(`/api-tokens/${id}`)
 }
 
-async function getAllCredentialSets(queryParams: PaginationQueryParams) {
-  return httpClient.get<CredentialSet[]>("/credentialsets", {
-    queryParams,
-  });
+/** All the global credential sets (the choices of the devices' accesses). */
+async function fetchAllCredentialSets() {
+  return listAll<Brief["CredentialSet"]>("/credential-sets", { sort: "name" })
 }
 
-async function createCredentialSet(payload: Partial<DeviceCredentialPayload>) {
-  await httpClient.post("/credentialsets", payload);
+/** A credential set in its full view (to edit it). */
+async function getCredentialSet(id: number) {
+  return (await client.get<CredentialSet>(`/credential-sets/${id}`)) as CredentialSet
 }
 
-async function updateCredentialSet(
-  id: number,
-  payload: Partial<DeviceCredentialPayload>
-) {
-  return httpClient.put<CredentialSet, Partial<DeviceCredentialPayload>>(
-    `/credentialsets/${id}`,
-    payload
-  );
+async function createCredentialSet(payload: CredentialSetRequest) {
+  return (await client.post<CredentialSet, CredentialSetRequest>("/credential-sets", payload)) as CredentialSet
 }
 
-async function removeCredentialSet(id: number) {
-  return httpClient.delete(`/credentialsets/${id}`);
+async function updateCredentialSet(id: number, payload: CredentialSetRequest, version?: number | null) {
+  return replace<CredentialSet, CredentialSetRequest>(`/credential-sets/${id}`, payload, etagOf({ version: version ?? undefined }))
 }
 
-async function getAllDomains(queryParams: PaginationQueryParams) {
-  return httpClient.get<Domain[]>("/domains", {
-    queryParams,
-  });
+async function removeCredentialSet(id: number, version?: number | null) {
+  return client.delete(`/credential-sets/${id}`, { headers: ifMatch(version) })
+}
+
+/** All the domains (the choices of the domain selectors). */
+async function fetchAllDomains() {
+  return listAll<Brief["Domain"]>("/domains", { sort: "name" })
+}
+
+/** A domain in its full view (to edit it). */
+async function getDomain(id: number) {
+  return (await client.get<Domain>(`/domains/${id}`)) as Domain
 }
 
 async function createDomain(payload: Partial<Domain>) {
-  return httpClient.post<Domain, Partial<Domain>>("/domains", payload);
+  return (await client.post<Domain, Partial<Domain>>("/domains", payload)) as Domain
 }
 
-async function updateDomain(id: number, payload: Partial<Domain>) {
-  return httpClient.put<Domain, Partial<Domain>>(`/domains/${id}`, payload);
+async function updateDomain(id: number, payload: Partial<Domain>, version?: number | null) {
+  return replace<Domain, Partial<Domain>>(`/domains/${id}`, payload, etagOf({ version: version ?? undefined }))
 }
 
-async function removeDomain(id: number) {
-  return httpClient.delete(`/domains/${id}`);
+async function removeDomain(id: number, version?: number | null) {
+  return client.delete(`/domains/${id}`, { headers: ifMatch(version) })
 }
 
-async function getAllHooks(queryParams: PaginationQueryParams) {
-  return httpClient.get<Hook[]>("/hooks", {
-    queryParams,
-  });
+/** A hook in its full view (to edit it). */
+async function getHook(id: number) {
+  return (await client.get<Hook>(`/hooks/${id}`)) as Hook
 }
 
-async function createHook(payload: Partial<Hook>) {
-  return httpClient.post<Hook, Partial<Hook>>("/hooks", payload);
+async function createHook(payload: HookRequest) {
+  return (await client.post<Hook, HookRequest>("/hooks", payload)) as Hook
 }
 
-async function updateHook(id: number, payload: Partial<Hook>) {
-  return httpClient.put<Hook, Partial<Hook>>(`/hooks/${id}`, payload);
+async function updateHook(id: number, payload: HookRequest) {
+  return replace<Hook, HookRequest>(`/hooks/${id}`, payload)
 }
 
 async function removeHook(id: number) {
-  return httpClient.delete(`/hooks/${id}`);
+  return client.delete(`/hooks/${id}`)
 }
 
-async function getAllUsers(queryParams: PaginationQueryParams) {
-  return httpClient.get<User[]>("/users", {
-    queryParams,
-  });
+async function createUser(payload: UserRequest) {
+  return (await client.post<User, UserRequest>("/users", payload)) as User
 }
 
-async function createUser(payload: Partial<User>) {
-  return httpClient.post<User, Partial<User>>("/users", payload);
-}
-
-async function updateUser(id: number, payload: Partial<User>) {
-  return httpClient.put<User, Partial<User>>(`/users/${id}`, payload);
+async function updateUser(id: number, payload: UserRequest) {
+  return replace<User, UserRequest>(`/users/${id}`, payload)
 }
 
 async function removeUser(id: number) {
-  await httpClient.delete(`/users/${id}`);
+  await client.delete(`/users/${id}`)
 }
 
-async function getAllDrivers(pageParams: PaginationQueryParams, refresh: boolean = false) {
-  return httpClient.get<DeviceType[]>(`/devicetypes`, {
-    queryParams: {
-      ...pageParams,
-      refresh,
-    },
-  });
+/**
+ * Reloads the device drivers from their sources (on every cluster member).
+ */
+async function reloadDrivers() {
+  await client.post<null, null>("/device-types/reload", null)
 }
 
-async function getAllVaultInstances(queryParams: PaginationQueryParams) {
-  return httpClient.get<VaultInstance[]>("/vaultinstances", {
-    queryParams,
-  });
+/** All the Vault instances (the choices of the Vault-backed fields). */
+async function fetchAllVaultInstances() {
+  return listAll<Brief["VaultInstance"]>("/vault-instances", { sort: "name" })
 }
 
-async function createVaultInstance(payload: Partial<VaultInstancePayload>) {
-  return httpClient.post<VaultInstance, Partial<VaultInstancePayload>>(
-    "/vaultinstances",
-    payload
-  );
+/** A Vault instance in its full view (to edit it). */
+async function getVaultInstance(id: number) {
+  return (await client.get<VaultInstance>(`/vault-instances/${id}`)) as VaultInstance
 }
 
-async function updateVaultInstance(
-  id: number,
-  payload: Partial<VaultInstancePayload>
-) {
-  return httpClient.put<VaultInstance, Partial<VaultInstancePayload>>(
-    `/vaultinstances/${id}`,
-    payload
-  );
+async function createVaultInstance(payload: VaultInstanceRequest) {
+  return (await client.post<VaultInstance, VaultInstanceRequest>("/vault-instances", payload)) as VaultInstance
 }
 
-async function removeVaultInstance(id: number) {
-  return httpClient.delete(`/vaultinstances/${id}`);
+async function updateVaultInstance(id: number, payload: VaultInstanceRequest, version?: number | null) {
+  return replace<VaultInstance, VaultInstanceRequest>(`/vault-instances/${id}`, payload, etagOf({ version: version ?? undefined }))
 }
 
-async function testVaultInstance(
-  payload: Partial<VaultInstancePayload>,
-  id?: number
-) {
-  return httpClient.post<null, Partial<VaultInstancePayload>>(
-    "/vaultinstances/test",
-    payload,
-    { queryParams: id ? { id } : undefined }
-  );
+async function removeVaultInstance(id: number, version?: number | null) {
+  return client.delete(`/vault-instances/${id}`, { headers: ifMatch(version) })
+}
+
+/** Tries to log in to a Vault instance definition which isn't saved (secrets included). */
+async function testVaultInstance(payload: VaultInstanceRequest) {
+  return (await client.post<VaultConnectionTest, VaultInstanceRequest>("/vault-instances/test", payload)) as VaultConnectionTest
+}
+
+/** Tries to log in to a saved Vault instance. */
+async function testSavedVaultInstance(id: number) {
+  return (await client.post<VaultConnectionTest, null>(`/vault-instances/${id}/test`, null)) as VaultConnectionTest
 }
 
 async function getAllClusterMembers() {
-  return httpClient.get<ClusterMember[]>("/cluster/members");
-}
-
-async function getClusterMasterStatus() {
-  return httpClient.get<ClusterMasterStatus[]>("/cluster/masterstatus");
+  return list<ClusterMember>("/system/cluster/members", { view: "full" })
 }
 
 export default {
-  getAllApiTokens,
   createApiToken,
-  updateApiToken,
   removeApiToken,
-  getAllCredentialSets,
+  fetchAllCredentialSets,
+  getCredentialSet,
   createCredentialSet,
   updateCredentialSet,
   removeCredentialSet,
-  getAllDomains,
+  fetchAllDomains,
+  getDomain,
   createDomain,
   updateDomain,
   removeDomain,
-  getAllHooks,
+  getHook,
   createHook,
   updateHook,
   removeHook,
-  getAllUsers,
   createUser,
   updateUser,
   removeUser,
-  getAllDrivers,
-  getAllVaultInstances,
+  reloadDrivers,
+  fetchAllVaultInstances,
+  getVaultInstance,
   createVaultInstance,
   updateVaultInstance,
   removeVaultInstance,
   testVaultInstance,
+  testSavedVaultInstance,
   getAllClusterMembers,
-  getClusterMasterStatus,
-};
+}

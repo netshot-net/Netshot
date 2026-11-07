@@ -67,6 +67,48 @@ public class LoginService {
 	}
 
 	/**
+	 * Authenticates the bearer of a JWT access token issued by the OIDC IdP. As for an OIDC login, a user
+	 * configured as local can't be authenticated this way, and the level of a remote user configured in
+	 * Netshot is the configured one.
+	 *
+	 * @param token the token
+	 * @param remoteAddress the address of the client (for the audit log)
+	 * @return the authenticated user, or null if the token is invalid or the user has an insufficient level
+	 * @throws NetshotException if the database can't be accessed
+	 */
+	public UiUser authenticateBearer(String token, String remoteAddress) {
+		UiUser remoteUser = this.remote.authenticateWithBearerToken(token);
+		if (remoteUser == null) {
+			AAA_LOG.warn("JWT bearer authentication failure from {}.", remoteAddress);
+			return null;
+		}
+		String username = remoteUser.username();
+		UiUser user;
+		try {
+			user = this.transactions.read(dsl -> this.repository.findByUsername(dsl, username));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the user {}.", username, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the user.");
+		}
+		if (user != null && user.local()) {
+			AAA_LOG.warn("JWT bearer token of user {} from {} refused: the user is configured as Netshot local.",
+				username, remoteAddress);
+			return null;
+		}
+		if (user != null) {
+			remoteUser = remoteUser.withLevel(user.level());
+		}
+		if (remoteUser.level() <= 0) {
+			AAA_LOG.info("User {} was authenticated by a JWT bearer token but has unsufficient permission (level {})",
+				username, remoteUser.level());
+			return null;
+		}
+		AAA_LOG.info("Successful JWT bearer authentication of user {} from {} (level {}).", username, remoteAddress, remoteUser.level());
+		return remoteUser;
+	}
+
+	/**
 	 * Authenticates a user.
 	 *
 	 * @param attempt the credentials presented
@@ -189,6 +231,7 @@ public class LoginService {
 	private void changePassword(long userId, String newPassword) {
 		try {
 			this.transactions.run(dsl -> {
+				this.repository.lock(dsl, userId);
 				UiUser user = this.repository.find(dsl, userId);
 				try {
 					this.repository.save(dsl, user.withPassword(newPassword, PasswordPolicy.getMainPolicy()));

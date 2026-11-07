@@ -70,7 +70,7 @@ class HookDtoTest {
 		for (String item : items) {
 			triggers.add(trigger(item));
 		}
-		return new WebHook(id, name, id % 2 == 0, triggers, Action.POST_YAML, "https://user:pass@example.net/hook?token=abc",
+		return new WebHook(id, 0, null, name, id % 2 == 0, triggers, Action.POST_YAML, "https://user:pass@example.net/hook?token=abc",
 			HttpsCaTrustMode.CUSTOM_CA, "-----BEGIN CERTIFICATE-----");
 	}
 
@@ -93,7 +93,7 @@ class HookDtoTest {
 		WebHook none = webHook(3, "No trigger");
 		WebHook nullTriggers = webHook(4, "Null triggers").withTriggers(null);
 		// What the former entity had by default
-		WebHook bare = new WebHook(0, "Bare", true, new HashSet<>(), null, null, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null);
+		WebHook bare = new WebHook(0, 0, null, "Bare", true, new HashSet<>(), null, null, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null);
 		for (WebHook hook : List.of(full, none, nullTriggers, bare)) {
 			this.assertRepresentation(HookMapper.toDto(hook));
 		}
@@ -133,6 +133,10 @@ class HookDtoTest {
 		// The components of the record are the properties of the former entity
 		Map<String, Object> description = new TreeMap<>();
 		for (RecordComponent component : hook.getClass().getRecordComponents()) {
+			if ("version".equals(component.getName()) || "changeDate".equals(component.getName())) {
+				// Not properties of the former entity (set by the database)
+				continue;
+			}
 			Object value = component.getAccessor().invoke(hook);
 			if (value instanceof Set<?> set) {
 				// The triggers (null if the set is null, a null element is described as such)

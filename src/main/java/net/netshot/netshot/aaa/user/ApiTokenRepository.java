@@ -26,6 +26,10 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * The queries on the API tokens. The {@link DSLContext} is always the first parameter: the caller
@@ -34,7 +38,39 @@ import net.netshot.netshot.platform.database.Page;
 public class ApiTokenRepository {
 
 	private static ApiToken toApiToken(Record r) {
-		return new ApiToken(r.get(API_TOKEN.ID), r.get(API_TOKEN.DESCRIPTION), r.get(API_TOKEN.HASHED_TOKEN), r.get(API_TOKEN.LEVEL));
+		return new ApiToken(r.get(API_TOKEN.ID), r.get(API_TOKEN.DESCRIPTION), r.get(API_TOKEN.HASHED_TOKEN), r.get(API_TOKEN.LEVEL),
+			r.get(API_TOKEN.CHANGE_DATE));
+	}
+
+	/** The fields the API token lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(API_TOKEN.ID)
+		.string("description", API_TOKEN.DESCRIPTION, Option.SORTABLE, Option.SEARCHABLE)
+		.integer("level", API_TOKEN.LEVEL, Option.SORTABLE)
+		.build();
+
+	/**
+	 * Lists the API tokens matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the API tokens of the window of the query
+	 */
+	public List<ApiToken> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(API_TOKEN.fields()).from(API_TOKEN)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(ApiTokenRepository::toApiToken);
+	}
+
+	/**
+	 * Counts the API tokens matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of API tokens
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(API_TOKEN, LIST.condition(query));
 	}
 
 	/**
@@ -93,6 +129,7 @@ public class ApiTokenRepository {
 			.set(API_TOKEN.DESCRIPTION, apiToken.description())
 			.set(API_TOKEN.HASHED_TOKEN, apiToken.hashedToken())
 			.set(API_TOKEN.LEVEL, apiToken.level())
+			.set(API_TOKEN.CHANGE_DATE, Versions.now())
 			.returning(API_TOKEN.ID)
 			.fetchOne(API_TOKEN.ID);
 	}

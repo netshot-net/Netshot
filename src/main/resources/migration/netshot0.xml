@@ -2389,4 +2389,99 @@
 			<column name="ipv6_usage"/>
 		</dropColumn>
 	</changeSet>
+	<changeSet author="netshot" id="0.26.0_11">
+		<!-- The dates of the last successful and failed snapshots are kept on the device (they were only known from
+			the task history, which is purged). They are initialized from the history. -->
+		<addColumn tableName="device">
+			<column name="last_snapshot_success_date" type="datetime"/>
+			<column name="last_snapshot_failure_date" type="datetime"/>
+		</addColumn>
+		<sql>UPDATE device SET
+			last_snapshot_success_date = (SELECT max(t.execution_date) FROM task t
+				WHERE t.dtype = 'TakeSnapshotTask' AND t.device = device.id AND t.status = 'SUCCESS'),
+			last_snapshot_failure_date = (SELECT max(t.execution_date) FROM task t
+				WHERE t.dtype = 'TakeSnapshotTask' AND t.device = device.id AND t.status = 'FAILURE')</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_12">
+		<!-- The device lists are sorted by name (the web UI, the API clients paging by name): an index serves a page
+			without sorting all the devices. -->
+		<createIndex indexName="ix_device_name_id" tableName="device">
+			<column name="name"/>
+			<column name="id"/>
+		</createIndex>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_13">
+		<!-- The compliance status of a device (in every device list) looks for a non-conforming result of the device: a
+			partial index finds them without reading all the results. -->
+		<sql>CREATE INDEX ix_check_result_device_nonconforming ON check_result (device) WHERE result = 'NONCONFORMING'</sql>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_14">
+		<!-- Every object the v1 API can change has a version (its ETag, for If-Match) and a change date; the API
+			tokens can't change, they only get the date. -->
+		<addColumn tableName="diagnostic">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="policy">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="rule">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<!-- The version of a software rule was the software version it matches -->
+		<renameColumn tableName="software_rule" oldColumnName="version" newColumnName="software_version" columnDataType="VARCHAR(255)"/>
+		<addColumn tableName="software_rule">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="hardware_rule">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="hook">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="user">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="device_js_script">
+			<column name="version" type="INT" defaultValueNumeric="0">
+				<constraints nullable="false"/>
+			</column>
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+		<addColumn tableName="api_token">
+			<column name="change_date" type="datetime"/>
+		</addColumn>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_15">
+		<!-- The lists put the empty values last in both directions (a descending sort is DESC NULLS LAST): the indexes of
+			the dates sorted most recent first are in that order, so that such a sort still reads them in order. -->
+		<sql>DROP INDEX IF EXISTS "changeDateIndex_config"</sql>
+		<sql>DROP INDEX IF EXISTS "changeDateIndex_task"</sql>
+		<sql>DROP INDEX IF EXISTS "creationDateIndex"</sql>
+		<sql>DROP INDEX IF EXISTS "executionDateIndex"</sql>
+		<sql>CREATE INDEX ix_config_change_date ON config (change_date DESC NULLS LAST)</sql>
+		<sql>CREATE INDEX ix_task_change_date ON task (change_date DESC NULLS LAST)</sql>
+		<sql>CREATE INDEX ix_task_creation_date ON task (creation_date DESC NULLS LAST)</sql>
+		<sql>CREATE INDEX ix_task_execution_date ON task (execution_date DESC NULLS LAST)</sql>
+	</changeSet>
 </databaseChangeLog>

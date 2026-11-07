@@ -1,11 +1,11 @@
-import api from "@/api"
+import { Schemas } from "@/api/client"
+import { useListAll } from "@/hooks/useListAll"
 import { EmptyResult, VirtualizedDataTable } from "@/components"
 import { useDialogConfig } from "@/dialog"
 import { DeviceBadge } from "@/components/entity"
-import { HardwareSupportDevice } from "@/types"
+import { DeviceNetworkClass } from "@/types"
 import { useLocalization } from "@/i18n"
 import { CloseButton, Dialog, Heading, Portal, Skeleton, Stack, Tag, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
@@ -18,7 +18,7 @@ export type HardwareDeviceListButtonProps = {
   group?: number[]
 }
 
-const columnHelper = createColumnHelper<HardwareSupportDevice>()
+const columnHelper = createColumnHelper<Schemas["Device"]>()
 
 export default function HardwareDeviceListDialog(props: HardwareDeviceListButtonProps) {
   const { type, date, domain, group } = props
@@ -28,17 +28,24 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
   const isNever = !date
   const formattedDate = isNever ? t("common.never") : formatDate(date)
 
-  const { data, isPending } = useQuery({
-    queryKey: [QUERIES.DEVICE_HARDWARE_STATUS, type, date, domain, group],
-    async queryFn() {
-      return (await api.report.getAllHardwareSupportDevices(type, date, { domain, group })) ?? []
-    },
-  })
+  const dateField = `${type}Date`
+  const { rows: data, isPending } = useListAll<Schemas["Device"]>(
+    [QUERIES.DEVICE_HARDWARE_STATUS, type, date, domain, group],
+    "/devices",
+    {
+      [dateField]: isNever ? undefined : new Date(date).toISOString(),
+      [`${dateField}__empty`]: isNever ? true : undefined,
+      mgmtDomain: domain,
+      group,
+      fields: "name,networkClass,family",
+      sort: "name",
+    }
+  )
 
   const columns = [
     columnHelper.accessor("name", {
       cell: (info) => (
-        <DeviceBadge networkClass={info.row.original.networkClass}>
+        <DeviceBadge networkClass={info.row.original.networkClass as DeviceNetworkClass | undefined}>
           <Link
             to={`/app/devices/${info.row.original.id}/compliance?open=hardware`}
             onClick={(evt) => {
@@ -110,8 +117,14 @@ export default function HardwareDeviceListDialog(props: HardwareDeviceListButton
                 </Stack>
               ) : (
                 <>
-                  {(data?.length ?? 0) > 0 ? (
-                    <VirtualizedDataTable data={data ?? []} columns={columns} primaryKey="id" flex="1" minH="0" />
+                  {data.length > 0 ? (
+                    <VirtualizedDataTable
+                      data={data}
+                      columns={columns}
+                      primaryKey="id"
+                      flex="1"
+                      minH="0"
+                    />
                   ) : (
                     <EmptyResult title={t(emptyResultTitle)} description={t(description)} />
                   )}

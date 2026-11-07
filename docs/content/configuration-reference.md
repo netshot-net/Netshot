@@ -97,7 +97,11 @@ A running device task (snapshot, diagnostics, script) holds a connection of the 
 | `netshot.http.baseurl` | Base URL Netshot advertises itself as, e.g. behind a reverse proxy. Default: `http://localhost:8443` (SSL) or `http://localhost:8080` (plain). | Restart |
 | `netshot.http.baseport` | TCP port of the embedded server. Default: `8443`. | Restart |
 | `netshot.http.staticpath` | URL path under which the Web UI static assets are served. Default: `/`. | Restart |
-| `netshot.http.apipath` | URL path under which the REST API is served. Default: `/api`. | Restart |
+| `netshot.http.apipath` | URL path under which the REST API is served (the v1 API is served under `<apipath>/v1`). Default: `/api`. | Restart |
+| `netshot.http.api.v0.enabled` | Serves the [legacy REST API](api/rest-api.md) (v0, under `netshot.http.apipath`), for the existing integrations; the Web UI uses the [v1 API](api/rest-api-v1.md). Default: `false`. | Restart |
+| `netshot.http.api.pagesize.default` | Number of items of a page of a v1 API list when the request gives no `limit`. Default: `100` (capped to `netshot.http.api.pagesize.max` when set). | Yes |
+| `netshot.http.api.pagesize.max` | Maximum `limit` of a v1 API list request (a higher one, or `limit=0` which asks for all the items, is refused with a 400 error). Default: none (no maximum). | Yes |
+| `netshot.http.api.export.maxrows` | Maximum number of rows of a list exported as CSV or Excel by the v1 API (an export isn't paginated; a larger one is refused with a 400 error). Default: `100000` (1 to 5000000). | Yes |
 | `netshot.http.trustxforwardedfor` | Trust the `X-Forwarded-For` header to log the real client IP (used in AAA audit) when behind a proxy. Default: `false`. | Yes |
 | `netshot.http.sessioncookiename` | Name of the session cookie. | Restart |
 | `netshot.http.securecookie` | Sets the `Secure` flag on the session cookie, so that browsers only send it over HTTPS. Default: `true` if `netshot.http.ssl.enabled` or `netshot.http.trustxforwardedfor` is enabled (Netshot serving HTTPS, or behind a reverse proxy, expected to serve HTTPS), `false` otherwise. Set to `false` if users access Netshot over plain HTTP through a reverse proxy, otherwise browsers won't keep the session. | Restart |
@@ -208,7 +212,7 @@ Single Sign-On / OIDC authentication — see [Single Sign-On (OIDC)](user-guide/
 | Parameter | Description | Reload |
 |---|---|---|
 | `netshot.aaa.oidc.idp.url` | URL of the OIDC Identity Provider. | Yes |
-| `netshot.aaa.oidc.clientid` | OIDC client ID. | Yes |
+| `netshot.aaa.oidc.clientid` | OIDC client ID. With the client secret, enables the OIDC login (SSO) of the Web UI; without them, the IdP can still be used for the JWT access tokens of the API only (`netshot.aaa.oidc.jwt.enabled`). | Yes |
 | `netshot.aaa.oidc.clientsecret` | OIDC client secret. | Yes |
 | `netshot.aaa.oidc.usernameclaimname` | ID token claim used as the Netshot username. | Yes |
 | `netshot.aaa.oidc.role.defaultlevel` | Default permission level for an OIDC user when no role claim is present. | Yes |
@@ -220,6 +224,8 @@ Single Sign-On / OIDC authentication — see [Single Sign-On (OIDC)](user-guide/
 | `netshot.aaa.oidc.role.adminrole` | Role claim value that maps to the Admin permission level. Default: `admin`. | Yes |
 | `netshot.aaa.oidc.idp.refreshinterval` | How often (ms) Netshot refreshes the IdP's published metadata/keys. Default: `43200000` (12h). | Yes |
 | `netshot.aaa.oidc.idp.retryinterval` | Retry interval (ms) after a failed metadata fetch. Default: `30000`. | Yes |
+| `netshot.aaa.oidc.jwt.enabled` | Accepts the JWT access tokens issued by the OIDC IdP on the REST API (`Authorization: Bearer <token>`), for instance obtained by a script with the client credentials grant: the signature (keys published by the IdP), the issuer, the audience and the expiration are checked, the username and the permission level are read from the same claims as an OIDC login (the username claim falls back to `sub`). Default: `false`. | Yes |
+| `netshot.aaa.oidc.jwt.audience` | Audience (`aud` claim) the JWT access tokens must be issued for. Default: the OIDC client ID; required when no client is configured (JWT only, without SSO), the tokens are refused otherwise. | Yes |
 
 Other:
 

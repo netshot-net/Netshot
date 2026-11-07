@@ -146,6 +146,34 @@ public class HardwareRuleRecord extends UpdatableRecordImpl<HardwareRuleRecord> 
         return (Long) get(8);
     }
 
+    /**
+     * Setter for <code>hardware_rule.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(9, value);
+    }
+
+    /**
+     * Getter for <code>hardware_rule.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(9);
+    }
+
+    /**
+     * Setter for <code>hardware_rule.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(10, value);
+    }
+
+    /**
+     * Getter for <code>hardware_rule.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(10);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -169,7 +197,7 @@ public class HardwareRuleRecord extends UpdatableRecordImpl<HardwareRuleRecord> 
     /**
      * Create a detached, initialised HardwareRuleRecord
      */
-    public HardwareRuleRecord(Long id, String driver, Instant endOfLife, Instant endOfSale, String family, Boolean familyRegExp, String partNumber, Boolean partNumberRegExp, Long targetGroup) {
+    public HardwareRuleRecord(Long id, String driver, Instant endOfLife, Instant endOfSale, String family, Boolean familyRegExp, String partNumber, Boolean partNumberRegExp, Long targetGroup, Integer version, Instant changeDate) {
         super(HardwareRule.HARDWARE_RULE);
 
         setId(id);
@@ -181,6 +209,8 @@ public class HardwareRuleRecord extends UpdatableRecordImpl<HardwareRuleRecord> 
         setPartNumber(partNumber);
         setPartNumberRegExp(partNumberRegExp);
         setTargetGroup(targetGroup);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

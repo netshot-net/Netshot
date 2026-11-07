@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.aaa.user;
 
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.regex.Pattern;
 
 import net.netshot.netshot.platform.crypto.Sha2BasedHash;
@@ -29,8 +31,9 @@ import net.netshot.netshot.platform.crypto.Sha2BasedHash;
  * @param description the description
  * @param hashedToken the hash of the token value
  * @param level the authorization level
+ * @param changeDate the date of the creation of the token (it can't change)
  */
-public record ApiToken(long id, String description, String hashedToken, int level) implements User {
+public record ApiToken(long id, String description, String hashedToken, int level, Instant changeDate) implements User {
 
 	public static String hashToken(String token) {
 		Sha2BasedHash hash = new Sha2BasedHash();
@@ -41,6 +44,24 @@ public record ApiToken(long id, String description, String hashedToken, int leve
 	}
 
 	protected static final Pattern TOKEN_PATTERN = Pattern.compile("^[A-Za-z0-9]{32}$");
+
+	/** The characters of a generated token. */
+	private static final String TOKEN_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+	private static final SecureRandom RANDOM = new SecureRandom();
+
+	/**
+	 * Generates a random token value (32 alphanumeric characters, from a cryptographically strong generator).
+	 *
+	 * @return the clear token value
+	 */
+	public static String generateToken() {
+		StringBuilder token = new StringBuilder(32);
+		for (int i = 0; i < 32; i++) {
+			token.append(TOKEN_CHARACTERS.charAt(RANDOM.nextInt(TOKEN_CHARACTERS.length())));
+		}
+		return token.toString();
+	}
 
 	/**
 	 * Checks whether the given text is a valid token.
@@ -60,7 +81,7 @@ public record ApiToken(long id, String description, String hashedToken, int leve
 	 * @return the API token
 	 */
 	public static ApiToken of(String description, String token, int level) {
-		return new ApiToken(0, description, hashToken(token), level);
+		return new ApiToken(0, description, hashToken(token), level, null);
 	}
 
 	/**
@@ -70,7 +91,7 @@ public record ApiToken(long id, String description, String hashedToken, int leve
 	 * @return the API token
 	 */
 	public ApiToken withId(long newId) {
-		return new ApiToken(newId, this.description, this.hashedToken, this.level);
+		return new ApiToken(newId, this.description, this.hashedToken, this.level, this.changeDate);
 	}
 
 	/*(non-Javadoc)

@@ -117,29 +117,29 @@ public class FinderTest {
 
 		TestWiring.get().transactions().run(dsl -> {
 			// Create test diagnostics BEFORE devices
-			Diagnostic textDiagnostic = new SimpleDiagnostic(0,
+			Diagnostic textDiagnostic = new SimpleDiagnostic(0, 0, null,
 				"System Status", true, null, AttributeType.TEXT,
 				"CiscoIOS12", "enable", "show version", null, null);
 			textDiagnostic = textDiagnostic.withId(new DiagnosticRepository().add(dsl, textDiagnostic));
 			testDiagnostics.put(AttributeType.TEXT, textDiagnostic);
 
-			Diagnostic numericDiagnostic = new SimpleDiagnostic(0,
+			Diagnostic numericDiagnostic = new SimpleDiagnostic(0, 0, null,
 				"CPU Usage", true, null, AttributeType.NUMERIC,
 				"CiscoIOS12", "enable", "show proc cpu", null, null);
 			numericDiagnostic = numericDiagnostic.withId(new DiagnosticRepository().add(dsl, numericDiagnostic));
 			testDiagnostics.put(AttributeType.NUMERIC, numericDiagnostic);
 
-			Diagnostic binaryDiagnostic = new SimpleDiagnostic(0,
+			Diagnostic binaryDiagnostic = new SimpleDiagnostic(0, 0, null,
 				"Is Reachable", true, null, AttributeType.BINARY,
 				"CiscoIOS12", "enable", "ping 8.8.8.8", null, null);
 			binaryDiagnostic = binaryDiagnostic.withId(new DiagnosticRepository().add(dsl, binaryDiagnostic));
 			testDiagnostics.put(AttributeType.BINARY, binaryDiagnostic);
 
-			Policy securityPolicy = new Policy(0, "Security Policy", null);
+			Policy securityPolicy = new Policy(0, 0, null, "Security Policy", null);
 			securityPolicy = securityPolicy.withId(new PolicyRepository().add(dsl, securityPolicy));
 			testPolicies.add(securityPolicy);
 
-			Policy configPolicy = new Policy(0, "Config Policy", null);
+			Policy configPolicy = new Policy(0, 0, null, "Config Policy", null);
 			configPolicy = configPolicy.withId(new PolicyRepository().add(dsl, configPolicy));
 			testPolicies.add(configPolicy);
 

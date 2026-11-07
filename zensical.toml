@@ -36,6 +36,7 @@ nav = [
   { "Configuration reference" = "configuration-reference.md" },
   { "API and integrations" = [
     { "REST API" = "api/rest-api.md" },
+    { "REST API v1" = "api/rest-api-v1.md" },
     { "Webhooks" = "api/webhooks.md" },
   ] },
   { "Extending Netshot" = [

@@ -102,14 +102,14 @@ class DiagnosticDtoTest {
 	void simpleDiagnostic() throws Exception {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
-		SimpleDiagnostic diagnostic = new SimpleDiagnostic(5, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12",
+		SimpleDiagnostic diagnostic = new SimpleDiagnostic(5, 0, null, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12",
 			"enable", "show version", "(.*)", "$1");
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, dynamic)));
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, fixed)));
-		diagnostic = new SimpleDiagnostic(5, "Simple", true, null, AttributeType.LONGTEXT, "NoSuchDriver",
+		diagnostic = new SimpleDiagnostic(5, 0, null, "Simple", true, null, AttributeType.LONGTEXT, "NoSuchDriver",
 			"enable", "show version", null, "$1");
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null)));
-		diagnostic = new SimpleDiagnostic(5, "Simple", true, null, AttributeType.LONGTEXT, "",
+		diagnostic = new SimpleDiagnostic(5, 0, null, "Simple", true, null, AttributeType.LONGTEXT, "",
 			"enable", "show version", null, "$1");
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null)));
 		String json = new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), view(diagnostic, null))));
@@ -123,13 +123,13 @@ class DiagnosticDtoTest {
 	void scriptDiagnostics() throws Exception {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
-		JavaScriptDiagnostic js = new JavaScriptDiagnostic(6, "JS", false, fixed.id(), AttributeType.NUMERIC, "function diagnose() {\n}");
+		JavaScriptDiagnostic js = new JavaScriptDiagnostic(6, 0, null, "JS", false, fixed.id(), AttributeType.NUMERIC, "function diagnose() {\n}");
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, fixed)));
-		js = new JavaScriptDiagnostic(6, "JS", false, null, AttributeType.NUMERIC, null);
+		js = new JavaScriptDiagnostic(6, 0, null, "JS", false, null, AttributeType.NUMERIC, null);
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, null)));
-		PythonDiagnostic python = new PythonDiagnostic(7, "Python", true, dynamic.id(), AttributeType.BINARY, "def diagnose():\n  pass");
+		PythonDiagnostic python = new PythonDiagnostic(7, 0, null, "Python", true, dynamic.id(), AttributeType.BINARY, "def diagnose():\n  pass");
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, dynamic)));
-		python = new PythonDiagnostic(7, "Python", true, null, AttributeType.BINARY, "def diagnose():\n  pass");
+		python = new PythonDiagnostic(7, 0, null, "Python", true, null, AttributeType.BINARY, "def diagnose():\n  pass");
 		this.assertRepresentation(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, null)));
 		Assertions.assertTrue(new String(json(DiagnosticMapper.toDto(TestDrivers.registry(), view(python, null)))).contains("\"type\":\"PythonDiagnostic\""));
 		Assertions.assertTrue(new String(xml(DiagnosticMapper.toDto(TestDrivers.registry(), view(js, null)))).startsWith("<JavaScriptDiagnostic type=\"JavaScriptDiagnostic\">"));
@@ -140,9 +140,9 @@ class DiagnosticDtoTest {
 	void diagnosticList() throws Exception {
 		DynamicDeviceGroup dynamic = dynamicGroup();
 		StaticDeviceGroup fixed = staticGroup();
-		SimpleDiagnostic simple = new SimpleDiagnostic(1, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12", "enable", "show", null, null);
-		PythonDiagnostic python = new PythonDiagnostic(2, "Python", true, null, AttributeType.BINARY, "x");
-		JavaScriptDiagnostic js = new JavaScriptDiagnostic(3, "JS", true, fixed.id(), AttributeType.TEXT, "y");
+		SimpleDiagnostic simple = new SimpleDiagnostic(1, 0, null, "Simple", true, dynamic.id(), AttributeType.TEXT, "CiscoIOS12", "enable", "show", null, null);
+		PythonDiagnostic python = new PythonDiagnostic(2, 0, null, "Python", true, null, AttributeType.BINARY, "x");
+		JavaScriptDiagnostic js = new JavaScriptDiagnostic(3, 0, null, "JS", true, fixed.id(), AttributeType.TEXT, "y");
 		List<DiagnosticView> entities = new ArrayList<>(List.of(view(simple, dynamic), view(python, null), view(js, fixed)));
 		this.assertRepresentation(new ArrayList<>(DiagnosticMapper.toDtos(TestDrivers.registry(), entities)));
 	}
@@ -155,7 +155,7 @@ class DiagnosticDtoTest {
 	@Test
 	@DisplayName("Each type of diagnostic result has the same JSON and XML representation as the entity")
 	void results() throws Exception {
-		PythonDiagnostic diagnostic = new PythonDiagnostic(9, "Diag", true, null, AttributeType.TEXT, "x");
+		PythonDiagnostic diagnostic = new PythonDiagnostic(9, 0, null, "Diag", true, null, AttributeType.TEXT, "x");
 		DiagnosticTextResult text = dated(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), "some text"));
 		DiagnosticTextResult noText = dated(DiagnosticTextResult.of(diagnostic.id(), diagnostic.name(), null));
 		DiagnosticLongTextResult longText = dated(DiagnosticLongTextResult.of(diagnostic.id(), diagnostic.name(), "long\ntext"));
@@ -177,7 +177,7 @@ class DiagnosticDtoTest {
 	}
 
 	private static DeviceJsScript script(Map<String, UserInputDefinition> definitions) {
-		return new DeviceJsScript(3, "Script", "Folder", "function run() {}", "CiscoIOS12", "tester", definitions);
+		return new DeviceJsScript(3, 0, null, "Script", "Folder", "function run() {}", "CiscoIOS12", "tester", definitions);
 	}
 
 	@Test
@@ -197,7 +197,7 @@ class DiagnosticDtoTest {
 		map.put("flag", flag);
 		script = script(map);
 		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
-		script = new DeviceJsScript(script.id(), script.name(), null, null, "NoSuchDriver", script.author(), script.userInputDefinitions());
+		script = new DeviceJsScript(script.id(), script.version(), script.changeDate(), script.name(), null, null, "NoSuchDriver", script.author(), script.userInputDefinitions());
 		this.assertRepresentation(ScriptMapper.toDto(TestDrivers.registry(), script));
 		DeviceJsScript other = script();
 		List<DeviceJsScript> list = new ArrayList<>(List.of(script, other));

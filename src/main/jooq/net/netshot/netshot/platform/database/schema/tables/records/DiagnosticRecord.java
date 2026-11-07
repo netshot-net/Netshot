@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.Diagnostic;
 
 import org.jooq.Record1;
@@ -186,6 +188,34 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
         return (String) get(11);
     }
 
+    /**
+     * Setter for <code>diagnostic.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(12, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(12);
+    }
+
+    /**
+     * Setter for <code>diagnostic.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(13, value);
+    }
+
+    /**
+     * Getter for <code>diagnostic.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(13);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -209,7 +239,7 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
     /**
      * Create a detached, initialised DiagnosticRecord
      */
-    public DiagnosticRecord(Long id, Boolean enabled, String name, String resultType, Long targetGroup, String type, String script, String cliMode, String command, String deviceDriver, String modifierPattern, String modifierReplacement) {
+    public DiagnosticRecord(Long id, Boolean enabled, String name, String resultType, Long targetGroup, String type, String script, String cliMode, String command, String deviceDriver, String modifierPattern, String modifierReplacement, Integer version, Instant changeDate) {
         super(Diagnostic.DIAGNOSTIC);
 
         setId(id);
@@ -224,6 +254,8 @@ public class DiagnosticRecord extends UpdatableRecordImpl<DiagnosticRecord> {
         setDeviceDriver(deviceDriver);
         setModifierPattern(modifierPattern);
         setModifierReplacement(modifierReplacement);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

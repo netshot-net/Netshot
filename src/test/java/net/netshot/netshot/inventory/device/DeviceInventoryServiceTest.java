@@ -43,6 +43,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -69,7 +70,7 @@ class DeviceInventoryServiceTest {
 		DeviceRepository repository = new DeviceRepository();
 		this.deviceService = new DeviceService(this.transactions, repository, TestDrivers.registry(), new DynamicGroups(TestWiring.get().transactions(), TestDrivers.registry()));
 		this.catalogService = new DeviceCatalogService(this.transactions, repository);
-		this.searchService = new SearchService(this.transactions, new SearchRepository(), TestDrivers.registry());
+		this.searchService = new SearchService(this.transactions, new SearchRepository(), new DeviceRepository(), TestDrivers.registry());
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
 		Set<Network4Address> ip4 = new LinkedHashSet<>();
 		Set<Network6Address> ip6 = new LinkedHashSet<>();
@@ -82,6 +83,8 @@ class DeviceInventoryServiceTest {
 		}
 		Device routerDevice = TestDevices.add(device("router-a", "10.50.0.1", "Cisco 2900", "16.1", domain)
 			.tags(Device.normalizeTags(List.of("core", "lab")))
+			.virtualDevices(Set.of("vdc1"))
+			.vrfInstances(Set.of("VRF1"))
 			.modules(List.of(module("chassis", "PN-1", "SN-1"), module("slot 1", "PN-2", "SN-2"),
 				module("slot 2", "PN-3", "SN-3").toBuilder().removed(true).build()))
 			.networkInterfaces(List.of(
@@ -148,6 +151,39 @@ class DeviceInventoryServiceTest {
 	// ------------------------------------------------------------------
 	// search
 	// ------------------------------------------------------------------
+
+	@Test
+	@DisplayName("listDevices() gives the details of the devices but their components, which a single device read has")
+	void listWithoutComponents() {
+		ListQuery query = ListQuery.byIds(List.of(this.router));
+		Device listed = this.searchService.listDevices(query, null).items().get(0);
+		Assertions.assertEquals(Set.of("core", "lab"), listed.tags());
+		Assertions.assertEquals(List.of(), listed.modules());
+		Assertions.assertEquals(List.of(), listed.networkInterfaces());
+		Device read = this.deviceService.get(this.router);
+		Assertions.assertEquals(2, read.modules().size());
+		Assertions.assertEquals(2, read.networkInterfaces().size());
+	}
+
+	@Test
+	@DisplayName("listDevices() loads only the collections asked for, the others are empty")
+	void listParts() {
+		ListQuery query = ListQuery.byIds(List.of(this.router));
+		Device all = this.searchService.listDevices(query, null, Device.Part.ALL).items().get(0);
+		Assertions.assertEquals(Set.of("core", "lab"), all.tags());
+		Assertions.assertEquals(Set.of("vdc1"), all.virtualDevices());
+		Assertions.assertEquals(Set.of("VRF1"), all.vrfInstances());
+		Device none = this.searchService.listDevices(query, null, Set.of()).items().get(0);
+		Assertions.assertEquals("router-a", none.name());
+		Assertions.assertEquals("Lab", none.mgmtDomain().name());
+		Assertions.assertEquals(Set.of(), none.tags());
+		Assertions.assertEquals(Set.of(), none.virtualDevices());
+		Assertions.assertEquals(Set.of(), none.vrfInstances());
+		Device vrfs = this.searchService.listDevices(query, null, Set.of(Device.Part.VRF_INSTANCES)).items().get(0);
+		Assertions.assertEquals(Set.of(), vrfs.tags());
+		Assertions.assertEquals(Set.of(), vrfs.virtualDevices());
+		Assertions.assertEquals(Set.of("VRF1"), vrfs.vrfInstances());
+	}
 
 	@Test
 	@DisplayName("searchDevices() returns the matching devices and the normalized query")

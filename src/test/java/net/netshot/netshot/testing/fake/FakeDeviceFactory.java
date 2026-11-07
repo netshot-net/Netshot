@@ -51,6 +51,7 @@ import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * Builds fake devices (records, not stored: see {@code TestDevices} to store them).
@@ -179,7 +180,7 @@ public final class FakeDeviceFactory {
 		catch (UnknownHostException e) {
 			// Ignore
 		}
-		DeviceCredentialSet cs = DeviceSshAccount.builder().username("user").password("pass").superPassword("pass")
+		DeviceCredentialSet cs = DeviceSshAccount.builder().username(Secret.local("user")).password(Secret.local("pass")).superPassword(Secret.local("pass"))
 			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
 		Instant now = Instant.now();
 		return Device.create("CiscoIOS12", mgmtIp.getIp(), domain, "test").toBuilder()
@@ -225,7 +226,7 @@ public final class FakeDeviceFactory {
 	 * @return the diagnostic
 	 */
 	public static Diagnostic getReloadReasonIosSimpleDiagnostic() {
-		Diagnostic diagnostic = new SimpleDiagnostic(0, "Reload reason", true, null, AttributeType.TEXT, "CiscoIOS12",
+		Diagnostic diagnostic = new SimpleDiagnostic(0, 0, null, "Reload reason", true, null, AttributeType.TEXT, "CiscoIOS12",
 			"enable",
 			"show version | include reason",
 			"(?s).*Last reload reason: (.+?)[\r\n]+",

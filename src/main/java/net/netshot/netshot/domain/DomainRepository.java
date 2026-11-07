@@ -28,8 +28,12 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * The queries on domains. The {@link DSLContext} is always the first parameter: the caller
@@ -65,6 +69,39 @@ public class DomainRepository {
 	 */
 	private static Instant now() {
 		return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+
+	/** The fields the domain lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DOMAIN.ID)
+		.string("name", DOMAIN.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("description", DOMAIN.DESCRIPTION, Option.SEARCHABLE)
+		.inet("server4Address", DOMAIN.IPV4_ADDRESS)
+		.date("changeDate", DOMAIN.CHANGE_DATE, Option.SORTABLE)
+		.build();
+
+	/**
+	 * Lists the domains matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the domains of the window of the query
+	 */
+	public List<Domain> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DOMAIN.fields()).from(DOMAIN)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(DomainRepository::toDomain);
+	}
+
+	/**
+	 * Counts the domains matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of domains
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DOMAIN, LIST.condition(query));
 	}
 
 	/**
@@ -109,6 +146,17 @@ public class DomainRepository {
 			.returning(DOMAIN.ID)
 			.fetchOne(DOMAIN.ID);
 		return this.find(dsl, id);
+	}
+
+	/**
+	 * Locks the row of a domain until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the domain ID
+	 * @return the version of the domain, or null if there is no such domain
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DOMAIN, DOMAIN.ID, DOMAIN.VERSION, id);
 	}
 
 	/**

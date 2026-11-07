@@ -6,7 +6,7 @@ import { TaskDialog } from "@/features/task/components"
 import { MUTATIONS } from "@/constants"
 import { useCustomDialog, useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Device, LightDevice, TaskType } from "@/types"
+import { Device } from "@/types"
 import { Box, Flex, Stack, Text } from "@chakra-ui/react"
 import { useMutation } from "@tanstack/react-query"
 import { useRef } from "react"
@@ -16,7 +16,7 @@ import React from "react"
 import Slot from "@/components/Slot"
 import DeviceNamesPreview from "./DeviceNamesPreview"
 
-export type DeviceDiagnosticTriggerProps = { devices: LightDevice[] | Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type DeviceDiagnosticTriggerProps = { devices: Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 type Form = {
   checkCompliance: boolean
@@ -37,11 +37,12 @@ export default function DeviceDiagnosticTrigger({ devices, children, ...rest }: 
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.TASK_CREATE,
-    mutationFn: api.task.create,
+    mutationFn: async (values: { ids: number[] } & Form) =>
+      api.device.runDiagnostics(values.ids, { dontCheckCompliance: !values.checkCompliance }, values.schedule),
     onError(err: NetshotError) { toast.error(err) },
   })
 
-  const orderedDevicesRef = useRef<(LightDevice | Device)[]>(devices)
+  const orderedDevicesRef = useRef<Device[]>(devices)
 
   const open = () => {
     orderedDevicesRef.current = devices
@@ -85,30 +86,13 @@ export default function DeviceDiagnosticTrigger({ devices, children, ...rest }: 
       form,
       size: "lg",
       async onSubmit(data: Form) {
-        const { schedule } = data
         const orderedDevices = orderedDevicesRef.current
 
-        const task = await mutation.mutateAsync(
-          devices.length > 1
-            ? {
-                type: TaskType.RunGroupDiagnostic,
-                deviceList: orderedDevices.map((device) => device.id),
-                dontCheckCompliance: !data.checkCompliance,
-                ...schedule,
-              }
-            : {
-                type: TaskType.RunDiagnostic,
-                device: devices?.[0]?.id,
-                debugEnabled: false,
-                dontRunDiagnostics: true,
-                dontCheckCompliance: !data.checkCompliance,
-                ...schedule,
-              }
-        )
+        const task = await mutation.mutateAsync({ ...data, ids: orderedDevices.map((device) => device.id) })
 
         await dialogRef.close()
 
-        if (task) {
+        if (task?.id) {
           taskDialog.open(<TaskDialog id={task.id} />)
         }
       },

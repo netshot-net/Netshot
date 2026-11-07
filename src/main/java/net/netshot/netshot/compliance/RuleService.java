@@ -23,7 +23,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
+import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +41,17 @@ import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.query.Criterion;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 
 /**
  * The compliance rule use cases: list, read, add, edit, delete and test the rules, and read their
@@ -181,21 +191,21 @@ public class RuleService {
 				else if (JAVASCRIPT_RULE.equals(definition.type())) {
 					JavaScriptRule jsRule = JavaScriptRule.of(name, policy.id());
 					if (definition.script() != null) {
-						jsRule = new JavaScriptRule(0, name, false, policy.id(), definition.script().trim());
+						jsRule = new JavaScriptRule(0, 0, null, name, false, policy.id(), definition.script().trim());
 					}
 					newRule = jsRule;
 				}
 				else if (PYTHON_RULE.equals(definition.type())) {
 					PythonRule pyRule = PythonRule.of(name, policy.id());
 					if (definition.script() != null) {
-						pyRule = new PythonRule(0, name, false, policy.id(), definition.script().trim());
+						pyRule = new PythonRule(0, 0, null, name, false, policy.id(), definition.script().trim());
 					}
 					newRule = pyRule;
 				}
 				else {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type.");
 				}
-				return newRule.withId(this.repository.add(dsl, newRule));
+				return this.repository.find(dsl, this.repository.add(dsl, newRule));
 			});
 		}
 		catch (DataAccessException e) {
@@ -227,6 +237,7 @@ public class RuleService {
 		Rule rule;
 		try {
 			rule = this.transactions.write(dsl -> {
+				this.repository.lock(dsl, id);
 				Rule existing = this.repository.find(dsl, id);
 				if (existing == null) {
 					log.error("Unable to find the rule {} to be edited.", id);
@@ -252,16 +263,16 @@ public class RuleService {
 				}
 				final String newName = name;
 				Rule edited = switch (existing) {
-					case JavaScriptRule jsRule -> new JavaScriptRule(id, newName, definition.enabled(), jsRule.policyId(),
+					case JavaScriptRule jsRule -> new JavaScriptRule(id, 0, null, newName, definition.enabled(), jsRule.policyId(),
 						definition.script() != null ? definition.script().trim() : jsRule.script());
-					case PythonRule pyRule -> new PythonRule(id, newName, definition.enabled(), pyRule.policyId(),
+					case PythonRule pyRule -> new PythonRule(id, 0, null, newName, definition.enabled(), pyRule.policyId(),
 						definition.script() != null ? definition.script().trim() : pyRule.script());
 					case TextRule textRule -> applyTextRule(textRule.toBuilder().name(newName).enabled(definition.enabled()),
 						definition).build();
 				};
 				this.repository.save(dsl, edited);
 				this.repository.replaceExemptions(dsl, id, exemptions);
-				return edited;
+				return this.repository.find(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -283,13 +294,27 @@ public class RuleService {
 	 * @throws NetshotException if the rule can't be deleted
 	 */
 	public boolean delete(long id) {
+		return this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a rule, if it is at a given version.
+	 *
+	 * @param id the rule ID
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @return true if the rule has been deleted, false if there was no such rule
+	 * @throws NetshotException if the rule isn't at the expected version, or can't be deleted
+	 */
+	public boolean delete(long id, Long expectedVersion) {
 		try {
 			boolean deleted = this.transactions.write(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such rule of ID {}", id);
 					return false;
 				}
-				return true;
+				Versions.check("rule", version, expectedVersion);
+				return this.repository.remove(dsl, id);
 			});
 			if (deleted) {
 				AAA_LOG.info("Rule of ID {} has been deleted.", id);
@@ -347,34 +372,16 @@ public class RuleService {
 				rule = txRule.enabled(true).build();
 			}
 			else if (JAVASCRIPT_RULE.equals(definition.type())) {
-				rule = new JavaScriptRule(0, "TEST", true, 0, definition.script());
+				rule = new JavaScriptRule(0, 0, null, "TEST", true, 0, definition.script());
 			}
 			else if (PYTHON_RULE.equals(definition.type())) {
-				rule = new PythonRule(0, "TEST", true, 0, definition.script());
+				rule = new PythonRule(0, 0, null, "TEST", true, 0, definition.script());
 			}
 			else {
 				log.warn("Invalid rule type {}.", definition.type());
 				throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE, "Invalid rule type");
 			}
-			StringBuilder taskLog = new StringBuilder();
-			TaskContext taskContext = new TaskContext() {
-				@Override
-				public void log(Level level, String message, Object... params) {
-					taskLog.append("[%s] ".formatted(level.toString()));
-					taskLog.append(
-						MessageFormatter.arrayFormat(message, params).getMessage());
-					taskLog.append("\n");
-				}
-
-				@Override
-				public String getIdentifier() {
-					return "RuleTest";
-				}
-			};
-
-			// Dry run: what the rule changes on the device (tags...) is not stored
-			CheckResult check = this.evaluators.evaluate(rule, new DeviceDraft(device), false, taskContext);
-			return new RuleTestResult(check.result(), taskLog.toString(), check.comment());
+			return this.evaluate(device, rule);
 		}
 		catch (NetshotException e) {
 			throw e;
@@ -382,6 +389,334 @@ public class RuleService {
 		catch (Exception e) {
 			log.error("Unable to test the rule on the device {}.", deviceId, e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to test the rule on the device.");
+		}
+	}
+
+	/**
+	 * Tests a rule (not stored) against a device, in dry run mode: what the rule changes on the device (tags...) is
+	 * not stored. If the device has no configuration the result is "not applicable".
+	 *
+	 * @param deviceId the ID of the device to check
+	 * @param rule the rule to test (it must be enabled)
+	 * @return the result of the check, with what it logged
+	 * @throws NetshotException if the device doesn't exist, or can't be read or checked
+	 */
+	public RuleTestResult test(long deviceId, Rule rule) {
+		try {
+			Device device = this.transactions.read(dsl -> this.deviceRepository.find(dsl, deviceId));
+			if (device == null) {
+				throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "Unable to find the device");
+			}
+			if (device.lastConfigId() == null) {
+				return new RuleTestResult(CheckResult.ResultOption.NOTAPPLICABLE, null, "The device has no configuration");
+			}
+			return this.evaluate(device, rule);
+		}
+		catch (NetshotException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Unable to test the rule on the device {}.", deviceId, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to test the rule on the device.");
+		}
+	}
+
+	private RuleTestResult evaluate(Device device, Rule rule) {
+		StringBuilder taskLog = new StringBuilder();
+		TaskContext taskContext = new TaskContext() {
+			@Override
+			public void log(Level level, String message, Object... params) {
+				taskLog.append("[%s] ".formatted(level.toString()));
+				taskLog.append(
+					MessageFormatter.arrayFormat(message, params).getMessage());
+				taskLog.append("\n");
+			}
+
+			@Override
+			public String getIdentifier() {
+				return "RuleTest";
+			}
+		};
+
+		// Dry run: what the rule changes on the device (tags...) is not stored
+		CheckResult check = this.evaluators.evaluate(rule, new DeviceDraft(device), false, taskContext);
+		return new RuleTestResult(check.result(), taskLog.toString(), check.comment());
+	}
+
+	/**
+	 * Gets what the rule lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema listSchema() {
+		return RuleRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the rules matching a query.
+	 *
+	 * @param query the query
+	 * @return the rules of the window, with the total number of matching rules if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the rules can't be read
+	 */
+	public ListResult<Rule> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the rules.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the rules");
+		}
+	}
+
+	/**
+	 * Gets a rule.
+	 *
+	 * @param id the rule ID
+	 * @return the rule
+	 * @throws NetshotException if the rule doesn't exist, or can't be read
+	 */
+	public Rule get(long id) {
+		try {
+			return this.transactions.read(dsl -> this.require(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the rule.", e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the rule");
+		}
+	}
+
+	private Rule require(DSLContext dsl, long id) {
+		Rule rule = this.repository.find(dsl, id);
+		if (rule == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the rule");
+		}
+		return rule;
+	}
+
+	/**
+	 * Adds a rule (enabled or not as given).
+	 *
+	 * @param newRule the rule (its ID is ignored)
+	 * @return the new rule
+	 * @throws NetshotException if the name is blank or already used in the policy, the policy doesn't
+	 *         exist, or the rule can't be stored
+	 */
+	public Rule add(Rule newRule) {
+		if (newRule.name() == null || newRule.name().isBlank()) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+		}
+		Rule rule;
+		try {
+			rule = this.transactions.write(dsl -> {
+				if (this.policyRepository.find(dsl, newRule.policyId()) == null) {
+					throw NetshotException.invalidParameter("policy", "The policy doesn't exist.");
+				}
+				return this.require(dsl, this.repository.add(dsl, newRule));
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Error while saving the new rule.", e);
+			if (DatabaseErrors.isUniqueViolation(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_RULE, "A rule with this name already exists.");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the rule to the database");
+		}
+		AAA_LOG.info("{} has been created.", rule);
+		return rule;
+	}
+
+	/**
+	 * Replaces the definition of a rule, if it is at a given version (its policy and its kind can't change; the
+	 * exemptions are unchanged). The new definition is computed from the rule as it is, which can't change meanwhile
+	 * (to apply a patch).
+	 *
+	 * @param id the rule ID
+	 * @param change gives the new definition of the rule from the current one (its ID is ignored; its policy, if not 0,
+	 *        must be the current one)
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @return the rule
+	 * @throws NetshotException if the rule doesn't exist, isn't at the expected version, is of another kind or policy, the
+	 *         name is blank or already used in the policy, or the rule can't be stored
+	 */
+	public Rule replace(long id, Function<Rule, Rule> change, Long expectedVersion) {
+		Rule rule;
+		try {
+			rule = this.transactions.write(dsl -> {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the rule");
+				}
+				Versions.check("rule", version, expectedVersion);
+				Rule existing = this.require(dsl, id);
+				Rule newRule = change.apply(existing);
+				if (newRule.name() == null || newRule.name().isBlank()) {
+					throw new NetshotException(ErrorCode.NETSHOT_INVALID_RULE_NAME, "Invalid rule name.");
+				}
+				if (existing.getClass() != newRule.getClass()) {
+					throw NetshotException.invalidParameter("type", "The type of a rule can't change.");
+				}
+				if (newRule.policyId() != 0 && newRule.policyId() != existing.policyId()) {
+					throw NetshotException.invalidParameter("policy", "The policy of a rule can't change.");
+				}
+				this.repository.save(dsl, newRule.withId(id));
+				return this.require(dsl, id);
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Error while saving the rule.", e);
+			if (DatabaseErrors.isUniqueViolation(e)) {
+				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_RULE, "A rule with this name already exists.");
+			}
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the rule.");
+		}
+		AAA_LOG.info("{} has been edited.", rule);
+		return rule;
+	}
+
+	/**
+	 * Lists the exemptions of a rule.
+	 *
+	 * @param ruleId the rule ID
+	 * @param query the query (on the exemptions)
+	 * @return the exemptions of the window, with the total number if the query asks for it
+	 * @throws NetshotException if the rule doesn't exist, a filter is invalid, or the exemptions can't be read
+	 */
+	public ListResult<Exemption> listExemptions(long ruleId, ListQuery query) {
+		ListQuery ofRule = query.and(new Criterion("rule", Lookup.EXACT, List.of(ruleId)));
+		try {
+			return this.transactions.read(dsl -> {
+				this.require(dsl, ruleId);
+				return new ListResult<>(this.repository.findExemptions(dsl, ofRule),
+					query.count() ? this.repository.countExemptions(dsl, ofRule) : null);
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the exemptions.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the exemptions");
+		}
+	}
+
+	/**
+	 * Gets what the lists of exemptions can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema exemptionSchema() {
+		return RuleRepository.EXEMPTION_LIST.schema();
+	}
+
+	/**
+	 * Replaces all the exemptions of a rule, if it is at a given version (the version of the rule is incremented).
+	 *
+	 * @param ruleId the rule ID
+	 * @param expirations the expiration dates, by device ID
+	 * @param expectedVersion the version the rule must be at, or null for any
+	 * @throws NetshotException if the rule or a device doesn't exist, the rule isn't at the expected version, or the
+	 *         exemptions can't be stored
+	 */
+	public void replaceExemptions(long ruleId, Map<Long, Instant> expirations, Long expectedVersion) {
+		try {
+			this.transactions.run(dsl -> {
+				Integer version = this.repository.lock(dsl, ruleId);
+				if (version == null) {
+					throw new NetshotException(ErrorCode.NETSHOT_RULE_NOT_FOUND, "Unable to find the rule");
+				}
+				Versions.check("rule", version, expectedVersion);
+				for (Long deviceId : expirations.keySet()) {
+					if (!this.repository.deviceExists(dsl, deviceId)) {
+						throw NetshotException.invalidParameter("exemptions", "Unknown device of ID %d.".formatted(deviceId));
+					}
+				}
+				this.repository.replaceExemptions(dsl, ruleId, expirations);
+				this.repository.touch(dsl, ruleId);
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to save the exemptions of the rule {}.", ruleId, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the exemptions.");
+		}
+		AAA_LOG.info("The exemptions of the rule of ID {} have been replaced.", ruleId);
+	}
+
+	/**
+	 * Gets what the lists of check results of a device can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema resultSchema() {
+		return RuleRepository.RESULT_LIST.schema();
+	}
+
+	/**
+	 * Lists the compliance state of a device matching a query: the rules of the policies applying to it, with
+	 * their last result.
+	 *
+	 * @param deviceId the device ID
+	 * @param query the query
+	 * @return the results of the window, with the total number if the query asks for it
+	 * @throws NetshotException if the device doesn't exist, a filter is invalid, or the results can't be read
+	 */
+	public ListResult<DeviceCheckResult> listDeviceResults(long deviceId, ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> {
+				if (!this.repository.deviceExists(dsl, deviceId)) {
+					throw new NetshotException(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, "Unable to find the device");
+				}
+				return new ListResult<>(this.repository.findDeviceResults(dsl, deviceId, query),
+					query.count() ? this.repository.countDeviceResults(dsl, deviceId, query) : null);
+			});
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the compliance results.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the compliance results");
+		}
+	}
+
+	/**
+	 * Gets what the lists of check results across devices can be filtered, sorted and counted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema allResultsSchema() {
+		return RuleRepository.ALL_RESULT_LIST.schema();
+	}
+
+	/**
+	 * Lists the check results across all the devices matching a query (one per device and rule that has been checked).
+	 *
+	 * @param query the query
+	 * @return the results of the window, with the total number if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the results can't be read
+	 */
+	public ListResult<DeviceCheckResult> listResults(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findResults(dsl, query),
+				query.count() ? this.repository.countResults(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the compliance results.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the compliance results");
+		}
+	}
+
+	/**
+	 * Counts the check results across all the devices matching a query, by field values and/or time buckets.
+	 *
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @return the rows, with the number of matching results
+	 * @throws NetshotException if a filter is invalid, or the results can't be read
+	 */
+	public ListResult<StatsRow> resultStats(ListQuery query, StatsQuery stats) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.resultStats(dsl, query, stats),
+				this.repository.countResults(dsl, query)));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to count the compliance results.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to count the compliance results");
 		}
 	}
 

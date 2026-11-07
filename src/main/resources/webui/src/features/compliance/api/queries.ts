@@ -1,24 +1,19 @@
-import api, {
-  CreateOrUpdateRule,
-  TestRuleScriptOnDevicePayload,
-  TestRuleTextOnDevicePayload,
-} from "@/api"
+import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
+import type { PolicyWithRules } from "@/api/policy"
+import type { Rule, RuleRequest } from "@/api/rule"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useToast } from "@/hooks"
-import { Policy, Rule } from "@/types"
 import { getUniqueBy, search, sortAlphabetical } from "@/utils"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { QUERIES as FEATURE_QUERIES } from "../constants"
 
-// Mirrors the policy/rule name matching that `getAllWithRules` used to do
-// server-request-side: a policy whose own name matches keeps all its rules;
-// otherwise it's kept (with only the matching rules) if any rule matches.
-function filterPoliciesByQuery(policies: Policy[], query: string): Policy[] {
+// A policy whose own name matches keeps all its rules; otherwise it's kept (with only the matching rules) if any rule matches.
+function filterPoliciesByQuery(policies: PolicyWithRules[], query: string): PolicyWithRules[] {
   if (!query) return policies
 
   const matchingPolicyIds = new Set(search(policies, "name").with(query).map((p) => p.id))
-  const result: Policy[] = []
+  const result: PolicyWithRules[] = []
 
   for (const policy of policies) {
     if (matchingPolicyIds.has(policy.id)) {
@@ -78,7 +73,7 @@ export function usePoliciesWithOptions() {
     ...POLICIES_QUERY,
     select(policies) {
       return sortAlphabetical(policies, "name").map((policy) => ({
-        label: policy?.name,
+        label: policy?.name ?? "",
         value: policy?.id,
       }))
     },
@@ -121,7 +116,7 @@ export function useUpdateRule(rule: Rule, policyId: number) {
 
   return useMutation({
     mutationKey: MUTATIONS.RULE_UPDATE,
-    mutationFn: async (payload: CreateOrUpdateRule) => api.rule.update(rule.id, payload),
+    mutationFn: async (payload: RuleRequest) => api.rule.update(rule.id, payload),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -142,22 +137,12 @@ export function useUpdateRule(rule: Rule, policyId: number) {
   })
 }
 
-export function useTestRuleText() {
+export function useTestRule() {
   const toast = useToast()
 
   return useMutation({
-    mutationFn: async (payload: TestRuleTextOnDevicePayload) => api.rule.testText(payload),
-    onError(err: NetshotError) {
-      toast.error(err)
-    },
-  })
-}
-
-export function useTestRuleScript() {
-  const toast = useToast()
-
-  return useMutation({
-    mutationFn: async (payload: TestRuleScriptOnDevicePayload) => api.rule.testScript(payload),
+    mutationFn: async (payload: { rule: RuleRequest; device: number }) =>
+      api.rule.test(payload.rule, payload.device),
     onError(err: NetshotError) {
       toast.error(err)
     },

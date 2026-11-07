@@ -92,6 +92,16 @@ public class User extends TableImpl<UserRecord> {
      */
     public final TableField<UserRecord, String[]> OLD_HASHED_PASSWORDS = createField(DSL.name("old_hashed_passwords"), SQLDataType.VARCHAR(255).array(), this, "");
 
+    /**
+     * The column <code>user.version</code>.
+     */
+    public final TableField<UserRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>user.change_date</code>.
+     */
+    public final TableField<UserRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+
     private User(Name alias, Table<UserRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

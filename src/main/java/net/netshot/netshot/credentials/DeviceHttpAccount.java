@@ -22,7 +22,7 @@ import java.time.Instant;
 
 import lombok.Builder;
 import net.netshot.netshot.domain.Domain;
-import net.netshot.netshot.vault.VaultableSecret;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * An HTTP(S) account.
@@ -33,12 +33,8 @@ import net.netshot.netshot.vault.VaultableSecret;
  * @param name the name, unique
  * @param mgmtDomain the domain the credential set is restricted to, or null for all the domains
  * @param deviceSpecific whether the credential set belongs to one access of one device (rather than being global)
- * @param username the username
- * @param usernameVaultInstanceId the ID of the Vault instance the username is read from, or null if it is local
- * @param usernameVaultPath the Vault path (and key) of the username
- * @param password the password
- * @param passwordVaultInstanceId the ID of the Vault instance the password is read from, or null if it is local
- * @param passwordVaultPath the Vault path (and key) of the password
+ * @param username the username, local or in a Vault instance (null if not set)
+ * @param password the password, local or in a Vault instance (null if not set)
  */
 @Builder(toBuilder = true)
 public record DeviceHttpAccount(
@@ -48,12 +44,8 @@ public record DeviceHttpAccount(
 	String name,
 	Domain mgmtDomain,
 	boolean deviceSpecific,
-	String username,
-	Long usernameVaultInstanceId,
-	String usernameVaultPath,
-	String password,
-	Long passwordVaultInstanceId,
-	String passwordVaultPath) implements DeviceCredentialSet {
+	Secret username,
+	Secret password) implements DeviceCredentialSet {
 
 	@Override
 	public DeviceHttpAccount withIdentity(long newId, String newName, boolean newDeviceSpecific) {
@@ -63,24 +55,6 @@ public record DeviceHttpAccount(
 	@Override
 	public DeviceHttpAccount withMgmtDomain(Domain newMgmtDomain) {
 		return this.toBuilder().mgmtDomain(newMgmtDomain).build();
-	}
-
-	/**
-	 * Gets the username, local or in a Vault instance.
-	 *
-	 * @return the username
-	 */
-	public VaultableSecret usernameSecret() {
-		return new VaultableSecret(this.username, this.usernameVaultInstanceId, this.usernameVaultPath);
-	}
-
-	/**
-	 * Gets the password, local or in a Vault instance.
-	 *
-	 * @return the password
-	 */
-	public VaultableSecret passwordSecret() {
-		return new VaultableSecret(this.password, this.passwordVaultInstanceId, this.passwordVaultPath);
 	}
 
 	@Override

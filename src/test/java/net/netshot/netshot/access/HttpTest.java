@@ -40,6 +40,7 @@ import net.netshot.netshot.access.Http.HttpResult;
 import net.netshot.netshot.credentials.DeviceHttpAccount;
 import net.netshot.netshot.driver.protocol.AuthScheme;
 import net.netshot.netshot.driver.protocol.HttpConfig;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
 import net.netshot.netshot.vault.SecretResolver;
@@ -94,7 +95,7 @@ public class HttpTest {
 		auth.setType("http");
 		auth.setScheme("basic");
 		config.setAuth(auth);
-		DeviceHttpAccount account = DeviceHttpAccount.builder().username("bob").password("s3cret").name("cred").build();
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(Secret.local("bob")).password(Secret.local("s3cret")).name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -111,7 +112,7 @@ public class HttpTest {
 		auth.setType("http");
 		auth.setScheme("bearer");
 		config.setAuth(auth);
-		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("tok3n").name("cred").build();
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password(Secret.local("tok3n")).name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -128,7 +129,7 @@ public class HttpTest {
 		auth.setIn("header");
 		auth.setName("X-API-Key");
 		config.setAuth(auth);
-		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("the-key").name("cred").build();
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password(Secret.local("the-key")).name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -145,7 +146,7 @@ public class HttpTest {
 		auth.setIn("query");
 		auth.setName("api_key");
 		config.setAuth(auth);
-		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("the-key").name("cred").build();
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password(Secret.local("the-key")).name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 
@@ -192,7 +193,7 @@ public class HttpTest {
 			"userPasswd", "$$NetshotPassword$$"
 		));
 		config.setAuth(auth);
-		DeviceHttpAccount account = DeviceHttpAccount.builder().username("bob").password("s3cret").name("cred").build();
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(Secret.local("bob")).password(Secret.local("s3cret")).name("cred").build();
 		Http client = newClient();
 
 		HttpResult first = client.request("GET", "/status", null, null, null, null, config, account);
@@ -217,7 +218,7 @@ public class HttpTest {
 		auth.setIn("header");
 		auth.setName("X-API-Key");
 		config.setAuth(auth);
-		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password("the-key").name("cred").build();
+		DeviceHttpAccount account = DeviceHttpAccount.builder().username(null).password(Secret.local("the-key")).name("cred").build();
 
 		HttpResult result = newClient().request("GET", "/status", null, null, null, null, config, account);
 

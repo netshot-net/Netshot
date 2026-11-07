@@ -4,7 +4,8 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { User } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { User, UserRequest } from "@/api/admin"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
@@ -21,10 +22,11 @@ export default function EditUserTrigger({ user, children, ...rest }: EditUserTri
   const toast = useToast()
   const queryClient = useQueryClient()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_USERS)
 
   const defaultValues = useMemo(
     () => ({
-      username: user?.username,
+      username: user?.username ?? "",
       level: user?.level?.toString(),
       isRemote: !user.local,
       password: PASSWORD_UNCHANGED,
@@ -44,9 +46,9 @@ export default function EditUserTrigger({ user, children, ...rest }: EditUserTri
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_USER_UPDATE,
-    mutationFn: async (payload: Partial<User>) => api.admin.updateUser(user?.id, payload),
+    mutationFn: async (payload: UserRequest) => api.admin.updateUser(user.id!, payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -57,13 +59,13 @@ export default function EditUserTrigger({ user, children, ...rest }: EditUserTri
       form,
       size: "lg",
       async onSubmit(values: UserForm) {
-        const change: Partial<User> = {
+        const change: UserRequest = {
           username: values.username,
           level: +values.level,
           local: !values.isRemote,
         }
         if (values.password !== PASSWORD_UNCHANGED) {
-          change.password = values.password ?? undefined
+          change.password = values.isRemote ? undefined : (values.password ?? undefined)
         }
 
         await mutation.mutateAsync(change)

@@ -1,5 +1,5 @@
 DeviceSnmpv3Community
-authKey=ak
+authKey=null
 authKeyVaultInstanceId=null
 authKeyVaultPath=a
 authType=MD5
@@ -11,7 +11,7 @@ deviceSpecific=false
 id=0
 mgmtDomain=null
 name=a
-privKey=pk
+privKey=null
 privKeyVaultInstanceId=null
 privKeyVaultPath=p
 privType=DES
@@ -19,7 +19,7 @@ resolvedAuthKeyVaultInstanceId=2
 resolvedCommunityVaultInstanceId=null
 resolvedPrivKeyVaultInstanceId=3
 resolvedUsernameVaultInstanceId=1
-username=u
+username=null
 usernameVaultInstanceId=null
 usernameVaultPath=u
 version=0

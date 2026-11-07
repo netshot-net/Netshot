@@ -43,6 +43,8 @@ import net.netshot.netshot.inventory.device.Module;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.type.CheckComplianceTask;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
@@ -260,9 +262,15 @@ public final class TaskPayloads {
 			domain.server6Address() == null ? null : domain.server6Address().getIp());
 	}
 
-	// A secret never goes into a payload: it is replaced by the mask when there is one.
-	private static String masked(String secret) {
-		return secret == null ? null : MASK;
+	// A secret never goes into a payload: its local value is replaced by the mask when there is one (it is not decrypted).
+	private static String masked(Secret secret) {
+		return Secret.localValue(secret) == null ? null : MASK;
+	}
+
+	// The local value of a field which isn't a secret (the username).
+	private static String clear(Secret value) {
+		LocalSecret local = Secret.localValue(value);
+		return local == null ? null : local.reveal();
 	}
 
 	private static CredentialSetPayload toPayload(DeviceCredentialSet credentialSet) {
@@ -272,16 +280,16 @@ public final class TaskPayloads {
 		DomainPayload domain = toPayload(credentialSet.mgmtDomain());
 		return switch (credentialSet) {
 			case DeviceSnmpv3Community c -> new CredentialSetPayload.SnmpV3(c.id(), c.name(), domain, c.deviceSpecific(),
-				masked(c.community()), c.communityVaultInstanceId(), c.communityVaultPath(),
-				c.username(), c.usernameVaultInstanceId(), c.usernameVaultPath(),
-				c.authType(), masked(c.authKey()), c.authKeyVaultInstanceId(), c.authKeyVaultPath(),
-				c.privType(), masked(c.privKey()), c.privKeyVaultInstanceId(), c.privKeyVaultPath());
+				masked(c.community()), Secret.vaultInstanceId(c.community()), Secret.vaultPath(c.community()),
+				clear(c.username()), Secret.vaultInstanceId(c.username()), Secret.vaultPath(c.username()),
+				c.authType(), masked(c.authKey()), Secret.vaultInstanceId(c.authKey()), Secret.vaultPath(c.authKey()),
+				c.privType(), masked(c.privKey()), Secret.vaultInstanceId(c.privKey()), Secret.vaultPath(c.privKey()));
 			case DeviceSnmpv2cCommunity c -> new CredentialSetPayload.SnmpV2c(c.id(), c.name(), domain, c.deviceSpecific(),
-				masked(c.community()), c.communityVaultInstanceId(), c.communityVaultPath());
+				masked(c.community()), Secret.vaultInstanceId(c.community()), Secret.vaultPath(c.community()));
 			case DeviceSnmpv1Community c -> new CredentialSetPayload.SnmpV1(c.id(), c.name(), domain, c.deviceSpecific(),
-				masked(c.community()), c.communityVaultInstanceId(), c.communityVaultPath());
+				masked(c.community()), Secret.vaultInstanceId(c.community()), Secret.vaultPath(c.community()));
 			case DeviceSshKeyAccount c -> new CredentialSetPayload.SshKey(c.id(), c.name(), domain, c.deviceSpecific(),
-				masked(c.privateKey()), c.privateKeyVaultInstanceId(), c.privateKeyVaultPath());
+				masked(c.privateKey()), Secret.vaultInstanceId(c.privateKey()), Secret.vaultPath(c.privateKey()));
 			case DeviceSshAccount c -> new CredentialSetPayload.Ssh(c.id(), c.name(), domain, c.deviceSpecific());
 			case DeviceTelnetAccount c -> new CredentialSetPayload.Telnet(c.id(), c.name(), domain, c.deviceSpecific());
 			case DeviceHttpAccount c -> new CredentialSetPayload.Http(c.id(), c.name(), domain, c.deviceSpecific());

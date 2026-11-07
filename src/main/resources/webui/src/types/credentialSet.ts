@@ -3,11 +3,11 @@ import { MgmtDomain } from "./mgmtDomain"
 
 export enum CredentialSetType {
   GLOBAL = "global",
-  SNMP_V1 = "SNMP v1",
-  SNMP_V2C = "SNMP v2",
-  SNMP_V3 = "SNMP v3",
+  SNMP_V1 = "SNMP_V1",
+  SNMP_V2C = "SNMP_V2C",
+  SNMP_V3 = "SNMP_V3",
   SSH = "SSH",
-  SSHKey = "SSH Key",
+  SSHKey = "SSH_KEY",
   Telnet = "Telnet",
   HTTP = "HTTP",
 }

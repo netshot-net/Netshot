@@ -26,6 +26,10 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * The queries on the device scripts. The {@link DSLContext} is always the first parameter: the
@@ -34,8 +38,42 @@ import net.netshot.netshot.platform.database.Page;
 public class ScriptRepository {
 
 	private static DeviceJsScript toScript(Record r) {
-		return new DeviceJsScript(r.get(DEVICE_JS_SCRIPT.ID), r.get(DEVICE_JS_SCRIPT.NAME), r.get(DEVICE_JS_SCRIPT.FOLDER),
+		return new DeviceJsScript(r.get(DEVICE_JS_SCRIPT.ID), r.get(DEVICE_JS_SCRIPT.VERSION), r.get(DEVICE_JS_SCRIPT.CHANGE_DATE),
+			r.get(DEVICE_JS_SCRIPT.NAME), r.get(DEVICE_JS_SCRIPT.FOLDER),
 			r.get(DEVICE_JS_SCRIPT.SCRIPT), r.get(DEVICE_JS_SCRIPT.DEVICE_DRIVER), r.get(DEVICE_JS_SCRIPT.AUTHOR), null);
+	}
+
+	/** The fields the script lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DEVICE_JS_SCRIPT.ID)
+		.string("name", DEVICE_JS_SCRIPT.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("folder", DEVICE_JS_SCRIPT.FOLDER, Option.SORTABLE, Option.SEARCHABLE)
+		.string("deviceDriver", DEVICE_JS_SCRIPT.DEVICE_DRIVER, Option.SORTABLE)
+		.string("author", DEVICE_JS_SCRIPT.AUTHOR, Option.SORTABLE, Option.SEARCHABLE)
+		.build();
+
+	/**
+	 * Lists the scripts matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the scripts of the window of the query
+	 */
+	public List<DeviceJsScript> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DEVICE_JS_SCRIPT.fields()).from(DEVICE_JS_SCRIPT)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(ScriptRepository::toScript);
+	}
+
+	/**
+	 * Counts the scripts matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of scripts
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DEVICE_JS_SCRIPT, LIST.condition(query));
 	}
 
 	/**
@@ -71,6 +109,8 @@ public class ScriptRepository {
 	 */
 	public long add(DSLContext dsl, DeviceJsScript script) {
 		return dsl.insertInto(DEVICE_JS_SCRIPT)
+			.set(DEVICE_JS_SCRIPT.VERSION, 0)
+			.set(DEVICE_JS_SCRIPT.CHANGE_DATE, Versions.now())
 			.set(DEVICE_JS_SCRIPT.NAME, script.name())
 			.set(DEVICE_JS_SCRIPT.FOLDER, script.folder())
 			.set(DEVICE_JS_SCRIPT.SCRIPT, script.script())
@@ -78,6 +118,37 @@ public class ScriptRepository {
 			.set(DEVICE_JS_SCRIPT.AUTHOR, script.author())
 			.returning(DEVICE_JS_SCRIPT.ID)
 			.fetchOne(DEVICE_JS_SCRIPT.ID);
+	}
+
+	/**
+	 * Locks the row of a script until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the version of the script, or null if there is no such script
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DEVICE_JS_SCRIPT, DEVICE_JS_SCRIPT.ID, DEVICE_JS_SCRIPT.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing script: its name, folder, content and driver (its version is incremented, its change date set;
+	 * the author is kept).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param script the script
+	 * @return true if the script was found and saved
+	 */
+	public boolean save(DSLContext dsl, DeviceJsScript script) {
+		return dsl.update(DEVICE_JS_SCRIPT)
+			.set(DEVICE_JS_SCRIPT.VERSION, DEVICE_JS_SCRIPT.VERSION.plus(1))
+			.set(DEVICE_JS_SCRIPT.CHANGE_DATE, Versions.now())
+			.set(DEVICE_JS_SCRIPT.NAME, script.name())
+			.set(DEVICE_JS_SCRIPT.FOLDER, script.folder())
+			.set(DEVICE_JS_SCRIPT.SCRIPT, script.script())
+			.set(DEVICE_JS_SCRIPT.DEVICE_DRIVER, script.deviceDriver())
+			.where(DEVICE_JS_SCRIPT.ID.eq(script.id()))
+			.execute() > 0;
 	}
 
 	/**

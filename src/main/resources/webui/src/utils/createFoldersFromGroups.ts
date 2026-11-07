@@ -1,30 +1,30 @@
-import { Group } from "@/types"
+import { GroupBrief } from "@/types"
 
 export type Folder = {
   name: string
   // Full path from the root (e.g. "a/b"), unique in the tree unlike the name
   path: string
-  children: Array<Folder | Group>
+  children: Array<Folder | GroupBrief>
 }
 
 /**
  * Check if current object is a group
  */
-export function isGroup(x: Folder | Group): x is Group {
+export function isGroup(x: Folder | GroupBrief): x is GroupBrief {
   return "type" in x
 }
 
 /**
  * Check if current object is a folder
  */
-export function isFolder(x: Folder | Group): x is Folder {
+export function isFolder(x: Folder | GroupBrief): x is Folder {
   return "children" in x
 }
 
 /**
  * Sort folders before groups; folders by name, groups by name then by id.
  */
-export function compareFolderOrGroup(a: Folder | Group, b: Folder | Group) {
+export function compareFolderOrGroup(a: Folder | GroupBrief, b: Folder | GroupBrief) {
   const aIsFolder = isFolder(a)
   const bIsFolder = isFolder(b)
 
@@ -36,8 +36,8 @@ export function compareFolderOrGroup(a: Folder | Group, b: Folder | Group) {
     return a.name.localeCompare(b.name)
   }
 
-  const group1 = a as Group
-  const group2 = b as Group
+  const group1 = a as GroupBrief
+  const group2 = b as GroupBrief
 
   return group1.name.localeCompare(group2.name) || group1.id - group2.id
 }
@@ -55,7 +55,7 @@ export function splitFolderPath(folder?: string | null): string[] {
 
 export function addFolder(
   paths: string[],
-  group: Group,
+  group: GroupBrief,
   children: Folder["children"],
   parentPath = ""
 ) {
@@ -80,7 +80,7 @@ export function addFolder(
 /**
  * Create nested list of folder with groups from netshot backend
  */
-export function createFoldersFromGroups(deviceGroups: Group[] = []) {
+export function createFoldersFromGroups(deviceGroups: GroupBrief[] = []) {
   return deviceGroups
     .reduce(
       (arr, group) => {
@@ -93,18 +93,18 @@ export function createFoldersFromGroups(deviceGroups: Group[] = []) {
 
         return arr
       },
-      [] as Array<Folder | Group>
+      [] as Array<Folder | GroupBrief>
     )
     .sort(compareFolderOrGroup)
 }
 
 interface FindResult {
-  node: Folder | Group
+  node: Folder | GroupBrief
   path: Folder[]
 }
 
 export function findNodeWithPath(
-  tree: Array<Folder | Group>,
+  tree: Array<Folder | GroupBrief>,
   id: number,
   path: Folder[] = []
 ): FindResult | null {

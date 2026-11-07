@@ -50,7 +50,7 @@ export function SettingGeneralPanel() {
   })
 
   const mutation = useMutation({
-    mutationFn: async (payload: UpdateUserPayload) => api.user.update(user!.id, payload),
+    mutationFn: async (payload: UpdateUserPayload) => api.user.update(payload),
     onSuccess() {
       toast.success({
         title: t("common.success"),

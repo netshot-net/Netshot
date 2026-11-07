@@ -94,6 +94,21 @@ public class ReportRepository {
 	 */
 	public List<GroupConfigComplianceStat> findGroupConfigComplianceStats(DSLContext dsl, Set<Long> domains,
 		Set<Long> deviceGroups, Set<Long> policies) {
+		return this.findGroupConfigComplianceStats(dsl, domains, deviceGroups, null, policies);
+	}
+
+	/**
+	 * Finds the configuration compliance of the groups not hidden from the reports, counting only some devices.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param domains the domains to count the devices of (empty: any)
+	 * @param deviceGroups the groups to report (empty: any)
+	 * @param devices the devices to count (null: any, empty: none)
+	 * @param policies the policies to take into account (empty: any)
+	 * @return the statistics
+	 */
+	public List<GroupConfigComplianceStat> findGroupConfigComplianceStats(DSLContext dsl, Set<Long> domains,
+		Set<Long> deviceGroups, Set<Long> devices, Set<Long> policies) {
 		var g = DEVICE_GROUP.as("g");
 		var ccr = CHECK_RESULT.as("ccr");
 		var r = RULE.as("r");
@@ -101,8 +116,8 @@ public class ReportRepository {
 			.where(ccr.DEVICE.eq(DEVICE.ID).and(policies.isEmpty() ? DSL.noCondition() : r.POLICY.in(policies))
 				.and(ccr.RESULT.eq(ResultOption.NONCONFORMING.name())))).eq(0);
 		return dsl.select(g.ID, g.NAME, g.FOLDER,
-				groupDeviceCount(g, inDomains(domains).and(nonConforming)),
-				groupDeviceCount(g, inDomains(domains)))
+				groupDeviceCount(g, inDomains(domains).and(inDevices(devices)).and(nonConforming)),
+				groupDeviceCount(g, inDomains(domains).and(inDevices(devices))))
 			.from(g)
 			.where((deviceGroups.isEmpty() ? DSL.noCondition() : g.ID.in(deviceGroups)).and(DSL.condition("{0} <> true", g.HIDDEN_FROM_REPORTS)))
 			.fetch(rec -> new GroupConfigComplianceStat(rec.value1(), rec.value2(), rec.value3(), rec.value4(), rec.value5()));
@@ -158,6 +173,22 @@ public class ReportRepository {
 	 */
 	public List<PolicyRuleDevice> findPolicyRuleDevices(DSLContext dsl, Set<Long> domains, Set<Long> groups,
 		Set<Long> policies, Set<ResultOption> results) {
+		return this.findPolicyRuleDevices(dsl, domains, groups, null, policies, results);
+	}
+
+	/**
+	 * Finds the compliance results of the devices in production, restricted to some devices.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param domains the domains to filter on (empty: any)
+	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
+	 * @param policies the policies to filter on (empty: any)
+	 * @param results the results to filter on (empty: any)
+	 * @return the results
+	 */
+	public List<PolicyRuleDevice> findPolicyRuleDevices(DSLContext dsl, Set<Long> domains, Set<Long> groups,
+		Set<Long> devices, Set<Long> policies, Set<ResultOption> results) {
 		return dsl.select(policyRuleDeviceFields())
 			.from(DEVICE)
 			.join(CHECK_RESULT).on(CHECK_RESULT.DEVICE.eq(DEVICE.ID))
@@ -166,6 +197,7 @@ public class ReportRepository {
 			.where(DEVICE.STATUS.eq(Device.Status.INPRODUCTION.name())
 				.and(inDomains(domains))
 				.and(inGroups(groups))
+				.and(inDevices(devices))
 				.and(policies.isEmpty() ? DSL.noCondition() : POLICY.ID.in(policies))
 				.and(results.isEmpty() ? DSL.noCondition() : CHECK_RESULT.RESULT.in(results.stream().map(Enum::name).toList())))
 			.orderBy(DEVICE.ID, POLICY.ID, RULE.ID)
@@ -280,10 +312,11 @@ public class ReportRepository {
 	 *
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
 	 * @return the condition on {@code DEVICE}
 	 */
-	private static Condition exportedDevices(Set<Long> domains, Set<Long> groups) {
-		Condition condition = DSL.noCondition();
+	private static Condition exportedDevices(Set<Long> domains, Set<Long> groups, Set<Long> devices) {
+		Condition condition = inDevices(devices);
 		if (domains.size() > 0) {
 			condition = condition.and(DEVICE.MGMT_DOMAIN.in(domains));
 		}
@@ -325,16 +358,17 @@ public class ReportRepository {
 	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
 	 * @param page the window on the result
 	 * @return the devices
 	 */
-	public List<ExportedDevice> findDevicesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Page page) {
+	public List<ExportedDevice> findDevicesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Set<Long> devices, Page page) {
 		return page.apply(dsl.select(DEVICE.ID, DEVICE.NAME, DEVICE.MGMT_ADDRESS, DOMAIN.NAME, DEVICE.NETWORK_CLASS, DEVICE.FAMILY,
 					DEVICE.CREATED_DATE, DEVICE.CHANGE_DATE, DEVICE.SOFTWARE_VERSION, DEVICE.SOFTWARE_LEVEL, DEVICE.EOS_DATE,
 					DEVICE.EOL_DATE, DEVICE.LOCATION, DEVICE.CONTACT)
 				.from(DEVICE)
 				.leftJoin(DOMAIN).on(DOMAIN.ID.eq(DEVICE.MGMT_DOMAIN))
-				.where(exportedDevices(domains, groups))
+				.where(exportedDevices(domains, groups, devices))
 				.orderBy(DEVICE.NAME.asc(), DEVICE.ID.asc()))
 			.fetch(r -> new ExportedDevice(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(DEVICE.MGMT_ADDRESS), r.get(DOMAIN.NAME),
 				r.get(DEVICE.NETWORK_CLASS) == null ? null : Device.NetworkClass.valueOf(r.get(DEVICE.NETWORK_CLASS)),
@@ -349,16 +383,17 @@ public class ReportRepository {
 	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
 	 * @return the interfaces
 	 */
-	public List<ExportedInterface> findInterfacesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups) {
+	public List<ExportedInterface> findInterfacesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Set<Long> devices) {
 		List<SelectField<?>> fields = new ArrayList<>(DeviceRepository.INTERFACE_FIELDS);
 		fields.add(DEVICE.ID);
 		fields.add(DEVICE.NAME);
 		return dsl.select(fields)
 			.from(NETWORK_INTERFACE)
 			.join(DEVICE).on(DEVICE.ID.eq(NETWORK_INTERFACE.DEVICE))
-			.where(exportedDevices(domains, groups))
+			.where(exportedDevices(domains, groups, devices))
 			.orderBy(DEVICE.NAME.asc(), NETWORK_INTERFACE.ID.asc())
 			.fetch(r -> {
 				NetworkInterface networkInterface = DeviceRepository.toInterface(r);
@@ -380,11 +415,12 @@ public class ReportRepository {
 	 * @param history whether to include the removed modules
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
 	 * @param page the window on the result
 	 * @return the modules
 	 */
-	public List<ExportedModule> findModulesToExport(DSLContext dsl, boolean history, Set<Long> domains, Set<Long> groups, Page page) {
-		Condition condition = exportedDevices(domains, groups);
+	public List<ExportedModule> findModulesToExport(DSLContext dsl, boolean history, Set<Long> domains, Set<Long> groups, Set<Long> devices, Page page) {
+		Condition condition = exportedDevices(domains, groups, devices);
 		if (!history) {
 			condition = condition.and(MODULE.REMOVED.isDistinctFrom(true));
 		}
@@ -406,14 +442,15 @@ public class ReportRepository {
 	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
 	 * @return the memberships
 	 */
-	public List<ExportedMembership> findMembershipsToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups) {
+	public List<ExportedMembership> findMembershipsToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Set<Long> devices) {
 		return dsl.select(DEVICE.ID, DEVICE.NAME, DEVICE_GROUP.ID, DEVICE_GROUP.NAME)
 			.from(DEVICE_GROUP_CACHED_DEVICES)
 			.join(DEVICE).on(DEVICE.ID.eq(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES))
 			.join(DEVICE_GROUP).on(DEVICE_GROUP.ID.eq(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS))
-			.where(exportedDevices(domains, groups), DEVICE_GROUP.HIDDEN_FROM_REPORTS.isFalse())
+			.where(exportedDevices(domains, groups, devices), DEVICE_GROUP.HIDDEN_FROM_REPORTS.isFalse())
 			.orderBy(DEVICE.NAME.asc(), DEVICE.ID.asc(), DEVICE_GROUP.ID.asc())
 			.fetch(r -> new ExportedMembership(r.value1(), r.value2(), r.value3(), r.value4()));
 	}
@@ -436,16 +473,17 @@ public class ReportRepository {
 	 * @param dsl the jOOQ context
 	 * @param domains the domains to filter on (empty: any)
 	 * @param groups the groups to filter on (empty: any)
+	 * @param devices the devices to filter on (null: any, empty: none)
 	 * @param page the window on the result
 	 * @return the attributes
 	 */
-	public List<AttributeToExport> findDeviceAttributesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Page page) {
+	public List<AttributeToExport> findDeviceAttributesToExport(DSLContext dsl, Set<Long> domains, Set<Long> groups, Set<Long> devices, Page page) {
 		return page.apply(dsl.select(DEVICE.ID, DEVICE.NAME, DEVICE.DRIVER, DEVICE_ATTRIBUTE.TYPE, DEVICE_ATTRIBUTE.NAME,
 					DEVICE_ATTRIBUTE.TEXT, DEVICE_ATTRIBUTE.NUMBER, DEVICE_ATTRIBUTE.ASSUMPTION, LONG_TEXT_CONFIGURATION.TEXT)
 				.from(DEVICE_ATTRIBUTE)
 				.join(DEVICE).on(DEVICE.ID.eq(DEVICE_ATTRIBUTE.DEVICE))
 				.leftJoin(LONG_TEXT_CONFIGURATION).on(LONG_TEXT_CONFIGURATION.ID.eq(DEVICE_ATTRIBUTE.LONG_TEXT))
-				.where(exportedDevices(domains, groups))
+				.where(exportedDevices(domains, groups, devices))
 				.orderBy(DEVICE.NAME.asc(), DEVICE_ATTRIBUTE.ID.asc()))
 			.fetch(r -> new AttributeToExport(r.get(DEVICE.ID), r.get(DEVICE.NAME), r.get(DEVICE.DRIVER), r.get(DEVICE_ATTRIBUTE.NAME),
 				switch (r.get(DEVICE_ATTRIBUTE.TYPE)) {
@@ -469,6 +507,17 @@ public class ReportRepository {
 
 	private static ResultOption toResult(String name) {
 		return name == null ? null : ResultOption.valueOf(name);
+	}
+
+	/**
+	 * Restricts the devices to some IDs (as one array parameter, so that the number of IDs isn't limited by the
+	 * number of bind variables of the driver).
+	 *
+	 * @param devices the device IDs (null: any, empty: none)
+	 * @return the condition
+	 */
+	private static Condition inDevices(Set<Long> devices) {
+		return devices == null ? DSL.noCondition() : DEVICE.ID.eq(DSL.any(devices.toArray(new Long[0])));
 	}
 
 	/**

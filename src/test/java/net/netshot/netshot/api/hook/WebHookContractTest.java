@@ -122,7 +122,7 @@ public class WebHookContractTest {
 			for (String type : this.taskIds.keySet().stream().map(HookTaskSeed::taskType).distinct().toList()) {
 				triggers.add(new HookTrigger(HookTrigger.TriggerType.POST_TASK, type));
 			}
-			TestWiring.get().hookService().create(new WebHook(0, "test-" + action, true, triggers, action,
+			TestWiring.get().hookService().create(new WebHook(0, 0, null, "test-" + action, true, triggers, action,
 				"http://127.0.0.1:" + this.receiver.getAddress().getPort() + "/" + action, HttpsCaTrustMode.SYSTEM_TRUSTSTORE, null));
 		}
 	}

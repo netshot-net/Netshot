@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.userscript;
 
+import java.time.Instant;
 import java.util.Map;
 
 import org.slf4j.event.Level;
@@ -32,6 +33,8 @@ import net.netshot.netshot.platform.log.TaskContext;
  * A JavaScript script which users run on devices.
  *
  * @param id the ID (0 for a script not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param folder the folder
  * @param script the content of the script
@@ -39,7 +42,7 @@ import net.netshot.netshot.platform.log.TaskContext;
  * @param author the author
  * @param userInputDefinitions the inputs the script asks for (null if not extracted from the script)
  */
-public record DeviceJsScript(long id, String name, String folder, String script, String deviceDriver, String author,
+public record DeviceJsScript(long id, int version, Instant changeDate, String name, String folder, String script, String deviceDriver, String author,
 	Map<String, UserInputDefinition> userInputDefinitions) {
 
 	/**
@@ -52,7 +55,7 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 	 * @return the script
 	 */
 	public static DeviceJsScript of(String name, String deviceDriver, String script, String author) {
-		return new DeviceJsScript(0, name, "", script, deviceDriver, author, null);
+		return new DeviceJsScript(0, 0, null, name, "", script, deviceDriver, author, null);
 	}
 
 	/**
@@ -62,7 +65,19 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 	 * @return the script
 	 */
 	public DeviceJsScript withId(long newId) {
-		return new DeviceJsScript(newId, this.name, this.folder, this.script, this.deviceDriver, this.author, this.userInputDefinitions);
+		return new DeviceJsScript(newId, this.version, this.changeDate, this.name, this.folder, this.script, this.deviceDriver, this.author, this.userInputDefinitions);
+	}
+
+	/**
+	 * Gets the same script with another version and change date (as stored).
+	 *
+	 * @param newVersion the version
+	 * @param newChangeDate the change date
+	 * @return the script
+	 */
+	public DeviceJsScript withVersion(int newVersion, Instant newChangeDate) {
+		return new DeviceJsScript(this.id, newVersion, newChangeDate, this.name, this.folder, this.script, this.deviceDriver, this.author,
+			this.userInputDefinitions);
 	}
 
 	/**
@@ -72,7 +87,7 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 	 * @return the script
 	 */
 	public DeviceJsScript withFolder(String newFolder) {
-		return new DeviceJsScript(this.id, this.name, newFolder, this.script, this.deviceDriver, this.author, this.userInputDefinitions);
+		return new DeviceJsScript(this.id, this.version, this.changeDate, this.name, newFolder, this.script, this.deviceDriver, this.author, this.userInputDefinitions);
 	}
 
 	/**
@@ -81,7 +96,7 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 	 * @return the script
 	 */
 	public DeviceJsScript withoutScript() {
-		return new DeviceJsScript(this.id, this.name, this.folder, null, this.deviceDriver, this.author, this.userInputDefinitions);
+		return new DeviceJsScript(this.id, this.version, this.changeDate, this.name, this.folder, null, this.deviceDriver, this.author, this.userInputDefinitions);
 	}
 
 	/**
@@ -121,7 +136,7 @@ public record DeviceJsScript(long id, String name, String folder, String script,
 			return this;
 		}
 		final UserDeviceScript jsScript = new UserDeviceScript(driverRegistry, Connectors.OFFLINE, this.deviceDriver, this.script, makeVoidLogger());
-		return new DeviceJsScript(this.id, this.name, this.folder, this.script, this.deviceDriver, this.author,
+		return new DeviceJsScript(this.id, this.version, this.changeDate, this.name, this.folder, this.script, this.deviceDriver, this.author,
 			jsScript.extractInputDefinitions());
 	}
 

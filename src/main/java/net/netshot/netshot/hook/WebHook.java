@@ -22,6 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.Set;
 
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
@@ -30,6 +31,8 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * A Web hook: the data of the event is posted to a URL.
  *
  * @param id the ID (0 if not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param name the name
  * @param enabled whether the hook is enabled
  * @param triggers the triggers
@@ -38,7 +41,7 @@ import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
  * @param httpsCaTrustMode how the certificate of an HTTPS target is checked
  * @param httpsCustomCaCertificate the CA (PEM) of {@link HttpsCaTrustMode#CUSTOM_CA}
  */
-public record WebHook(long id, String name, boolean enabled, Set<HookTrigger> triggers, Action action, String url,
+public record WebHook(long id, int version, Instant changeDate, String name, boolean enabled, Set<HookTrigger> triggers, Action action, String url,
 	HttpsCaTrustMode httpsCaTrustMode, String httpsCustomCaCertificate) implements Hook {
 
 	/**
@@ -52,13 +55,13 @@ public record WebHook(long id, String name, boolean enabled, Set<HookTrigger> tr
 
 	@Override
 	public WebHook withId(long newId) {
-		return new WebHook(newId, this.name, this.enabled, this.triggers, this.action, this.url, this.httpsCaTrustMode,
+		return new WebHook(newId, this.version, this.changeDate, this.name, this.enabled, this.triggers, this.action, this.url, this.httpsCaTrustMode,
 			this.httpsCustomCaCertificate);
 	}
 
 	@Override
 	public WebHook withTriggers(Set<HookTrigger> newTriggers) {
-		return new WebHook(this.id, this.name, this.enabled, newTriggers, this.action, this.url, this.httpsCaTrustMode,
+		return new WebHook(this.id, this.version, this.changeDate, this.name, this.enabled, newTriggers, this.action, this.url, this.httpsCaTrustMode,
 			this.httpsCustomCaCertificate);
 	}
 
@@ -69,7 +72,7 @@ public record WebHook(long id, String name, boolean enabled, Set<HookTrigger> tr
 	 * @return the hook
 	 */
 	public WebHook withHttpsCaTrustMode(HttpsCaTrustMode newMode) {
-		return new WebHook(this.id, this.name, this.enabled, this.triggers, this.action, this.url, newMode,
+		return new WebHook(this.id, this.version, this.changeDate, this.name, this.enabled, this.triggers, this.action, this.url, newMode,
 			this.httpsCustomCaCertificate);
 	}
 

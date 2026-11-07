@@ -1,17 +1,17 @@
-import { Script } from "@/types"
+import { ScriptBrief } from "@/types"
 import { findScriptNodeWithPath, isScript, ScriptFolder } from "@/utils"
 import { JSX } from "react"
 import ScriptOrFolderItem from "./ScriptOrFolderItem"
 import { TreeScriptProvider } from "./TreeScriptProvider"
 
-type ScriptFolderOrItem = ScriptFolder | Script
+type ScriptFolderOrItem = ScriptFolder | ScriptBrief
 
 export type TreeScriptProps = {
   items: ScriptFolderOrItem[]
-  onScriptSelect?(script: Script): void
+  onScriptSelect?(script: ScriptBrief): void
   onFolderSelect?(path: string): void
-  isSelected?(script: Script): boolean
-  renderScriptChildren?(script: Script): JSX.Element
+  isSelected?(script: ScriptBrief): boolean
+  renderScriptChildren?(script: ScriptBrief): JSX.Element
   isFolderOpen(key: string): boolean
   toggleFolderOpen(key: string): void
   showMenu?: boolean

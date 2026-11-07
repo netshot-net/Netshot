@@ -6,8 +6,9 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { QUERIES as GLOBAL_QUERIES } from "@/constants"
 import { useCustomDialog } from "@/dialog"
 import { DeviceSoftwareLevelBadge } from "@/components/entity"
-import { usePagination } from "@/hooks"
-import { DeviceSoftwareLevel, Group, GroupSoftwareComplianceStat } from "@/types"
+import { useSearchQuery } from "@/hooks"
+import { GroupSoftwareComplianceStat } from "@/api/report"
+import { DeviceSoftwareLevel, GroupBrief } from "@/types"
 import { createFoldersFromGroups, Folder, isGroup, search } from "@/utils"
 import {
   Box,
@@ -58,13 +59,13 @@ type GroupRow = {
   kind: "group"
   key: string
   depth: number
-  group: Group
+  group: GroupBrief
 }
 
 type TreeRow = FolderRow | GroupRow
 
 function flattenTree(
-  items: (Group | Folder)[],
+  items: (GroupBrief | Folder)[],
   depth: number,
   isFolderOpen: (key: string) => boolean
 ): TreeRow[] {
@@ -150,7 +151,7 @@ function FolderGridRow(props: FolderGridRowProps) {
 type GroupGridRowProps = {
   row: GroupRow
   item: GroupSoftwareComplianceStat
-  onGroupSelect(group: Group): void
+  onGroupSelect(group: GroupBrief): void
 }
 
 function GroupGridRow(props: GroupGridRowProps) {
@@ -166,10 +167,10 @@ function GroupGridRow(props: GroupGridRowProps) {
     (level: DeviceSoftwareLevel) => (evt: MouseEvent) => {
       evt.stopPropagation()
       dialog.open(
-        <SoftwareComplianceDialog groupId={item.groupId} groupName={item.groupName} level={level} />
+        <SoftwareComplianceDialog groupId={row.group.id} groupName={row.group.name} level={level} />
       )
     },
-    [dialog, item]
+    [dialog, row.group]
   )
 
   return (
@@ -233,7 +234,7 @@ function GroupGridRow(props: GroupGridRowProps) {
   )
 }
 
-const EMPTY_STAT: Omit<GroupSoftwareComplianceStat, "groupId" | "groupName"> = {
+const EMPTY_STAT: Omit<GroupSoftwareComplianceStat, "groupId"> = {
   deviceCount: 0,
   goldDeviceCount: 0,
   silverDeviceCount: 0,
@@ -244,7 +245,7 @@ export default function ReportSoftwareComplianceScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filterOpen, setFilterOpen] = useState(false)
   const [filter, setFilter] = useState<FilterForm>(() => {
@@ -258,26 +259,27 @@ export default function ReportSoftwareComplianceScreen() {
   const { data: stats, isPending, isFetching, refetch } = useQuery({
     queryKey: [QUERIES.SOFTWARE_COMPLIANCE, filter.domain],
     queryFn: async () =>
-      api.report.getAllGroupSoftwareComplianceStats(filter.domain ? { domain: filter.domain } : {}),
+      api.report.getGroupSoftwareComplianceStats({ domain: filter.domain ? [filter.domain] : undefined }),
     select(res) {
-      // Groups with no device, or flagged as hidden from reports (already excluded server-side),
-      // must not appear in the tree.
+      // Groups with no device must not appear in the tree.
       return (res ?? []).filter((item) => item.deviceCount > 0)
     },
   })
 
   const { data: groups, isPending: isGroupPending } = useQuery({
-    queryKey: [GLOBAL_QUERIES.DEVICE_GROUPS],
+    // The groups shown in the reports
+    queryKey: [GLOBAL_QUERIES.DEVICE_GROUPS, "reports"],
     queryFn: async () => {
-      return api.group.getAll()
+      return api.group.getAll({ hiddenFromReports: false })
     },
   })
 
   const treeItems = useMemo(() => {
     const nonEmptyGroupIds = new Set((stats ?? []).map((stat) => stat.groupId))
+    // The groups hidden from the reports are not listed
     const visibleGroups = (groups ?? []).filter((group) => nonEmptyGroupIds.has(group.id))
-    return createFoldersFromGroups(search(visibleGroups, "name").with(pagination.query))
-  }, [groups, stats, pagination.query])
+    return createFoldersFromGroups(search(visibleGroups, "name").with(searchBox.query))
+  }, [groups, stats, searchBox.query])
 
   function applyFilter(values: FilterForm) {
     setFilter(values)
@@ -310,14 +312,14 @@ export default function ReportSoftwareComplianceScreen() {
   const { isOpen, toggle } = useTreeOpenKeys()
 
   const onGroupSelect = useCallback(
-    (group: Group) => {
+    (group: GroupBrief) => {
       navigate(`/app/devices?group=${group.id}`)
     },
     [navigate]
   )
 
   const rows = useMemo(() => flattenTree(treeItems, 0, isOpen), [treeItems, isOpen])
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   return (
     <Stack gap="8" p="9" flex="1" overflow="auto">
@@ -341,8 +343,8 @@ export default function ReportSoftwareComplianceScreen() {
       <Stack direction="row" gap="3">
         <Search
           placeholder={t("common.searchPlaceholder")}
-          onQuery={pagination.onQuery}
-          onClear={pagination.onQueryClear}
+          onQuery={searchBox.onQuery}
+          onClear={searchBox.onQueryClear}
           w="30%"
         />
         <Spacer />
@@ -402,7 +404,6 @@ export default function ReportSoftwareComplianceScreen() {
 
               const item = stats?.find((stat) => stat.groupId === row.group.id) ?? {
                 groupId: row.group.id,
-                groupName: row.group.name,
                 ...EMPTY_STAT,
               }
 

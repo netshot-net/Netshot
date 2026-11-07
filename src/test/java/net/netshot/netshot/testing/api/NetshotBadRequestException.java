@@ -20,7 +20,7 @@ package net.netshot.netshot.testing.api;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-import net.netshot.netshot.api.rest.RsErrorBean;
+import net.netshot.netshot.api.rest.v0.RsErrorBean;
 import net.netshot.netshot.platform.error.ErrorCode;
 
 /**

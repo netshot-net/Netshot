@@ -136,6 +136,7 @@
       "latestTasks": "Dernières tâches sur cet équipement",
       "lastChange": "Dernier changement",
       "lastChangeDate": "Date du dernier changement",
+      "lastSnapshotSuccess": "Dernier instantané réussi",
       "lastConnectionDate": "Date de dernière connexion",
       "lastFailedSnapshot": "Dernier snapshot échoué",
       "lastSeen": "Dernière détection",
@@ -193,6 +194,10 @@
         "preproduction": "Pré-production",
         "production": "Production"
       },
+      "exportList": "Exporter la liste des équipements",
+      "exportCsv": "Fichier CSV",
+      "exportExcel": "Fichier Excel",
+      "changedMeanwhile": "L'équipement a été modifié entre-temps : il a été rechargé, veuillez réessayer.",
       "refreshList": "Actualiser la liste des équipements",
       "remove": "Supprimer l'équipement",
       "removeSelected": "Supprimer les équipements sélectionnés",
@@ -239,6 +244,7 @@
       "createWithJavascript": "Créer un diagnostic en JavaScript",
       "createWithPython": "Créer un diagnostic en Python",
       "createWithStringAndRegex": "Créer un diagnostic avec chaîne et RegEx",
+      "longText": "Texte long",
       "label": "Diagnostic",
       "successfullyCreated": "Le diagnostic {{diagnosticName}} a été créé avec succès",
       "successfullyDisabled": "Le diagnostic {{diagnosticName}} a été désactivé avec succès",
@@ -640,6 +646,7 @@
       "aboutToRemove": "Vous êtes sur le point de supprimer la politique {{policyName}}"
     },
     "group": {
+      "changedMeanwhile": "Le groupe a été modifié entre-temps : il a été rechargé, veuillez réessayer.",
       "add": "Ajouter un groupe",
       "members": "Membres du groupe",
       "chooseType": "Choisir le type de groupe",
@@ -799,6 +806,7 @@
       "scheduledFuture": "Planifiées (à venir)",
       "scheduledWillTrigger": "Se déclenchera à l'heure prévue",
       "childTasks": "Tâches enfants",
+      "rowLimitNotice": "Seules les {{count}} premières tâches sont affichées",
       "childTaskProgress": "Progression",
       "parentTask": "Tâche parente",
       "viewChildTasks": "Voir les tâches enfants",
@@ -873,6 +881,7 @@
     },
     "admin": {
       "title": "Administration",
+      "changedMeanwhile": "L'objet a été modifié entre-temps : la liste a été actualisée, veuillez réessayer",
       "clustering": {
         "label": "Multi-nœuds",
         "manage": "Gérer le fonctionnement multi-nœuds",
@@ -968,7 +977,7 @@
       "privKeySecret": "Clé de chiffrement"
     },
     "api": {
-      "documentation": "Documentation API",
+      "documentation": "Documentation API (v1)",
       "successfullyCreated": "Le token API a été créé avec succès",
       "successfullyRemoved": "Le token API a été supprimé avec succès",
       "tokens": "Tokens API",

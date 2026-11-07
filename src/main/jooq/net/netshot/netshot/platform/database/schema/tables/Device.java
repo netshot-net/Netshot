@@ -207,6 +207,16 @@ public class Device extends TableImpl<DeviceRecord> {
      */
     public final TableField<DeviceRecord, JSONB> OPTIONS = createField(DSL.name("options"), SQLDataType.JSONB, this, "");
 
+    /**
+     * The column <code>device.last_snapshot_success_date</code>.
+     */
+    public final TableField<DeviceRecord, Instant> LAST_SNAPSHOT_SUCCESS_DATE = createField(DSL.name("last_snapshot_success_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+
+    /**
+     * The column <code>device.last_snapshot_failure_date</code>.
+     */
+    public final TableField<DeviceRecord, Instant> LAST_SNAPSHOT_FAILURE_DATE = createField(DSL.name("last_snapshot_failure_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
+
     private Device(Name alias, Table<DeviceRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -276,7 +286,7 @@ public class Device extends TableImpl<DeviceRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_DEVICE_EOL_MODULE, Indexes.IX_DEVICE_EOS_MODULE, Indexes.IX_DEVICE_LAST_CONFIG, Indexes.IX_DEVICE_MGMT_DOMAIN);
+        return Arrays.asList(Indexes.IX_DEVICE_EOL_MODULE, Indexes.IX_DEVICE_EOS_MODULE, Indexes.IX_DEVICE_LAST_CONFIG, Indexes.IX_DEVICE_MGMT_DOMAIN, Indexes.IX_DEVICE_NAME_ID);
     }
 
     @Override

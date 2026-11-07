@@ -1,4 +1,5 @@
-import api, { ReportDeviceAccessFailureQueryParams } from "@/api"
+import api from "@/api"
+import { DeviceAccessFailure } from "@/api/report"
 import {
   EmptyResult,
   FormControl,
@@ -10,10 +11,9 @@ import { DomainSelect } from "@/features/administration/components"
 import { DeviceBadge } from "@/components/entity"
 import { LuFilter, LuFilterX, LuRefreshCcw } from "react-icons/lu"
 import { FormControlType } from "@/components/FormControl"
-import { usePagination } from "@/hooks"
-import { DeviceAccessFailure } from "@/types"
+import { useSearchQuery } from "@/hooks"
+import { DeviceNetworkClass } from "@/types"
 import { useLocalization } from "@/i18n"
-import { search } from "@/utils"
 import {
   Button,
   Heading,
@@ -27,7 +27,7 @@ import {
 } from "@chakra-ui/react"
 import { useQuery } from "@tanstack/react-query"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useCallback, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useSearchParams } from "react-router"
@@ -48,7 +48,7 @@ const columnHelper = createColumnHelper<DeviceAccessFailure>()
 export default function ReportDeviceAccessFailure() {
   const { t } = useTranslation()
   const { formatDateTime } = useLocalization()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filterOpen, setFilterOpen] = useState(false)
@@ -77,41 +77,22 @@ export default function ReportDeviceAccessFailure() {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: [
-      QUERIES.DEVICE_ACCESS_FAILURE,
-      pagination.query,
-      pagination.offset,
-      pagination.limit,
-      filter.domain,
-      filter.days,
-    ],
-    queryFn: async () => {
-      const queryParams: ReportDeviceAccessFailureQueryParams = {
-        ...pagination,
-        days: filter.days,
-      }
-
-      if (filter.domain) {
-        queryParams.domain = +filter.domain
-      }
-
-      return (await api.report.getAllDeviceAccessFailures(queryParams)) ?? []
-    },
-    select: useCallback(
-      (res: DeviceAccessFailure[]) => {
-        return search(res, "name").with(pagination.query)
-      },
-      [pagination.query]
-    ),
+    queryKey: [QUERIES.DEVICE_ACCESS_FAILURE, searchBox.query, filter.domain, filter.days],
+    queryFn: async () =>
+      api.report.getDeviceAccessFailures(
+        filter.days,
+        filter.domain ? +filter.domain : null,
+        searchBox.query?.trim()
+      ),
   })
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const columns = useMemo(
     () => [
       columnHelper.accessor("name", {
         cell: (info) => (
-          <DeviceBadge networkClass={info.row.original.networkClass}>
+          <DeviceBadge networkClass={info.row.original.networkClass as DeviceNetworkClass | undefined}>
             <Link
               to={`/app/devices/${info.row.original.id}/general`}
               onClick={(e) => e.stopPropagation()}
@@ -136,14 +117,20 @@ export default function ReportDeviceAccessFailure() {
         size: 15000,
         enableSorting: true,
       }),
-      columnHelper.accessor("lastSuccess", {
-        cell: (info) => <Text>{info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")}</Text>,
+      columnHelper.accessor("lastSnapshotSuccessDate", {
+        cell: (info) => {
+          const date = info.getValue()
+          return <Text>{date ? formatDateTime(date) : t("common.nA")}</Text>
+        },
         header: t("device.lastSuccessfulSnapshot"),
         size: 10000,
         enableSorting: true,
       }),
-      columnHelper.accessor("lastFailure", {
-        cell: (info) => <Text>{info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")}</Text>,
+      columnHelper.accessor("lastSnapshotFailureDate", {
+        cell: (info) => {
+          const date = info.getValue()
+          return <Text>{date ? formatDateTime(date) : t("common.nA")}</Text>
+        },
         header: t("device.lastFailedSnapshot"),
         size: 10000,
         enableSorting: true,
@@ -210,8 +197,8 @@ export default function ReportDeviceAccessFailure() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />
@@ -275,7 +262,7 @@ export default function ReportDeviceAccessFailure() {
           </Stack>
         ) : (
           <>
-            {data?.length > 0 ? (
+            {data.length > 0 ? (
               <VirtualizedDataTable
                 zIndex={0}
                 columns={columns}

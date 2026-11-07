@@ -31,7 +31,10 @@ import java.util.Map;
  * @param ipAddress the new management address
  * @param mgmtDomainId the ID of the new management domain
  * @param accesses the new full set of per-access settings, not yet validated; transient
- *        {@link DeviceAccess} objects, which the service validates and completes
+ *        {@link DeviceAccess} objects without specific credential set, which the service
+ *        validates and completes
+ * @param specificCredentials the specific credential sets of the accesses (may be null; only used
+ *        with {@code accesses}: an access which has none loses its current one)
  * @param options the new values of the driver options
  * @param tags the new tags (replacing all the existing ones)
  */
@@ -41,6 +44,7 @@ public record DeviceUpdate(
 	String ipAddress,
 	Long mgmtDomainId,
 	List<DeviceAccess> accesses,
+	List<AccessSpecificCredential> specificCredentials,
 	Map<String, Object> options,
 	List<String> tags) {
 }

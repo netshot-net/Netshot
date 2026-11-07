@@ -14,7 +14,7 @@
   <id>16</id>
   <limitToOutofdateDeviceHours>-1</limitToOutofdateDeviceHours>
   <log>line 1&#10;line 2 &lt;&amp;&gt;</log>
-  <nextExecutionDate>1794003200000</nextExecutionDate>
+  <nextExecutionDate>2000000000000</nextExecutionDate>
   <parentTaskId>116</parentTaskId>
   <priority>7</priority>
   <repeating>true</repeating>
@@ -23,7 +23,7 @@
   <runnerId>&lt;runnerId&gt;</runnerId>
   <scheduleFactor>3</scheduleFactor>
   <scheduleMode>SEQUENTIAL</scheduleMode>
-  <scheduleReference>1700000000000</scheduleReference>
+  <scheduleReference>2000000000000</scheduleReference>
   <scheduleType>WEEKLY</scheduleType>
   <script/>
   <status>NEW</status>

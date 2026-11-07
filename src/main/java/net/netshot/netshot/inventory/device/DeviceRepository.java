@@ -43,6 +43,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -65,7 +67,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.netshot.netshot.credentials.CredentialSetRepository;
-import net.netshot.netshot.credentials.CredentialSets;
 import net.netshot.netshot.domain.DomainRepository;
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
@@ -81,6 +82,9 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.group.DeviceGroup;
 import net.netshot.netshot.inventory.group.GroupRepository;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
 import net.netshot.netshot.platform.database.schema.tables.Domain;
 import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterfaceIp4addressesRecord;
@@ -88,6 +92,11 @@ import net.netshot.netshot.platform.database.schema.tables.records.NetworkInterf
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.PhysicalAddress;
+import net.netshot.netshot.platform.query.FieldType;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.Lookup;
+import net.netshot.netshot.platform.query.StatsQuery;
+import net.netshot.netshot.platform.query.StatsRow;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -231,12 +240,27 @@ public class DeviceRepository {
 
 	private static final List<SelectField<?>> FIELDS;
 
+	/** The fields of a device without its collections, for the lists (which add the collections they need). */
+	private static final List<SelectField<?>> LIST_FIELDS;
+
+	/** The field of each collection a list can load. */
+	private static final Map<Device.Part, Field<?>> PART_FIELDS = new EnumMap<>(Map.of(
+		Device.Part.TAGS, TAGS,
+		Device.Part.VIRTUAL_DEVICES, VIRTUAL_DEVICES,
+		Device.Part.VRF_INSTANCES, VRF_INSTANCES,
+		Device.Part.ATTRIBUTES, ATTRIBUTES,
+		Device.Part.ACCESSES, ACCESSES,
+		Device.Part.OWNER_GROUPS, GROUPS));
+
 	static {
 		List<SelectField<?>> fields = new ArrayList<>(List.of(DEVICE.fields()));
 		fields.addAll(List.of(DOMAIN.fields()));
 		fields.addAll(List.of(EOL.fields()));
 		fields.addAll(List.of(EOS.fields()));
-		fields.addAll(List.of(COMPLIANT, TAGS, VIRTUAL_DEVICES, VRF_INSTANCES, ATTRIBUTES, ACCESSES, MODULES, INTERFACES, GROUPS));
+		fields.add(COMPLIANT);
+		LIST_FIELDS = List.copyOf(fields);
+		fields.addAll(PART_FIELDS.values());
+		fields.addAll(List.of(MODULES, INTERFACES));
 		FIELDS = List.copyOf(fields);
 	}
 
@@ -366,16 +390,30 @@ public class DeviceRepository {
 			r.get(DEVICE.EOS_DATE),
 			toModule(r, EOS),
 			r.get(DEVICE.LAST_CONFIG),
+			r.get(DEVICE.LAST_SNAPSHOT_SUCCESS_DATE),
+			r.get(DEVICE.LAST_SNAPSHOT_FAILURE_DATE),
 			Boolean.TRUE.equals(r.get(COMPLIANT)),
 			readOptions(r.get(DEVICE.OPTIONS)),
-			r.get(TAGS),
-			r.get(VIRTUAL_DEVICES),
-			r.get(VRF_INSTANCES),
-			r.get(ATTRIBUTES),
-			r.get(ACCESSES),
-			r.get(MODULES),
-			r.get(INTERFACES),
-			r.get(GROUPS));
+			optional(r, TAGS),
+			optional(r, VIRTUAL_DEVICES),
+			optional(r, VRF_INSTANCES),
+			optional(r, ATTRIBUTES),
+			optional(r, ACCESSES),
+			optional(r, MODULES),
+			optional(r, INTERFACES),
+			optional(r, GROUPS));
+	}
+
+	/**
+	 * Reads a field the query may not have selected.
+	 *
+	 * @param <T> the type of the value
+	 * @param r the record
+	 * @param field the field
+	 * @return the value, or null if the query didn't select the field
+	 */
+	private static <T> T optional(Record r, Field<T> field) {
+		return r.field(field) == null ? null : r.get(field);
 	}
 
 	private List<Device> findWhere(DSLContext dsl, Condition condition) {
@@ -472,6 +510,122 @@ public class DeviceRepository {
 				.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))
 				.orderBy(DEVICE_GROUP_CACHED_DEVICES.LIST_POSITION.asc(), DEVICE.NAME.asc()))
 			.fetch(DeviceSummary::fromRecord);
+	}
+
+	/** The fields the device lists can be filtered and sorted on. */
+	public static final QueryMapping LIST = QueryMapping.builder(DEVICE.ID)
+		.string("name", DEVICE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("mgmtAddress", DEVICE.MGMT_ADDRESS, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("status", DEVICE.STATUS, Device.Status.class, Option.SORTABLE, Option.GROUPABLE)
+		.integer("mgmtDomain", DEVICE.MGMT_DOMAIN, Option.GROUPABLE)
+		.string("family", DEVICE.FAMILY, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
+		.string("driver", DEVICE.DRIVER, Option.SORTABLE, Option.GROUPABLE)
+		.enumeration("networkClass", DEVICE.NETWORK_CLASS, Device.NetworkClass.class, Option.SORTABLE, Option.GROUPABLE)
+		.string("softwareVersion", DEVICE.SOFTWARE_VERSION, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
+		.enumeration("softwareLevel", DEVICE.SOFTWARE_LEVEL, ConformanceLevel.class, Option.SORTABLE, Option.GROUPABLE)
+		.string("serialNumber", DEVICE.SERIAL_NUMBER, Option.SORTABLE, Option.SEARCHABLE)
+		.string("location", DEVICE.LOCATION, Option.SORTABLE, Option.SEARCHABLE, Option.GROUPABLE)
+		.string("contact", DEVICE.CONTACT, Option.SORTABLE, Option.SEARCHABLE)
+		.string("comments", DEVICE.COMMENTS, Option.SEARCHABLE)
+		.string("creator", DEVICE.CREATOR, Option.SORTABLE)
+		.inet("cachedIpAddress", DEVICE.CACHED_IP_ADDRESS)
+		.date("createdDate", DEVICE.CREATED_DATE, Option.SORTABLE)
+		.date("changeDate", DEVICE.CHANGE_DATE, Option.SORTABLE)
+		.date("eolDate", DEVICE.EOL_DATE, Option.SORTABLE, Option.GROUPABLE)
+		.date("eosDate", DEVICE.EOS_DATE, Option.SORTABLE, Option.GROUPABLE)
+		.date("lastSnapshotSuccessDate", DEVICE.LAST_SNAPSHOT_SUCCESS_DATE, Option.SORTABLE)
+		.date("lastSnapshotFailureDate", DEVICE.LAST_SNAPSHOT_FAILURE_DATE, Option.SORTABLE)
+		.custom("group", FieldType.INTEGER, EnumSet.of(Lookup.EXACT, Lookup.N), (_, values) ->
+			DSL.exists(DSL.selectOne().from(DEVICE_GROUP_CACHED_DEVICES)
+				.where(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID))
+				.and(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.in(values.stream().map(Long.class::cast).toList()))))
+		.custom("tag", FieldType.STRING, EnumSet.of(Lookup.EXACT, Lookup.N, Lookup.IE, Lookup.NIE, Lookup.IC, Lookup.NIC,
+			Lookup.ISW, Lookup.NISW, Lookup.EMPTY), (lookup, values) -> {
+				if (lookup == Lookup.EMPTY) {
+					return DSL.notExists(DSL.selectOne().from(DEVICE_TAGS).where(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)));
+				}
+				List<Condition> any = values.stream().map(String.class::cast).map(v -> switch (lookup) {
+					case IE -> DEVICE_TAGS.TAG.equalIgnoreCase(v);
+					case IC -> DEVICE_TAGS.TAG.containsIgnoreCase(v);
+					case ISW -> DEVICE_TAGS.TAG.startsWithIgnoreCase(v);
+					default -> DEVICE_TAGS.TAG.eq(v);
+				}).toList();
+				return DSL.exists(DSL.selectOne().from(DEVICE_TAGS).where(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)).and(DSL.or(any)));
+			})
+		.custom("compliant", FieldType.BOOLEAN, EnumSet.of(Lookup.EXACT), (_, values) -> {
+				Condition compliant = DSL.notExists(DSL.selectOne().from(CHECK_RESULT)
+					.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name())));
+				return DSL.or(values.stream().map(v -> Boolean.TRUE.equals(v) ? compliant : DSL.not(compliant)).toList());
+			})
+		// A device is counted once per group (no group: null), once per tag (no tag: null)
+		.grouping("group", DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS, from -> from.leftJoin(DEVICE_GROUP_CACHED_DEVICES)
+			.on(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.eq(DEVICE.ID)))
+		.grouping("tag", DEVICE_TAGS.TAG, from -> from.leftJoin(DEVICE_TAGS).on(DEVICE_TAGS.DEVICE.eq(DEVICE.ID)))
+		.grouping("compliant", DSL.field(DSL.notExists(DSL.selectOne().from(CHECK_RESULT)
+			.where(CHECK_RESULT.DEVICE.eq(DEVICE.ID), CHECK_RESULT.RESULT.eq(CheckResult.ResultOption.NONCONFORMING.name())))), null)
+		.build();
+
+	/**
+	 * Lists the summaries of the devices matching a query and a condition.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the list query
+	 * @param condition another condition (such as the one of a device search query)
+	 * @return the summaries of the window of the query
+	 */
+	public List<DeviceSummary> findSummaries(DSLContext dsl, ListQuery query, Condition condition) {
+		return query.page().apply(dsl.select(DeviceSummary.FIELDS).from(DEVICE)
+				.where(LIST.condition(query)).and(condition)
+				.orderBy(LIST.orderBy(query)))
+			.fetch(DeviceSummary::fromRecord);
+	}
+
+	/**
+	 * Lists the devices matching a query and a condition, with all their details but their components (their
+	 * modules and network interfaces aren't loaded, they have their own lists) and the collections not asked for.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the list query
+	 * @param condition another condition (such as the one of a device search query)
+	 * @param parts the collections to load (the others are empty)
+	 * @return the devices of the window of the query, without their modules and network interfaces
+	 */
+	public List<Device> findAll(DSLContext dsl, ListQuery query, Condition condition, Set<Device.Part> parts) {
+		List<SelectField<?>> fields = new ArrayList<>(LIST_FIELDS);
+		parts.forEach(part -> fields.add(PART_FIELDS.get(part)));
+		return query.page().apply(dsl.select(fields)
+				.from(DEVICE)
+				.leftJoin(DOMAIN).on(DOMAIN.ID.eq(DEVICE.MGMT_DOMAIN))
+				.leftJoin(EOL).on(EOL.ID.eq(DEVICE.EOL_MODULE))
+				.leftJoin(EOS).on(EOS.ID.eq(DEVICE.EOS_MODULE))
+				.where(LIST.condition(query)).and(condition)
+				.orderBy(LIST.orderBy(query)))
+			.fetch(DeviceRepository::toDevice);
+	}
+
+	/**
+	 * Counts the devices matching a query and a condition.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the list query (its window is ignored)
+	 * @param condition another condition
+	 * @return the number of devices
+	 */
+	public long count(DSLContext dsl, ListQuery query, Condition condition) {
+		return dsl.fetchCount(DEVICE, LIST.condition(query).and(condition));
+	}
+
+	/**
+	 * Counts the devices matching a query and a condition, by field values and/or time buckets.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the filters
+	 * @param stats what to count by
+	 * @param condition the additional condition (search query), or null
+	 * @return the rows
+	 */
+	public List<StatsRow> stats(DSLContext dsl, ListQuery query, StatsQuery stats, Condition condition) {
+		return LIST.stats(dsl, DEVICE, query, stats, condition);
 	}
 
 	/**
@@ -596,6 +750,8 @@ public class DeviceRepository {
 			.set(DEVICE.CREATED_DATE, device.createdDate())
 			.set(DEVICE.CREATOR, device.creator())
 			.set(DEVICE.DRIVER, device.driver())
+			.set(DEVICE.LAST_SNAPSHOT_SUCCESS_DATE, device.lastSnapshotSuccessDate())
+			.set(DEVICE.LAST_SNAPSHOT_FAILURE_DATE, device.lastSnapshotFailureDate())
 			.returning(DEVICE.ID)
 			.fetchOne(DEVICE.ID);
 		insertTags(dsl, id, device.tags());
@@ -678,11 +834,22 @@ public class DeviceRepository {
 	}
 
 	/**
+	 * Locks the row of a device until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the device ID
+	 * @return the version of the device, or null if there is no such device
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DEVICE, DEVICE.ID, DEVICE.VERSION, id);
+	}
+
+	/**
 	 * Saves the changes of a device: what differs between the device as it was loaded and the
-	 * edited one is written. When the row of the device (or its tags, virtual devices or VRFs)
-	 * changes, it is checked not to have been changed meanwhile, its version is incremented
-	 * and its change date set. The attributes, modules (by ID: the new ones have the ID 0, the
-	 * missing ones are deleted), interfaces and accesses are written when they differ. A specific credential set which
+	 * edited one is written. When anything changes, the device is checked not to have been changed
+	 * meanwhile, its version is incremented and its change date set. The row, tags, virtual devices,
+	 * VRFs, attributes, modules (by ID: the new ones have the ID 0, the missing ones are deleted),
+	 * interfaces and accesses are written when they differ. A specific credential set which
 	 * no access uses anymore is removed (the new ones must be stored already).
 	 *
 	 * @param dsl the jOOQ context
@@ -692,16 +859,22 @@ public class DeviceRepository {
 	 */
 	public void save(DSLContext dsl, Device original, Device edited) {
 		long id = original.id();
-		if (rowChanged(original, edited)) {
-			int updated = dsl.update(DEVICE)
-				.set(rowValues(edited))
-				.set(DEVICE.VERSION, DEVICE.VERSION.plus(1))
-				.set(DEVICE.CHANGE_DATE, now())
-				.where(DEVICE.ID.eq(id), DEVICE.VERSION.eq(original.version()))
-				.execute();
-			if (updated == 0) {
-				throw new DataChangedException("The device %d has been changed or removed meanwhile".formatted(id));
-			}
+		boolean rowChanged = rowChanged(original, edited);
+		if (!rowChanged && original.attributes().equals(edited.attributes())
+			&& original.networkInterfaces().equals(edited.networkInterfaces())
+			&& original.modules().equals(edited.modules()) && original.accesses().equals(edited.accesses())) {
+			return;
+		}
+		int updated = dsl.update(DEVICE)
+			.set(rowChanged ? rowValues(edited) : Map.of())
+			.set(DEVICE.VERSION, DEVICE.VERSION.plus(1))
+			.set(DEVICE.CHANGE_DATE, now())
+			.where(DEVICE.ID.eq(id), DEVICE.VERSION.eq(original.version()))
+			.execute();
+		if (updated == 0) {
+			throw new DataChangedException("The device %d has been changed or removed meanwhile".formatted(id));
+		}
+		if (rowChanged) {
 			if (!original.tags().equals(edited.tags())) {
 				dsl.deleteFrom(DEVICE_TAGS).where(DEVICE_TAGS.DEVICE.eq(id)).execute();
 				insertTags(dsl, id, edited.tags());
@@ -725,6 +898,22 @@ public class DeviceRepository {
 		}
 		this.saveModules(dsl, id, original.modules(), edited.modules());
 		this.saveAccesses(dsl, id, original.accesses(), edited.accesses());
+	}
+
+	/**
+	 * Records the outcome of a snapshot: sets the date of the last successful (or failed) snapshot. Unlike
+	 * {@link #save}, only this column is written (by ID, without touching the version or the change date), so it
+	 * can't conflict with a concurrent edit of the device nor with another runner.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the device ID
+	 * @param success true to set the date of the last successful snapshot, false for the failed one
+	 * @param date the date of the snapshot
+	 * @return true if the device exists
+	 */
+	public boolean saveSnapshotDate(DSLContext dsl, long id, boolean success, Instant date) {
+		Field<Instant> column = success ? DEVICE.LAST_SNAPSHOT_SUCCESS_DATE : DEVICE.LAST_SNAPSHOT_FAILURE_DATE;
+		return dsl.update(DEVICE).set(column, date).where(DEVICE.ID.eq(id)).execute() > 0;
 	}
 
 	/**
@@ -826,36 +1015,6 @@ public class DeviceRepository {
 		}
 		// Once no access references them anymore (their removal would remove the accesses)
 		new CredentialSetRepository().removeAll(dsl, obsoleteSpecificIds);
-	}
-
-	/**
-	 * Stores the specific credential set of each submitted access (created, or merged into the
-	 * current one of the access, see {@link CredentialSets#applySpecificCredentialSet}).
-	 *
-	 * @param dsl the jOOQ context
-	 * @param current the current accesses of the device (none for a new device)
-	 * @param accesses the submitted accesses (already validated)
-	 * @return the accesses, with their stored specific credential sets
-	 */
-	public List<DeviceAccess> saveSpecificCredentialSets(DSLContext dsl, List<DeviceAccess> current, List<DeviceAccess> accesses) {
-		CredentialSetRepository credentialSetRepository = new CredentialSetRepository();
-		List<DeviceAccess> resolved = new ArrayList<>(accesses.size());
-		for (DeviceAccess input : accesses) {
-			if (input.specificCredentialSet() == null) {
-				resolved.add(input);
-				continue;
-			}
-			// The specific credential set of the current access of the same name (the last one if several)
-			var existingSpecific = current.stream()
-				.filter(access -> access.accessName().equals(input.accessName()))
-				.reduce((_, second) -> second)
-				.map(DeviceAccess::specificCredentialSet)
-				.orElse(null);
-			var stored = CredentialSets.applySpecificCredentialSet(dsl, credentialSetRepository,
-				existingSpecific, input.specificCredentialSet());
-			resolved.add(input.toBuilder().specificCredentialSet(stored).build());
-		}
-		return resolved;
 	}
 
 	/**

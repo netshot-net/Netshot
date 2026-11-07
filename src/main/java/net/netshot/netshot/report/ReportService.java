@@ -273,6 +273,7 @@ public class ReportService {
 	public void export(ReportExportSelection selection, ReportExportSink sink) {
 		Set<Long> domains = selection.domains();
 		Set<Long> groups = selection.groups();
+		Set<Long> devices = selection.devices();
 		this.transactions.read(dsl -> {
 			sink.summary(domains.isEmpty() ? null : this.repository.findDomainNames(dsl, domains),
 				groups.isEmpty() ? null : this.repository.findGroupNames(dsl, groups));
@@ -280,7 +281,7 @@ public class ReportService {
 			if (selection.interfaces()) {
 				log.debug("Exporting interface data");
 				sink.interfacesStart();
-				for (ExportedInterface networkInterface : this.repository.findInterfacesToExport(dsl, domains, groups)) {
+				for (ExportedInterface networkInterface : this.repository.findInterfacesToExport(dsl, domains, groups, devices)) {
 					sink.networkInterface(networkInterface);
 				}
 			}
@@ -289,7 +290,7 @@ public class ReportService {
 			}
 			if (selection.compliance()) {
 				log.debug("Exporting compliance data");
-				List<PolicyRuleDevice> checkResults = this.repository.findPolicyRuleDevices(dsl, domains, groups,
+				List<PolicyRuleDevice> checkResults = this.repository.findPolicyRuleDevices(dsl, domains, groups, devices,
 					new HashSet<Long>(), new HashSet<>(List.of(CheckResult.ResultOption.CONFORMING,
 						CheckResult.ResultOption.NONCONFORMING, CheckResult.ResultOption.EXEMPTED)));
 				sink.complianceStart();
@@ -300,14 +301,14 @@ public class ReportService {
 			if (selection.deviceGroups()) {
 				log.debug("Exporting group data");
 				List<GroupConfigComplianceStat> groupConfigComplianceStats = this.repository
-					.findGroupConfigComplianceStats(dsl, domains, groups, new HashSet<>());
+					.findGroupConfigComplianceStats(dsl, domains, groups, devices, new HashSet<>());
 				sink.groupsStart(selection.compliance());
 				for (GroupConfigComplianceStat stat : groupConfigComplianceStats) {
 					sink.group(stat);
 				}
 				log.debug("Exporting group memberships");
 				sink.membershipsStart();
-				for (ExportedMembership membership : this.repository.findMembershipsToExport(dsl, domains, groups)) {
+				for (ExportedMembership membership : this.repository.findMembershipsToExport(dsl, domains, groups, devices)) {
 					sink.membership(membership);
 				}
 			}
@@ -322,7 +323,7 @@ public class ReportService {
 		sink.devicesStart(selection.compliance(), selection.locations());
 		for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
 			List<ExportedDevice> devices = this.repository.findDevicesToExport(dsl, selection.domains(), selection.groups(),
-				new Page(n, EXPORT_PAGE_SIZE));
+				selection.devices(), new Page(n, EXPORT_PAGE_SIZE));
 			if (devices.size() == 0) {
 				break;
 			}
@@ -337,7 +338,7 @@ public class ReportService {
 		sink.inventoryStart(selection.inventoryHistory());
 		for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
 			List<ExportedModule> modules = this.repository.findModulesToExport(dsl, selection.inventoryHistory(),
-				selection.domains(), selection.groups(), new Page(n, EXPORT_PAGE_SIZE));
+				selection.domains(), selection.groups(), selection.devices(), new Page(n, EXPORT_PAGE_SIZE));
 			if (modules.size() == 0) {
 				break;
 			}
@@ -352,7 +353,7 @@ public class ReportService {
 		sink.attributesStart();
 		for (int n = 0; true; n += EXPORT_PAGE_SIZE) {
 			List<AttributeToExport> attributes = this.repository.findDeviceAttributesToExport(dsl,
-				selection.domains(), selection.groups(), new Page(n, EXPORT_PAGE_SIZE));
+				selection.domains(), selection.groups(), selection.devices(), new Page(n, EXPORT_PAGE_SIZE));
 			if (attributes.size() == 0) {
 				break;
 			}

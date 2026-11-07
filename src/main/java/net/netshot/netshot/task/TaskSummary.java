@@ -26,6 +26,7 @@ import java.time.Instant;
  * the task list queries; the full task is fetched when its details are needed.
  *
  * @param id the task ID
+ * @param version the version
  * @param type the type name of the task (e.g. TakeSnapshotTask)
  * @param status the status
  * @param author the author
@@ -49,6 +50,7 @@ import java.time.Instant;
  */
 public record TaskSummary(
 	long id,
+	int version,
 	String type,
 	Task.Status status,
 	String author,

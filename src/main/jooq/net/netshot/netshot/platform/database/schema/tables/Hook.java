@@ -4,10 +4,12 @@
 package net.netshot.netshot.platform.database.schema.tables;
 
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Keys;
 import net.netshot.netshot.platform.database.schema.tables.HookTrigger.HookTriggerPath;
@@ -98,6 +100,16 @@ public class Hook extends TableImpl<HookRecord> {
      * The column <code>hook.https_custom_ca_certificate</code>.
      */
     public final TableField<HookRecord, String> HTTPS_CUSTOM_CA_CERTIFICATE = createField(DSL.name("https_custom_ca_certificate"), SQLDataType.CLOB, this, "");
+
+    /**
+     * The column <code>hook.version</code>.
+     */
+    public final TableField<HookRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>hook.change_date</code>.
+     */
+    public final TableField<HookRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
     private Hook(Name alias, Table<HookRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

@@ -6,6 +6,10 @@
         "name": "X-Netshot-API-Token",
         "type": "apiKey"
       },
+      "BearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      },
       "CookieAuth": {
         "in": "cookie",
         "name": "NetshotSessionID",
@@ -23,7 +27,7 @@
       "url": "https://www.gnu.org/licenses/gpl-3.0.txt"
     },
     "title": "Netshot API",
-    "version": "1"
+    "version": "v0"
   },
   "openapi": "3.0.1",
   "paths": {
@@ -3906,6 +3910,9 @@
   "security": [
     {
       "ApiTokenAuth": [ ]
+    },
+    {
+      "BearerAuth": [ ]
     },
     {
       "CookieAuth": [ ]

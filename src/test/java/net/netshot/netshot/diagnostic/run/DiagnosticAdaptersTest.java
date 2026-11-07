@@ -73,9 +73,9 @@ public class DiagnosticAdaptersTest {
 			"Diagnostic doesn't permit all the diagnostic types");
 		DiagnosticAdapters adapters = DiagnosticAdapters.standard();
 		for (Diagnostic diagnostic : List.<Diagnostic>of(
-				new SimpleDiagnostic(0, "Simple", true, null, AttributeType.TEXT, null, null, null, null, null),
-				new JavaScriptDiagnostic(0, "JS", true, null, AttributeType.TEXT, null),
-				new PythonDiagnostic(0, "Python", true, null, AttributeType.TEXT, null))) {
+				new SimpleDiagnostic(0, 0, null, "Simple", true, null, AttributeType.TEXT, null, null, null, null, null),
+				new JavaScriptDiagnostic(0, 0, null, "JS", true, null, AttributeType.TEXT, null),
+				new PythonDiagnostic(0, 0, null, "Python", true, null, AttributeType.TEXT, null))) {
 			// Reaching the adapter is enough: no registered adapter raises an IllegalStateException
 			try {
 				adapters.makeResult(diagnostic, Value.asValue("x"));
@@ -99,12 +99,12 @@ public class DiagnosticAdaptersTest {
 	@Test
 	@DisplayName("Simple diagnostic: not handed to the script for another driver, modifier applied to the result")
 	void simpleDiagnostic() throws Exception {
-		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, "Simple", true, null, AttributeType.NUMERIC,
+		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, 0, null, "Simple", true, null, AttributeType.NUMERIC,
 			"CiscoIOS12", "exec", "show something", "^value=(\\d+)$", "$1");
 		DiagnosticAdapters adapters = DiagnosticAdapters.standard();
 		Device device = FakeDeviceFactory.getFakeCiscoIosDevice();
 		Assertions.assertNotNull(adapters.toJsObject(diagnostic, device, null));
-		SimpleDiagnostic other = new SimpleDiagnostic(0, "Simple", true, null, AttributeType.NUMERIC,
+		SimpleDiagnostic other = new SimpleDiagnostic(0, 0, null, "Simple", true, null, AttributeType.NUMERIC,
 			"OtherDriver", "exec", "show something", "^value=(\\d+)$", "$1");
 		Assertions.assertNull(adapters.toJsObject(other, device, null));
 
@@ -112,7 +112,7 @@ public class DiagnosticAdaptersTest {
 		Assertions.assertInstanceOf(DiagnosticNumericResult.class, result);
 		Assertions.assertEquals(42.0, ((DiagnosticNumericResult) result).number());
 
-		SimpleDiagnostic text = new SimpleDiagnostic(0, "Simple", true, null, AttributeType.TEXT,
+		SimpleDiagnostic text = new SimpleDiagnostic(0, 0, null, "Simple", true, null, AttributeType.TEXT,
 			"CiscoIOS12", "exec", "show something", "^value=(\\d+)$", "$1");
 		result = adapters.makeResult(text, Value.asValue("value=42"));
 		Assertions.assertInstanceOf(DiagnosticTextResult.class, result);

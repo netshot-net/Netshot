@@ -25,6 +25,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,6 +73,10 @@ import net.netshot.netshot.inventory.group.DeviceGroup;
  * @param eosDate the end of sale date
  * @param eosModule the module giving the end of sale date, if any
  * @param lastConfigId the ID of the last configuration, or null if there is none
+ * @param lastSnapshotSuccessDate when the last snapshot succeeded (null if never; set by the snapshots only, not by
+ *        the device edits)
+ * @param lastSnapshotFailureDate when the last snapshot failed (null if never; set by the snapshots only, not by
+ *        the device edits)
  * @param compliant whether the device has no non conforming compliance check result (computed)
  * @param options the user-configured, per-device values for the options declared by the
  *        device's driver (e.g. "force full backup"). Unlike the attributes, which the driver
@@ -114,6 +119,8 @@ public record Device(
 	Instant eosDate,
 	Module eosModule,
 	Long lastConfigId,
+	Instant lastSnapshotSuccessDate,
+	Instant lastSnapshotFailureDate,
 	boolean compliant,
 	Map<String, Object> options,
 	Set<String> tags,
@@ -187,6 +194,33 @@ public record Device(
 
 		/** The preproduction. */
 		PREPRODUCTION
+	}
+
+	/**
+	 * The collections of a device a list can load or leave empty (when they won't be used).
+	 */
+	public enum Part {
+
+		/** The tags. */
+		TAGS,
+
+		/** The virtual devices. */
+		VIRTUAL_DEVICES,
+
+		/** The VRF instances. */
+		VRF_INSTANCES,
+
+		/** The attributes. */
+		ATTRIBUTES,
+
+		/** The access methods. */
+		ACCESSES,
+
+		/** The groups the device belongs to. */
+		OWNER_GROUPS;
+
+		/** All the parts. */
+		public static final Set<Part> ALL = Collections.unmodifiableSet(EnumSet.allOf(Part.class));
 	}
 
 	/** The name of a device which hasn't been snapshot yet. */

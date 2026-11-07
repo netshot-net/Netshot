@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.diagnostic;
 
+import java.time.Instant;
+
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 
 /**
@@ -32,6 +34,20 @@ public sealed interface Diagnostic permits SimpleDiagnostic, JavaScriptDiagnosti
 	 * @return the ID (0 for a diagnostic not stored yet)
 	 */
 	long id();
+
+	/**
+	 * Gets the version of the diagnostic, incremented on each change.
+	 *
+	 * @return the version
+	 */
+	int version();
+
+	/**
+	 * Gets the date of the last change of the diagnostic.
+	 *
+	 * @return the date
+	 */
+	Instant changeDate();
 
 	/**
 	 * Gets the name.

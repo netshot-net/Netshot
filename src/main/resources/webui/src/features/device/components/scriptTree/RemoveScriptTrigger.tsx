@@ -5,13 +5,13 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Script } from "@/types"
+import { ScriptBrief } from "@/types"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trans, useTranslation } from "react-i18next"
 
 export type RemoveScriptTriggerProps = {
-  script: Script
+  script: ScriptBrief
   onRemoved?(): void
   children: React.ReactElement<Record<string, unknown>>
 } & Record<string, unknown>

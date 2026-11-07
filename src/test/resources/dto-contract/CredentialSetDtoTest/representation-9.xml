@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <DeviceSnmpv1Community type="SNMP v1">
-  <community>=</community>
+  <community/>
   <communityVaultInstanceId>11</communityVaultInstanceId>
   <communityVaultPath>netshot/v1</communityVaultPath>
   <deviceSpecific>false</deviceSpecific>

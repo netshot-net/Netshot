@@ -1,5 +1,6 @@
 import { useArrowKeyNavigation } from "@/hooks"
-import { Policy, LightRule } from "@/types"
+import type { PolicyWithRules } from "@/api/policy"
+import type { Rule } from "@/api/rule"
 import { Center, Spinner, Stack, Text } from "@chakra-ui/react"
 import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -8,7 +9,7 @@ import { usePoliciesWithSearch } from "../../api"
 import { useComplianceSidebar } from "../../contexts/ComplianceSidebarProvider"
 import PolicyItem from "./PolicyItem"
 
-type FlatItem = { policy: Policy; rule?: LightRule }
+type FlatItem = { policy: PolicyWithRules; rule?: Rule }
 
 export default function ComplianceSidebarSearchList() {
   const ctx = useComplianceSidebar()

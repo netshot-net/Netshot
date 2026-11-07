@@ -162,7 +162,7 @@ public class Config extends TableImpl<ConfigRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.CHANGEDATEINDEX_CONFIG, Indexes.IX_CONFIG_DEVICE);
+        return Arrays.asList(Indexes.IX_CONFIG_CHANGE_DATE, Indexes.IX_CONFIG_DEVICE);
     }
 
     @Override

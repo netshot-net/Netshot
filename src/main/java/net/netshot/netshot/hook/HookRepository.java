@@ -36,6 +36,10 @@ import org.jooq.SelectLimitStep;
 import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 
 /**
@@ -60,13 +64,46 @@ public class HookRepository {
 	private static Hook toHook(Record r) {
 		String type = r.get(HOOK.TYPE);
 		if (WEB.equals(type)) {
-			return new WebHook(r.get(HOOK.ID), r.get(HOOK.NAME), r.get(HOOK.ENABLED), r.get(TRIGGERS),
+			return new WebHook(r.get(HOOK.ID), r.get(HOOK.VERSION), r.get(HOOK.CHANGE_DATE), r.get(HOOK.NAME), r.get(HOOK.ENABLED), r.get(TRIGGERS),
 				r.get(HOOK.ACTION) == null ? null : WebHook.Action.valueOf(r.get(HOOK.ACTION)),
 				r.get(HOOK.URL),
 				HttpsCaTrustMode.valueOf(r.get(HOOK.HTTPS_CA_TRUST_MODE)),
 				r.get(HOOK.HTTPS_CUSTOM_CA_CERTIFICATE));
 		}
 		throw new IllegalStateException("Unknown type of hook '%s'".formatted(type));
+	}
+
+	/** The fields the hook lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(HOOK.ID)
+		.string("name", HOOK.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.string("type", HOOK.TYPE, Option.SORTABLE)
+		.bool("enabled", HOOK.ENABLED, Option.SORTABLE)
+		.string("url", HOOK.URL, Option.SEARCHABLE)
+		.build();
+
+	/**
+	 * Lists the hooks matching a query, with their triggers.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the hooks of the window of the query
+	 */
+	public List<Hook> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(HOOK.fields()).select(TRIGGERS).from(HOOK)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(HookRepository::toHook);
+	}
+
+	/**
+	 * Counts the hooks matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of hooks
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(HOOK, LIST.condition(query));
 	}
 
 	/**
@@ -121,6 +158,8 @@ public class HookRepository {
 	public long add(DSLContext dsl, Hook hook) {
 		long id = switch (hook) {
 			case WebHook web -> dsl.insertInto(HOOK)
+				.set(HOOK.VERSION, 0)
+				.set(HOOK.CHANGE_DATE, Versions.now())
 				.set(HOOK.TYPE, WEB)
 				.set(HOOK.NAME, web.name())
 				.set(HOOK.ENABLED, web.enabled())
@@ -136,7 +175,18 @@ public class HookRepository {
 	}
 
 	/**
-	 * Saves an existing hook and replaces its triggers.
+	 * Locks the row of a hook until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the hook ID
+	 * @return the version of the hook, or null if there is no such hook
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, HOOK, HOOK.ID, HOOK.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing hook and replaces its triggers (its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param hook the hook
@@ -145,6 +195,8 @@ public class HookRepository {
 	public boolean save(DSLContext dsl, Hook hook) {
 		int updated = switch (hook) {
 			case WebHook web -> dsl.update(HOOK)
+				.set(HOOK.VERSION, HOOK.VERSION.plus(1))
+				.set(HOOK.CHANGE_DATE, Versions.now())
 				.set(HOOK.NAME, web.name())
 				.set(HOOK.ENABLED, web.enabled())
 				.set(HOOK.ACTION, web.action() == null ? null : web.action().name())

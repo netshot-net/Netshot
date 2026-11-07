@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.compliance;
 
+import java.time.Instant;
+
 /**
  * A rule defines a number of constraints that a device should comply with.
  */
@@ -29,6 +31,20 @@ public sealed interface Rule permits TextRule, JavaScriptRule, PythonRule {
 	 * @return the ID (0 for a rule not stored yet)
 	 */
 	long id();
+
+	/**
+	 * Gets the version of the rule, incremented on each change (of the rule or of its exemptions).
+	 *
+	 * @return the version
+	 */
+	int version();
+
+	/**
+	 * Gets the date of the last change of the rule (or of its exemptions).
+	 *
+	 * @return the date
+	 */
+	Instant changeDate();
 
 	/**
 	 * Gets the name.

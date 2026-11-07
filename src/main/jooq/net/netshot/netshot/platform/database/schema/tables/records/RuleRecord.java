@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.Rule;
 
 import org.jooq.Record1;
@@ -228,6 +230,34 @@ public class RuleRecord extends UpdatableRecordImpl<RuleRecord> {
         return (String) get(14);
     }
 
+    /**
+     * Setter for <code>rule.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(15, value);
+    }
+
+    /**
+     * Getter for <code>rule.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(15);
+    }
+
+    /**
+     * Setter for <code>rule.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(16, value);
+    }
+
+    /**
+     * Getter for <code>rule.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(16);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -251,7 +281,7 @@ public class RuleRecord extends UpdatableRecordImpl<RuleRecord> {
     /**
      * Create a detached, initialised RuleRecord
      */
-    public RuleRecord(Long id, Boolean enabled, String name, Long policy, String type, String script, Boolean anyBlock, String context, String deviceDriver, String field, Boolean invert, Boolean matchAll, Boolean normalize, Boolean regExp, String text) {
+    public RuleRecord(Long id, Boolean enabled, String name, Long policy, String type, String script, Boolean anyBlock, String context, String deviceDriver, String field, Boolean invert, Boolean matchAll, Boolean normalize, Boolean regExp, String text, Integer version, Instant changeDate) {
         super(Rule.RULE);
 
         setId(id);
@@ -269,6 +299,8 @@ public class RuleRecord extends UpdatableRecordImpl<RuleRecord> {
         setNormalize(normalize);
         setRegExp(regExp);
         setText(text);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }
