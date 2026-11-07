@@ -52,7 +52,9 @@ public class SimpleDiagnosticAdapter implements DiagnosticAdapter<SimpleDiagnost
 	public DiagnosticResult makeResult(SimpleDiagnostic diagnostic, Value value) {
 		String newValue = value.asString();
 		if (diagnostic.modifierPattern() != null) {
-			newValue = newValue.replaceAll(diagnostic.modifierPattern(), diagnostic.modifierReplacement());
+			// No replacement (possible through the v0 API) removes the matched text
+			String replacement = diagnostic.modifierReplacement() == null ? "" : diagnostic.modifierReplacement();
+			newValue = newValue.replaceAll(diagnostic.modifierPattern(), replacement);
 		}
 		switch (diagnostic.resultType()) {
 			case LONGTEXT:
