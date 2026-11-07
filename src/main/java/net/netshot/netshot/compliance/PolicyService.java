@@ -205,7 +205,7 @@ public class PolicyService {
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new policy.", e);
-			if (e instanceof DataAccessException dae && DatabaseErrors.isUniqueViolation(dae)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_POLICY, "A policy with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to add the policy to the database");
@@ -259,7 +259,7 @@ public class PolicyService {
 		}
 		catch (DataAccessException e) {
 			log.error("Unable to save the policy {}.", id, e);
-			if (e instanceof DataAccessException dae && DatabaseErrors.isUniqueViolation(dae)) {
+			if (DatabaseErrors.isUniqueViolation(e)) {
 				throw new NetshotException(ErrorCode.NETSHOT_DUPLICATE_POLICY, "A policy with this name already exists.");
 			}
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to save the policy.");
