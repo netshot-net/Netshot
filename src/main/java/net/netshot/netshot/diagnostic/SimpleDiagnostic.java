@@ -177,7 +177,9 @@ public class SimpleDiagnostic extends Diagnostic {
 	public DiagnosticResult makeResult(Device device, Value value) {
 		String newValue = value.asString();
 		if (this.getModifierPattern() != null) {
-			newValue = newValue.replaceAll(this.getModifierPattern(), this.getModifierReplacement());
+			// No replacement (possible through the API) removes the matched text
+			String replacement = this.getModifierReplacement() == null ? "" : this.getModifierReplacement();
+			newValue = newValue.replaceAll(this.getModifierPattern(), replacement);
 		}
 		switch (this.resultType) {
 			case LONGTEXT:
