@@ -3,7 +3,9 @@ import { NetshotError } from "@/api/httpClient"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Hook, HttpsCaTrustMode } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import { Hook, HookRequest } from "@/api/admin"
+import { HttpsCaTrustMode } from "@/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
@@ -22,6 +24,7 @@ export default function AddWebhookTrigger({ children, ...rest }: AddWebhookTrigg
   const queryClient = useQueryClient()
   const webhookDataTypeOptions = useWebhookDataTypeOptions()
   const dialog = useFormDialogWithMutation()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_WEBHOOKS)
 
   const form = useForm<WebhookForm>({
     mode: "onChange",
@@ -29,7 +32,7 @@ export default function AddWebhookTrigger({ children, ...rest }: AddWebhookTrigg
       name: "",
       enabled: true,
       action: webhookDataTypeOptions.getFirst().value,
-      url: "",
+      targetUrl: "",
       httpsCaTrustMode: HttpsCaTrustMode.SystemTruststore,
       httpsCustomCaCertificate: "",
       triggers: [],
@@ -38,9 +41,9 @@ export default function AddWebhookTrigger({ children, ...rest }: AddWebhookTrigg
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_HOOK_CREATE,
-    mutationFn: async (payload: Partial<Hook>) => api.admin.createHook(payload),
+    mutationFn: async (payload: HookRequest) => api.admin.createHook(payload),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err, form)
     },
   })
 
@@ -56,14 +59,15 @@ export default function AddWebhookTrigger({ children, ...rest }: AddWebhookTrigg
       size: "lg",
       async onSubmit(values: WebhookForm) {
         await mutation.mutateAsync({
+          type: "WEB",
           name: values.name,
           action: values.action,
-          url: values.url,
+          targetUrl: values.targetUrl,
           enabled: values.enabled,
-          httpsCaTrustMode: values.httpsCaTrustMode,
-          httpsCustomCaCertificate: values.httpsCustomCaCertificate,
+          httpsCaTrustMode: values.httpsCaTrustMode as Hook["httpsCaTrustMode"],
+          httpsCustomCaCertificate:
+            values.httpsCaTrustMode === HttpsCaTrustMode.CustomCa ? values.httpsCustomCaCertificate : null,
           triggers: values.triggers,
-          type: "Web",
         })
 
         dialogRef.close()

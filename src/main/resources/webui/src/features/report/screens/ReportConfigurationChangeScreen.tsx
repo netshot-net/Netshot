@@ -3,11 +3,18 @@ import { Heading, IconButton, Stack } from "@chakra-ui/react"
 import { useTranslation } from "react-i18next"
 import { LuRefreshCcw } from "react-icons/lu"
 import { ConfigurationChangeList, ConfigurationChart } from "../components"
-import { useConfigChanges } from "../hooks"
+import { useConfigChangeBins, useConfigChanges } from "../hooks"
 
 export default function ReportConfigurationChangeScreen() {
   const { t } = useTranslation()
-  const { refetch, isFetching } = useConfigChanges()
+  const changes = useConfigChanges()
+  const bins = useConfigChangeBins()
+  const isFetching = changes.isFetching || bins.isFetching
+
+  function refetch() {
+    changes.refetch()
+    bins.refetch()
+  }
 
   return (
     <Stack gap="6" p="9" flex="1" minH="0" overflow="hidden">

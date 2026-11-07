@@ -22,13 +22,13 @@ export function ComplianceRuleResultPanel({ onInsert }: Props) {
 
   const policies = useMemo(() => policyQuery.data ?? [], [policyQuery.data])
   const policyOptions = useMemo(
-    () => policies.map((p) => ({ label: p.name, value: p.id })),
+    () => policies.map((p) => ({ label: p.name ?? "", value: p.id })),
     [policies]
   )
 
   const policy = useMemo(() => policies.find((p) => p.id === Number(policyId)), [policies, policyId])
   const ruleOptions = useMemo(
-    () => (policy?.rules ?? []).map((r) => ({ label: r.name, value: r.id })),
+    () => (policy?.rules ?? []).map((r) => ({ label: r.name ?? "", value: r.id })),
     [policy]
   )
   const rule = useMemo(() => policy?.rules?.find((r) => r.id === Number(ruleId)), [policy, ruleId])

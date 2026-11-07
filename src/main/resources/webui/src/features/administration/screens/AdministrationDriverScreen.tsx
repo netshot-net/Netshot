@@ -1,13 +1,12 @@
-import api from "@/api"
+import { DeviceType } from "@/api/admin"
+import { useListAll } from "@/hooks/useListAll"
 import { DataTable, EmptyResult, Search } from "@/components"
-import { usePagination } from "@/hooks"
-import { DeviceType, DeviceTypeProtocol } from "@/types"
-import { search } from "@/utils"
+import { DeviceTypeProtocol } from "@/types"
+import { useSearchQuery } from "@/hooks"
 import { Button, Checkbox, Heading, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
+import { LuRefreshCcw } from "react-icons/lu"
 import { CellContext, createColumnHelper } from "@tanstack/react-table"
 import { useCallback, useMemo } from "react"
-import { LuRefreshCcw } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import ReloadDeviceDriversTrigger from "../components/ReloadDeviceDriversTrigger"
 import { QUERIES } from "../constants"
@@ -16,20 +15,15 @@ const columnHelper = createColumnHelper<DeviceType>()
 
 export default function AdministrationDriverScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
 
-  const { data = [], isPending } = useQuery({
-    queryKey: [QUERIES.ADMIN_DRIVERS, pagination.query, pagination.offset, pagination.limit],
-    queryFn: async () => api.admin.getAllDrivers(pagination),
-    select: useCallback(
-      (res: DeviceType[]): DeviceType[] => {
-        return search(res, "name", "description").with(pagination.query)
-      },
-      [pagination.query]
-    ),
-  })
+  const { rows: data, isPending } = useListAll<DeviceType>(
+    [QUERIES.ADMIN_DRIVERS],
+    "/device-types",
+    { q: searchBox.query, fields: "name,description,protocols,version,sourceHash,author" }
+  )
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
 
   const getProtocolCheckbox = useCallback(
     (info: CellContext<DeviceType, DeviceTypeProtocol[]>, types: DeviceTypeProtocol | DeviceTypeProtocol[]) => (
@@ -139,8 +133,8 @@ export default function AdministrationDriverScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />

@@ -22,6 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.platform.query.InMemoryList;
+import net.netshot.netshot.platform.query.InMemoryList.Column;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
+import net.netshot.netshot.platform.query.SortOrder;
 
 /**
  * The device driver use case: list the device types (the drivers loaded by the server), and
@@ -31,6 +37,13 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class DeviceDriverService {
+
+	private static final InMemoryList<DeviceDriver> LIST = new InMemoryList<>(List.of(SortOrder.asc("name")),
+		Column.<DeviceDriver>string("name", DeviceDriver::getName, true),
+		Column.<DeviceDriver>string("description", DeviceDriver::getDescription, true),
+		Column.<DeviceDriver>string("author", DeviceDriver::getAuthor, true),
+		Column.<DeviceDriver>string("version", DeviceDriver::getVersion, false),
+		Column.<DeviceDriver>integer("priority", DeviceDriver::getPriority));
 
 	private final DriverRegistry driverRegistry;
 
@@ -58,14 +71,41 @@ public class DeviceDriverService {
 	 */
 	public List<DeviceDriver> list(boolean refresh) {
 		if (refresh) {
-			this.clusterReload.run();
-			try {
-				this.driverRegistry.refresh();
-			}
-			catch (Exception e) {
-				log.error("Error while refreshing the device types.", e);
-			}
+			this.reload();
 		}
 		return new ArrayList<>(this.driverRegistry.getAllDrivers());
+	}
+
+	/**
+	 * Tells what the list of the device types can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema listSchema() {
+		return LIST.schema();
+	}
+
+	/**
+	 * Reloads the device drivers from their sources, on this server and the other members of the cluster. A driver
+	 * which can't be loaded is logged and left out.
+	 */
+	public void reload() {
+		this.clusterReload.run();
+		try {
+			this.driverRegistry.refresh();
+		}
+		catch (Exception e) {
+			log.error("Error while refreshing the device types.", e);
+		}
+	}
+
+	/**
+	 * Lists the device types matching a query.
+	 *
+	 * @param query the query
+	 * @return the drivers of the window, with the total number of matching drivers if the query asks for it
+	 */
+	public ListResult<DeviceDriver> list(ListQuery query) {
+		return LIST.apply(this.driverRegistry.getAllDrivers(), query);
 	}
 }

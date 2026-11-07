@@ -11,13 +11,13 @@ import TaskLiveStats from "../components/TaskLiveStats"
 import TaskTable from "../components/TaskTable"
 import TaskTreeModeToggle from "../components/TaskTreeModeToggle"
 import { ALL_STATUS_KEYS } from "../constants"
-import { useActiveTasks, useTaskSummary } from "../hooks"
+import { LIVE_ROWS_LIMIT, useActiveTasks, useTaskSummary } from "../hooks"
 
 export default function TaskActiveScreen() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
-  const { rows, isPending, isFetching: isFetchingTasks } = useActiveTasks()
+  const { rows, truncated, isPending, isFetching: isFetchingTasks } = useActiveTasks()
   const { isFetching: isFetchingSummary } = useTaskSummary()
 
   function onRefresh() {
@@ -76,6 +76,11 @@ export default function TaskActiveScreen() {
         </Stack>
       </Stack>
 
+      {truncated && (
+        <Text textStyle="xs" color="fg.muted">
+          {t("task.rowLimitNotice", { count: LIVE_ROWS_LIMIT })}
+        </Text>
+      )}
       <TaskTable rows={rows} isPending={isPending} />
     </Stack>
   )

@@ -1,14 +1,23 @@
+import type { Brief, Schemas } from "@/api/client"
+
 export enum GroupType {
-  Static = "StaticDeviceGroup",
-  Dynamic = "DynamicDeviceGroup",
+  Static = "STATIC",
+  Dynamic = "DYNAMIC",
 }
 
-export type Group = {
-  changeDate: number;
-  id: number;
-  name: string;
-  folder: string;
-  hiddenFromReports: boolean;
-  type: GroupType;
-  query?: string;
-};
+/**
+ * A device group as the API gives it: the brief view of a list gives its name, folder and type, the full view
+ * the other properties (version, change date, hiddenFromReports and query).
+ */
+export type Group = Omit<Schemas["Group"], "name" | "folder" | "type"> & {
+  name: string
+  folder: string
+  type: GroupType
+}
+
+/** A device group in its brief view (the group lists and trees). */
+export type GroupBrief = Omit<Brief["Group"], "name" | "folder" | "type"> & {
+  name: string
+  folder: string
+  type: GroupType
+}

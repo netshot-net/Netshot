@@ -26,6 +26,7 @@ import net.netshot.netshot.credentials.DeviceSshAccount;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.TestDevices;
 
 /**
@@ -48,7 +49,7 @@ final class SimulatedRouter {
 	 */
 	static Device persist(GenericContainer<?> container, int port) {
 		Domain domain = TestDevices.addDomain("Lab", "Test domain");
-		TestDevices.addCredentialSet(DeviceSshAccount.builder().username("admin").password("admin").superPassword("admin")
+		TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(Secret.local("admin"))
 			.name("Lab SSH").mgmtDomain(domain).build());
 		return TestDevices.add(Device.create("CiscoIOS12", container.getHost(), domain, "tester").toBuilder()
 			.accesses(List.of(DeviceAccess.of("ssh").toBuilder().address(container.getHost()).port(port).build()))

@@ -46,9 +46,13 @@ import io.undertow.server.handlers.resource.ResourceHandler;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
+import io.undertow.servlet.api.ServletInfo;
 import io.undertow.servlet.api.ServletSessionConfig;
 import io.undertow.servlet.util.ImmediateInstanceFactory;
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.api.rest.v0.V0Application;
+import net.netshot.netshot.api.rest.v1.V1Application;
+import net.netshot.netshot.api.rest.v1.V1Links;
 import net.netshot.netshot.Netshot;
 import net.netshot.netshot.platform.config.Config;
 import net.netshot.netshot.platform.config.Setting;
@@ -58,7 +62,8 @@ import net.netshot.netshot.platform.lifecycle.Service;
 
 /**
  * The web server of Netshot: a thread which starts Undertow, serving the Web UI (static files) and the
- * REST API (the Jersey application, see {@link NetshotWebApplication}) with the HTTP(S) and session cookie
+ * REST API (the Jersey applications of the legacy API, {@link V0Application}, on the API path, and of the v1 API,
+ * {@link V1Application}, on {@code <API path>/v1}) with the HTTP(S) and session cookie
  * settings of the configuration.
  */
 @Slf4j
@@ -72,6 +77,9 @@ public final class RestServer implements Service {
 
 	/** The path the REST API is served on. */
 	static final Setting<String> API_PATH = Setting.text("netshot.http.apipath").defaultValue("/api").restart();
+
+	/** Whether the legacy (v0) REST API is served (off by default: the web UI uses the v1 API). */
+	static final Setting<Boolean> V0_ENABLED = Setting.bool("netshot.http.api.v0.enabled").defaultValue(false).restart();
 
 	/** Name of the session cookie. */
 	static final Setting<String> SESSION_COOKIE_NAME = Setting.text("netshot.http.sessioncookiename")
@@ -199,12 +207,21 @@ public final class RestServer implements Service {
 			.setClassLoader(Netshot.class.getClassLoader())
 			.setContextPath(apiPath) // same as Grizzly context path
 			.setDeploymentName("NetshotREST")
-			.addServlets(
-				Servlets.servlet("Jersey", ServletContainer.class,
-					new ImmediateInstanceFactory<>(new ServletContainer(new NetshotWebApplication(this.binder))))
-					.setLoadOnStartup(1)
-					.addMapping("/*")
-			)
+			.addServlet(Servlets.servlet("JerseyV1", ServletContainer.class,
+					new ImmediateInstanceFactory<>(new ServletContainer(new V1Application(this.binder))))
+				.setLoadOnStartup(1)
+				.addMapping(V1Links.VERSION_PATH + "/*"));
+		if (config.get(V0_ENABLED)) {
+			ServletInfo v0 = Servlets.servlet("Jersey", ServletContainer.class,
+					new ImmediateInstanceFactory<>(new ServletContainer(new V0Application(this.binder))))
+				.setLoadOnStartup(1)
+				.addMapping("/*");
+			deployment.addServlet(v0);
+		}
+		else {
+			log.info("The legacy REST API (v0) is disabled (netshot.http.api.v0.enabled).");
+		}
+		deployment
 			.setServletSessionConfig(new ServletSessionConfig()
 				.setName(config.get(SESSION_COOKIE_NAME))
 				.setHttpOnly(true)

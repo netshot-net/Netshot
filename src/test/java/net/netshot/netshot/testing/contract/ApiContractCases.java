@@ -352,6 +352,8 @@ public final class ApiContractCases {
 			.transform(Transform.OPENAPI));
 		c.add(ApiContractCase.builder("GET", "/openapi.{type}").variant("yaml").path("/openapi.yaml").accept(ApiContractCase.YAML)
 			.transform(Transform.OPENAPI));
+		c.add(ApiContractCase.builder("GET", "/openapi").variant("accept").path("/openapi").accept(ApiContractCase.YAML)
+			.transform(Transform.OPENAPI));
 
 		// Errors on reads
 		c.get("/devices/{id}", "unknown", () -> "/devices/99999999");

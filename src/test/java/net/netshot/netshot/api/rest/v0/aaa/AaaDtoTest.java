@@ -68,7 +68,7 @@ class AaaDtoTest {
 
 	private static UiUser localUser() {
 		UiUser user = UiUser.withPassword("alice", true, 100, "Sup3r-s3cret").withId(7);
-		return new UiUser(user.id(), user.username(), user.local(), user.level(), user.hashedPassword(),
+		return new UiUser(user.id(), user.version(), user.changeDate(), user.username(), user.local(), user.level(), user.hashedPassword(),
 			List.of("$argon2id$old-hash-1"), user.lastPasswordChangeDate());
 	}
 

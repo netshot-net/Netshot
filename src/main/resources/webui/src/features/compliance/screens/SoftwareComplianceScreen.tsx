@@ -1,3 +1,4 @@
+import type { Brief } from "@/api/client"
 import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
 import { DataTable, EmptyResult, Protected, Search } from "@/components"
@@ -6,13 +7,14 @@ import DeviceGroupBadge from "@/components/entity/DeviceGroupBadge"
 import { MUTATIONS } from "@/constants"
 import { useAuth } from "@/contexts"
 import { useConfirmDialogWithMutation } from "@/dialog"
-import { usePagination, useSoftwareLevels, useToast } from "@/hooks"
-import { Level, SoftwareRule } from "@/types"
-import { getNextItemInArray, search } from "@/utils"
+import { useSearchQuery, useSoftwareLevels, useToast } from "@/hooks"
+import { useListAll } from "@/hooks/useListAll"
+import { useDeviceTypeOptions } from "@/features/device/hooks"
+import { DeviceSoftwareLevel, Level } from "@/types"
 import { Badge, Button, Heading, Icon, IconButton, Skeleton, Spacer, Stack, Text } from "@chakra-ui/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { createColumnHelper, Row } from "@tanstack/react-table"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { LuSquarePen, LuPlus, LuTrash, LuAsterisk, LuTrophy, LuMoveRight } from "react-icons/lu"
 import { useTranslation } from "react-i18next"
 import AddSoftwareRuleTrigger from "../components/AddSoftwareRuleTrigger"
@@ -22,33 +24,28 @@ import RuleFieldValue from "../components/RuleFieldValue"
 import { QUERIES } from "../constants"
 import TableButtonStack from "@/features/administration/components/TableButtonStack"
 
-const columnHelper = createColumnHelper<SoftwareRule>()
+const columnHelper = createColumnHelper<Brief["SoftwareRule"]>()
 
 export default function SoftwareComplianceScreen() {
   const { t } = useTranslation()
-  const pagination = usePagination()
+  const searchBox = useSearchQuery()
   const { user } = useAuth()
-  const [data, setData] = useState<SoftwareRule[]>([])
+  const [data, setData] = useState<Brief["SoftwareRule"][]>([])
   const [reorderPending, setReorderPending] = useState(false)
   const dialog = useConfirmDialogWithMutation()
   const toast = useToast()
   const queryClient = useQueryClient()
   const { getColor } = useSoftwareLevels()
+  const { getOptionByDriver } = useDeviceTypeOptions()
 
   const {
-    data: rules,
+    rows: rules,
     isPending,
-    isSuccess,
-  } = useQuery({
-    queryKey: [QUERIES.SOFTWARE_RULE_LIST, pagination.query],
-    queryFn: api.softwareRule.getAll,
-    select: useCallback(
-      (res: SoftwareRule[]): SoftwareRule[] => {
-        return search(res, "deviceType", "family").with(pagination.query)
-      },
-      [pagination.query]
-    ),
+  } = useListAll<Brief["SoftwareRule"]>([QUERIES.SOFTWARE_RULE_LIST], "/compliance/software-rules", {
+    family__ic: searchBox.query?.trim(),
+    sort: "priority",
   })
+  const isSuccess = !isPending
 
   // Re-sync the local (reorderable) copy from the query once it settles, but
   // not while a reorder mutation is in flight (reorderPending guards against
@@ -60,11 +57,11 @@ export default function SoftwareComplianceScreen() {
     }
   }, [isSuccess, rules, reorderPending])
 
-  const isSearching = Boolean(pagination.query?.trim())
+  const isSearching = Boolean(searchBox.query?.trim())
   const isDraggable = (user?.level || 0) >= Level.ReadWrite && !isSearching
 
   const columns = [
-    columnHelper.accessor("targetGroup", {
+    columnHelper.accessor("group", {
       cell: (info) => {
         const value = info.getValue()
         if (!value) {
@@ -75,12 +72,12 @@ export default function SoftwareComplianceScreen() {
             </Badge>
           )
         }
-        return <DeviceGroupBadge id={value.id} name={value.name} />
+        return <DeviceGroupBadge id={value.id!} name={value.name ?? value.display ?? ""} />
       },
       header: t("group.label"),
       size: 10000,
     }),
-    columnHelper.accessor("deviceType", {
+    columnHelper.accessor("driver", {
       cell: (info) => {
         const value = info.getValue()
         if (!value) {
@@ -91,7 +88,7 @@ export default function SoftwareComplianceScreen() {
             </Badge>
           )
         }
-        return <Text>{value}</Text>
+        return <Text>{getOptionByDriver(value)?.value.description ?? value}</Text>
       },
       header: t("device.type"),
       size: 10000,
@@ -128,7 +125,7 @@ export default function SoftwareComplianceScreen() {
       header: t("device.module.partNumber"),
       size: 10000,
     }),
-    columnHelper.accessor("version", {
+    columnHelper.accessor("softwareVersion", {
       cell: (info) => {
         const value = info.getValue()
         if (!value) {
@@ -139,7 +136,7 @@ export default function SoftwareComplianceScreen() {
             </Badge>
           )
         }
-        return <RuleFieldValue value={value} isRegExp={info.row.original.versionRegExp} />
+        return <RuleFieldValue value={value} isRegExp={info.row.original.softwareVersionRegExp} />
       },
       header: t("common.version"),
       size: 10000,
@@ -160,7 +157,7 @@ export default function SoftwareComplianceScreen() {
         const level = info.getValue()
 
         return (
-          <Badge colorPalette={getColor(level)}>
+          <Badge colorPalette={getColor(level as DeviceSoftwareLevel)}>
             <LuTrophy size={12} />
             {level}
           </Badge>
@@ -208,17 +205,18 @@ export default function SoftwareComplianceScreen() {
 
   const reorderMutation = useMutation({
     mutationKey: MUTATIONS.SOFTWARE_RULE_REORDER,
-    mutationFn: ({ id, nextId }: { id: number; nextId: number }) => {
-      return api.softwareRule.reorder(id, nextId)
+    mutationFn: ({ id, priority }: { id: number; priority: number }) => {
+      return api.softwareRule.reorder(id, priority)
     },
     onError(err: NetshotError) {
       toast.error(err)
     },
   })
 
-  function onDrop(row: Row<SoftwareRule>, reorderedData: SoftwareRule[]) {
-    const id = row.original.id
-    const nextItem = getNextItemInArray(row.original, reorderedData, "id")
+  function onDrop(row: Row<Brief["SoftwareRule"]>, reorderedData: Brief["SoftwareRule"][]) {
+    const id = row.original.id!
+    // The priority of a rule is its position in the list, from 1
+    const priority = reorderedData.findIndex((rule) => rule.id === id) + 1
     const originalData = [...data]
 
     setReorderPending(true)
@@ -227,11 +225,12 @@ export default function SoftwareComplianceScreen() {
       title: t("common.changePriority"),
       description: t("policy.rule.confirmChangePriorities"),
       async onConfirm() {
-        await reorderMutation.mutateAsync({ id: id, nextId: nextItem?.id })
+        await reorderMutation.mutateAsync({ id, priority })
 
         setData(reorderedData)
         dialogRef.close()
 
+        // Read the list again: the server gives the new positions of the rules
         await queryClient.invalidateQueries({ queryKey: [QUERIES.SOFTWARE_RULE_LIST] })
 
         setReorderPending(false)
@@ -253,8 +252,8 @@ export default function SoftwareComplianceScreen() {
         <Stack direction="row" gap="3">
           <Search
             placeholder={t("common.searchPlaceholder")}
-            onQuery={pagination.onQuery}
-            onClear={pagination.onQueryClear}
+            onQuery={searchBox.onQuery}
+            onClear={searchBox.onQueryClear}
             w="30%"
           />
           <Spacer />
@@ -278,7 +277,7 @@ export default function SoftwareComplianceScreen() {
           </Stack>
         ) : (
           <>
-            {data?.length > 0 ? (
+            {data.length > 0 ? (
               <DataTable
                 columns={columns}
                 data={data}

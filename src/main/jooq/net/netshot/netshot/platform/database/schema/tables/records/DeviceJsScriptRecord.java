@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.DeviceJsScript;
 
 import org.jooq.Record1;
@@ -102,6 +104,34 @@ public class DeviceJsScriptRecord extends UpdatableRecordImpl<DeviceJsScriptReco
         return (String) get(5);
     }
 
+    /**
+     * Setter for <code>device_js_script.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>device_js_script.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(6);
+    }
+
+    /**
+     * Setter for <code>device_js_script.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>device_js_script.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(7);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -125,7 +155,7 @@ public class DeviceJsScriptRecord extends UpdatableRecordImpl<DeviceJsScriptReco
     /**
      * Create a detached, initialised DeviceJsScriptRecord
      */
-    public DeviceJsScriptRecord(Long id, String author, String deviceDriver, String name, String script, String folder) {
+    public DeviceJsScriptRecord(Long id, String author, String deviceDriver, String name, String script, String folder, Integer version, Instant changeDate) {
         super(DeviceJsScript.DEVICE_JS_SCRIPT);
 
         setId(id);
@@ -134,6 +164,8 @@ public class DeviceJsScriptRecord extends UpdatableRecordImpl<DeviceJsScriptReco
         setName(name);
         setScript(script);
         setFolder(folder);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

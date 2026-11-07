@@ -1,9 +1,9 @@
 import { EmptyResult, Search, VirtualizedDataTable } from "@/components"
 import { useAlertDialog } from "@/dialog"
 import { DeviceBadge } from "@/components/entity"
-import { LightConfig } from "@/types"
+import { ConfigChange } from "@/api/report"
 import { useLocalization } from "@/i18n"
-import { search, sortByDateDesc } from "@/utils"
+import { DeviceNetworkClass } from "@/types"
 import { Badge, Heading, Skeleton, Spacer, Stack, Tag, Text } from "@chakra-ui/react"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
@@ -15,7 +15,7 @@ import { useConfigChangeFilterStore } from "../stores/useConfigChangeFilterStore
 import ConfigurationChangeCompareView from "./ConfigurationChangeCompareView"
 import ConfigurationChangeFilterMenu from "./ConfigurationChangeFilterMenu"
 
-const columnHelper = createColumnHelper<LightConfig>()
+const columnHelper = createColumnHelper<ConfigChange>()
 
 export default function ConfigurationChangeList() {
   const { t } = useTranslation()
@@ -27,10 +27,10 @@ export default function ConfigurationChangeList() {
   const day = useConfigChangeFilterStore((s) => s.day)
   const setDay = useConfigChangeFilterStore((s) => s.setDay)
 
-  function openCompare(change: LightConfig) {
+  function openCompare(change: ConfigChange) {
     dialog.open({
       title: t("common.compareChanges"),
-      description: <ConfigurationChangeCompareView config={change} />,
+      description: <ConfigurationChangeCompareView configId={change.id} deviceId={change.device?.id ?? 0} />,
       hideFooter: true,
       variant: "full-floating",
     })
@@ -40,10 +40,18 @@ export default function ConfigurationChangeList() {
     let filtered = data
     if (day != null) {
       const dayEnd = day + 86_400_000
-      filtered = filtered.filter((change) => change.changeDate >= day && change.changeDate < dayEnd)
+      filtered = filtered.filter((change) => {
+        const changeDate = change.changeDate?.getTime() ?? 0
+        return changeDate >= day && changeDate < dayEnd
+      })
     }
-    filtered = search(filtered, "deviceName", "author").with(query)
-    return sortByDateDesc([...filtered], "changeDate")
+    const text = query.trim().toLowerCase()
+    if (!text) return filtered
+    return filtered.filter(
+      (change) =>
+        (change.device?.name ?? "").toLowerCase().includes(text) ||
+        (change.author ?? "").toLowerCase().includes(text)
+    )
   }, [data, day, query])
 
   const isSearching = Boolean(query?.trim())
@@ -51,16 +59,20 @@ export default function ConfigurationChangeList() {
   const columns = useMemo(
     () => [
       columnHelper.accessor("changeDate", {
-        cell: (info) => <Text>{info.getValue() ? formatDateTime(info.getValue()) : t("common.nA")}</Text>,
+        cell: (info) => {
+          const changeDate = info.getValue()
+          return <Text>{changeDate ? formatDateTime(changeDate) : t("common.nA")}</Text>
+        },
         header: t("time.dateTime"),
         enableSorting: true,
         size: 15000,
       }),
-      columnHelper.accessor("deviceName", {
+      columnHelper.accessor((row) => row.device?.name ?? "", {
+        id: "deviceName",
         cell: (info) => (
-          <DeviceBadge networkClass={info.row.original.deviceNetworkClass}>
+          <DeviceBadge networkClass={info.row.original.device?.networkClass as DeviceNetworkClass | undefined}>
             <Link
-              to={`/app/devices/${info.row.original.deviceId}/configurations`}
+              to={`/app/devices/${info.row.original.device?.id}/configurations`}
               onClick={(e) => e.stopPropagation()}
             >
               {info.getValue()}

@@ -4,6 +4,8 @@
 package net.netshot.netshot.platform.database.schema.tables.records;
 
 
+import java.time.Instant;
+
 import net.netshot.netshot.platform.database.schema.tables.Hook;
 
 import org.jooq.Record1;
@@ -130,6 +132,34 @@ public class HookRecord extends UpdatableRecordImpl<HookRecord> {
         return (String) get(7);
     }
 
+    /**
+     * Setter for <code>hook.version</code>.
+     */
+    public void setVersion(Integer value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>hook.version</code>.
+     */
+    public Integer getVersion() {
+        return (Integer) get(8);
+    }
+
+    /**
+     * Setter for <code>hook.change_date</code>.
+     */
+    public void setChangeDate(Instant value) {
+        set(9, value);
+    }
+
+    /**
+     * Getter for <code>hook.change_date</code>.
+     */
+    public Instant getChangeDate() {
+        return (Instant) get(9);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -153,7 +183,7 @@ public class HookRecord extends UpdatableRecordImpl<HookRecord> {
     /**
      * Create a detached, initialised HookRecord
      */
-    public HookRecord(Long id, Boolean enabled, String name, String type, String action, String url, String httpsCaTrustMode, String httpsCustomCaCertificate) {
+    public HookRecord(Long id, Boolean enabled, String name, String type, String action, String url, String httpsCaTrustMode, String httpsCustomCaCertificate, Integer version, Instant changeDate) {
         super(Hook.HOOK);
 
         setId(id);
@@ -164,6 +194,8 @@ public class HookRecord extends UpdatableRecordImpl<HookRecord> {
         setUrl(url);
         setHttpsCaTrustMode(httpsCaTrustMode);
         setHttpsCustomCaCertificate(httpsCustomCaCertificate);
+        setVersion(version);
+        setChangeDate(changeDate);
         resetTouchedOnNotNull();
     }
 }

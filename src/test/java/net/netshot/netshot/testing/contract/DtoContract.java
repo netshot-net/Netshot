@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import net.netshot.netshot.platform.secret.LocalSecret;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.contract.ApiContractGolden.Format;
 
 /**
@@ -185,6 +187,22 @@ public final class DtoContract implements BeforeEachCallback {
 		StringBuilder text = new StringBuilder(bean.getClass().getSimpleName()).append('\n');
 		new TreeMap<>(description).forEach((key, value) -> text.append(key).append('=').append(renderValue(value)).append('\n'));
 		return text.toString();
+	}
+
+	/**
+	 * Describes a credential field the way the former entities exposed it: its local value (in clear text), its
+	 * Vault path, and the Vault instance as a pending one ({@code resolvedXxxVaultInstanceId}, the stored
+	 * {@code xxxVaultInstanceId} being unset).
+	 * @param description the properties of the object, to add the field to
+	 * @param name the name of the field
+	 * @param secret the field (may be null)
+	 */
+	public static void describeSecret(Map<String, Object> description, String name, Secret secret) {
+		LocalSecret local = Secret.localValue(secret);
+		description.put(name, local == null ? null : local.reveal());
+		description.put("resolved" + Character.toUpperCase(name.charAt(0)) + name.substring(1) + "VaultInstanceId", Secret.vaultInstanceId(secret));
+		description.put(name + "VaultInstanceId", null);
+		description.put(name + "VaultPath", Secret.vaultPath(secret));
 	}
 
 	private static String renderValue(Object value) {

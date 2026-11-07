@@ -1,6 +1,4 @@
-import { Address } from "./address"
-import { CredentialSet } from "./credentialSet"
-import { MgmtDomain } from "./mgmtDomain"
+import type { Schemas } from "@/api/client"
 
 export enum DeviceStatus {
   Production = "INPRODUCTION",
@@ -34,16 +32,6 @@ export enum DeviceAddressUsage {
   Primary = "Primary",
 }
 
-export type DeviceModule = {
-  id: number
-  slot: string
-  partNumber: string
-  serialNumber: string
-  firstSeenDate: number
-  lastSeenDate: number
-  removed: boolean
-}
-
 export type DeviceOwnerGroup = {
   changeDate: number
   id: number
@@ -53,39 +41,7 @@ export type DeviceOwnerGroup = {
   type: string
 }
 
-export type LightDevice = {
-  id: number
-  name: string
-  family: string
-  mgmtAddress: string
-  status: DeviceStatus
-  driver: string
-  softwareLevel: DeviceSoftwareLevel
-  configCompliant: boolean
-  eos: boolean
-  eol: boolean
-  networkClass: DeviceNetworkClass
-}
-
-export type DeviceNumericAttribute = {
-  type: string
-  name: string
-  number: number
-}
-
-export type DeviceTextAttribute = {
-  type: string
-  name: string
-  text: string
-}
-
-export type DeviceBinaryAttribute = {
-  type: string
-  name: string
-  assumption: boolean
-}
-
-export type DeviceAttribute = DeviceNumericAttribute | DeviceTextAttribute | DeviceBinaryAttribute
+export type DeviceAttribute = Schemas["DeviceAttribute"]
 
 export enum SshHostKeyVerification {
   TrustAny = "TRUST_ANY",
@@ -98,53 +54,6 @@ export enum HttpsCaTrustMode {
   CustomCa = "CUSTOM_CA",
 }
 
-export type DeviceAccess = {
-  accessName: string
-  address?: string
-  port?: number
-  globalCredentialSet?: CredentialSet
-  specificCredentialSet?: CredentialSet
-  sshHostKeyVerification?: SshHostKeyVerification
-  sshTrustedHostKeys?: string
-  sshTrustedHostKeysSince?: number
-  httpsCaTrustMode?: HttpsCaTrustMode
-  httpsCustomCaCertificate?: string
-}
-
-export type Device = {
-  attributes: DeviceAttribute[]
-  changeDate: number
-  comments: string
-  tags: string[]
-  contact: string
-  createdDate: number
-  creator: string
-  driver: string
-  eolDate: number
-  eolModule: DeviceModule
-  eosDate: number
-  eosModule: DeviceModule
-  family: string
-  id: number
-  location: string
-  mgmtAddress: string
-  mgmtDomain: MgmtDomain
-  name: string
-  networkClass: DeviceNetworkClass
-  ownerGroups: DeviceOwnerGroup[]
-  serialNumber: string
-  softwareLevel: DeviceSoftwareLevel
-  softwareVersion: string
-  status: DeviceStatus
-  accesses: DeviceAccess[]
-  options: Record<string, string | boolean>
-  realDeviceType: string
-  endOfLife: boolean
-  endOfSale: boolean
-  compliant: true
-  lastConnectionDate: number
-}
-
 export enum DeviceComplianceResultType {
   Conforming = "CONFORMING",
   NonConforming = "NONCONFORMING",
@@ -152,51 +61,6 @@ export enum DeviceComplianceResultType {
   Exempted = "EXEMPTED",
   InvalidRule = "INVALIDRULE",
   NotApplication = "NOTAPPLICABLE",
-}
-
-export type DeviceComplianceResult = {
-  ruleId: number
-  ruleName: string
-  policyId: number
-  policyName: string
-  result: DeviceComplianceResultType
-  comment: string
-  checkDate: number
-  expirationDate: number
-}
-
-export type DeviceDiagnosticResult = {
-  creationDate: number
-  lastCheckDate: number
-  diagnosticName: string
-  diagnosticId: number
-  type: DeviceAttributeType
-  number?: number
-  text?: string
-  assumption?: boolean
-}
-
-export type DeviceInterface = {
-  id: number
-  interfaceName: string
-  ip4Addresses: Address[]
-  ip6Addresses: Address[]
-  vrfInstance: string
-  virtualDevice: string
-  description: string
-  enabled: boolean
-  level3: boolean
-  macAddress: string
-}
-
-export type DeviceFamily = {
-  driver: string
-  deviceFamily: string
-}
-
-export type DeviceTag = {
-  name: string
-  deviceCount: number
 }
 
 export enum DeviceAttributeType {
@@ -260,32 +124,30 @@ export type DeviceOptionDefinition = {
   defaultValue?: string | boolean
 }
 
-export type DeviceType = {
-  attributes: DeviceAttributeDefinition[]
-  author: string
-  cliMainModes: string[]
-  description: string
-  location: {
-    type: string
-    fileName: string
-  }
+/** A device as the API gives it (a list gives the summary properties only, unless more are asked for). */
+export type Device = Omit<Schemas["Device"], "status" | "networkClass" | "softwareLevel"> & {
+  id: number
   name: string
-  priority: number
-  protocols: DeviceTypeProtocol[]
-  sourceHash: string
-  accessDefinitions: Record<string, DeviceAccessDefinition>
-  options: Record<string, DeviceOptionDefinition>
-  version: string
+  mgmtAddress: string
+  // The enums of the UI have the values of the API
+  status: DeviceStatus
+  networkClass: DeviceNetworkClass
+  softwareLevel: DeviceSoftwareLevel
 }
 
-export type DeviceAccessFailure = {
-  driver: string
-  family: string
-  id: number
-  lastFailure: number
-  lastSuccess: number
-  mgmtAddress: string
+export type DeviceModule = Schemas["DeviceModule"] & { id: number }
+export type DeviceInterface = Schemas["DeviceInterface"] & { id: number }
+export type DeviceAccess = Schemas["DeviceAccess"]
+export type DeviceFamily = Schemas["DeviceFamily"]
+export type DeviceTag = Schemas["DeviceTag"]
+export type DeviceComplianceResult = Schemas["DeviceComplianceResult"]
+
+/** The loaded drivers: the enums of the UI have the values of the API. */
+export type DeviceType = Omit<Schemas["DeviceType"], "attributes" | "accesses" | "options" | "protocols"> & {
   name: string
-  networkClass: DeviceNetworkClass
-  status: DeviceStatus
+  description: string
+  protocols: DeviceTypeProtocol[]
+  attributes: DeviceAttributeDefinition[]
+  accesses: DeviceAccessDefinition[]
+  options: DeviceOptionDefinition[]
 }

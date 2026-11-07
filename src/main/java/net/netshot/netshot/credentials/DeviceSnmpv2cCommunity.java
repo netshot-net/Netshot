@@ -22,6 +22,7 @@ import java.time.Instant;
 
 import lombok.Builder;
 import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.platform.secret.Secret;
 
 /**
  * An SNMPv2c community.
@@ -32,9 +33,7 @@ import net.netshot.netshot.domain.Domain;
  * @param name the name, unique
  * @param mgmtDomain the domain the credential set is restricted to, or null for all the domains
  * @param deviceSpecific whether the credential set belongs to one access of one device (rather than being global)
- * @param community the community
- * @param communityVaultInstanceId the ID of the Vault instance the community is read from, or null if it is local
- * @param communityVaultPath the Vault path (and key) of the community
+ * @param community the community, local or in a Vault instance (null if not set)
  */
 @Builder(toBuilder = true)
 public record DeviceSnmpv2cCommunity(
@@ -44,9 +43,7 @@ public record DeviceSnmpv2cCommunity(
 	String name,
 	Domain mgmtDomain,
 	boolean deviceSpecific,
-	String community,
-	Long communityVaultInstanceId,
-	String communityVaultPath) implements DeviceSnmpCommunity {
+	Secret community) implements DeviceSnmpCommunity {
 
 	@Override
 	public DeviceSnmpv2cCommunity withIdentity(long newId, String newName, boolean newDeviceSpecific) {

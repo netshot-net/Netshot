@@ -42,6 +42,7 @@ import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceDraft;
 import net.netshot.netshot.inventory.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.platform.log.TaskContext;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.DeviceSimulators;
 import net.netshot.netshot.testing.SimulatorTest;
 import net.netshot.netshot.testing.TestConnectors;
@@ -61,7 +62,7 @@ public class GenericSNMPDriverTest {
 	@DisplayName("GenericSNMP Snapshot (real snmpd CONTAINER)")
 	void snapshot() throws NoSuchMethodException, SecurityException, IOException,
 		IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		DeviceSnmpv2cCommunity community = DeviceSnmpv2cCommunity.builder().community("public").name("community1").build();
+		DeviceSnmpv2cCommunity community = DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("community1").build();
 		int port = DeviceSimulators.mappedUdpPort(CONTAINER, 161);
 		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
 		Device.DeviceBuilder deviceBuilder = Device.create("GenericSNMP", null, domain, "test").toBuilder();

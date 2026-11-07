@@ -23,6 +23,7 @@ import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC;
 import static net.netshot.netshot.platform.database.schema.Tables.DIAGNOSTIC_RESULT;
 import static net.netshot.netshot.platform.database.schema.Tables.LONG_TEXT_CONFIGURATION;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +35,10 @@ import org.jooq.impl.DSL;
 
 import net.netshot.netshot.driver.AttributeDefinition.AttributeType;
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.ListQuery;
 
 /**
  * The queries on the diagnostics. The {@link DSLContext} is always the first parameter: the
@@ -49,16 +54,18 @@ public class DiagnosticRepository {
 	private static Diagnostic toDiagnostic(Record r) {
 		String type = r.get(DIAGNOSTIC.TYPE);
 		long id = r.get(DIAGNOSTIC.ID);
+		int version = r.get(DIAGNOSTIC.VERSION);
+		Instant changeDate = r.get(DIAGNOSTIC.CHANGE_DATE);
 		String name = r.get(DIAGNOSTIC.NAME);
 		boolean enabled = r.get(DIAGNOSTIC.ENABLED);
 		Long targetGroupId = r.get(DIAGNOSTIC.TARGET_GROUP);
 		AttributeType resultType = r.get(DIAGNOSTIC.RESULT_TYPE) == null ? null : AttributeType.valueOf(r.get(DIAGNOSTIC.RESULT_TYPE));
 		return switch (type) {
-			case SIMPLE -> new SimpleDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.DEVICE_DRIVER),
+			case SIMPLE -> new SimpleDiagnostic(id, version, changeDate, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.DEVICE_DRIVER),
 				r.get(DIAGNOSTIC.CLI_MODE), r.get(DIAGNOSTIC.COMMAND), r.get(DIAGNOSTIC.MODIFIER_PATTERN),
 				r.get(DIAGNOSTIC.MODIFIER_REPLACEMENT));
-			case JAVASCRIPT -> new JavaScriptDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
-			case PYTHON -> new PythonDiagnostic(id, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
+			case JAVASCRIPT -> new JavaScriptDiagnostic(id, version, changeDate, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
+			case PYTHON -> new PythonDiagnostic(id, version, changeDate, name, enabled, targetGroupId, resultType, r.get(DIAGNOSTIC.SCRIPT));
 			default -> throw new IllegalStateException("Unknown type of diagnostic '%s'".formatted(type));
 		};
 	}
@@ -66,6 +73,41 @@ public class DiagnosticRepository {
 	private static List<Diagnostic> query(DSLContext dsl, Condition condition, Page page) {
 		return page.apply(dsl.select(DIAGNOSTIC.fields()).from(DIAGNOSTIC).where(condition).orderBy(DIAGNOSTIC.ID))
 			.fetch(DiagnosticRepository::toDiagnostic);
+	}
+
+	/** The fields the diagnostic lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(DIAGNOSTIC.ID)
+		.string("name", DIAGNOSTIC.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", DIAGNOSTIC.TYPE, List.of(SIMPLE, JAVASCRIPT, PYTHON), Option.SORTABLE)
+		.enumeration("resultType", DIAGNOSTIC.RESULT_TYPE, List.of("TEXT", "LONGTEXT", "NUMERIC", "BINARY"), Option.SORTABLE)
+		.bool("enabled", DIAGNOSTIC.ENABLED, Option.SORTABLE)
+		.integer("targetGroup", DIAGNOSTIC.TARGET_GROUP)
+		.string("deviceDriver", DIAGNOSTIC.DEVICE_DRIVER, Option.SORTABLE)
+		.build();
+
+	/**
+	 * Lists the diagnostics matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the diagnostics of the window of the query
+	 */
+	public List<Diagnostic> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(DIAGNOSTIC.fields()).from(DIAGNOSTIC)
+			.where(LIST.condition(query))
+			.orderBy(LIST.orderBy(query)))
+			.fetch(DiagnosticRepository::toDiagnostic);
+	}
+
+	/**
+	 * Counts the diagnostics matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of diagnostics
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(DIAGNOSTIC, LIST.condition(query));
 	}
 
 	/**
@@ -135,6 +177,8 @@ public class DiagnosticRepository {
 	 */
 	public long add(DSLContext dsl, Diagnostic diagnostic) {
 		var insert = dsl.insertInto(DIAGNOSTIC)
+			.set(DIAGNOSTIC.VERSION, 0)
+			.set(DIAGNOSTIC.CHANGE_DATE, Versions.now())
 			.set(DIAGNOSTIC.NAME, diagnostic.name())
 			.set(DIAGNOSTIC.ENABLED, diagnostic.enabled())
 			.set(DIAGNOSTIC.TARGET_GROUP, diagnostic.targetGroupId())
@@ -153,7 +197,18 @@ public class DiagnosticRepository {
 	}
 
 	/**
-	 * Saves an existing diagnostic (its type is not changed).
+	 * Locks the row of a diagnostic until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the diagnostic ID
+	 * @return the version of the diagnostic, or null if there is no such diagnostic
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, DIAGNOSTIC, DIAGNOSTIC.ID, DIAGNOSTIC.VERSION, id);
+	}
+
+	/**
+	 * Saves an existing diagnostic (its type is not changed; its version is incremented, its change date set).
 	 *
 	 * @param dsl the jOOQ context
 	 * @param diagnostic the diagnostic
@@ -161,6 +216,8 @@ public class DiagnosticRepository {
 	 */
 	public boolean save(DSLContext dsl, Diagnostic diagnostic) {
 		var update = dsl.update(DIAGNOSTIC)
+			.set(DIAGNOSTIC.VERSION, DIAGNOSTIC.VERSION.plus(1))
+			.set(DIAGNOSTIC.CHANGE_DATE, Versions.now())
 			.set(DIAGNOSTIC.NAME, diagnostic.name())
 			.set(DIAGNOSTIC.ENABLED, diagnostic.enabled())
 			.set(DIAGNOSTIC.TARGET_GROUP, diagnostic.targetGroupId())

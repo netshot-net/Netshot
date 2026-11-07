@@ -25,7 +25,7 @@ export type ConfigCompareViewProps = {
 function getInlineAttributeValue(config: Config, name: string): string | number | undefined {
   const attr = config?.attributes?.find((a) => a.name === name)
   if (!attr) return undefined
-  return "number" in attr ? attr.number : "text" in attr ? attr.text : undefined
+  return "number" in attr ? attr.number ?? undefined : "text" in attr ? attr.text ?? undefined : undefined
 }
 
 /** Whether an attribute has a value in the given config; a Config's `attributes` array only lists attributes that are actually set. */

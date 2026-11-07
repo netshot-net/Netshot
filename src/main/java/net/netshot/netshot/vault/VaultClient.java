@@ -108,7 +108,7 @@ final class VaultClient {
 		else {
 			return loginWithPayload(instance, settings, "%s/login".formatted(instance.appRoleMountPath()), Map.of(
 				"role_id", instance.appRoleId(),
-				"secret_id", instance.appRoleSecretId()
+				"secret_id", instance.appRoleSecretId().reveal()
 			));
 		}
 	}
@@ -118,7 +118,7 @@ final class VaultClient {
 			log.trace("Obtaining a JWT from IdP token endpoint '{}' for Vault instance '{}'.",
 				instance.jwtIdpTokenEndpoint(), instance.name());
 			ClientAuthentication clientAuth = new ClientSecretBasic(
-				new ClientID(instance.jwtClientId()), new Secret(instance.jwtClientSecret()));
+				new ClientID(instance.jwtClientId()), new Secret(instance.jwtClientSecret().reveal()));
 			AuthorizationGrant grant = new ClientCredentialsGrant();
 			TokenRequest.Builder builder = new TokenRequest.Builder(
 				new URI(instance.jwtIdpTokenEndpoint()), clientAuth, grant);

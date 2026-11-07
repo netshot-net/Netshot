@@ -5,7 +5,7 @@
       <accessName>a1</accessName>
       <address/>
       <globalCredentialSet type="SNMP v1">
-        <community>=</community>
+        <community/>
         <communityVaultInstanceId>5</communityVaultInstanceId>
         <communityVaultPath>path/community1</communityVaultPath>
         <deviceSpecific>false</deviceSpecific>
@@ -52,7 +52,7 @@
       <accessName>a3</accessName>
       <address/>
       <globalCredentialSet type="SNMP v3">
-        <authKey>=</authKey>
+        <authKey/>
         <authKeyVaultInstanceId>7</authKeyVaultInstanceId>
         <authKeyVaultPath>path/auth</authKeyVaultPath>
         <authType>HMAC192SHA256</authType>
@@ -70,11 +70,11 @@
           <server6Address>2001:db8:0:0:0:0:0:1</server6Address>
         </mgmtDomain>
         <name>SNMP v3</name>
-        <privKey>=</privKey>
+        <privKey/>
         <privKeyVaultInstanceId>8</privKeyVaultInstanceId>
         <privKeyVaultPath>path/priv</privKeyVaultPath>
         <privType>AES256</privType>
-        <username>user</username>
+        <username/>
         <usernameVaultInstanceId>6</usernameVaultInstanceId>
         <usernameVaultPath>path/user</usernameVaultPath>
       </globalCredentialSet>
@@ -98,7 +98,7 @@
         <id>4</id>
         <mgmtDomain/>
         <name>SSH</name>
-        <password>=</password>
+        <password/>
         <passwordVaultInstanceId>9</passwordVaultInstanceId>
         <passwordVaultPath>path/pass</passwordVaultPath>
         <superPassword>=</superPassword>
@@ -130,7 +130,7 @@
         <password>=</password>
         <passwordVaultInstanceId/>
         <passwordVaultPath/>
-        <privateKey>=</privateKey>
+        <privateKey/>
         <privateKeyVaultInstanceId>10</privateKeyVaultInstanceId>
         <privateKeyVaultPath>path/key</privateKeyVaultPath>
         <superPassword>=</superPassword>
@@ -185,7 +185,7 @@
         <password>=</password>
         <passwordVaultInstanceId/>
         <passwordVaultPath/>
-        <username>httpuser</username>
+        <username/>
         <usernameVaultInstanceId>11</usernameVaultInstanceId>
         <usernameVaultPath>path/http</usernameVaultPath>
       </globalCredentialSet>

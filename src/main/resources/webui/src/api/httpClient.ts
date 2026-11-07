@@ -20,6 +20,14 @@ type HttpPayload<B> = {
 
 type HttpClientOptions = {
   baseUrl?: string
+  // Converts the ISO-8601 date strings of the JSON responses into Date objects
+  reviveDates?: boolean
+}
+
+// An error about one parameter or property of the request (problem details)
+export type NetshotFieldError = {
+  field: string
+  message: string
 }
 
 export type NetshotError = {
@@ -27,6 +35,7 @@ export type NetshotError = {
   description: string
   code: NetshotErrorCode
   response?: Response
+  fieldErrors?: NetshotFieldError[]
 }
 
 export enum NetshotErrorCode {
@@ -47,6 +56,7 @@ export enum HttpStatus {
   Unauthorized = 401,
   Forbidden = 403,
   NotFound = 404,
+  Conflict = 409,
   PreconditionFailed = 412,
   InternalServerError = 500,
   BadGateway = 502,
@@ -78,9 +88,23 @@ export function isNetshotError(obj: unknown): obj is NetshotError {
   )
 }
 
+// A date as written by the API (UTC, with or without milliseconds)
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
+
+function reviveDate(_key: string, value: unknown) {
+  return typeof value === "string" && ISO_DATE.test(value) ? new Date(value) : value
+}
+
+// Shared by the clients, so the screens register their callbacks once
+const listeners = new Map<HttpEventType, HttpEventCallback>()
+
 function createHttpClient(opts: HttpClientOptions = {}) {
-  const { baseUrl = "" } = opts
-  const listeners = new Map<HttpEventType, HttpEventCallback>()
+  const { baseUrl = "", reviveDates = false } = opts
+
+  async function readJson<R>(response: Response): Promise<R> {
+    const text = await response.text()
+    return JSON.parse(text, reviveDates ? reviveDate : undefined) as R
+  }
 
   async function request<B = object>(
     method: HttpMethod,
@@ -102,9 +126,11 @@ function createHttpClient(opts: HttpClientOptions = {}) {
       signal,
     }
 
-    if (typeof body === "object") {
+    if (typeof body === "object" && body !== null) {
       requestOptions.body = JSON.stringify(body as B)
-      headers["Content-Type"] = "application/json"
+      if (!headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json"
+      }
     } else if (body && headers["Content-Type"]) {
       requestOptions.body = body as string
     }
@@ -136,6 +162,17 @@ function createHttpClient(opts: HttpClientOptions = {}) {
 
       try {
         const result = await response.json()
+
+        if (response.headers.get("Content-Type")?.includes("problem+")) {
+          // Problem details (RFC 9457)
+          throw {
+            title: result.title ?? i18n.t("common.error"),
+            description: result.detail ?? result.title ?? i18n.t("common.netshotServerError"),
+            code: result.errorCode ?? NetshotErrorCode.GenericServer,
+            response,
+            fieldErrors: result.errors ?? undefined,
+          } as NetshotError
+        }
 
         if (result.errorMsg) {
           throw {
@@ -178,7 +215,7 @@ function createHttpClient(opts: HttpClientOptions = {}) {
     async get<R>(url: string, payload: HttpPayload<null> = {}) {
       const response = await request<null>(HttpMethod.GET, url, payload)
       try {
-        return (await response.json()) as R
+        return await readJson<R>(response)
       } catch (e) {
         console.error(e)
         return null
@@ -191,7 +228,7 @@ function createHttpClient(opts: HttpClientOptions = {}) {
         body,
       })
       try {
-        return (await response.json()) as R
+        return await readJson<R>(response)
       } catch (e) {
         console.error(e)
         return null
@@ -204,7 +241,7 @@ function createHttpClient(opts: HttpClientOptions = {}) {
         body,
       })
       try {
-        return (await response.json()) as R
+        return await readJson<R>(response)
       } catch (e) {
         console.error(e)
         return null
@@ -217,7 +254,7 @@ function createHttpClient(opts: HttpClientOptions = {}) {
         body,
       })
       try {
-        return (await response.json()) as R
+        return await readJson<R>(response)
       } catch (e) {
         console.error(e)
         return null
@@ -226,6 +263,12 @@ function createHttpClient(opts: HttpClientOptions = {}) {
 
     async delete(url: string, payload: HttpPayload<null> = {}) {
       await request<null>(HttpMethod.DELETE, url, payload)
+    },
+
+    // GET with the ETag of the answer (the version of the object, for If-Match)
+    async getWithETag<R>(url: string, payload: HttpPayload<null> = {}) {
+      const response = await request<null>(HttpMethod.GET, url, payload)
+      return { data: await readJson<R>(response), etag: response.headers.get("ETag") }
     },
 
     on(type: HttpEventType, callback: HttpEventCallback) {
@@ -238,6 +281,4 @@ function createHttpClient(opts: HttpClientOptions = {}) {
   }
 }
 
-export default createHttpClient({
-  baseUrl: "/api",
-})
+export { createHttpClient }

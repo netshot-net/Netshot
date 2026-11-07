@@ -1,5 +1,5 @@
 {
-  "community": "=",
+  "community": null,
   "communityVaultInstanceId": 11,
   "communityVaultPath": "netshot/v1",
   "deviceSpecific": false,

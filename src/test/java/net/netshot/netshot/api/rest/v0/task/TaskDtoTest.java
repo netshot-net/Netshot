@@ -105,7 +105,8 @@ class TaskDtoTest {
 			.debugEnabled(id % 2 == 0)
 			.status(status)
 			.scheduleType(Task.ScheduleType.WEEKLY)
-			.scheduleReference(Instant.ofEpochMilli(1_700_000_000_000L))
+			// In the future: the next execution is the reference itself, whatever the clock and time zone
+			.scheduleReference(Instant.ofEpochMilli(2_000_000_000_000L))
 			.scheduleFactor(3)
 			.priority(7)
 			.runnerId("runner-" + id)

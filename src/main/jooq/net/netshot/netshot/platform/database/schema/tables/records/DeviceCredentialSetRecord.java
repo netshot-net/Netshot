@@ -7,6 +7,7 @@ package net.netshot.netshot.platform.database.schema.tables.records;
 import java.time.Instant;
 
 import net.netshot.netshot.platform.database.schema.tables.DeviceCredentialSet;
+import net.netshot.netshot.platform.secret.LocalSecret;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
@@ -93,43 +94,43 @@ public class DeviceCredentialSetRecord extends UpdatableRecordImpl<DeviceCredent
     /**
      * Setter for <code>device_credential_set.community</code>.
      */
-    public void setCommunity(String value) {
+    public void setCommunity(LocalSecret value) {
         set(5, value);
     }
 
     /**
      * Getter for <code>device_credential_set.community</code>.
      */
-    public String getCommunity() {
-        return (String) get(5);
+    public LocalSecret getCommunity() {
+        return (LocalSecret) get(5);
     }
 
     /**
      * Setter for <code>device_credential_set.password</code>.
      */
-    public void setPassword(String value) {
+    public void setPassword(LocalSecret value) {
         set(6, value);
     }
 
     /**
      * Getter for <code>device_credential_set.password</code>.
      */
-    public String getPassword() {
-        return (String) get(6);
+    public LocalSecret getPassword() {
+        return (LocalSecret) get(6);
     }
 
     /**
      * Setter for <code>device_credential_set.super_password</code>.
      */
-    public void setSuperPassword(String value) {
+    public void setSuperPassword(LocalSecret value) {
         set(7, value);
     }
 
     /**
      * Getter for <code>device_credential_set.super_password</code>.
      */
-    public String getSuperPassword() {
-        return (String) get(7);
+    public LocalSecret getSuperPassword() {
+        return (LocalSecret) get(7);
     }
 
     /**
@@ -149,15 +150,15 @@ public class DeviceCredentialSetRecord extends UpdatableRecordImpl<DeviceCredent
     /**
      * Setter for <code>device_credential_set.private_key</code>.
      */
-    public void setPrivateKey(String value) {
+    public void setPrivateKey(LocalSecret value) {
         set(9, value);
     }
 
     /**
      * Getter for <code>device_credential_set.private_key</code>.
      */
-    public String getPrivateKey() {
-        return (String) get(9);
+    public LocalSecret getPrivateKey() {
+        return (LocalSecret) get(9);
     }
 
     /**
@@ -191,15 +192,15 @@ public class DeviceCredentialSetRecord extends UpdatableRecordImpl<DeviceCredent
     /**
      * Setter for <code>device_credential_set.auth_key</code>.
      */
-    public void setAuthKey(String value) {
+    public void setAuthKey(LocalSecret value) {
         set(12, value);
     }
 
     /**
      * Getter for <code>device_credential_set.auth_key</code>.
      */
-    public String getAuthKey() {
-        return (String) get(12);
+    public LocalSecret getAuthKey() {
+        return (LocalSecret) get(12);
     }
 
     /**
@@ -219,15 +220,15 @@ public class DeviceCredentialSetRecord extends UpdatableRecordImpl<DeviceCredent
     /**
      * Setter for <code>device_credential_set.priv_key</code>.
      */
-    public void setPrivKey(String value) {
+    public void setPrivKey(LocalSecret value) {
         set(14, value);
     }
 
     /**
      * Getter for <code>device_credential_set.priv_key</code>.
      */
-    public String getPrivKey() {
-        return (String) get(14);
+    public LocalSecret getPrivKey() {
+        return (LocalSecret) get(14);
     }
 
     /**
@@ -469,7 +470,7 @@ public class DeviceCredentialSetRecord extends UpdatableRecordImpl<DeviceCredent
     /**
      * Create a detached, initialised DeviceCredentialSetRecord
      */
-    public DeviceCredentialSetRecord(String dtype, Long id, Instant changeDate, String name, Integer version, String community, String password, String superPassword, String username, String privateKey, Long mgmtDomain, Boolean deviceSpecific, String authKey, String authType, String privKey, String privType, Long usernameVaultInstanceId, String usernameVaultPath, Long passwordVaultInstanceId, String passwordVaultPath, Long superPasswordVaultInstanceId, String superPasswordVaultPath, Long privateKeyVaultInstanceId, String privateKeyVaultPath, Long communityVaultInstanceId, String communityVaultPath, Long authKeyVaultInstanceId, String authKeyVaultPath, Long privKeyVaultInstanceId, String privKeyVaultPath) {
+    public DeviceCredentialSetRecord(String dtype, Long id, Instant changeDate, String name, Integer version, LocalSecret community, LocalSecret password, LocalSecret superPassword, String username, LocalSecret privateKey, Long mgmtDomain, Boolean deviceSpecific, LocalSecret authKey, String authType, LocalSecret privKey, String privType, Long usernameVaultInstanceId, String usernameVaultPath, Long passwordVaultInstanceId, String passwordVaultPath, Long superPasswordVaultInstanceId, String superPasswordVaultPath, Long privateKeyVaultInstanceId, String privateKeyVaultPath, Long communityVaultInstanceId, String communityVaultPath, Long authKeyVaultInstanceId, String authKeyVaultPath, Long privKeyVaultInstanceId, String privKeyVaultPath) {
         super(DeviceCredentialSet.DEVICE_CREDENTIAL_SET);
 
         setDtype(dtype);

@@ -1,10 +1,10 @@
 import { TaskScheduleType } from "@/types"
-import { fromAbsolute } from "@internationalized/date"
+import { fromAbsolute, startOfMonth, startOfWeek, type ZonedDateTime } from "@internationalized/date"
 
 type ParentedTask = {
   id: number
-  parentTaskId?: number
-  childOrder?: number
+  parentTask?: { id: number } | null
+  childOrder?: number | null
 }
 
 export type TaskTreeRow<T> = T & { depth: number }
@@ -22,10 +22,11 @@ export function buildTaskTree<T extends ParentedTask>(rows: T[]): TaskTreeRow<T>
   const childrenByParent = new Map<number, T[]>()
 
   for (const row of rows) {
-    if (row.parentTaskId && idsPresent.has(row.parentTaskId)) {
-      const children = childrenByParent.get(row.parentTaskId) ?? []
+    const parentId = row.parentTask?.id
+    if (parentId && idsPresent.has(parentId)) {
+      const children = childrenByParent.get(parentId) ?? []
       children.push(row)
-      childrenByParent.set(row.parentTaskId, children)
+      childrenByParent.set(parentId, children)
     }
   }
   for (const children of childrenByParent.values()) {
@@ -45,7 +46,7 @@ export function buildTaskTree<T extends ParentedTask>(rows: T[]): TaskTreeRow<T>
   }
 
   for (const row of rows) {
-    if (!row.parentTaskId || !idsPresent.has(row.parentTaskId)) {
+    if (!row.parentTask?.id || !idsPresent.has(row.parentTask.id)) {
       appendWithChildren(row, 0)
     }
   }
@@ -57,8 +58,8 @@ export function buildTaskTree<T extends ParentedTask>(rows: T[]): TaskTreeRow<T>
  * True for schedule types that trigger more than once (as opposed to a single
  * one-off run, immediate or "at" a given time).
  */
-export function isRepeatingSchedule(scheduleType: TaskScheduleType): boolean {
-  return scheduleType !== TaskScheduleType.Asap && scheduleType !== TaskScheduleType.At
+export function isRepeatingSchedule(scheduleType: string | null): boolean {
+  return scheduleType != null && scheduleType !== TaskScheduleType.Asap && scheduleType !== TaskScheduleType.At
 }
 
 /**
@@ -69,9 +70,10 @@ export function isRepeatingSchedule(scheduleType: TaskScheduleType): boolean {
  */
 export function computeNextExecutionDate(
   scheduleReference: number,
-  scheduleType: TaskScheduleType,
+  scheduleType: string | null,
   scheduleFactor: number
 ): number | null {
+  if (scheduleType == null) return null
   if (scheduleType === TaskScheduleType.Asap) return null
   if (scheduleType === TaskScheduleType.At) return scheduleReference
 
@@ -103,55 +105,36 @@ export function computeNextExecutionDate(
   return next.getTime()
 }
 
-const MINUTE = 60_000
 const HOUR = 3_600_000
 const DAY = 86_400_000
 
-export type BucketLabelPrecision = "minute" | "hour" | "day"
+/** The sizes of the time buckets of the task statistics. */
+export type BucketInterval = "hour" | "day" | "week" | "month"
+
+export type BucketLabelPrecision = "hour" | "day"
 
 export type BucketUnit = {
+  interval: BucketInterval
+  /** An approximate duration, to pick the interval of a time range (the real buckets follow the calendar). */
   ms: number
   labelPrecision: BucketLabelPrecision
 }
 
-/**
- * Fixed-length bucket durations to snap the histogram to, from a minute up to a year.
- * Kept as constant durations (rather than true calendar months/years, which vary in
- * length) so bucket boundaries can be computed with plain arithmetic.
- */
+/** The bucket sizes of the statistics, from an hour up to a month. */
 const BUCKET_UNITS: BucketUnit[] = [
-  { ms: MINUTE, labelPrecision: "minute" },
-  { ms: 2 * MINUTE, labelPrecision: "minute" },
-  { ms: 5 * MINUTE, labelPrecision: "minute" },
-  { ms: 10 * MINUTE, labelPrecision: "minute" },
-  { ms: 15 * MINUTE, labelPrecision: "minute" },
-  { ms: 30 * MINUTE, labelPrecision: "minute" },
-  { ms: HOUR, labelPrecision: "hour" },
-  { ms: 2 * HOUR, labelPrecision: "hour" },
-  { ms: 3 * HOUR, labelPrecision: "hour" },
-  { ms: 6 * HOUR, labelPrecision: "hour" },
-  { ms: 12 * HOUR, labelPrecision: "hour" },
-  { ms: DAY, labelPrecision: "day" },
-  { ms: 2 * DAY, labelPrecision: "day" },
-  { ms: 3 * DAY, labelPrecision: "day" },
-  { ms: 7 * DAY, labelPrecision: "day" },
-  { ms: 14 * DAY, labelPrecision: "day" },
-  { ms: 30 * DAY, labelPrecision: "day" },
-  { ms: 90 * DAY, labelPrecision: "day" },
-  { ms: 180 * DAY, labelPrecision: "day" },
-  { ms: 365 * DAY, labelPrecision: "day" },
+  { interval: "hour", ms: HOUR, labelPrecision: "hour" },
+  { interval: "day", ms: DAY, labelPrecision: "day" },
+  { interval: "week", ms: 7 * DAY, labelPrecision: "day" },
+  { interval: "month", ms: 30 * DAY, labelPrecision: "day" },
 ]
 
 export const TARGET_BUCKET_COUNT = 24
-export const MIN_BUCKET_COUNT = 18
-export const MAX_BUCKET_COUNT = 30
+export const MIN_BUCKET_COUNT = 12
+export const MAX_BUCKET_COUNT = 36
 
 /**
- * Picks the fixed-length unit (from `BUCKET_UNITS`) whose bucket count for the given
- * span is closest to `target`, preferring one within [min, max] when possible. For
- * spans much longer than the largest available unit covers (e.g. "All time" on an
- * old install), this falls back to the largest unit even if the resulting count
- * exceeds `max`.
+ * Picks the bucket size whose bucket count for the given span is closest to `target`, preferring one within
+ * [min, max] when possible.
  */
 export function pickBucketUnit(
   span: number,
@@ -167,47 +150,71 @@ export function pickBucketUnit(
   ).unit
 }
 
+/** The start of the bucket (hour, day, Monday-based week or month) containing the date, in the time zone. */
+function startOfBucket(zdt: ZonedDateTime, interval: BucketInterval): ZonedDateTime {
+  const hour = zdt.set({ minute: 0, second: 0, millisecond: 0 })
+  if (interval === "hour") return hour
+  const day = hour.set({ hour: 0 })
+  if (interval === "day") return day
+  if (interval === "week") return startOfWeek(day, "en-GB", "mon").set({ hour: 0 })
+  return startOfMonth(day).set({ hour: 0 })
+}
+
+function nextBucket(zdt: ZonedDateTime, interval: BucketInterval): ZonedDateTime {
+  switch (interval) {
+    case "hour":
+      return zdt.add({ hours: 1 })
+    case "day":
+      return zdt.add({ days: 1 })
+    case "week":
+      return zdt.add({ weeks: 1 })
+    default:
+      return zdt.add({ months: 1 })
+  }
+}
+
 /**
- * Snaps a timestamp down to the nearest natural boundary for the given bucket unit
- * (top of the minute/hour, or local midnight), in the given IANA timezone.
+ * Snaps a timestamp down to the start of its bucket (top of the hour, local midnight, Monday, first day of the month),
+ * in the given IANA timezone: the boundaries the statistics of the API use.
  */
 export function snapToBucketBoundary(t: number, unit: BucketUnit, timezone: string): number {
-  const zdt = fromAbsolute(t, timezone)
-
-  if (unit.ms < HOUR) {
-    const unitMinutes = unit.ms / MINUTE
-    const minute = Math.floor(zdt.minute / unitMinutes) * unitMinutes
-    return zdt.set({ minute, second: 0, millisecond: 0 }).toDate().getTime()
-  }
-
-  if (unit.ms < DAY) {
-    const unitHours = unit.ms / HOUR
-    const hour = Math.floor(zdt.hour / unitHours) * unitHours
-    return zdt.set({ hour, minute: 0, second: 0, millisecond: 0 }).toDate().getTime()
-  }
-
-  return zdt.set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).toDate().getTime()
+  return startOfBucket(fromAbsolute(t, timezone), unit.interval).toDate().getTime()
 }
 
 export type BucketPlan = {
   from: number
   to: number
-  buckets: number
   unit: BucketUnit
 }
 
 /**
- * Resolves a requested [from, to] window into a bucket plan snapped to natural time
- * divisions: picks a nice fixed-length unit close to `TARGET_BUCKET_COUNT` buckets,
- * snaps `from` down to a boundary of that unit, and extends `to` up to the next
- * boundary so the whole originally requested window is fully covered.
+ * Resolves a requested [from, to] window into a bucket plan aligned on the buckets of the API: picks a bucket size
+ * giving close to `TARGET_BUCKET_COUNT` buckets, snaps `from` down to the start of its bucket and extends `to` up to
+ * the next boundary, so the whole originally requested window is covered.
  */
 export function planBuckets(from: number, to: number, timezone: string): BucketPlan {
   const span = Math.max(1, to - from)
   const unit = pickBucketUnit(span)
-  const snappedFrom = snapToBucketBoundary(from, unit, timezone)
-  const buckets = Math.max(1, Math.ceil((to - snappedFrom) / unit.ms))
-  const snappedTo = snappedFrom + buckets * unit.ms
+  const start = startOfBucket(fromAbsolute(from, timezone), unit.interval)
+  const toZoned = fromAbsolute(Math.max(to, from + 1), timezone)
+  let end = startOfBucket(toZoned, unit.interval)
+  if (end.toDate().getTime() < to) {
+    end = nextBucket(end, unit.interval)
+  }
+  return { from: start.toDate().getTime(), to: end.toDate().getTime(), unit }
+}
 
-  return { from: snappedFrom, to: snappedTo, buckets, unit }
+/**
+ * Lists the buckets of a plan, aligned like the ones of the API (same time zone): every bucket of the range, whether it
+ * has tasks or not.
+ */
+export function listBuckets(plan: BucketPlan, timezone: string): { from: number; to: number }[] {
+  const buckets: { from: number; to: number }[] = []
+  let cursor = fromAbsolute(plan.from, timezone)
+  while (cursor.toDate().getTime() < plan.to && buckets.length < 1000) {
+    const next = nextBucket(cursor, plan.unit.interval)
+    buckets.push({ from: cursor.toDate().getTime(), to: next.toDate().getTime() })
+    cursor = next
+  }
+  return buckets
 }

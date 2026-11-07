@@ -1,11 +1,12 @@
 import api from "@/api"
+import { Schemas } from "@/api/client"
 import { NetshotError } from "@/api/httpClient"
 import { FormControl } from "@/components"
 import { useTreeOpenKeys } from "@/hooks"
 import { MUTATIONS, QUERIES } from "@/constants"
 import { useDialogConfig } from "@/dialog"
 import { useToast } from "@/hooks"
-import { Script } from "@/types"
+import { ScriptBrief } from "@/types"
 import { createFoldersFromScripts } from "@/utils"
 import { Box, Button, Center, CloseButton, Dialog, Heading, Portal, Stack, Text } from "@chakra-ui/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -24,7 +25,7 @@ export type SaveScriptDialogProps = {
   initialFolder?: string
   driver: string
   scriptContent: string
-  onSaved(script: Script): void
+  onSaved(script: ScriptBrief): void
 }
 
 export default function SaveScriptDialog(props: SaveScriptDialogProps) {
@@ -51,7 +52,7 @@ export default function SaveScriptDialog(props: SaveScriptDialogProps) {
   const { isOpen, toggle } = useTreeOpenKeys()
 
   const onScriptSelect = useCallback(
-    (script: Script) => {
+    (script: ScriptBrief) => {
       form.setValue("name", script.name, { shouldValidate: true })
       form.setValue("folder", script.folder ?? "", { shouldValidate: true })
     },
@@ -75,7 +76,7 @@ export default function SaveScriptDialog(props: SaveScriptDialogProps) {
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.SCRIPT_UPDATE,
-    mutationFn: async (payload: { matchId?: number; script: Partial<Script> }) => {
+    mutationFn: async (payload: { matchId?: number; script: Schemas["ScriptRequest"] }) => {
       if (payload.matchId != null) {
         await api.script.remove(payload.matchId)
       }

@@ -55,6 +55,7 @@ import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.platform.net.Network4Address;
+import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ApiTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -551,8 +552,9 @@ public class DeviceResourceTest {
 		this.createTestDomain();
 		Device device1 = Device.create(this.getTestDriver().getName(),
 			"10.1.1.1", this.testDomain, "test").toBuilder().name("device1").build();
-		DeviceCredentialSet globalCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null).name("globalCredForCascadeTest").build();
-		DeviceCredentialSet specificCred = DeviceSshAccount.builder().username("admin").password("admin").superPassword(null)
+		DeviceCredentialSet globalCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null).name("globalCredForCascadeTest")
+			.build();
+		DeviceCredentialSet specificCred = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(null)
 			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
 		globalCred = TestDevices.addCredentialSet(globalCred);
 		device1 = TestDevices.add(device1.toBuilder().accesses(List.of(
@@ -605,7 +607,7 @@ public class DeviceResourceTest {
 	@ResourceLock("DB")
 	void deviceAccessRejectsMismatchedCredentialClass() throws IOException, InterruptedException {
 		this.createTestDomain();
-		DeviceCredentialSet snmpCred = DeviceSnmpv2cCommunity.builder().community("public").name("snmpCredForMismatchTest").build();
+		DeviceCredentialSet snmpCred = DeviceSnmpv2cCommunity.builder().community(Secret.local("public")).name("snmpCredForMismatchTest").build();
 		long snmpCredId = TestDevices.addCredentialSet(snmpCred).id();
 		ObjectNode data = JsonNodeFactory.instance.objectNode()
 			.put("autoDiscover", false)

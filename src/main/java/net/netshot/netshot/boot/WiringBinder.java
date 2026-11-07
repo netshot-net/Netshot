@@ -44,6 +44,7 @@ import net.netshot.netshot.inventory.search.SearchService;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.report.ReportService;
 import net.netshot.netshot.system.ServerInfoService;
+import net.netshot.netshot.system.ServiceHealthService;
 import net.netshot.netshot.task.DeviceCreationService;
 import net.netshot.netshot.task.TaskService;
 import net.netshot.netshot.userscript.ScriptService;
@@ -92,6 +93,7 @@ final class WiringBinder extends AbstractBinder {
 		this.bind(this.wiring.tacacs()).to(Tacacs.class);
 		this.bind(this.wiring.clusterService()).to(ClusterService.class);
 		this.bind(this.wiring.serverInfoService()).to(ServerInfoService.class);
+		this.bind(this.wiring.serviceHealthService()).to(ServiceHealthService.class);
 		// Diagnostics
 		this.bind(this.wiring.diagnosticService()).to(DiagnosticService.class);
 		// Scripts

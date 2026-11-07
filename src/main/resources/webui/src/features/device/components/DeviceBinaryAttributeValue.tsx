@@ -1,9 +1,9 @@
-import { DeviceBinaryAttribute } from "@/types"
+import { DeviceAttribute } from "@/types"
 import { Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next"
 
 type DeviceBinaryAttributeValueProps = {
-  attribute: DeviceBinaryAttribute
+  attribute: DeviceAttribute | undefined
 }
 
 export function DeviceBinaryAttributeValue(
@@ -12,9 +12,9 @@ export function DeviceBinaryAttributeValue(
   const { attribute } = props
   const { t } = useTranslation()
 
-  if (attribute?.assumption === true) {
+  if ((attribute?.value as unknown) === true) {
     return <Text>{t("common.trueLabel")}</Text>
-  } else if (attribute?.assumption === false) {
+  } else if ((attribute?.value as unknown) === false) {
     return <Text>{t("common.falseLabel")}</Text>
   }
 

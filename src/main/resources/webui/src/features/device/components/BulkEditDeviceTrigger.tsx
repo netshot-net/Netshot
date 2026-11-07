@@ -1,4 +1,5 @@
-import api, { UpdateDevicePayload } from "@/api"
+import api from "@/api"
+import { Schemas } from "@/api/client"
 import { NetshotError } from "@/api/httpClient"
 import { DomainSelect } from "@/features/administration/components"
 import { useDomains } from "@/features/administration/api"
@@ -9,7 +10,7 @@ import DeviceNamesPreview from "./DeviceNamesPreview"
 import { MUTATIONS } from "@/constants"
 import { useFormDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { DeviceAccessDefinition, LightDevice } from "@/types"
+import { DeviceAccessDefinition, Device } from "@/types"
 import { Alert, Box, Flex, Separator, Stack, Text } from "@chakra-ui/react"
 import { useMutation } from "@tanstack/react-query"
 import { useEffect, useMemo, useRef } from "react"
@@ -20,7 +21,7 @@ import Slot from "@/components/Slot"
 import { useCredentialSets } from "../api"
 import { useDeviceTypeOptions } from "../hooks"
 
-export type BulkEditDeviceTriggerProps = { devices: LightDevice[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type BulkEditDeviceTriggerProps = { devices: Device[]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 type Form = {
   mgmtDomain: string | null
@@ -36,7 +37,7 @@ function DeviceBulkEditForm({
   accessDefinitions,
   isMixedDeviceTypes,
 }: {
-  accessDefinitions: Record<string, DeviceAccessDefinition> | undefined
+  accessDefinitions: DeviceAccessDefinition[] | undefined
   isMixedDeviceTypes: boolean
 }) {
   const form = useFormContext()
@@ -116,7 +117,7 @@ function DeviceBulkEditForm({
           <Alert.Indicator />
           <Alert.Title>{t("device.selectSameDeviceTypeToEditConnectionSettings")}</Alert.Title>
         </Alert.Root>
-      ) : accessDefinitions && Object.keys(accessDefinitions).length > 0 && (
+      ) : accessDefinitions && accessDefinitions.length > 0 && (
         <>
           <Separator />
           <DeviceAccessFields bulk control={form.control} setValue={form.setValue} accessDefinitions={accessDefinitions} />
@@ -139,19 +140,19 @@ export default function BulkEditDeviceTrigger({ devices, children, ...rest }: Bu
     return drivers.size === 1 ? devices[0]?.driver : undefined
   }, [devices])
   const isMixedDeviceTypes = !commonDriver
-  const accessDefinitions = commonDriver ? getOptionByDriver(commonDriver)?.value?.accessDefinitions : undefined
+  const accessDefinitions = commonDriver ? getOptionByDriver(commonDriver)?.value?.accesses : undefined
 
   const form = useForm<Form>({
     mode: "onChange",
     defaultValues: { mgmtDomain: null, mgmtDomainLocked: true, comments: PASSWORD_UNCHANGED, accesses: [], hasChanges: false },
   })
 
-  const orderedDevicesRef = useRef<LightDevice[]>(devices)
+  const orderedDevicesRef = useRef<Device[]>(devices)
 
   const edit = useMutation({
     mutationKey: MUTATIONS.DEVICE_UPDATE,
-    mutationFn: async (payload: Partial<UpdateDevicePayload>) =>
-      api.device.update(payload.id!, payload),
+    mutationFn: async (payload: { id: number; changes: Partial<Schemas["DeviceRequest"]> }) =>
+      api.device.update(payload.id, payload.changes),
     onError(err: NetshotError) {
       toast.error(err)
     },
@@ -169,7 +170,7 @@ export default function BulkEditDeviceTrigger({ devices, children, ...rest }: Bu
               <Box w="140px"><Text color="grey.400">{t("device.devices")}</Text></Box>
               <DeviceNamesPreview
                 devices={devices}
-                onReorder={(next) => { orderedDevicesRef.current = next as LightDevice[] }}
+                onReorder={(next) => { orderedDevicesRef.current = next as Device[] }}
               />
             </Flex>
           </Stack>
@@ -180,7 +181,7 @@ export default function BulkEditDeviceTrigger({ devices, children, ...rest }: Bu
       isLoading: edit.isPending,
       size: "lg",
       async onSubmit(data: Form) {
-        const commonPayload: Partial<UpdateDevicePayload> = {}
+        const commonPayload: Partial<Schemas["DeviceRequest"]> = {}
         if (!data.mgmtDomainLocked && data.mgmtDomain) {
           commonPayload.mgmtDomain = Number(data.mgmtDomain)
         }
@@ -193,10 +194,7 @@ export default function BulkEditDeviceTrigger({ devices, children, ...rest }: Bu
         }
 
         for await (const device of orderedDevicesRef.current) {
-          await edit.mutateAsync({
-            id: device?.id,
-            ...commonPayload,
-          } as Partial<UpdateDevicePayload>)
+          await edit.mutateAsync({ id: device.id, changes: commonPayload })
         }
 
         dialogRef.close()

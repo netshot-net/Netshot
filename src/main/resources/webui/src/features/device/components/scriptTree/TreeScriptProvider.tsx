@@ -1,14 +1,14 @@
-import { Script } from "@/types"
+import { ScriptBrief } from "@/types"
 import { createContext, JSX, PropsWithChildren, use } from "react"
 
 export type TreeScriptContextProps = {
   isFolderOpen(key: string): boolean
   toggleFolderOpen(key: string): void
   showMenu?: boolean
-  onScriptSelect?(script: Script): void
+  onScriptSelect?(script: ScriptBrief): void
   onFolderSelect?(path: string): void
-  isSelected?(script: Script): boolean
-  renderScriptChildren?(script: Script): JSX.Element
+  isSelected?(script: ScriptBrief): boolean
+  renderScriptChildren?(script: ScriptBrief): JSX.Element
 }
 
 export const TreeScriptContext = createContext<TreeScriptContextProps>(null!)

@@ -1,9 +1,10 @@
 import api from "@/api"
 import { NetshotError } from "@/api/httpClient"
-import { MUTATIONS } from "@/constants"
+import { MUTATIONS, QUERIES as APP_QUERIES } from "@/constants"
 import { useConfirmDialogWithMutation } from "@/dialog"
 import { useToast } from "@/hooks"
-import { CredentialSet } from "@/types"
+import { useAdminErrorHandler } from "../hooks"
+import type { Brief } from "@/api/client"
 import { Text } from "@chakra-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MouseEvent } from "react"
@@ -12,19 +13,20 @@ import React from "react"
 import Slot from "@/components/Slot"
 import { QUERIES } from "../constants"
 
-export type RemoveDeviceCredentialSetTriggerProps = { credentialSet: CredentialSet; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
+export type RemoveDeviceCredentialSetTriggerProps = { credentialSet: Brief["CredentialSet"]; children: React.ReactElement<Record<string, unknown>> } & Record<string, unknown>
 
 export default function RemoveDeviceCredentialSetTrigger({ credentialSet: credential, children, ...rest }: RemoveDeviceCredentialSetTriggerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const handleError = useAdminErrorHandler(QUERIES.ADMIN_DEVICE_CREDENTIALS)
   const dialog = useConfirmDialogWithMutation()
 
   const mutation = useMutation({
     mutationKey: MUTATIONS.ADMIN_CREDENTIAL_SET_REMOVE,
-    mutationFn: async () => api.admin.removeCredentialSet(credential?.id),
+    mutationFn: async () => api.admin.removeCredentialSet(credential.id),
     onError(err: NetshotError) {
-      toast.error(err)
+      handleError(err)
     },
   })
 
@@ -42,6 +44,7 @@ export default function RemoveDeviceCredentialSetTrigger({ credentialSet: creden
       async onConfirm() {
         await mutation.mutateAsync()
         queryClient.invalidateQueries({ queryKey: [QUERIES.ADMIN_DEVICE_CREDENTIALS] })
+        queryClient.invalidateQueries({ queryKey: [APP_QUERIES.CREDENTIAL_SET_LIST] })
         dialogRef.close()
 
         toast.success({

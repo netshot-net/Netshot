@@ -1,12 +1,11 @@
 import { Heading, Stack } from "@chakra-ui/react"
-import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router"
 
-import api from "@/api"
+import { Task, TASK_LIST_FIELDS } from "@/api/task"
 import TaskTable from "@/features/task/components/TaskTable"
 import TaskTreeModeToggle from "@/features/task/components/TaskTreeModeToggle"
+import { useList } from "@/hooks/useList"
 
 import { QUERIES } from "../constants"
 
@@ -15,24 +14,13 @@ const TASKS_PAGE_SIZE = 20
 export default function DeviceTaskScreen() {
   const params = useParams<{ id: string }>()
   const { t } = useTranslation()
-  const [limit, setLimit] = useState(TASKS_PAGE_SIZE)
 
-  const { data = [], isPending, isFetching } = useQuery({
-    queryKey: [QUERIES.DEVICE_TASKS, params.id, limit],
-    queryFn: async () =>
-      (await api.device.getAllTasksById(+(params.id ?? 0), {
-        limit,
-      })) ?? [],
-  })
-
-  const hasMore = data.length >= limit
-
-  function onBottomReached() {
-    if (isFetching || !hasMore) {
-      return
-    }
-    setLimit((prev) => prev + TASKS_PAGE_SIZE)
-  }
+  const { rows, isPending, onBottomReached } = useList<Task>(
+    [QUERIES.DEVICE_TASKS, params.id],
+    `/devices/${params.id}/tasks`,
+    { fields: TASK_LIST_FIELDS },
+    { limit: TASKS_PAGE_SIZE }
+  )
 
   return (
     <Stack gap="6" flex="1" overflow="auto">
@@ -41,7 +29,7 @@ export default function DeviceTaskScreen() {
         <TaskTreeModeToggle />
       </Stack>
       <TaskTable
-        rows={data}
+        rows={rows}
         isPending={isPending}
         showTarget={false}
         emptyDescription={t("device.noTask")}

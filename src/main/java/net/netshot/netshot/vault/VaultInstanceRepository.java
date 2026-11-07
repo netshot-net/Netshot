@@ -26,8 +26,13 @@ import java.util.List;
 
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 import net.netshot.netshot.platform.database.Page;
+import net.netshot.netshot.platform.database.QueryMapping;
+import net.netshot.netshot.platform.database.QueryMapping.Option;
+import net.netshot.netshot.platform.database.Versions;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
 
@@ -74,6 +79,44 @@ public class VaultInstanceRepository {
 	public List<VaultInstance> findAll(DSLContext dsl, Page page) {
 		return page.apply(dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE).orderBy(VAULT_INSTANCE.ID))
 			.fetch(VaultInstanceRepository::toVaultInstance);
+	}
+
+	/** The v1 name of the type of the HashiCorp Vault KV v2 instances. */
+	public static final String TYPE_HASHICORP_KV2 = "HASHICORP_KV2";
+
+	/** The fields the Vault instance lists can be filtered and sorted on. */
+	static final QueryMapping LIST = QueryMapping.builder(VAULT_INSTANCE.ID)
+		.string("name", VAULT_INSTANCE.NAME, Option.SORTABLE, Option.SEARCHABLE)
+		.enumeration("type", DSL.case_(VAULT_INSTANCE.DTYPE).when(HASHICORP_KV2, TYPE_HASHICORP_KV2).else_(VAULT_INSTANCE.DTYPE),
+			List.of(TYPE_HASHICORP_KV2), Option.SORTABLE)
+		.string("baseUrl", VAULT_INSTANCE.BASE_URL, Option.SORTABLE, Option.SEARCHABLE)
+		.string("namespace", VAULT_INSTANCE.NAMESPACE, Option.SEARCHABLE)
+		.enumeration("authMethod", VAULT_INSTANCE.AUTH_METHOD, AuthMethod.class, Option.SORTABLE)
+		.date("changeDate", VAULT_INSTANCE.CHANGE_DATE, Option.SORTABLE)
+		.build();
+
+	/**
+	 * Lists the Vault instances matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query
+	 * @return the instances of the window of the query
+	 */
+	public List<VaultInstance> findAll(DSLContext dsl, ListQuery query) {
+		return query.page().apply(dsl.select(VAULT_INSTANCE.fields()).from(VAULT_INSTANCE)
+			.where(LIST.condition(query)).orderBy(LIST.orderBy(query)))
+			.fetch(VaultInstanceRepository::toVaultInstance);
+	}
+
+	/**
+	 * Counts the Vault instances matching a query.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param query the query (its window is ignored)
+	 * @return the number of instances
+	 */
+	public long count(DSLContext dsl, ListQuery query) {
+		return dsl.fetchCount(VAULT_INSTANCE, LIST.condition(query));
 	}
 
 	/**
@@ -155,6 +198,17 @@ public class VaultInstanceRepository {
 				.execute();
 		};
 		return updated == 0 ? null : this.find(dsl, vaultInstance.id());
+	}
+
+	/**
+	 * Locks the row of a Vault instance until the end of the transaction (see {@link Versions#lock}).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return the version of the instance, or null if there is no such instance
+	 */
+	public Integer lock(DSLContext dsl, long id) {
+		return Versions.lock(dsl, VAULT_INSTANCE, VAULT_INSTANCE.ID, VAULT_INSTANCE.VERSION, id);
 	}
 
 	/**

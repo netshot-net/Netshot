@@ -19,6 +19,7 @@
 package net.netshot.netshot.aaa.user;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -30,8 +31,12 @@ import net.netshot.netshot.aaa.user.UiUser.WrongPasswordException;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The use cases on the users: list, create, edit and delete them (administrators), and
@@ -76,6 +81,55 @@ public class UserService {
 	}
 
 	/**
+	 * Gets what the user lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema listSchema() {
+		return UserRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the users matching a query.
+	 *
+	 * @param query the query
+	 * @return the users of the window, with the total number of matching users if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the users can't be read
+	 */
+	public ListResult<UiUser> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the users.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to retrieve the users.");
+		}
+	}
+
+	/**
+	 * Gets a user.
+	 *
+	 * @param id the user ID
+	 * @return the user
+	 * @throws NetshotException if there is no such user, or it can't be read
+	 */
+	public UiUser get(long id) {
+		UiUser user;
+		try {
+			user = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to retrieve the user {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to retrieve the user.");
+		}
+		if (user == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist.");
+		}
+		return user;
+	}
+
+	/**
 	 * Creates a user. The password of a local user must comply with the password policy.
 	 *
 	 * @param creation the user to create
@@ -105,7 +159,7 @@ public class UserService {
 		UiUser valid;
 		if (creation.local()) {
 			try {
-				valid = new UiUser(0, username, true, creation.level(), null, List.of(), null)
+				valid = new UiUser(0, 0, null, username, true, creation.level(), null, List.of(), null)
 					.withPassword(password, PasswordPolicy.getMainPolicy());
 			}
 			catch (PasswordPolicyException e) {
@@ -119,7 +173,7 @@ public class UserService {
 
 		UiUser user;
 		try {
-			user = valid.withId(this.transactions.write(dsl -> this.repository.add(dsl, valid)));
+			user = this.transactions.write(dsl -> this.repository.find(dsl, this.repository.add(dsl, valid)));
 		}
 		catch (DataAccessException e) {
 			log.error("Error while saving the new user.", e);
@@ -142,17 +196,43 @@ public class UserService {
 	 * @throws NetshotException if the user doesn't exist, is the current one, or the new settings are invalid
 	 */
 	public UiUser update(long id, String currentUsername, UserUpdate update) {
+		return this.update(id, currentUsername, _ -> update, null,
+			new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user."));
+	}
+
+	/**
+	 * Edits a user, if it is at a given version: the new settings are computed from the user as it is, which can't
+	 * change meanwhile (to apply a patch). The user making the request cannot edit itself.
+	 *
+	 * @param id the ID of the user to edit
+	 * @param currentUsername the name of the user making the request
+	 * @param change gives the new settings from the current user
+	 * @param expectedVersion the version the user must be at, or null for any
+	 * @return the user
+	 * @throws NetshotException if the user doesn't exist, isn't at the expected version, is the current one, or the
+	 *         new settings are invalid
+	 */
+	public UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion) {
+		return this.update(id, currentUsername, change, expectedVersion,
+			new NetshotException(ErrorCode.NETSHOT_USER_NOT_FOUND, "The user doesn't exist."));
+	}
+
+	private UiUser update(long id, String currentUsername, Function<UiUser, UserUpdate> change, Long expectedVersion,
+		NetshotException notFound) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
-				UiUser existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("Unable to find the user {} to be edited.", id);
-					throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Unable to find this user.");
+					throw notFound;
 				}
+				UiUser existing = this.repository.find(dsl, id);
 				if (existing.username().equals(currentUsername)) {
 					throw new NetshotException(ErrorCode.NETSHOT_LOCKED_USER, "Cannot edit the user who is making the request.");
 				}
+				Versions.check("user", version, expectedVersion);
+				UserUpdate update = change.apply(existing);
 
 				String username = update.username();
 				if (username == null || username.trim().isEmpty()) {
@@ -183,7 +263,7 @@ public class UserService {
 					edited = edited.withHashedPassword("");
 				}
 				this.repository.save(dsl, edited);
-				return edited;
+				return this.repository.find(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -206,17 +286,32 @@ public class UserService {
 	 * @throws NetshotException if the user is the current one
 	 */
 	public boolean delete(long id, String currentUsername) {
+		return this.delete(id, currentUsername, null);
+	}
+
+	/**
+	 * Deletes a user, if it is at a given version. The user making the request cannot delete itself.
+	 *
+	 * @param id the ID of the user to delete
+	 * @param currentUsername the name of the user making the request
+	 * @param expectedVersion the version the user must be at, or null for any
+	 * @return true if the user has been deleted, false if there is no such user
+	 * @throws NetshotException if the user is the current one, or isn't at the expected version
+	 */
+	public boolean delete(long id, String currentUsername, Long expectedVersion) {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
-				UiUser existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.info("No such user of ID {}", id);
 					return null;
 				}
+				UiUser existing = this.repository.find(dsl, id);
 				if (existing.username().equals(currentUsername)) {
 					throw new NetshotException(ErrorCode.NETSHOT_LOCKED_USER, "Cannot delete the user who is making the request.");
 				}
+				Versions.check("user", version, expectedVersion);
 				this.repository.remove(dsl, existing.id());
 				return existing;
 			});
@@ -247,10 +342,12 @@ public class UserService {
 		UiUser user;
 		try {
 			user = this.transactions.write(dsl -> {
-				UiUser existing = this.repository.findByUsername(dsl, currentUsername);
-				if (existing == null || !existing.username().equals(username) || !existing.local()) {
+				UiUser found = this.repository.findByUsername(dsl, currentUsername);
+				if (found == null || !found.username().equals(username) || !found.local()) {
 					throw new NetshotException(ErrorCode.NETSHOT_INVALID_USER, "Invalid user.");
 				}
+				this.repository.lock(dsl, found.id());
+				UiUser existing = this.repository.find(dsl, found.id());
 
 				try {
 					existing.checkPassword(password, PasswordPolicy.getMainPolicy());
@@ -275,7 +372,7 @@ public class UserService {
 					throw new NetshotException(ErrorCode.NETSHOT_FAILED_PASSWORD_POLICY, e.getMessage());
 				}
 				this.repository.save(dsl, changed);
-				return changed;
+				return this.repository.find(dsl, changed.id());
 			});
 		}
 		catch (DataAccessException e) {

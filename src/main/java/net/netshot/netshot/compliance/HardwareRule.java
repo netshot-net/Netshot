@@ -31,6 +31,8 @@ import net.netshot.netshot.inventory.device.Module;
  * (driver and family of the device, part number of the module).
  *
  * @param id the ID (0 for a rule not stored yet)
+ * @param version the version, incremented on each change
+ * @param changeDate the date of the last change
  * @param driver the name of the driver of the devices (null for any)
  * @param targetGroupId the ID of the group the rule applies to (null for all the devices)
  * @param family the family of the devices (empty for any)
@@ -41,7 +43,7 @@ import net.netshot.netshot.inventory.device.Module;
  * @param endOfLife the end-of-life date of the matching modules
  */
 @Builder(toBuilder = true)
-public record HardwareRule(long id, String driver, Long targetGroupId, String family, boolean familyRegExp, String partNumber,
+public record HardwareRule(long id, int version, Instant changeDate, String driver, Long targetGroupId, String family, boolean familyRegExp, String partNumber,
 	boolean partNumberRegExp, Instant endOfSale, Instant endOfLife) {
 
 	/**

@@ -20,6 +20,7 @@ package net.netshot.netshot.domain;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.function.Function;
 
 import org.jooq.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -29,10 +30,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.netshot.netshot.platform.database.DatabaseErrors;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
+import net.netshot.netshot.platform.database.Versions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
+import net.netshot.netshot.platform.query.ListQuery;
+import net.netshot.netshot.platform.query.ListResult;
+import net.netshot.netshot.platform.query.QuerySchema;
 
 /**
  * The domain use cases: list, add, edit and delete the device domains.
@@ -74,6 +79,55 @@ public class DomainService {
 			log.error("Unable to fetch the domains.", e);
 			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the domains");
 		}
+	}
+
+	/**
+	 * Gets what the domain lists can be filtered and sorted on.
+	 *
+	 * @return the schema of the list queries
+	 */
+	public static QuerySchema listSchema() {
+		return DomainRepository.LIST.schema();
+	}
+
+	/**
+	 * Lists the domains matching a query.
+	 *
+	 * @param query the query
+	 * @return the domains of the window, with the total number of matching domains if the query asks for it
+	 * @throws NetshotException if a filter is invalid, or the domains can't be read
+	 */
+	public ListResult<Domain> list(ListQuery query) {
+		try {
+			return this.transactions.read(dsl -> new ListResult<>(this.repository.findAll(dsl, query),
+				query.count() ? this.repository.count(dsl, query) : null));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the domains.", e);
+			throw DatabaseErrors.listFailure(e, "Unable to fetch the domains");
+		}
+	}
+
+	/**
+	 * Gets a domain.
+	 *
+	 * @param id the domain ID
+	 * @return the domain
+	 * @throws NetshotException if there is no such domain, or it can't be read
+	 */
+	public Domain get(long id) {
+		Domain domain;
+		try {
+			domain = this.transactions.read(dsl -> this.repository.find(dsl, id));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to fetch the domain {}.", id, e);
+			throw new NetshotException(ErrorCode.NETSHOT_DATABASE_ACCESS_ERROR, "Unable to fetch the domain");
+		}
+		if (domain == null) {
+			throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
+		}
+		return domain;
 	}
 
 	/**
@@ -126,32 +180,56 @@ public class DomainService {
 	 *         the name is already used, or the domain can't be stored
 	 */
 	public Domain update(long id, DomainDefinition definition) {
-		String name = definition.name() == null ? "" : definition.name().trim();
-		if (name.isEmpty()) {
-			log.warn("User posted an invalid domain name.");
-			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
-		}
-		String description = definition.description() == null ? "" : definition.description().trim();
-		Network4Address v4Address;
-		try {
-			v4Address = parseServerAddress(definition.server4Address());
-		}
-		catch (UnknownHostException e) {
-			log.warn("User posted an invalid IP address.");
-			throw new NetshotException(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, "Malformed IP address");
-		}
+		return this.update(id, definition, null);
+	}
+
+	/**
+	 * Edits a domain, if it is still at a given version.
+	 *
+	 * @param id the domain ID
+	 * @param definition the new definition of the domain
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @return the edited domain
+	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist, isn't at the
+	 *         expected version, the name is already used, or the domain can't be stored
+	 */
+	public Domain update(long id, DomainDefinition definition, Long expectedVersion) {
+		Domain valid = validate(definition);
+		return this.update(id, _ -> definition, expectedVersion, valid);
+	}
+
+	/**
+	 * Edits a domain, if it is still at a given version: the new definition is computed from the domain as it is,
+	 * which can't change meanwhile (to apply a patch).
+	 *
+	 * @param id the domain ID
+	 * @param change gives the new definition from the current domain
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @return the edited domain
+	 * @throws NetshotException if the name or the address is invalid, the domain doesn't exist, isn't at the
+	 *         expected version, the name is already used, or the domain can't be stored
+	 */
+	public Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion) {
+		return this.update(id, change, expectedVersion, null);
+	}
+
+	// With the definition already validated (as a domain), if it is known
+	private Domain update(long id, Function<Domain, DomainDefinition> change, Long expectedVersion, Domain validated) {
 		Domain domain;
 		try {
 			domain = this.transactions.write(dsl -> {
-				Domain existing = this.repository.find(dsl, id);
-				if (existing == null) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
+				Domain existing = this.repository.find(dsl, id);
+				Domain valid = validated == null ? validate(change.apply(existing)) : validated;
+				Versions.check("domain", version, expectedVersion);
 				return this.repository.save(dsl, existing.toBuilder()
-					.name(name)
-					.description(description)
-					.server4Address(v4Address)
+					.name(valid.name())
+					.description(valid.description())
+					.server4Address(valid.server4Address())
 					.build());
 			});
 		}
@@ -178,12 +256,27 @@ public class DomainService {
 	 *         or can't be deleted
 	 */
 	public void delete(long id) {
+		this.delete(id, null);
+	}
+
+	/**
+	 * Deletes a domain, if it is at a given version.
+	 *
+	 * @param id the domain ID
+	 * @param expectedVersion the version the domain must be at, or null for any
+	 * @throws NetshotException if the domain doesn't exist, isn't at the expected version, is used by devices or
+	 *         credential sets, or can't be deleted
+	 */
+	public void delete(long id, Long expectedVersion) {
 		try {
 			this.transactions.run(dsl -> {
-				if (!this.repository.remove(dsl, id)) {
+				Integer version = this.repository.lock(dsl, id);
+				if (version == null) {
 					log.error("The domain of ID {} doesn't exist.", id);
 					throw new NetshotException(ErrorCode.NETSHOT_DOMAIN_NOT_FOUND, "The domain doesn't exist.");
 				}
+				Versions.check("domain", version, expectedVersion);
+				this.repository.remove(dsl, id);
 			});
 		}
 		catch (DataAccessException e) {
@@ -216,5 +309,28 @@ public class DomainService {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_IP_ADDRESS, "Invalid IP address");
 		}
 		return v4Address;
+	}
+
+	/**
+	 * Checks the definition of a domain, for an edition.
+	 *
+	 * @param definition the definition
+	 * @return the name, description and IPv4 server address it gives (trimmed), as a domain
+	 * @throws NetshotException if the name is empty or the address is invalid
+	 */
+	private static Domain validate(DomainDefinition definition) {
+		String name = definition.name() == null ? "" : definition.name().trim();
+		if (name.isEmpty()) {
+			log.warn("User posted an invalid domain name.");
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN_NAME, "Invalid domain name.");
+		}
+		String description = definition.description() == null ? "" : definition.description().trim();
+		try {
+			return Domain.builder().name(name).description(description).server4Address(parseServerAddress(definition.server4Address())).build();
+		}
+		catch (UnknownHostException e) {
+			log.warn("User posted an invalid IP address.");
+			throw new NetshotException(ErrorCode.NETSHOT_MALFORMED_IP_ADDRESS, "Malformed IP address");
+		}
 	}
 }

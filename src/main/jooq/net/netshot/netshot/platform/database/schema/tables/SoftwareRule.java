@@ -4,10 +4,12 @@
 package net.netshot.netshot.platform.database.schema.tables;
 
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import net.netshot.netshot.platform.database.UtcInstantConverter;
 import net.netshot.netshot.platform.database.schema.DefaultSchema;
 import net.netshot.netshot.platform.database.schema.Indexes;
 import net.netshot.netshot.platform.database.schema.Keys;
@@ -91,9 +93,9 @@ public class SoftwareRule extends TableImpl<SoftwareRuleRecord> {
     public final TableField<SoftwareRuleRecord, Double> PRIORITY = createField(DSL.name("priority"), SQLDataType.DOUBLE.nullable(false), this, "");
 
     /**
-     * The column <code>software_rule.version</code>.
+     * The column <code>software_rule.software_version</code>.
      */
-    public final TableField<SoftwareRuleRecord, String> VERSION = createField(DSL.name("version"), SQLDataType.VARCHAR(255), this, "");
+    public final TableField<SoftwareRuleRecord, String> SOFTWARE_VERSION = createField(DSL.name("software_version"), SQLDataType.VARCHAR(255), this, "");
 
     /**
      * The column <code>software_rule.version_reg_exp</code>.
@@ -114,6 +116,16 @@ public class SoftwareRule extends TableImpl<SoftwareRuleRecord> {
      * The column <code>software_rule.part_number_reg_exp</code>.
      */
     public final TableField<SoftwareRuleRecord, Boolean> PART_NUMBER_REG_EXP = createField(DSL.name("part_number_reg_exp"), SQLDataType.BOOLEAN.nullable(false), this, "");
+
+    /**
+     * The column <code>software_rule.version</code>.
+     */
+    public final TableField<SoftwareRuleRecord, Integer> VERSION = createField(DSL.name("version"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
+    /**
+     * The column <code>software_rule.change_date</code>.
+     */
+    public final TableField<SoftwareRuleRecord, Instant> CHANGE_DATE = createField(DSL.name("change_date"), SQLDataType.LOCALDATETIME(6), this, "", new UtcInstantConverter());
 
     private SoftwareRule(Name alias, Table<SoftwareRuleRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
