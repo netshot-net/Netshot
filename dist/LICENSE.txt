@@ -1,4 +1,4 @@
-Netshot, Copyright 2013-2025 Netshot
+Netshot, Copyright 2013-present Netshot
 
 Netshot is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2026 Netshot
+ * Copyright 2013-present Netshot
  *
  * This file is part of Netshot project.
  *

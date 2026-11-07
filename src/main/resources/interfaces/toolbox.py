@@ -1,4 +1,4 @@
-# Copyright 2013-2025 Netshot
+# Copyright 2013-present Netshot
 # 
 # This file is part of Netshot project.
 # 
