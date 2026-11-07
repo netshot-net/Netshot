@@ -119,4 +119,14 @@ public class DiagnosticAdaptersTest {
 		Assertions.assertEquals("42", ((DiagnosticTextResult) result).text());
 	}
 
+	@Test
+	@DisplayName("Simple diagnostic: a modifier without replacement removes the matched text")
+	void simpleDiagnosticWithoutReplacement() throws Exception {
+		SimpleDiagnostic diagnostic = new SimpleDiagnostic(0, 0, null, "Simple", true, null, AttributeType.TEXT,
+			"CiscoIOS12", "exec", "show something", "^value=", null);
+		DiagnosticResult result = DiagnosticAdapters.standard().makeResult(diagnostic, Value.asValue("value=42"));
+		Assertions.assertInstanceOf(DiagnosticTextResult.class, result);
+		Assertions.assertEquals("42", ((DiagnosticTextResult) result).text());
+	}
+
 }
