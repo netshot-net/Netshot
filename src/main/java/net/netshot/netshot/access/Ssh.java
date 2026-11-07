@@ -45,6 +45,7 @@ import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.auth.keyboard.UserInteraction;
 import org.apache.sshd.client.auth.password.PasswordAuthenticationReporter;
 import org.apache.sshd.client.auth.pubkey.PublicKeyAuthenticationReporter;
+import org.apache.sshd.client.future.AuthFuture;
 import org.apache.sshd.client.channel.ChannelShell;
 import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
@@ -787,10 +788,15 @@ public class Ssh extends Cli {
 				}
 			});
 
+			AuthFuture authentication = this.session.auth();
 			try {
-				this.session.auth().verify(Duration.ofMillis(this.connectionTimeout));
+				authentication.verify(Duration.ofMillis(this.connectionTimeout));
 			}
 			catch (SshException e) {
+				if (!authentication.isDone()) {
+					// No answer of the server in time (e.g. loaded): not a rejection of the credentials
+					throw new SshException("The SSH server didn't complete the authentication within %d ms.".formatted(this.connectionTimeout), e);
+				}
 				if (e.getCause() != null && e.getCause() instanceof InvalidCredentialsException credException) {
 					// Already intercepted by *AuthenticationReporter
 					throw credException;
