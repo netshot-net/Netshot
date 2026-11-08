@@ -54,6 +54,7 @@ import net.netshot.netshot.driver.DeviceDriver.DriverProtocol;
 import net.netshot.netshot.driver.MissingDeviceDriverException;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
+import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ApiTest;
@@ -624,6 +625,34 @@ public class DeviceResourceTest {
 		Assertions.assertEquals(
 			Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 			"Not getting 400 for a credential class mismatched with the access's declared family");
+	}
+
+	@Test
+	@DisplayName("Device comments: up to 4096 characters, longer ones are refused (400)")
+	@ResourceLock("DB")
+	void deviceCommentsLength() throws IOException, InterruptedException {
+		this.createTestDomain();
+		ObjectNode data = JsonNodeFactory.instance.objectNode()
+			.put("autoDiscover", false)
+			.put("ipAddress", "10.1.1.1")
+			.put("domainId", this.testDomain.id())
+			.put("name", "device1")
+			.put("deviceType", this.getTestDriver().getName())
+			.put("comments", "x".repeat(4097));
+		HttpResponse<JsonNode> created = apiClient.post("/devices", data);
+		Assertions.assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), created.statusCode(),
+			"Not getting 400 for too long comments");
+		Assertions.assertEquals(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER.getCode(), created.body().get("errorCode").asInt());
+
+		Device device = TestDevices.add(FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, 1));
+		HttpResponse<JsonNode> edited = apiClient.put("/devices/%d".formatted(device.id()),
+			JsonNodeFactory.instance.objectNode().put("comments", "x".repeat(4097)));
+		Assertions.assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), edited.statusCode(),
+			"Not getting 400 for too long comments");
+		HttpResponse<JsonNode> accepted = apiClient.put("/devices/%d".formatted(device.id()),
+			JsonNodeFactory.instance.objectNode().put("comments", "y".repeat(4096)));
+		Assertions.assertEquals(Response.Status.OK.getStatusCode(), accepted.statusCode());
+		Assertions.assertEquals(4096, TestDevices.find(device.id()).comments().length());
 	}
 
 	@Test

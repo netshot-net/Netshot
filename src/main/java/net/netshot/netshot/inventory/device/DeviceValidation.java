@@ -88,6 +88,18 @@ public final class DeviceValidation {
 	}
 
 	/**
+	 * Validates device comments: at most {@link Device#MAX_COMMENTS_LENGTH} characters.
+	 * @param comments the comments to validate (may be null)
+	 * @throws NetshotException if the comments are too long
+	 */
+	public static void validateComments(String comments) {
+		if (comments != null && comments.length() > Device.MAX_COMMENTS_LENGTH) {
+			throw new NetshotException(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER,
+				"Invalid device comments (at most %d characters long).".formatted(Device.MAX_COMMENTS_LENGTH));
+		}
+	}
+
+	/**
 	 * Validates a device management/connect address, accepting an IPv4 literal, an IPv6
 	 * literal, or a syntactically valid hostname/FQDN. Never performs a DNS lookup:
 	 * hostnames are only resolved later, at actual connect time.

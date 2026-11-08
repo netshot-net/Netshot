@@ -327,6 +327,24 @@ public class V1DeviceWriteResourceTest {
 	}
 
 	@Test
+	@DisplayName("Comments: up to 4096 characters, longer ones are refused (400) on POST, PUT and PATCH")
+	void commentsLength() throws Exception {
+		String tooLong = "x".repeat(4097);
+		Answer added = this.admin.post("/devices", this.creation(", \"comments\": \"" + tooLong + "\""));
+		Assertions.assertEquals(400, added.status(), added.toString());
+		Assertions.assertEquals("NETSHOT_INVALID_REQUEST_PARAMETER", added.json().get("code").asText());
+		String path = "/devices/" + this.router1.id();
+		Answer put = this.admin.put(path, "{\"mgmtAddress\": \"" + this.router1.mgmtAddress() + "\", \"mgmtDomain\": " + this.paris.id()
+			+ ", \"comments\": \"" + tooLong + "\"}");
+		Assertions.assertEquals(400, put.status(), put.toString());
+		Answer patched = this.admin.patch(path, "{\"comments\": \"" + tooLong + "\"}");
+		Assertions.assertEquals(400, patched.status(), patched.toString());
+		Assertions.assertEquals("NETSHOT_INVALID_REQUEST_PARAMETER", patched.json().get("code").asText());
+		Assertions.assertEquals(200, this.admin.patch(path, "{\"comments\": \"" + "y".repeat(4096) + "\"}").status());
+		Assertions.assertEquals(4096, TestDevices.find(this.router1.id()).comments().length());
+	}
+
+	@Test
 	@DisplayName("PUT: validation errors, 404")
 	void putValidation() throws Exception {
 		String path = "/devices/" + this.router1.id();
