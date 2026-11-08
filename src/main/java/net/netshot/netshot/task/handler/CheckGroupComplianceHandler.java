@@ -18,17 +18,18 @@
  */
 package net.netshot.netshot.task.handler;
 
-import static net.netshot.netshot.platform.database.schema.Tables.CHECK_RESULT;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE;
 import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_GROUP_CACHED_DEVICES;
-import static net.netshot.netshot.platform.database.schema.Tables.POLICY_TARGET_GROUPS;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import org.jooq.Condition;
-import org.jooq.impl.DSL;
+import org.jooq.DSLContext;
 
 import lombok.extern.slf4j.Slf4j;
+import net.netshot.netshot.compliance.Exemption;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.PolicyRepository;
 import net.netshot.netshot.compliance.Rule;
@@ -48,7 +49,8 @@ import net.netshot.netshot.task.TaskRun;
 import net.netshot.netshot.task.type.CheckGroupComplianceTask;
 
 /**
- * Runs a group compliance check task.
+ * Runs a group compliance check task: the devices of the group (or list) are checked one after the other, each in its
+ * own transaction.
  */
 @Slf4j
 public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupComplianceTask> {
@@ -96,60 +98,86 @@ public class CheckGroupComplianceHandler implements TaskHandler<CheckGroupCompli
 		log.debug("Task {}. Starting check compliance task for {}.", task.id(),
 			groupId == null ? devices.size() + " listed device(s)" : "group " + groupId);
 
-		List<Long> deviceIds = devices;
-
+		// The devices of the group (or the existing devices of the list), and the rules of each policy
+		List<Long> deviceIds;
+		Map<Long, List<Rule>> rulesByPolicy = new HashMap<>();
 		try {
-			this.transactions.run(dsl -> {
-				List<Policy> policies = this.policyRepository.findAll(dsl, Page.ALL);
-				// The devices of the group (or the list)
-				Condition targetDevices = groupId != null
-					? DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId)
-					: DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.in(deviceIds);
-				if (groupId != null) {
-					dsl.deleteFrom(CHECK_RESULT)
-						.where(CHECK_RESULT.DEVICE.in(DSL.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
-							.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))))
-						.execute();
+			deviceIds = this.transactions.read(dsl -> {
+				for (Policy policy : this.policyRepository.findAll(dsl, Page.ALL)) {
+					rulesByPolicy.put(policy.id(), this.ruleRepository.findByPolicy(dsl, policy.id(), Page.ALL));
 				}
-				else {
-					dsl.deleteFrom(CHECK_RESULT).where(CHECK_RESULT.DEVICE.in(deviceIds)).execute();
-				}
-				for (Policy policy : policies) {
-					// Get devices which are part of the target group/list and which are in a group which the policy is applied to
-					var dm = DEVICE_GROUP_CACHED_DEVICES.as("dm");
-					var inPolicy = DSL.select(dm.CACHED_DEVICES).from(POLICY_TARGET_GROUPS)
-						.join(dm).on(dm.OWNER_GROUPS.eq(POLICY_TARGET_GROUPS.TARGET_GROUPS))
-						.where(POLICY_TARGET_GROUPS.POLICY.eq(policy.id()));
-					List<Long> policyDeviceIds = groupId != null
-						? dsl.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
-							.where(targetDevices.and(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES.in(inPolicy)))
-							.fetch(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES)
-						: dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.ID.in(deviceIds).and(DEVICE.ID.in(inPolicy))).fetch(DEVICE.ID);
-					List<Rule> rules = this.ruleRepository.findByPolicy(dsl, policy.id(), Page.ALL);
-					for (Long deviceId : policyDeviceIds) {
-						Device device = this.deviceRepository.find(dsl, deviceId);
-						run.logger.info("Checking configuration compliance of device {} ({})", device.name(), device.id());
-						DeviceDraft draft = new DeviceDraft(device);
-						draft.setLastConfig(device.lastConfigId() == null ? null : new ConfigRepository().find(dsl, device.lastConfigId(), true));
-						this.ruleRepository.saveCheckResults(dsl, this.complianceChecker.check(policy, rules, draft,
-							this.ruleRepository.findExemptionsOfDevice(dsl, deviceId), run.logger));
-						// The rules may change the tags or comments of the device
-						this.deviceRepository.save(dsl, device, draft.toDevice());
-					}
-				}
+				return groupId != null
+					? dsl.select(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES).from(DEVICE_GROUP_CACHED_DEVICES)
+						.where(DEVICE_GROUP_CACHED_DEVICES.OWNER_GROUPS.eq(groupId))
+						.orderBy(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES)
+						.fetch(DEVICE_GROUP_CACHED_DEVICES.CACHED_DEVICES)
+					: dsl.select(DEVICE.ID).from(DEVICE).where(DEVICE.ID.in(devices)).orderBy(DEVICE.ID).fetch(DEVICE.ID);
 			});
-			run.setStatus(Status.SUCCESS);
 		}
 		catch (Exception e) {
-			log.error("Task {}. Error while checking compliance.", task.id(), e);
-			run.logger.error("Error while checking compliance: {}", e.getMessage());
+			log.error("Task {}. Error while loading the devices and rules to check.", task.id(), e);
+			run.logger.error("Error while loading the devices and rules to check: {}", e.getMessage());
 			run.setStatus(Status.FAILURE);
 			return;
+		}
+
+		// One transaction per device: its rows are locked for its own check only, and an error only concerns it
+		List<Long> failedDeviceIds = new ArrayList<>();
+		for (Long deviceId : deviceIds) {
+			try {
+				this.transactions.run(dsl -> this.checkDevice(dsl, deviceId, rulesByPolicy, run));
+			}
+			catch (Exception e) {
+				log.error("Task {}. Error while checking compliance of device {}.", task.id(), deviceId, e);
+				run.logger.error("Error while checking compliance of device {}: {}", deviceId, e.getMessage());
+				failedDeviceIds.add(deviceId);
+			}
 		}
 
 		log.debug("Task {}. Request to refresh all the groups after compliance check.", task.id());
 		this.dynamicGroups.refreshAllGroups();
 		log.debug("Task {}. Group refreshing done.", task.id());
+
+		if (failedDeviceIds.isEmpty()) {
+			run.setStatus(Status.SUCCESS);
+		}
+		else {
+			run.logger.error("The compliance check failed for {} of {} device(s): {}", failedDeviceIds.size(), deviceIds.size(), failedDeviceIds);
+			run.setStatus(Status.FAILURE);
+		}
+	}
+
+	/**
+	 * Checks one device against the policies applied to it, replacing its results.
+	 *
+	 * @param dsl the jOOQ context
+	 * @param deviceId the device ID
+	 * @param rulesByPolicy the rules of each policy
+	 * @param run the run of the task
+	 */
+	private void checkDevice(DSLContext dsl, long deviceId, Map<Long, List<Rule>> rulesByPolicy, TaskRun run) {
+		this.ruleRepository.deleteCheckResultsOfDevice(dsl, deviceId);
+		List<Policy> policies = this.policyRepository.findOfDevice(dsl, deviceId);
+		if (policies.isEmpty()) {
+			return;
+		}
+		Device device = this.deviceRepository.find(dsl, deviceId);
+		if (device == null) {
+			// Removed since the start of the task
+			return;
+		}
+		run.logger.info("Checking configuration compliance of device {} ({})", device.name(), device.id());
+		DeviceDraft draft = new DeviceDraft(device);
+		draft.setLastConfig(device.lastConfigId() == null ? null : new ConfigRepository().find(dsl, device.lastConfigId(), true));
+		List<Exemption> exemptions = this.ruleRepository.findExemptionsOfDevice(dsl, deviceId);
+		for (Policy policy : policies) {
+			List<Rule> rules = rulesByPolicy.get(policy.id());
+			if (rules != null) {
+				this.ruleRepository.saveCheckResults(dsl, this.complianceChecker.check(policy, rules, draft, exemptions, run.logger));
+			}
+		}
+		// The rules may change the tags or comments of the device
+		this.deviceRepository.save(dsl, device, draft.toDevice());
 	}
 
 }
