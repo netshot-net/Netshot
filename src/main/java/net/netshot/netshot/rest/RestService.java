@@ -2754,6 +2754,11 @@ public class RestService extends Thread {
 	public Device setDevice(@PathParam("id") @Parameter(description = "Device ID") Long id, RsDevice rsDevice)
 		throws WebApplicationException {
 		log.debug("REST request, edit device {}.", id);
+		if (rsDevice.getComments() != null && rsDevice.getComments().length() > Device.MAX_COMMENTS_LENGTH) {
+			throw new NetshotBadRequestException(
+				"Invalid device comments (at most %d characters long).".formatted(Device.MAX_COMMENTS_LENGTH),
+				NetshotBadRequestException.Reason.NETSHOT_INVALID_REQUEST_PARAMETER);
+		}
 		Device device;
 		Session session = Database.getSession();
 		try {

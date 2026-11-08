@@ -2334,6 +2334,31 @@ public class RestServiceTest extends WithDatabaseTest {
 		}
 
 		@Test
+		@DisplayName("Device comments: up to 4096 characters, longer ones are refused (400)")
+		@ResourceLock("DB")
+		void deviceCommentsLength() throws IOException, InterruptedException {
+			this.createTestDomain();
+			Device device = FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, 1);
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.persist(device);
+				session.getTransaction().commit();
+			}
+			HttpResponse<JsonNode> refused = apiClient.put("/devices/%d".formatted(device.getId()),
+				JsonNodeFactory.instance.objectNode().put("comments", "x".repeat(4097)));
+			Assertions.assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), refused.statusCode(),
+				"Not getting 400 for too long comments");
+			Assertions.assertEquals(NetshotBadRequestException.Reason.NETSHOT_INVALID_REQUEST_PARAMETER.getCode(),
+				refused.body().get("errorCode").asInt());
+			HttpResponse<JsonNode> accepted = apiClient.put("/devices/%d".formatted(device.getId()),
+				JsonNodeFactory.instance.objectNode().put("comments", "y".repeat(4096)));
+			Assertions.assertEquals(Response.Status.OK.getStatusCode(), accepted.statusCode());
+			try (Session session = Database.getSession()) {
+				Assertions.assertEquals(4096, session.get(Device.class, device.getId()).getComments().length());
+			}
+		}
+
+		@Test
 		@DisplayName("Edit device")
 		@ResourceLock("DB")
 		void editDevice() throws IOException, InterruptedException {
