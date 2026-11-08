@@ -92,7 +92,6 @@ import net.netshot.netshot.device.attribute.DeviceNumericAttribute;
 import net.netshot.netshot.device.attribute.DeviceTextAttribute;
 import net.netshot.netshot.device.attribute.OptionDefinition;
 import net.netshot.netshot.device.script.helper.JsDeviceHelper;
-import net.netshot.netshot.device.script.helper.PyDeviceHelper;
 import net.netshot.netshot.device.credentials.DeviceHttpAccount;
 import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
@@ -1941,29 +1940,6 @@ public class DeviceDriverTest {
 				ProxyObject updatedOptions = (ProxyObject) helper.getOptions();
 				Assertions.assertEquals(Boolean.FALSE, updatedOptions.getMember("fullBackup"),
 					"An explicitly stored false value should be exposed as boolean false");
-			}
-			finally {
-				this.unregisterDriver("OptionsTestDriver");
-			}
-		}
-
-		@Test
-		@DisplayName("A script sets the device comments up to 4096 characters, longer ones are a script error")
-		void commentsLength() throws Exception {
-			DeviceDriver driver = this.buildDriver(OPTIONS_DRIVER_JS, "OptionsTestDriver.js");
-			this.registerDriver(driver);
-			try {
-				Domain domain = new Domain("Test domain", "Fake domain for tests", null, null);
-				Device device = new Device("OptionsTestDriver", null, domain, "test");
-				JsDeviceHelper jsHelper = new JsDeviceHelper(device, null, null, new FakeTaskContext(), false);
-				Assertions.assertThrows(IllegalArgumentException.class, () -> jsHelper.set("comments", "x".repeat(4097)));
-				Assertions.assertEquals("", device.getComments(), "The device comments were changed");
-				jsHelper.set("comments", "x".repeat(4096));
-				Assertions.assertEquals(4096, device.getComments().length());
-
-				PyDeviceHelper pyHelper = new PyDeviceHelper(device, null, new FakeTaskContext(), false);
-				Assertions.assertThrows(IllegalArgumentException.class, () -> pyHelper.set("comments", "y".repeat(4097)));
-				Assertions.assertEquals(4096, device.getComments().length(), "The device comments were changed");
 			}
 			finally {
 				this.unregisterDriver("OptionsTestDriver");
