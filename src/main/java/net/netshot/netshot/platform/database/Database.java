@@ -21,6 +21,7 @@ package net.netshot.netshot.platform.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import liquibase.UpdateSummaryOutputEnum;
 import liquibase.command.CommandScope;
@@ -165,7 +166,33 @@ public final class Database {
 	 * @throws SQLException if the connection can't be opened
 	 */
 	public static Connection openUnpooledConnection() throws SQLException {
-		return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
+		String url = getUrl();
+		return DriverManager.getConnection(url, connectionProperties(url, getUsername(), getPassword()));
+	}
+
+	/**
+	 * Gets the properties of the connections to a database, given to the JDBC driver. On PostgreSQL, the sessions run
+	 * without JIT compilation ({@code jit=off}): it doesn't speed up the short queries of Netshot, and compiling the
+	 * plans of its large generated statements took longer than running them. An {@code options} parameter of the JDBC
+	 * URL replaces this one.
+	 *
+	 * @param url the JDBC URL
+	 * @param username the user name
+	 * @param password the password
+	 * @return the properties
+	 */
+	static Properties connectionProperties(String url, String username, String password) {
+		Properties properties = new Properties();
+		if (url != null && url.startsWith("jdbc:postgresql:")) {
+			properties.setProperty("options", "-c jit=off");
+		}
+		if (username != null) {
+			properties.setProperty("user", username);
+		}
+		if (password != null) {
+			properties.setProperty("password", password);
+		}
+		return properties;
 	}
 
 	private Database() {

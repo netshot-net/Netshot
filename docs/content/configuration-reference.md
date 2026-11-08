@@ -66,6 +66,8 @@ Rules:
 | `netshot.db.readurl` | JDBC URI of a secondary, read-only database. See [Clustering and High Availability](clustering-ha.md). | Restart |
 | `netshot.db.driverclass` | JDBC driver class. Default: `org.postgresql.Driver`. | Restart |
 
+Netshot opens its PostgreSQL sessions without JIT compilation (`jit=off`, given to the JDBC driver as the `options` connection parameter, `-c jit=off`): its queries are short, and compiling the plans of its large generated statements (device searches, dynamic groups) took longer than running them. An `options` parameter in `netshot.db.url` (e.g. `?options=-c%20jit%3Don`) replaces it. If a connection pooler such as PgBouncer sits between Netshot and PostgreSQL, it must accept the `options` startup parameter (or ignore it, with PgBouncer's `ignore_startup_parameters = options`).
+
 Advanced connection pool tuning (see the [c3p0 documentation](https://www.mchange.com/projects/c3p0/#configuration) for details):
 
 | Parameter | Default | Reload |

@@ -124,6 +124,8 @@ public final class ConnectionPools implements AutoCloseable {
 		}
 		pool.setDataSourceName(identifier.getSourceName());
 		pool.setJdbcUrl(url);
+		// The driver properties (no JIT on PostgreSQL), then the user and password (which c3p0 keeps in them)
+		pool.setProperties(Database.connectionProperties(url, null, null));
 		pool.setUser(username);
 		pool.setPassword(password);
 		pool.setMinPoolSize(minPoolSize);
