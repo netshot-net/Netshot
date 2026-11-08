@@ -2143,7 +2143,4 @@
 			<column name="discover_result_device"/>
 		</createIndex>
 	</changeSet>
-	<changeSet author="netshot" id="0.25.1_4">
-		<modifyDataType tableName="device" columnName="comments" newDataType="VARCHAR(4096)"/>
-	</changeSet>
 </databaseChangeLog>

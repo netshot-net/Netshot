@@ -152,9 +152,6 @@ public class Device {
 	/** The Constant DEFAULTNAME. */
 	public static final String DEFAULTNAME = "[NONAME]";
 
-	/** The maximum length of the comments of a device. */
-	public static final int MAX_COMMENTS_LENGTH = 4096;
-
 
 	/** The attributes. */
 	@Getter(onMethod = @__({

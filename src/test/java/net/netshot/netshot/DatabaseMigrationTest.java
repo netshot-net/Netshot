@@ -577,44 +577,4 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 				"Missing index on task.discover_result_device: %s".formatted(indexes));
 		}
 	}
-
-	@Nested
-	@DisplayName("0.25.1_4 - Device comments up to 4096 characters")
-	class Changeset_0_25_1_4_DeviceCommentsLengthTest {
-
-		@Test
-		@DisplayName("The device comments column takes 4096 characters, the existing comments are kept")
-		void widensDeviceComments() throws Exception {
-			Properties config = getFreshDatabaseConfig("devicecommentstest");
-			config.setProperty("netshot.log.file", "CONSOLE");
-			config.setProperty("netshot.log.level", "INFO");
-			Netshot.initConfig(config);
-			updateToChangeSet("0.25.1_3", "netshot");
-			try (Connection connection = Database.getConnection(false);
-					Statement statement = connection.createStatement()) {
-				statement.execute("insert into device (id, name, version, mgmt_address, comments) "
-					+ "values (601, 'commented', 0, '10.1.2.5', '%s')".formatted("a".repeat(255)));
-			}
-
-			Database.update();
-
-			try (Connection connection = Database.getConnection(false);
-					Statement statement = connection.createStatement()) {
-				try (var rows = statement.executeQuery("select comments from device where id = 601")) {
-					rows.next();
-					Assertions.assertEquals("a".repeat(255), rows.getString(1), "The existing comments were changed");
-				}
-				statement.execute("update device set comments = '%s' where id = 601".formatted("b".repeat(4096)));
-				try (var rows = statement.executeQuery("select character_maximum_length from information_schema.columns "
-					+ "where table_name = 'device' and column_name = 'comments'")) {
-					rows.next();
-					Assertions.assertEquals(4096, rows.getInt(1));
-				}
-				try (var rows = statement.executeQuery("select length(comments) from device where id = 601")) {
-					rows.next();
-					Assertions.assertEquals(4096, rows.getInt(1));
-				}
-			}
-		}
-	}
 }
