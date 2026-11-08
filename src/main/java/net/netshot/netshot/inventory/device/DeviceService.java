@@ -286,6 +286,7 @@ public class DeviceService {
 			DeviceValidation.validateMgmtAddress(change.mgmtAddress(), false);
 		}
 		DeviceValidation.validateTags(change.tags() == null ? null : List.copyOf(change.tags()));
+		DeviceValidation.validateComments(change.comments());
 		Domain domain = this.domainRepository.find(dsl, change.mgmtDomainId());
 		if (domain == null) {
 			throw new NetshotException(ErrorCode.NETSHOT_INVALID_DOMAIN, "Invalid domain");
@@ -333,6 +334,7 @@ public class DeviceService {
 			edited.options(DeviceValidation.validateOptions(driver, update.options()));
 		}
 		if (update.comments() != null) {
+			DeviceValidation.validateComments(update.comments());
 			edited.comments(update.comments());
 		}
 		if (update.tags() != null) {
