@@ -734,7 +734,7 @@
         "howItWorks": "Rules are evaluated in order until one matches the device. If no rule matches, the device is considered non-compliant."
       },
       "check": "Check compliance",
-      "checkConfigOfGroup": "Check the configuration compliance of a group of devices",
+      "checkConfigOfGroup": "Check the configuration compliance of a group of devices, with their software and hardware support compliance",
       "checkConfigOfGroupAction": "Check configuration compliance on a group",
       "checkSoftwareHardwareOfGroup": "Check software and hardware support compliance for a group of devices",
       "checkSoftwareHardwareOfGroupAction": "Check software/hardware on a group",

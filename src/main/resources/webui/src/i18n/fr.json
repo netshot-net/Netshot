@@ -733,7 +733,7 @@
         "howItWorks": "Les règles sont évaluées dans l'ordre jusqu'à ce qu'une corresponde à l'équipement. Si aucune règle ne correspond, l'équipement est considéré comme non conforme."
       },
       "check": "Vérifier la conformité",
-      "checkConfigOfGroup": "Vérifier la conformité de la configuration d'un groupe d'équipements",
+      "checkConfigOfGroup": "Vérifier la conformité de la configuration d'un groupe d'équipements, avec leur conformité logicielle et matérielle",
       "checkConfigOfGroupAction": "Vérifier la conformité de la configuration sur un groupe",
       "checkSoftwareHardwareOfGroup": "Vérifier la conformité logicielle et matérielle d'un groupe d'équipements",
       "checkSoftwareHardwareOfGroupAction": "Vérifier le logiciel/matériel sur un groupe",
