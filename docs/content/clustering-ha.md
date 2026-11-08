@@ -1,6 +1,6 @@
 # Clustering and high availability
 
-Netshot supports running in **cluster mode**. In this mode, several Netshot instances (servers) interact to load balance the tasks (snapshots, compliance checks, etc.). In case of failure of a member, the pending and running tasks are automatically redistributed to the other instances.
+Netshot supports running in **cluster mode**. In this mode, several Netshot instances (servers) interact to load balance the tasks (snapshots, compliance checks, etc.). In case of failure of a member, its pending tasks are automatically redistributed to the other instances; the tasks it was running are marked as failed (see below).
 
 !!! note
     Clustering requires PostgreSQL as the underlying database.
@@ -54,7 +54,7 @@ Running tasks hold PostgreSQL advisory locks (on one dedicated database connecti
 * a task never runs twice at the same time;
 * only one task works on a given device at a time (see [Tasks on the same device](user-guide/tasks.md#tasks-on-the-same-device)).
 
-When a member is considered gone, the master reassigns its tasks to the other runners, except the tasks still holding their lock: a member which only stopped sending hello messages for a while (but is still connected to the database and running its tasks) is left to complete them. If the member really died, PostgreSQL releases its locks once its connection is detected as dead (TCP keepalives, about one minute), and the master then reassigns these tasks within the next minute.
+When a member is considered gone, the master reassigns its tasks to the other runners, except the tasks still holding their lock: a member which only stopped sending hello messages for a while (but is still connected to the database and running its tasks) is left to complete them. If the member really died, PostgreSQL releases its locks once its connection is detected as dead (TCP keepalives, about one minute), and the master then reassigns these tasks within the next minute. A task the member had already started is not run again (a script, for instance, must not be applied twice): it is marked as failed, and the next occurrence of a repeating task is scheduled; a group task (snapshot, diagnostics or script on a group) resumes on another member, with the device tasks it had already created.
 
 Advisory locks (as well as the notification system) require session-level database connections: when using a connection pooler such as PgBouncer in front of PostgreSQL, it must be in *session* pooling mode.
 
