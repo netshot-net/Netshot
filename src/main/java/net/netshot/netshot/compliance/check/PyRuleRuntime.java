@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.EnvironmentAccess;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
@@ -156,6 +157,27 @@ public class PyRuleRuntime {
 	}
 
 	/**
+	 * The engine option disabling the compilation, which only the optimizing Truffle runtime has (not the fallback
+	 * runtime of a JDK without the Graal compiler, which only interprets), checked once.
+	 */
+	static final class CompilationOption {
+		/** Name of the option. */
+		static final String NAME = "engine.Compilation";
+
+		/** Whether the Truffle runtime has the option. */
+		static final boolean AVAILABLE = check();
+
+		private CompilationOption() {
+		}
+
+		private static boolean check() {
+			try (Engine engine = Engine.newBuilder().option("engine.WarnInterpreterOnly", "false").build()) {
+				return engine.getOptions().get(NAME) != null;
+			}
+		}
+	}
+
+	/**
 	 * Create a GraalVM context to run a rule script.
 	 * @return the context
 	 * @throws IOException if the context can't be created
@@ -209,6 +231,11 @@ public class PyRuleRuntime {
 			builder
 				.option("python.Executable", venvFolder + "/bin/graalpy")
 				.option("python.ForceImportSite", "true");
+		}
+		if (CompilationOption.AVAILABLE) {
+			// The context has its own engine, closed after the evaluation: compiling its code is wasted work, and the
+			// Truffle compile queue (Polyglot 25.0) keeps the queued compilations of a closed engine forever (heap leak)
+			builder.allowExperimentalOptions(true).option(CompilationOption.NAME, "false");
 		}
 		Context context = builder.build();
 		return context;
