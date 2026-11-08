@@ -19,10 +19,6 @@ Only one task works on a given device at a time (snapshot, diagnostics and scrip
 
 A task waiting for a device can be cancelled from its task dialog (**Cancel task**). This only works while it is still waiting: a task already working on the device can't be stopped. A recurring task cancelled this way is not rescheduled.
 
-## Interrupted tasks
-
-When Netshot stops (or crashes) while a task is running, the task is not run again when Netshot starts: it is marked as failed, with the reason in its log, since running it again could repeat its effect (a script, for instance, must not be applied twice). The next occurrence of a repeating task is scheduled as usual. A group task (snapshot, diagnostics or script on a group) is the exception: it resumes, with the device tasks it had already created. The same applies in a cluster to the tasks of a member which is lost.
-
 ## Script chaining
 
 When running a script against a device (or a group), you can ask Netshot to automatically:

@@ -19,7 +19,6 @@
 package net.netshot.netshot;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -57,7 +56,6 @@ import net.netshot.netshot.work.Task;
 import net.netshot.netshot.work.Task.Status;
 import net.netshot.netshot.work.TaskJob;
 import net.netshot.netshot.work.TaskLockManager;
-import net.netshot.netshot.work.tasks.ChildOrchestratingTask;
 
 /**
  * The TaskManager schedules and runs the tasks.
@@ -351,46 +349,6 @@ public final class TaskManager {
 	}
 
 	/**
-	 * Handles a task whose run was interrupted (Netshot stopped or crashed, or the cluster member running it was lost):
-	 * unless it is a group task (which only orchestrates its child tasks, and resumes when run again, picking up those
-	 * it already created), it is marked as failed, not run again (a script, for instance, must not be applied twice),
-	 * and the next occurrence of a repeating task is scheduled.
-	 *
-	 * @param task the task
-	 * @param reason the reason, logged in the task
-	 * @return true if the task was marked as failed
-	 */
-	static boolean failInterrupted(Task task, String reason) {
-		if (task instanceof ChildOrchestratingTask) {
-			log.warn("Group task {} was interrupted while running, it will resume when run again.", task.getId());
-			return false;
-		}
-		Session session = Database.getSession();
-		try {
-			session.beginTransaction();
-			task.setInterrupted(reason);
-			session.merge(task);
-			session.getTransaction().commit();
-		}
-		catch (HibernateException e) {
-			Database.rollbackSilently(session);
-			log.error("Unable to mark the interrupted task {} as failed.", task.getId(), e);
-			return false;
-		}
-		finally {
-			session.close();
-		}
-		log.warn("Task {} was interrupted while running, it's marked as failed.", task.getId());
-		try {
-			TaskManager.repeatTask(task);
-		}
-		catch (SchedulerException | HibernateException e) {
-			log.error("Unable to schedule the next occurrence of the interrupted task {}.", task.getId(), e);
-		}
-		return true;
-	}
-
-	/**
 	 * Cancels the task.
 	 *
 	 * @param task the task
@@ -667,7 +625,6 @@ public final class TaskManager {
 		log.debug("Looking for orphan tasks.");
 		Session session = Database.getSystemSession();
 		int reassignedCount = 0;
-		List<Task> interrupted = new ArrayList<>();
 		try {
 			session.beginTransaction();
 			List<String> runnerIds = session.createQuery(
@@ -711,10 +668,6 @@ public final class TaskManager {
 						log.error("Unable to check whether task {} is still running, not reassigning it.", task.getId(), e);
 						continue;
 					}
-					if (Task.Status.RUNNING.equals(task.getStatus()) && !(task instanceof ChildOrchestratingTask)) {
-						interrupted.add(task);
-						continue;
-					}
 					log.debug("Task {} will be reassigned as its previously assigned runner {} has disappeared.",
 						task.getId(), task.getRunnerId());
 					assignTaskRunner(task);
@@ -728,14 +681,9 @@ public final class TaskManager {
 			Database.rollbackSilently(session);
 			log.error("Database error while re-assigning orphan tasks", e);
 			reassignedCount = 0;
-			interrupted.clear();
 		}
 		finally {
 			session.close();
-		}
-		for (Task task : interrupted) {
-			TaskManager.failInterrupted(task,
-				"The cluster member running the task was lost (the run was interrupted, it is not run again).");
 		}
 		if (reassignedCount > 0) {
 			log.info("{} orphan task(s) reassigned", reassignedCount);
@@ -793,11 +741,6 @@ public final class TaskManager {
 		Calendar inThirtySeconds = Calendar.getInstance();
 		inThirtySeconds.add(Calendar.SECOND, 30);
 		for (Task task : tasks) {
-			if (Task.Status.RUNNING.equals(task.getStatus()) && !(task instanceof ChildOrchestratingTask)) {
-				TaskManager.failInterrupted(task,
-					"Netshot was stopped while the task was running (the run was interrupted, it is not run again).");
-				continue;
-			}
 			try {
 				if (masterScheduler.checkExists(task.getIdentity())) {
 					log.trace("The task {} is already in the master scheduler.", task.getId());
