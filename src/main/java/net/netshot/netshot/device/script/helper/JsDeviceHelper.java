@@ -287,11 +287,6 @@ public final class JsDeviceHelper {
 		if (value == null) {
 			return;
 		}
-		if ("comments".equals(key) && value.length() > Device.MAX_COMMENTS_LENGTH) {
-			// A script error, not only logged as the other errors below
-			throw new IllegalArgumentException("The device comments can't be longer than %d characters (%d given)."
-				.formatted(Device.MAX_COMMENTS_LENGTH, value.length()));
-		}
 		try {
 			if ("name".equals(key)) {
 				device.setName(value);
