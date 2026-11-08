@@ -63,6 +63,7 @@ import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
 import net.netshot.netshot.task.TaskEngine;
 import net.netshot.netshot.task.TaskRepository;
+import net.netshot.netshot.task.type.ChildOrchestratingTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 
 /**
@@ -432,11 +433,9 @@ public final class TaskManager implements Service, TaskEngine {
 			for (JobExecutionContext job : running) {
 				Object taskId = job.getJobDetail().getJobDataMap().get(TaskJob.NETSHOT_TASK);
 				if (taskId instanceof Long id) {
-					boolean failed = this.transactions.write(dsl -> REPOSITORY.failRunning(dsl, id,
-						"Netshot was stopped while the task was running."));
-					if (failed) {
+					Task task = this.transactions.read(dsl -> REPOSITORY.find(dsl, id));
+					if (task != null && this.failInterrupted(task, "Netshot was stopped while the task was running.")) {
 						this.interruptedTasks.incrementAndGet();
-						log.warn("Task {} was still running, it's marked as failed.", id);
 					}
 				}
 			}
@@ -449,6 +448,51 @@ public final class TaskManager implements Service, TaskEngine {
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
+	}
+
+	/**
+	 * Tells whether an interrupted run of a task resumes when the task is run again: a group task only orchestrates
+	 * its child tasks, and picks up those it already created.
+	 *
+	 * @param task the task
+	 * @return true if the task resumes
+	 */
+	static boolean resumes(Task task) {
+		return task.spec() instanceof ChildOrchestratingTask;
+	}
+
+	/**
+	 * Handles a task whose run was interrupted (Netshot stopped or crashed, or the cluster member running it was lost),
+	 * unless it {@link #resumes}: it is marked as failed, not run again (a script, for instance, must not be applied
+	 * twice), and the next occurrence of a repeating task is scheduled.
+	 *
+	 * @param task the task
+	 * @param reason the reason, logged in the task
+	 * @return true if the task was marked as failed
+	 */
+	boolean failInterrupted(Task task, String reason) {
+		if (resumes(task)) {
+			log.warn("Group task {} was interrupted while running, it will resume when run again.", task.id());
+			return false;
+		}
+		boolean failed;
+		try {
+			failed = this.transactions.write(dsl -> REPOSITORY.failRunning(dsl, task.id(), reason));
+		}
+		catch (DataAccessException e) {
+			log.error("Unable to mark the interrupted task {} as failed.", task.id(), e);
+			return false;
+		}
+		if (failed) {
+			log.warn("Task {} was interrupted while running, it's marked as failed.", task.id());
+			try {
+				this.repeatTask(task);
+			}
+			catch (SchedulerException | DataAccessException e) {
+				log.error("Unable to schedule the next occurrence of the interrupted task {}.", task.id(), e);
+			}
+		}
+		return failed;
 	}
 
 	/**
@@ -778,6 +822,7 @@ public final class TaskManager implements Service, TaskEngine {
 			return;
 		}
 		int reassignedCount;
+		List<Task> interrupted = new ArrayList<>();
 		try {
 			reassignedCount = inSystemTransaction(dsl -> {
 				Condition active = TaskRepository.statusIn(Status.WAITING, Status.RUNNING);
@@ -803,6 +848,10 @@ public final class TaskManager implements Service, TaskEngine {
 						log.error("Unable to check whether task {} is still running, not reassigning it.", task.id(), e);
 						continue;
 					}
+					if (task.status() == Status.RUNNING && !resumes(task)) {
+						interrupted.add(task);
+						continue;
+					}
 					log.debug("Reassigning task {} (formerly assigned to runner {}).", task.id(), task.runnerId());
 					assignTaskRunner(dsl, task);
 					count += 1;
@@ -813,6 +862,9 @@ public final class TaskManager implements Service, TaskEngine {
 		catch (Exception e) {
 			log.error("Database error while re-assigning orphan tasks", e);
 			reassignedCount = 0;
+		}
+		for (Task task : interrupted) {
+			this.failInterrupted(task, "The cluster member running the task was lost (the run was interrupted, it is not run again).");
 		}
 		if (reassignedCount > 0) {
 			log.info("{} orphan task(s) reassigned", reassignedCount);
@@ -842,6 +894,10 @@ public final class TaskManager implements Service, TaskEngine {
 		Calendar inThirtySeconds = Calendar.getInstance();
 		inThirtySeconds.add(Calendar.SECOND, 30);
 		for (Task task : tasks) {
+			if (task.status() == Status.RUNNING && !resumes(task)) {
+				this.failInterrupted(task, "Netshot was stopped while the task was running (the run was interrupted, it is not run again).");
+				continue;
+			}
 			try {
 				if (masterScheduler.checkExists(task.identity())) {
 					log.trace("The task {} already exists in the master scheduler.", task.id());

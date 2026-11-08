@@ -287,7 +287,13 @@ public class TaskJob implements Job {
 
 		log.trace("Updating the task with the result.");
 		try {
-			this.transactions.run(dsl -> this.repository.saveRun(dsl, run));
+			// A task marked as failed meanwhile (Netshot stopping) already had its next occurrence scheduled
+			boolean stillRunning = this.transactions.write(dsl -> {
+				boolean running = this.repository.lockRunning(dsl, id);
+				this.repository.saveRun(dsl, run);
+				return running;
+			});
+			repeat = repeat && stillRunning;
 		}
 		catch (Exception e) {
 			log.error("Error while updating the task {} after execution.", id, e);
