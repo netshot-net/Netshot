@@ -1546,17 +1546,6 @@ public abstract class Task implements Cloneable {
 	}
 
 	/**
-	 * Sets the task as failed because its run was interrupted (Netshot stopped or crashed, or the cluster
-	 * member running it was lost).
-	 *
-	 * @param reason the reason, logged in the task
-	 */
-	public void setInterrupted(String reason) {
-		this.status = Status.FAILURE;
-		this.logger.error(reason);
-	}
-
-	/**
 	 * Sets the task as failed.
 	 */
 	public void setFailed() {
