@@ -672,6 +672,18 @@ public class TaskRepository {
 	}
 
 	/**
+	 * Locks the row of a task until the end of the transaction, and tells whether the task is still running (it is
+	 * not when it was marked as failed meanwhile, e.g. by a stop of Netshot).
+	 *
+	 * @param dsl the jOOQ context
+	 * @param id the ID
+	 * @return true if the task is running
+	 */
+	public boolean lockRunning(DSLContext dsl, long id) {
+		return Task.Status.RUNNING.name().equals(dsl.select(TASK.STATUS).from(TASK).where(TASK.ID.eq(id)).forUpdate().fetchOne(TASK.STATUS));
+	}
+
+	/**
 	 * Marks a task which is still running (or waiting for its device) as failed, appending the reason to its log.
 	 *
 	 * @param dsl the jOOQ context
