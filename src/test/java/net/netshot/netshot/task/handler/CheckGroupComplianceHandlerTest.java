@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.Policy;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.domain.Domain;
@@ -66,6 +67,12 @@ class CheckGroupComplianceHandlerTest {
 
 	private StaticDeviceGroup group;
 
+	private StaticDeviceGroup policyGroup;
+
+	private Policy policy;
+
+	private TextRule rule;
+
 	@BeforeEach
 	void createRunner() {
 		this.runner = new TaskRunner();
@@ -81,22 +88,22 @@ class CheckGroupComplianceHandlerTest {
 		this.first = TestDevices.addFakeCiscoIos(domain, 1);
 		this.second = TestDevices.addFakeCiscoIos(domain, 2);
 		this.third = TestDevices.addFakeCiscoIos(domain, 3);
-		StaticDeviceGroup policyGroup = TestDevices.addStaticGroup("Policy target");
-		TestDevices.addMembers(policyGroup, this.first);
-		TestDevices.addMembers(policyGroup, this.third);
+		this.policyGroup = TestDevices.addStaticGroup("Policy target");
+		TestDevices.addMembers(this.policyGroup, this.first);
+		TestDevices.addMembers(this.policyGroup, this.third);
 		this.group = TestDevices.addStaticGroup("Task target");
 		TestDevices.addMembers(this.group, this.first);
 		TestDevices.addMembers(this.group, this.second);
-		Policy policy = TestCompliance.policy("Policy", policyGroup.id());
-		TextRule rule = TestCompliance.rule(TextRule.builder("pad", policy.id())
+		this.policy = TestCompliance.policy("Policy", this.policyGroup.id());
+		this.rule = TestCompliance.rule(TextRule.builder("pad", this.policy.id())
 			.enabled(true)
 			.deviceDriver("CiscoIOS12")
 			.field("runningConfig")
 			.text("no service pad")
 			.build());
 		TestCompliance.checkResults(
-			CheckResult.of(rule.id(), this.second.id(), ResultOption.NONCONFORMING, "stale"),
-			CheckResult.of(rule.id(), this.third.id(), ResultOption.NONCONFORMING, "stale"));
+			CheckResult.of(this.rule.id(), this.second.id(), ResultOption.NONCONFORMING, "stale"),
+			CheckResult.of(this.rule.id(), this.third.id(), ResultOption.NONCONFORMING, "stale"));
 	}
 
 	@AfterEach
@@ -143,6 +150,37 @@ class CheckGroupComplianceHandlerTest {
 
 		long members = TestDevices.memberIds(dynamic.id()).size();
 		Assertions.assertEquals(3, members, "Every group is refreshed, not only those of the checked devices");
+	}
+
+	private static Map<String, String> ruleResults(long ruleId) {
+		return TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT).from(Tables.CHECK_RESULT)
+			.join(Tables.DEVICE).on(Tables.DEVICE.ID.eq(Tables.CHECK_RESULT.DEVICE))
+			.where(Tables.CHECK_RESULT.RULE.eq(ruleId))
+			.fetchMap(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT));
+	}
+
+	@Test
+	@DisplayName("Checks each device in its own transaction: an error on a device keeps the results of the others")
+	void deviceErrorKeepsOtherResults() throws Exception {
+		// Both devices of the task group in the policy; the rule makes the save of the first one fail (comments too long)
+		TestDevices.addMembers(this.policyGroup, this.second);
+		TestCompliance.rule(new JavaScriptRule(0, 0, null, "Long comments", true, this.policy.id(), ""
+			+ "function check(device) {\n"
+			+ "  if (device.get(\"name\") == \"" + this.first.name() + "\") {\n"
+			+ "    device.set(\"comments\", \"x\".repeat(300));\n"
+			+ "  }\n"
+			+ "  return CONFORMING;\n"
+			+ "}"));
+
+		long id = this.runner.run(GroupBasedTask.of(new CheckGroupComplianceTask(this.group.id(), null), this.group.name(), "Test", "tester"));
+
+		Task task = TaskRunner.load(id);
+		Assertions.assertEquals(Status.FAILURE, task.status());
+		Assertions.assertTrue(task.log().contains("failed for 1 of 2 device(s): [" + this.first.id() + "]"), task.log());
+		Assertions.assertEquals(Map.of(
+			this.second.name(), ResultOption.CONFORMING.name(),
+			this.third.name(), ResultOption.NONCONFORMING.name()), ruleResults(this.rule.id()),
+			"First: its check rolled back; second: checked after the error; third (out of the group): untouched");
 	}
 
 	@Test

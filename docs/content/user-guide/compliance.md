@@ -8,6 +8,8 @@ The purpose of the _Compliance_ section is to keep your devices in a mastered st
 
 Once the rules are defined within Netshot, the status of a device is refreshed by running a _Check compliance_ task. This can be done manually by scheduling such a task, and this is anyway automatic after snapshot and diagnostic tasks, to ensure that a device becoming non-compliant after a configuration change is immediately flagged.
 
+A compliance check of a group (or of a list of devices) checks the devices one after the other, and saves the results of each device as soon as it is checked. If the check of a device fails (e.g. its changes can't be saved), only that device keeps its previous results: the other devices are still checked, and the task ends in failure, with the failed devices listed in its log.
+
 The software compliance status can be seen in the Compliance tab of the device view, or at the global level in the software compliance report.
 
 Creating, deleting or modifying policies or rules requires _read-write_ permissions.
@@ -143,7 +145,7 @@ The function `check(device, [debug])` must exist in the code — this is the ent
         * `"interfaces"`, the list of interfaces of the device.
         * Any other attribute name defined by the driver of the device.
     * `device.get(attribute, otherDevice)`, where `otherDevice` is either the ID or the name of another device, will retrieve for you the given attribute value from the specified device instead of the current device. By using this feature, you can compare configurations between devices.
-    * `device.add("tag", tag)` and `device.remove("tag", tag)` add or remove a [tag](devices.md#device-tags) on the device, and `device.set("comments", text)` replaces the device comments. These are the only changes a rule can make to a device; they are saved when the compliance check task completes (not when testing the rule from the editor). For example, a rule can tag non-compliant devices, so that they can be gathered in a dynamic group (`[Tag] is "non-compliant"`).
+    * `device.add("tag", tag)` and `device.remove("tag", tag)` add or remove a [tag](devices.md#device-tags) on the device, and `device.set("comments", text)` replaces the device comments. These are the only changes a rule can make to a device; they are saved with the results of the device by the compliance check task (not when testing the rule from the editor). For example, a rule can tag non-compliant devices, so that they can be gathered in a dynamic group (`[Tag] is "non-compliant"`).
     * `device.nslookup(host)` will return a DNS resolution (either direct or reverse) of the passed name.
     * `device.findSections(configuration, section)` is deprecated, use the [ConfigTree](script-toolbox.md) parser instead.
 * `debug(message)` is a function that you can call to log debug messages. These messages will appear in the logs of the _Check compliance_ task.
