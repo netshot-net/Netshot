@@ -62,6 +62,7 @@ public class ConnectionPoolsTest {
 			Assertions.assertEquals("org.postgresql.Driver", readWrite.getDriverClass());
 			Assertions.assertEquals("user", readWrite.getUser());
 			Assertions.assertEquals("secret", readWrite.getPassword());
+			Assertions.assertEquals("-c jit=off", readWrite.getProperties().getProperty("options"), "PostgreSQL sessions without JIT");
 			Assertions.assertEquals(3, readWrite.getMinPoolSize());
 			Assertions.assertEquals(3, readWrite.getInitialPoolSize());
 			Assertions.assertEquals(17, readWrite.getMaxPoolSize());
@@ -85,6 +86,8 @@ public class ConnectionPoolsTest {
 			Assertions.assertEquals("System", system.getDataSourceName());
 			Assertions.assertEquals(URL, system.getJdbcUrl());
 			Assertions.assertEquals(2, system.getMinPoolSize());
+			Assertions.assertEquals("-c jit=off", system.getProperties().getProperty("options"));
+			Assertions.assertEquals("-c jit=off", readOnly.getProperties().getProperty("options"));
 			Assertions.assertEquals(4, system.getMaxPoolSize());
 			Assertions.assertEquals(1234, system.getCheckoutTimeout());
 		}
