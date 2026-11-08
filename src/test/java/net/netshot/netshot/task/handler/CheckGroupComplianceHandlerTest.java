@@ -18,6 +18,9 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -29,16 +32,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+import net.netshot.netshot.compliance.HardwareRule;
 import net.netshot.netshot.compliance.JavaScriptRule;
 import net.netshot.netshot.compliance.Policy;
+import net.netshot.netshot.compliance.SoftwareRule;
 import net.netshot.netshot.compliance.TextRule;
 import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
-import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -171,14 +176,7 @@ class CheckGroupComplianceHandlerTest {
 		// Both devices of the task group in the policy, a rule changing them; the update of the first one fails
 		TestDevices.addMembers(this.policyGroup, this.second);
 		this.addCommentsRule("\"Checked\"");
-		Transactions transactions = TestWiring.get().transactions();
-		transactions.run(dsl -> {
-			dsl.execute("create function test_fail_device_update() returns trigger language plpgsql as "
-				+ "$$ begin raise exception 'Test failure of the update of device %', old.name; end $$");
-			dsl.execute("create trigger test_fail_device_update before update on device for each row when (old.name = '"
-				+ this.first.name() + "') execute function test_fail_device_update()");
-		});
-		try {
+		try (AutoCloseable _ = TestDevices.failUpdates(this.first)) {
 			long id = this.runner.run(GroupBasedTask.of(new CheckGroupComplianceTask(this.group.id(), null), this.group.name(), "Test", "tester"));
 
 			Task task = TaskRunner.load(id);
@@ -188,12 +186,6 @@ class CheckGroupComplianceHandlerTest {
 				this.second.name(), ResultOption.CONFORMING.name(),
 				this.third.name(), ResultOption.NONCONFORMING.name()), ruleResults(this.rule.id()),
 				"First: its check rolled back; second: checked after the error; third (out of the group): untouched");
-		}
-		finally {
-			transactions.run(dsl -> {
-				dsl.execute("drop trigger test_fail_device_update on device");
-				dsl.execute("drop function test_fail_device_update()");
-			});
 		}
 	}
 
@@ -208,6 +200,24 @@ class CheckGroupComplianceHandlerTest {
 		String comments = TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.COMMENTS).from(Tables.DEVICE)
 			.where(Tables.DEVICE.ID.eq(this.first.id())).fetchOne(Tables.DEVICE.COMMENTS));
 		Assertions.assertEquals(4096, comments.length());
+	}
+
+	@Test
+	@DisplayName("Also checks the software compliance and hardware support status of the devices, with or without policy")
+	void checksSoftwareAndHardware() throws Exception {
+		TestCompliance.softwareRules(
+			new SoftwareRule(0, 0, null, 10, null, "CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.BRONZE));
+		TestCompliance.hardwareRules(new HardwareRule(0, 0, null, "CiscoIOS12", null, "", false, "TESTCHASSIS", false,
+			Instant.now().minus(10, ChronoUnit.DAYS), Instant.now().minus(5, ChronoUnit.DAYS)));
+
+		this.runner.run(GroupBasedTask.of(new CheckGroupComplianceTask(this.group.id(), null), this.group.name(), "Test", "tester"));
+
+		for (Device device : List.of(this.first, this.second)) {
+			Device checked = TestDevices.find(device.id());
+			Assertions.assertEquals(ConformanceLevel.BRONZE, checked.softwareLevel(), device.name());
+			Assertions.assertTrue(checked.isEndOfLife(), device.name());
+		}
+		Assertions.assertEquals(ConformanceLevel.GOLD, TestDevices.find(this.third.id()).softwareLevel(), "Out of the group: left as is");
 	}
 
 	@Test

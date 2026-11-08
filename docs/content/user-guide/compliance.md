@@ -8,7 +8,7 @@ The purpose of the _Compliance_ section is to keep your devices in a mastered st
 
 Once the rules are defined within Netshot, the status of a device is refreshed by running a _Check compliance_ task. This can be done manually by scheduling such a task, and this is anyway automatic after snapshot and diagnostic tasks, to ensure that a device becoming non-compliant after a configuration change is immediately flagged.
 
-A compliance check of a group (or of a list of devices) checks the devices one after the other, and saves the results of each device as soon as it is checked. If the check of a device fails (e.g. its changes can't be saved), only that device keeps its previous results: the other devices are still checked, and the task ends in failure, with the failed devices listed in its log.
+A compliance check, of a device or of a group, covers the configuration policies, the software compliance and the hardware support status (the _Software & hardware compliance_ group task only covers the latter two). A compliance check of a group (or of a list of devices) checks the devices one after the other, and saves the results of each device as soon as it is checked. If the check of a device fails (e.g. its changes can't be saved), only that device keeps its previous results: the other devices are still checked, and the task ends in failure, with the failed devices listed in its log.
 
 The software compliance status can be seen in the Compliance tab of the device view, or at the global level in the software compliance report.
 
