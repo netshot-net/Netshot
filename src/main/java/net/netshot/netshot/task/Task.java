@@ -19,8 +19,9 @@
 package net.netshot.netshot.task;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Calendar;
 import java.util.Date;
 
 import org.quartz.JobKey;
@@ -231,44 +232,56 @@ public record Task(long id, int version, String author, String comments, Instant
 	 * @return the next execution date, null for as soon as possible
 	 */
 	public Date nextExecutionDate() {
-		int factor = this.scheduleFactor;
-		if (factor <= 0) {
-			factor = 1;
-		}
-		int unit = 0;
+		Instant next = this.nextExecutionDate(Instant.now(), ZoneId.systemDefault());
+		return next == null ? null : Date.from(next);
+	}
+
+	/**
+	 * Gets the next execution date of the task at a given time. For a repeating task, it is the first occurrence of the
+	 * schedule (the reference date plus a whole number of periods, the days, weeks and months being counted in the
+	 * given time zone, so at the same local time) more than one minute after that time.
+	 *
+	 * @param now the current time
+	 * @param zone the time zone of the schedule
+	 * @return the next execution date, null for as soon as possible
+	 */
+	Instant nextExecutionDate(Instant now, ZoneId zone) {
+		ChronoUnit unit;
 		switch (this.scheduleType) {
 			case AT:
-				return this.scheduleReference == null ? null : Date.from(this.scheduleReference);
+				return this.scheduleReference;
 			case HOURLY:
-				unit = Calendar.HOUR;
+				unit = ChronoUnit.HOURS;
 				break;
 			case DAILY:
-				unit = Calendar.DAY_OF_MONTH;
+				unit = ChronoUnit.DAYS;
 				break;
 			case WEEKLY:
-				unit = Calendar.WEEK_OF_YEAR;
+				unit = ChronoUnit.WEEKS;
 				break;
 			case MONTHLY:
-				unit = Calendar.MONTH;
+				unit = ChronoUnit.MONTHS;
 				break;
 			case ASAP:
 			default:
 				return null;
 		}
-		Calendar inOneMinute = Calendar.getInstance();
-		inOneMinute.add(Calendar.MINUTE, 1);
-		Calendar targetCalendar = Calendar.getInstance();
-		targetCalendar.setTime(Date.from(this.scheduleReference));
-		if (targetCalendar.get(Calendar.YEAR) < inOneMinute.get(Calendar.YEAR)) {
-			targetCalendar.set(Calendar.YEAR, inOneMinute.get(Calendar.YEAR) - 1);
+		if (this.scheduleReference == null) {
+			return null;
 		}
-		for (int i = 0; i < 100000; i++) {
-			if (targetCalendar.after(inOneMinute)) {
-				return targetCalendar.getTime();
-			}
-			targetCalendar.add(unit, factor);
+		int factor = Math.max(this.scheduleFactor, 1);
+		ZonedDateTime reference = this.scheduleReference.atZone(zone);
+		Instant after = now.plus(1, ChronoUnit.MINUTES);
+		// Each occurrence is computed from the reference (not from the previous one), so it keeps its weekday, phase
+		// and day of month (e.g. the 31st again after a shorter month)
+		long periods = Math.max(0, unit.between(reference, after.atZone(zone)) / factor);
+		while (periods > 0 && reference.plus((periods - 1) * factor, unit).toInstant().isAfter(after)) {
+			periods--;
 		}
-		return targetCalendar.getTime();
+		while (!reference.plus(periods * factor, unit).toInstant().isAfter(after)) {
+			periods++;
+		}
+		return reference.plus(periods * factor, unit).toInstant();
 	}
 
 	/**
