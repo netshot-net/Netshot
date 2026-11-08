@@ -229,6 +229,9 @@ public record Device(
 	/** The maximum length of a tag. */
 	public static final int MAX_TAG_LENGTH = 255;
 
+	/** The maximum length of the comments of a device. */
+	public static final int MAX_COMMENTS_LENGTH = 4096;
+
 	/**
 	 * Instantiates a device, the missing collections being empty.
 	 */

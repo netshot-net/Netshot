@@ -144,10 +144,15 @@ public final class PyDeviceHelper {
 	/**
 	 * Sets the device comments. Allowed even in read-only mode.
 	 * @param comments the new comments
+	 * @throws IllegalArgumentException if the comments are too long (a script error)
 	 */
 	private void setComments(String comments) {
 		if (comments == null) {
 			return;
+		}
+		if (comments.length() > Device.MAX_COMMENTS_LENGTH) {
+			throw new IllegalArgumentException("The device comments can't be longer than %d characters (%d given)."
+				.formatted(Device.MAX_COMMENTS_LENGTH, comments.length()));
 		}
 		device.setComments(comments);
 		taskContext.trace("Setting device comments to '{}'.", comments);

@@ -95,7 +95,7 @@ public class Device extends TableImpl<DeviceRecord> {
     /**
      * The column <code>device.comments</code>.
      */
-    public final TableField<DeviceRecord, String> COMMENTS = createField(DSL.name("comments"), SQLDataType.VARCHAR(255), this, "");
+    public final TableField<DeviceRecord, String> COMMENTS = createField(DSL.name("comments"), SQLDataType.VARCHAR(4096), this, "");
 
     /**
      * The column <code>device.contact</code>.
