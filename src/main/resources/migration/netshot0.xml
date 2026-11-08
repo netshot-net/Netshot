@@ -2167,6 +2167,9 @@
 			<column name="discover_result_device"/>
 		</createIndex>
 	</changeSet>
+	<changeSet author="netshot" id="0.25.1_4">
+		<modifyDataType tableName="device" columnName="comments" newDataType="VARCHAR(4096)"/>
+	</changeSet>
 	<changeSet author="netshot" id="0.26.0_1">
 		<!-- Name the foreign keys, the unique constraints and the indexes of the foreign keys after their table and
 			columns (fk_/uk_/ix_<table>_<columns>) instead of the random names Hibernate generated (FK_gpsllhlyii8d5...):

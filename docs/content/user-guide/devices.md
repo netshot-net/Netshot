@@ -144,7 +144,7 @@ Custom JavaScript scripts can be written and run against a device (or a group of
 A script must define a `run` function, its entry point, receiving two arguments:
 
 - `cli` — runs commands on the device and collects output. `cli.macro("name")` runs a macro defined by the device driver (typically used to switch CLI mode); `cli.command("command")` runs a single command.
-- `device` — represents the device, and can be used to read data collected by the last snapshot (`device.get(...)`). It can also update the device [tags](#device-tags) and comments: `device.add("tag", "name")`, `device.remove("tag", "name")`, `device.set("comments", "text")`.
+- `device` — represents the device, and can be used to read data collected by the last snapshot (`device.get(...)`). It can also update the device [tags](#device-tags) and comments: `device.add("tag", "name")`, `device.remove("tag", "name")`, `device.set("comments", "text")` (at most 4096 characters: a longer text is a script error).
 
 Scripts can declare custom input parameters, requested from the user at run time:
 

@@ -306,6 +306,18 @@ public class JsRuleTest {
 	}
 
 	@Test
+	@DisplayName("JS rule sets comments up to 4096 characters, longer ones are a script error")
+	void commentsLength() {
+		String original = device.getComments();
+		rule = rule.toBuilder().script("function check(device) { device.set('comments', 'x'.repeat(4097)); return CONFORMING; }").build();
+		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, evaluators.evaluate(rule, device, false, taskContext).result());
+		Assertions.assertEquals(original, device.getComments(), "The device comments were changed");
+		rule = rule.toBuilder().script("function check(device) { device.set('comments', 'x'.repeat(4096)); return CONFORMING; }").build();
+		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, evaluators.evaluate(rule, device, false, taskContext).result());
+		Assertions.assertEquals(4096, device.getComments().length());
+	}
+
+	@Test
 	@DisplayName("JS rule can't set other device fields")
 	void readOnlyDeviceRule() {
 		String originalName = device.getName();
