@@ -59,7 +59,7 @@
 
 **Repeating tasks**: the next run of a repeating task is now computed from its reference date by whole periods. When the reference date was in an earlier year, it was moved to the previous year (same month and day), so a weekly task changed its weekday each year (a task created on a Tuesday in 2023 ran on Fridays in 2026), a task every N days or weeks lost its phase, and a monthly task on the 31st moved to the 28th after February. Such tasks go back to their original schedule at their next run.
 
-**Device comments**: they can now be 4096 characters long (255 before). A script (driver, device script or diagnostic) setting longer comments now fails with a clear script error; before, comments over 255 characters set by a script made the save of the device fail with a database error. The REST API answers 400 (`NETSHOT_INVALID_REQUEST_PARAMETER`) to longer comments in a device update (it answered 500, with a database error).
+**Device comments**: they can now be 4096 characters long (255 before). A script (driver, device script or diagnostic) setting longer comments now fails with a clear script error; before, comments over 255 characters set by a script made the save of the device fail with a database error.
 
 **Interrupted tasks**: a task found running when Netshot starts (Netshot was stopped, crashed or was killed during its run), or running on a cluster member which is lost, is now marked as failed instead of being run again from the start (a script could be applied twice); the next occurrence of a repeating task is scheduled, and a group task still resumes. A running task interrupted at a past fixed date is now failed instead of cancelled as "too late to run".
 
