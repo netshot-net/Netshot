@@ -848,8 +848,7 @@ public class Device {
 	public boolean isExempted(Rule rule) {
 		Date now = new Date();
 		for (Exemption exemption : this.getComplianceExemptions()) {
-			// An exemption without expiration date is not active, as an expired one
-			if (exemption.getRule().equals(rule) && exemption.getExpirationDate() != null && exemption.getExpirationDate().after(now)) {
+			if (exemption.getRule().equals(rule) && exemption.getExpirationDate().after(now)) {
 				return true;
 			}
 		}

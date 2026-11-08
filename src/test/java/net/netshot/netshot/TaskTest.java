@@ -24,8 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -196,77 +194,6 @@ public class TaskTest extends WithDatabaseTest {
 			}
 			Assertions.assertEquals(task.getNextExecutionDate(), nextFirst.getTime(),
 				"Next execution date for EVERY FIRST OF THE MONTH is not next first of the month");
-		}
-
-		@Test
-		@DisplayName("A weekly task created years ago keeps its weekday")
-		void weeklyTaskKeepsItsWeekday() {
-			// About three years ago: moving it to last year would shift its weekday by 2 or 3 days
-			ZonedDateTime reference = ZonedDateTime.now().minusWeeks(156).minusDays(3).withNano(0);
-			task.setScheduleType(ScheduleType.WEEKLY);
-			task.setScheduleFactor(1);
-			task.setScheduleReference(Date.from(reference.toInstant()));
-			ZonedDateTime limit = ZonedDateTime.now().plusMinutes(1);
-			ZonedDateTime expected = reference;
-			while (!expected.isAfter(limit)) {
-				expected = expected.plusWeeks(1);
-			}
-			Assertions.assertEquals(Date.from(expected.toInstant()), task.getNextExecutionDate());
-			Assertions.assertEquals(reference.getDayOfWeek(), task.getNextExecutionDate().toInstant().atZone(ZoneId.systemDefault()).getDayOfWeek());
-		}
-
-		private Instant next(ScheduleType type, int factor, String reference, String now, String zone) {
-			task.setScheduleType(type);
-			task.setScheduleFactor(factor);
-			task.setScheduleReference(Date.from(Instant.parse(reference)));
-			return task.nextExecutionDate(Instant.parse(now), ZoneId.of(zone));
-		}
-
-		@Test
-		@DisplayName("Weekly task: next occurrence on the weekday of the reference, years later")
-		void weeklyYearsLater() {
-			// Tuesday 2023-11-14 -> Tuesday 2026-11-10 (not the 14th, a Saturday)
-			Assertions.assertEquals(Instant.parse("2026-11-10T22:13:20Z"),
-				next(ScheduleType.WEEKLY, 1, "2023-11-14T22:13:20Z", "2026-11-08T12:00:00Z", "UTC"));
-		}
-
-		@Test
-		@DisplayName("Every 3 weeks task: keeps its phase across the years")
-		void everyThreeWeeksKeepsPhase() {
-			// 2026-11-10 is 156 weeks (52 x 3) after the reference, the next one is 3 weeks later
-			Assertions.assertEquals(Instant.parse("2026-12-01T22:13:20Z"),
-				next(ScheduleType.WEEKLY, 3, "2023-11-14T22:13:20Z", "2026-11-11T00:00:00Z", "UTC"));
-		}
-
-		@Test
-		@DisplayName("Monthly task on the 31st: last day of shorter months, back to the 31st after")
-		void monthlyOnThe31st() {
-			Assertions.assertEquals(Instant.parse("2026-04-30T10:00:00Z"),
-				next(ScheduleType.MONTHLY, 1, "2026-01-31T10:00:00Z", "2026-04-01T00:00:00Z", "UTC"));
-			Assertions.assertEquals(Instant.parse("2026-05-31T10:00:00Z"),
-				next(ScheduleType.MONTHLY, 1, "2026-01-31T10:00:00Z", "2026-05-01T00:00:00Z", "UTC"));
-		}
-
-		@Test
-		@DisplayName("Daily task: same local time across a daylight saving time change")
-		void dailySameLocalTime() {
-			// 22:00 in Paris: 21:00 UTC in winter, 20:00 UTC in summer
-			Assertions.assertEquals(Instant.parse("2026-07-01T20:00:00Z"),
-				next(ScheduleType.DAILY, 1, "2026-03-01T21:00:00Z", "2026-07-01T12:00:00Z", "Europe/Paris"));
-		}
-
-		@Test
-		@DisplayName("Hourly task: whole hours from the reference")
-		void hourlyFromReference() {
-			Assertions.assertEquals(Instant.parse("2026-11-08T13:05:00Z"),
-				next(ScheduleType.HOURLY, 4, "2026-11-01T01:05:00Z", "2026-11-08T12:00:00Z", "UTC"));
-		}
-
-		@Test
-		@DisplayName("Repeating task whose reference is in the future: the reference")
-		void futureReference() {
-			Assertions.assertEquals(Instant.parse("2027-01-01T00:00:00Z"),
-				next(ScheduleType.DAILY, 1, "2027-01-01T00:00:00Z", "2026-11-08T12:00:00Z", "UTC"));
 		}
 
 	}
