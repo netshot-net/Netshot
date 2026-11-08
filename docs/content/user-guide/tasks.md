@@ -4,7 +4,7 @@ The Tasks section shows Netshot's current and scheduled work, and lets you sched
 
 Use the tabs to filter by state: **Running**, **Scheduled** (waiting), **Succeeded**, **Failed**, **Cancelled**. Past-task tabs default to showing today's tasks; pick another day to see history. Click the refresh button to update the list.
 
-Schedule a global task via **Schedule...** in the main toolbar. A repeating task (every N hours, days, weeks or months) runs at its reference date plus a whole number of periods: it keeps its weekday, its phase (e.g. every 3 weeks) and its day of month (on the last day of shorter months), and the daily, weekly and monthly tasks keep their local time in the time zone of the server, across daylight saving time changes. To see the task history of a single device, open its **Tasks** tab from the [Devices](devices.md) view.
+Schedule a global task via **Schedule...** in the main toolbar. To see the task history of a single device, open its **Tasks** tab from the [Devices](devices.md) view.
 
 ## Task hierarchy
 
