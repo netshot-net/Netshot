@@ -34,6 +34,7 @@ import net.netshot.netshot.testing.ScriptEngineTest;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 import net.netshot.netshot.testing.fake.FakeTaskContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -47,10 +48,19 @@ public class PyRuleTest {
 	static PyRuleRuntime pyRuntime;
 	static RuleEvaluators evaluators;
 
+	/** The configuration before the tests, which some tests change (max execution time). */
+	static Properties originalConfig;
+
 	@BeforeAll
 	static void initNetshot() throws Exception {
+		originalConfig = TestConfig.properties();
 		pyRuntime = new PyRuleRuntime(Netshot.config());
 		evaluators = RuleEvaluators.standard(new JsRuleRuntime(Netshot.config()), pyRuntime, TestDrivers.registry(), null);
+	}
+
+	@AfterEach
+	void restoreConfig() {
+		TestConfig.init(originalConfig);
 	}
 
 	Policy policy = new Policy(0, 0, null, "Fake policy", null);
@@ -390,34 +400,33 @@ public class PyRuleTest {
 	@Test
 	@DisplayName("Python rule with direct DNS resolution")
 	void directNsRule() {
+		// Resolved locally (hosts file): no dependency on the network
 		rule = rule.toBuilder().script(
 			"def check(device):" + "\n"
-				+ "  record = device.nslookup('dns.google')" + "\n"
+				+ "  record = device.nslookup('localhost')" + "\n"
 				+ "  return {" + "\n"
 				+ "    'result': result_option.CONFORMING," + "\n"
 				+ "    'comment': record['address']" + "\n"
 				+ "  }" + "\n"
 		).build();
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
-		String comment = result.comment();
-		Assertions.assertTrue("8.8.8.8".equals(comment) || "8.8.4.4".equals(comment),
-			"The resolved IP is not 8.8.8.8 nor 8.8.4.4");
+		Assertions.assertEquals("127.0.0.1", result.comment(), "The resolved IP is not 127.0.0.1");
 	}
 
 	@Test
 	@DisplayName("Python rule with reverse DNS resolution")
 	void reverseNsRule() {
+		// The loopback address, resolved locally (hosts file): no dependency on the network
 		rule = rule.toBuilder().script(
 			"def check(device):" + "\n"
-				+ "  record = device.nslookup('8.8.8.8')" + "\n"
+				+ "  record = device.nslookup('127.0.0.1')" + "\n"
 				+ "  return {" + "\n"
 				+ "    'result': result_option.CONFORMING," + "\n"
 				+ "    'comment': record['name']" + "\n"
 				+ "  }" + "\n"
 		).build();
 		CheckResult result = evaluators.evaluate(rule, device, false, taskContext);
-		Assertions.assertEquals(result.comment(), "dns.google",
-			"The resolved name is not dns.google");
+		Assertions.assertEquals("localhost", result.comment(), "The resolved name is not localhost");
 	}
 
 	@Test
