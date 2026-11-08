@@ -456,7 +456,7 @@ Other methods: `tryNextCredentials()` (manual credential fallback, see above), `
 | Method | Purpose |
 |---|---|
 | `device.options` | Read-only map of the values set by the user for this device's declared `Options`. |
-| `device.set(key, value)` | Sets a top-level device field (`name`, `family`, `location`, `contact`, `softwareVersion`, `serialNumber`, `comments`, `networkClass`) or a driver-declared device attribute. |
+| `device.set(key, value)` | Sets a top-level device field (`name`, `family`, `location`, `contact`, `softwareVersion`, `serialNumber`, `comments` (at most 4096 characters: a longer text is a script error), `networkClass`) or a driver-declared device attribute. |
 | `device.add(collection, value)` | Appends to a device collection attribute (e.g. `networkInterface`, `module`), or adds a user tag (`tag`). |
 | `device.remove(collection, value)` | Removes an item from a device collection — only `tag` is supported. Tags are user metadata, not reset by `snapshot`; drivers normally leave them alone. |
 | `device.get(key, id)` | Reads back a previously-set value or collection entry. |

@@ -38,6 +38,7 @@ import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
 import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.group.DynamicDeviceGroup;
 import net.netshot.netshot.inventory.group.StaticDeviceGroup;
+import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.Task.Status;
@@ -159,28 +160,54 @@ class CheckGroupComplianceHandlerTest {
 			.fetchMap(Tables.DEVICE.NAME, Tables.CHECK_RESULT.RESULT));
 	}
 
+	private void addCommentsRule(String comments) {
+		TestCompliance.rule(new JavaScriptRule(0, 0, null, "Comments", true, this.policy.id(),
+			"function check(device) {\n  device.set(\"comments\", " + comments + ");\n  return CONFORMING;\n}"));
+	}
+
 	@Test
 	@DisplayName("Checks each device in its own transaction: an error on a device keeps the results of the others")
 	void deviceErrorKeepsOtherResults() throws Exception {
-		// Both devices of the task group in the policy; the rule makes the save of the first one fail (comments too long)
+		// Both devices of the task group in the policy, a rule changing them; the update of the first one fails
 		TestDevices.addMembers(this.policyGroup, this.second);
-		TestCompliance.rule(new JavaScriptRule(0, 0, null, "Long comments", true, this.policy.id(), ""
-			+ "function check(device) {\n"
-			+ "  if (device.get(\"name\") == \"" + this.first.name() + "\") {\n"
-			+ "    device.set(\"comments\", \"x\".repeat(300));\n"
-			+ "  }\n"
-			+ "  return CONFORMING;\n"
-			+ "}"));
+		this.addCommentsRule("\"Checked\"");
+		Transactions transactions = TestWiring.get().transactions();
+		transactions.run(dsl -> {
+			dsl.execute("create function test_fail_device_update() returns trigger language plpgsql as "
+				+ "$$ begin raise exception 'Test failure of the update of device %', old.name; end $$");
+			dsl.execute("create trigger test_fail_device_update before update on device for each row when (old.name = '"
+				+ this.first.name() + "') execute function test_fail_device_update()");
+		});
+		try {
+			long id = this.runner.run(GroupBasedTask.of(new CheckGroupComplianceTask(this.group.id(), null), this.group.name(), "Test", "tester"));
+
+			Task task = TaskRunner.load(id);
+			Assertions.assertEquals(Status.FAILURE, task.status());
+			Assertions.assertTrue(task.log().contains("failed for 1 of 2 device(s): [" + this.first.id() + "]"), task.log());
+			Assertions.assertEquals(Map.of(
+				this.second.name(), ResultOption.CONFORMING.name(),
+				this.third.name(), ResultOption.NONCONFORMING.name()), ruleResults(this.rule.id()),
+				"First: its check rolled back; second: checked after the error; third (out of the group): untouched");
+		}
+		finally {
+			transactions.run(dsl -> {
+				dsl.execute("drop trigger test_fail_device_update on device");
+				dsl.execute("drop function test_fail_device_update()");
+			});
+		}
+	}
+
+	@Test
+	@DisplayName("Saves the device comments set by a rule, up to 4096 characters")
+	void longComments() throws Exception {
+		this.addCommentsRule("\"x\".repeat(4096)");
 
 		long id = this.runner.run(GroupBasedTask.of(new CheckGroupComplianceTask(this.group.id(), null), this.group.name(), "Test", "tester"));
 
-		Task task = TaskRunner.load(id);
-		Assertions.assertEquals(Status.FAILURE, task.status());
-		Assertions.assertTrue(task.log().contains("failed for 1 of 2 device(s): [" + this.first.id() + "]"), task.log());
-		Assertions.assertEquals(Map.of(
-			this.second.name(), ResultOption.CONFORMING.name(),
-			this.third.name(), ResultOption.NONCONFORMING.name()), ruleResults(this.rule.id()),
-			"First: its check rolled back; second: checked after the error; third (out of the group): untouched");
+		Assertions.assertEquals(Status.SUCCESS, TaskRunner.load(id).status());
+		String comments = TestWiring.get().transactions().read(dsl -> dsl.select(Tables.DEVICE.COMMENTS).from(Tables.DEVICE)
+			.where(Tables.DEVICE.ID.eq(this.first.id())).fetchOne(Tables.DEVICE.COMMENTS));
+		Assertions.assertEquals(4096, comments.length());
 	}
 
 	@Test

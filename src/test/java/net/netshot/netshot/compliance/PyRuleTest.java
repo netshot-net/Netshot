@@ -295,6 +295,18 @@ public class PyRuleTest {
 	}
 
 	@Test
+	@DisplayName("Python rule sets comments up to 4096 characters, longer ones are a script error")
+	void commentsLength() {
+		String original = device.getComments();
+		rule = rule.toBuilder().script("def check(device):\n  device.set('comments', 'x' * 4097)\n  return result_option.CONFORMING\n").build();
+		Assertions.assertEquals(CheckResult.ResultOption.INVALIDRULE, evaluators.evaluate(rule, device, false, taskContext).result());
+		Assertions.assertEquals(original, device.getComments(), "The device comments were changed");
+		rule = rule.toBuilder().script("def check(device):\n  device.set('comments', 'x' * 4096)\n  return result_option.CONFORMING\n").build();
+		Assertions.assertEquals(CheckResult.ResultOption.CONFORMING, evaluators.evaluate(rule, device, false, taskContext).result());
+		Assertions.assertEquals(4096, device.getComments().length());
+	}
+
+	@Test
 	@DisplayName("Module-based Python rule")
 	void moduleRule() {
 		rule = rule.toBuilder().script(
