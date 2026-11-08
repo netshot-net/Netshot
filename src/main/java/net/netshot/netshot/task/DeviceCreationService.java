@@ -125,6 +125,7 @@ public class DeviceCreationService {
 		String deviceAddress = creation.ipAddress();
 		DeviceValidation.validateMgmtAddress(deviceAddress, false);
 		DeviceValidation.validateTags(creation.tags());
+		DeviceValidation.validateComments(creation.comments());
 		CreationContext context = this.loadCreationContext(creation);
 		if (creation.autoDiscover()) {
 			return this.createDiscoveryTask(creation, context);
