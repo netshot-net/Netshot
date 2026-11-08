@@ -57,6 +57,8 @@
 
 **REST API**: a `null` name in a domain or group request now answers 400 (`NETSHOT_INVALID_DOMAIN_NAME`, `NETSHOT_INVALID_GROUP_NAME`) instead of 500, and a `null` domain description is stored as empty. Updating a hook with `"triggers": null` (`PUT /hooks/{id}`) now removes all its triggers, as on creation, instead of failing with a 500 error.
 
+**Repeating tasks**: the next run of a repeating task is now computed from its reference date by whole periods. When the reference date was in an earlier year, it was moved to the previous year (same month and day), so a weekly task changed its weekday each year (a task created on a Tuesday in 2023 ran on Fridays in 2026), a task every N days or weeks lost its phase, and a monthly task on the 31st moved to the 28th after February. Such tasks go back to their original schedule at their next run.
+
 ### Any version to 0.20+
 
 Java environment must be upgraded to GraalVM for Java 21. Check the [install guide](installation/linux.md) for version details.
