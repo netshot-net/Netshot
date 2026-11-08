@@ -18,6 +18,7 @@
  */
 package net.netshot.netshot.task.handler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -79,32 +80,47 @@ public class CheckGroupSoftwareHandler implements TaskHandler<CheckGroupSoftware
 		log.debug("Task {}. Starting check software compliance and hardware support status task for {}.",
 			task.id(), groupId == null ? deviceList.size() + " listed device(s)" : "group " + groupId);
 
-		List<Long> deviceIds = deviceList;
-
+		List<Long> deviceIds;
+		List<SoftwareRule> softwareRules;
+		List<HardwareRule> hardwareRules;
 		try {
-			this.transactions.run(dsl -> {
-				log.debug("Task {}. Retrieving the software rules", task.id());
-				List<SoftwareRule> softwareRules = this.softwareRuleRepository.findAll(dsl, Page.ALL);
-				log.debug("Task {}. Retrieving the hardware rules", task.id());
-				List<HardwareRule> hardwareRules = this.hardwareRuleRepository.findAll(dsl);
-				List<Long> targetIds = groupId != null ? new GroupRepository().findMemberIds(dsl, groupId) : deviceIds;
-				for (Long deviceId : targetIds) {
+			softwareRules = this.transactions.read(dsl -> this.softwareRuleRepository.findAll(dsl, Page.ALL));
+			hardwareRules = this.transactions.read(dsl -> this.hardwareRuleRepository.findAll(dsl));
+			deviceIds = groupId != null ? this.transactions.read(dsl -> new GroupRepository().findMemberIds(dsl, groupId)) : deviceList;
+		}
+		catch (Exception e) {
+			log.error("Task {}. Error while loading the devices and rules to check.", task.id(), e);
+			run.logger.error("Error while loading the devices and rules to check: {}", e.getMessage());
+			run.setStatus(Status.FAILURE);
+			return;
+		}
+
+		// One transaction per device: its row is locked for its own check only, and an error only concerns it
+		List<Long> failedDeviceIds = new ArrayList<>();
+		for (Long deviceId : deviceIds) {
+			try {
+				this.transactions.run(dsl -> {
 					Device device = this.deviceRepository.find(dsl, deviceId);
 					if (device == null) {
-						continue;
+						return;
 					}
 					Set<Long> groupIds = GroupRepository.findGroupIdsOfDevice(dsl, device.id());
 					this.deviceRepository.save(dsl, device,
 						CheckComplianceHandler.checkSoftwareAndHardware(device, groupIds, softwareRules, hardwareRules));
-				}
-			});
+				});
+			}
+			catch (Exception e) {
+				log.error("Task {}. Error while checking the software and hardware of device {}.", task.id(), deviceId, e);
+				run.logger.error("Error while checking the software and hardware of device {}: {}", deviceId, e.getMessage());
+				failedDeviceIds.add(deviceId);
+			}
+		}
+		if (failedDeviceIds.isEmpty()) {
 			run.setStatus(Status.SUCCESS);
 		}
-		catch (Exception e) {
-			log.error("Task {}. Error while checking compliance.", task.id(), e);
-			run.logger.error("Error while checking compliance: {}", e.getMessage());
+		else {
+			run.logger.error("The check failed for {} of {} device(s): {}", failedDeviceIds.size(), deviceIds.size(), failedDeviceIds);
 			run.setStatus(Status.FAILURE);
-			return;
 		}
 	}
 

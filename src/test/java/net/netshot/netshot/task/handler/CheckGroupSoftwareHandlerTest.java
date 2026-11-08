@@ -116,6 +116,21 @@ class CheckGroupSoftwareHandlerTest {
 	}
 
 	@Test
+	@DisplayName("Checks each device in its own transaction: an error on a device keeps the others checked")
+	void deviceErrorKeepsOtherDevices() throws Exception {
+		try (AutoCloseable _ = TestDevices.failUpdates(this.inGroup)) {
+			long id = this.runner.run(TaskRunner.forDevices(new CheckGroupSoftwareTask(null, TaskRunner.ids(this.inGroup, this.outOfGroup)),
+				"Test", "tester"));
+
+			Task task = TaskRunner.load(id);
+			Assertions.assertEquals(Status.FAILURE, task.status());
+			Assertions.assertTrue(task.log().contains("failed for 1 of 2 device(s): [" + this.inGroup.id() + "]"), task.log());
+		}
+		Assertions.assertEquals(ConformanceLevel.GOLD, reload(this.inGroup).softwareLevel(), "Its check rolled back");
+		Assertions.assertEquals(ConformanceLevel.BRONZE, reload(this.outOfGroup).softwareLevel(), "Checked after the error");
+	}
+
+	@Test
 	@DisplayName("Is cancelled without group nor device")
 	void cancelledWithoutTarget() throws Exception {
 		long id = this.runner.run(TaskRunner.forDevices(new CheckGroupSoftwareTask(null, TaskRunner.ids()), "Test", "tester"));

@@ -242,6 +242,25 @@ public final class TestDevices {
 	}
 
 	/**
+	 * Makes every update of a device fail (a PostgreSQL trigger raising an error), until closed.
+	 *
+	 * @param device the device
+	 * @return what removes the trigger when closed
+	 */
+	public static AutoCloseable failUpdates(Device device) {
+		transactions().run(dsl -> {
+			dsl.execute("create function test_fail_device_update() returns trigger language plpgsql as "
+				+ "$$ begin raise exception 'Test failure of the update of device %', old.id; end $$");
+			dsl.execute("create trigger test_fail_device_update before update on device for each row when (old.id = "
+				+ device.id() + ") execute function test_fail_device_update()");
+		});
+		return () -> transactions().run(dsl -> {
+			dsl.execute("drop trigger test_fail_device_update on device");
+			dsl.execute("drop function test_fail_device_update()");
+		});
+	}
+
+	/**
 	 * Removes all the devices, configurations, groups, credential sets and domains (and, by cascade,
 	 * what references them, the tasks included).
 	 */
