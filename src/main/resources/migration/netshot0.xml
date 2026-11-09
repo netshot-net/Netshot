@@ -2132,7 +2132,27 @@
 			<column name="options" type="${JSON}"/>
 		</addColumn>
 	</changeSet>
+	<!-- 0.25.0_18 didn't set cached_ip_address: the devices upgraded from 0.24
+	     couldn't be found by IP until a successful connection. -->
 	<changeSet author="netshot" id="0.25.1_1">
+		<validCheckSum>9:36a251399f92c7def86fb996b68fa834</validCheckSum>
+		<customChange class="net.netshot.netshot.platform.database.migrator.CachedIpAddressMigrator"/>
+	</changeSet>
+	<!-- 0.25.0_13 dropped the task subclass tables, and their indexes on device, without indexing the columns
+	     merged into task: listing the tasks of a device, and deleting a device, scanned the whole table. -->
+	<changeSet author="netshot" id="0.25.1_2">
+		<createIndex indexName="ix_task_device" tableName="task">
+			<column name="device"/>
+		</createIndex>
+		<createIndex indexName="ix_task_discover_result_device" tableName="task">
+			<column name="discover_result_device"/>
+		</createIndex>
+	</changeSet>
+	<!-- The device comments were limited to 255 characters, too few to document a device: up to 4096. -->
+	<changeSet author="netshot" id="0.25.1_3">
+		<modifyDataType tableName="device" columnName="comments" newDataType="VARCHAR(4096)"/>
+	</changeSet>
+	<changeSet author="netshot" id="0.26.0_1">
 		<!-- Free-form, user-defined device tags (Device.tags), searchable
 			with the [Tag] Finder expression. -->
 		<createTable tableName="device_tags">
@@ -2151,26 +2171,7 @@
 			<column name="tag"/>
 		</createIndex>
 	</changeSet>
-	<!-- 0.25.0_18 didn't set cached_ip_address: the devices upgraded from 0.24
-	     couldn't be found by IP until a successful connection. -->
-	<changeSet author="netshot" id="0.25.1_2">
-		<validCheckSum>9:36a251399f92c7def86fb996b68fa834</validCheckSum>
-		<customChange class="net.netshot.netshot.platform.database.migrator.CachedIpAddressMigrator"/>
-	</changeSet>
-	<!-- 0.25.0_13 dropped the task subclass tables, and their indexes on device, without indexing the columns
-	     merged into task: listing the tasks of a device, and deleting a device, scanned the whole table. -->
-	<changeSet author="netshot" id="0.25.1_3">
-		<createIndex indexName="ix_task_device" tableName="task">
-			<column name="device"/>
-		</createIndex>
-		<createIndex indexName="ix_task_discover_result_device" tableName="task">
-			<column name="discover_result_device"/>
-		</createIndex>
-	</changeSet>
-	<changeSet author="netshot" id="0.25.1_4">
-		<modifyDataType tableName="device" columnName="comments" newDataType="VARCHAR(4096)"/>
-	</changeSet>
-	<changeSet author="netshot" id="0.26.0_1">
+	<changeSet author="netshot" id="0.26.0_2">
 		<!-- Name the foreign keys, the unique constraints and the indexes of the foreign keys after their table and
 			columns (fk_/uk_/ix_<table>_<columns>) instead of the random names Hibernate generated (FK_gpsllhlyii8d5...):
 			the jOOQ classes generated from the schema are named after them. Names longer than 63 characters are
@@ -2211,7 +2212,7 @@
 			END $$;
 		</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_2">
+	<changeSet author="netshot" id="0.26.0_3">
 		<!-- Deleting the last configuration of a device deleted the device (ON DELETE CASCADE on device.last_config):
 			only clear the reference. -->
 		<dropForeignKeyConstraint baseTableName="device" constraintName="fk_device_last_config"/>
@@ -2219,7 +2220,7 @@
 			constraintName="fk_device_last_config" onDelete="SET NULL" onUpdate="NO ACTION"
 			referencedColumnNames="id" referencedTableName="config" validate="true"/>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_3">
+	<changeSet author="netshot" id="0.26.0_4">
 		<!-- Hooks: one table, with the type of hook (JOINED inheritance hook + web_hook before), and the enumerations
 			(web hook action, trigger type) stored by name instead of ordinal. -->
 		<sql splitStatements="false">
@@ -2248,7 +2249,7 @@
 			DROP TABLE web_hook;
 		</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_4">
+	<changeSet author="netshot" id="0.26.0_5">
 		<!-- Rules: one table, with the type of rule (JOINED inheritance rule + text_rule, java_script_rule,
 			python_rule before). The scripts of the JavaScript and Python rules share the script column. -->
 		<sql splitStatements="false">
@@ -2290,7 +2291,7 @@
 			DROP TABLE python_rule;
 		</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_5">
+	<changeSet author="netshot" id="0.26.0_6">
 		<!-- Diagnostics: one table, with the type of diagnostic (JOINED inheritance diagnostic + simple_diagnostic,
 			java_script_diagnostic, python_diagnostic before). -->
 		<sql splitStatements="false">
@@ -2322,7 +2323,7 @@
 			DROP TABLE python_diagnostic;
 		</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_6">
+	<changeSet author="netshot" id="0.26.0_7">
 		<!-- Device groups: one table, with the type of group (JOINED inheritance device_group + static_device_group,
 			dynamic_device_group before). -->
 		<sql splitStatements="false">
@@ -2340,7 +2341,7 @@
 			DROP TABLE dynamic_device_group;
 		</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_7">
+	<changeSet author="netshot" id="0.26.0_8">
 		<!-- The enumerations stored by ordinal (position in the Java declaration) are stored by name: adding a value
 			in the middle of an enumeration doesn't change the meaning of the stored rows any more. -->
 		<sql splitStatements="false">
@@ -2369,20 +2370,20 @@
 				ALTER COLUMN ipv4usage TYPE varchar(32) USING CASE ipv4usage WHEN 0 THEN 'PRIMARY' WHEN 1 THEN 'SECONDARY' WHEN 2 THEN 'VRRP' WHEN 3 THEN 'HSRP' WHEN 4 THEN 'SECONDARYVRRP' WHEN 5 THEN 'SECONDARYHSRP' END;
 		</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_8">
+	<changeSet author="netshot" id="0.26.0_9">
 		<!-- A HashiCorp Vault instance needs its authentication method (checked by Hibernate before, from the
 			nullable = false mapping). -->
 		<sql>ALTER TABLE vault_instance ADD CONSTRAINT ck_vault_instance_hashicorp_auth_method
 			CHECK (dtype &lt;&gt; 'HashicorpVaultKv2Instance' OR auth_method IS NOT NULL)</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_9">
+	<changeSet author="netshot" id="0.26.0_10">
 		<!-- Deleting a diagnostic (or changing its target group) deleted its results but left their long texts. -->
 		<sql>DELETE FROM long_text_configuration l
 			WHERE NOT EXISTS (SELECT 1 FROM config_attribute a WHERE a.long_text = l.id)
 			AND NOT EXISTS (SELECT 1 FROM device_attribute a WHERE a.long_text = l.id)
 			AND NOT EXISTS (SELECT 1 FROM diagnostic_result r WHERE r.long_text = l.id)</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_10">
+	<changeSet author="netshot" id="0.26.0_11">
 		<!-- A domain server address is a host address: its prefix length and usage meant nothing, and the
 			prefix length of the domains created before 0.24 (0 instead of 32) defeated netshot.cluster.domainipoverride. -->
 		<dropColumn tableName="domain">
@@ -2392,7 +2393,7 @@
 			<column name="ipv6_usage"/>
 		</dropColumn>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_11">
+	<changeSet author="netshot" id="0.26.0_12">
 		<!-- The dates of the last successful and failed snapshots are kept on the device (they were only known from
 			the task history, which is purged). They are initialized from the history. -->
 		<addColumn tableName="device">
@@ -2405,7 +2406,7 @@
 			last_snapshot_failure_date = (SELECT max(t.execution_date) FROM task t
 				WHERE t.dtype = 'TakeSnapshotTask' AND t.device = device.id AND t.status = 'FAILURE')</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_12">
+	<changeSet author="netshot" id="0.26.0_13">
 		<!-- The device lists are sorted by name (the web UI, the API clients paging by name): an index serves a page
 			without sorting all the devices. -->
 		<createIndex indexName="ix_device_name_id" tableName="device">
@@ -2413,12 +2414,12 @@
 			<column name="id"/>
 		</createIndex>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_13">
+	<changeSet author="netshot" id="0.26.0_14">
 		<!-- The compliance status of a device (in every device list) looks for a non-conforming result of the device: a
 			partial index finds them without reading all the results. -->
 		<sql>CREATE INDEX ix_check_result_device_nonconforming ON check_result (device) WHERE result = 'NONCONFORMING'</sql>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_14">
+	<changeSet author="netshot" id="0.26.0_15">
 		<!-- Every object the v1 API can change has a version (its ETag, for If-Match) and a change date; the API
 			tokens can't change, they only get the date. -->
 		<addColumn tableName="diagnostic">
@@ -2475,7 +2476,7 @@
 			<column name="change_date" type="datetime"/>
 		</addColumn>
 	</changeSet>
-	<changeSet author="netshot" id="0.26.0_15">
+	<changeSet author="netshot" id="0.26.0_16">
 		<!-- The lists put the empty values last in both directions (a descending sort is DESC NULLS LAST): the indexes of
 			the dates sorted most recent first are in that order, so that such a sort still reads them in order. -->
 		<sql>DROP INDEX IF EXISTS "changeDateIndex_config"</sql>
