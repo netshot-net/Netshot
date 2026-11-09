@@ -2130,12 +2130,12 @@
 	</changeSet>
 	<!-- 0.25.0_18 didn't set cached_ip_address: the devices upgraded from 0.24
 	     couldn't be found by IP until a successful connection. -->
-	<changeSet author="netshot" id="0.25.1_2">
+	<changeSet author="netshot" id="0.25.1_1">
 		<customChange class="net.netshot.netshot.database.migrator.CachedIpAddressMigrator"/>
 	</changeSet>
 	<!-- 0.25.0_13 dropped the task subclass tables, and their indexes on device, without indexing the columns
 	     merged into task: listing the tasks of a device, and deleting a device, scanned the whole table. -->
-	<changeSet author="netshot" id="0.25.1_3">
+	<changeSet author="netshot" id="0.25.1_2">
 		<createIndex indexName="ix_task_device" tableName="task">
 			<column name="device"/>
 		</createIndex>
@@ -2143,7 +2143,8 @@
 			<column name="discover_result_device"/>
 		</createIndex>
 	</changeSet>
-	<changeSet author="netshot" id="0.25.1_4">
+	<!-- The device comments were limited to 255 characters, too few to document a device: up to 4096. -->
+	<changeSet author="netshot" id="0.25.1_3">
 		<modifyDataType tableName="device" columnName="comments" newDataType="VARCHAR(4096)"/>
 	</changeSet>
 </databaseChangeLog>
