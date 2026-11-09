@@ -67,7 +67,7 @@ public class DriverRegistryTest {
 		}
 		source = source.replace("name: \"CiscoIOS12\"", "name: \"UserTestDriver\"")
 			.replace("description: \"Cisco IOS and IOS-XE\"", "description: \"User Test Driver\"")
-			.replace("version: \"2.7\"", "version: \"" + version + "\"");
+			.replaceFirst("version: \"[^\"]*\"", "version: \"" + version + "\"");
 		Files.writeString(this.driversFolder.resolve("UserTestDriver.js"), source, StandardCharsets.UTF_8);
 	}
 

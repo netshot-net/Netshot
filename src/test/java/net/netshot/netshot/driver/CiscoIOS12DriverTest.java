@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -161,6 +162,76 @@ public class CiscoIOS12DriverTest {
 		}
 		finally {
 			accessManager.disconnectAll();
+		}
+	}
+
+	/**
+	 * Runs a snapshot of a simulated device over SSH (admin/admin).
+	 * @param taskContext the task context
+	 * @param container the (started) simulator container
+	 * @return the device, as updated by the snapshot
+	 */
+	private static DeviceDraft snapshot(TaskContext taskContext, GenericContainer<?> container)
+		throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		DeviceSshAccount credentials = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin")).superPassword(Secret.local("admin")).name("admin/admin")
+			.build();
+		Domain domain = Domain.builder().name("Test domain").description("Fake domain for tests").build();
+		Device.DeviceBuilder deviceBuilder = Device.create("CiscoIOS12", null, domain, "test").toBuilder();
+		DeviceAccess.DeviceAccessBuilder sshAccess = DeviceAccess.of("ssh").toBuilder();
+		sshAccess.address(container.getHost());
+		sshAccess.port(container.getMappedPort(22));
+		DeviceDraft device = new DeviceDraft(deviceBuilder.accesses(List.of(sshAccess.build())).tags(new HashSet<>()).build());
+		SnapshotDeviceScript script = new SnapshotDeviceScript(TestDrivers.registry(), TestConnectors.local(), null, taskContext);
+		AccessManager accessManager = new AccessManager(TestDrivers.registry(), TestConnectors.local(), null, device, null, taskContext, Set.of(credentials));
+		Method runMethod = SnapshotDeviceScript.class.getDeclaredMethod("run", DeviceDraft.class, AccessManager.class);
+		runMethod.setAccessible(true);
+		try {
+			runMethod.invoke(script, device, accessManager);
+		}
+		finally {
+			accessManager.disconnectAll();
+		}
+		return device;
+	}
+
+	@Nested
+	@DisplayName("Cisco IOS families (show version hardware line of real devices)")
+	class FamiliesTest {
+
+		TaskContext taskContext = new FakeTaskContext();
+
+		@Container
+		private static final GenericContainer<?> IE2000 = DeviceSimulators.ssh("Cisco_IOS", "ie2000");
+
+		@Container
+		private static final GenericContainer<?> STRATIX5200 = DeviceSimulators.ssh("Cisco_IOS", "stratix5200");
+
+		@Container
+		private static final GenericContainer<?> AIRONET = DeviceSimulators.ssh("Cisco_IOS", "aironet");
+
+		@Test
+		@DisplayName("Cisco IE-2000 industrial switch")
+		void industrialEthernet() throws Exception {
+			DeviceDraft device = CiscoIOS12DriverTest.snapshot(this.taskContext, IE2000);
+			Assertions.assertEquals("Cisco IE 2000", device.getFamily(), "The device family is incorrect");
+			Assertions.assertEquals(NetworkClass.SWITCH, device.getNetworkClass(), "The network class is incorrect");
+		}
+
+		@Test
+		@DisplayName("Rockwell Automation Stratix 5200 switch")
+		void stratix() throws Exception {
+			DeviceDraft device = CiscoIOS12DriverTest.snapshot(this.taskContext, STRATIX5200);
+			Assertions.assertEquals("Allen-Bradley Stratix 5200", device.getFamily(), "The device family is incorrect");
+			Assertions.assertEquals(NetworkClass.SWITCH, device.getNetworkClass(), "The network class is incorrect");
+		}
+
+		@Test
+		@DisplayName("Cisco Aironet autonomous access point")
+		void aironetAccessPoint() throws Exception {
+			DeviceDraft device = CiscoIOS12DriverTest.snapshot(this.taskContext, AIRONET);
+			Assertions.assertEquals("Cisco Aironet 1100", device.getFamily(), "The device family is incorrect");
+			Assertions.assertEquals(NetworkClass.ACCESSPOINT, device.getNetworkClass(), "The network class is incorrect");
+			Assertions.assertEquals("router1", device.getName(), "The device name is incorrect");
 		}
 	}
 }
