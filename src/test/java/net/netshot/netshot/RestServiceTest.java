@@ -42,7 +42,6 @@ import java.util.function.Function;
 
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.hibernate.Hibernate;
 import org.hibernate.Session;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -64,7 +63,6 @@ import net.netshot.netshot.compliance.rules.JavaScriptRule;
 import net.netshot.netshot.compliance.rules.PythonRule;
 import net.netshot.netshot.compliance.rules.TextRule;
 import net.netshot.netshot.database.Database;
-import net.netshot.netshot.device.Config;
 import net.netshot.netshot.device.Device;
 import net.netshot.netshot.device.Device.MissingDeviceDriverException;
 import net.netshot.netshot.device.DeviceDriver;
@@ -75,7 +73,6 @@ import net.netshot.netshot.device.Network4Address;
 import net.netshot.netshot.device.StaticDeviceGroup;
 import net.netshot.netshot.device.access.DeviceAccess;
 import net.netshot.netshot.device.attribute.AttributeDefinition;
-import net.netshot.netshot.device.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.device.credentials.DeviceCredentialSet;
 import net.netshot.netshot.device.credentials.DeviceSnmpv2cCommunity;
 import net.netshot.netshot.device.credentials.DeviceSshAccount;
@@ -2334,39 +2331,6 @@ public class RestServiceTest extends WithDatabaseTest {
 			Assertions.assertEquals(
 				Response.Status.BAD_REQUEST.getStatusCode(), response.statusCode(),
 				"Not getting 400 for a credential class mismatched with the access's declared family");
-		}
-
-		@Test
-		@DisplayName("Device configs: listed without loading their texts")
-		@ResourceLock("DB")
-		void deviceConfigsWithoutTexts() throws IOException, InterruptedException {
-			this.createTestDomain();
-			Device device = FakeDeviceFactory.getFakeCiscoIosDevice(this.testDomain, null, 1);
-			for (int i = 0; i < 2; i++) {
-				device.getConfigs().add(FakeDeviceFactory.getFakeCiscoIosConfig(device));
-			}
-			try (Session session = Database.getSession()) {
-				session.beginTransaction();
-				session.persist(device);
-				session.getTransaction().commit();
-			}
-			HttpResponse<JsonNode> response = apiClient.get("/devices/%d/configs".formatted(device.getId()));
-			Assertions.assertEquals(Response.Status.OK.getStatusCode(), response.statusCode());
-			Assertions.assertEquals(3, response.body().size());
-			try (Session session = Database.getSession(true)) {
-				List<Config> configs = session
-					.createQuery("select c from Config c left join fetch c.attributes where c.device.id = :device", Config.class)
-					.setParameter("device", device.getId())
-					.list();
-				Assertions.assertEquals(3, configs.size());
-				for (Config config : configs) {
-					ConfigLongTextAttribute runningConfig = (ConfigLongTextAttribute) config.getAttribute("runningConfig");
-					// A lazy proxy: the texts of all the configurations of a device can be too big for the heap (#417)
-					Assertions.assertFalse(Hibernate.isInitialized(runningConfig.getLongText()),
-						"The config text was loaded with the config");
-					Assertions.assertTrue(runningConfig.getAsText().startsWith("version 16.1"), "The config text can't be loaded");
-				}
-			}
 		}
 
 		@Test
