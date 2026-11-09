@@ -21,7 +21,7 @@ var Info = {
 	name: "CiscoIOS12",
 	description: "Cisco IOS and IOS-XE",
 	author: "Netshot Team",
-	version: "2.7"
+	version: "2.8"
 };
 
 var Config = {
@@ -311,7 +311,26 @@ function snapshot(cli, device, config) {
 		memory = Math.round(memory / 1024);
 		device.set("mainMemorySize", memory);
 		var system = versionDetails[1];
-		if (system.match(/.*CSC4.*/)) {
+		// Industrial Ethernet: "cisco IE-2000-8TC-G-B (PowerPC405) processor", "cisco IE-3105-18T2C (ARM) processor"
+		var ieSeries = system.match(/^cisco IE-(\d\d)\d\d-/);
+		// Rockwell Stratix (Cisco inside): "Allen-Bradley 1783-CMS20DN (ARM) processor"
+		var stratixSeries = system.match(/^(?:Allen-Bradley|cisco) 1783-([BCHIM])MS/);
+		// Autonomous (IOS) access points: "cisco AIR-CAP3702I-E-K9 (PowerPC) processor"
+		var aironetSeries = system.match(/^cisco AIR-C?AP(\d\d)\d\d/);
+		if (ieSeries) {
+			device.set("family", "Cisco IE " + ieSeries[1] + "00");
+			device.set("networkClass", "SWITCH");
+		}
+		else if (stratixSeries) {
+			var stratixFamilies = { B: "5700", C: "5200", H: "5400", I: "5410", M: "5800" };
+			device.set("family", "Allen-Bradley Stratix " + stratixFamilies[stratixSeries[1]]);
+			device.set("networkClass", "SWITCH");
+		}
+		else if (aironetSeries) {
+			device.set("family", "Cisco Aironet " + aironetSeries[1] + "00");
+			device.set("networkClass", "ACCESSPOINT");
+		}
+		else if (system.match(/.*CSC4.*/)) {
 			device.set("family", "Cisco AGS+");
 		}
 		else if (system.match(/.*1900.*/)) {
