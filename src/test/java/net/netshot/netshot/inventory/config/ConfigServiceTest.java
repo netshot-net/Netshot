@@ -48,6 +48,7 @@ import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.Transactions;
 import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.error.NetshotException;
+import net.netshot.netshot.platform.query.ListQuery;
 import net.netshot.netshot.testing.DatabaseTest;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
@@ -144,6 +145,21 @@ class ConfigServiceTest {
 		Assertions.assertEquals(2, configs.get(2).attributes().size());
 		Assertions.assertEquals(List.of(this.second), this.service.listByDevice(this.router, new Page(1, 1)).stream().map(Config::id).toList());
 		Assertions.assertEquals(List.of(), this.service.listByDevice(99999999L, Page.ALL));
+	}
+
+	@Test
+	@DisplayName("listByDevice() and list() leave the long texts out (all the texts of a device can exceed the heap, #417)")
+	void listsWithoutTexts() {
+		List<Config> byDevice = this.service.listByDevice(this.router, Page.ALL);
+		List<Config> all = this.service.list(new ListQuery(List.of(), null, List.of(), Page.ALL, false), true).items();
+		Assertions.assertEquals(3, byDevice.size());
+		Assertions.assertTrue(all.size() >= 5, "all the configurations are listed");
+		for (Config config : byDevice) {
+			Assertions.assertNull(((ConfigLongTextAttribute) config.getAttribute("runningConfig")).text(), "text loaded by listByDevice()");
+		}
+		for (Config config : all) {
+			Assertions.assertNull(((ConfigLongTextAttribute) config.getAttribute("runningConfig")).text(), "text loaded by list()");
+		}
 	}
 
 	@Test
