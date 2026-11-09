@@ -470,8 +470,8 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 	}
 
 	@Nested
-	@DisplayName("0.25.1_1 - CachedIpAddressMigrator (missing cached IP address of the upgraded devices)")
-	class Changeset_0_25_1_1_CachedIpAddressMigratorTest {
+	@DisplayName("0.25.1_2 - CachedIpAddressMigrator (missing cached IP address of the upgraded devices)")
+	class Changeset_0_25_1_2_CachedIpAddressMigratorTest {
 
 		private Properties getNetshotConfig(String databaseName) {
 			Properties config = getFreshDatabaseConfig(databaseName);
@@ -516,7 +516,7 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 		void setsMissingCachedIpAddressOn0250() throws Exception {
 			Netshot.initConfig(this.getNetshotConfig("cachedipfrom0250test"));
 
-			// Stop right before 0.25.1_1: the database of a 0.25.0 installation.
+			// Stop right before 0.25.1_2: the database of a 0.25.0 installation.
 			updateToChangeSet("0.25.0_41", "netshot");
 
 			try (Connection connection = Database.getConnection(false);
@@ -551,8 +551,8 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 	}
 
 	@Nested
-	@DisplayName("0.25.1_2 - Indexes of the device columns of the task table")
-	class Changeset_0_25_1_2_TaskDeviceIndexTest {
+	@DisplayName("0.25.1_3 - Indexes of the device columns of the task table")
+	class Changeset_0_25_1_3_TaskDeviceIndexTest {
 
 		@Test
 		@DisplayName("The device and discovered device columns of the task table are indexed")
@@ -579,8 +579,8 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 	}
 
 	@Nested
-	@DisplayName("0.25.1_3 - Device comments up to 4096 characters")
-	class Changeset_0_25_1_3_DeviceCommentsLengthTest {
+	@DisplayName("0.25.1_4 - Device comments up to 4096 characters")
+	class Changeset_0_25_1_4_DeviceCommentsLengthTest {
 
 		@Test
 		@DisplayName("The device comments column takes 4096 characters, the existing comments are kept")
@@ -589,7 +589,7 @@ public class DatabaseMigrationTest extends WithDatabaseTest {
 			config.setProperty("netshot.log.file", "CONSOLE");
 			config.setProperty("netshot.log.level", "INFO");
 			Netshot.initConfig(config);
-			updateToChangeSet("0.25.1_2", "netshot");
+			updateToChangeSet("0.25.1_3", "netshot");
 			try (Connection connection = Database.getConnection(false);
 					Statement statement = connection.createStatement()) {
 				statement.execute("insert into device (id, name, version, mgmt_address, comments) "
