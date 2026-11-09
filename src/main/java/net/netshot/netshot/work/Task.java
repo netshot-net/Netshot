@@ -1599,8 +1599,7 @@ public abstract class Task implements Cloneable {
 	 * @param log the new log
 	 */
 	public void setLog(String log) {
-		// The column is nullable: no log in the database is an empty log
-		this.logs = new StringBuffer(log == null ? "" : log);
+		this.logs = new StringBuffer(log);
 	}
 
 	/**
