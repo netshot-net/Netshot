@@ -527,7 +527,7 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.25.1_2 - CachedIpAddressMigrator (missing cached IP address of the upgraded devices)")
+	@DisplayName("0.25.1_1 - CachedIpAddressMigrator (missing cached IP address of the upgraded devices)")
 	class CachedIpAddressMigratorTest {
 
 		private Properties getNetshotConfig(String databaseName) {
@@ -608,7 +608,7 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.25.1_3 - indexes of the device columns of the task table")
+	@DisplayName("0.25.1_2 - indexes of the device columns of the task table")
 	class TaskDeviceIndexMigrationTest {
 
 		@Test
@@ -630,14 +630,14 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.26.0_3 - hooks in one table, with their enumerations stored by name")
+	@DisplayName("0.26.0_4 - hooks in one table, with their enumerations stored by name")
 	class HookSingleTableMigrationTest {
 
 		@Test
 		@DisplayName("The Web hooks and their triggers are kept, the ordinals become names, a hook without a type is dropped")
 		void migratesHooks() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("hooksingletablemigrationtest"));
-			updateToChangeSet("0.26.0_2", "netshot");
+			updateToChangeSet("0.26.0_3", "netshot");
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -715,14 +715,14 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.26.0_4 to 0.26.0_6 - rules, diagnostics and device groups in one table each")
+	@DisplayName("0.26.0_5 to 0.26.0_7 - rules, diagnostics and device groups in one table each")
 	class SingleTableHierarchiesMigrationTest {
 
 		@Test
 		@DisplayName("The rows of the subclass tables move to the parent table, with their type; a row without subclass is dropped")
 		void migratesHierarchies() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("singletablehierarchiesmigrationtest"));
-			updateToChangeSet("0.26.0_3", "netshot");
+			updateToChangeSet("0.26.0_4", "netshot");
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -781,14 +781,14 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.26.0_7 - enumerations stored by name instead of ordinal")
+	@DisplayName("0.26.0_8 - enumerations stored by name instead of ordinal")
 	class EnumNamesMigrationTest {
 
 		@Test
 		@DisplayName("Each ordinal becomes the name of the constant at that position")
 		void migratesOrdinals() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("enumnamesmigrationtest"));
-			updateToChangeSet("0.26.0_6", "netshot");
+			updateToChangeSet("0.26.0_7", "netshot");
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -810,7 +810,7 @@ public class DatabaseMigrationTest {
 				statement.execute("insert into scan_subnets_task_subnets (scan_subnets_task, ipv4usage) values (951, 5)");
 			}
 
-			// 0.26.0_7 only: 0.26.0_10 drops the address usages of the domains
+			// 0.26.0_8 only: 0.26.0_11 drops the address usages of the domains
 			updateNext(1);
 
 			try (Connection connection = Database.openUnpooledConnection();
@@ -839,14 +839,14 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.26.0_9 - orphaned long texts deleted")
+	@DisplayName("0.26.0_10 - orphaned long texts deleted")
 	class OrphanedLongTextMigrationTest {
 
 		@Test
 		@DisplayName("The long texts no attribute or diagnostic result refers to are deleted, the others are kept")
 		void deletesOrphanedLongTexts() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("orphanedlongtextmigrationtest"));
-			updateToChangeSet("0.26.0_8", "netshot");
+			updateToChangeSet("0.26.0_9", "netshot");
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -871,14 +871,14 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.26.0_10 - prefix length and usage of the domain server addresses dropped")
+	@DisplayName("0.26.0_11 - prefix length and usage of the domain server addresses dropped")
 	class DomainAddressColumnsMigrationTest {
 
 		@Test
 		@DisplayName("The columns are dropped and the addresses kept")
 		void dropsColumns() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("domainaddresscolumnsmigrationtest"));
-			updateToChangeSet("0.26.0_9", "netshot");
+			updateToChangeSet("0.26.0_10", "netshot");
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -901,14 +901,14 @@ public class DatabaseMigrationTest {
 	}
 
 	@Nested
-	@DisplayName("0.26.0_11 - last snapshot dates stored on the devices")
+	@DisplayName("0.26.0_12 - last snapshot dates stored on the devices")
 	class SnapshotDatesMigrationTest {
 
 		@Test
 		@DisplayName("The dates are initialized from the latest successful and failed snapshot tasks of each device")
 		void backfillsSnapshotDates() throws Exception {
 			TestConfig.init(DatabaseMigrationTest.this.getFreshDatabaseConfig("snapshotdatesmigrationtest"));
-			updateToChangeSet("0.26.0_10", "netshot");
+			updateToChangeSet("0.26.0_11", "netshot");
 
 			try (Connection connection = Database.openUnpooledConnection();
 					Statement statement = connection.createStatement()) {
@@ -955,7 +955,7 @@ public class DatabaseMigrationTest {
 			"0.24.0_2", "9:6fae930e4fda7d19cc20ca232b0ef395",
 			"0.25.0_18", "9:c3fe37ff86d1bf5735e5c8631652f9c0",
 			"0.25.0_24", "9:4319e4962071801f673e8e22fe1f936d",
-			"0.25.1_2", "9:36a251399f92c7def86fb996b68fa834");
+			"0.25.1_1", "9:36a251399f92c7def86fb996b68fa834");
 
 		private Properties getNetshotConfig() {
 			Properties config = getFreshDatabaseConfig("customchangechecksumtest");
