@@ -1497,6 +1497,7 @@
 <h1 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h1>
 <p>Thanks to the <em>Diagnostics</em> section, you can collect custom data from your equipment, by making Netshot run specific commands on the devices (and possibly process the result).</p>
 <p>Once the diagnostics are defined within Netshot, the commands are effectively executed, and the output is collected by running a <em>Run diagnostics</em> task. This can be done manually by scheduling this type of task, and it is, by default, automatic after a snapshot task.</p>
+<p>An error in one diagnostic (a failing command, an exception in a JavaScript or Python diagnostic...) is logged as a warning in the task log, and the other diagnostics still run. If Netshot can't connect to the device at all (unreachable device, no working credentials), the task fails, and no compliance check follows.</p>
 <p>After the data is saved in the database, it is possible to build search and dynamic group queries based on it. You may also create compliance rules to check the diagnostic result.</p>
 <p>Creating, deleting or modifying diagnostics requires <em>read-write &amp; device commands</em> permissions.</p>
 <h2 id="defining-diagnostics">Defining diagnostics<a class="headerlink" href="#defining-diagnostics" title="Permanent link">&para;</a></h2>

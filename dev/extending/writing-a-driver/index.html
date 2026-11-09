@@ -2349,7 +2349,7 @@
 </tr>
 <tr>
 <td><code>device.set(key, value)</code></td>
-<td>Sets a top-level device field (<code>name</code>, <code>family</code>, <code>location</code>, <code>contact</code>, <code>softwareVersion</code>, <code>serialNumber</code>, <code>comments</code>, <code>networkClass</code>) or a driver-declared device attribute.</td>
+<td>Sets a top-level device field (<code>name</code>, <code>family</code>, <code>location</code>, <code>contact</code>, <code>softwareVersion</code>, <code>serialNumber</code>, <code>comments</code> (at most 4096 characters: a longer text is a script error), <code>networkClass</code>) or a driver-declared device attribute.</td>
 </tr>
 <tr>
 <td><code>device.add(collection, value)</code></td>
