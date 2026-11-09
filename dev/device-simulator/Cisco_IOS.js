@@ -28,6 +28,13 @@
  * NETSHOT_SIMULATOR_NAME/_VERSION/_MGMT_IP/_LOCATION/_CONTACT/_SERIAL (all
  * optional) customize the device identity - e.g. to run several
  * distinct-looking Cisco IOS instances side by side in a demo.
+ *
+ * NETSHOT_SIMULATOR_VARIANT picks the hardware line of "show version" (the
+ * driver tells the family from it), taken from real devices:
+ *   (unset)       CSR1000V
+ *   "ie2000"      Cisco IE-2000 industrial switch
+ *   "stratix5200" Rockwell Automation Stratix 5200 (1783-CMS)
+ *   "aironet"     Cisco Aironet autonomous (IOS) access point
  */
 'use strict';
 
@@ -37,6 +44,11 @@ const MGMT_IP = process.env.NETSHOT_SIMULATOR_MGMT_IP || '192.168.200.101';
 const LOCATION = process.env.NETSHOT_SIMULATOR_LOCATION || 'SNMPLOCATION';
 const CONTACT = process.env.NETSHOT_SIMULATOR_CONTACT || 'SNMPCONTACT';
 const SERIAL = process.env.NETSHOT_SIMULATOR_SERIAL || '96NETS96HOT';
+const HARDWARE = {
+	ie2000: 'cisco IE-2000-8TC-G-B (PowerPC405) processor (revision P0) with 262144K bytes of memory.',
+	stratix5200: 'Allen-Bradley 1783-CMS20DN (ARM) processor (revision V00) with 634859K/6147K bytes of memory.',
+	aironet: 'cisco AIR-AP1131AG-A-K9 (PowerPCElvis) processor (revision A0) with 24566K/8192K bytes of memory.',
+}[process.env.NETSHOT_SIMULATOR_VARIANT] || 'cisco CSR1000V (VXE) processor (revision VXE) with 1090048K/6147K bytes of memory.';
 const USERNAME = process.env.NETSHOT_SIMULATOR_USERNAME || 'admin';
 const PASSWORD = process.env.NETSHOT_SIMULATOR_PASSWORD || 'admin';
 const ENABLE_SECRET = process.env.NETSHOT_SIMULATOR_ENABLE_SECRET || 'admin';
@@ -138,7 +150,7 @@ License Level: ax\r
 License Type: Default. No valid license found.\r
 Next reload license Level: ax\r
 \r
-cisco CSR1000V (VXE) processor (revision VXE) with 1090048K/6147K bytes of memory.\r
+${HARDWARE}\r
 Processor board ID 90PIQM03HLS\r
 4 Gigabit Ethernet interfaces\r
 32768K bytes of non-volatile configuration memory.\r

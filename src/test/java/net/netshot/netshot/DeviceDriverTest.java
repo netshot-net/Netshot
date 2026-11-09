@@ -349,6 +349,47 @@ public class DeviceDriverTest {
 		}
 	}
 
+	@Nested
+	@DisplayName("Cisco IOS families driver test")
+	class CiscoIOSFamiliesTest {
+
+		TaskContext taskContext = new FakeTaskContext();
+
+		@Container
+		private static final GenericContainer<?> ie2000 = buildSshDeviceSimulator("Cisco_IOS", "ie2000");
+
+		@Container
+		private static final GenericContainer<?> stratix5200 = buildSshDeviceSimulator("Cisco_IOS", "stratix5200");
+
+		@Container
+		private static final GenericContainer<?> aironet = buildSshDeviceSimulator("Cisco_IOS", "aironet");
+
+		@Test
+		@DisplayName("Cisco IE-2000 industrial switch")
+		void industrialEthernet() throws Exception {
+			Device device = snapshotSimulatedDevice(this.taskContext, ie2000, "CiscoIOS12");
+			Assertions.assertEquals("Cisco IE 2000", device.getFamily(), "The device family is incorrect");
+			Assertions.assertEquals(NetworkClass.SWITCH, device.getNetworkClass(), "The network class is incorrect");
+		}
+
+		@Test
+		@DisplayName("Rockwell Automation Stratix 5200 switch")
+		void stratix() throws Exception {
+			Device device = snapshotSimulatedDevice(this.taskContext, stratix5200, "CiscoIOS12");
+			Assertions.assertEquals("Allen-Bradley Stratix 5200", device.getFamily(), "The device family is incorrect");
+			Assertions.assertEquals(NetworkClass.SWITCH, device.getNetworkClass(), "The network class is incorrect");
+		}
+
+		@Test
+		@DisplayName("Cisco Aironet autonomous access point")
+		void aironetAccessPoint() throws Exception {
+			Device device = snapshotSimulatedDevice(this.taskContext, aironet, "CiscoIOS12");
+			Assertions.assertEquals("Cisco Aironet 1100", device.getFamily(), "The device family is incorrect");
+			Assertions.assertEquals(NetworkClass.ACCESSPOINT, device.getNetworkClass(), "The network class is incorrect");
+			Assertions.assertEquals("router1", device.getName(), "The device name is incorrect");
+		}
+	}
+
 	/**
 	 * Exploration/reproduction tests for the NetScaler SDX SSH rekeying bug: a driver can ask to
 	 * disable/tighten SSH rekeying via {@code CLI.ssh.config.rekey} ({@link Ssh.SshConfig}'s
