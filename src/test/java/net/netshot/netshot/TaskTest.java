@@ -883,6 +883,41 @@ public class TaskTest extends WithDatabaseTest {
 	 * </ul>
 	 */
 	@Nested
+	@DisplayName("Task without log in the database (DB-backed)")
+	@TestInstance(Lifecycle.PER_CLASS)
+	class NullLogTest {
+
+		@BeforeAll
+		void initDb() throws Exception {
+			Properties config = getDatabaseConfig("tasktest_nulllog");
+			config.setProperty("netshot.log.file", "CONSOLE");
+			config.setProperty("netshot.log.level", "WARN");
+			Netshot.initConfig(config);
+			Database.update();
+			Database.init();
+		}
+
+		@Test
+		@DisplayName("A task whose log column is null is loaded with an empty log")
+		@ResourceLock("DB")
+		void loadsTaskWithNullLog() {
+			PurgeDatabaseTask task = new PurgeDatabaseTask("Test", "tester", 1, 0, 0, 0, 0, (DeviceGroup) null);
+			try (Session session = Database.getSession()) {
+				session.beginTransaction();
+				session.persist(task);
+				session.createNativeMutationQuery("update task set log = null where id = :id")
+					.setParameter("id", task.getId())
+					.executeUpdate();
+				session.getTransaction().commit();
+			}
+			try (Session session = Database.getSession()) {
+				Task loaded = session.get(Task.class, task.getId());
+				Assertions.assertEquals("", loaded.getLog());
+			}
+		}
+	}
+
+	@Nested
 	@DisplayName("Recurring task rescheduling after execution (TaskManager.repeatTask, DB-backed)")
 	@TestInstance(Lifecycle.PER_CLASS)
 	class TaskRepeatTest {
