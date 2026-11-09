@@ -27,7 +27,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-public final class LongTextConfiguration {
+public class LongTextConfiguration {
 
 	@Getter(onMethod = @__({
 		@Id, @GeneratedValue(strategy = GenerationType.IDENTITY)
