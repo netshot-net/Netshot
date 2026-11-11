@@ -60,6 +60,7 @@ import net.netshot.netshot.testing.TestDrivers;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Compliance service")
 class ComplianceServiceTest {
 
 	private final AtomicInteger counter = new AtomicInteger();

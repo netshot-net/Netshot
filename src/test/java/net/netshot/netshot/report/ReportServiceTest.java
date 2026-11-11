@@ -77,6 +77,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Report service")
 class ReportServiceTest {
 
 	private static final long DAY = 24L * 3600 * 1000;

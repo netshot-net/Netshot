@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import net.netshot.netshot.testing.UnitTest;
 
 @UnitTest
+@DisplayName("HTTP server address")
 class HttpServerAddressTest {
 
 	@Test

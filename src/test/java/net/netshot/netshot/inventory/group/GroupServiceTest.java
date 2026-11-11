@@ -49,6 +49,7 @@ import net.netshot.netshot.testing.TestWiring;
  */
 @DatabaseTest
 @TestInstance(Lifecycle.PER_CLASS)
+@DisplayName("Group service")
 class GroupServiceTest {
 
 	private static final String STATIC = "StaticDeviceGroup";
