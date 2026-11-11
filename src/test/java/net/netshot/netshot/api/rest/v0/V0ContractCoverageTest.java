@@ -170,7 +170,7 @@ public class V0ContractCoverageTest {
 		Set<String> resourceMethods = findResourceMethods();
 		Assertions.assertFalse(resourceMethods.isEmpty(), "No JAX-RS resource method found, the scan is broken");
 		Set<String> covered = new HashSet<>();
-		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed(null, null))) {
+		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed())) {
 			covered.add(contractCase.key());
 		}
 
@@ -200,7 +200,7 @@ public class V0ContractCoverageTest {
 	void everyCaseTargetsAResourceMethod() throws Exception {
 		Set<String> resourceMethods = findResourceMethods();
 		List<String> unknown = new ArrayList<>();
-		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed(null, null))) {
+		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed())) {
 			if (!resourceMethods.contains(contractCase.key()) && !EXTERNAL_CASES.contains(contractCase.key())) {
 				unknown.add(contractCase.key() + " (" + contractCase.fileName() + ")");
 			}
@@ -213,7 +213,7 @@ public class V0ContractCoverageTest {
 	void goldenFilesMatchCases() throws IOException {
 		Set<String> names = new HashSet<>();
 		List<String> duplicates = new ArrayList<>();
-		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed(null, null))) {
+		for (V0ContractCase contractCase : V0ContractCases.all(new ContractSeed())) {
 			if (!names.add(contractCase.fileName())) {
 				duplicates.add(contractCase.fileName());
 			}

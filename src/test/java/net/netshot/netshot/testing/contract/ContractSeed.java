@@ -23,41 +23,63 @@ import static net.netshot.netshot.platform.database.schema.Tables.TASK;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.net.UnknownHostException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.jooq.DSLContext;
-import org.junit.jupiter.api.Assertions;
 
-import com.fasterxml.jackson.databind.JsonNode;
 
 import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.aaa.user.UiUser;
+import net.netshot.netshot.aaa.user.UserCreation;
+import net.netshot.netshot.aaa.user.UserService;
+import net.netshot.netshot.compliance.HardwareRuleDefinition;
+import net.netshot.netshot.compliance.HardwareRuleService;
+import net.netshot.netshot.compliance.PolicyDefinition;
+import net.netshot.netshot.compliance.PolicyService;
+import net.netshot.netshot.compliance.RuleDefinition;
 import net.netshot.netshot.compliance.RuleRepository;
+import net.netshot.netshot.compliance.RuleService;
+import net.netshot.netshot.compliance.SoftwareRuleDefinition;
+import net.netshot.netshot.compliance.SoftwareRuleService;
 import net.netshot.netshot.credentials.CredentialSetRepository;
+import net.netshot.netshot.credentials.CredentialSetService;
 import net.netshot.netshot.credentials.DeviceCredentialSet;
+import net.netshot.netshot.credentials.DeviceHttpAccount;
+import net.netshot.netshot.credentials.DeviceSnmpv1Community;
+import net.netshot.netshot.credentials.DeviceSnmpv2cCommunity;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community.AuthProtocol;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community.PrivProtocol;
+import net.netshot.netshot.credentials.DeviceSnmpv3Community;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.credentials.DeviceSshKeyAccount;
+import net.netshot.netshot.credentials.DeviceTelnetAccount;
 import net.netshot.netshot.diagnostic.Diagnostic;
+import net.netshot.netshot.diagnostic.DiagnosticDefinition;
 import net.netshot.netshot.diagnostic.DiagnosticRepository;
+import net.netshot.netshot.diagnostic.DiagnosticService;
 import net.netshot.netshot.domain.Domain;
+import net.netshot.netshot.domain.DomainDefinition;
 import net.netshot.netshot.domain.DomainRepository;
-import net.netshot.netshot.inventory.compliance.CheckResult;
+import net.netshot.netshot.domain.DomainService;
+import net.netshot.netshot.hook.HookService;
+import net.netshot.netshot.hook.HookTrigger.TriggerType;
+import net.netshot.netshot.hook.HookTrigger;
+import net.netshot.netshot.hook.WebHook.Action;
+import net.netshot.netshot.hook.WebHook;
 import net.netshot.netshot.inventory.compliance.CheckResult.ResultOption;
+import net.netshot.netshot.inventory.compliance.CheckResult;
 import net.netshot.netshot.inventory.compliance.ConformanceLevel;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.ConfigRepository;
@@ -67,8 +89,8 @@ import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigLongTextAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigNumericAttribute;
 import net.netshot.netshot.inventory.config.attribute.ConfigTextAttribute;
-import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.Device.NetworkClass;
+import net.netshot.netshot.inventory.device.Device;
 import net.netshot.netshot.inventory.device.DeviceAccess;
 import net.netshot.netshot.inventory.device.DeviceRepository;
 import net.netshot.netshot.inventory.device.Module;
@@ -83,13 +105,16 @@ import net.netshot.netshot.inventory.diagnostic.DiagnosticLongTextResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticNumericResult;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticResultRepository;
 import net.netshot.netshot.inventory.diagnostic.DiagnosticTextResult;
+import net.netshot.netshot.inventory.group.GroupDefinition;
 import net.netshot.netshot.inventory.group.GroupRepository;
+import net.netshot.netshot.inventory.group.GroupService;
 import net.netshot.netshot.platform.database.Page;
 import net.netshot.netshot.platform.database.schema.Tables;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.net.Network6Address;
 import net.netshot.netshot.platform.net.NetworkAddress;
 import net.netshot.netshot.platform.secret.Secret;
+import net.netshot.netshot.platform.tls.HttpsCaTrustMode;
 import net.netshot.netshot.task.Task;
 import net.netshot.netshot.task.TaskRepository;
 import net.netshot.netshot.task.type.CheckComplianceTask;
@@ -104,9 +129,15 @@ import net.netshot.netshot.task.type.TakeGroupSnapshotTask;
 import net.netshot.netshot.task.type.TakeSnapshotTask;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestWiring;
+import net.netshot.netshot.userscript.ScriptCreation;
+import net.netshot.netshot.userscript.ScriptService;
+import net.netshot.netshot.vault.HashicorpVaultKv2Instance.AuthMethod;
+import net.netshot.netshot.vault.HashicorpVaultKv2Instance;
+import net.netshot.netshot.vault.VaultInstanceService;
 
 /**
- * Deterministic dataset used by the API contract tests.
+ * Deterministic dataset used by the contract tests (API responses, webhook payloads), created through the
+ * services and the repositories, so that it depends on no version of the API.
  *
  * <p>Rules for determinism: a fresh database is used, objects are created one
  * after the other in a fixed order (IDs are database identity values, so they
@@ -132,14 +163,10 @@ public final class ContractSeed {
 	public static final long D2022 = 1641038400000L; // 2022-01-01T12:00:00Z
 	public static final long D2040 = 2208988800000L; // 2040-01-01T00:00:00Z
 
-	private final String apiUrl;
-	private final HttpClient httpClient;
-	private final Map<String, Long> ids = new HashMap<>();
+	/** The author of the seeded scripts (the admin API token, as when the dataset was created through the API). */
+	private static final String SCRIPT_AUTHOR = "API Token [5: Test Token - level 1000]";
 
-	public ContractSeed(String apiUrl, HttpClient httpClient) {
-		this.apiUrl = apiUrl;
-		this.httpClient = httpClient;
-	}
+	private final Map<String, Long> ids = new HashMap<>();
 
 	/**
 	 * Gets the ID of a seeded object.
@@ -159,50 +186,12 @@ public final class ContractSeed {
 	}
 
 	/**
-	 * Calls the API as administrator, expecting a successful response.
-	 * @param method the HTTP method
-	 * @param path the path
-	 * @param body the JSON body (or null)
-	 * @return the response body
-	 */
-	public JsonNode call(String method, String path, String body) {
-		try {
-			HttpRequest.Builder request = HttpRequest.newBuilder()
-				.version(HttpClient.Version.HTTP_1_1)
-				.uri(URI.create(this.apiUrl + path))
-				.header("Accept", "application/json")
-				.header("X-Netshot-API-Token", ADMIN_TOKEN);
-			if (body != null) {
-				request.header("Content-Type", "application/json");
-				request.method(method, HttpRequest.BodyPublishers.ofString(body));
-			}
-			else {
-				request.method(method, HttpRequest.BodyPublishers.noBody());
-			}
-			HttpResponse<String> response = this.httpClient.send(request.build(),
-				HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-			Assertions.assertTrue(response.statusCode() >= 200 && response.statusCode() < 300,
-				"Seed call %s %s failed with %d: %s".formatted(method, path, response.statusCode(), response.body()));
-			return response.body().isBlank() ? null : Golden.parseJson(response.body());
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
-	 * POSTs an object and remembers its ID.
+	 * Creates an object and remembers its ID.
 	 * @param name the name to remember the ID under
-	 * @param path the API path to post to
-	 * @param body the JSON body
+	 * @param id the ID of the created object
 	 */
-	private void create(String name, String path, String body) {
-		JsonNode created = this.call("POST", path, body);
-		this.remember(name, created.get("id").asLong());
+	private void created(String name, long id) {
+		this.remember(name, id);
 	}
 
 	public void seed() throws Exception {
@@ -241,50 +230,57 @@ public final class ContractSeed {
 	}
 
 	private void seedDomains() {
-		this.create("domain.paris", "/domains", """
-			{"name": "Paris DC", "description": "Paris data center", "ipAddress": "10.255.0.1"}""");
-		this.create("domain.lyon", "/domains", """
-			{"name": "Lyon DC", "description": "Lyon data center", "ipAddress": "10.255.1.1"}""");
+		DomainService domains = TestWiring.get().domainService();
+		this.created("domain.paris", domains.create(new DomainDefinition("Paris DC", "Paris data center", "10.255.0.1")).id());
+		this.created("domain.lyon", domains.create(new DomainDefinition("Lyon DC", "Lyon data center", "10.255.1.1")).id());
 	}
 
 	private void seedVault() {
-		this.create("vault.main", "/vaultinstances", """
-			{"type": "Vault KV v2", "name": "Main vault", "baseUrl": "https://vault.example.net:8200",
-			 "namespace": "netshot", "kvMountPath": "kv", "authMethod": "APPROLE",
-			 "appRoleMountPath": "approle", "appRoleId": "role-1234", "appRoleSecretId": "secret-5678"}""");
-		this.create("vault.jwt", "/vaultinstances", """
-			{"type": "Vault KV v2", "name": "JWT vault", "baseUrl": "https://vault2.example.net:8200",
-			 "httpsCaTrustMode": "TRUST_ANY", "authMethod": "JWT", "jwtMountPath": "jwt",
-			 "jwtIdpTokenEndpoint": "https://idp.example.net/token", "jwtClientId": "netshot",
-			 "jwtClientSecret": "client-secret", "jwtVaultRole": "netshot-role", "jwtScope": "vault"}""");
+		VaultInstanceService vaults = TestWiring.get().vaultInstanceService();
+		this.created("vault.main", vaults.create(HashicorpVaultKv2Instance.builder("Main vault")
+			.baseUrl("https://vault.example.net:8200").namespace("netshot").kvMountPath("kv")
+			.authMethod(AuthMethod.APPROLE).appRoleMountPath("approle").appRoleId("role-1234")
+			.appRoleSecretId(Secret.local("secret-5678")).jwtClientSecret(Secret.local(null))
+			.build()).id());
+		this.created("vault.jwt", vaults.create(HashicorpVaultKv2Instance.builder("JWT vault")
+			.baseUrl("https://vault2.example.net:8200").httpsCaTrustMode(HttpsCaTrustMode.TRUST_ANY)
+			.authMethod(AuthMethod.JWT).jwtMountPath("jwt").jwtIdpTokenEndpoint("https://idp.example.net/token")
+			.jwtClientId("netshot").jwtClientSecret(Secret.local("client-secret")).jwtVaultRole("netshot-role").jwtScope("vault")
+			.appRoleSecretId(Secret.local(null))
+			.build()).id());
 	}
 
 	private void seedCredentialSets() {
-		this.create("cred.snmp1", "/credentialsets", """
-			{"type": "SNMP v1", "name": "SNMP v1 community", "community": "public-v1"}""");
-		this.create("cred.snmp2", "/credentialsets", """
-			{"type": "SNMP v2", "name": "SNMP v2 community", "community": "public-v2",
-			 "mgmtDomain": {"id": %d}}""".formatted(this.id("domain.paris")));
-		this.create("cred.snmp3", "/credentialsets", """
-			{"type": "SNMP v3", "name": "SNMP v3 account", "username": "snmpuser",
-			 "authType": "SHA", "authKey": "authkey123", "privType": "AES128", "privKey": "privkey456"}""");
-		this.create("cred.ssh", "/credentialsets", """
-			{"type": "SSH", "name": "SSH account", "username": "admin", "password": "ssh-pass",
-			 "superPassword": "ssh-enable"}""");
-		this.create("cred.sshkey", "/credentialsets", """
-			{"type": "SSH Key", "name": "SSH key account", "username": "keyuser",
-			 "privateKey": "-----BEGIN KEY-----", "password": "key-pass",
-			 "superPassword": "key-enable", "mgmtDomain": {"id": %d}}""".formatted(this.id("domain.lyon")));
-		this.create("cred.telnet", "/credentialsets", """
-			{"type": "Telnet", "name": "Telnet account", "username": "telnetuser", "password": "telnet-pass",
-			 "superPassword": "telnet-enable"}""");
-		this.create("cred.http", "/credentialsets", """
-			{"type": "HTTP", "name": "HTTP account", "username": "apiuser", "password": "http-pass"}""");
-		this.create("cred.sshvault", "/credentialsets", """
-			{"type": "SSH", "name": "SSH account from vault",
-			 "usernameVaultInstanceId": %d, "usernameVaultPath": "netshot/ssh/username",
-			 "passwordVaultInstanceId": %d, "passwordVaultPath": "netshot/ssh/password"}"""
-			.formatted(this.id("vault.main"), this.id("vault.main")));
+		CredentialSetService credentialSets = TestWiring.get().credentialSetService();
+		Domain paris = Domain.builder().id(this.id("domain.paris")).build();
+		Domain lyon = Domain.builder().id(this.id("domain.lyon")).build();
+		this.created("cred.snmp1", credentialSets.create(new DeviceSnmpv1Community(0, 0, null, "SNMP v1 community", null, false,
+			local("public-v1"))).id());
+		this.created("cred.snmp2", credentialSets.create(new DeviceSnmpv2cCommunity(0, 0, null, "SNMP v2 community", paris, false,
+			local("public-v2"))).id());
+		this.created("cred.snmp3", credentialSets.create(new DeviceSnmpv3Community(0, 0, null, "SNMP v3 account", null, false,
+			local(null), local("snmpuser"), AuthProtocol.SHA, local("authkey123"), PrivProtocol.AES128, local("privkey456"))).id());
+		this.created("cred.ssh", credentialSets.create(new DeviceSshAccount(0, 0, null, "SSH account", null, false,
+			local("admin"), local("ssh-pass"), local("ssh-enable"))).id());
+		this.created("cred.sshkey", credentialSets.create(new DeviceSshKeyAccount(0, 0, null, "SSH key account", lyon, false,
+			local("keyuser"), local("key-pass"), local("key-enable"), local("-----BEGIN KEY-----"))).id());
+		this.created("cred.telnet", credentialSets.create(new DeviceTelnetAccount(0, 0, null, "Telnet account", null, false,
+			local("telnetuser"), local("telnet-pass"), local("telnet-enable"))).id());
+		this.created("cred.http", credentialSets.create(new DeviceHttpAccount(0, 0, null, "HTTP account", null, false,
+			local("apiuser"), local("http-pass"))).id());
+		long vault = this.id("vault.main");
+		this.created("cred.sshvault", credentialSets.create(new DeviceSshAccount(0, 0, null, "SSH account from vault", null, false,
+			Secret.of(Secret.local(null), vault, "netshot/ssh/username"), Secret.of(Secret.local(null), vault, "netshot/ssh/password"),
+			local(null))).id());
+	}
+
+	/**
+	 * Builds a secret with a local value.
+	 * @param value the value (or null)
+	 * @return the secret
+	 */
+	private static Secret local(String value) {
+		return Secret.of(Secret.local(value), null, null);
 	}
 
 	// -------------------------------------------------------------------
@@ -481,112 +477,100 @@ public final class ContractSeed {
 	}
 
 	private void seedGroups() {
-		this.create("group.static", "/groups", """
-			{"type": "StaticDeviceGroup", "name": "Core routers", "folder": "Production/Core",
-			 "staticDevices": [%d, %d]}""".formatted(this.id("device.router1"), this.id("device.router2")));
-		this.create("group.dynamic", "/groups", """
-			{"type": "DynamicDeviceGroup", "name": "All Cisco devices", "folder": "Production",
-			 "query": "[Family] CONTAINS \\"Cisco\\""}""");
-		this.create("group.hidden", "/groups", """
-			{"type": "DynamicDeviceGroup", "name": "Everything", "folder": "", "hiddenFromReports": true,
-			 "query": "[Name] CONTAINS \\"\\""}""");
-		this.create("group.empty", "/groups", """
-			{"type": "StaticDeviceGroup", "name": "Empty group", "staticDevices": []}""");
+		GroupService groups = TestWiring.get().groupService();
+		this.created("group.static", groups.create(new GroupDefinition("StaticDeviceGroup", "Core routers",
+			List.of(this.id("device.router1"), this.id("device.router2")), null, "Production/Core", false)).id());
+		this.created("group.dynamic", groups.create(new GroupDefinition("DynamicDeviceGroup", "All Cisco devices",
+			null, "[Family] CONTAINS \"Cisco\"", "Production", false)).id());
+		this.created("group.hidden", groups.create(new GroupDefinition("DynamicDeviceGroup", "Everything",
+			null, "[Name] CONTAINS \"\"", "", true)).id());
+		this.created("group.empty", groups.create(new GroupDefinition("StaticDeviceGroup", "Empty group",
+			List.of(), null, "", false)).id());
 	}
 
 	private void seedPolicies() {
-		this.create("policy.security", "/policies", """
-			{"name": "Security baseline", "targetGroups": [%d]}""".formatted(this.id("group.dynamic")));
-		this.create("policy.routing", "/policies", """
-			{"name": "Routing policy", "targetGroups": [%d, %d]}"""
-			.formatted(this.id("group.static"), this.id("group.dynamic")));
-		this.create("policy.empty", "/policies", """
-			{"name": "Empty policy", "targetGroups": []}""");
+		PolicyService policies = TestWiring.get().policyService();
+		this.created("policy.security", policies.create(new PolicyDefinition("Security baseline",
+			Set.of(this.id("group.dynamic")))).policy().id());
+		this.created("policy.routing", policies.create(new PolicyDefinition("Routing policy",
+			new LinkedHashSet<>(List.of(this.id("group.static"), this.id("group.dynamic"))))).policy().id());
+		this.created("policy.empty", policies.create(new PolicyDefinition("Empty policy", Set.of())).policy().id());
 
-		this.create("rule.text", "/rules", """
-			{"type": "TextRule", "name": "No telnet", "policy": %d, "text": "transport input telnet",
-			 "regExp": false, "invert": true, "matchAll": false, "anyBlock": false, "normalize": true,
-			 "context": "line vty", "field": "runningConfig", "driver": "CiscoIOS12"}"""
-			.formatted(this.id("policy.security")));
-		this.create("rule.regex", "/rules", """
-			{"type": "TextRule", "name": "Hostname set", "policy": %d, "text": "^hostname .+$",
-			 "regExp": true, "invert": false, "matchAll": true, "anyBlock": true, "normalize": false,
-			 "field": "runningConfig"}""".formatted(this.id("policy.security")));
-		this.create("rule.js", "/rules", """
-			{"type": "JavaScriptRule", "name": "JS check", "policy": %d,
-			 "script": "function check(device) {\\n  return { result: CONFORMING, comment: 'ok' };\\n}"}"""
-			.formatted(this.id("policy.routing")));
-		this.create("rule.python", "/rules", """
-			{"type": "PythonRule", "name": "Python check", "policy": %d,
-			 "script": "def check(device):\\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}"}"""
-			.formatted(this.id("policy.routing")));
+		RuleService rules = TestWiring.get().ruleService();
+		this.created("rule.text", rules.create(textRule(this.id("policy.security"), false, null)).id());
+		this.created("rule.regex", rules.create(new RuleDefinition("TextRule", "Hostname set", this.id("policy.security"), false,
+			null, null, "^hostname .+$", true, null, null, "runningConfig", true, true, false, false)).id());
+		this.created("rule.js", rules.create(new RuleDefinition("JavaScriptRule", "JS check", this.id("policy.routing"), false,
+			null, "function check(device) {\n  return { result: CONFORMING, comment: 'ok' };\n}",
+			null, null, null, null, null, null, null, null, null)).id());
+		this.created("rule.python", rules.create(new RuleDefinition("PythonRule", "Python check", this.id("policy.routing"), false,
+			null, "def check(device):\n  return {'result': result_option.CONFORMING, 'comment': 'ok'}",
+			null, null, null, null, null, null, null, null, null)).id());
 
-		this.create("rule.software.gold", "/softwarerules", """
-			{"group": %d, "driver": "CiscoIOS12", "version": "16.1.6", "versionRegExp": false,
-			 "family": "", "familyRegExp": false, "partNumber": "", "partNumberRegExp": false, "level": "GOLD"}"""
-			.formatted(this.id("group.dynamic")));
-		this.create("rule.software.silver", "/softwarerules", """
-			{"group": -1, "driver": "CiscoIOS12", "version": "15\\\\..*", "versionRegExp": true,
-			 "family": "Cisco 1900", "familyRegExp": false, "partNumber": "", "partNumberRegExp": false, "level": "SILVER"}""");
-		this.create("rule.hardware.1", "/hardwarerules", """
-			{"group": %d, "driver": "CiscoIOS12", "partNumber": "CISCO2911/K9", "partNumberRegExp": false,
-			 "family": "", "familyRegExp": false, "endOfSale": %d, "endOfLife": %d}"""
-			.formatted(this.id("group.dynamic"), D2040, D2040 + 365L * 24 * 3600 * 1000));
-		this.create("rule.hardware.2", "/hardwarerules", """
-			{"group": -1, "driver": "", "partNumber": "", "partNumberRegExp": false,
-			 "family": "Cisco 1900.*", "familyRegExp": true, "endOfSale": %d}""".formatted(D2022));
+		SoftwareRuleService softwareRules = TestWiring.get().softwareRuleService();
+		this.created("rule.software.gold", softwareRules.create(new SoftwareRuleDefinition(this.id("group.dynamic"),
+			"CiscoIOS12", "", false, "16.1.6", false, "", false, ConformanceLevel.GOLD)).rule().id());
+		this.created("rule.software.silver", softwareRules.create(new SoftwareRuleDefinition(null,
+			"CiscoIOS12", "Cisco 1900", false, "15\\..*", true, "", false, ConformanceLevel.SILVER)).rule().id());
+		HardwareRuleService hardwareRules = TestWiring.get().hardwareRuleService();
+		this.created("rule.hardware.1", hardwareRules.create(new HardwareRuleDefinition(this.id("group.dynamic"),
+			"CiscoIOS12", "", false, "CISCO2911/K9", false, new Date(D2040), new Date(D2040 + 365L * 24 * 3600 * 1000))).rule().id());
+		this.created("rule.hardware.2", hardwareRules.create(new HardwareRuleDefinition(null,
+			"", "Cisco 1900.*", true, "", false, new Date(D2022), null)).rule().id());
+	}
+
+	/**
+	 * Builds the definition of the "No telnet" text rule.
+	 * @param policyId the ID of the policy
+	 * @param enabled whether the rule is enabled
+	 * @param exemptions the exemptions (or null)
+	 * @return the definition
+	 */
+	private static RuleDefinition textRule(long policyId, boolean enabled, Map<Long, Date> exemptions) {
+		return new RuleDefinition("TextRule", "No telnet", policyId, enabled, exemptions, null, "transport input telnet", false,
+			"line vty", "CiscoIOS12", "runningConfig", false, false, true, true);
 	}
 
 	private void seedDiagnostics() {
-		this.create("diag.simple.text", "/diagnostics", """
-			{"type": "SimpleDiagnostic", "name": "Reload reason", "enabled": true, "targetGroup": %d,
-			 "resultType": "TEXT", "deviceDriver": "CiscoIOS12", "cliMode": "enable",
-			 "command": "show version | include reason", "modifierPattern": "(?s).*reason: (.+?)\\\\n.*",
-			 "modifierReplacement": "$1"}""".formatted(this.id("group.dynamic")));
-		this.create("diag.js.longtext", "/diagnostics", """
-			{"type": "JavaScriptDiagnostic", "name": "Full inventory", "enabled": true, "targetGroup": -1,
-			 "resultType": "LONGTEXT", "script": "function diagnose(cli, device, diagnostic) {\\n  diagnostic.set('x');\\n}"}""");
-		this.create("diag.python.numeric", "/diagnostics", """
-			{"type": "PythonDiagnostic", "name": "CPU load", "enabled": false, "targetGroup": %d,
-			 "resultType": "NUMERIC", "script": "def diagnose(cli, device, diagnostic):\\n  diagnostic.set(1)"}"""
-			.formatted(this.id("group.static")));
-		this.create("diag.simple.binary", "/diagnostics", """
-			{"type": "SimpleDiagnostic", "name": "Config saved", "enabled": true, "targetGroup": -1,
-			 "resultType": "BINARY", "deviceDriver": "CiscoIOS12", "cliMode": "enable",
-			 "command": "show startup-config", "modifierPattern": "", "modifierReplacement": ""}""");
+		DiagnosticService diagnostics = TestWiring.get().diagnosticService();
+		this.created("diag.simple.text", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Reload reason",
+			this.id("group.dynamic"), true, "TEXT", null, "CiscoIOS12", "enable", "show version | include reason",
+			"(?s).*reason: (.+?)\\n.*", "$1")).diagnostic().id());
+		this.created("diag.js.longtext", diagnostics.create(new DiagnosticDefinition("JavaScriptDiagnostic", "Full inventory",
+			-1, true, "LONGTEXT", "function diagnose(cli, device, diagnostic) {\n  diagnostic.set('x');\n}",
+			null, null, null, null, null)).diagnostic().id());
+		this.created("diag.python.numeric", diagnostics.create(new DiagnosticDefinition("PythonDiagnostic", "CPU load",
+			this.id("group.static"), false, "NUMERIC", "def diagnose(cli, device, diagnostic):\n  diagnostic.set(1)",
+			null, null, null, null, null)).diagnostic().id());
+		this.created("diag.simple.binary", diagnostics.create(new DiagnosticDefinition("SimpleDiagnostic", "Config saved",
+			-1, true, "BINARY", null, "CiscoIOS12", "enable", "show startup-config", "", "")).diagnostic().id());
 	}
 
 	private void seedHooks() {
-		this.create("hook.web1", "/hooks", """
-			{"type": "Web", "name": "Notify on tasks", "enabled": true, "action": "POST_JSON",
-			 "url": "https://example.net/callback1",
-			 "triggers": [{"type": "POST_TASK", "item": "TakeSnapshotTask"}, {"type": "POST_TASK", "item": "CheckComplianceTask"}]}""");
-		this.create("hook.web2", "/hooks", """
-			{"type": "Web", "name": "Disabled XML hook", "enabled": false, "action": "POST_XML",
-			 "url": "http://example.net/callback2", "httpsCaTrustMode": "TRUST_ANY", "triggers": []}""");
+		HookService hooks = TestWiring.get().hookService();
+		Set<HookTrigger> triggers = new LinkedHashSet<>(List.of(new HookTrigger(TriggerType.POST_TASK, "TakeSnapshotTask"),
+			new HookTrigger(TriggerType.POST_TASK, "CheckComplianceTask")));
+		this.created("hook.web1", hooks.create(new WebHook(0, 0, null, "Notify on tasks", true, triggers, Action.POST_JSON,
+			"https://example.net/callback1", null, null)).id());
+		this.created("hook.web2", hooks.create(new WebHook(0, 0, null, "Disabled XML hook", false, new LinkedHashSet<>(),
+			Action.POST_XML, "http://example.net/callback2", HttpsCaTrustMode.TRUST_ANY, null)).id());
 	}
 
 	private void seedScripts() {
-		this.create("script.1", "/scripts", """
-			{"name": "Show version", "deviceDriver": "CiscoIOS12", "folder": "Maintenance",
-			 "script": "function run(cli, device) {\\n  cli.macro(\\"enable\\");\\n  cli.command(\\"show version\\");\\n}"}""");
-		this.create("script.2", "/scripts", """
-			{"name": "Other script", "deviceDriver": "CiscoIOS12",
-			 "script": "function run(cli, device) {\\n  cli.command(\\"show clock\\");\\n}"}""");
+		ScriptService scripts = TestWiring.get().scriptService();
+		this.created("script.1", scripts.create(new ScriptCreation("Show version", "CiscoIOS12",
+			"function run(cli, device) {\n  cli.macro(\"enable\");\n  cli.command(\"show version\");\n}", SCRIPT_AUTHOR,
+			"Maintenance")).id());
+		this.created("script.2", scripts.create(new ScriptCreation("Other script", "CiscoIOS12",
+			"function run(cli, device) {\n  cli.command(\"show clock\");\n}", SCRIPT_AUTHOR, "")).id());
 	}
 
 	private void seedUsers() {
-		this.create("user.readonly", "/users", """
-			{"username": "reader", "password": "%s", "level": %d, "local": true}"""
-			.formatted(USER_PASSWORD, UiUser.LEVEL_READONLY));
-		this.create("user.rw", "/users", """
-			{"username": "writer", "password": "%s", "level": %d, "local": true}"""
-			.formatted(USER_PASSWORD, UiUser.LEVEL_READWRITE));
-		this.create("user.admin", "/users", """
-			{"username": "boss", "password": "%s", "level": %d, "local": true}"""
-			.formatted(USER_PASSWORD, UiUser.LEVEL_ADMIN));
-		this.create("user.remote", "/users", """
-			{"username": "radius-user", "level": %d, "local": false}""".formatted(UiUser.LEVEL_OPERATOR));
+		UserService users = TestWiring.get().userService();
+		this.created("user.readonly", users.create(new UserCreation("reader", true, USER_PASSWORD, UiUser.LEVEL_READONLY)).id());
+		this.created("user.rw", users.create(new UserCreation("writer", true, USER_PASSWORD, UiUser.LEVEL_READWRITE)).id());
+		this.created("user.admin", users.create(new UserCreation("boss", true, USER_PASSWORD, UiUser.LEVEL_ADMIN)).id());
+		this.created("user.remote", users.create(new UserCreation("radius-user", false, null, UiUser.LEVEL_OPERATOR)).id());
 	}
 
 	// -------------------------------------------------------------------
@@ -594,13 +578,9 @@ public final class ContractSeed {
 	// -------------------------------------------------------------------
 
 	private void seedComplianceAndDiagnosticResults() {
-		// Exemption, through the API
-		this.call("PUT", "/rules/" + this.id("rule.text"), """
-			{"id": %d, "type": "TextRule", "name": "No telnet", "policy": %d, "text": "transport input telnet",
-			 "regExp": false, "invert": true, "matchAll": false, "anyBlock": false, "normalize": true,
-			 "context": "line vty", "field": "runningConfig", "driver": "CiscoIOS12", "enabled": true,
-			 "exemptions": {"%d": %d}}"""
-			.formatted(this.id("rule.text"), this.id("policy.security"), this.id("device.router2"), D2040));
+		// Exemption, through the service
+		TestWiring.get().ruleService().update(this.id("rule.text"), textRule(this.id("policy.security"), true,
+			Map.of(this.id("device.router2"), new Date(D2040))));
 		TestWiring.get().transactions().run(dsl -> {
 			DeviceRepository deviceRepository = new DeviceRepository();
 			Device router1 = deviceRepository.find(dsl, this.id("device.router1"));
