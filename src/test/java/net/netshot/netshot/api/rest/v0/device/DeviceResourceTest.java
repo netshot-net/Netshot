@@ -58,6 +58,7 @@ import net.netshot.netshot.platform.error.ErrorCode;
 import net.netshot.netshot.platform.net.Network4Address;
 import net.netshot.netshot.platform.secret.Secret;
 import net.netshot.netshot.testing.ApiTest;
+import net.netshot.netshot.testing.api.v0.V0Enabled;
 import net.netshot.netshot.testing.TestDevices;
 import net.netshot.netshot.testing.TestDrivers;
 import net.netshot.netshot.testing.TestServer;
@@ -66,6 +67,7 @@ import net.netshot.netshot.testing.api.v0.V0Client;
 import net.netshot.netshot.testing.fake.FakeDeviceFactory;
 
 @ApiTest
+@V0Enabled
 @DisplayName("Device tests")
 @ResourceLock("DB")
 public class DeviceResourceTest {

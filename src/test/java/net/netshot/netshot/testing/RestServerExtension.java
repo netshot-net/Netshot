@@ -28,14 +28,12 @@ import net.netshot.netshot.aaa.user.ApiToken;
 import net.netshot.netshot.aaa.user.ApiTokenRepository;
 import net.netshot.netshot.api.rest.RestServer;
 import net.netshot.netshot.platform.database.schema.Tables;
-import net.netshot.netshot.testing.api.v0.V0Client;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.quartz.Scheduler;
 import org.quartz.impl.SchedulerRepository;
@@ -46,7 +44,7 @@ import org.quartz.impl.SchedulerRepository;
  * the annotated class, starts the task manager and the REST server (waiting for it to listen); after it,
  * stops the server and clears the schedulers. For an {@link ApiTest}, also replaces the users by the API
  * tokens of {@link TestServer#API_TOKENS} before each test, and removes the tokens after it. Resolves the
- * {@link TestServer} and (admin) {@link V0Client} parameters.
+ * {@link TestServer} parameters (each API version builds its clients from it).
  */
 public final class RestServerExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback,
 	ParameterResolver {
@@ -74,7 +72,7 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 		RestServer restServer = new RestServer(TestWiring.get().binder());
 		restServer.start();
 		context.getStore(Kinds.NAMESPACE).put(RestServer.class, restServer);
-		waitUntilListening(server(context).apiUri());
+		waitUntilListening(TestServer.of(context).apiUri());
 	}
 
 	@Override
@@ -126,36 +124,12 @@ public final class RestServerExtension implements BeforeAllCallback, AfterAllCal
 
 	@Override
 	public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
-		Class<?> type = parameterContext.getParameter().getType();
-		return type == TestServer.class || type == V0Client.class;
+		return parameterContext.getParameter().getType() == TestServer.class;
 	}
 
 	@Override
 	public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
-		TestServer server = server(extensionContext);
-		if (parameterContext.getParameter().getType() == TestServer.class) {
-			return server;
-		}
-		try {
-			return server.client();
-		}
-		catch (Exception e) {
-			throw new ParameterResolutionException("Unable to create the API client", e);
-		}
-	}
-
-	/**
-	 * Gets the server of the test class, from the store of the class or of an enclosing class.
-	 *
-	 * @param context the extension context
-	 * @return the server
-	 */
-	private static TestServer server(ExtensionContext context) {
-		TestServer server = context.getStore(Kinds.NAMESPACE).get(TestServer.class, TestServer.class);
-		if (server == null) {
-			throw new IllegalStateException("No test server: annotate the test class with @ApiTest or @ContractTest");
-		}
-		return server;
+		return TestServer.of(extensionContext);
 	}
 
 	/**
