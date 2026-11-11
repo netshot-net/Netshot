@@ -18,6 +18,8 @@
  */
 package net.netshot.netshot.inventory.device;
 
+import static net.netshot.netshot.platform.database.schema.Tables.DEVICE_ACCESS;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -36,7 +38,9 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.function.Executable;
 import org.quartz.SchedulerException;
 
+import net.netshot.netshot.credentials.DeviceCredentialSet;
 import net.netshot.netshot.credentials.DeviceSshAccount;
+import net.netshot.netshot.domain.Domain;
 import net.netshot.netshot.inventory.config.Config;
 import net.netshot.netshot.inventory.config.attribute.ConfigBinaryFileAttribute;
 import net.netshot.netshot.inventory.group.DynamicGroups;
@@ -138,6 +142,17 @@ class DeviceServiceTest {
 		Assertions.assertEquals(Map.of("fullBackup", true), this.service.get(created.id()).options());
 		Device updated = this.service.update(created.id(), new DeviceUpdate(null, null, null, null, null, null, Map.of("fullBackup", "false"), null));
 		Assertions.assertEquals(Map.of("fullBackup", false), updated.options());
+	}
+
+	@Test
+	@DisplayName("update() accepts comments of up to 4096 characters, and refuses longer ones")
+	void updateCommentsLength() {
+		Device created = this.createDevice(this.nextAddress());
+		assertError(ErrorCode.NETSHOT_INVALID_REQUEST_PARAMETER, () -> this.service.update(created.id(),
+			new DeviceUpdate(null, "x".repeat(Device.MAX_COMMENTS_LENGTH + 1), null, null, null, null, null, null)));
+		Device updated = this.service.update(created.id(),
+			new DeviceUpdate(null, "y".repeat(Device.MAX_COMMENTS_LENGTH), null, null, null, null, null, null));
+		Assertions.assertEquals(Device.MAX_COMMENTS_LENGTH, updated.comments().length());
 	}
 
 	@Test
@@ -309,6 +324,28 @@ class DeviceServiceTest {
 		assertError(ErrorCode.NETSHOT_DEVICE_NOT_FOUND, () -> this.service.get(created.id()));
 		Assertions.assertFalse(this.service.delete(created.id()), "already deleted");
 		Assertions.assertFalse(this.service.delete(99999999L));
+	}
+
+	@Test
+	@DisplayName("delete() removes the accesses of the device and their specific credential sets, not the global ones they pin")
+	void deleteRemovesAccesses() {
+		Domain domain = TestDevices.addDomain("Deletion lab", "Domain of the deleted device");
+		DeviceCredentialSet global = TestDevices.addCredentialSet(DeviceSshAccount.builder().username(Secret.local("admin"))
+			.password(Secret.local("admin")).name("Global SSH account").build());
+		DeviceCredentialSet specific = DeviceSshAccount.builder().username(Secret.local("admin")).password(Secret.local("admin"))
+			.name(DeviceCredentialSet.generateSpecificName()).deviceSpecific(true).build();
+		Device device = TestDevices.add(Device.create("CiscoIOS12", this.nextAddress(), domain, AUTHOR).toBuilder().name("deleted")
+			.accesses(List.of(
+				DeviceAccess.of("ssh").toBuilder().globalCredentialSet(global).build(),
+				DeviceAccess.of("telnet").toBuilder().specificCredentialSet(specific).build()))
+			.build());
+		long specificId = device.getDeviceAccess("telnet").specificCredentialSet().id();
+
+		Assertions.assertTrue(this.service.delete(device.id()));
+		int accesses = this.transactions.read(dsl -> dsl.fetchCount(DEVICE_ACCESS, DEVICE_ACCESS.DEVICE.eq(device.id())));
+		Assertions.assertEquals(0, accesses, "The accesses of the device are kept");
+		Assertions.assertNull(TestDevices.findCredentialSet(specificId), "The specific credential set of an access is kept");
+		Assertions.assertNotNull(TestDevices.findCredentialSet(global.id()), "A global credential set pinned by an access is deleted");
 	}
 
 	@Test
