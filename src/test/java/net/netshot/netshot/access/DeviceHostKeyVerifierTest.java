@@ -94,11 +94,13 @@ class DeviceHostKeyVerifierTest {
 	}
 
 	@Test
-	@DisplayName("No mode: trust known")
+	@DisplayName("No mode (an access without settings): trust any, nothing learned")
 	void defaultMode() {
 		DeviceHostKeyVerifier verifier = new DeviceHostKeyVerifier(null, line(RSA), null);
-		Assertions.assertFalse(verify(verifier, OTHER_RSA));
-		Assertions.assertTrue(verify(new DeviceHostKeyVerifier(null, line(RSA), null), RSA));
+		Assertions.assertTrue(verify(verifier, OTHER_RSA));
+		DeviceHostKeyVerifier empty = new DeviceHostKeyVerifier(null, null, null);
+		Assertions.assertTrue(verify(empty, ECDSA));
+		Assertions.assertNull(empty.getLearnedKeysUpdate());
 	}
 
 	@Test

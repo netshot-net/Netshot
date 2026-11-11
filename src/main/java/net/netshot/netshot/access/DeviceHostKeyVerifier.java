@@ -38,7 +38,7 @@ import net.netshot.netshot.platform.log.TaskContext;
  * Per-access SSH server host key verifier, implementing the two
  * {@link SshHostKeyVerification} modes:
  * <ul>
- * <li>{@code TRUST_ANY} - always accepts (historical behavior).</li>
+ * <li>{@code TRUST_ANY} - always accepts (the default).</li>
  * <li>{@code TRUST_KNOWN} - accepts only a presented key matching the
  * trusted entry on record for its algorithm (known_hosts-style, one entry
  * per algorithm), <em>except</em> when nothing at all is on record yet, in
@@ -72,13 +72,13 @@ public class DeviceHostKeyVerifier implements ServerKeyVerifier {
 
 	/**
 	 * Instantiates a new verifier for one connection attempt.
-	 * @param mode the configured verification mode (defaults to {@code TRUST_KNOWN} if null)
+	 * @param mode the configured verification mode (defaults to {@code TRUST_ANY} if null)
 	 * @param storedKeys the currently trusted host keys for this access, known_hosts-style
 	 *        ("{@code <algorithm> <base64-key>}" per line, no hostname prefix), or null/empty if none yet
 	 * @param taskContext the current task context, for logging (may be null)
 	 */
 	public DeviceHostKeyVerifier(SshHostKeyVerification mode, String storedKeys, TaskContext taskContext) {
-		this.mode = mode == null ? SshHostKeyVerification.TRUST_KNOWN : mode;
+		this.mode = mode == null ? SshHostKeyVerification.TRUST_ANY : mode;
 		this.storedKeys = storedKeys;
 		this.taskContext = taskContext;
 	}

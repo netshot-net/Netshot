@@ -76,7 +76,7 @@ public record DeviceAccess(
 	 * when the access's protocol is SSH).
 	 */
 	public enum SshHostKeyVerification {
-		/** No verification - any presented host key is accepted (historical behavior). */
+		/** No verification - any presented host key is accepted (the default). */
 		TRUST_ANY,
 		/**
 		 * Only host keys listed in {@link DeviceAccess#sshTrustedHostKeys} are accepted - whether that
