@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import net.netshot.netshot.testing.api.v0.V0ContractCase.Builder;
 import net.netshot.netshot.testing.api.v0.V0ContractCase.Reply;
 import net.netshot.netshot.testing.contract.ContractSeed;
-import net.netshot.netshot.testing.contract.Golden.Transform;
 
 /**
  * The catalogue of API contract cases: reads first (they do not change the
@@ -201,8 +200,8 @@ public final class V0ContractCases {
 		c.get("/user");
 		c.get("/users");
 		c.get("/apitokens");
-		c.add(V0ContractCase.builder("GET", "/devicetypes").transform(Transform.DEVICE_TYPES));
-		c.add(V0ContractCase.builder("GET", "/devicetypes").accept(V0ContractCase.XML).transform(Transform.DEVICE_TYPES));
+		c.add(V0ContractCase.builder("GET", "/devicetypes").transform(V0ContractGolden.DEVICE_TYPES));
+		c.add(V0ContractCase.builder("GET", "/devicetypes").accept(V0ContractCase.XML).transform(V0ContractGolden.DEVICE_TYPES));
 
 		// Domains
 		c.get("/domains");
@@ -350,11 +349,11 @@ public final class V0ContractCases {
 
 		// Documentation
 		c.add(V0ContractCase.builder("GET", "/openapi.{type}").variant("json").path("/openapi.json").accept(V0ContractCase.JSON)
-			.transform(Transform.OPENAPI));
+			.transform(V0ContractGolden.OPENAPI));
 		c.add(V0ContractCase.builder("GET", "/openapi.{type}").variant("yaml").path("/openapi.yaml").accept(V0ContractCase.YAML)
-			.transform(Transform.OPENAPI));
+			.transform(V0ContractGolden.OPENAPI));
 		c.add(V0ContractCase.builder("GET", "/openapi").variant("accept").path("/openapi").accept(V0ContractCase.YAML)
-			.transform(Transform.OPENAPI));
+			.transform(V0ContractGolden.OPENAPI));
 
 		// Errors on reads
 		c.get("/devices/{id}", "unknown", () -> "/devices/99999999");
